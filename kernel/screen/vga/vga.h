@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     VGA I/O Functions.
+ * PURPOSE:     VGA I/O Functions Header.
  */
 #ifndef VGA
 #include "../../kernel.h"

@@ -1,3 +1,6 @@
+; * PROJECT:     MatanelOS Kernel
+; * LICENSE:     NONE
+; * PURPOSE:	 Assembly Implementation to call the function for an interrupt.
 [bits 32]
 
 global isr_common_stub
@@ -45,7 +48,7 @@ isr_common_stub:
     ; Push vector number (it's at esp + 56 now, but esp + 52 before we pushed esp)
     push dword [esp + 56]  ; vector_num
     
-    call isr_handler
+    call isr_handler ; Call our isr_handler in isr.c
     add esp, 8            ; clean stack (2 parameters)
     
     ; Send EOI if IRQ

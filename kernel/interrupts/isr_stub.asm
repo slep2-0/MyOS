@@ -1,49 +1,62 @@
+; * PROJECT:     MatanelOS Kernel
+; * LICENSE:     NONE
+; * PURPOSE:	 Assembly implmentation to forward all 
 [bits 32]
+
 
 extern isr_common_stub
 
-%macro DEFINE_ISR 1
+%macro DEFINE_ISR_NO_ERRCODE 1
 global isr%1
 isr%1:
-	CLI ; Clear Interrupts.
-	PUSH DWORD 0 ; Error code placeholder
-	PUSH DWORD %1 ; Vector number
-	JMP isr_common_stub
+    cli
+    push dword 0
+    push dword %1
+    jmp isr_common_stub
 %endmacro
 
-; CPU Exceptions 0-31
-DEFINE_ISR 0
-DEFINE_ISR 1
-DEFINE_ISR 2
-DEFINE_ISR 3
-DEFINE_ISR 4
-DEFINE_ISR 5
-DEFINE_ISR 6
-DEFINE_ISR 7
-DEFINE_ISR 8
-DEFINE_ISR 9
-DEFINE_ISR 10
-DEFINE_ISR 11
-DEFINE_ISR 12
-DEFINE_ISR 13
-DEFINE_ISR 14
-DEFINE_ISR 15
-DEFINE_ISR 16
-DEFINE_ISR 17
-DEFINE_ISR 18
-DEFINE_ISR 19
-DEFINE_ISR 20
-DEFINE_ISR 21
-DEFINE_ISR 22
-DEFINE_ISR 23
-DEFINE_ISR 24
-DEFINE_ISR 25
-DEFINE_ISR 26
-DEFINE_ISR 27
-DEFINE_ISR 28
-DEFINE_ISR 29
-DEFINE_ISR 30
-DEFINE_ISR 31
+%macro DEFINE_ISR_ERRCODE 1
+global isr%1
+isr%1:
+    cli
+    push dword %1
+    jmp isr_common_stub
+%endmacro
+
+
+; CPU Exceptions 0-31 - Added implementation for error code ISR's, before it was a placeholder, now if we get a page fault we can know we got it.
+DEFINE_ISR_NO_ERRCODE 0    ; #DE Divide Error (Divide-by-zero) — no error code
+DEFINE_ISR_NO_ERRCODE 1    ; #DB Debug Exception — no error code
+DEFINE_ISR_NO_ERRCODE 2    ; NMI Non-Maskable Interrupt — no error code
+DEFINE_ISR_NO_ERRCODE 3    ; #BP Breakpoint Exception — no error code
+DEFINE_ISR_NO_ERRCODE 4    ; #OF Overflow Exception — no error code
+DEFINE_ISR_NO_ERRCODE 5    ; #BR BOUND Range Exceeded — no error code
+DEFINE_ISR_NO_ERRCODE 6    ; #UD Invalid Opcode — no error code
+DEFINE_ISR_NO_ERRCODE 7    ; #NM Device Not Available (No Math Coprocessor) — no error code
+DEFINE_ISR_ERRCODE    8    ; #DF Double Fault — has error code
+DEFINE_ISR_NO_ERRCODE 9    ; Coprocessor Segment Overrun (reserved/obsolete) — no error code
+DEFINE_ISR_ERRCODE    10   ; #TS Invalid TSS — has error code
+DEFINE_ISR_ERRCODE    11   ; #NP Segment Not Present — has error code
+DEFINE_ISR_ERRCODE    12   ; #SS Stack-Segment Fault — has error code
+DEFINE_ISR_ERRCODE    13   ; #GP General Protection Fault — has error code
+DEFINE_ISR_ERRCODE    14   ; #PF Page Fault — has error code
+DEFINE_ISR_NO_ERRCODE 15   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 16   ; #MF x87 FPU Floating-Point Error — no error code
+DEFINE_ISR_ERRCODE    17   ; #AC Alignment Check — has error code
+DEFINE_ISR_NO_ERRCODE 18   ; #MC Machine Check — no error code (uses MSRs)
+DEFINE_ISR_NO_ERRCODE 19   ; #XM SIMD Floating-Point Exception — no error code
+DEFINE_ISR_NO_ERRCODE 20   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 21   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 22   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 23   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 24   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 25   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 26   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 27   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 28   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 29   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 30   ; Reserved — no error code
+DEFINE_ISR_NO_ERRCODE 31   ; Reserved — no error code
 
 ; IRQs 0-15 map to vectors 32-47
 %macro DEFINE_IRQ 1

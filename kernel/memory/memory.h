@@ -12,7 +12,7 @@
 extern char kernel_end;
 
 /* Heap Size */
-#define HEAP_SIZE   (1024 * 1024)
+#define HEAP_SIZE   (1024 * 1024) // 1 MiB MAX. You may change it to an upper limit of 3.9GB.
 
 /* Start and end of the heap region */
 #define HEAP_START ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFF) & ~0xFFF)))

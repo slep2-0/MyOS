@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     VGA I/O Functions IMPLEMENTATION.
+ * PURPOSE:     VGA I/O Functions Implementation.
  */
 
 #include "vga.h"
