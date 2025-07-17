@@ -21,10 +21,35 @@ int make_color(int foreground, int background) {
 }
 
 void print_to_screen(char* text, int color) {
-	/* Setup a pointer to video memory (VGA x86) */
-	char* video_memory = (char*)0xB8000;
-	for (int i = 0; text[i] != '\0'; i++) {
-		video_memory[i * 2] = text[i]; // I * 2 because we go straight to the text buffer, since i++ will give us the next iteration of I, which would be color->text->color, now we go straight to the next 2 bytes, which are text,color.
-		video_memory[i * 2 + 1] = color;
-	}
+    volatile char* video_memory = (volatile char*)0xB8000;
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = text[i];
+
+        if (c == '\r') {
+            // the most left
+            cursor_x = 0;
+        }
+        else if (c == '\n') {
+            cursor_x = 0;
+            // down.
+            cursor_y++;
+        }
+        else {
+            int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            video_memory[offset] = c;
+            video_memory[offset + 1] = color;
+            cursor_x++;
+        }
+
+        // Handle line wrap
+        if (cursor_x >= VGA_WIDTH) {
+            cursor_x = 0;
+            cursor_y++;
+        }
+
+        if (cursor_y >= VGA_HEIGHT) {
+            cursor_y = 0; // or scroll screen up
+        }
+    }
 }
