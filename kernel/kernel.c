@@ -9,7 +9,8 @@ void kernel_main(void) {
 	clear_screen(COLOR_BLACK);
 	init_heap();      
 	init_interrupts();
-	init_timer(100);  
+	init_timer(100);
+	init_keyboard();
 	set_hardware_cursor_position(500, 500);
 	print_to_screen("Kernel Reached.\r\n", COLOR_GREEN);
 	print_to_screen("Enabling Interrupts...\r\n", COLOR_CYAN);

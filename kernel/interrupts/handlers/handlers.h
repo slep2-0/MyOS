@@ -11,9 +11,13 @@
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_STATUS_PORT 0x64
 
+// Initialize keyboard left shift and left control to 0.
+void init_keyboard();
 // Handle keyboard interruptions.
 void keyboard_handler();
+// Initiate timer with a specified frequency.
 void init_timer(unsigned long int frequency);
+// Handle Timer Interruptions.
 void timer_handle();
 #endif
 

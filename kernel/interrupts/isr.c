@@ -7,6 +7,13 @@
 
 #include "idt.h"
 
+const bool has_error_code[] = {
+    false, false, false, false, false, false, false, false, // 0-7
+    true,  false, true,  true,  true,  true,  true,  false, // 8-15
+    false, false, false, false, false, false, false, false, // 16-23
+    false, false, false, false, false, false, false, false  // 24-31
+};
+
 void isr_handler(int vec_num, REGS* r) {
     // Print exception or IRQ number for now, no interrupt handling.
 
@@ -28,7 +35,7 @@ void isr_handler(int vec_num, REGS* r) {
         print_to_screen(" \r\n", COLOR_BLACK);
     }
 
-    if (r->error_code && r->error_code != 16) {
+    if (r->error_code && has_error_code[vec_num]) {
         print_to_screen("Error Code: ", COLOR_YELLOW);
         print_dec(r->error_code, COLOR_WHITE);
         print_to_screen(" \r\n", COLOR_BLACK);
