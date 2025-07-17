@@ -1,5 +1,5 @@
 /* linker.ld - Fixed version */
-ENTRY(kernel_main)
+ENTRY(_start)
 
 SECTIONS
 {

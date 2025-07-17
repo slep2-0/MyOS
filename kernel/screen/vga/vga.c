@@ -43,6 +43,20 @@ void print_to_screen(char* text, int color) {
             cursor_y++;
         }
 
+        else if (c == '\b') {
+            if (cursor_x > 0) {
+                cursor_x--;
+            }
+            else if (cursor_y > 0) {
+                cursor_y--;
+                cursor_x = 79; // move to the end of the previous line (remember the absolute end is 80)
+            }
+
+            int position = (cursor_y * 80 + cursor_x) * 2;
+            video_memory[position] = ' '; // overwrite the character
+            video_memory[position + 1] = COLOR_BLACK; // clear it (black screen behind)
+        }
+
         else {
             int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
             video_memory[offset] = c;
@@ -60,4 +74,32 @@ void print_to_screen(char* text, int color) {
             cursor_y = 0; // or scroll screen up
         }
     }
+}
+
+// Convert an unsigned int to a decimal string and print it.
+void print_dec(unsigned int num, int color) {
+    char buf[12];   // enough for “4294967295\0”
+    int i = 0;
+
+    if (num == 0) {
+        buf[i++] = '0';
+    }
+    else {
+        // build digits in reverse
+        while (num > 0 && (unsigned)i < sizeof(buf) - 1) {
+            buf[i++] = '0' + (num % 10); // Get the least significant bit first, if we wouldn't do in reverse, 1234 would be 4321.
+            num /= 10;
+        }
+    }
+    buf[i] = '\0';
+
+    // reverse the buffer
+    for (int j = 0; j < i / 2; j++) {
+        char tmp = buf[j];
+        buf[j] = buf[i - 1 - j];
+        buf[i - 1 - j] = tmp;
+    }
+
+    // now print the string
+    print_to_screen(buf, color);
 }

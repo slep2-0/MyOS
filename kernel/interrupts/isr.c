@@ -1,0 +1,41 @@
+/*
+ * PROJECT:     MatanelOS Kernel
+ * LICENSE:     NONE
+ * PURPOSE:		IMPLEMENTATION To SETUP ISR Handler.
+ */
+
+#include "idt.h"
+
+void isr_handler(int vec_num, REGS* r) {
+    // Print exception or IRQ number for now, no interrupt handling.
+
+    // keyboard interrupt
+    if (vec_num == 33) {
+        keyboard_handler();
+        return;
+    }
+
+    if (vec_num < 32) {
+        print_to_screen("Exception: ", COLOR_RED);
+        print_dec(vec_num, COLOR_WHITE);
+        print_to_screen(" \r\n", COLOR_BLACK);
+    }
+
+    if (r->error_code && r->error_code != 16) {
+        print_to_screen("Error Code: ", COLOR_YELLOW);
+        print_dec(r->error_code, COLOR_WHITE);
+        print_to_screen(" \r\n", COLOR_BLACK);
+    }
+    return;
+    /*
+    else {
+        print_to_screen("IRQ: ", COLOR_BLUE);
+        print_dec(vec_num - 32, COLOR_WHITE);
+        print_to_screen(" \r\n", COLOR_BLACK);
+    }
+    */
+}
+
+void init_interrupts() {
+	install_idt();
+}

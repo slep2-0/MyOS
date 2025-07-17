@@ -1,5 +1,6 @@
 #ifndef X86_INTRINSICS_H
 #define X86_INTRINSICS_H
+#include "../kernel.h"
 
 // Disable interrupts (cli)
 static inline void __cli() {
@@ -27,12 +28,6 @@ static inline unsigned long int __read_cr0() {
 static inline void __write_cr0(unsigned long int val) {
     __asm__ volatile ("mov %0, %%cr0" :: "r"(val));
 }
-
-// Load IDT: lidt
-typedef struct _IDT_PTR {
-    unsigned short limit;
-    unsigned long int base;
-} IDT_PTR;
 
 static inline void __lidt(void* idt_ptr) {
     __asm__ volatile ("lidt (%0)" :: "r"(idt_ptr));

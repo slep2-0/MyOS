@@ -20,7 +20,7 @@ start:
     mov es, ax
     xor bx, bx          ; offset 0x0000
     mov ah, 0x02        ; BIOS read sectors function
-    mov al, 3          	; number of sectors to read
+    mov al, 10          	; number of sectors to read
     mov ch, 0           ; cylinder 0
     mov cl, 6           ; sector 6 (stage1=1 + stage2=4 + 1 = sector 6)
     mov dh, 0           ; head 0

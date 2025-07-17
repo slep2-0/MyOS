@@ -7,69 +7,72 @@ OBJCOPY = i686-elf-objcopy
 # Flags
 ASMFLAGS_ELF = -f elf32
 ASMFLAGS_BIN = -f bin
-CFLAGS = -m32 -ffreestanding -c
-LDFLAGS = -T kernel/linker.ld -static -nostdlib
+CFLAGS = -m32 -ffreestanding -c -Wall -Wextra
+LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_i386
 
-# Paths
-BUILD = build
+# Targets
+all: build/os-image.img
 
-ASM_SRC = kernel/kernel_entry.asm
-C_SRCS = kernel/kernel.c kernel/screen/vga/vga.c
-
-ASM_OBJ = $(BUILD)/kernel_entry.o
-C_OBJS = $(BUILD)/kernel.o $(BUILD)/vga.o
-
-TARGET_ELF = $(BUILD)/kernel.elf
-TARGET_BIN = $(BUILD)/kernel.bin
-
-BOOT1_SRC = boot/bootloader.asm
-BOOT2_SRC = boot/bootloader_stage2.asm
-
-BOOT1_BIN = $(BUILD)/bootloader.bin
-BOOT2_BIN = $(BUILD)/bootloader_stage2.bin
-
-OS_IMAGE = $(BUILD)/os-image.bin
-
-# Default target
-all: $(BOOT1_BIN) $(BOOT2_BIN) $(TARGET_BIN) $(OS_IMAGE)
-
-# Clean target
 clean:
-	del $(BUILD)\*.o $(TARGET_ELF) $(TARGET_BIN) $(BOOT1_BIN) $(BOOT2_BIN) $(OS_IMAGE) 2>nul || echo
+	del /Q build\*.o build\*.bin build\*.elf build\os-image.img 2>nul || echo
 
-# Assemble kernel_entry.asm (ELF object)
-$(ASM_OBJ): $(ASM_SRC)
+# Compile C files
+build/kernel.o: kernel/kernel.c
+	@mkdir "build" 2>nul || rem
+	$(CC) $(CFLAGS) $< -o $@
+
+build/vga.o: kernel/screen/vga/vga.c
+	@mkdir "build" 2>nul || rem
+	$(CC) $(CFLAGS) $< -o $@
+
+build/idt.o: kernel/interrupts/idt.c
+	@mkdir "build" 2>nul || rem
+	$(CC) $(CFLAGS) $< -o $@
+
+build/isr.o: kernel/interrupts/isr.c
+	@mkdir "build" 2>nul || rem
+	$(CC) $(CFLAGS) $< -o $@
+	
+build/handlers.o: kernel/interrupts/handlers/handlers.c
+	@mkdir "build" 2>nul || rem
+	$(CC) $(CFLAGS) $< -o $@
+
+# Assemble ASM to ELF
+build/kernel_entry.o: kernel/kernel_entry.asm
+	@mkdir "build" 2>nul || rem
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@
 
-# Compile kernel.c
-$(BUILD)/kernel.o: kernel/kernel.c
-	$(CC) $(CFLAGS) $< -o $@
+build/isr_stub.o: kernel/interrupts/isr_stub.asm
+	@mkdir "build" 2>nul || rem
+	$(ASM) $(ASMFLAGS_ELF) $< -o $@
 
-# Compile vga.c
-$(BUILD)/vga.o: kernel/screen/vga/vga.c
-	$(CC) $(CFLAGS) $< -o $@
+build/isr_common_stub.o: kernel/interrupts/isr_common_stub.asm
+	@mkdir "build" 2>nul || rem
+	$(ASM) $(ASMFLAGS_ELF) $< -o $@
 
-# Link ELF kernel
-$(TARGET_ELF): $(ASM_OBJ) $(C_OBJS)
-	$(LD) $(LDFLAGS) $^ -o $@
+# Link kernel
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/vga.o build/idt.o build/isr.o build/handlers.o build/isr_stub.o build/isr_common_stub.o kernel/linker.ld
+	@mkdir "build" 2>nul || rem
+	$(LD) $(LDFLAGS) -o $@ $^
 
-# Convert ELF kernel to binary
-$(TARGET_BIN): $(TARGET_ELF)
+# Convert to flat binary
+build/kernel.bin: build/kernel.elf
 	$(OBJCOPY) -O binary $< $@
 	@cls
 	@echo Successfully Compiled and Linked Kernel
 
-# Assemble stage 1 bootloader (binary, flat 512 bytes)
-$(BOOT1_BIN): $(BOOT1_SRC)
+# Assemble bootloaders
+build/bootloader.bin: boot/bootloader.asm
+	@mkdir "build" 2>nul || rem
 	$(ASM) $(ASMFLAGS_BIN) $< -o $@
 
-# Assemble stage 2 bootloader (binary)
-$(BOOT2_BIN): $(BOOT2_SRC)
+build/bootloader_stage2.bin: boot/bootloader_stage2.asm
+	@mkdir "build" 2>nul || rem
 	$(ASM) $(ASMFLAGS_BIN) $< -o $@
 
-# Create final OS bootable image by concatenating bootloaders and kernel
-$(OS_IMAGE): $(BOOT1_BIN) $(BOOT2_BIN) $(TARGET_BIN)
-	copy /b "$(BUILD)\bootloader.bin" + "$(BUILD)\bootloader_stage2.bin" + "$(BUILD)\kernel.bin" "$(BUILD)\os-image.img" >nul
+# Combine all to final image
+build/os-image.img: build/bootloader.bin build/bootloader_stage2.bin build/kernel.bin
+	copy /b build\bootloader.bin + build\bootloader_stage2.bin + build\kernel.bin build\os-image.img >nul
 	@echo Created OS image successfully.
 
 .PHONY: all clean

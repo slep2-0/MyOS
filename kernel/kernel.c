@@ -6,7 +6,13 @@
 #include "kernel.h"
 
 void kernel_main(void) {
-	print_to_screen("Kernel Reached.\n\r", COLOR_GREEN);
-	__hlt();
-	// END of the kernel, should never be reached on a normal basis, if it reaches here the cpu halts. -> hlt
+	clear_screen(COLOR_BLACK);
+	print_to_screen("Kernel Reached.\r\n", COLOR_GREEN);
+	print_to_screen("Enabling Interrupts...\r\n", COLOR_BLUE);
+	init_interrupts();
+	while (1) {
+		// Keep kernel ALWAYS running, while loop.
+		// HALT Instruction will halt the CPU until the next interrupt occurs.
+		__hlt();
+	}
 }

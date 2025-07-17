@@ -37,4 +37,7 @@ int make_color(int foreground, int background);
 // Prints to the screen with the specified text and color
 // Usage: color -> make_color(foreground, background); use color definitions. COLOR_XXXX
 void print_to_screen(char* text, int color);
+
+// Convert an unsigned decimal int into an ASCII Character number, and print to screen.
+void print_dec(unsigned int num, int color);
 #endif
