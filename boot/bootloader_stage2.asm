@@ -1,4 +1,4 @@
-; stage2.asm - Fixed version
+; stage2.asm - Fixed version -- Crucial error, 16 bit code (that used BIOS) was implemented in [bits 32], so it could not call the BIOS correctly, caused a fatal error, fixed.
 org 0x8000
 [bits 16]
 
@@ -27,7 +27,6 @@ start:
     mov dl, 0x80    	; Use the SAME drive as stage 1 (stored at 0x7C00) -- I didn't read from it at the end, because I explictly said to load from an hard drive in QtEMU, besides, who uses floppy disks today?
     int 0x13            ; BIOS disk interrupt
     jc disk_error       ; jump if carry flag set (error)
-    
     ; Load GDT
     lgdt [gdt_descriptor]
     
@@ -71,8 +70,36 @@ gdt_descriptor:
     dd gdt_start
 gdt_end:
 
+pm_failed:
+	mov si, msg_kernel_panic
+	call print_string
+	hlt
+	
+disk_error:
+    mov si, msg_disk_error
+    call print_string
+    hlt
+    
+print_string:
+    mov ah, 0x0E
+.next_char:
+    lodsb
+    cmp al, 0
+    je .done
+    int 0x10
+    jmp .next_char
+.done:
+    ret
+
+msg_disk_error db 'DISK ERROR!', 0xD, 0xA, 0
+msg_kernel_panic db 'KERNEL PANIC (dont be scared): Could not enter protected mode, are you sure your system is capable? HANGING.',0
+
 [bits 32]
 protected_mode_entry:
+	mov eax, cr0
+    test eax, 1          ; mask off bit 0 (PE)
+    jz pm_failed         ; if zero, we never entered PM
+
     ; Set up segments
     mov ax, 0x10
     mov ds, ax
@@ -101,24 +128,5 @@ protected_mode_entry:
     
     ; Jump to kernel
     jmp dword 0x08:0x10000
-    
-disk_error:
-    mov si, msg_disk_error
-    call print_string
-    hlt
-    
-print_string:
-    mov ah, 0x0E
-.next_char:
-    lodsb
-    cmp al, 0
-    je .done
-    int 0x10
-    jmp .next_char
-.done:
-    ret
-
-msg_disk_error db 'DISK ERROR!', 0xD, 0xA, 0
-
 ; Pad to 2048 bytes
 times 2048 - ($ - $$) db 0
