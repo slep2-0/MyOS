@@ -23,20 +23,58 @@ char scancode_to_ascii_shift[] = {
     '*', 0, ' '
 };
 
+extern int cursor_x;
+extern int cursor_y;
 
 bool shift_pressed = false;
 bool ctrl_pressed = false;
 bool caps_lock_on = false;
+bool extended_scancode = false;
 
 void init_keyboard() {
     shift_pressed = false;
     ctrl_pressed = false;
     caps_lock_on = false;
+    extended_scancode = false;
 }
 
 void keyboard_handler() {
     // Read the scan port from the status port.
     unsigned char scancode = __inbyte(KEYBOARD_DATA_PORT);
+
+    // Extended scancode recognition.
+    if (scancode == 0xE0) {
+        extended_scancode = true;
+        __outbyte(0x20, PIC_EOI); //ack
+        return;
+    }
+
+    if (extended_scancode) {
+        // second byte of extended scancode.
+        switch (scancode) {
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_UP:
+            cursor_y--; // reveresd, even though it's - on the y scale, it goes up on screen.
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI); //ack
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_DOWN:
+            cursor_y++;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_RIGHT:
+            cursor_x++;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_LEFT:
+            cursor_x--;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        }
+    }
+
     // Check if it's a key press, bit 7 of the inbyte.
     // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
     if (!(scancode & 0x80)) {

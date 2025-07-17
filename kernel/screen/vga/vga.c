@@ -5,10 +5,10 @@
  */
 
 #include "vga.h"
-
-static int cursor_x = 0;
-static int cursor_y = 0;
-static int cursor_visible = 0;
+// didn't know static made variables PRIVATE to the file only, so I couldn't externally link them to another object file (handlers.o), removed static.
+int cursor_x = 0;
+int cursor_y = 0;
+int cursor_visible = 0;
 
 /* Clear the entire screen */
 void clear_screen(unsigned char color) {
@@ -125,18 +125,30 @@ void set_hardware_cursor_position(int x, int y) {
     __outbyte(VGA_DATA_REG, (unsigned char)((pos >> 8) & 0xFF));
 }
 
+int old_cursor_x = 0, old_cursor_y = 0;
+char char_under_cursor = ' ';  // character under current cursor
+
+void update_char_under_cursor() {
+    volatile char* video_memory = (volatile char*)0xB8000;
+    int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+    char_under_cursor = video_memory[offset];
+}
+
+
 void blink_cursor() {
     volatile char* video_memory = (volatile char*)0xB8000;
     int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
 
     if (cursor_visible) {
-        video_memory[offset] = ' ';  // Clear
+        // Restore original character
+        video_memory[offset] = char_under_cursor;
         video_memory[offset + 1] = COLOR_WHITE;
         cursor_visible = 0;
     }
     else {
-        video_memory[offset] = '_';  // Draw
-        video_memory[offset + 1] = COLOR_WHITE;
+        // Save current character before drawing _
+        char_under_cursor = video_memory[offset];
+        video_memory[offset] = '_';
         cursor_visible = 1;
     }
 }

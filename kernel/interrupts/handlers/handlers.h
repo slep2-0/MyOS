@@ -18,6 +18,6 @@ void keyboard_handler();
 // Initiate timer with a specified frequency.
 void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
-void timer_handle();
+void timer_handler();
 #endif
 
