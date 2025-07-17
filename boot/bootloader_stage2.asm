@@ -24,7 +24,7 @@ start:
     mov ch, 0           ; cylinder 0
     mov cl, 6           ; sector 6 (stage1=1 + stage2=4 + 1 = sector 6)
     mov dh, 0           ; head 0
-    mov dl, 0x80    	; Use the SAME drive as stage 1 (stored at 0x7C00)
+    mov dl, 0x80    	; Use the SAME drive as stage 1 (stored at 0x7C00) -- I didn't read from it at the end, because I explictly said to load from an hard drive in QtEMU, besides, who uses floppy disks today?
     int 0x13            ; BIOS disk interrupt
     jc disk_error       ; jump if carry flag set (error)
     
