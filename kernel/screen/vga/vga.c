@@ -1,3 +1,9 @@
+/*
+ * PROJECT:     MatanelOS Kernel
+ * LICENSE:     NONE
+ * PURPOSE:     VGA I/O Functions IMPLEMENTATION.
+ */
+
 #include "vga.h"
 
 static int cursor_x = 0;
@@ -30,11 +36,13 @@ void print_to_screen(char* text, int color) {
             // the most left
             cursor_x = 0;
         }
+
         else if (c == '\n') {
             cursor_x = 0;
             // down.
             cursor_y++;
         }
+
         else {
             int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
             video_memory[offset] = c;

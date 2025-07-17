@@ -3,7 +3,8 @@
  * LICENSE:     NONE
  * PURPOSE:     VGA I/O Functions.
  */
-
+#ifndef VGA
+#define VGA
 /* VGA Text Mode Constants */
 #define VGA_MEMORY 0xB8000
 #define VGA_WIDTH 80
@@ -36,3 +37,4 @@ int make_color(int foreground, int background);
 // Prints to the screen with the specified text and color
 // Usage: color -> make_color(foreground, background); use color definitions. COLOR_XXXX
 void print_to_screen(char* text, int color);
+#endif

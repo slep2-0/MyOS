@@ -6,11 +6,7 @@
 #include "kernel.h"
 
 void kernel_main(void) {
-	//print_to_screen(text, make_color(0xF, 0x0));
-	clear_screen(COLOR_BLACK);
-	char* text = "First Line\r\n";
-	print_to_screen(text, COLOR_GREEN);
-	text = "Second Line";
-	print_to_screen(text, COLOR_RED);
+	print_to_screen("Kernel Reached.\n\r", COLOR_GREEN);
+	__hlt();
 	// END of the kernel, should never be reached on a normal basis, if it reaches here the cpu halts. -> hlt
 }
