@@ -8,6 +8,7 @@
 
 static int cursor_x = 0;
 static int cursor_y = 0;
+static int cursor_visible = 0;
 
 /* Clear the entire screen */
 void clear_screen(unsigned char color) {
@@ -33,6 +34,10 @@ void print_to_screen(char* text, int color) {
         char c = text[i];
 
         if (c == '\r') {
+            // remove cursor when doing a carriage return.
+            int old_offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            video_memory[old_offset] = ' ';
+            video_memory[old_offset + 1] = COLOR_WHITE;
             // the most left
             cursor_x = 0;
         }
@@ -44,17 +49,23 @@ void print_to_screen(char* text, int color) {
         }
 
         else if (c == '\b') {
+            int old_offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            video_memory[old_offset] = ' ';
+            video_memory[old_offset + 1] = COLOR_WHITE;
+            // it didn't delete the cursor before since it went back first so it essentially "skipped" over that video memory of the cursor.
             if (cursor_x > 0) {
                 cursor_x--;
             }
             else if (cursor_y > 0) {
                 cursor_y--;
-                cursor_x = 79; // move to the end of the previous line (remember the absolute end is 80)
+                cursor_x = 79;
             }
 
-            int position = (cursor_y * 80 + cursor_x) * 2;
-            video_memory[position] = ' '; // overwrite the character
-            video_memory[position + 1] = COLOR_BLACK; // clear it (black screen behind)
+            int position = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            video_memory[position] = ' ';             
+            video_memory[position + 1] = COLOR_WHITE; 
+
+            cursor_visible = 0;
         }
 
         else {
@@ -105,7 +116,7 @@ void print_dec(unsigned int num, int color) {
     print_to_screen(buf, color);
 }
 
-void set_cursor_position(int x, int y) {
+void set_hardware_cursor_position(int x, int y) {
     unsigned short pos = y * VGA_WIDTH + x;
 
     __outbyte(VGA_CTRL_REG, VGA_CURSOR_LOW);
@@ -113,8 +124,6 @@ void set_cursor_position(int x, int y) {
     __outbyte(VGA_CTRL_REG, VGA_CURSOR_HIGH);
     __outbyte(VGA_DATA_REG, (unsigned char)((pos >> 8) & 0xFF));
 }
-
-static int cursor_visible = 0;
 
 void blink_cursor() {
     volatile char* video_memory = (volatile char*)0xB8000;

@@ -1,3 +1,9 @@
+/*
+ * PROJECT:     MatanelOS Kernel
+ * LICENSE:     NONE
+ * PURPOSE:     Implementation of handler functions for interrupts.
+ */
+
 #include "handlers.h"
 
 char scancode_to_ascii[] = {

@@ -49,6 +49,6 @@ void print_to_screen(char* text, int color);
 void print_dec(unsigned int num, int color);
 
 // Set the Current CURSOR position "_"
-//void set_cursor_position(int x, int y);
+void set_hardware_cursor_position(int x, int y);
 void blink_cursor();
 #endif
