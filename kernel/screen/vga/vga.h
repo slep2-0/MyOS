@@ -56,5 +56,6 @@ void blink_cursor();
 void print_hex(unsigned int value, int color);
 
 // Custom made printf -- supports %x for pointers (hex 0001000), decimal %d (%d -> 1234) and standard chars.
-void myos_printf(const char* fmt, int color, ...);
+//void myos_printf_safe(int color, const char* fmt, ...);
+void myos_printf(int color, const char* fmt, int int_val, const char* str_val, unsigned int hex_val);
 #endif

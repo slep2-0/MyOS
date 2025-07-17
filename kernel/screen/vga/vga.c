@@ -141,61 +141,56 @@ void blink_cursor() {
     }
 }
 
-void myos_printf(const char* fmt, int color, ...) {
-    va_list args;
-    va_start(args, color);
-    // loop through all text until we hit a null terminator.
+// fixed version, variadic doesn't work...
+void myos_printf(int color, const char* fmt, int int_val, const char* str_val, unsigned int hex_val) {
     for (int i = 0; fmt[i] != '\0'; i++) {
-        // when we find the format specifider
         if (fmt[i] == '%' && fmt[i + 1] != '\0') {
-            // increment I to to get next char.
-            i++;
+            i++; // Skip the '%'
             char spec = fmt[i];
-            // check for which specifier it is.
+
             if (spec == 'd') {
-                int val = va_arg(args, int);
-                print_dec((unsigned int)val, color);
-            }
-            else if (spec == 'x') {
-                unsigned int val = va_arg(args, unsigned int);
-                print_hex(val, color);
+                print_dec((unsigned int)int_val, color);
             }
             else if (spec == 's') {
-                char* str = va_arg(args, char*);
-                print_to_screen(str, color);
+                if (str_val) {
+                    print_to_screen((char*)str_val, color);
+                }
             }
-            else if (spec == 'c') {
-                char ch = (char)va_arg(args, int);
-                char s[2] = { ch, '\0' };
-                print_to_screen(s, color);
+            else if (spec == 'x') {
+                print_hex(hex_val, color);
             }
             else {
-                // unknown specifier, js print it.
-                print_to_screen("%", color);
-                char s[2] = { spec, '\0' };
+                // Unknown specifier, just print it
+                char s[2] = { '%', '\0' };
                 print_to_screen(s, color);
+                char s2[2] = { spec, '\0' };
+                print_to_screen(s2, color);
             }
         }
         else {
-            // no specifiers, just print it and add a null terminator at the end.
+            // Regular character
             char s[2] = { fmt[i], '\0' };
             print_to_screen(s, color);
         }
     }
-
-    va_end(args);
 }
 
 void print_hex(unsigned int value, int color) {
     char buf[9];
-    const char* hex_digits = "0123456789ABCDEF";
 
     // Produce exactly 8 hex digits
     for (int i = 0; i < 8; i++) {
         // take the highest nibble first
         unsigned int shift = (7 - i) * 4;
         unsigned int nibble = (value >> shift) & 0xF;
-        buf[i] = hex_digits[nibble];
+
+        // Convert nibble to hex character manually
+        if (nibble < 10) {
+            buf[i] = '0' + nibble;
+        }
+        else {
+            buf[i] = 'A' + (nibble - 10);
+        }
     }
     buf[8] = '\0';
 
