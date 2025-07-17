@@ -31,4 +31,7 @@ SECTIONS
         *(.note*)
         *(.eh_frame)
     }
+	
+	/* Define symbol marking the end of the kernel binary */
+	PROVIDE(kernel_end = .);
 }

@@ -140,3 +140,20 @@ void blink_cursor() {
         cursor_visible = 1;
     }
 }
+
+void print_hex(unsigned int value, int color) {
+    char buf[9];
+    const char* hex_digits = "0123456789ABCDEF";
+
+    // Produce exactly 8 hex digits
+    for (int i = 0; i < 8; i++) {
+        // take the highest nibble first
+        unsigned int shift = (7 - i) * 4;
+        unsigned int nibble = (value >> shift) & 0xF;
+        buf[i] = hex_digits[nibble];
+    }
+    buf[8] = '\0';
+
+    print_to_screen(buf, color);
+    print_to_screen(" ", color);  // trailing space for readability
+}
