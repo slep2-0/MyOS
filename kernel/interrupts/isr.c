@@ -11,13 +11,13 @@ void isr_handler(int vec_num, REGS* r) {
     // Print exception or IRQ number for now, no interrupt handling.
 
     // keyboard interrupt
-    if (vec_num == 33) {
+    if (vec_num == 33) { // 0x21
         keyboard_handler();
         return;
     }
 
     // timer
-    if (vec_num == 32) {
+    if (vec_num == 32) { // 0x20
         timer_handler();
         return;
     }
