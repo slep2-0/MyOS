@@ -4,8 +4,12 @@ Currently super barebones - has a 2 stage bootloader (if this ever continues, bc
 
 Stage 1 -> Stage 2 -> Kernel.
 
-The kernel only supports printing to VGA buffer on the screen.
-
 Tested with QEMU, built with gcc ffreestanding for no runtime libraries.
 
 Use this and the linker script at kernel/ to compile&link. - https://github.com/lordmilko/i686-elf-tools
+
+
+**SUPPORTED FEATURES:**
+
+`Interrupts -- basic keyboard interrupt to write to screen`
+`VGA Output buffer, writing to VGA video memory`
