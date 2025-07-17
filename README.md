@@ -11,5 +11,10 @@ Use this and the linker script at kernel/ to compile&link. - https://github.com/
 
 **SUPPORTED FEATURES:**
 
+
 `Interrupts -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`
+
+`Memory Managment -- basic kmalloc and kfree to allocate and deallocate memory to/from the heap.`
+
 `VGA Output buffer, writing to VGA video memory`
+
