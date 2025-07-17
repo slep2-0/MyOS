@@ -16,5 +16,5 @@ Use this and the linker script at kernel/ to compile&link. - https://github.com/
 
 `Memory Managment -- basic kmalloc and kfree to allocate and deallocate memory to/from the heap. -- 1MB max, can be 3.9GB if you really wish to, this is a 32bit system using protected mode after all.`
 
-`VGA Output buffer, writing to VGA video memory`
+`VGA Output buffer, writing to VGA video memory -> has printf, or basic writing.`
 
