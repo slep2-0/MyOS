@@ -59,6 +59,7 @@ void print_to_screen(char* text, int color) {
 
         else {
             int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            //set_cursor_position(cursor_x + 1, cursor_y);
             video_memory[offset] = c;
             video_memory[offset + 1] = color;
             cursor_x++;
@@ -102,4 +103,31 @@ void print_dec(unsigned int num, int color) {
 
     // now print the string
     print_to_screen(buf, color);
+}
+
+void set_cursor_position(int x, int y) {
+    unsigned short pos = y * VGA_WIDTH + x;
+
+    __outbyte(VGA_CTRL_REG, VGA_CURSOR_LOW);
+    __outbyte(VGA_DATA_REG, (unsigned char)(pos & 0xFF));
+    __outbyte(VGA_CTRL_REG, VGA_CURSOR_HIGH);
+    __outbyte(VGA_DATA_REG, (unsigned char)((pos >> 8) & 0xFF));
+}
+
+static int cursor_visible = 0;
+
+void blink_cursor() {
+    volatile char* video_memory = (volatile char*)0xB8000;
+    int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+
+    if (cursor_visible) {
+        video_memory[offset] = ' ';  // Clear
+        video_memory[offset + 1] = COLOR_WHITE;
+        cursor_visible = 0;
+    }
+    else {
+        video_memory[offset] = '_';  // Draw
+        video_memory[offset + 1] = COLOR_WHITE;
+        cursor_visible = 1;
+    }
 }

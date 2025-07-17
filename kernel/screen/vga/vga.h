@@ -4,6 +4,7 @@
  * PURPOSE:     VGA I/O Functions.
  */
 #ifndef VGA
+#include "../../kernel.h"
 #define VGA
 /* VGA Text Mode Constants */
 #define VGA_MEMORY 0xB8000
@@ -28,6 +29,12 @@
 #define COLOR_YELLOW 0xE
 #define COLOR_WHITE 0xF
 
+/* PORT (PIC) Definitions */
+#define VGA_CTRL_REG 0x3D4
+#define VGA_DATA_REG 0x3D5
+#define VGA_CURSOR_LOW  0x0F
+#define VGA_CURSOR_HIGH 0x0E
+
 // Clear the screen with the specified color.
 void clear_screen(unsigned char color);
 
@@ -40,4 +47,8 @@ void print_to_screen(char* text, int color);
 
 // Convert an unsigned decimal int into an ASCII Character number, and print to screen.
 void print_dec(unsigned int num, int color);
+
+// Set the Current CURSOR position "_"
+//void set_cursor_position(int x, int y);
+void blink_cursor();
 #endif

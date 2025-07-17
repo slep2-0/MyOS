@@ -7,6 +7,7 @@
 
 void kernel_main(void) {
 	clear_screen(COLOR_BLACK);
+	init_timer(1);
 	print_to_screen("Kernel Reached.\r\n", COLOR_GREEN);
 	print_to_screen("Enabling Interrupts...\r\n", COLOR_BLUE);
 	init_interrupts();

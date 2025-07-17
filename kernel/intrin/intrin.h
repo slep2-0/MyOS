@@ -65,4 +65,11 @@ static inline void __outbyte(unsigned short port, unsigned char val) {
     __asm__ volatile ("outb %0, %1" :: "a"(val), "Nd"(port));
 }
 
+static inline void send_eoi(unsigned char irq) {
+    if (irq >= 8) {
+        __outbyte(PIC2_COMMAND_SLAVE, PIC_EOI);  // Slave PIC
+    }
+    __outbyte(PIC1_COMMAND_MASTER, PIC_EOI);      // Master PIC
+}
+
 #endif // X86_INTRINSICS_H

@@ -10,6 +10,8 @@
 
 #define IDT_ENTRIES 256
 #define PIC_EOI 0x20
+#define PIC1_COMMAND_MASTER 0x20
+#define PIC2_COMMAND_SLAVE 0xA0
 
 typedef struct __attribute__((packed)) _IDT_PTR {
     unsigned short limit;

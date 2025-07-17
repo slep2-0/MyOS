@@ -13,5 +13,7 @@
 
 // Handle keyboard interruptions.
 void keyboard_handler();
+void init_timer(unsigned long int frequency);
+void timer_handle();
 #endif
 

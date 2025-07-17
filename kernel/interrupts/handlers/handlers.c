@@ -37,3 +37,24 @@ void keyboard_handler() {
     // Send End Of Interrupt (EOI) to the PIC.
     __outbyte(0x20, PIC_EOI); // Only sent to master since this is a master interrupt.
 }
+
+void init_timer(unsigned long int frequency) {
+    unsigned long int divisor = 1193180 / frequency;
+
+    // Send the command byte
+    __outbyte(0x43, 0x36);  // Channel 0, lobyte/hibyte, mode 3 (square wave)
+
+    // Send the frequency divisor
+    __outbyte(0x40, (unsigned char)(divisor & 0xFF));       // Low byte
+    __outbyte(0x40, (unsigned char)((divisor >> 8) & 0xFF)); // High byte
+}
+
+static int tick = 0;
+static int cursor_last_blink = 0;
+
+void timer_handler() {
+    tick++;
+    if (tick % 20 == 0) {
+        blink_cursor(); // Every 20 timer interrupts
+    }
+}

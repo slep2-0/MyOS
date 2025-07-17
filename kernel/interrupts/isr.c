@@ -2,6 +2,7 @@
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:		IMPLEMENTATION To SETUP ISR Handler.
+ * EXPLANATION: An ISR is what handles the interrupts that gets sent from the CPU (after interrupt is sent to ISR itself), it will do stuff based if it's an exception, or a normal interrupt.
  */
 
 #include "idt.h"
@@ -12,6 +13,12 @@ void isr_handler(int vec_num, REGS* r) {
     // keyboard interrupt
     if (vec_num == 33) {
         keyboard_handler();
+        return;
+    }
+
+    // timer
+    if (vec_num == 32) {
+        timer_handler();
         return;
     }
 
