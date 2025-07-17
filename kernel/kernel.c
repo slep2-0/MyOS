@@ -27,6 +27,16 @@ void kernel_main(void) {
 	print_hex((unsigned int)(uintptr_t)buf3, COLOR_WHITE);
 	print_to_screen(" <- allocated 64 bytes, aligned to 16 byte groups. (number 3 - new address. 64 bytes + sizeof(BLOCK_HEADER) = 72 bytes.)\r\n", COLOR_YELLOW);
 	myos_printf(COLOR_GREEN, "This is the number: %d, and string: %s, and mem address: %x", 0, 0, buf3);
+	char* text = "abcdefghijklmnopqrstuvwxyz";
+	char* ptr = kmalloc(16, 4);
+	for (int i = 0; i < 16; i++) {
+		if (i == 15) {
+			ptr[i] = '\0';
+			break;
+		}
+		ptr[i] = text[i];
+	}
+	print_to_screen(ptr, COLOR_BROWN);
 	// allocate 256 bytes aligned to 16
 	while (1) {
 		// Keep kernel ALWAYS running, while loop.
