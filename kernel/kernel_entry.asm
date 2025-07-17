@@ -1,4 +1,6 @@
-
+; * PROJECT:     MatanelOS Kernel
+; * LICENSE:     NONE
+; * PURPOSE:	 Assembly entry point to kernel_main in kernel.c
 [bits 32]
 
 extern kernel_main ; Declare kernel_main from C code

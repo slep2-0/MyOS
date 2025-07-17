@@ -2,11 +2,6 @@
 ; * LICENSE:     NONE
 ; * PURPOSE:	 Assembly Implementation to call the function for an interrupt.
 [bits 32]
-
-global isr_common_stub
-extern isr_handler
-
-[bits 32]
 global isr_common_stub
 extern isr_handler
 
