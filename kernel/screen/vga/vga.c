@@ -141,6 +141,51 @@ void blink_cursor() {
     }
 }
 
+void myos_printf(const char* fmt, int color, ...) {
+    va_list args;
+    va_start(args, color);
+    // loop through all text until we hit a null terminator.
+    for (int i = 0; fmt[i] != '\0'; i++) {
+        // when we find the format specifider
+        if (fmt[i] == '%' && fmt[i + 1] != '\0') {
+            // increment I to to get next char.
+            i++;
+            char spec = fmt[i];
+            // check for which specifier it is.
+            if (spec == 'd') {
+                int val = va_arg(args, int);
+                print_dec((unsigned int)val, color);
+            }
+            else if (spec == 'x') {
+                unsigned int val = va_arg(args, unsigned int);
+                print_hex(val, color);
+            }
+            else if (spec == 's') {
+                char* str = va_arg(args, char*);
+                print_to_screen(str, color);
+            }
+            else if (spec == 'c') {
+                char ch = (char)va_arg(args, int);
+                char s[2] = { ch, '\0' };
+                print_to_screen(s, color);
+            }
+            else {
+                // unknown specifier, js print it.
+                print_to_screen("%", color);
+                char s[2] = { spec, '\0' };
+                print_to_screen(s, color);
+            }
+        }
+        else {
+            // no specifiers, just print it and add a null terminator at the end.
+            char s[2] = { fmt[i], '\0' };
+            print_to_screen(s, color);
+        }
+    }
+
+    va_end(args);
+}
+
 void print_hex(unsigned int value, int color) {
     char buf[9];
     const char* hex_digits = "0123456789ABCDEF";

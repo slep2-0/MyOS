@@ -54,4 +54,7 @@ void blink_cursor();
 
 // Print HEX digits to screen, lets say print_hex(0x10000, COLOR_WHITE) -> "00010000" (converts to 32bit address.)
 void print_hex(unsigned int value, int color);
+
+// Custom made printf -- supports %x for pointers (hex 0001000), decimal %d (%d -> 1234) and standard chars.
+void myos_printf(const char* fmt, int color, ...);
 #endif

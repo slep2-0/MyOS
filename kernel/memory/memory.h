@@ -6,9 +6,7 @@
 
 #ifndef MEMORY_H
 #define MEMORY_H
-
-#include <stddef.h>   // for size_t
-#include <stdint.h>   // for uintptr_t
+#include "../kernel.h"
 
  /* Symbol defined in linker script, end of loaded kernel */
 extern char kernel_end;
