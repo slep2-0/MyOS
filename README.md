@@ -6,7 +6,7 @@ Currently super barebones - has a 2 stage bootloader (if this ever continues, bc
 
 Stage 1 -> Stage 2 -> Kernel.
 
-Tested with QEMU, built with gcc ffreestanding for no runtime libraries.
+Tested with QEMU, built with gcc ffreestanding for no runtime libraries, and stripped to bare metal using objcopy.
 
 Use this and the linker script at kernel/ to compile&link. - https://github.com/lordmilko/i686-elf-tools
 
