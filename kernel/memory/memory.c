@@ -96,15 +96,28 @@ void coalesce_free_list(void) {
 
 /* Return a block to the free list */
 void kfree(void* ptr) {
-    if (!ptr) return;
+    if (!ptr) {
+#ifdef DEBUG
+        print_to_screen("<-- KFREE() DEBUG --> nullptr passed as argument, returning\r\n", COLOR_RED);
+#endif
+        return;
+    }
 
     /* Get header */
     BLOCK_HEADER* blk = ((BLOCK_HEADER*)ptr) - 1;
-
+#ifdef DEBUG
+    print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
+    print_to_screen("blk: ", COLOR_CYAN);
+    print_hex((unsigned int)(uintptr_t)blk, COLOR_BROWN);
+    print_to_screen("\r\n", COLOR_BLACK);
+#endif
     /* Push it onto the free list */
     blk->next = free_list;
     free_list = blk;
-
+#ifdef DEBUG
+    print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
+    print_to_screen("Pushed the block to the free list.\r\n", COLOR_CYAN);
+#endif
     /* Optionally merge neighbors */
     coalesce_free_list();
 }
