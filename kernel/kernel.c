@@ -37,15 +37,9 @@ void kernel_main(void) {
 	print_hex((unsigned int)(uintptr_t)buf3, COLOR_WHITE);
 	print_to_screen(" <- allocated 64 bytes, aligned to 16 byte groups. (number 3 - new address. 64 bytes + sizeof(BLOCK_HEADER) = 72 bytes.)\r\n", COLOR_LIGHT_GREEN);
 	myos_printf(COLOR_GREEN, "This is the number: %d, and string: %s, and mem address: %x\r\n", 0, 0, buf3);
-	// If DEBUG is defined, it will attempt a page fault test.
-#ifdef DEBUG
-	print_to_screen("Setting buffer to read-only then writing to it for page fault test.\r\n", COLOR_BROWN);
-	set_page_writable(buf3, false);
-	char* byte = (char*)buf3;
-	byte[0] = 'X';
-#endif
 #ifdef CAUSE_BUGCHECK
-	__asm__ volatile ("int $14");
+	int* test = (int*)0xFFFFFFFF;
+	*test = 1;  // Should cause a page fault if unmapped
 #endif
 	while (1) {
 		// Keep kernel ALWAYS running, while loop.

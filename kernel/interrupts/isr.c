@@ -56,7 +56,7 @@ void isr_handler(int vec_num, REGS* r) {
         gpf_handler(r);
         return;
     case EXCEPTION_PAGE_FAULT:
-        pagefault_handler(r->error_code);
+        pagefault_handler(r);
         return;
     case EXCEPTION_RESERVED:
         // reserved, do not use.

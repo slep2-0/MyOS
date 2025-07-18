@@ -20,11 +20,11 @@ void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
 void timer_handler();
 // Handle Page Faults.
-void pagefault_handler(uint32_t error_code);
+void pagefault_handler(REGS* r);
 // Handle Double Fault - Bugcheck.
-void doublefault_handler();
+void doublefault_handler(REGS* r);
 // Handle Division By Zero.
-void dividebyzero_handler();
+void dividebyzero_handler(REGS* r);
 
 // New added.
 

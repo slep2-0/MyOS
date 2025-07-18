@@ -6,7 +6,7 @@
 
 #include "bugcheck.h"
 
-void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code) {
+void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
 	// Critical system error, instead of triple faulting, we hang the system with specified error codes.
 	// Disable interrupts if werent disabled before.
 	__cli();
@@ -59,6 +59,10 @@ void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code) {
 	}
 	else {
 		print_to_screen("ERROR: NO REGISTERS.", COLOR_RED);
+	}
+	if (isAdditionals) {
+		print_to_screen("\r\n\r\nADDITIONALS: ", COLOR_YELLOW);
+		print_hex(additional, COLOR_WHITE);
 	}
 	//test
 	__hlt();

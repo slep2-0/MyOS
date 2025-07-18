@@ -8,14 +8,6 @@
 /* Comment Or Uncomment to allow debugging messages from kernel functions that support it */
 //#define DEBUG
 
-/* Comment or Uncomment to cause a double fault at startup. */
-//#define DOUBLEFAULT
-
-/* If DOUBLEFAULT is defined, define DEBUG. */
-#ifdef DOUBLEFAULT
-#define DEBUG
-#endif
-
 #include <stddef.h> // Standard Library from GCC Freestanding.
 #include <stdbool.h> // Standard library from GCC Freestanding
 #include <stdint.h> // Standard Library from GCC Freestanding.

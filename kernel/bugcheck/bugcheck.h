@@ -31,6 +31,6 @@ typedef enum _BUGCHECK_CODES {
 } BUGCHECK_CODES;
 
 // Function to initiate bugcheck.
-void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code);
+void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
 
 #endif
