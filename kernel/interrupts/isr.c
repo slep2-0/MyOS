@@ -15,36 +15,73 @@ const bool has_error_code[] = {
 };
 
 void isr_handler(int vec_num, REGS* r) {
-    // Print exception or IRQ number for now, no interrupt handling.
-
-    if (vec_num == 14) { // 0x0E - page fault.
+    switch (vec_num) {
+    case EXCEPTION_DIVIDE_BY_ZERO:
+        dividebyzero_handler();
+        return;
+    case EXCEPTION_SINGLE_STEP:
+        debugsinglestep_handler();
+        return;
+    case EXCEPTION_NON_MASKABLE_INTERRUPT:
+        nmi_handler();
+        return;
+    case EXCEPTION_BREAKPOINT:
+        breakpoint_handler();
+        return;
+    case EXCEPTION_OVERFLOW:
+        overflow_handler();
+        return;
+    case EXCEPTION_BOUNDS_CHECK:
+        boundscheck_handler();
+        return;
+    case EXCEPTION_INVALID_OPCODE:
+        invalidopcode_handler();
+        return;
+    case EXCEPTION_NO_COPROCESSOR:
+        nocoprocessor_handler();
+        return;
+    case EXCEPTION_DOUBLE_FAULT:
+        doublefault_handler();
+        return;
+    case EXCEPTION_COPROCESSOR_SEGMENT_OVERRUN:
+        coprocessor_segment_overrun_handler();
+        return;
+    case EXCEPTION_SEGMENT_SELECTOR_NOTPRESENT:
+        segment_selector_not_present_handler();
+        return;
+    case EXCEPTION_INVALID_TSS:
+        invalidtss_handler();
+        return;
+    case EXCEPTION_GENERAL_PROTECTION_FAULT:
+        gpf_handler(r);
+        return;
+    case EXCEPTION_PAGE_FAULT:
         pagefault_handler(r->error_code);
-    }
-
-    // keyboard interrupt
-    if (vec_num == 33) { // 0x21
+        return;
+    case EXCEPTION_RESERVED:
+        // reserved, do not use.
+        return;
+    case EXCEPTION_FLOATING_POINT_ERROR:
+        fpu_handler();
+        return;
+    case EXCEPTION_ALIGNMENT_CHECK:
+        alignment_check_handler();
+        return;
+    case EXCEPTION_SEVERE_MACHINE_CHECK:
+        severe_machine_check_handler();
+        return;
+    case KEYBOARD_INTERRUPT:
         keyboard_handler();
         return;
-    }
-
-    // timer
-    if (vec_num == 32) { // 0x20
+    case TIMER_INTERRUPT:
         timer_handler();
-    }
-
-    if (vec_num < 32) {
+        return;
+    default:
         print_to_screen("Interrupt Exception: ", COLOR_RED);
         print_dec(vec_num, COLOR_WHITE);
         print_to_screen(" \r\n", COLOR_BLACK);
+        return;
     }
-    return;
-    /*
-    else {
-        print_to_screen("IRQ: ", COLOR_BLUE);
-        print_dec(vec_num - 32, COLOR_WHITE);
-        print_to_screen(" \r\n", COLOR_BLACK);
-    }
-    */
 }
 
 void init_interrupts() {

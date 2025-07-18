@@ -13,27 +13,91 @@
 #define PIC1_COMMAND_MASTER 0x20
 #define PIC2_COMMAND_SLAVE 0xA0
 
+ /*
+ Exception Definitions
+ */
+typedef enum _CPU_EXCEPTIONS {
+    EXCEPTION_DIVIDE_BY_ZERO,
+    EXCEPTION_SINGLE_STEP,
+    EXCEPTION_NON_MASKABLE_INTERRUPT,
+    EXCEPTION_BREAKPOINT,
+    EXCEPTION_OVERFLOW,
+    EXCEPTION_BOUNDS_CHECK,
+    EXCEPTION_INVALID_OPCODE,
+    EXCEPTION_NO_COPROCESSOR,
+    EXCEPTION_DOUBLE_FAULT,
+    EXCEPTION_COPROCESSOR_SEGMENT_OVERRUN,
+    EXCEPTION_INVALID_TSS,
+    EXCEPTION_SEGMENT_SELECTOR_NOTPRESENT,
+    EXCEPTION_STACK_SEGMENT_OVERRUN,
+    EXCEPTION_GENERAL_PROTECTION_FAULT,
+    EXCEPTION_PAGE_FAULT,
+    EXCEPTION_RESERVED,
+    EXCEPTION_FLOATING_POINT_ERROR,
+    EXCEPTION_ALIGNMENT_CHECK,
+    EXCEPTION_SEVERE_MACHINE_CHECK,
+} CPU_EXCEPTIONS;
+/*
+Ended.
+*/
+
+/*
+Interrupt Definitions
+*/
+typedef enum _INTERRUPT_LIST {
+    TIMER_INTERRUPT = 32,
+    KEYBOARD_INTERRUPT = 33,
+} INTERRUPT_LIST;
+/*
+Ended
+*/
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+typedef struct _IDT_PTR {
+#else
 typedef struct __attribute__((packed)) _IDT_PTR {
-    unsigned short limit;
-    unsigned long int base;
+#endif
+    uint16_t limit;
+    uint32_t base;
 } IDT_PTR;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 // SIZEOF: 6 bytes.
 
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+typedef struct _IDT_ENTRY {
+#else
 typedef struct __attribute__((packed)) _IDT_ENTRY {
-    unsigned short offset_low; // lower 16 bits of the handler function address. 0-15
-    unsigned short selector; // CS (code) segment in the GDT.
-    unsigned char zero; // Always 0.
-    unsigned char type_attr; // type and attributes (e.g, 0x8E - present, ring 0, 32-bit interrupt gate)
-    unsigned short offset_high; // higher 16 bits of handler address 16-31
+#endif
+    uint16_t offset_low; // lower 16 bits of the handler function address. 0-15
+    uint16_t selector; // CS (code) segment in the GDT.
+    uint8_t zero; // Always 0.
+    uint8_t type_attr; // type and attributes (e.g, 0x8E - present, ring 0, 32-bit interrupt gate)
+    uint16_t offset_high; // higher 16 bits of handler address 16-31
 } IDT_ENTRY;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 //SIZEOF: 8 bytes.
 
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+typedef struct _REGS {
+#else
 typedef struct __attribute__((packed)) _REGS {
-    unsigned long eflags;   // EFLAGS register
-    unsigned long cs;       // Code segment (CS)
-    unsigned long eip;      // Instruction pointer (EIP)
-    unsigned long error_code; // Error code (optional)
+#endif
+    uint32_t gs, fs, es, ds;             // Segment registers
+    uint32_t edi, esi, ebp, esp;         // Pushed by pusha -> Special Registers -> FIXME, PUSHA pushes the OLD esp, and not the current (when the cpu switches).
+    uint32_t ebx, edx, ecx, eax;         // Pushed by pusha -> General purpose registers
+    uint32_t error_code;                 // Manually pushed -> Error code (if any)
+    uint32_t vec_num;                     // Vector number -> Vector Number.
+    uint32_t eip, cs, eflags;           // Pushed by CPU. EIP -> Current instruction pointer address. CS -> Code Segment. EFLAGS -> EFLAGS Register.
 } REGS;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 /* FUNCTIONS */
 

@@ -85,7 +85,7 @@ void install_idt() {
     set_idt_gate(45, (unsigned long)irq13);
     set_idt_gate(46, (unsigned long)irq14);
     set_idt_gate(47, (unsigned long)irq15);
-
+    
     /* Finally, Load IDT. */
     PIDT.limit = sizeof(IDT_ENTRY) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;

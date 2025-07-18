@@ -11,17 +11,19 @@ int cursor_y = 0;
 int cursor_visible = 0;
 
 /* Clear the entire screen */
-void clear_screen(unsigned char color) {
-	volatile unsigned short* video_memory = (volatile unsigned short*)VGA_MEMORY;
-	unsigned short blank = (color << 8) | ' ';
+void clear_screen(unsigned char bg_color) {
+    volatile unsigned short* video_memory = (volatile unsigned short*)VGA_MEMORY;
+    unsigned char attribute = (bg_color << 4) | 0x0;  // black fg
+    unsigned short blank = (attribute << 8) | ' ';
 
-	for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-		video_memory[i] = blank;
-	}
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        video_memory[i] = blank;
+    }
 
-	cursor_x = 0;
-	cursor_y = 0;
+    cursor_x = 0;
+    cursor_y = 0;
 }
+
 
 int make_color(int foreground, int background) {
 	return (background << 4) | (foreground & 0x0F);

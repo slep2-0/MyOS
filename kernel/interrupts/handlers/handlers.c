@@ -79,7 +79,7 @@ void keyboard_handler() {
     // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
     if (!(scancode & 0x80)) {
         // Conver scan code to ASCII to see if it's even a printable character.
-        if (scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) {
+        if ((scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) || (scancode < sizeof(scancode_to_ascii_shift) && scancode_to_ascii_shift[scancode])) {
             char key = scancode_to_ascii[scancode];
             char keyShift = scancode_to_ascii_shift[scancode];
             char str[2] = { key, '\0' }; // default string (key) + null terminator.
@@ -149,6 +149,26 @@ void timer_handler() {
 }
 
 void pagefault_handler(uint32_t error_code) {
+#ifdef DOUBLEFAULT
+    // Cause a double fault for debugging.
+    __asm__ volatile (
+        // Zero out the EDX register.
+        // Using 'l' suffix for 32-bit operation and '%%' for AT&T register syntax.
+        "xorl %%edx, %%edx\n\t"
+
+        // Move the immediate value 5 into the EAX register.
+        // Using 'l' suffix for 32-bit operation and '$' for immediate value.
+        "movl $5, %%eax\n\t"
+
+        // Perform integer division of EAX by EDX.
+        // Since EDX is 0, this will cause a divide-by-zero exception (INT 0).
+        // Using 'l' suffix for 32-bit operation.
+        "divl %%edx\n\t"
+        : // No output operands
+        : // No input operands
+        : "eax", "edx" // Clobbered registers: EAX and EDX are modified by these instructions.
+        );
+#endif
     uint32_t fault_addr;
     // cr2 holds the faulty address that caused the page fault.
     __asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
@@ -162,3 +182,133 @@ void pagefault_handler(uint32_t error_code) {
     // NMI - Non Maskable Interrupt, happens when a watchdog timer expires, system bus errors, (or memory parity errors, that rarily occur in modern systems).
     // SMI - A System Managment Interrupt is a special kind of an interurpt that also masks over HLT (even when interrupts are already disabled, like NMI), that is used for thermal throttling of the CPU, power management, or hardware emulation.
 }
+
+void doublefault_handler() {
+    // We reached a double fault, an exception within an exception handler.
+    // To not reach a triple fault, we will bugcheck the system (similar to a windows bugcheck - BSOD)
+
+    // Clear the screen.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO
+}
+
+void dividebyzero_handler() {
+    // handle diving by zero.
+    print_to_screen("\r\nERROR: Diving by zero is not allowed.\r\n", COLOR_RED);
+}
+
+void debugsinglestep_handler() {
+    print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
+    __hlt();
+}
+
+void nmi_handler() {
+    // severe problem, bugchecking.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void breakpoint_handler() {
+    print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
+    __hlt();
+}
+
+void overflow_handler() {
+    // almost never happens on modern systems (compilers dont generate the INTO instruction anymore, unless manual assembly is placed)
+    // just bugcheck
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void boundscheck_handler() {
+    // bugcheck too, this is kernel mode.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void invalidopcode_handler() {
+    print_to_screen("\r\nERROR: Invalid CPU Instruction...\r\n", COLOR_RED);
+}
+
+void nocoprocessor_handler() {
+    // rarely triggered, if a floating point chip is not integrated, or is not attached, bugcheck.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void coprocessor_segment_overrun_handler() {
+    // quite literally impossible in protected or long mode, since CPU's don't generate this exception on these modes, but if they did, bugcheck, severe code.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void invalidtss_handler() {
+    // a tss is when the CPU hardware switches (usually does not happen, since OS'es implement switching in software, like process timer context switch, all in software)
+    // if it did happen though, we bugcheck.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void segment_selector_not_present_handler() {
+    // this happens when the CPU loads a segment that points to a valid descriptor, that is marked as "not present" (that the present bit is 0), which means it's swapped out to disk.
+    // we don't have disk paging right now, we don't even have a current user mode or stable memory for now, so we just bugcheck.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void stack_segment_overrun_handler() {
+    // this happens when the stack pointer (esp, rsp, sp on 16 bit) moves OUTSIDE the bounds of the current stack segment, this is different from a stack overflow at the software level, this is a hardware level exception.
+    // segment limits on protected mode usually gets switched off, so if this happens just bugcheck.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+    // TODO BUGCHECKS.
+}
+
+void gpf_handler(REGS* registers) {
+    // important exception, view error code and bugcheck with it
+    if (registers && registers->error_code) {
+        // TODO BUGCHECKS.
+        clear_screen(COLOR_BLUE);
+        __hlt();
+    }
+    else {
+        // weird? - bugcheck with a generic error code.
+        clear_screen(COLOR_BLUE);
+        __hlt();
+    }
+}
+
+void fpu_handler() {
+    // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
+    print_to_screen("\r\nERROR: Floating Point error, have you done a correct calculationn?\r\n", COLOR_RED);
+}
+
+void alignment_check_handler() {
+    // 3 conditions must be met in-order for this to even reach.
+    // CR0.AM (Alignment Mask) must be set to 1.
+    // EFLAGS.AC (Alignment Check) must be set to 1.
+    // CPL (user mode or kernel mode) must be set to 3. (user mode only)
+    // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write, writing more than there is.
+    // for now, bugcheck.
+    // TODO BUGCHECKS.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+}
+
+void severe_machine_check_handler() {
+    // creepy.
+    // This happens when the machine has a SEVERE problem, memory faults, CPU internal fault, all of that, the cpu registers this.
+    // obviously bugcheck.
+    // TODO BUGCHECKS.
+    clear_screen(COLOR_BLUE);
+    __hlt();
+}
+

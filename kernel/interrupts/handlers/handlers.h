@@ -21,5 +21,42 @@ void init_timer(unsigned long int frequency);
 void timer_handler();
 // Handle Page Faults.
 void pagefault_handler(uint32_t error_code);
+// Handle Double Fault - Bugcheck.
+void doublefault_handler();
+// Handle Division By Zero.
+void dividebyzero_handler();
+
+// New added.
+
+// Handle debugger single step exception.
+void debugsinglestep_handler();
+// Handle Non Maskable Interrupt exception.
+void nmi_handler();
+// Handle breakpoint exception.
+void breakpoint_handler();
+// Handle overflow exception.
+void overflow_handler();
+// Handle bounds check exception.
+void boundscheck_handler();
+// Handle invalid opcode exception.
+void invalidopcode_handler();
+// Handle no coprocessor exception.
+void nocoprocessor_handler();
+// Handle coprocessor segment overrun exception.
+void coprocessor_segment_overrun_handler();
+// Handle Invalid TSS Exception.
+void invalidtss_handler();
+// Handle segment selector not present exception.
+void segment_selector_not_present_handler();
+// Handle stack segment overrun exception.
+void stack_segment_overrun_handler();
+// Handle GPF Exception. -- important exception, we use the registers and error code for it.
+void gpf_handler(REGS* registers);
+// Handle floating point error exception.
+void fpu_handler();
+// Handle alignment check exception.
+void alignment_check_handler();
+// Handle severe machine check exception.
+void severe_machine_check_handler();
 #endif
 
