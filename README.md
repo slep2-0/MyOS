@@ -13,6 +13,7 @@ Use this and the linker script at kernel/ to compile&link. - https://github.com/
 
 **SUPPORTED FEATURES:**
 
+`Paging - Virtual Memory Paging with a basic page fault ISR handler - doesn't BSOD yet, workin on it, :)`
 
 `Interrupts -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`
 
