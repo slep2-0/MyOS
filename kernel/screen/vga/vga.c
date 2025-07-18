@@ -232,26 +232,29 @@ void blink_cursor() {
     }
 }
 
-// fixed version, variadic doesn't work...
-void myos_printf(int color, const char* fmt, int int_val, const char* str_val, unsigned int hex_val) {
+void myos_printf(int color, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
     for (int i = 0; fmt[i] != '\0'; i++) {
         if (fmt[i] == '%' && fmt[i + 1] != '\0') {
-            i++; // Skip the '%'
+            i++;
             char spec = fmt[i];
 
             if (spec == 'd') {
+                int int_val = va_arg(args, int);
                 print_dec((unsigned int)int_val, color);
             }
             else if (spec == 's') {
-                if (str_val) {
-                    print_to_screen((char*)str_val, color);
-                }
+                const char* str_val = va_arg(args, const char*);
+                if (str_val) print_to_screen((char*)str_val, color);
             }
             else if (spec == 'x') {
+                unsigned int hex_val = va_arg(args, unsigned int);
                 print_hex(hex_val, color);
             }
             else {
-                // Unknown specifier, just print it
+                // Unknown specifier, print as is
                 char s[2] = { '%', '\0' };
                 print_to_screen(s, color);
                 char s2[2] = { spec, '\0' };
@@ -259,11 +262,12 @@ void myos_printf(int color, const char* fmt, int int_val, const char* str_val, u
             }
         }
         else {
-            // Regular character
             char s[2] = { fmt[i], '\0' };
             print_to_screen(s, color);
         }
     }
+
+    va_end(args);
 }
 
 void print_hex(unsigned int value, int color) {

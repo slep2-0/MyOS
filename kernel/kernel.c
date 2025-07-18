@@ -36,7 +36,7 @@ void kernel_main(void) {
 	void* buf3 = kmalloc(64, 16);
 	print_hex((unsigned int)(uintptr_t)buf3, COLOR_WHITE);
 	print_to_screen(" <- allocated 64 bytes, aligned to 16 byte groups. (number 3 - new address. 64 bytes + sizeof(BLOCK_HEADER) = 72 bytes.)\r\n", COLOR_LIGHT_GREEN);
-	myos_printf(COLOR_GREEN, "This is the number: %d, and string: %s, and mem address: %x\r\n", 0, 0, buf3);
+	myos_printf(COLOR_GREEN, "This is the number: %d, and string: %s, and mem address: %x\r\n", 7, "MatanelOS", buf3);
 #ifdef CAUSE_BUGCHECK
 	int* test = (int*)0xFFFFFFFF;
 	*test = 1;  // Should cause a page fault if unmapped

@@ -69,5 +69,5 @@ void print_hex_custom_background_foreground(unsigned int value, int attribute);
 
 // Custom made printf -- supports %x for pointers (hex 0001000), decimal %d (%d -> 1234) and standard chars.
 //void myos_printf_safe(int color, const char* fmt, ...);
-void myos_printf(int color, const char* fmt, int int_val, const char* str_val, unsigned int hex_val);
+void myos_printf(int color, const char* fmt, ...);
 #endif

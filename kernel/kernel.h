@@ -1,3 +1,9 @@
+/*
+ * PROJECT:     MatanelOS Kernel
+ * LICENSE:     NONE
+ * PURPOSE:     Core Kernel Includes, includes all core and necessary header files.
+ */
+
 // Main includes
 #ifndef X86_KERNEL_H
 #define X86_KERNEL_H
