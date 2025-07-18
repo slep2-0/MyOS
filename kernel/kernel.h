@@ -2,6 +2,9 @@
 #ifndef X86_KERNEL_H
 #define X86_KERNEL_H
 
+/* Comment or uncomment to cause a bugcheck upon entering the system */
+//#define CAUSE_BUGCHECK
+
 /* Comment Or Uncomment to allow debugging messages from kernel functions that support it */
 //#define DEBUG
 
@@ -23,4 +26,5 @@
 #include "interrupts/handlers/handlers.h"
 #include "memory/memory.h"
 #include "memory/paging/paging.h"
+#include "bugcheck/bugcheck.h"
 #endif

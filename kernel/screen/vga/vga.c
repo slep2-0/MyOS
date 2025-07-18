@@ -9,11 +9,13 @@
 int cursor_x = 0;
 int cursor_y = 0;
 int cursor_visible = 0;
+unsigned char current_bg_color = COLOR_BLACK;  // default background
 
 /* Clear the entire screen */
-void clear_screen(unsigned char bg_color) {
+void clear_screen(unsigned char attribute) {
+    current_bg_color = (attribute >> 4) & 0x0F;  // extract bg from attribute
+
     volatile unsigned short* video_memory = (volatile unsigned short*)VGA_MEMORY;
-    unsigned char attribute = (bg_color << 4) | 0x0;  // black fg
     unsigned short blank = (attribute << 8) | ' ';
 
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
@@ -29,7 +31,56 @@ int make_color(int foreground, int background) {
 	return (background << 4) | (foreground & 0x0F);
 }
 
-void print_to_screen(char* text, int color) {
+void print_to_screen(char* text, int fg_color) {
+    volatile char* video_memory = (volatile char*)0xB8000;
+    unsigned char attribute = (current_bg_color << 4) | (fg_color & 0x0F);
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = text[i];
+        int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+
+        if (c == '\r') {
+            video_memory[offset] = ' ';
+            video_memory[offset + 1] = attribute;
+            cursor_x = 0;
+        }
+        else if (c == '\n') {
+            cursor_x = 0;
+            cursor_y++;
+        }
+        else if (c == '\b') {
+            video_memory[offset] = ' ';
+            video_memory[offset + 1] = attribute;
+
+            if (cursor_x > 0) cursor_x--;
+            else if (cursor_y > 0) {
+                cursor_y--;
+                cursor_x = VGA_WIDTH - 1;
+            }
+
+            int pos = (cursor_y * VGA_WIDTH + cursor_x) * 2;
+            video_memory[pos] = ' ';
+            video_memory[pos + 1] = attribute;
+
+            cursor_visible = 0;
+        }
+        else {
+            video_memory[offset] = c;
+            video_memory[offset + 1] = attribute;
+            cursor_x++;
+        }
+
+        if (cursor_x >= VGA_WIDTH) {
+            cursor_x = 0;
+            cursor_y++;
+        }
+        if (cursor_y >= VGA_HEIGHT) {
+            cursor_y = 0;  // or scroll
+        }
+    }
+}
+
+void print_to_screen_custom_background_foreground(char* text, int attribute) {
     volatile char* video_memory = (volatile char*)0xB8000;
 
     for (int i = 0; text[i] != '\0'; i++) {
@@ -39,7 +90,7 @@ void print_to_screen(char* text, int color) {
             // remove cursor when doing a carriage return.
             int old_offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
             video_memory[old_offset] = ' ';
-            video_memory[old_offset + 1] = COLOR_WHITE;
+            video_memory[old_offset + 1] = attribute;
             // the most left
             cursor_x = 0;
         }
@@ -64,17 +115,16 @@ void print_to_screen(char* text, int color) {
             }
 
             int position = (cursor_y * VGA_WIDTH + cursor_x) * 2;
-            video_memory[position] = ' ';             
-            video_memory[position + 1] = COLOR_WHITE; 
+            video_memory[position] = ' ';
+            video_memory[position + 1] = COLOR_WHITE;
 
             cursor_visible = 0;
         }
 
         else {
             int offset = (cursor_y * VGA_WIDTH + cursor_x) * 2;
-            //set_cursor_position(cursor_x + 1, cursor_y);
             video_memory[offset] = c;
-            video_memory[offset + 1] = color;
+            video_memory[offset + 1] = attribute;
             cursor_x++;
         }
 
@@ -116,6 +166,33 @@ void print_dec(unsigned int num, int color) {
 
     // now print the string
     print_to_screen(buf, color);
+}
+
+void print_dec_custom_background_foreground(unsigned int num, int attribute) {
+    char buf[12];   // enough for “4294967295\0”
+    int i = 0;
+
+    if (num == 0) {
+        buf[i++] = '0';
+    }
+    else {
+        // build digits in reverse
+        while (num > 0 && (unsigned)i < sizeof(buf) - 1) {
+            buf[i++] = '0' + (num % 10); // Get the least significant bit first, if we wouldn't do in reverse, 1234 would be 4321.
+            num /= 10;
+        }
+    }
+    buf[i] = '\0';
+
+    // reverse the buffer
+    for (int j = 0; j < i / 2; j++) {
+        char tmp = buf[j];
+        buf[j] = buf[i - 1 - j];
+        buf[i - 1 - j] = tmp;
+    }
+
+    // now print the string
+    print_to_screen_custom_background_foreground(buf, attribute);
 }
 
 void set_hardware_cursor_position(int x, int y) {
@@ -210,4 +287,27 @@ void print_hex(unsigned int value, int color) {
 
     print_to_screen(buf, color);
     print_to_screen(" ", color);  // trailing space for readability
+}
+
+void print_hex_custom_background_foreground(unsigned int value, int attribute) {
+    char buf[9];
+
+    // Produce exactly 8 hex digits
+    for (int i = 0; i < 8; i++) {
+        // take the highest nibble first
+        unsigned int shift = (7 - i) * 4;
+        unsigned int nibble = (value >> shift) & 0xF;
+
+        // Convert nibble to hex character manually
+        if (nibble < 10) {
+            buf[i] = '0' + nibble;
+        }
+        else {
+            buf[i] = 'A' + (nibble - 10);
+        }
+    }
+    buf[8] = '\0';
+
+    print_to_screen_custom_background_foreground(buf, attribute);
+    print_to_screen_custom_background_foreground(" ", attribute);  // trailing space for readability
 }

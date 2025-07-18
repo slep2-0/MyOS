@@ -13,6 +13,8 @@ Use this and the linker script at kernel/ to compile&link. - https://github.com/
 
 **SUPPORTED FEATURES:**
 
+`Bugcheck - Half Bugcheck support, doesn't write to disk a minidump like windows, but does show a bugcheck screen, and halts the system`
+
 `Paging - Virtual Memory Paging with a basic page fault ISR handler - doesn't BSOD yet, workin on it, :)`
 
 `Interrupts -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`

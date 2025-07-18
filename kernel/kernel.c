@@ -44,6 +44,9 @@ void kernel_main(void) {
 	char* byte = (char*)buf3;
 	byte[0] = 'X';
 #endif
+#ifdef CAUSE_BUGCHECK
+	__asm__ volatile ("int $14");
+#endif
 	while (1) {
 		// Keep kernel ALWAYS running, while loop.
 		// HALT Instruction will halt the CPU until the next interrupt occurs.

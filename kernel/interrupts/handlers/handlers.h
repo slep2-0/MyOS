@@ -29,34 +29,34 @@ void dividebyzero_handler();
 // New added.
 
 // Handle debugger single step exception.
-void debugsinglestep_handler();
+void debugsinglestep_handler(REGS* r);
 // Handle Non Maskable Interrupt exception.
-void nmi_handler();
+void nmi_handler(REGS* r);
 // Handle breakpoint exception.
-void breakpoint_handler();
+void breakpoint_handler(REGS* r);
 // Handle overflow exception.
-void overflow_handler();
+void overflow_handler(REGS* r);
 // Handle bounds check exception.
-void boundscheck_handler();
+void boundscheck_handler(REGS* r);
 // Handle invalid opcode exception.
-void invalidopcode_handler();
+void invalidopcode_handler(REGS* r);
 // Handle no coprocessor exception.
-void nocoprocessor_handler();
+void nocoprocessor_handler(REGS* r);
 // Handle coprocessor segment overrun exception.
-void coprocessor_segment_overrun_handler();
+void coprocessor_segment_overrun_handler(REGS* r);
 // Handle Invalid TSS Exception.
-void invalidtss_handler();
+void invalidtss_handler(REGS* r);
 // Handle segment selector not present exception.
-void segment_selector_not_present_handler();
+void segment_selector_not_present_handler(REGS* r);
 // Handle stack segment overrun exception.
-void stack_segment_overrun_handler();
+void stack_segment_overrun_handler(REGS* r);
 // Handle GPF Exception. -- important exception, we use the registers and error code for it.
 void gpf_handler(REGS* registers);
 // Handle floating point error exception.
-void fpu_handler();
+void fpu_handler(REGS* r);
 // Handle alignment check exception.
-void alignment_check_handler();
+void alignment_check_handler(REGS* r);
 // Handle severe machine check exception.
-void severe_machine_check_handler();
+void severe_machine_check_handler(REGS* r);
 #endif
 

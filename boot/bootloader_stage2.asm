@@ -20,7 +20,7 @@ start:
     mov es, ax
     xor bx, bx          ; offset 0x0000
     mov ah, 0x02        ; BIOS read sectors function
-    mov al, 15         	; number of sectors to read -> increased to 15, kernel binary size has increased, safety precaution.
+    mov al, 100         	; number of sectors to read -> increased to 15, kernel binary size has increased, safety precaution. -> EDIT: Increased to 100, couldn't figure out why kernel wouldn't load after a change.
     mov ch, 0           ; cylinder 0
     mov cl, 6           ; sector 6 (stage1=1 + stage2=4 + 1 = sector 6)
     mov dh, 0           ; head 0

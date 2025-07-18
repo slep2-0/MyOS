@@ -17,40 +17,40 @@ const bool has_error_code[] = {
 void isr_handler(int vec_num, REGS* r) {
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:
-        dividebyzero_handler();
+        dividebyzero_handler(r);
         return;
     case EXCEPTION_SINGLE_STEP:
-        debugsinglestep_handler();
+        debugsinglestep_handler(r);
         return;
     case EXCEPTION_NON_MASKABLE_INTERRUPT:
-        nmi_handler();
+        nmi_handler(r);
         return;
     case EXCEPTION_BREAKPOINT:
-        breakpoint_handler();
+        breakpoint_handler(r);
         return;
     case EXCEPTION_OVERFLOW:
-        overflow_handler();
+        overflow_handler(r);
         return;
     case EXCEPTION_BOUNDS_CHECK:
-        boundscheck_handler();
+        boundscheck_handler(r);
         return;
     case EXCEPTION_INVALID_OPCODE:
-        invalidopcode_handler();
+        invalidopcode_handler(r);
         return;
     case EXCEPTION_NO_COPROCESSOR:
-        nocoprocessor_handler();
+        nocoprocessor_handler(r);
         return;
     case EXCEPTION_DOUBLE_FAULT:
-        doublefault_handler();
+        doublefault_handler(r);
         return;
     case EXCEPTION_COPROCESSOR_SEGMENT_OVERRUN:
-        coprocessor_segment_overrun_handler();
+        coprocessor_segment_overrun_handler(r);
         return;
     case EXCEPTION_SEGMENT_SELECTOR_NOTPRESENT:
-        segment_selector_not_present_handler();
+        segment_selector_not_present_handler(r);
         return;
     case EXCEPTION_INVALID_TSS:
-        invalidtss_handler();
+        invalidtss_handler(r);
         return;
     case EXCEPTION_GENERAL_PROTECTION_FAULT:
         gpf_handler(r);
@@ -62,13 +62,13 @@ void isr_handler(int vec_num, REGS* r) {
         // reserved, do not use.
         return;
     case EXCEPTION_FLOATING_POINT_ERROR:
-        fpu_handler();
+        fpu_handler(r);
         return;
     case EXCEPTION_ALIGNMENT_CHECK:
-        alignment_check_handler();
+        alignment_check_handler(r);
         return;
     case EXCEPTION_SEVERE_MACHINE_CHECK:
-        severe_machine_check_handler();
+        severe_machine_check_handler(r);
         return;
     case KEYBOARD_INTERRUPT:
         keyboard_handler();

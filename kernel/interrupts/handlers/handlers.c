@@ -183,132 +183,99 @@ void pagefault_handler(uint32_t error_code) {
     // SMI - A System Managment Interrupt is a special kind of an interurpt that also masks over HLT (even when interrupts are already disabled, like NMI), that is used for thermal throttling of the CPU, power management, or hardware emulation.
 }
 
-void doublefault_handler() {
+void doublefault_handler(REGS* r) {
     // We reached a double fault, an exception within an exception handler.
     // To not reach a triple fault, we will bugcheck the system (similar to a windows bugcheck - BSOD)
-
-    // Clear the screen.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO
+    bugcheck_system(r, DOUBLE_FAULT);
 }
 
-void dividebyzero_handler() {
+void dividebyzero_handler(REGS* r) {
     // handle diving by zero.
     print_to_screen("\r\nERROR: Diving by zero is not allowed.\r\n", COLOR_RED);
 }
 
-void debugsinglestep_handler() {
+void debugsinglestep_handler(REGS* r) {
     print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
     __hlt();
 }
 
-void nmi_handler() {
+void nmi_handler(REGS* r) {
     // severe problem, bugchecking.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, NON_MASKABLE_INTERRUPT);
 }
 
-void breakpoint_handler() {
+void breakpoint_handler(REGS* r) {
     print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
     __hlt();
 }
 
-void overflow_handler() {
+void overflow_handler(REGS* r) {
     // almost never happens on modern systems (compilers dont generate the INTO instruction anymore, unless manual assembly is placed)
     // just bugcheck
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, OVERFLOW);
 }
 
-void boundscheck_handler() {
+void boundscheck_handler(REGS* r) {
     // bugcheck too, this is kernel mode.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, BOUNDS_CHECK);
 }
 
-void invalidopcode_handler() {
+void invalidopcode_handler(REGS* r) {
     print_to_screen("\r\nERROR: Invalid CPU Instruction...\r\n", COLOR_RED);
 }
 
-void nocoprocessor_handler() {
+void nocoprocessor_handler(REGS* r) {
     // rarely triggered, if a floating point chip is not integrated, or is not attached, bugcheck.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, NO_COPROCESSOR);
 }
 
-void coprocessor_segment_overrun_handler() {
+void coprocessor_segment_overrun_handler(REGS* r) {
     // quite literally impossible in protected or long mode, since CPU's don't generate this exception on these modes, but if they did, bugcheck, severe code.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, COPROCESSOR_SEGMENT_OVERRUN);
 }
 
-void invalidtss_handler() {
+void invalidtss_handler(REGS* r) {
     // a tss is when the CPU hardware switches (usually does not happen, since OS'es implement switching in software, like process timer context switch, all in software)
     // if it did happen though, we bugcheck.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, INVALID_TSS);
 }
 
-void segment_selector_not_present_handler() {
+void segment_selector_not_present_handler(REGS* r) {
     // this happens when the CPU loads a segment that points to a valid descriptor, that is marked as "not present" (that the present bit is 0), which means it's swapped out to disk.
     // we don't have disk paging right now, we don't even have a current user mode or stable memory for now, so we just bugcheck.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, SEGMENT_SELECTOR_NOTPRESENT);
 }
 
-void stack_segment_overrun_handler() {
+void stack_segment_overrun_handler(REGS* r) {
     // this happens when the stack pointer (esp, rsp, sp on 16 bit) moves OUTSIDE the bounds of the current stack segment, this is different from a stack overflow at the software level, this is a hardware level exception.
     // segment limits on protected mode usually gets switched off, so if this happens just bugcheck.
-    clear_screen(COLOR_BLUE);
-    __hlt();
-    // TODO BUGCHECKS.
+    bugcheck_system(r, STACK_SEGMENT_OVERRUN);
 }
 
 void gpf_handler(REGS* registers) {
     // important exception, view error code and bugcheck with it
-    if (registers && registers->error_code) {
-        // TODO BUGCHECKS.
-        clear_screen(COLOR_BLUE);
-        __hlt();
-    }
-    else {
-        // weird? - bugcheck with a generic error code.
-        clear_screen(COLOR_BLUE);
-        __hlt();
-    }
+    bugcheck_system(registers, GENERAL_PROTECTION_FAULT);
 }
 
-void fpu_handler() {
+void fpu_handler(REGS* r) {
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
     print_to_screen("\r\nERROR: Floating Point error, have you done a correct calculationn?\r\n", COLOR_RED);
 }
 
-void alignment_check_handler() {
+void alignment_check_handler(REGS* r) {
     // 3 conditions must be met in-order for this to even reach.
     // CR0.AM (Alignment Mask) must be set to 1.
     // EFLAGS.AC (Alignment Check) must be set to 1.
     // CPL (user mode or kernel mode) must be set to 3. (user mode only)
     // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write, writing more than there is.
     // for now, bugcheck.
-    // TODO BUGCHECKS.
-    clear_screen(COLOR_BLUE);
-    __hlt();
+    bugcheck_system(r, ALIGNMENT_CHECK);
 }
 
-void severe_machine_check_handler() {
+void severe_machine_check_handler(REGS* r) {
     // creepy.
     // This happens when the machine has a SEVERE problem, memory faults, CPU internal fault, all of that, the cpu registers this.
     // obviously bugcheck.
-    // TODO BUGCHECKS.
-    clear_screen(COLOR_BLUE);
-    __hlt();
+    bugcheck_system(r, SEVERE_MACHINE_CHECK);
 }
 
