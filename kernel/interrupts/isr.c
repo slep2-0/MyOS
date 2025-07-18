@@ -17,6 +17,10 @@ const bool has_error_code[] = {
 void isr_handler(int vec_num, REGS* r) {
     // Print exception or IRQ number for now, no interrupt handling.
 
+    if (vec_num == 14) { // 0x0E - page fault.
+        pagefault_handler(r->error_code);
+    }
+
     // keyboard interrupt
     if (vec_num == 33) { // 0x21
         keyboard_handler();
@@ -26,18 +30,11 @@ void isr_handler(int vec_num, REGS* r) {
     // timer
     if (vec_num == 32) { // 0x20
         timer_handler();
-        return;
     }
 
     if (vec_num < 32) {
         print_to_screen("Exception: ", COLOR_RED);
         print_dec(vec_num, COLOR_WHITE);
-        print_to_screen(" \r\n", COLOR_BLACK);
-    }
-
-    if (r->error_code && has_error_code[vec_num]) {
-        print_to_screen("Error Code: ", COLOR_YELLOW);
-        print_dec(r->error_code, COLOR_WHITE);
         print_to_screen(" \r\n", COLOR_BLACK);
     }
     return;

@@ -29,6 +29,15 @@ void init_heap(void) {
     free_list->next = NULL;
 }
 
+// Memory Set.
+void* kmemset(void* dest, int val, uint32_t len) {
+    uint8_t* ptr = dest;
+    for (uint32_t i = 0; i < len; i++) {
+        ptr[i] = (uint8_t)val;
+    }
+    return dest;
+}
+
 /* Allocate `size` bytes, aligned to `align` bytes */
 void* kmalloc(size_t wanted_size, size_t align) {
     /* Round up the requested size to satisfy alignment of payload */

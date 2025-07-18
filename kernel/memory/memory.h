@@ -27,6 +27,9 @@ typedef struct _BLOCK_HEADER {
 /* Initialize the free list to cover the whole heap */
 void init_heap(void);
 
+/* Simple Memset */
+void* kmemset(void* dest, int val, uint32_t len);
+
 /* Simple allocator/free */
 void* kmalloc(size_t size, size_t align);
 void kfree(void* ptr);

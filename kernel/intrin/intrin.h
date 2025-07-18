@@ -72,4 +72,8 @@ static inline void send_eoi(unsigned char irq) {
     __outbyte(PIC1_COMMAND_MASTER, PIC_EOI);      // Master PIC
 }
 
+static inline void invlpg(void* m) {
+    __asm__ volatile("invlpg (%0)" : : "b"(m) : "memory");
+}
+
 #endif // X86_INTRINSICS_H

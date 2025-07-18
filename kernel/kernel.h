@@ -10,4 +10,5 @@
 #include "intrin/intrin.h"
 #include "interrupts/handlers/handlers.h"
 #include "memory/memory.h"
+#include "memory/paging/paging.h"
 #endif

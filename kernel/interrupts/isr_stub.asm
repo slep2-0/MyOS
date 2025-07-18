@@ -19,7 +19,9 @@ isr%1:
 global isr%1
 isr%1:
     cli
+    pop eax
     push dword %1
+    push eax
     jmp isr_common_stub
 %endmacro
 

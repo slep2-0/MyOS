@@ -147,3 +147,16 @@ void timer_handler() {
         blink_cursor(); // Every 20 timer interrupts
     }
 }
+
+void pagefault_handler(uint32_t error_code) {
+    uint32_t fault_addr;
+    // cr2 holds the faulty address that caused the page fault.
+    __asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
+
+    print_to_screen("PAGE-FAULT: VA=0x", COLOR_RED);
+    print_hex(fault_addr, COLOR_YELLOW);
+    print_to_screen(", error code=0x", COLOR_RED);
+    print_hex(error_code, COLOR_YELLOW);
+    print_to_screen("\r\n", COLOR_BLACK);
+    __hlt();
+}

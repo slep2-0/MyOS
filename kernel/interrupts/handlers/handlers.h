@@ -19,5 +19,7 @@ void keyboard_handler();
 void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
 void timer_handler();
+// Handle Page Faults.
+void pagefault_handler(uint32_t error_code);
 #endif
 
