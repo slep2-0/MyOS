@@ -33,7 +33,7 @@ void isr_handler(int vec_num, REGS* r) {
     }
 
     if (vec_num < 32) {
-        print_to_screen("Exception: ", COLOR_RED);
+        print_to_screen("Interrupt Exception: ", COLOR_RED);
         print_dec(vec_num, COLOR_WHITE);
         print_to_screen(" \r\n", COLOR_BLACK);
     }

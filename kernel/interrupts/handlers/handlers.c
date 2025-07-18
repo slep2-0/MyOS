@@ -158,5 +158,7 @@ void pagefault_handler(uint32_t error_code) {
     print_to_screen(", error code=0x", COLOR_RED);
     print_hex(error_code, COLOR_YELLOW);
     print_to_screen("\r\n", COLOR_BLACK);
-    __hlt();
+    // __hlt(); -> When an HLT instruction is called when the CPU is in interrupt mode, (interrupts are already disabled to let this interrupt go through), iretd never executes, and so the CPU Is just stuck in place. Only an NMI or SMI can wake the processor back up
+    // NMI - Non Maskable Interrupt, happens when a watchdog timer expires, system bus errors, (or memory parity errors, that rarily occur in modern systems).
+    // SMI - A System Managment Interrupt is a special kind of an interurpt that also masks over HLT (even when interrupts are already disabled, like NMI), that is used for thermal throttling of the CPU, power management, or hardware emulation.
 }
