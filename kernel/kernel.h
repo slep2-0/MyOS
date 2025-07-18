@@ -9,7 +9,7 @@
 #define X86_KERNEL_H
 
 /* Comment or uncomment to cause a bugcheck upon entering the system */
-#define CAUSE_BUGCHECK
+//#define CAUSE_BUGCHECK
 
 /* Comment Or Uncomment to allow debugging messages from kernel functions that support it */
 //#define DEBUG
