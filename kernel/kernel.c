@@ -5,8 +5,6 @@
  */
 #include "kernel.h"
 
-#define DEBUG
-
 void kernel_main(void) {
 	// Clear the screen.
 	clear_screen(COLOR_BLACK);

@@ -48,7 +48,7 @@ void set_page_writable(void* virtualaddress, bool writable) {
     uint32_t* pt_base = (uint32_t*)&__pt_start;
     uint32_t* pt = pt_base + pd_idx * PAGE_TABLE_ENTRIES;
     uint32_t entry = pt[pt_idx];
-
+#ifdef DEBUG
     print_to_screen("set_page_writable: VA=0x", COLOR_CYAN);
     print_hex(v, COLOR_CYAN);
     print_to_screen(" PD[", COLOR_CYAN);
@@ -66,18 +66,22 @@ void set_page_writable(void* virtualaddress, bool writable) {
     print_to_screen("  BEFORE: entry=0x", COLOR_YELLOW);
     print_hex(entry, COLOR_YELLOW);
     print_to_screen("\r\n", COLOR_BLACK);
-
+#endif
     if (writable) {
         entry |= PAGE_RW;
+#ifdef DEBUG
         print_to_screen("  Setting WRITABLE\r\n", COLOR_GREEN);
+#endif
     }
     else {
         entry &= ~PAGE_RW;
+#ifdef DEBUG
         print_to_screen("  Setting READ-ONLY\r\n", COLOR_RED);
+#endif
     }
 
     pt[pt_idx] = entry;
-
+#ifdef DEBUG
     print_to_screen("  AFTER: entry=0x", COLOR_YELLOW);
     print_hex(entry, COLOR_YELLOW);
     print_to_screen("\r\n", COLOR_BLACK);
@@ -92,9 +96,11 @@ void set_page_writable(void* virtualaddress, bool writable) {
     else {
         print_to_screen(" (FAILED!)\r\n", COLOR_RED);
     }
-
+#endif
     invlpg(virtualaddress); // flush it from the TLB
+#ifdef DEBUG
     print_to_screen("  TLB flushed\r\n", COLOR_CYAN);
+#endif
 }
 // Set the UserSupervisor bit to 'user_accessible' bool -> true = user+kernel, false = kernel only (supervisor)
 void set_page_user_access(void* virtualaddress, bool user_accessible) {
