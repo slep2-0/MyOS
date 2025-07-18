@@ -20,42 +20,25 @@ void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t addition
 	print_to_screen("\r\nSTOP_CODE: ", COLOR_WHITE);
 	print_dec(err_code, COLOR_YELLOW);
 	if (registers) {
-		print_to_screen("\r\n\r\nRegisters:\r\n", COLOR_WHITE);
-		print_to_screen("EAX: ", COLOR_WHITE);
-		print_hex(registers->eax, COLOR_WHITE);
-		print_to_screen(" EBX: ", COLOR_WHITE);
-		print_hex(registers->ebx, COLOR_WHITE);
-		print_to_screen(" ECX: ", COLOR_WHITE);
-		print_hex(registers->ecx, COLOR_WHITE);
-		print_to_screen(" EDX: ", COLOR_WHITE);
-		print_hex(registers->edx, COLOR_WHITE);
-		print_to_screen("\r\nESI: ", COLOR_WHITE);
-		print_hex(registers->esi, COLOR_WHITE);
-		print_to_screen(" EDI: ", COLOR_WHITE);
-		print_hex(registers->edi, COLOR_WHITE);
-		print_to_screen(" EBP: ", COLOR_WHITE);
-		print_hex(registers->ebp, COLOR_WHITE);
-		print_to_screen(" ESP: ", COLOR_WHITE);
-		print_hex(registers->esp, COLOR_WHITE);
-		print_to_screen("\r\nDS: ", COLOR_WHITE);
-		print_hex(registers->ds, COLOR_WHITE);
-		print_to_screen(" ES: ", COLOR_WHITE);
-		print_hex(registers->es, COLOR_WHITE);
-		print_to_screen(" FS: ", COLOR_WHITE);
-		print_hex(registers->fs, COLOR_WHITE);
-		print_to_screen(" GS: ", COLOR_WHITE);
-		print_hex(registers->gs, COLOR_WHITE);
-		print_to_screen("\r\nEIP: ", COLOR_WHITE);
-		print_hex(registers->eip, COLOR_WHITE);
-		print_to_screen(" CS: ", COLOR_WHITE);
-		print_hex(registers->cs, COLOR_WHITE);
-		print_to_screen(" EFLAGS: ", COLOR_WHITE);
-		print_hex(registers->eflags, COLOR_WHITE);
-		print_to_screen("\r\nExceptions: ", COLOR_WHITE);
-		print_to_screen("\r\nVector Number: ", COLOR_WHITE);
-		print_dec(registers->vec_num, COLOR_WHITE);
-		print_to_screen(" Error Number: ", COLOR_WHITE);
-		print_hex(registers->error_code, COLOR_WHITE);
+		myos_printf(COLOR_WHITE, "\r\n\r\nRegisters:\r\nEAX: %x EBX: %x ECX: %x EDX: %x\r\nESI: %x EDI: %x EBP: %x ESP: %x\r\nDS: %x ES: %x FS: %x GS: %x\r\nEIP: %x CS: %x ELAGS: %x\r\nExceptions: \r\nVector Number: %s Error Number: %x",
+			registers->eax,
+			registers->ebx,
+			registers->ecx,
+			registers->edx,
+			registers->esi,
+			registers->edi,
+			registers->ebp,
+			registers->esp,
+			registers->ds,
+			registers->es,
+			registers->fs,
+			registers->gs,
+			registers->eip,
+			registers->cs,
+			registers->eflags,
+			registers->vec_num,
+			registers->error_code
+		);
 	}
 	else {
 		print_to_screen("ERROR: NO REGISTERS.", COLOR_RED);
