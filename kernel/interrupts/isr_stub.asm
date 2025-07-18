@@ -19,9 +19,9 @@ isr%1:
 global isr%1
 isr%1:
     cli
-    pop eax
-    push dword %1
-    push eax
+    pop eax ; Critical, EAX served as the error code for the service routine, and I forgot to pop and push it back, so for 2 whole hours I don't get why it didn't go to my ISR for page fault handling, until I noticed this.
+    push dword %1 ; Push vec num
+    push eax ; Push error code.
     jmp isr_common_stub
 %endmacro
 

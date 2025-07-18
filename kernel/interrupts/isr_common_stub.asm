@@ -56,17 +56,17 @@ isr_common_stub:
     cmp eax, 32
     jl .no_eoi
     mov al, 0x20
-    out 0x20, al
-    cmp eax, 40
+    out 0x20, al ; master
+    cmp eax, 40 ; if lower than 40, then the slave PIC didn't do the interrupt (interrupts lower from 40 are served by master), send EOI.
     jl .no_slave
-    out 0xA0, al
+    out 0xA0, al ; it's higher than 40 (interrupts, that will be used for system calls later on), send EOI for slave as well.
 .no_slave:
 .no_eoi:
-    pop gs
+    pop gs ; segment restoration
     pop fs
     pop es
     pop ds
-    popa
-    add esp, 8            ; skip error code + vec num
-    sti
-    iretd
+    popa ; restore all registers
+    add esp, 8            ; remove error_code + vector number from stack.
+    sti ; enable interrupts
+    iretd ; return from interrupt routine.
