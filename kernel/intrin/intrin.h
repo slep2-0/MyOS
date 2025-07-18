@@ -1,3 +1,8 @@
+/*
+ * PROJECT:     MatanelOS Kernel
+ * LICENSE:     NONE
+ * PURPOSE:     Intrinsics for easy assembly use.
+ */
 #ifndef X86_INTRINSICS_H
 #define X86_INTRINSICS_H
 #include "../kernel.h"
