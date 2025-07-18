@@ -17,7 +17,7 @@ Use this and the linker script at kernel/ to compile&link. - https://github.com/
 
 `Paging - Virtual Memory Paging with a basic page fault ISR handler - doesn't BSOD yet, workin on it, :)`
 
-`Interrupts -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`
+`Interrupts (with full exception managment) -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`
 
 `Memory Managment -- basic kmalloc and kfree to allocate and deallocate memory to/from the heap. -- 1MB max, can be 3.9GB if you really wish to, this is a 32bit system using protected mode after all.`
 
