@@ -1,4 +1,4 @@
-![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,UNSTABLE-darkred?style=for-the-badge)
+![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,UNSTABLE,NOT-USABLE-darkred?style=for-the-badge)
 
 # THIS IS THE DEVELOPER - NOT WORKING BRANCH.
 
