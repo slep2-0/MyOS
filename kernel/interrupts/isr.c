@@ -82,6 +82,9 @@ void isr_handler(int vec_num, REGS* r) {
     case TIMER_INTERRUPT:
         timer_handler();
         return;
+    case ATA_INTERRUPT:
+        ata_handler();
+        return;
     default:
         print_to_screen("Interrupt Exception: ", COLOR_RED);
         print_dec((unsigned int)vec_num, COLOR_WHITE);

@@ -22,10 +22,10 @@ start:
 	; Load the second stage bootloader, first fill the sectors (4 sectors)
 	mov bx, 0x8000 ; points to the start of the second bootloader
 	mov dh, 0 ; Head 0
-	mov dl, [boot_drive] ; Drive number passed by the bios
+	mov dl,	0x80 ; Drive number passed by the bios
 	mov ch, 0 ; Cylinder 0
 	mov cl, 2 ; Sector 2 (first one is sector 1)
-	mov al, 4 ; Number of sectors to read.
+	mov al, 70 ; Number of sectors to read.
 	mov ah, 0x02 ; BIOS read sector function
 	int 0x13 ; BIOS Disk Service
 	

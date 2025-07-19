@@ -8,6 +8,11 @@
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
 
+void zero_bss(void) {
+    uint8_t* p = &bss_start;
+    while (p < &bss_end) *p++ = 0;
+}
+
 /* Initialize the free list to one big block spanning the heap */
 void init_heap(void) {
     heap_current_end = HEAP_START;
@@ -80,6 +85,16 @@ void* kmemset(void* dest, int val, uint32_t len) {
     return dest;
 }
 
+// Memory copy.
+void* kmemcpy(void* dest, const void* src, uint32_t len) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    for (unsigned int i = 0; i < len; i++) {
+        d[i] = s[i];
+    }
+    return dest;
+}
+
 /* Allocate `size` bytes, aligned to `align` bytes */
 void* kmalloc(size_t wanted_size, size_t align) {
     /* Round up the requested size to satisfy alignment of payload */
@@ -109,9 +124,9 @@ void* kmalloc(size_t wanted_size, size_t align) {
                 *cur = blk->next;
             }
 
-            /* Return pointer just past the header */
             void* raw_ptr = (void*)(blk + 1);
-            void* aligned_ptr = align_up(raw_ptr, align);
+            void* aligned_ptr = align_up((void*)((uintptr_t)raw_ptr + sizeof(void*)), align);
+            ((BLOCK_HEADER**)aligned_ptr)[-1] = blk;
             return aligned_ptr;
         }
 
@@ -153,8 +168,8 @@ void kfree(void* ptr) {
         return;
     }
     /* Get header */
-    BLOCK_HEADER* blk = ((BLOCK_HEADER*)ptr) - 1;
-    
+    BLOCK_HEADER* blk = ((BLOCK_HEADER**)ptr)[-1];
+   
 #ifdef DEBUG
     print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
     print_to_screen("blk: ", COLOR_CYAN);
@@ -162,7 +177,10 @@ void kfree(void* ptr) {
     print_to_screen("\r\n", COLOR_BLACK);
 #endif
     /* Zero it out. */
-    kmemset(blk, 0, blk->size);
+    // FATAL ERROR BEFORE, it zeroed out the block metadata as well, so kmalloc didn't even know it existed.
+    // The fix is to skip over the metadata, just zero the payload (actual data) (minus the actual block value, so we don't zero out the next 8 bytes in the next block)
+    // REMEMBER TO MYSELF: pointer arithmetic in C and C++ moves the pointer BASED ON THE TYPE OF IT! (so void ptr in 32 bit is move 4 bytes, or char which is move 1 byte, and here BLOCK_HEADER is 8 bytes, (and technically we just want to move 1 block header so we skip over it's metadata))
+    kmemset((void*)(blk + 1), 0, blk->size - sizeof(BLOCK_HEADER));
     /* Push it onto the free list */
     insert_block_sorted(blk);
 #ifdef DEBUG

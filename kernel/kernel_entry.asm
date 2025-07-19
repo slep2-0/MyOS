@@ -1,4 +1,3 @@
-
 [bits 32]
 
 extern kernel_main ; Declare kernel_main from C code

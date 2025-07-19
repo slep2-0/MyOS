@@ -21,11 +21,13 @@ SECTIONS
         *(.data.*)
     }
 
+    PROVIDE(bss_start = .);
     .bss : {
         *(.bss)
         *(.bss.*)
         *(COMMON)
     }
+    PROVIDE(bss_end = .);
 
     /* — Page directory (4 KiB) — */
     . = ALIGN(0x1000);

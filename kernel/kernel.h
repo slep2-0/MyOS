@@ -32,4 +32,7 @@ void kernel_main(void);
 #include "memory/paging/paging.h"
 #include "bugcheck/bugcheck.h"
 #include "memory/allocator/allocator.h"
+#include "drivers/blk/block.h"
+#include "drivers/blk/ata.h"
+#include "filesystem/fat32/fat32.h"
 #endif

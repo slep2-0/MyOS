@@ -147,6 +147,12 @@ void timer_handler() {
     }
 }
 
+void ata_handler(void) {
+    // Just send EOI to both PICS.
+    __outbyte(0xA0, 0x20);
+    __outbyte(0x20, 0x20);
+}
+
 void pagefault_handler(REGS* r) {
     uint32_t fault_addr;
     // cr2 holds the faulty address that caused the page fault.

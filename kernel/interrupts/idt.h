@@ -47,6 +47,7 @@ Interrupt Definitions
 typedef enum _INTERRUPT_LIST {
     TIMER_INTERRUPT = 32,
     KEYBOARD_INTERRUPT = 33,
+    ATA_INTERRUPT = 46,
 } INTERRUPT_LIST;
 /*
 Ended
