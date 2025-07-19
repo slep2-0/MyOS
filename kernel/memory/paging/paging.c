@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     Memory Paging Implementation
+ * PURPOSE:     Memory Paging and Dynamic Memory Allocation Implementation
  */
 #include "paging.h"
 
@@ -39,7 +39,7 @@ void paging_init(void) {
         : "eax"
         );
 }
-// Set the RW bit to 'writable' bool -> true = readwrite, false = readonly
+
 // Set the RW bit to 'writable' bool -> true = readwrite, false = readonly
 void set_page_writable(void* virtualaddress, bool writable) {
     uint32_t v = (uint32_t)virtualaddress;
@@ -102,6 +102,7 @@ void set_page_writable(void* virtualaddress, bool writable) {
     print_to_screen("  TLB flushed\r\n", COLOR_CYAN);
 #endif
 }
+
 // Set the UserSupervisor bit to 'user_accessible' bool -> true = user+kernel, false = kernel only (supervisor)
 void set_page_user_access(void* virtualaddress, bool user_accessible) {
 	uint32_t v = (uint32_t)virtualaddress;
@@ -120,4 +121,56 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
 	pt[pt_idx] = entry;
 
 	invlpg(virtualaddress);
+}
+
+// Map a single 4KB page: Virtual Address -> Physical Address with given flags (PAGE_RW, PAGE_USER, PAGE_PRESENT)
+void map_page(void* virtualaddress, void* physicaladdress, uint32_t flags) {
+    uint32_t virtualaddr = (uint32_t)virtualaddress;
+    uint32_t pagedirectory_i = virtualaddr >> 22;
+    uint32_t pagetable_i = (virtualaddr >> 12) & 0x3FF;
+
+    // Locate this page-table (already pre-allocated 32 tables at __pt_start)
+    uint32_t* pt_base = (uint32_t*)&__pt_start;
+    uint32_t* pt = pt_base + pagedirectory_i * PAGE_TABLE_ENTRIES;
+
+    // Install the entry - physical frame + flags + present bit (PAGE_PRESENT)
+    pt[pagetable_i] = ((uint32_t)physicaladdress & ~0xFFF) // frame base
+        | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
+
+
+    // Flush the TLB for the address to apply new changes.
+    invlpg(virtualaddress);
+}
+
+bool unmap_page(void* virtualaddress) {
+    uint32_t va = (uint32_t)virtualaddress;
+    uint32_t pd_i = va >> 22;
+    uint32_t pt_i = (va >> 12) & 0x3FF;
+
+    uint32_t* page_table_base = (uint32_t*)&__pt_start;
+    uint32_t* page_table = page_table_base + pd_i * PAGE_TABLE_ENTRIES;
+
+    if (!(page_directory[pd_i] & PAGE_PRESENT)) {
+        // This page table doesn't exist, no page present bit.
+        return false;
+    }
+
+    uint32_t entry = page_table[pt_i];
+    if (!(entry & PAGE_PRESENT)) {
+        // Page is already unmapped.
+        return true;
+    }
+
+    void* phys_addr = (void*)(entry & 0xFFFFF000);
+
+    // Clear the page table entry.
+    page_table[pt_i] = 0;
+
+    // Flush TLB To apply changes for this virtual address
+    invlpg(virtualaddress);
+
+    // Free the physical frame from memory.
+    free_frame(phys_addr);
+
+    return true;
 }

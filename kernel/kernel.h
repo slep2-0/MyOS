@@ -12,7 +12,7 @@
 //#define CAUSE_BUGCHECK
 
 /* Comment Or Uncomment to allow debugging messages from kernel functions that support it */
-//#define DEBUG
+#define DEBUG
 
 #include <stddef.h> // Standard Library from GCC Freestanding.
 #include <stdbool.h> // Standard library from GCC Freestanding
@@ -25,4 +25,5 @@
 #include "memory/memory.h"
 #include "memory/paging/paging.h"
 #include "bugcheck/bugcheck.h"
+#include "memory/allocator/allocator.h"
 #endif

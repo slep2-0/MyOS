@@ -7,13 +7,15 @@
 
 void kernel_main(void) {
 	// Clear the screen.
-	clear_screen(COLOR_BLACK);
-	// Initialize our heap.
-	init_heap();      
+	clear_screen(COLOR_BLACK); 
 	// Initialize our hardware interrupts.
 	init_interrupts();
 	// Initialize our virtual memory paging.
 	paging_init();
+	// Initialize Frame Bitmap.
+	//frame_bitmap_init();
+	// Initialize our heap.
+	init_heap();
 	// Initialize the timer to 100Mhz
 	init_timer(100);
 	// Initialize keyboard, will set all booleans to false (ctrl,shift,caps)
@@ -33,10 +35,17 @@ void kernel_main(void) {
 	void* buf2 = kmalloc(64, 16);
 	print_hex((unsigned int)(uintptr_t)buf2, COLOR_WHITE);
 	print_to_screen(" <- allocated 64 bytes, aligned to 16 byte groups. (number 2, should allocate to same addr)\r\n", COLOR_LIGHT_GREEN);
+	// Test dynamic memory allocation.
+	for (int i = 0; i < 50; i++) {
+		kmalloc(64, 16);
+	}
 	void* buf3 = kmalloc(64, 16);
-	print_hex((unsigned int)(uintptr_t)buf3, COLOR_WHITE);
-	print_to_screen(" <- allocated 64 bytes, aligned to 16 byte groups. (number 3 - new address. 64 bytes + sizeof(BLOCK_HEADER) = 72 bytes.)\r\n", COLOR_LIGHT_GREEN);
-	myos_printf(COLOR_GREEN, "This is the number: %d, and string: %s, and mem address: %x\r\n", 7, "MatanelOS", buf3);
+	if (buf3) {
+		myos_printf(COLOR_BROWN, "BUF3 ADDR: %x", buf3);
+	}
+	else {
+		myos_printf(COLOR_RED, "No BUF3");
+	}
 #ifdef CAUSE_BUGCHECK
 	int* test = (int*)0xFFFFFFFF;
 	*test = 1;  // Should cause a page fault if unmapped

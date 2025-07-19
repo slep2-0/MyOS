@@ -5,9 +5,62 @@
  */
 #include "memory.h"
 
- /* Head of the free list */
+/* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
 
+/* Initialize the free list to one big block spanning the heap */
+void init_heap(void) {
+    heap_current_end = HEAP_START;
+    uintptr_t start = HEAP_START;
+    size_t total = HEAP_SIZE;
+
+    /* Carve out one big free block */
+    free_list = (BLOCK_HEADER*)start;
+    free_list->size = total;
+    free_list->next = NULL;
+}
+
+
+// Functions.
+static bool grow_heap_by_one_page(void) {
+    // grab a physical frame
+    void* phys = alloc_frame();
+    if (!phys) { return false; }
+
+    // map it at the end of the heap.
+    map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW /* | PAGE_USER Would be used later on, when this kernel has both user mode and kernel mode */ );
+    // Zero the page.
+    kmemset((void*)heap_current_end, 0, FRAME_SIZE);
+    
+    // insert a new region
+    BLOCK_HEADER* block = (BLOCK_HEADER*)heap_current_end;
+    block->size = FRAME_SIZE;
+    block->next = free_list;
+    free_list = block;
+    coalesce_free_list();
+
+    // advance our end.
+    heap_current_end += FRAME_SIZE;
+    return true;
+}
+
+void insert_block_sorted(BLOCK_HEADER* newblock) {
+    if (!free_list || newblock < free_list) {
+        newblock->next = free_list;
+        free_list = newblock;
+        return;
+    }
+
+    BLOCK_HEADER* current = free_list;
+    while (current->next && current->next < newblock) {
+        current = current->next;
+    }
+
+    newblock->next = current->next;
+    current->next = newblock;
+}
+
+// unused.
 /* Align `addr` up to the next multiple of `align` (align must be power of two) */
 static void* align_up(void* addr, size_t align) {
     uintptr_t a = (uintptr_t)addr;
@@ -16,17 +69,6 @@ static void* align_up(void* addr, size_t align) {
         a = (a + mask) & ~mask;
     }
     return (void*)a;
-}
-
-/* Initialize the free list to one big block spanning the heap */
-void init_heap(void) {
-    uintptr_t start = HEAP_START;
-    size_t    total = HEAP_SIZE;
-
-    /* Carve out one big free block */
-    free_list = (BLOCK_HEADER*)start;
-    free_list->size = total;
-    free_list->next = NULL;
 }
 
 // Memory Set.
@@ -53,8 +95,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
             /* If the block is big enough to split */
             if (blk->size >= total_size + sizeof(BLOCK_HEADER) + align) {
                 /* Split off the tail into a new free block */
-                BLOCK_HEADER* next_blk =
-                    (BLOCK_HEADER*)((uintptr_t)blk + total_size);
+                BLOCK_HEADER* next_blk = (BLOCK_HEADER*)((uintptr_t)blk + total_size);
                 next_blk->size = blk->size - total_size;
                 next_blk->next = blk->next;
 
@@ -73,8 +114,14 @@ void* kmalloc(size_t wanted_size, size_t align) {
 
         cur = &blk->next;
     }
-
-    /* Out of memory */
+    if (!*cur) {
+        // Out of memory, add new page maps.
+        if (heap_current_end + FRAME_SIZE <= HEAP_END && grow_heap_by_one_page()) {
+            // new block now, restart the kmalloc.
+            kmalloc(wanted_size, align);
+        }
+    }
+    // No physical memory left.
     return NULL;
 }
 
@@ -102,18 +149,19 @@ void kfree(void* ptr) {
 #endif
         return;
     }
-
     /* Get header */
     BLOCK_HEADER* blk = ((BLOCK_HEADER*)ptr) - 1;
+    
 #ifdef DEBUG
     print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
     print_to_screen("blk: ", COLOR_CYAN);
     print_hex((unsigned int)(uintptr_t)blk, COLOR_BROWN);
     print_to_screen("\r\n", COLOR_BLACK);
 #endif
+    /* Zero it out. */
+    kmemset(blk, 0, blk->size);
     /* Push it onto the free list */
-    blk->next = free_list;
-    free_list = blk;
+    insert_block_sorted(blk);
 #ifdef DEBUG
     print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
     print_to_screen("Pushed the block to the free list.\r\n", COLOR_CYAN);

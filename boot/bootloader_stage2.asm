@@ -10,6 +10,41 @@ start:
     mov ss, ax
     mov sp, 0x7000
     
+	E820_BUF_SEG  equ 0x2000
+	E820_BUF_OFF  equ 0x0000
+	E820_BUF_PTR  dw E820_BUF_OFF, E820_BUF_SEG   ; esi→buffer
+	E820_MAX_ENTRIES equ 32
+
+	e820_count     dw 0
+	
+	; Obtain amount of memory.
+	mov cx, E820_MAX_ENTRIES ; cx holds max entries
+	xor ebx, ebx ; continuation value, 0 on first call.
+	
+.next_e820:
+    push cx
+    mov eax, 0xE820
+    mov edx, 0x534D4150           ; 'SMAP'
+    lea edi, [E820_BUF_PTR]       ; get pointer-to-pointer
+    mov esi, [E820_BUF_PTR]       ; buffer ptr
+    mov ecx, 24                   ; size of one entry
+    int 0x15
+    jc .e820_done                 ; if CF=1, BIOS doesn’t support E820
+
+    cmp eax, 0x534D4150           ; check magic
+    jne .e820_done
+
+    ; store one entry, advance buffer ptr
+    add word [E820_BUF_PTR+0], 24       ; offset
+    adc  dword [E820_BUF_PTR+2], 0      ; seg unchanged
+    inc word [e820_count]
+
+    pop cx
+    test ebx, ebx                ; ebx=0 means “last entry”
+    jnz .next_e820
+
+; Done counting memory, proceed to protected mode now.
+.e820_done: 
     ; Clear screen
     mov ah, 0x00
     mov al, 0x03
@@ -20,7 +55,7 @@ start:
     mov es, ax
     xor bx, bx          ; offset 0x0000
     mov ah, 0x02        ; BIOS read sectors function
-    mov al, 100         	; number of sectors to read -> increased to 15, kernel binary size has increased, safety precaution. -> EDIT: Increased to 100, couldn't figure out why kernel wouldn't load after a change.
+    mov al, 120       	; number of sectors to read -> increased to 15, kernel binary size has increased, safety precaution. -> EDIT: Increased to 100, couldn't figure out why kernel wouldn't load after a change.
     mov ch, 0           ; cylinder 0
     mov cl, 6           ; sector 6 (stage1=1 + stage2=4 + 1 = sector 6)
     mov dh, 0           ; head 0

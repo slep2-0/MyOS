@@ -10,13 +10,17 @@
 
  /* Symbol defined in linker script, end of loaded kernel */
 extern char kernel_end;
+extern char kernel_start;
+extern const size_t kernel_length;
 
 /* Heap Size */
-#define HEAP_SIZE   (1024 * 1024) // 1 MiB MAX. You may change it to an upper limit of 3.9GB.
 
 /* Start and end of the heap region */
-#define HEAP_START ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFF) & ~0xFFF)))
+#define HEAP_START ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFF) & ~0xFFF))) // Basically kernel end, then we want to allocate 4kb so we round up kernel_end.
 #define HEAP_END    (HEAP_START + HEAP_SIZE)
+uintptr_t heap_current_end;
+
+#define HEAP_SIZE (PHYS_MEM_SIZE - HEAP_START) // This ensures heap stays within mapped range // 128 MiB MAX. You may change it to an upper limit of 3.9GB.
 
 /* Block header placed immediately before each allocated chunk */
 typedef struct _BLOCK_HEADER {
