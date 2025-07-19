@@ -1,4 +1,4 @@
-![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,STABLE-yellow?style=for-the-badge)
+![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,_STABLE-lightyellow?style=for-the-badge)
 
 Starting this as a neat project, driven by curiosity and 1 person telling me to actually start it.
 
