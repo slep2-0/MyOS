@@ -105,9 +105,9 @@ typedef struct __attribute__((packed)) _REGS {
 void set_idt_gate(int n, unsigned long int handler);
 
 // Function to install IDT + load.
-void install_idt();
+void install_idt(void);
 
 // Load all interupts and ISR's.
-void init_interrupts();
+void init_interrupts(void);
 
 #endif /* X86_IDT_H */

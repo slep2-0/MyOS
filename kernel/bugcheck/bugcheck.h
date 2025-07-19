@@ -6,6 +6,7 @@
 #ifndef X86_BUGCHECK_H
 #define X86_BUGCHECK_H
 #include "../kernel.h"
+#include "../bugcheck/bugcheck.h"
 
 // Bugcheck error code enums, use same exception list from CPU.
 typedef enum _BUGCHECK_CODES {

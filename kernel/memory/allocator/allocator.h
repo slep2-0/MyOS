@@ -45,7 +45,7 @@ typedef struct __attribute__((packed)) _E820_ENTRY {
 extern uint16_t e820_count;
 extern E820_ENTRY e820_buf[E820_MAX];
 
-#define FRAME_SIZE 4096ULL // this is also the page size.
+#define FRAME_SIZE 4096U // this is also the page size.
 #define MAX_FRAMES ( PHYS_MEM_SIZE / FRAME_SIZE )
 
 static uint8_t frame_bitmap[MAX_FRAMES / 8];
@@ -53,21 +53,14 @@ static uint8_t frame_bitmap[MAX_FRAMES / 8];
 
 // Set the frame as reserved.
 // Set bit 2 to 1, to mark frame as reserved.
-static inline void set_frame(size_t frame) {
-    if (frame >= MAX_FRAMES) {
-#ifdef _MSC_VER // supress intellisense error.
-        bugcheck_system(NULL, SEVERE_MACHINE_CHECK, 0xBADF00D, true);
-#else
-        bugcheck_system(NULL, 18, 0xBADF00D, true);
-#endif
-    }
-    frame_bitmap[frame / 8] |= (1 << (frame % 8));
-}
+/* Was inline, now it's not as compiler warnings are now treated as errors for safety, and bugcheck_system here was implicit. */
+void set_frame(size_t frame);
 
 // Set the frame as free.
 // Set bit 2 to 0, to mark frame as free.
+// FIX: Casted to uint8_t because the right side is an "int" which would be interpreted as 32 bits.
 static inline void clear_frame(size_t frame) {
-    frame_bitmap[frame / 8] &= ~(1 << (frame % 8));
+    frame_bitmap[frame / 8] &= (uint8_t)~(1 << (frame % 8));
 }
 
 // Return true if reserved, false if free.

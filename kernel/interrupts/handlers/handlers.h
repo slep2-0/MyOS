@@ -12,13 +12,13 @@
 #define KEYBOARD_STATUS_PORT 0x64
 
 // Initialize keyboard left shift and left control to 0.
-void init_keyboard();
+void init_keyboard(void);
 // Handle keyboard interruptions.
-void keyboard_handler();
+void keyboard_handler(void);
 // Initiate timer with a specified frequency.
 void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
-void timer_handler();
+void timer_handler(void);
 // Handle Page Faults.
 void pagefault_handler(REGS* r);
 // Handle Double Fault - Bugcheck.

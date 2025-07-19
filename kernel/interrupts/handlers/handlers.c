@@ -97,10 +97,10 @@ void keyboard_handler() {
                 break;
             default:
                 if (shift_pressed || caps_lock_on) {
-                    print_to_screen(&strShift, COLOR_WHITE);
+                    print_to_screen(strShift, COLOR_WHITE);
                 }
                 else {
-                    print_to_screen(&str, COLOR_WHITE);
+                    print_to_screen(str, COLOR_WHITE);
                 }
                 break;
             }
@@ -139,7 +139,6 @@ void init_timer(unsigned long int frequency) {
 }
 
 static int tick = 0;
-static int cursor_last_blink = 0;
 
 void timer_handler() {
     tick++;
@@ -167,11 +166,13 @@ void doublefault_handler(REGS* r) {
 }
 
 void dividebyzero_handler(REGS* r) {
+    UNREFERENCED_PARAMETER(r);
     // handle diving by zero.
     print_to_screen("\r\nERROR: Diving by zero is not allowed.\r\n", COLOR_RED);
 }
 
 void debugsinglestep_handler(REGS* r) {
+    UNREFERENCED_PARAMETER(r);
     print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
     __hlt();
 }
@@ -182,6 +183,7 @@ void nmi_handler(REGS* r) {
 }
 
 void breakpoint_handler(REGS* r) {
+    UNREFERENCED_PARAMETER(r);
     print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
     __hlt();
 }
@@ -198,6 +200,7 @@ void boundscheck_handler(REGS* r) {
 }
 
 void invalidopcode_handler(REGS* r) {
+    UNREFERENCED_PARAMETER(r);
     print_to_screen("\r\nERROR: Invalid CPU Instruction...\r\n", COLOR_RED);
 }
 
@@ -235,6 +238,7 @@ void gpf_handler(REGS* registers) {
 }
 
 void fpu_handler(REGS* r) {
+    UNREFERENCED_PARAMETER(r);
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
     print_to_screen("\r\nERROR: Floating Point error, have you done a correct calculationn?\r\n", COLOR_RED);
 }

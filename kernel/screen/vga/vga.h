@@ -40,34 +40,38 @@
 void clear_screen(unsigned char attribute);
 
 // Will return a VGA color byte value.
-int make_color(int foreground, int background);
+unsigned char make_color(unsigned char foreground, unsigned char background);
 
 // Prints to the screen with the specified text and color -- uses the foreground color from the clear_screen as default.
-void print_to_screen(char* text, int color);
+void print_to_screen(char* text, unsigned char fg_color);
 
 // Prints to the screen with the specified text and custom background&foreground
 // Usage: attribute -> make_color(foreground, background); use color definitions. COLOR_XXXX
-void print_to_screen_custom_background_foreground(char* text, int attribute);
+void print_to_screen_custom_background_foreground(char* text, unsigned char attribute);
 
 // Convert an unsigned decimal int into an ASCII Character number, and print to screen.
-void print_dec(unsigned int num, int color);
+void print_dec(unsigned int num, unsigned char color);
 
 // Same thing as custom print_screen_custom_background_foreground
 // Usage: attribute -> make_color(foreground, background); use color definitions. COLOR_XXXX
-void print_dec_custom_background_foreground(unsigned int num, int attribute);
+void print_dec_custom_background_foreground(unsigned int num, unsigned char attribute);
 
 // Set the Current CURSOR position "_"
 void set_hardware_cursor_position(int x, int y);
-void blink_cursor();
+// Added void parameter (nothing), because it's declaration is not a prototyoe error (enabled all warnings as errors plus some extra flags)
+void blink_cursor(void);
 
 // Print HEX digits to screen, lets say print_hex(0x10000, COLOR_WHITE) -> "00010000" (converts to 32bit address.)
-void print_hex(unsigned int value, int color);
+void print_hex(unsigned int value, unsigned char color);
 
 // Same thing as custom print_screen_custom_background_foreground
 // Usage: attribute -> make_color(foreground, background); use color definitions. COLOR_XXXX
-void print_hex_custom_background_foreground(unsigned int value, int attribute);
+void print_hex_custom_background_foreground(unsigned int value, unsigned char attribute);
 
 // Custom made printf -- supports %x for pointers (hex 0001000), decimal %d (%d -> 1234) and standard chars.
 //void myos_printf_safe(int color, const char* fmt, ...);
-void myos_printf(int color, const char* fmt, ...);
+void myos_printf(unsigned char color, const char* fmt, ...);
+
+// missing prototypes
+void update_char_under_cursor(void);
 #endif

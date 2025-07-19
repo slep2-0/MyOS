@@ -74,7 +74,7 @@ void set_page_writable(void* virtualaddress, bool writable) {
 #endif
     }
     else {
-        entry &= ~PAGE_RW;
+        entry &= ~((uintptr_t)PAGE_RW);
 #ifdef DEBUG
         print_to_screen("  Setting READ-ONLY\r\n", COLOR_RED);
 #endif
@@ -116,7 +116,7 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
 		entry |= PAGE_USER;
 	}
 	else {
-		entry &= ~PAGE_USER;
+        entry &= ~((uintptr_t)PAGE_RW);
 	}
 	pt[pt_idx] = entry;
 
@@ -134,7 +134,7 @@ void map_page(void* virtualaddress, void* physicaladdress, uint32_t flags) {
     uint32_t* pt = pt_base + pagedirectory_i * PAGE_TABLE_ENTRIES;
 
     // Install the entry - physical frame + flags + present bit (PAGE_PRESENT)
-    pt[pagetable_i] = ((uint32_t)physicaladdress & ~0xFFF) // frame base
+    pt[pagetable_i] = ((uint32_t)physicaladdress & ~0xFFFU) // frame base
         | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
 
 

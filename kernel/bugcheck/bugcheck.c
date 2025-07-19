@@ -45,7 +45,7 @@ void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t addition
 	}
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-			print_to_screen("\r\n\r\FAULTY ADDRESS: ", COLOR_YELLOW);
+			print_to_screen("\r\n\r\nFAULTY ADDRESS: ", COLOR_YELLOW);
 			print_hex(additional, COLOR_WHITE);
 		}
 		else {

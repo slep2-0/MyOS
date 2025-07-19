@@ -8,6 +8,7 @@
 #include "../../kernel.h"
 
 // Total physical memory (upto 3.9GB)
+#define PHYS_MEM_BASE  ((uintptr_t)&kernel_start)  // 0x10000 from linker
 #define PHYS_MEM_SIZE (128 * 1024 * 1024)  // 128 MiB
 
 // Page directory has 1024 entries -> each page-table covers 4 MiB

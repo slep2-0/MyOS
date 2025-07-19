@@ -7,6 +7,9 @@
 
 #include "idt.h"
 
+// forward declaration for prototype error in gcc.
+void isr_handler(int vec_num, REGS* r);
+
 const bool has_error_code[] = {
     false, false, false, false, false, false, false, false, // 0-7
     true,  false, true,  true,  true,  true,  true,  false, // 8-15
@@ -14,6 +17,9 @@ const bool has_error_code[] = {
     false, false, false, false, false, false, false, false  // 24-31
 };
 
+#ifndef _MSC_VER
+__attribute__((used))
+#endif
 void isr_handler(int vec_num, REGS* r) {
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:
@@ -78,7 +84,7 @@ void isr_handler(int vec_num, REGS* r) {
         return;
     default:
         print_to_screen("Interrupt Exception: ", COLOR_RED);
-        print_dec(vec_num, COLOR_WHITE);
+        print_dec((unsigned int)vec_num, COLOR_WHITE);
         print_to_screen(" \r\n", COLOR_BLACK);
         return;
     }

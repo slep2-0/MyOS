@@ -44,7 +44,7 @@ static bool grow_heap_by_one_page(void) {
     return true;
 }
 
-void insert_block_sorted(BLOCK_HEADER* newblock) {
+static void insert_block_sorted(BLOCK_HEADER* newblock) {
     if (!free_list || newblock < free_list) {
         newblock->next = free_list;
         free_list = newblock;
@@ -87,6 +87,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
 
     /* First‑fit search through free list */
+    // A pointer to a pointer, since we also want the previous node (which is cur, a ponter to the next field of the previous node.)
     BLOCK_HEADER** cur = &free_list;
     while (*cur) {
         BLOCK_HEADER* blk = *cur;
@@ -109,7 +110,9 @@ void* kmalloc(size_t wanted_size, size_t align) {
             }
 
             /* Return pointer just past the header */
-            return (void*)(blk + 1);
+            void* raw_ptr = (void*)(blk + 1);
+            void* aligned_ptr = align_up(raw_ptr, align);
+            return aligned_ptr;
         }
 
         cur = &blk->next;

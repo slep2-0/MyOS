@@ -8,22 +8,22 @@
 #include "../kernel.h"
 
 // Disable interrupts (cli)
-static inline void __cli() {
+static inline void __cli(void) {
     __asm__ volatile ("cli");
 }
 
 // Enable interrupts (sti)
-static inline void __sti() {
+static inline void __sti(void) {
     __asm__ volatile ("sti");
 }
 
 // Halt CPU until next interrupt (hlt)
-static inline void __hlt() {
+static inline void __hlt(void) {
     __asm__ volatile ("hlt");
 }
 
 // Read CR0 register
-static inline unsigned long int __read_cr0() {
+static inline unsigned long int __read_cr0(void) {
     unsigned long int val;
     __asm__ volatile ("mov %%cr0, %0" : "=r"(val));
     return val;
@@ -39,7 +39,7 @@ static inline void __lidt(void* idt_ptr) {
 }
 
 // Read EFLAGS register
-static inline unsigned long int __read_eflags() {
+static inline unsigned long int __read_eflags(void) {
     unsigned long int eflags;
     __asm__ volatile (
         "pushfl\n\t"
