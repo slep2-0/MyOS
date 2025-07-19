@@ -67,6 +67,10 @@ void frame_bitmap_init(void) {
                 bugcheck_system(NULL, 18, 0xDEADBEEF, true);
 #endif
             }
+            // DO NOT TAMPER WITH KERNEL FRAMES.
+            if (frame >= frame_zero && frame < frame_end) {
+                continue;
+            }
             if (frame < MAX_FRAMES) {
                 clear_frame(frame); // this won’t undo kernel frames, since they're already marked reserved
             }
