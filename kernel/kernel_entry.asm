@@ -1,10 +1,16 @@
 [bits 32]
 
-extern kernel_main ; Declare kernel_main from C code
+; Multiboot 2 header must be in the first 8KB of the binary
+section .multiboot
+    align 8
+    dd 0xE85250D6           ; magic number
+    dd 0x00010003           ; flags (align modules + memory info)
+    dd -(0xE85250D6 + 0x00010003)  ; checksum
 
-global _start     ; Export _start symbol for the linker
+section .text
+    global _start
+    extern kernel_main
+
 _start:
-    ; The bootloader already sets the stack pointer (esp).
-    ; Here you could clear the .bss section if you had one.
-    call kernel_main ; Call your C kernel function
-    hlt              ; Halt the CPU if kernel_main ever returns
+    call kernel_main
+    hlt

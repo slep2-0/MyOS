@@ -6,8 +6,7 @@
 
 #include "bugcheck.h"
 
-void bugcheck_system(REGS* a, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
-	(void)(a);
+void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
 	// Critical system error, instead of triple faulting, we hang the system with specified error codes.
 	// Disable interrupts if werent disabled before.
 	__cli();
@@ -20,7 +19,6 @@ void bugcheck_system(REGS* a, BUGCHECK_CODES err_code, uint32_t additional, bool
 	print_to_screen("Your system has been stopped for safety.\r\n", COLOR_WHITE);
 	print_to_screen("\r\nSTOP_CODE: ", COLOR_WHITE);
 	print_dec(err_code, COLOR_YELLOW);
-	/*
 	if (registers) {
 		myos_printf(COLOR_WHITE, "\r\n\r\nRegisters:\r\nEAX: %x EBX: %x ECX: %x EDX: %x\r\nESI: %x EDI: %x EBP: %x ESP: %x\r\nDS: %x ES: %x FS: %x GS: %x\r\nEIP: %x CS: %x ELAGS: %x\r\nExceptions: \r\nVector Number: %d Error Number: %x",
 			registers->eax,
@@ -45,7 +43,6 @@ void bugcheck_system(REGS* a, BUGCHECK_CODES err_code, uint32_t additional, bool
 	else {
 		print_to_screen("\r\n\r\nERROR: NO REGISTERS.", COLOR_RED);
 	}
-	*/
 	print_to_screen("\r\n\r\nERROR: NO REGISTERS.", COLOR_RED);
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
