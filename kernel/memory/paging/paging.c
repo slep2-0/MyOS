@@ -1,176 +1,233 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     Memory Paging and Dynamic Memory Allocation Implementation
+ * PURPOSE:     64-bit Memory Paging Implementation (4-level paging)
  */
+
 #include "paging.h"
 
-static uint32_t *page_directory = &__pd_start;
-static uint32_t *page_tables = &__pt_start;
+ // Constants for x86_64 paging
+#define PAGE_ENTRIES        512
+#define PAGE_SIZE_4K        0x1000
 
+// Page flags
+#define PAGE_PRESENT        0x1
+#define PAGE_RW             0x2
+#define PAGE_USER           0x4
+#define PAGE_PWT            0x8
+#define PAGE_PCD            0x10
+#define PAGE_ACCESSED       0x20
+#define PAGE_DIRTY          0x40
+#define PAGE_PS             0x80
+#define PAGE_GLOBAL         0x100
+
+// Extern symbols for bootloader-allocated pages, or allocate dynamically in your kernel
+extern uint64_t __pml4_start[]; // Allocate this page aligned to 4KiB
+
+static uint64_t* pml4 = __pml4_start; // Base of PML4 table
+
+// Helper: allocate a zeroed 4KiB-aligned page for new tables
+static uint64_t* allocate_page_table() {
+    // Implement your own allocator here
+    // For now, you can use kmalloc aligned to PAGE_SIZE_4K or a static buffer
+    uint64_t* page = (uint64_t*)kmalloc(PAGE_SIZE_4K, PAGE_SIZE_4K);
+    if (page) {
+        kmemset(page, 0, PAGE_SIZE_4K);
+    }
+    return page;
+}
+
+// Extract indices from virtual address
+static inline size_t get_pml4_index(uint64_t va) { return (va >> 39) & 0x1FF; }
+static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
+static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
+static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
+
+// Initialize paging (map identity for first ~4 GiB for now)
 void paging_init(void) {
-	// zero out page directory and all page tables.
-	kmemset(page_directory, 0, 4096);
-	// how many page tables we need
-	uint32_t num_pt = (PHYS_MEM_SIZE + 0x3FFFFF) / 0x400000;
-	kmemset(page_tables, 0, num_pt * 4096);
+    // Zero PML4
+    kmemset(pml4, 0, PAGE_SIZE_4K);
 
-	// build entries now. - only map as necessary, rest is zero (unmapped).
+    // Allocate PDPT, PD, PT tables
+    uint64_t* pdpt = allocate_page_table();
+    uint64_t* pd = allocate_page_table();
+    uint64_t* pt = allocate_page_table();
 
-	for (uint32_t pd_idx = 0; pd_idx < num_pt; pd_idx++) {
-		uint32_t* pt = page_tables + (pd_idx * PAGE_TABLE_ENTRIES);
-		page_directory[pd_idx] = ((uint32_t)pt) | PAGE_PRESENT | PAGE_RW;
+    if (!pdpt || !pd || !pt) {
+        // Handle allocation failure (panic, halt)
+        return;
+    }
 
-		// fill each page table entry to map 4 KiB*1024 = 4 MiB block.
-		for (uint32_t pt_idx = 0; pt_idx < PAGE_TABLE_ENTRIES; pt_idx++) {
-			uint32_t phys = (pd_idx << 22) | (pt_idx << 12);
-			pt[pt_idx] = phys | PAGE_PRESENT | PAGE_RW;
-		}
-	}
+    // Map the first 4 MiB pages with identity mapping (for kernel)
+    // Build the hierarchy:
+    // pml4[0] -> pdpt
+    pml4[0] = ((uint64_t)pdpt) | PAGE_PRESENT | PAGE_RW;
 
-	// load cr3 and enable paging ( cr0.PG = bit 31)
+    // pdpt[0] -> pd
+    pdpt[0] = ((uint64_t)pd) | PAGE_PRESENT | PAGE_RW;
+
+    // pd[0] -> pt
+    pd[0] = ((uint64_t)pt) | PAGE_PRESENT | PAGE_RW;
+
+    // Fill PT with identity mapping for first 2 MiB (512 * 4KiB = 2 MiB)
+    for (size_t i = 0; i < PAGE_ENTRIES; i++) {
+        pt[i] = (i * PAGE_SIZE_4K) | PAGE_PRESENT | PAGE_RW;
+    }
+
+    // Load CR3 with PML4 physical address
+    uint64_t pml4_phys = (uint64_t)pml4; // Must be physical address in your kernel setup
     __asm__ volatile (
-        "mov %0, %%cr3           \n"
-        "mov %%cr0, %%eax        \n"
-        "or  $0x80000000, %%eax  \n"
-        "or  $0x00010000, %%eax  \n" // setting CR0.WP (write protection) to 1, so the CPU will NOT honor the kernel writing to read only memory.
-        "mov %%eax, %%cr0        \n"
-        : : "r"((uint32_t)page_directory)
-        : "eax"
+        "mov %0, %%cr3\n"
+        "mov %%cr0, %%rax\n"
+        "or $0x80000000, %%eax\n"    // Enable paging (PG bit)
+        "or $0x00010000, %%eax\n"    // Enable WP bit
+        "mov %%rax, %%cr0\n"
+        :
+    : "r"(pml4_phys)
+        : "rax"
         );
 }
 
-// Set the RW bit to 'writable' bool -> true = readwrite, false = readonly
-void set_page_writable(void* virtualaddress, bool writable) {
-    uint32_t v = (uint32_t)virtualaddress;
-    uint32_t pd_idx = v >> 22;
-    uint32_t pt_idx = (v >> 12) & 0x3FF;
-    uint32_t* pt_base = (uint32_t*)&__pt_start;
-    uint32_t* pt = pt_base + pd_idx * PAGE_TABLE_ENTRIES;
-    uint32_t entry = pt[pt_idx];
-#ifdef DEBUG
-    print_to_screen("set_page_writable: VA=0x", COLOR_CYAN);
-    print_hex(v, COLOR_CYAN);
-    print_to_screen(" PD[", COLOR_CYAN);
-    print_hex(pd_idx, COLOR_CYAN);
-    print_to_screen("] PT[", COLOR_CYAN);
-    print_hex(pt_idx, COLOR_CYAN);
-    print_to_screen("]\r\n", COLOR_BLACK);
+// Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc)
+void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
+    uint64_t va = (uint64_t)virtualaddress;
+    uint64_t pa = (uint64_t)physicaladdress;
 
-    print_to_screen("  pt_base=0x", COLOR_CYAN);
-    print_hex((uint32_t)pt_base, COLOR_CYAN);
-    print_to_screen(" pt=0x", COLOR_CYAN);
-    print_hex((uint32_t)pt, COLOR_CYAN);
-    print_to_screen("\r\n", COLOR_BLACK);
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
 
-    print_to_screen("  BEFORE: entry=0x", COLOR_YELLOW);
-    print_hex(entry, COLOR_YELLOW);
-    print_to_screen("\r\n", COLOR_BLACK);
-#endif
-    if (writable) {
-        entry |= PAGE_RW;
-#ifdef DEBUG
-        print_to_screen("  Setting WRITABLE\r\n", COLOR_GREEN);
-#endif
+    // Traverse or allocate PDPT
+    uint64_t* pdpt;
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) {
+        pdpt = allocate_page_table();
+        if (!pdpt) return; // fail
+        pml4[pml4_i] = ((uint64_t)pdpt) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
     }
     else {
-        entry &= ~((uintptr_t)PAGE_RW);
-#ifdef DEBUG
-        print_to_screen("  Setting READ-ONLY\r\n", COLOR_RED);
-#endif
+        pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
     }
 
-    pt[pt_idx] = entry;
-#ifdef DEBUG
-    print_to_screen("  AFTER: entry=0x", COLOR_YELLOW);
-    print_hex(entry, COLOR_YELLOW);
-    print_to_screen("\r\n", COLOR_BLACK);
-
-    // Verify the write actually took effect
-    uint32_t verify = pt[pt_idx];
-    print_to_screen("  VERIFY: entry=0x", COLOR_YELLOW);
-    print_hex(verify, COLOR_YELLOW);
-    if (verify == entry) {
-        print_to_screen(" (OK)\r\n", COLOR_GREEN);
+    // Traverse or allocate PD
+    uint64_t* pd;
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) {
+        pd = allocate_page_table();
+        if (!pd) return; // fail
+        pdpt[pdpt_i] = ((uint64_t)pd) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
     }
     else {
-        print_to_screen(" (FAILED!)\r\n", COLOR_RED);
+        pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
     }
-#endif
-    invlpg(virtualaddress); // flush it from the TLB
-#ifdef DEBUG
-    print_to_screen("  TLB flushed\r\n", COLOR_CYAN);
-#endif
-}
 
-// Set the UserSupervisor bit to 'user_accessible' bool -> true = user+kernel, false = kernel only (supervisor)
-void set_page_user_access(void* virtualaddress, bool user_accessible) {
-	uint32_t v = (uint32_t)virtualaddress;
-	uint32_t pd_idx = v >> 22;
-	uint32_t pt_idx = (v >> 12) & 0x3FF;
-	uint32_t* pt_base = (uint32_t*)&__pt_start;
-	uint32_t* pt = pt_base + pd_idx * PAGE_TABLE_ENTRIES;
+    // Traverse or allocate PT
+    uint64_t* pt;
+    if (!(pd[pd_i] & PAGE_PRESENT)) {
+        pt = allocate_page_table();
+        if (!pt) return; // fail
+        pd[pd_i] = ((uint64_t)pt) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+    }
+    else {
+        pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
+    }
 
-	uint32_t entry = pt[pt_idx];
-	if (user_accessible) {
-		entry |= PAGE_USER;
-	}
-	else {
-        entry &= ~((uintptr_t)PAGE_RW);
-	}
-	pt[pt_idx] = entry;
+    // Map the page
+    pt[pt_i] = (pa & ~0xFFFULL) | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
 
-	invlpg(virtualaddress);
-}
-
-// Map a single 4KB page: Virtual Address -> Physical Address with given flags (PAGE_RW, PAGE_USER, PAGE_PRESENT)
-void map_page(void* virtualaddress, void* physicaladdress, uint32_t flags) {
-    uint32_t virtualaddr = (uint32_t)virtualaddress;
-    uint32_t pagedirectory_i = virtualaddr >> 22;
-    uint32_t pagetable_i = (virtualaddr >> 12) & 0x3FF;
-
-    // Locate this page-table (already pre-allocated 32 tables at __pt_start)
-    uint32_t* pt_base = (uint32_t*)&__pt_start;
-    uint32_t* pt = pt_base + pagedirectory_i * PAGE_TABLE_ENTRIES;
-
-    // Install the entry - physical frame + flags + present bit (PAGE_PRESENT)
-    pt[pagetable_i] = ((uint32_t)physicaladdress & ~0xFFFU) // frame base
-        | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
-
-
-    // Flush the TLB for the address to apply new changes.
+    // Flush TLB for this virtual address
     invlpg(virtualaddress);
 }
 
+// Unmap a page (remove mapping and free frame)
 bool unmap_page(void* virtualaddress) {
-    uint32_t va = (uint32_t)virtualaddress;
-    uint32_t pd_i = va >> 22;
-    uint32_t pt_i = (va >> 12) & 0x3FF;
+    uint64_t va = (uint64_t)virtualaddress;
 
-    uint32_t* page_table_base = (uint32_t*)&__pt_start;
-    uint32_t* page_table = page_table_base + pd_i * PAGE_TABLE_ENTRIES;
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
 
-    if (!(page_directory[pd_i] & PAGE_PRESENT)) {
-        // This page table doesn't exist, no page present bit.
-        return false;
-    }
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) return false;
+    uint64_t* pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
 
-    uint32_t entry = page_table[pt_i];
-    if (!(entry & PAGE_PRESENT)) {
-        // Page is already unmapped.
-        return true;
-    }
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return false;
+    uint64_t* pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
 
-    void* phys_addr = (void*)(entry & 0xFFFFF000);
+    if (!(pd[pd_i] & PAGE_PRESENT)) return false;
+    uint64_t* pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
 
-    // Clear the page table entry.
-    page_table[pt_i] = 0;
+    if (!(pt[pt_i] & PAGE_PRESENT)) return false;
 
-    // Flush TLB To apply changes for this virtual address
+    void* phys_addr = (void*)(pt[pt_i] & ~0xFFFULL);
+
+    // Clear the entry
+    pt[pt_i] = 0;
+
     invlpg(virtualaddress);
 
-    // Free the physical frame from memory.
+    // Free physical frame if applicable
     free_frame(phys_addr);
 
     return true;
+}
+
+// Set writable flag on a page
+void set_page_writable(void* virtualaddress, bool writable) {
+    uint64_t va = (uint64_t)virtualaddress;
+
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
+
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
+    uint64_t* pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
+
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return;
+    uint64_t* pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
+
+    if (!(pd[pd_i] & PAGE_PRESENT)) return;
+    uint64_t* pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
+
+    uint64_t entry = pt[pt_i];
+    if (writable) {
+        entry |= PAGE_RW;
+    }
+    else {
+        entry &= ~((uint64_t)PAGE_RW);
+    }
+    pt[pt_i] = entry;
+
+    invlpg(virtualaddress);
+}
+
+void set_page_user_access(void* virtualaddress, bool user_accessible) {
+    uint64_t va = (uint64_t)virtualaddress;
+
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
+
+    // Assume these pointers are declared and initialized elsewhere:
+    extern uint64_t* pml4;
+
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
+    uint64_t* pdpt = (uint64_t*)((pml4[pml4_i] & ~0xFFFULL));
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return;
+    uint64_t* pd = (uint64_t*)((pdpt[pdpt_i] & ~0xFFFULL));
+    if (!(pd[pd_i] & PAGE_PRESENT)) return;
+    uint64_t* pt = (uint64_t*)((pd[pd_i] & ~0xFFFULL));
+    if (!(pt[pt_i] & PAGE_PRESENT)) return;
+
+    uint64_t entry = pt[pt_i];
+    if (user_accessible) {
+        entry |= PAGE_USER;
+    }
+    else {
+        entry &= ~((uint64_t)PAGE_USER);
+    }
+    pt[pt_i] = entry;
+
+    invlpg(virtualaddress);
 }

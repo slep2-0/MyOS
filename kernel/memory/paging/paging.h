@@ -23,13 +23,13 @@ typedef enum _FLAGS {
 } FLAGS;
 
 // Symobls that come from the linker script that define the start of page directory and page tables (allocated by linker)
-extern uint32_t __pd_start;
-extern uint32_t __pt_start;
+extern uint64_t __pd_start;
+extern uint64_t __pt_start;
 
 void paging_init(void);
 void set_page_writable(void* virtualaddress, bool writable);
 void set_page_user_access(void* virtualaddress, bool user_accessible);
-void map_page(void* virtualaddress, void* physicaladdress, uint32_t flags);
+void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
 #endif

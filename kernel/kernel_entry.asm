@@ -1,16 +1,20 @@
-[bits 32]
+bits 64
+default rel
 
-; Multiboot 2 header must be in the first 8KB of the binary
-section .multiboot
-    align 8
-    dd 0xE85250D6           ; magic number
-    dd 0x00010003           ; flags (align modules + memory info)
-    dd -(0xE85250D6 + 0x00010003)  ; checksum
+extern kernel_main
+global _start
 
 section .text
-    global _start
-    extern kernel_main
-
 _start:
+    ; UEFI passes first argument (GOP_PARAMS*) in RCX, System V wants it in RDI
+    mov     rdi, rcx
+
+    mov al, 0xFF       ; Set I/O port just for debug
+    out 0x80, al       ; Optional debug if emulating (QEMU sees this)
+
     call kernel_main
+
+.halt:
+    cli
     hlt
+    jmp .halt

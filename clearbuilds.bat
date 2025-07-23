@@ -1,1 +1,0 @@
-del /q build\* && cls

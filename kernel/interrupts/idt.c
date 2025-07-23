@@ -5,16 +5,18 @@
  */
 #include "idt.h"
 
-IDT_ENTRY IDT[IDT_ENTRIES];
+IDT_ENTRY64 IDT[IDT_ENTRIES];
 IDT_PTR   PIDT;
 
 /* Set one gate. */
 void set_idt_gate(int n, unsigned long int handler) {
     IDT[n].offset_low = handler & 0xFFFF;
-    IDT[n].selector = 0x08; // CS is at 0x08 when it was set-upped in the GDT.
+    IDT[n].selector = 0x08;   // code segment selector
+    IDT[n].ist = 0;           // right now it's zero, I don't use IST.
+    IDT[n].type_attr = 0x8E;  // interrupt gate, present, ring 0
+    IDT[n].offset_mid = (handler >> 16) & 0xFFFF;
+    IDT[n].offset_high = (handler >> 32) & 0xFFFFFFFF;
     IDT[n].zero = 0;
-    IDT[n].type_attr = 0x8E; // Interrupt gate, present, ring 0.
-    IDT[n].offset_high = (uint16_t)((handler >> 16) & 0xFFFF);
 }
 
 /* Populate IDT: exceptions, IRQ, and then finally load it. */
@@ -87,7 +89,7 @@ void install_idt() {
     set_idt_gate(47, (unsigned long)irq15);
     
     /* Finally, Load IDT. */
-    PIDT.limit = sizeof(IDT_ENTRY) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
+    PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;
     __lidt(&PIDT);
     __sti(); // Enable interrupts.

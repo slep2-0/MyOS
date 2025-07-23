@@ -59,7 +59,7 @@ typedef struct _IDT_PTR {
 typedef struct __attribute__((packed)) _IDT_PTR {
 #endif
     uint16_t limit;
-    uint32_t base;
+    uint64_t base;
 } IDT_PTR;
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -70,14 +70,16 @@ typedef struct __attribute__((packed)) _IDT_PTR {
 #pragma pack(push, 1)
 typedef struct _IDT_ENTRY {
 #else
-typedef struct __attribute__((packed)) _IDT_ENTRY {
+typedef struct __attribute__((packed)) _IDT_ENTRY_64 {
 #endif
     uint16_t offset_low; // lower 16 bits of the handler function address. 0-15
     uint16_t selector; // CS (code) segment in the GDT.
-    uint8_t zero; // Always 0.
+    uint8_t ist; // Always 0.
     uint8_t type_attr; // type and attributes (e.g, 0x8E - present, ring 0, 32-bit interrupt gate)
-    uint16_t offset_high; // higher 16 bits of handler address 16-31
-} IDT_ENTRY;
+    uint16_t offset_mid; // middle 16 bits.
+    uint32_t offset_high; // highest 32 bits. (total 64)
+    uint32_t zero;
+} IDT_ENTRY64;
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif

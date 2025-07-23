@@ -1,3 +1,4 @@
+OUTPUT_FORMAT("elf64-x86-64")
 ENTRY(_start)
 
 SECTIONS
@@ -28,6 +29,13 @@ SECTIONS
         *(COMMON)
     }
     PROVIDE(bss_end = .);
+
+	/* — PML4 (4 KiB) — */
+	. = ALIGN(0x1000);
+	PROVIDE(__pml4_start = .);
+	.pml4 (NOLOAD) : ALIGN(0x1000) {
+		. = . + 4096;
+	}
 
     /* — Page directory (4 KiB) — */
     . = ALIGN(0x1000);

@@ -32,6 +32,7 @@ unsigned char make_color(unsigned char foreground, unsigned char background) {
 }
 
 void print_to_screen(char* text, unsigned char fg_color) {
+    return; // unused.
     volatile unsigned char* video_memory = (volatile unsigned char*)0xB8000;
     unsigned char attribute = (unsigned char)((current_bg_color << 4) | (fg_color & 0x0F));
 

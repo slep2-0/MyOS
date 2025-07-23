@@ -143,7 +143,7 @@ static int tick = 0;
 void timer_handler() {
     tick++;
     if (tick % 20 == 0) {
-        blink_cursor(); // Every 20 timer interrupts
+        //blink_cursor(); // Every 20 timer interrupts
     }
 }
 
@@ -154,10 +154,13 @@ void ata_handler(void) {
 }
 
 void pagefault_handler(REGS* r) {
-    uint32_t fault_addr;
+    uint64_t fault_addr;
     // cr2 holds the faulty address that caused the page fault.
     
-    __asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
+    __asm__ __volatile__ (
+    "movq %%cr2, %0"
+    : "=r"(fault_addr)
+	);
     bugcheck_system(r, PAGE_FAULT, fault_addr, true);
     
     // __hlt(); -> When an HLT instruction is called when the CPU is in interrupt mode, (interrupts are already disabled to let this interrupt go through), iretd never executes, and so the CPU Is just stuck in place. Only an NMI or SMI can wake the processor back up

@@ -38,17 +38,17 @@ static bool ata_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 	__outbyte(ATA_PRIMARY_BASE + 7, 0x20); // cmd: read
 
 	// Wait for BSY = 0 again (after sending the command)
-	myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (READ)\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (READ)\r\n");
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {}
 
 	// Wait DRQ
 
-	myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (READ)\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (READ)\r\n");
 	while (!(__inbyte(ATA_PRIMARY_BASE + 7) & 0x08)) {/*wait*/}
 
 	// Read 256 * 16 bit words.
 	uint16_t* ptr = buf;
-	myos_printf(COLOR_LIGHT_GRAY, "Reading data now...\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Reading data now...\r\n");
 	for (int i = 0; i < 256; i++) {
 		ptr[i] = __inword(ATA_PRIMARY_BASE);
 	}
@@ -71,15 +71,15 @@ static bool ata_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 
 
 	// Wait for BSY = 0 again (after sending the command)
-	myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (WRITE)\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (WRITE)\r\n");
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {}
 
 
-	myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (WRITE)\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (WRITE)\r\n");
 	while (!(__inbyte(ATA_PRIMARY_BASE + 7) & 0x08)) {}
 
 	const uint16_t* ptr = buf;
-	myos_printf(COLOR_LIGHT_GRAY, "Writing data now...\r\n");
+	//myos_printf(COLOR_LIGHT_GRAY, "Writing data now...\r\n");
 	for (int i = 0; i < 256; i++) {
 		__outword(ATA_PRIMARY_BASE, ptr[i]);
 	}
