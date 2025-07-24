@@ -74,6 +74,10 @@ build/fat32.o: kernel/filesystem/fat32/fat32.c
 build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/gop_print.o: kernel/drivers/gop/gop_print.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
@@ -84,12 +88,8 @@ build/isr_stub.o: kernel/interrupts/isr_stub.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/isr_common_stub.o: kernel/interrupts/isr_common_stub.asm
-	mkdir -p build
-	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/vga.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o  build/isr_stub.o build/isr_common_stub.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/vga.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/gop_print.o build/isr_stub.o kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

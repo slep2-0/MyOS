@@ -1,3 +1,5 @@
+#ifndef FONTTABLE_H
+#define FONTTABLE_H
 static const uint8_t font8x8_basic[95][8] = {
     // ' ' (32)
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -190,3 +192,4 @@ static const uint8_t font8x8_basic[95][8] = {
     // '~' (126)
     { 0x6E, 0x3B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
+#endif

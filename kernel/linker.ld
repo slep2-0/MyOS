@@ -4,7 +4,7 @@ ENTRY(_start)
 SECTIONS
 {
     /* — Kernel placement at 0x10000 — */
-    . = 0x10000;
+    . = 0x100000;
     PROVIDE(kernel_start = .);
 
     .text : {
@@ -50,6 +50,14 @@ SECTIONS
     .page_tables (NOLOAD) : ALIGN(0x1000) {
         . = . + (32 * 4096);
     }
+
+	/* — Kernel stack (8 KiB) — */
+	. = ALIGN(0x1000);
+	PROVIDE(__stack_start = .);
+	.stack (NOLOAD) : ALIGN(0x1000) {
+	  . = . + 0x2000;    /* 8 KiB stack */
+	}
+	PROVIDE(__stack_end = .);
 
     /* — Mark end of pagetables — */
     . = ALIGN(0x1000);

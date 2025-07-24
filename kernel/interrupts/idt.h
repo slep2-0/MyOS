@@ -91,12 +91,31 @@ typedef struct _REGS {
 #else
 typedef struct __attribute__((packed)) _REGS {
 #endif
-    uint32_t gs, fs, es, ds;             // Segment registers
-    uint32_t edi, esi, ebp, esp;         // Pushed by pusha -> Special Registers -> FIXME, PUSHA pushes the OLD esp, and not the current (when the cpu switches).
-    uint32_t ebx, edx, ecx, eax;         // Pushed by pusha -> General purpose registers
-    uint32_t error_code;                 // Manually pushed -> Error code (if any)
-    uint32_t vec_num;                     // Vector number -> Vector Number.
-    uint32_t eip, cs, eflags;           // Pushed by CPU. EIP -> Current instruction pointer address. CS -> Code Segment. EFLAGS -> EFLAGS Register.
+    // the order here must match the order we push in assembly
+    uint64_t rax;
+    uint64_t rbx;
+    uint64_t rcx;
+    uint64_t rdx;
+    uint64_t rsi;
+    uint64_t rdi;
+    uint64_t rbp;
+    uint64_t r8;
+    uint64_t r9;
+    uint64_t r10;
+    uint64_t r11;
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
+
+    // next come the two values we pushed before jumping into the common stub
+    uint64_t vector;
+    uint64_t error_code;
+
+    // and finally the CPU?pushed frame (RIP, CS, RFLAGS)
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
 } REGS;
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -112,5 +131,8 @@ void install_idt(void);
 
 // Load all interupts and ISR's.
 void init_interrupts(void);
+
+// forward declaration for prototype error in gcc.
+void isr_handler64(int vec_num, REGS* r);
 
 #endif /* X86_IDT_H */

@@ -24,6 +24,7 @@ obj/
 
 # Ignore the entire tools folder
 /tools/
+/tools64/
 
 # Ignore temporary files
 *.tmp

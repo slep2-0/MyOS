@@ -9,8 +9,8 @@
 #include "../kernel.h"
 
  /* Symbol defined in linker script, end of loaded kernel */
-extern char kernel_end;
-extern char kernel_start;
+extern uint8_t kernel_end;
+extern uint8_t kernel_start;
 extern const size_t kernel_length;
 
 /* Zero Out BSS */

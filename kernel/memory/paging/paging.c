@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     64-bit Memory Paging Implementation (4-level paging)
@@ -10,31 +10,32 @@
 #define PAGE_ENTRIES        512
 #define PAGE_SIZE_4K        0x1000
 
-// Page flags
-#define PAGE_PRESENT        0x1
-#define PAGE_RW             0x2
-#define PAGE_USER           0x4
-#define PAGE_PWT            0x8
-#define PAGE_PCD            0x10
-#define PAGE_ACCESSED       0x20
-#define PAGE_DIRTY          0x40
-#define PAGE_PS             0x80
-#define PAGE_GLOBAL         0x100
-
 // Extern symbols for bootloader-allocated pages, or allocate dynamically in your kernel
 extern uint64_t __pml4_start[]; // Allocate this page aligned to 4KiB
 
 static uint64_t* pml4 = __pml4_start; // Base of PML4 table
 
-// Helper: allocate a zeroed 4KiB-aligned page for new tables
-static uint64_t* allocate_page_table() {
-    // Implement your own allocator here
-    // For now, you can use kmalloc aligned to PAGE_SIZE_4K or a static buffer
-    uint64_t* page = (uint64_t*)kmalloc(PAGE_SIZE_4K, PAGE_SIZE_4K);
-    if (page) {
-        kmemset(page, 0, PAGE_SIZE_4K);
+static uint8_t* next_pt = (uint8_t*)&__pt_start;
+static uint8_t* const end_pt = (uint8_t*)&__pt_end;
+
+static uint64_t* allocate_page_table(void) {
+    // 1) if we still have one of the linker‑reserved tables, carve that out:
+    if (next_pt + PAGE_SIZE_4K <= end_pt) {
+        uint64_t* table = (uint64_t*)next_pt;
+        next_pt += PAGE_SIZE_4K;
+        kmemset(table, 0, PAGE_SIZE_4K);
+        return table;
     }
-    return page;
+
+    // 2) otherwise fall back on the frame‐bitmap
+    void* phys = alloc_frame();
+    if (!phys) {
+        bugcheck_system(NULL, BAD_PAGING, 0, true);
+        return NULL;
+    }
+    // zero it before use
+    kmemset(phys, 0, PAGE_SIZE_4K);
+    return (uint64_t*)phys;
 }
 
 // Extract indices from virtual address
@@ -43,48 +44,60 @@ static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
 static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
+void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
+    for (uint64_t addr = start; addr < end; addr += PAGE_SIZE_4K) {
+        map_page((void*)addr, (void*)addr, flags);
+    }
+}
+
 // Initialize paging (map identity for first ~4 GiB for now)
 void paging_init(void) {
-    // Zero PML4
+    // zero PML4
     kmemset(pml4, 0, PAGE_SIZE_4K);
 
-    // Allocate PDPT, PD, PT tables
+    // carve out the first few tables
     uint64_t* pdpt = allocate_page_table();
     uint64_t* pd = allocate_page_table();
     uint64_t* pt = allocate_page_table();
+    // … error check …
 
-    if (!pdpt || !pd || !pt) {
-        // Handle allocation failure (panic, halt)
-        return;
-    }
+    // hook them up:
+    pml4[0] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_RW;
+    pdpt[0] = (uint64_t)pd | PAGE_PRESENT | PAGE_RW;
+    pd[0] = (uint64_t)pt | PAGE_PRESENT | PAGE_RW;
 
-    // Map the first 4 MiB pages with identity mapping (for kernel)
-    // Build the hierarchy:
-    // pml4[0] -> pdpt
-    pml4[0] = ((uint64_t)pdpt) | PAGE_PRESENT | PAGE_RW;
+    // identity‑map only the ranges you actually care about:
+    //  · the low 4 MiB kernel + stack
+    map_range_identity(0x00000000, 0x00400000, PAGE_PRESENT | PAGE_RW);
 
-    // pdpt[0] -> pd
-    pdpt[0] = ((uint64_t)pd) | PAGE_PRESENT | PAGE_RW;
+    //  · your PML4 page itself
+    map_range_identity((uintptr_t)__pml4_start,
+        (uintptr_t)__pml4_start + PAGE_SIZE_4K,
+        PAGE_PRESENT | PAGE_RW);
 
-    // pd[0] -> pt
-    pd[0] = ((uint64_t)pt) | PAGE_PRESENT | PAGE_RW;
+    //  · and the kernel text/data
+    map_range_identity((uintptr_t)kernel_start,
+        (uintptr_t)kernel_end,
+        PAGE_PRESENT | PAGE_RW);
 
-    // Fill PT with identity mapping for first 2 MiB (512 * 4KiB = 2 MiB)
-    for (size_t i = 0; i < PAGE_ENTRIES; i++) {
-        pt[i] = (i * PAGE_SIZE_4K) | PAGE_PRESENT | PAGE_RW;
-    }
+    // Map the UEFI stack (example: 0x7E00000–0x7E10000)
+    map_range_identity(0x7e00000, 0x7e10000, PAGE_PRESENT | PAGE_RW);
 
-    // Load CR3 with PML4 physical address
-    uint64_t pml4_phys = (uint64_t)pml4; // Must be physical address in your kernel setup
+    // Map kernel stack.
+    extern uint8_t __stack_start[], __stack_end[];
+    map_range_identity((uint64_t)__stack_start,
+        (uint64_t)__stack_end,
+        PAGE_PRESENT | PAGE_RW);
+
+    // done!  now load CR3
+    uint64_t pml4_phys = (uint64_t)pml4;
     __asm__ volatile (
         "mov %0, %%cr3\n"
         "mov %%cr0, %%rax\n"
-        "or $0x80000000, %%eax\n"    // Enable paging (PG bit)
-        "or $0x00010000, %%eax\n"    // Enable WP bit
+        "or  $0x80000000, %%eax\n"  // PG
+        "or  $0x00010000, %%eax\n"  // WP
         "mov %%rax, %%cr0\n"
-        :
-    : "r"(pml4_phys)
-        : "rax"
+        : : "r"(pml4_phys) : "rax"
         );
 }
 

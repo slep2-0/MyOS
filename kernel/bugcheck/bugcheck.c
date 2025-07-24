@@ -6,54 +6,36 @@
 
 #include "bugcheck.h"
 
+extern GOP_PARAMS* gop; // GOP.
+
 void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
 	// Critical system error, instead of triple faulting, we hang the system with specified error codes.
 	// Disable interrupts if werent disabled before.
-	__cli();
-
-	// Clear the screen to blue (bsod windows style)
-	clear_screen(make_color(COLOR_WHITE, COLOR_BLUE));
-
-	// Write some debugging and an error message
-	print_to_screen("\r\nFATAL ERROR: Your system has encountered a fatal error.\r\n", COLOR_WHITE);
-	print_to_screen("Your system has been stopped for safety.\r\n", COLOR_WHITE);
-	print_to_screen("\r\nSTOP_CODE: ", COLOR_WHITE);
-	print_dec(err_code, COLOR_YELLOW);
-	if (registers) {
-		myos_printf(COLOR_WHITE, "\r\n\r\nRegisters:\r\nEAX: %x EBX: %x ECX: %x EDX: %x\r\nESI: %x EDI: %x EBP: %x ESP: %x\r\nDS: %x ES: %x FS: %x GS: %x\r\nEIP: %x CS: %x ELAGS: %x\r\nExceptions: \r\nVector Number: %d Error Number: %x",
-			registers->eax,
-			registers->ebx,
-			registers->ecx,
-			registers->edx,
-			registers->esi,
-			registers->edi,
-			registers->ebp,
-			registers->esp,
-			registers->ds,
-			registers->es,
-			registers->fs,
-			registers->gs,
-			registers->eip,
-			registers->cs,
-			registers->eflags,
-			registers->vec_num,
-			registers->error_code
-		);
+	UNREFERENCED_PARAMETER(additional);
+	UNREFERENCED_PARAMETER(isAdditionals);
+	UNREFERENCED_PARAMETER(registers);
+	if (err_code == SEVERE_MACHINE_CHECK) {
+		for (uint32_t row = 0; row < gop->Height; row++) {
+			for (uint32_t col = 0; col < gop->Width; col++) {
+				plot_pixel(gop, col, row, 0xFFFF0000);  // Solid RED
+			}
+		}
+	}
+	else if (err_code == BAD_PAGING) {
+		for (uint32_t row = 0; row < gop->Height; row++) {
+			for (uint32_t col = 0; col < gop->Width; col++) {
+				plot_pixel(gop, col, row, 0xFF0000FF);  // Solid blue
+			}
+		}
+		draw_string(gop, "Hello People!\n", 10, 10, 0xFFFFFFFF);
 	}
 	else {
-		print_to_screen("\r\n\r\nERROR: NO REGISTERS.", COLOR_RED);
-	}
-	print_to_screen("\r\n\r\nERROR: NO REGISTERS.", COLOR_RED);
-	if (isAdditionals) {
-		if (err_code == PAGE_FAULT) {
-			print_to_screen("\r\n\r\nFAULTY ADDRESS: ", COLOR_YELLOW);
-			print_hex(additional, COLOR_WHITE);
-		}
-		else {
-			print_to_screen("\r\n\r\nADDITIONALS: ", COLOR_YELLOW);
-			print_hex(additional, COLOR_WHITE);
+		for (uint32_t row = 0; row < gop->Height; row++) {
+			for (uint32_t col = 0; col < gop->Width; col++) {
+				plot_pixel(gop, col, row, 0xFFFFFF00);  // Solidsomething
+			}
 		}
 	}
-	//test
+	__cli();
 	__hlt();
 }

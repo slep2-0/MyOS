@@ -9,13 +9,19 @@
 #include "../../kernel.h"
 #include "fonttable.h"
 
-#define FONT_SCALE 4
-#define FONT_WIDTH 8
+#define FONT_SCALE 1
+#define FONT_WIDTH 4
 
 static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color) {
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
-    uint32_t stride = gop->PixelsPerScanLine;  // stride in pixels
-    fb[y * stride + x] = color;
+    uint32_t  stride = gop->PixelsPerScanLine;
+
+    // invert Y so 0 is at the top
+    uint32_t yf = gop->Height - 1 - y;
+    // invert X so 0 is at the left
+    uint32_t xf = gop->Width - 1 - x;
+
+    fb[yf * stride + xf] = color;
 }
 
 // Draw 1 character in the screen.
