@@ -5,6 +5,7 @@ DEFAULT REL
 
 ; Extern the ISR handler.
 extern isr_handler64
+
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
 ; Creates an ISR entry for exception vectors 0-31
@@ -22,6 +23,7 @@ isr%1:
     push    %1
     jmp     isr_common_stub64
 %endmacro
+
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_IRQ
 ; Creates an IRQ entry for IRQ vectors 0-15 mapped to 32-47
@@ -34,13 +36,22 @@ irq%1:
     push    %1 + 32    ; Push IRQ number + 32
     jmp     isr_common_stub64
 %endmacro
+
 ;---------------------------------------------------------------------------
 ; Common stub for all ISRs and IRQs in 64-bit long mode
-; Saves registers, calls C handler, sends EOI, restores and returns
+; Stack layout after entry:
+; [rsp + 0]   = vector number (last pushed by macro)
+; [rsp + 8]   = error code (pushed by CPU or dummy 0)
+; [rsp + 16]  = RIP (pushed by CPU)
+; [rsp + 24]  = CS (pushed by CPU)
+; [rsp + 32]  = RFLAGS (pushed by CPU)
+; [rsp + 40]  = RSP (pushed by CPU if privilege change)
+; [rsp + 48]  = SS (pushed by CPU if privilege change)
 ;---------------------------------------------------------------------------
 global isr_common_stub64
 isr_common_stub64:
-    ; Save volatile registers
+    ; Save all general purpose registers
+    ; Push in reverse order so REGS struct matches
     push    rax
     push    rbx
     push    rcx
@@ -56,24 +67,48 @@ isr_common_stub64:
     push    r13
     push    r14
     push    r15
-    ; Stack now: ... [r15] [vec_num] [err_code] [old rflags] [old cs] [old rip] ...
-    ; First argument (vector) into rdi, second (pointer to regs) into rsi
-    mov     rdi, [rsp + 14*8]       ; vector number (after 14 pushes)
-    lea     rsi, [rsp + 15*8]       ; pointer to REGISTERS struct on stack
+    
+    ; Stack layout after register pushes (15 registers * 8 bytes = 120 bytes):
+    ; [rsp + 0]   = r15 (last pushed)
+    ; [rsp + 8]   = r14
+    ; ...
+    ; [rsp + 112] = rax (first pushed)
+    ; [rsp + 120] = vector number
+    ; [rsp + 128] = error code
+    ; [rsp + 136] = RIP
+    ; [rsp + 144] = CS
+    ; [rsp + 152] = RFLAGS
+    ; [rsp + 160] = RSP (if privilege change)
+    ; [rsp + 168] = SS (if privilege change)
+    
+    ; Set up parameters for C function call
+    ; First parameter (vector number) in RDI
+    mov     rdi, [rsp + 120]        ; vector number
+    ; Second parameter (pointer to REGS struct) in RSI
+    mov     rsi, rsp                ; pointer to start of pushed registers
+    
+    ; Save vector number for EOI logic (function call may clobber RDI)
+    mov     r10, rdi
+    
+    ; Call C interrupt handler
     call    isr_handler64
-    ; Clean up pushed vec and err: add 16 bytes
-    add     rsp, 16
-    ; Send EOI if IRQ
-    cmp     rdi, 32
+    
+    ; Send EOI (End of Interrupt) if this was an IRQ (vector >= 32)
+    cmp     r10, 32
     jl      .no_eoi
+    
+    ; Send EOI to master PIC
     mov     al, 0x20
-    out     0x20, al      ; master PIC
-    cmp     rdi, 40
-    jl      .no_slave
-    out     0xA0, al      ; slave PIC
-.no_slave:
+    out     0x20, al
+    
+    ; If IRQ >= 8, also send EOI to slave PIC
+    cmp     r10, 40
+    jl      .no_slave_eoi
+    out     0xA0, al
+.no_slave_eoi:
+
 .no_eoi:
-    ; Restore registers in reverse
+    ; Restore all general purpose registers in reverse order
     pop     r15
     pop     r14
     pop     r13
@@ -89,10 +124,16 @@ isr_common_stub64:
     pop     rcx
     pop     rbx
     pop     rax
+    
+    ; Clean up vector and error code from stack
+    add     rsp, 16
+    
+    ; Re-enable interrupts and return
     sti
     iretq
+
 ;---------------------------------------------------------------------------
-; Instantiate ISRs 0-31
+; Instantiate ISRs 0-31 (CPU Exceptions)
 ;---------------------------------------------------------------------------
 DEFINE_ISR 0
 DEFINE_ISR 1
@@ -126,8 +167,9 @@ DEFINE_ISR 28
 DEFINE_ISR 29
 DEFINE_ISR 30
 DEFINE_ISR 31
+
 ;---------------------------------------------------------------------------
-; Instantiate IRQs 0-15
+; Instantiate IRQs 0-15 (Hardware Interrupts)
 ;---------------------------------------------------------------------------
 DEFINE_IRQ 0
 DEFINE_IRQ 1

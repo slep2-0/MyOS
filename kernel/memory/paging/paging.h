@@ -40,4 +40,12 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags);
 void map_range_identity(uint64_t start, uint64_t end, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
+// Assembly FUNCS
+
+// Enable paging with given PML4 physical address -- found in ASM.
+void enable_paging(uint64_t pml4_phys);
+
+// Disable paging -- found in ASM.
+void disable_paging(void);
+
 #endif

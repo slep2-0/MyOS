@@ -3,7 +3,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /* — Kernel placement at 0x10000 — */
+    /* — Kernel placement at 0x100000 — */
     . = 0x100000;
     PROVIDE(kernel_start = .);
 
@@ -30,38 +30,31 @@ SECTIONS
     }
     PROVIDE(bss_end = .);
 
-	/* — PML4 (4 KiB) — */
-	. = ALIGN(0x1000);
-	PROVIDE(__pml4_start = .);
-	.pml4 (NOLOAD) : ALIGN(0x1000) {
-		. = . + 4096;
-	}
-
-    /* — Page directory (4 KiB) — */
+    /* — PML4 (4 KiB) — */
     . = ALIGN(0x1000);
-    PROVIDE(__pd_start = .);
-    .page_directory (NOLOAD) : ALIGN(0x1000) {
+    PROVIDE(__pml4_start = .);
+    .pml4 (NOLOAD) : ALIGN(0x1000) {
         . = . + 4096;
     }
 
-    /* — Page tables (32 × 4 KiB = 128 KiB) — */
+    /* — Page directory and tables are now a single pool — */
     . = ALIGN(0x1000);
     PROVIDE(__pt_start = .);
     .page_tables (NOLOAD) : ALIGN(0x1000) {
+        /* Reserve space for PDs and PTs. e.g., 128 KiB */
         . = . + (32 * 4096);
     }
-
-	/* — Kernel stack (8 KiB) — */
-	. = ALIGN(0x1000);
-	PROVIDE(__stack_start = .);
-	.stack (NOLOAD) : ALIGN(0x1000) {
-	  . = . + 0x2000;    /* 8 KiB stack */
-	}
-	PROVIDE(__stack_end = .);
-
-    /* — Mark end of pagetables — */
-    . = ALIGN(0x1000);
+    /* --- IMPORTANT: End the page table pool HERE --- */
     PROVIDE(__pt_end = .);
+
+    /* — Kernel stack (8 KiB) — */
+    . = ALIGN(0x1000);
+    PROVIDE(__stack_start = .);
+    .stack (NOLOAD) : ALIGN(0x1000) {
+      . = . + 0x2000;  /* 8 KiB stack */
+    }
+    PROVIDE(__stack_end = .);
+
 
     /DISCARD/ : {
         *(.comment)

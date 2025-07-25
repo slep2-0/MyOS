@@ -7,6 +7,8 @@
 
 #include "idt.h"
 
+extern GOP_PARAMS gop_local;
+
 const bool has_error_code[] = {
     false, false, false, false, false, false, false, false, // 0-7
     true,  false, true,  true,  true,  true,  true,  false, // 8-15
@@ -83,9 +85,8 @@ void isr_handler64(int vec_num, REGS* r) {
         ata_handler();
         return;
     default:
-        print_to_screen("Interrupt Exception: ", COLOR_RED);
-        print_dec((unsigned int)vec_num, COLOR_WHITE);
-        print_to_screen(" \r\n", COLOR_BLACK);
+        gop_printf(&gop_local, 0xFFFF0000, "Interrupt Exception: ");
+        gop_printf(&gop_local, 0xFFFFFFFF, "%d\r\n", vec_num);
         return;
     }
 }

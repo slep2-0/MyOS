@@ -50,56 +50,54 @@ void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
     }
 }
 
-// Initialize paging (map identity for first ~4 GiB for now)
-void paging_init(void) {
-    // zero PML4
-    kmemset(pml4, 0, PAGE_SIZE_4K);
+extern GOP_PARAMS gop_local;
 
-    // carve out the first few tables
+void paging_init(void) {
+    // zero your PML4…
+    kmemset(pml4, 0, PAGE_SIZE_4K);
+    static volatile int paging_marker = 0x12345678;
+    // carve out the first few tables (PML4→PDPT→PD→PT)
     uint64_t* pdpt = allocate_page_table();
     uint64_t* pd = allocate_page_table();
     uint64_t* pt = allocate_page_table();
-    // … error check …
-
-    // hook them up:
     pml4[0] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_RW;
     pdpt[0] = (uint64_t)pd | PAGE_PRESENT | PAGE_RW;
     pd[0] = (uint64_t)pt | PAGE_PRESENT | PAGE_RW;
 
-    // identity‑map only the ranges you actually care about:
-    //  · the low 4 MiB kernel + stack
-    map_range_identity(0x00000000, 0x00400000, PAGE_PRESENT | PAGE_RW);
+    const uint64_t flags = PAGE_PRESENT | PAGE_RW;
 
-    //  · your PML4 page itself
-    map_range_identity((uintptr_t)__pml4_start,
-        (uintptr_t)__pml4_start + PAGE_SIZE_4K,
-        PAGE_PRESENT | PAGE_RW);
+    map_range_identity((uintptr_t)&__pml4_start,
+        (uintptr_t)&__pml4_start + PAGE_SIZE_4K,
+        flags);
 
-    //  · and the kernel text/data
-    map_range_identity((uintptr_t)kernel_start,
-        (uintptr_t)kernel_end,
-        PAGE_PRESENT | PAGE_RW);
+    map_range_identity((uintptr_t)&__pt_start,
+        (uintptr_t)&__pt_end,
+        flags);
 
-    // Map the UEFI stack (example: 0x7E00000–0x7E10000)
-    map_range_identity(0x7e00000, 0x7e10000, PAGE_PRESENT | PAGE_RW);
+    map_range_identity((uintptr_t)&kernel_start,
+        (uintptr_t)&kernel_end,
+        flags);
 
-    // Map kernel stack.
     extern uint8_t __stack_start[], __stack_end[];
-    map_range_identity((uint64_t)__stack_start,
-        (uint64_t)__stack_end,
-        PAGE_PRESENT | PAGE_RW);
+    map_range_identity((uintptr_t)__stack_start,
+        (uintptr_t)__stack_end,
+        flags);
 
-    // done!  now load CR3
-    uint64_t pml4_phys = (uint64_t)pml4;
-    __asm__ volatile (
-        "mov %0, %%cr3\n"
-        "mov %%cr0, %%rax\n"
-        "or  $0x80000000, %%eax\n"  // PG
-        "or  $0x00010000, %%eax\n"  // WP
-        "mov %%rax, %%cr0\n"
-        : : "r"(pml4_phys) : "rax"
-        );
+    {
+        uint64_t fb = gop_local.FrameBufferBase;
+        uint64_t end = fb + gop_local.FrameBufferSize;
+        map_range_identity(fb, end, flags);
+    }
+
+    extern IDT_ENTRY64 IDT[];
+    map_range_identity((uintptr_t)IDT,
+        (uintptr_t)IDT + sizeof(IDT_ENTRY64) * IDT_ENTRIES,
+        flags);
+
+    // …then load CR3 and enable paging as before…
+    enable_paging((uint64_t)pml4);
 }
+
 
 // Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc)
 void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
@@ -148,7 +146,12 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     pt[pt_i] = (pa & ~0xFFFULL) | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
 
     // Flush TLB for this virtual address
-    invlpg(virtualaddress);
+    // only flush if paging is already on:
+    uint64_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    if (cr0 & 0x80000000) {
+        invlpg(va);
+    }
 }
 
 // Unmap a page (remove mapping and free frame)
@@ -176,7 +179,12 @@ bool unmap_page(void* virtualaddress) {
     // Clear the entry
     pt[pt_i] = 0;
 
-    invlpg(virtualaddress);
+    // only flush if paging is already on:
+    uint64_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    if (cr0 & 0x80000000) {
+        invlpg(va);
+    }
 
     // Free physical frame if applicable
     free_frame(phys_addr);
@@ -211,7 +219,12 @@ void set_page_writable(void* virtualaddress, bool writable) {
     }
     pt[pt_i] = entry;
 
-    invlpg(virtualaddress);
+    // only flush if paging is already on:
+    uint64_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    if (cr0 & 0x80000000) {
+        invlpg(va);
+    }
 }
 
 void set_page_user_access(void* virtualaddress, bool user_accessible) {
@@ -242,5 +255,10 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     }
     pt[pt_i] = entry;
 
-    invlpg(virtualaddress);
+    // only flush if paging is already on:
+    uint64_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    if (cr0 & 0x80000000) {
+        invlpg(va);
+    }
 }

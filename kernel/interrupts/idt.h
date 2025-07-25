@@ -72,13 +72,13 @@ typedef struct _IDT_ENTRY {
 #else
 typedef struct __attribute__((packed)) _IDT_ENTRY_64 {
 #endif
-    uint16_t offset_low; // lower 16 bits of the handler function address. 0-15
-    uint16_t selector; // CS (code) segment in the GDT.
-    uint8_t ist; // Always 0.
-    uint8_t type_attr; // type and attributes (e.g, 0x8E - present, ring 0, 32-bit interrupt gate)
-    uint16_t offset_mid; // middle 16 bits.
-    uint32_t offset_high; // highest 32 bits. (total 64)
-    uint32_t zero;
+    uint16_t offset_low;    // lower 16 bits of handler address (0-15)
+    uint16_t selector;      // CS segment selector
+    uint8_t ist;           // Interrupt Stack Table (0-2 bits), reserved (3-7 bits)
+    uint8_t type_attr;     // type and attributes
+    uint16_t offset_mid;   // middle 16 bits of handler address (16-31)
+    uint32_t offset_high;  // upper 32 bits of handler address (32-63)
+    uint32_t zero;         // reserved, must be zero
 } IDT_ENTRY64;
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -91,28 +91,10 @@ typedef struct _REGS {
 #else
 typedef struct __attribute__((packed)) _REGS {
 #endif
-    // the order here must match the order we push in assembly
-    uint64_t rax;
-    uint64_t rbx;
-    uint64_t rcx;
-    uint64_t rdx;
-    uint64_t rsi;
-    uint64_t rdi;
-    uint64_t rbp;
-    uint64_t r8;
-    uint64_t r9;
-    uint64_t r10;
-    uint64_t r11;
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
-
-    // next come the two values we pushed before jumping into the common stub
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
     uint64_t vector;
     uint64_t error_code;
-
-    // and finally the CPU?pushed frame (RIP, CS, RFLAGS)
     uint64_t rip;
     uint64_t cs;
     uint64_t rflags;

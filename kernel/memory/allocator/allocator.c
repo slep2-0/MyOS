@@ -33,10 +33,10 @@ void frame_bitmap_init(void) {
     }
 
     // 3. clear usable frames from UEFI map
-    size_t entry_count = gEfiMemoryMapSize / gEfiDescriptorSize;
+    size_t entry_count = boot_info_local.MapSize / boot_info_local.DescriptorSize;
     for (size_t i = 0; i < entry_count; ++i) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)
-            ((uint8_t*)gEfiMemoryMap + i * gEfiDescriptorSize);
+            ((uint8_t*)boot_info_local.MemoryMap + i * boot_info_local.DescriptorSize);
         if (desc->Type == EfiConventionalMemory) {
             uintptr_t base = desc->PhysicalStart;
             uint64_t pages = desc->NumberOfPages;

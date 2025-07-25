@@ -42,9 +42,6 @@ typedef struct _BOOT_INFO {
 #define EfiConventionalMemory          7
 // ... other types omitted for brevity
 
-// Globals set by bootloader before ExitBootServices
-extern EFI_MEMORY_DESCRIPTOR* gEfiMemoryMap;
-extern size_t               gEfiMemoryMapSize;
-extern size_t               gEfiDescriptorSize;
+extern BOOT_INFO boot_info_local;
 
 #endif // UEFI_MEMORY_H

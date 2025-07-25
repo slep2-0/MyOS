@@ -91,13 +91,5 @@ void install_idt() {
     /* Finally, Load IDT. */
     PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;
-
-    // Map our IDT.
-    uint64_t idt_phys = (uint64_t)&IDT;
-    map_range_identity(idt_phys & ~0xFFF,             // page‑align down
-        (idt_phys & ~0xFFF) + 0x1000,  // one page covers 256 entries
-        PAGE_PRESENT | PAGE_RW);
-
     __lidt(&PIDT);
-    __sti(); // Enable interrupts.
 }

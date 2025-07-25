@@ -6,55 +6,81 @@
 
 #include "kernel.h"
 
- // Globals for the UEFI memory map and GOP
-EFI_MEMORY_DESCRIPTOR* gEfiMemoryMap = NULL;
-size_t                gEfiMemoryMapSize = 0;
-size_t                gEfiDescriptorSize = 0;
-GOP_PARAMS* gop;
+GOP_PARAMS gop_local;
+BOOT_INFO boot_info_local;
 
-// Initialize boot info pointers
+#define MAX_MEMORY_MAP_SIZE 0x4000  // 16 KB, enough for ~256 descriptors
+
+static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
+
+void copy_memory_map(BOOT_INFO* boot_info) {
+    if (!boot_info || !boot_info->MemoryMap) return;
+
+    size_t count = boot_info->MapSize / boot_info->DescriptorSize;
+    if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
+        // handle error, memory map too big
+        bugcheck_system(NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
+    }
+
+    // Copy the entire memory map into the static buffer
+    kmemcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
+
+    boot_info_local.MemoryMap = memory_map_copy;
+    boot_info_local.MapSize = boot_info->MapSize;
+    boot_info_local.DescriptorSize = boot_info->DescriptorSize;
+    boot_info_local.DescriptorVersion = boot_info->DescriptorVersion;
+}
+
+void copy_gop(BOOT_INFO* boot_info) {
+    if (!boot_info || !boot_info->Gop) return;
+
+    // Copy the GOP data to a local global variable
+    gop_local = *(boot_info->Gop);
+
+    // Update all relevant pointers to point to the local copy
+    boot_info->Gop = &gop_local;
+    boot_info_local.Gop = &gop_local;
+}
+
+
 void init_boot_info(BOOT_INFO* boot_info) {
     if (!boot_info) return;
-    gEfiMemoryMap = boot_info->MemoryMap;
-    gEfiMemoryMapSize = boot_info->MapSize;
-    gEfiDescriptorSize = boot_info->DescriptorSize;
-    gop = boot_info->Gop;
+
+    copy_memory_map(boot_info);
+    copy_gop(boot_info);
 }
+
 
 // Simple serial debug helper
 void debug_print(const char* s) {
     while (*s) __outbyte(0x402, *s++);
 }
 
+void test_nullptr_deref() {
+    volatile int* ptr = NULL;
+    int value = *ptr;  // This will trigger a page fault / general protection fault
+    (void)value;       // Prevent compiler warning about unused variable
+}
+
 void kernel_main(BOOT_INFO* boot_info) {
     // 1. CORE SYSTEM INITIALIZATION
+    __cli();
     zero_bss();
 
-    debug_print("Hello!\n");
-
     init_boot_info(boot_info);
-
-    // Clear screen via GOP
-    for (uint32_t y = 0; y < gop->Height; y++)
-        for (uint32_t x = 0; x < gop->Width; x++)
-            plot_pixel(gop, x, y, 0x00000000);
-
-    draw_string(gop, "It works!", 10, 10, 0xFFFFFFFF);
-
     frame_bitmap_init();
+    gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     paging_init();
     init_interrupts();
-    init_heap();
-    ata_init_primary();
-    init_timer(100);
+    //__sti();           // only now enable interrupts
+    test_nullptr_deref();
+    gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
+    gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d", 1, 2, 3);
+    __hlt(); // Wait forever
+    //init_heap();
+    //ata_init_primary();
+    //init_timer(100);
     // init_keyboard(); // optional
-
-    // 2. GRAPHICS AND APPLICATION LOGIC
-    for (uint32_t row = 0; row < gop->Height; row++)
-        for (uint32_t col = 0; col < gop->Width; col++)
-            plot_pixel(gop, col, row, 0x00000000);
-
-    draw_string(gop, "Hello MatanelOS! Graphics are working!", 50, 50, 0x00FFFFFF);
 
 #ifdef CAUSE_BUGCHECK
     bugcheck_system(NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
@@ -62,6 +88,7 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     // 3. FINAL KERNEL IDLE LOOP
     while (1) {
+        // until next interrupt.
         __hlt();
     }
 }

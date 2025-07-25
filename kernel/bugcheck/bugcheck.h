@@ -31,6 +31,7 @@ typedef enum _BUGCHECK_CODES {
 } BUGCHECK_CODES;
 
 typedef enum _CUSTOM_BUGCHECK_CODES {
+    MEMORY_MAP_SIZE_OVERRUN = 0xBEEF,
     MANUALLY_INITIATED_CRASH = 0xBABE,
     BAD_PAGING = 0xBAD,
     BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.

@@ -1,1 +1,1 @@
-rm -f build/* && clear
+rm -rf build/* && clear
