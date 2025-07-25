@@ -8,9 +8,13 @@
 #define FONT8X16_IMPLEMENTATION
 #include "font8x16.h"
 
+bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
+extern GOP_PARAMS gop_local;
+
 
 void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
+    tracelast_func("draw_char");
     uint8_t c = (uint8_t)c_;
     if (c > 0x7F) return;
 
@@ -28,8 +32,17 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
                 if (py >= gop->Height) continue;
                 for (int dx = 0; dx < FONT_SCALE; dx++) {
                     uint32_t px = x + col * FONT_SCALE + dx;
-                    if (px < gop->Width)
-                        plot_pixel(gop, px, py, color);
+                    if (px < gop->Width) {
+                        if (gop_bold_enabled) {
+                            plot_pixel(gop, px, py, color);
+                            plot_pixel(gop, px + 1, py, color);
+                            plot_pixel(gop, px, py + 1, color);
+                            plot_pixel(gop, px + 1, py + 1, color);
+                        }
+                        else {
+                            plot_pixel(gop, px, py, color);
+                        }
+                    }
                 }
             }
         }
@@ -37,6 +50,7 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
 }
 
 void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
+    tracelast_func("draw_string");
     while (*s) {
         draw_char(gop, *s, x, y, color);
         x += char_width();
@@ -45,6 +59,7 @@ void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_
 }
 
 void gop_scroll(GOP_PARAMS* gop) {
+    tracelast_func("gop_scroll");
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
     uint32_t  stride = gop->PixelsPerScanLine;
     uint32_t  h = gop->Height;
@@ -65,6 +80,7 @@ void gop_scroll(GOP_PARAMS* gop) {
 }
 
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+    tracelast_func("gop_put_char");
     if (c == '\b') {
         // move cursor back one character (and clear it)
         if (cursor_x >= char_width()) {
@@ -106,12 +122,14 @@ void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
 }
 
 void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
+    tracelast_func("gop_puts");
     while (*s) {
         gop_put_char(gop, *s++, color);
     }
 }
 
 static void sprint_dec(char* buf, unsigned v) {
+    tracelast_func("sprint_dec");
     char* p = buf;
     if (v == 0) { *p++ = '0'; }
     else {
@@ -126,24 +144,33 @@ static void sprint_dec(char* buf, unsigned v) {
 }
 
 void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
+    tracelast_func("gop_print_dec");
     char buf[16];
     sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }
 
-void gop_print_hex(GOP_PARAMS* gop, unsigned val, uint32_t color) {
-    char buf[11] = "0x00000000";
-    for (int i = 0; i < 8; i++) {
-        unsigned nib = (val >> ((7 - i) * 4)) & 0xF;
+void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+    tracelast_func("gop_print_hex");
+    char buf[19] = "0x0000000000000000"; // 64 bit addressing
+    for (int i = 0; i < 16; i++) {
+        unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
         buf[2 + i] = (nib < 10 ? '0' + nib : 'a' + nib - 10);
     }
+    buf[18] = '\0'; // null terminator
     gop_puts(gop, buf, color);
 }
 
 void gop_printf(GOP_PARAMS* gop, uint32_t color, const char* fmt, ...) {
+    tracelast_func("gop_printf");
     va_list ap;
     va_start(ap, fmt);
     for (const char* p = fmt; *p; p++) {
+        if (*p == '*' && p[1] == '*') {
+            gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
+            p++; // skip the second '*'
+            continue;
+        }
         if (*p == '%' && p[1]) {
             switch (*++p) {
             case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
@@ -169,6 +196,7 @@ void gop_printf(GOP_PARAMS* gop, uint32_t color, const char* fmt, ...) {
 }
 
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
+    tracelast_func("gop_clear_screen");
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);

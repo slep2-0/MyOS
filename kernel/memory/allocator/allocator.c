@@ -1,31 +1,39 @@
-﻿#include "allocator.h"
+#include "allocator.h"
 
 static uint8_t frame_bitmap[MAX_FRAMES / 8];
 
 static inline void set_frame(size_t frame) {
+    tracelast_func("set_frame");
+    enforce_max_irql(PASSIVE_LEVEL);
     if (frame >= MAX_FRAMES) {
-        bugcheck_system(NULL, SEVERE_MACHINE_CHECK, 0xBADF00D, true);
+        bugcheck_system(NULL, FRAME_LIMIT_REACHED, 0xBADF00D, true);
     }
     frame_bitmap[frame / 8] |= (uint8_t)(1 << (frame % 8));
 }
 
 static inline void clear_frame(size_t frame) {
+    tracelast_func("clear_frame");
+    enforce_max_irql(PASSIVE_LEVEL);
     if (frame < MAX_FRAMES) {
         frame_bitmap[frame / 8] &= (uint8_t)~(1 << (frame % 8));
     }
 }
 
 static inline bool test_frame(size_t frame) {
+    tracelast_func("test_frame");
+    enforce_max_irql(PASSIVE_LEVEL);
     return (frame < MAX_FRAMES) && (frame_bitmap[frame / 8] & (1 << (frame % 8)));
 }
 
 void frame_bitmap_init(void) {
+    tracelast_func("frame_bitmap_init");
+    enforce_max_irql(PASSIVE_LEVEL);
     // 1. mark all frames reserved
     kmemset(frame_bitmap, 0xFF, sizeof(frame_bitmap));
 
     // 2. reserve kernel pages
-    uintptr_t k_start = (uintptr_t)kernel_start;
-    uintptr_t k_end = (uintptr_t)kernel_end;
+    uintptr_t k_start = (uintptr_t)&kernel_start;
+    uintptr_t k_end = (uintptr_t)&kernel_end;
     size_t first = k_start / FRAME_SIZE;
     size_t last = (k_end + FRAME_SIZE - 1) / FRAME_SIZE;
     for (size_t f = first; f < last; ++f) {
@@ -53,6 +61,8 @@ static uint8_t* next_pt = &__pt_start;
 
 // Early‐boot frame allocator:
 void* alloc_frame(void) {
+    tracelast_func("alloc_frame");
+    enforce_max_irql(PASSIVE_LEVEL);
     // If we still have reserved pages, carve from there
     if (next_pt + FRAME_SIZE <= __pt_end) {
         void* phys = next_pt;
@@ -72,6 +82,8 @@ void* alloc_frame(void) {
 }
 
 void free_frame(void* p) {
+    tracelast_func("free_frame");
+    enforce_max_irql(PASSIVE_LEVEL);
     size_t frame = (uintptr_t)p / FRAME_SIZE;
     clear_frame(frame);
 }

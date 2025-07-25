@@ -7,6 +7,8 @@
 #include "handlers.h"
 #include "scancodes.h"
 
+// NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
+
 extern GOP_PARAMS gop_local;
 
 char scancode_to_ascii[] = {
@@ -142,10 +144,14 @@ void init_timer(unsigned long int frequency) {
 static int tick = 0;
 
 void timer_handler() {
+    return;
+    /* unused function, later timer handler will be used for context switching.
     tick++;
     if (tick % 20 == 0) {
-        //blink_cursor(); // Every 20 timer interrupts
+        return;
+        //gop_blink_cursor(); // Every 20 timer interrupts
     }
+    */
 }
 
 void ata_handler(void) {

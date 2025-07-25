@@ -14,6 +14,8 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 **SUPPORTED FEATURES:**
 `64 BIT addressing (long mode) is now supported, along with it's equivalent features.`
 
+`IRQLs - IRQL support has been added (almost exactly like in windows)`
+
 `Bugcheck - Half Bugcheck support, doesn't write to disk a minidump like windows, but does show a bugcheck screen, and halts the system`
 
 `Paging - Virtual Memory Paging with permissions, like PAGE_PRESENT (is the page even mapped to physical memory?), PAGE_RW (Is the page read/write or only read?), PAGE_USER (Is the page both for user mode and kernel mode, or only kernel mode?)`

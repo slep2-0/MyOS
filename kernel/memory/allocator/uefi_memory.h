@@ -29,6 +29,7 @@ typedef struct _BOOT_INFO {
     size_t                    MapSize;        // Changed from UINTN to size_t
     size_t                    DescriptorSize; // Changed from UINTN to size_t
     uint32_t                  DescriptorVersion;
+    BLOCK_DEVICE*             DiskDevice;
 } BOOT_INFO;
 
 // Memory types (we only need ConventionalMemory here)

@@ -15,10 +15,12 @@
 #define ATA_PRIMARY_CTRL 0x3F6
 
 static BLOCK_DEVICE ata0_dev;
+extern GOP_PARAMS gop_local;
 
 // PIO Read one sector from LBA into buf.
 static bool ata_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 	UNREFERENCED_PARAMETER(dev);
+	tracelast_func("ata_read_sector");
 	// Wait until BSY is 0.
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {/*none*/}
 
@@ -31,17 +33,16 @@ static bool ata_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 	__outbyte(ATA_PRIMARY_BASE + 7, 0x20); // cmd: read
 
 	// Wait for BSY = 0 again (after sending the command)
-	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (READ)\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Waiting for BSY=0 (READ)\n");
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {}
 
 	// Wait DRQ
-
-	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (READ)\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Waiting for DRQ=1 (READ)\n");
 	while (!(__inbyte(ATA_PRIMARY_BASE + 7) & 0x08)) {/*wait*/}
 
 	// Read 256 * 16 bit words.
 	uint16_t* ptr = buf;
-	//myos_printf(COLOR_LIGHT_GRAY, "Reading data now...\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Reading data now...\n");
 	for (int i = 0; i < 256; i++) {
 		ptr[i] = __inword(ATA_PRIMARY_BASE);
 	}
@@ -51,6 +52,7 @@ static bool ata_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 // PIO Write one sector from buf to LBA
 static bool ata_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 	UNREFERENCED_PARAMETER(dev);
+	tracelast_func("ata_write_sector");
 	// Busy wait.
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {}
 
@@ -64,15 +66,14 @@ static bool ata_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 
 
 	// Wait for BSY = 0 again (after sending the command)
-	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for BSY=0 (WRITE)\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Waiting for BSY=0 (WRITE)\n");
 	while (__inbyte(ATA_PRIMARY_BASE + 7) & 0x80) {}
 
-
-	//myos_printf(COLOR_LIGHT_GRAY, "Waiting for DRQ=1 (WRITE)\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Waiting for DRQ=1 (WRITE)\n");
 	while (!(__inbyte(ATA_PRIMARY_BASE + 7) & 0x08)) {}
 
 	const uint16_t* ptr = buf;
-	//myos_printf(COLOR_LIGHT_GRAY, "Writing data now...\r\n");
+	gop_printf(&gop_local, 0xEED3D3D3, "Writing data now...\n");
 	for (int i = 0; i < 256; i++) {
 		__outword(ATA_PRIMARY_BASE, ptr[i]);
 	}
@@ -80,6 +81,7 @@ static bool ata_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 }
 
 void ata_init_primary(void) {
+	tracelast_func("ata_init_primary");
 	ata0_dev.read_sector = ata_read_sector;
 	ata0_dev.write_sector = ata_write_sector;
 	ata0_dev.dev_data = NULL;
