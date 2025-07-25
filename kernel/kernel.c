@@ -56,12 +56,6 @@ void debug_print(const char* s) {
     while (*s) __outbyte(0x402, *s++);
 }
 
-void test_nullptr_deref() {
-    volatile int* ptr = NULL;
-    int value = *ptr;  // This will trigger a page fault / general protection fault
-    (void)value;       // Prevent compiler warning about unused variable
-}
-
 void kernel_main(BOOT_INFO* boot_info) {
     // 1. CORE SYSTEM INITIALIZATION
     __cli();
@@ -72,8 +66,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     paging_init();
     init_interrupts();
-    //__sti();           // only now enable interrupts
-    test_nullptr_deref();
+    //__sti();           // only now enable interrupts -- not yet, gotta setup keyboard, exceptions are fine tho.
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d", 1, 2, 3);
     __hlt(); // Wait forever
