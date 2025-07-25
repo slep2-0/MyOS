@@ -10,12 +10,15 @@ static BLOCK_HEADER* free_list = NULL;
 extern GOP_PARAMS gop_local;
 
 void zero_bss(void) {
+    tracelast_func("zero_bss");
     uint8_t* p = &bss_start;
     while (p < &bss_end) *p++ = 0;
 }
 
 /* Initialize the free list to one big block spanning the heap */
 void init_heap(void) {
+    tracelast_func("init_heap");
+    
     heap_current_end = HEAP_START;
     uintptr_t start = HEAP_START;
     size_t total = HEAP_SIZE;
@@ -29,6 +32,7 @@ void init_heap(void) {
 
 // Functions.
 static bool grow_heap_by_one_page(void) {
+    tracelast_func("grow_heap_by_one_page");
     // grab a physical frame
     void* phys = alloc_frame();
     if (!phys) { return false; }
@@ -52,6 +56,7 @@ static bool grow_heap_by_one_page(void) {
 }
 
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
+    tracelast_func("insert_block_sorted");
     if (!free_list || newblock < free_list) {
         newblock->next = free_list;
         free_list = newblock;
@@ -70,6 +75,7 @@ static void insert_block_sorted(BLOCK_HEADER* newblock) {
 // unused.
 /* Align `addr` up to the next multiple of `align` (align must be power of two) */
 static void* align_up(void* addr, size_t align) {
+    tracelast_func("align_up - memory");
     uintptr_t a = (uintptr_t)addr;
     uintptr_t mask = align - 1;
     if (a & mask) {
@@ -80,6 +86,7 @@ static void* align_up(void* addr, size_t align) {
 
 // Memory Set.
 void* kmemset(void* dest, int val, uint32_t len) {
+    tracelast_func("kmemset");
     uint8_t* ptr = dest;
     for (uint32_t i = 0; i < len; i++) {
         ptr[i] = (uint8_t)val;
@@ -89,6 +96,7 @@ void* kmemset(void* dest, int val, uint32_t len) {
 
 // Memory copy.
 void* kmemcpy(void* dest, const void* src, uint32_t len) {
+    tracelast_func("kmemcpy");
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
     for (unsigned int i = 0; i < len; i++) {
@@ -99,6 +107,7 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
 
 /* Allocate `size` bytes, aligned to `align` bytes */
 void* kmalloc(size_t wanted_size, size_t align) {
+    tracelast_func("kmalloc");
     /* Round up the requested size to satisfy alignment of payload */
     size_t payload_size = (wanted_size + align - 1) & ~(align - 1);
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
@@ -147,6 +156,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
 
 /* Merge adjacent free blocks to reduce fragmentation */
 void coalesce_free_list(void) {
+    tracelast_func("coalesce_free_list");
     BLOCK_HEADER* b = free_list;
     while (b && b->next) {
         uintptr_t end_of_b = (uintptr_t)b + b->size;
@@ -163,6 +173,7 @@ void coalesce_free_list(void) {
 
 /* Return a block to the free list */
 void kfree(void* ptr) {
+    tracelast_func("kfree");
     if (!ptr) {
 #ifdef DEBUG
         gop_printf(&gop_local, 0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");
@@ -183,7 +194,7 @@ void kfree(void* ptr) {
     /* Push it onto the free list */
     insert_block_sorted(blk);
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFFF00 "<-- KFREE() DEBUG --> ");
+    gop_printf(&gop_local, 0xFFFFFF00 ,"<-- KFREE() DEBUG --> ");
     gop_printf(&gop_local, 0xFF00FFFF, "Pushed the block to the free list.\n");
 #endif
     /* Optionally merge neighbors */

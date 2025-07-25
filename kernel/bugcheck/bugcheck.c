@@ -9,14 +9,37 @@
 // We require GOP, so we extern it.
 extern GOP_PARAMS gop_local;
 
+void print_lastfunc_chain(uint32_t color) {
+    // Start at the oldest entry: that's the slot `index` points to (next write).
+    int idx = lastfunc_history.current_index;
+
+    int start = (lastfunc_history.current_index + 1) % LASTFUNC_HISTORY_SIZE;
+    bool first = true;
+    for (int i = 0; i < LASTFUNC_HISTORY_SIZE; i++) { // start from oldest to newest
+        int idx = (start + i) % LASTFUNC_HISTORY_SIZE;
+        char* name = (char*)lastfunc_history.names[idx];
+        if (!*name) break;
+        if (!first) {
+            gop_printf(&gop_local, 0xFF800080, " -> ");
+        }
+        gop_printf(&gop_local, 0xFF800080, "%s", name);
+        first = false;
+    }
+}
+
+
 void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
+    isBugChecking = true;
 	// Critical system error, instead of triple faulting, we hang the system with specified error codes.
 	// Disable interrupts if they werent disabled before.
 	__cli();
 
 	// Clear the screen to blue (bsod windows style)
 	gop_clear_screen(&gop_local, 0xFF0000FF);
-
+    // check if nullptr deref.
+    if (err_code == PAGE_FAULT && isAdditionals && additional == 0) {
+        err_code = NULL_POINTER_DEREFERENCE;
+    }
 	// Write some debugging and an error message
 	gop_printf(&gop_local, 0xFFFFFFFF, "\nFATAL ERROR: Your system has encountered a fatal error.\n\n");
 	gop_printf(&gop_local, 0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
@@ -55,16 +78,23 @@ void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t addition
         );
     }
 	else {
-        gop_printf(&gop_local, 0xFFFF0000, "\n\n\nERROR: NO REGISTERS.");
+        gop_printf(&gop_local, 0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**");
 	}
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-            gop_printf(&gop_local, 0xFFFFA500, "\n\n\nFAULTY ADDRESS: %p", additional);
+            gop_printf(&gop_local, 0xFFFFA500, "\n\n\n**FAULTY ADDRESS: %p**", additional);
 		}
 		else {
-            gop_printf(&gop_local, 0xFF800080, "\n\n\nADDITIONALS: %p", additional);
+            gop_printf(&gop_local, 0xFF800080, "\n\n\n**ADDITIONALS: %p**", additional);
 		}
 	}
+#ifdef DEBUG
+    if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
+        gop_printf(&gop_local, 0xFF800080, "\n\n**FUNCTION TRACE (oldest to newest): ");
+        print_lastfunc_chain(0xFF800080);
+        gop_printf(&gop_local, 0xFF800080, "**");
+    }
+#endif
 	//test
 	__hlt();
 }

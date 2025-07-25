@@ -35,6 +35,10 @@ typedef enum _CUSTOM_BUGCHECK_CODES {
     MANUALLY_INITIATED_CRASH = 0xBABE,
     BAD_PAGING = 0xBAD,
     BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.
+    NULL_POINTER_DEREFERENCE = 0xDEAD, // Attempted dereference of a null pointer.
+    FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
+    UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main
+    FRAME_LIMIT_REACHED = 0xBADA55 // frame limit reached when trying to allocate a physical frame.
 } CUSTOM_BUGCHECK_CODES;
 
 // Function to initiate bugcheck.

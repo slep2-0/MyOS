@@ -13,11 +13,13 @@ extern GOP_PARAMS gop_local;
 
 // Read sector into the buffer.
 static bool read_sector(uint32_t lba, void* buf) {
+	tracelast_func("read_sector - fat32");
 	return disk->read_sector(disk, lba, buf);
 }
 
-// Read File-Allocation-Table (FAT) entry.
+// Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
 static uint32_t fat32_read_fat(uint32_t cluster) {
+	tracelast_func("fat32_read_fat");
 	uint32_t fat_offset = cluster * 4; // advances.
 	uint32_t fat_sector = fs.fat_start + (fat_offset / fs.bytes_per_sector);
 	uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
@@ -28,18 +30,21 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 }
 
 static uint32_t first_sector_of_cluster(uint32_t cluster) {
+	tracelast_func("first_sector_of_cluster");
 	return fs.first_data_sector + (cluster - 2) * fs.sectors_per_cluster;
 }
 
 // Read BPB (Bios Parameter Block) and initialize.
 bool fat32_init(int disk_index) {
+	tracelast_func("fat32_init");
 	disk = get_block_device(disk_index);
 	if (!disk) { return false; }
 
 	uint8_t buf[512];
-	if (!read_sector(0, buf)) { return false; }
-	kmemcpy(&bpb, buf, sizeof(bpb));
+	if (!read_sector(0, buf)) { return false; } // First sector contains the BPB for FAT.
+	kmemcpy(&bpb, buf, sizeof(bpb)); // So copy that first sector into our local BPB structure.
 
+	// Then initialize it.
 	fs.bytes_per_sector = bpb.bytes_per_sector;
 	fs.sectors_per_cluster = bpb.sectors_per_cluster;
 	fs.reserved_sector_count = bpb.reserved_sector_count;
@@ -54,6 +59,7 @@ bool fat32_init(int disk_index) {
 
 // Convert to uppercase.
 static inline int toupper(int c) {
+	tracelast_func("toupper - fat32");
 	if (c >= 'a' && c <= 'z') {
 		return c - ('a' - 'A'); // Convert lowercase to uppercase
 	}
@@ -62,6 +68,7 @@ static inline int toupper(int c) {
 
 // Compare short name
 static bool cmp_name(const char* str_1, const char* str_2) {
+	tracelast_func("cmp_name - fat32");
 	char t[12] = { 0 };
 	for (int i = 0; i < 11; i++) { t[i] = str_1[i]; }
 	for (int i = 0; i < 11; i++) {
@@ -74,6 +81,7 @@ static bool cmp_name(const char* str_1, const char* str_2) {
 
 // Walk cluster chain and read directory entries.
 void fat32_list_root(void) {
+	tracelast_func("fat32_list_root");
 	uint32_t cluster = fs.root_cluster;
 	do {
 		uint32_t sector = first_sector_of_cluster(cluster);
@@ -112,6 +120,7 @@ void fat32_list_root(void) {
 
 // Read a file into buffer.
 bool fat32_read_file(const char* filename, void* buffer, uint32_t buffer_size) {
+	tracelast_func("fat32_read_file");
 	uint32_t cluster = fs.root_cluster;
 
 	do {

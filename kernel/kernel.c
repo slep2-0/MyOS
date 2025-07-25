@@ -9,6 +9,14 @@
 GOP_PARAMS gop_local;
 BOOT_INFO boot_info_local;
 
+/*
+Global variables initialization
+*/
+bool isBugChecking = false;
+LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
+/*
+Ended
+*/
 #define MAX_MEMORY_MAP_SIZE 0x4000  // 16 KB, enough for ~256 descriptors
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
@@ -55,6 +63,7 @@ void debug_print(const char* s) {
 }
 
 void kernel_main(BOOT_INFO* boot_info) {
+    tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
     __cli();
     zero_bss();
@@ -64,13 +73,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     paging_init();
     init_interrupts();
+    init_heap();
+
+    ata_init_primary();
+
     __sti(); // only now enable interrupts
+
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
-    init_heap();
-    //ata_init_primary();
-    //init_timer(100);
-    // init_keyboard(); // optional
     // test if init heap works
     void* buf = kmalloc(64, 16);
     gop_printf(&gop_local, 0xFFFFFF00, "buf addr: %p\n", buf);
@@ -82,10 +92,21 @@ void kernel_main(BOOT_INFO* boot_info) {
     void* buf4 = kmalloc(2048, 16);
     gop_printf(&gop_local, 0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
     void* buf5 = kmalloc(64, 16);
-    gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larget addr): %p\n", buf5);
+    gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
 #ifdef CAUSE_BUGCHECK
     bugcheck_system(NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
+
+    if (!fat32_init(0)) { // init fat32.
+        gop_printf(&gop_local, 0xFF8B0000, "Couldn't initialize FAT32 Filesystem.\n");
+        REGS registers;
+        read_registers(&registers);
+        bugcheck_system(&registers, FILESYSTEM_PANIC, 0, false);
+    }
+    else {
+        gop_printf(&gop_local, 0xFF00FF00, "FAT32 Filesystem successfully initialized.\n");
+    }
+    fat32_list_root();
 
     // 3. FINAL KERNEL IDLE LOOP
     while (1) {

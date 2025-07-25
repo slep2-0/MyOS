@@ -4,7 +4,7 @@ static uint8_t frame_bitmap[MAX_FRAMES / 8];
 
 static inline void set_frame(size_t frame) {
     if (frame >= MAX_FRAMES) {
-        bugcheck_system(NULL, SEVERE_MACHINE_CHECK, 0xBADF00D, true);
+        bugcheck_system(NULL, FRAME_LIMIT_REACHED, 0xBADF00D, true);
     }
     frame_bitmap[frame / 8] |= (uint8_t)(1 << (frame % 8));
 }
@@ -20,6 +20,7 @@ static inline bool test_frame(size_t frame) {
 }
 
 void frame_bitmap_init(void) {
+    tracelast_func("frame_bitmap_init");
     // 1. mark all frames reserved
     kmemset(frame_bitmap, 0xFF, sizeof(frame_bitmap));
 
@@ -53,6 +54,7 @@ static uint8_t* next_pt = &__pt_start;
 
 // Early‐boot frame allocator:
 void* alloc_frame(void) {
+    tracelast_func("alloc_frame");
     // If we still have reserved pages, carve from there
     if (next_pt + FRAME_SIZE <= __pt_end) {
         void* phys = next_pt;

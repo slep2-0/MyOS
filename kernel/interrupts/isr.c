@@ -9,6 +9,8 @@
 
 extern GOP_PARAMS gop_local;
 
+// DO NOT PUT TRACELAST_FUNC HERE.
+
 const bool has_error_code[] = {
     false, false, false, false, false, false, false, false, // 0-7
     true,  false, true,  true,  true,  true,  true,  false, // 8-15
