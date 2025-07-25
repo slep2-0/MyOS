@@ -2,7 +2,7 @@
 
 **64 BIT LONG MODE - UEFI**
 
-# THIS IS THE DEVELOPER - NOT WORKING BRANCH.
+# THIS IS THE DEVELOPER BRANCH.
 
 **Kernel might boot here, might not, changes are made here, then are merged to master**
 =======
