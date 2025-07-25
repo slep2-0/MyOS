@@ -7,6 +7,7 @@
 
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
+extern GOP_PARAMS gop_local;
 
 void zero_bss(void) {
     uint8_t* p = &bss_start;
@@ -33,6 +34,7 @@ static bool grow_heap_by_one_page(void) {
     if (!phys) { return false; }
 
     // map it at the end of the heap.
+    // here it where it maps the page, I was confused on how it worked, forgot about it.
     map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW /* | PAGE_USER Would be used later on, when this kernel has both user mode and kernel mode */ );
     // Zero the page.
     kmemset((void*)heap_current_end, 0, FRAME_SIZE);
@@ -163,7 +165,7 @@ void coalesce_free_list(void) {
 void kfree(void* ptr) {
     if (!ptr) {
 #ifdef DEBUG
-        print_to_screen("<-- KFREE() DEBUG --> nullptr passed as argument, returning\r\n", COLOR_RED);
+        gop_printf(&gop_local, 0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");
 #endif
         return;
     }
@@ -171,10 +173,7 @@ void kfree(void* ptr) {
     BLOCK_HEADER* blk = ((BLOCK_HEADER**)ptr)[-1];
    
 #ifdef DEBUG
-    print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
-    print_to_screen("blk: ", COLOR_CYAN);
-    print_hex((unsigned int)(uintptr_t)blk, COLOR_BROWN);
-    print_to_screen("\r\n", COLOR_BLACK);
+    gop_printf(&gop_local, 0xFFFFFF00, "<-- KFREE() DEBUG --> blk: %p\n", blk);
 #endif
     /* Zero it out. */
     // FATAL ERROR BEFORE, it zeroed out the block metadata as well, so kmalloc didn't even know it existed.
@@ -184,8 +183,8 @@ void kfree(void* ptr) {
     /* Push it onto the free list */
     insert_block_sorted(blk);
 #ifdef DEBUG
-    print_to_screen("<-- KFREE() DEBUG --> ", COLOR_YELLOW);
-    print_to_screen("Pushed the block to the free list.\r\n", COLOR_CYAN);
+    gop_printf(&gop_local, 0xFFFFFF00 "<-- KFREE() DEBUG --> ");
+    gop_printf(&gop_local, 0xFF00FFFF, "Pushed the block to the free list.\n");
 #endif
     /* Optionally merge neighbors */
     coalesce_free_list();

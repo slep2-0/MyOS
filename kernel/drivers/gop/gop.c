@@ -1,30 +1,35 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     GOP Driver to draw onto screen Implementation.
+ * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)
  */
+
 #include "gop.h"
+#define FONT8X16_IMPLEMENTATION
+#include "font8x16.h"
 
-// Cursor position (in pixels)
-static uint32_t cursor_x = 0;
-static uint32_t cursor_y = 0;
+uint32_t cursor_x = 0, cursor_y = 0;
 
-void draw_char(GOP_PARAMS* gop, char c, uint32_t x, uint32_t y, uint32_t color) {
-    if (c < 32 || c > 126) return;
-    const uint8_t* bitmap = font8x8_basic[c - 32];
+void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
+    uint8_t c = (uint8_t)c_;
+    if (c > 0x7F) return;
 
-    for (int row = 0; row < 8; row++) {
+    const uint8_t* bitmap = font8x16[c];
+    for (int row = 0; row < 16; row++) {
+        uint8_t bits = bitmap[row];
         for (int col = 0; col < 8; col++) {
-            if (bitmap[row] & (1 << col)) {
-                for (int dy = 0; dy < (int)(FONT_SCALE + 0.5f); dy++) {
-                    uint32_t py = y + (uint32_t)(row * FONT_SCALE + dy);
-                    if (py >= gop->Height) continue;
-                    for (int dx = 0; dx < (int)(FONT_SCALE + 0.5f); dx++) {
-                        uint32_t px = x + (uint32_t)(col * FONT_SCALE + dx);
-                        if (px < gop->Width) {
-                            plot_pixel(gop, px, py, color);
-                        }
-                    }
+            // PSF bitmaps are MSB-first
+            if (!(bits & (1 << (7 - col))))
+                continue;
+
+            // scale each pixel up to FONT_SCALE×FONT_SCALE
+            for (int dy = 0; dy < FONT_SCALE; dy++) {
+                uint32_t py = y + row * FONT_SCALE + dy;
+                if (py >= gop->Height) continue;
+                for (int dx = 0; dx < FONT_SCALE; dx++) {
+                    uint32_t px = x + col * FONT_SCALE + dx;
+                    if (px < gop->Width)
+                        plot_pixel(gop, px, py, color);
                 }
             }
         }
@@ -32,68 +37,67 @@ void draw_char(GOP_PARAMS* gop, char c, uint32_t x, uint32_t y, uint32_t color) 
 }
 
 void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
-    // For each character advance by exactly 8*FONT_SCALE pixels
     while (*s) {
-        draw_char(gop, *s++, x, y, color);
-        x += 8 * FONT_SCALE;
-        // optional: wrap or newline handling here
+        draw_char(gop, *s, x, y, color);
+        x += char_width();
+        s++;
     }
-}
-
-
-
-static inline uint32_t char_width() {
-    return (uint32_t)(8 * FONT_SCALE + 0.5f);
-}
-
-static inline uint32_t line_height() {
-    return (uint32_t)(8 * FONT_SCALE + 0.5f);
 }
 
 void gop_scroll(GOP_PARAMS* gop) {
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
-    uint32_t stride = gop->PixelsPerScanLine;
-    uint32_t height = gop->Height;
-    uint32_t width = gop->Width;
+    uint32_t  stride = gop->PixelsPerScanLine;
+    uint32_t  h = gop->Height;
+    uint32_t  w = gop->Width;
+    uint32_t  lines = line_height();
 
-    uint32_t scroll_lines = line_height();
+    // scroll up
+    kmemcpy(&fb[0],
+        &fb[lines * stride],
+        (h - lines) * stride * sizeof * fb);
 
-    // Move framebuffer contents up by one line
-    for (uint32_t y = 0; y < height - scroll_lines; y++) {
-        kmemcpy(
-            &fb[y * stride],
-            &fb[(y + scroll_lines) * stride],
-            width * sizeof(uint32_t)
-        );
-    }
+    // clear bottom
+    for (uint32_t yy = h - lines; yy < h; yy++)
+        for (uint32_t xx = 0; xx < w; xx++)
+            fb[yy * stride + xx] = 0;
 
-    // Clear the bottom scroll area
-    for (uint32_t y = height - scroll_lines; y < height; y++) {
-        for (uint32_t x = 0; x < width; x++) {
-            fb[y * stride + x] = 0x00000000;  // Black background
-        }
-    }
-
-    cursor_y -= scroll_lines;
-    if ((int)cursor_y < 0) cursor_y = 0;
+    cursor_y = (cursor_y >= lines) ? (cursor_y - lines) : 0;
 }
 
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+    if (c == '\b') {
+        // move cursor back one character (and clear it)
+        if (cursor_x >= char_width()) {
+            cursor_x -= char_width();
+        }
+        else {
+            // if at start of line, wrap to end of previous line
+            if (cursor_y >= line_height()) {
+                cursor_y -= line_height();
+                cursor_x = gop->Width - char_width();
+            }
+        }
+        // clear the old glyph cell:
+        for (uint32_t yy = cursor_y; yy < cursor_y + line_height(); yy++) {
+            for (uint32_t xx = cursor_x; xx < cursor_x + char_width(); xx++) {
+                plot_pixel(gop, xx, yy, color);
+            }
+        }
+        return;
+    }
     if (c == '\n') {
         cursor_x = 0;
         cursor_y += line_height();
         if (cursor_y + line_height() > gop->Height) gop_scroll(gop);
         return;
     }
-    else if (c == '\r') {
+    if (c == '\r') {
         cursor_x = 0;
         return;
     }
 
     draw_char(gop, c, cursor_x, cursor_y, color);
     cursor_x += char_width();
-
-    // Wrap line
     if (cursor_x + char_width() > gop->Width) {
         cursor_x = 0;
         cursor_y += line_height();
@@ -107,98 +111,64 @@ void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
     }
 }
 
-void gop_print_dec(GOP_PARAMS* gop, unsigned int val, uint32_t color) {
-    char buf[16];
-    int i = 0;
-    if (val == 0) buf[i++] = '0';
+static void sprint_dec(char* buf, unsigned v) {
+    char* p = buf;
+    if (v == 0) { *p++ = '0'; }
     else {
-        while (val > 0) {
-            buf[i++] = '0' + (val % 10);
-            val /= 10;
+        char tmp[16]; int i = 0;
+        while (v) {
+            tmp[i++] = '0' + (v % 10);
+            v /= 10;
         }
+        while (i--) *p++ = tmp[i];
     }
-    buf[i] = '\0';
+    *p = '\0';
+}
 
-    // Reverse
-    for (int j = 0; j < i / 2; ++j) {
-        char tmp = buf[j];
-        buf[j] = buf[i - j - 1];
-        buf[i - j - 1] = tmp;
-    }
-
+void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
+    char buf[16];
+    sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }
 
-void gop_print_hex(GOP_PARAMS* gop, unsigned int val, uint32_t color) {
+void gop_print_hex(GOP_PARAMS* gop, unsigned val, uint32_t color) {
     char buf[11] = "0x00000000";
     for (int i = 0; i < 8; i++) {
-        uint8_t nibble = (val >> ((7 - i) * 4)) & 0xF;
-        buf[2 + i] = (nibble < 10) ? ('0' + nibble) : ('a' + nibble - 10);
+        unsigned nib = (val >> ((7 - i) * 4)) & 0xF;
+        buf[2 + i] = (nib < 10 ? '0' + nib : 'a' + nib - 10);
     }
     gop_puts(gop, buf, color);
 }
 
 void gop_printf(GOP_PARAMS* gop, uint32_t color, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-
-    for (int i = 0; fmt[i] != '\0'; i++) {
-        if (fmt[i] == '%' && fmt[i + 1] != '\0') {
-            i++;
-            char spec = fmt[i];
-
-            switch (spec) {
-            case 'd': {
-                int val = va_arg(args, int);
-                gop_print_dec(gop, (unsigned int)val, color);
-                break;
-            }
-            case 'u': {
-                unsigned int val = va_arg(args, unsigned int);
-                gop_print_dec(gop, val, color);
-                break;
-            }
-            case 'x': {
-                unsigned int val = va_arg(args, unsigned int);
-                gop_print_hex(gop, val, color);
-                break;
-            }
-            case 'p': {
-                void* ptr = va_arg(args, void*);
-                gop_print_hex(gop, (unsigned int)(uintptr_t)ptr, color);
-                break;
-            }
-            case 'c': {
-                char c = (char)va_arg(args, int);
-                gop_put_char(gop, c, color);
-                break;
-            }
+    va_list ap;
+    va_start(ap, fmt);
+    for (const char* p = fmt; *p; p++) {
+        if (*p == '%' && p[1]) {
+            switch (*++p) {
+            case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
+            case 'u': gop_print_dec(gop, va_arg(ap, unsigned), color); break;
+            case 'x': gop_print_hex(gop, va_arg(ap, unsigned), color); break;
+            case 'p': gop_print_hex(gop, (unsigned)(uintptr_t)va_arg(ap, void*), color); break;
+            case 'c': gop_put_char(gop, (char)va_arg(ap, int), color); break;
             case 's': {
-                const char* str = va_arg(args, const char*);
+                const char* str = va_arg(ap, const char*);
                 if (str) gop_puts(gop, str, color);
-                break;
-            }
-            case '%': {
+            } break;
+            case '%': gop_put_char(gop, '%', color); break;
+            default:
                 gop_put_char(gop, '%', color);
-                break;
-            }
-            default: {
-                gop_put_char(gop, '%', color);
-                gop_put_char(gop, spec, color);
-                break;
-            }
+                gop_put_char(gop, *p, color);
             }
         }
         else {
-            gop_put_char(gop, fmt[i], color);
+            gop_put_char(gop, *p, color);
         }
     }
-
-    va_end(args);
+    va_end(ap);
 }
 
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
-    // Clear screen via GOP
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);

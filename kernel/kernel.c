@@ -15,8 +15,6 @@ static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_ME
 
 void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
-
-    size_t count = boot_info->MapSize / boot_info->DescriptorSize;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
         // handle error, memory map too big
         bugcheck_system(NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
@@ -66,15 +64,25 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     paging_init();
     init_interrupts();
-    //__sti();           // only now enable interrupts -- not yet, gotta setup keyboard, exceptions are fine tho.
+    __sti(); // only now enable interrupts
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
-    gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d", 1, 2, 3);
-    __hlt(); // Wait forever
-    //init_heap();
+    gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
+    init_heap();
     //ata_init_primary();
     //init_timer(100);
     // init_keyboard(); // optional
-
+    // test if init heap works
+    void* buf = kmalloc(64, 16);
+    gop_printf(&gop_local, 0xFFFFFF00, "buf addr: %p\n", buf);
+    void* buf2 = kmalloc(128, 16);
+    gop_printf(&gop_local, 0xFFFFFF00, "buf2 addr: %p\n", buf2);
+    kfree(buf2);
+    void* buf3 = kmalloc(128, 16);
+    gop_printf(&gop_local, 0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
+    void* buf4 = kmalloc(2048, 16);
+    gop_printf(&gop_local, 0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
+    void* buf5 = kmalloc(64, 16);
+    gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larget addr): %p\n", buf5);
 #ifdef CAUSE_BUGCHECK
     bugcheck_system(NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif

@@ -9,6 +9,7 @@
 static FAT32_BPB bpb;
 static FAT32_FSINFO fs;
 static BLOCK_DEVICE* disk;
+extern GOP_PARAMS gop_local;
 
 // Read sector into the buffer.
 static bool read_sector(uint32_t lba, void* buf) {
@@ -97,12 +98,12 @@ void fat32_list_root(void) {
 					// i don't support long names for now.
 					continue;
 				}
-
-				print_to_screen("Found: ", COLOR_CYAN);
-				for (uint32_t k = 0; k < 11; k++) {
-					myos_printf(COLOR_LIGHT_GRAY, "%c", dir->name[k]);
-				}
-				print_to_screen("\r\n", COLOR_CYAN);
+#ifdef DEBUG
+				gop_printf(&gop_local, 0xFF00FFFF, "Found: ");
+				for (uint32_t k = 0; k < 11; k++)
+					gop_printf(&gop_local, 0xFFD3D3D3, "%c", dir->name[k]);
+				gop_printf(&gop_local, 0, "\n");
+#endif
 			}
 		}
 		cluster = fat32_read_fat(cluster);

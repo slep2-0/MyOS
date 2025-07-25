@@ -50,12 +50,32 @@ void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
     }
 }
 
+
+//
+//
+// dev notes:
+// The reason paging didn't work when switching from 32bit to 64bit.
+// Is the UEFI Bootloader - It already setup it's own page tabels, GDT, segments, everything.
+// So every memory I accessed after switching to my paging, was INVALID (particularly the framebuffer memory)
+// Also it let me to notice that I didn't even cover my whole kernel page table and binary size (mark them as reserved - map_range_identity)
+// Solution to both:
+// Create a local struct of the boot info that UEFI passes (it passes pointers to the UEFI memory, I just replicated the data there to the kernel local .data section)
+// And the solution to the second was to use the ADDRESS of the label the linker passes to the C files - I used the variable itself (probably the instruction that was at the address .text) and not it's address.
+// Figured the first one out by looking at the logs of QEMU, didn't understand 1 bit of it at first, but then my mind understood that the faulty address (it was a page fault) was a UEFI address, and it was touched right after
+// setting paging (which was my GOP printing function), and also after reversing my kernel in ghidra (specifically paging_init), I saw it used the variable itself, and not it's address. (used kernel_start, not &kernel_start)
+//
+//
+
 extern GOP_PARAMS gop_local;
+
+
+
 
 void paging_init(void) {
     // zero your PML4…
     kmemset(pml4, 0, PAGE_SIZE_4K);
     static volatile int paging_marker = 0x12345678;
+    uintptr_t marker_addr = (uintptr_t)paging_marker; // so we will see it in ghidra.
     // carve out the first few tables (PML4→PDPT→PD→PT)
     uint64_t* pdpt = allocate_page_table();
     uint64_t* pd = allocate_page_table();
@@ -75,7 +95,7 @@ void paging_init(void) {
         flags);
 
     map_range_identity((uintptr_t)&kernel_start,
-        (uintptr_t)&kernel_end,
+        (uintptr_t)&kernel_end + 1,
         flags);
 
     extern uint8_t __stack_start[], __stack_end[];
