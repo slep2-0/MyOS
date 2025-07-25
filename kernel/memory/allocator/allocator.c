@@ -1,4 +1,4 @@
-﻿#include "allocator.h"
+#include "allocator.h"
 
 static uint8_t frame_bitmap[MAX_FRAMES / 8];
 

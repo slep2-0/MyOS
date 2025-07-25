@@ -70,7 +70,7 @@ build/fat32.o: kernel/filesystem/fat32/fat32.c
 build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-	
+
 build/irql.o: kernel/irql/irql.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
