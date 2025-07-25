@@ -18,14 +18,12 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 
 `Paging - Virtual Memory Paging with permissions, like PAGE_PRESENT (is the page even mapped to physical memory?), PAGE_RW (Is the page read/write or only read?), PAGE_USER (Is the page both for user mode and kernel mode, or only kernel mode?)`
 
-`Interrupts (with full exception management) -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer.`
+`Interrupts (with full exception management) -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer (unused, working on it).`
+
+`Full dynamic heap memory allocation.`
 
 **WORKING ON:**
 
 `FAT32 FileSystem accessing in the kernel itself.`
-
-`Keyboard handling`
-
-`Dynamic Memory allocation`
 
 `life.`

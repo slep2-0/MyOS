@@ -27,10 +27,6 @@ build/kernel.o: kernel/kernel.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/vga.o: kernel/screen/vga/vga.c
-	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-
 build/idt.o: kernel/interrupts/idt.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
@@ -90,7 +86,7 @@ build/paging_asm.o: kernel/memory/paging/paging_asm.asm
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/vga.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/isr_stub.o build/paging_asm.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/isr_stub.o build/paging_asm.o kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

@@ -6,13 +6,6 @@
 
 #include "ata.h"
 
-#include <stdint.h>    // for uint8_t, uint16_t, uint32_t
-#include <stdbool.h>   // for bool
-#include <stddef.h>    // for NULL
-#include "../../intrin/intrin.h"
-#include "../../screen/vga/vga.h"       // for color constants
-#include "../../defs/stdarg_myos.h"    // for myos_printf()
-
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
