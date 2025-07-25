@@ -18,7 +18,7 @@ void zero_bss(void) {
 /* Initialize the free list to one big block spanning the heap */
 void init_heap(void) {
     tracelast_func("init_heap");
-    
+    enforce_max_irql(PASSIVE_LEVEL);
     heap_current_end = HEAP_START;
     uintptr_t start = HEAP_START;
     size_t total = HEAP_SIZE;
@@ -33,6 +33,7 @@ void init_heap(void) {
 // Functions.
 static bool grow_heap_by_one_page(void) {
     tracelast_func("grow_heap_by_one_page");
+    enforce_max_irql(PASSIVE_LEVEL);
     // grab a physical frame
     void* phys = alloc_frame();
     if (!phys) { return false; }
@@ -40,9 +41,9 @@ static bool grow_heap_by_one_page(void) {
     // map it at the end of the heap.
     // here it where it maps the page, I was confused on how it worked, forgot about it.
     map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW /* | PAGE_USER Would be used later on, when this kernel has both user mode and kernel mode */ );
+    
     // Zero the page.
     kmemset((void*)heap_current_end, 0, FRAME_SIZE);
-    
     // insert a new region
     BLOCK_HEADER* block = (BLOCK_HEADER*)heap_current_end;
     block->size = FRAME_SIZE;
@@ -57,6 +58,7 @@ static bool grow_heap_by_one_page(void) {
 
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
     tracelast_func("insert_block_sorted");
+    enforce_max_irql(PASSIVE_LEVEL);
     if (!free_list || newblock < free_list) {
         newblock->next = free_list;
         free_list = newblock;
@@ -76,6 +78,7 @@ static void insert_block_sorted(BLOCK_HEADER* newblock) {
 /* Align `addr` up to the next multiple of `align` (align must be power of two) */
 static void* align_up(void* addr, size_t align) {
     tracelast_func("align_up - memory");
+    enforce_max_irql(PASSIVE_LEVEL);
     uintptr_t a = (uintptr_t)addr;
     uintptr_t mask = align - 1;
     if (a & mask) {
@@ -87,6 +90,7 @@ static void* align_up(void* addr, size_t align) {
 // Memory Set.
 void* kmemset(void* dest, int val, uint32_t len) {
     tracelast_func("kmemset");
+    enforce_max_irql(PASSIVE_LEVEL);
     uint8_t* ptr = dest;
     for (uint32_t i = 0; i < len; i++) {
         ptr[i] = (uint8_t)val;
@@ -97,6 +101,7 @@ void* kmemset(void* dest, int val, uint32_t len) {
 // Memory copy.
 void* kmemcpy(void* dest, const void* src, uint32_t len) {
     tracelast_func("kmemcpy");
+    enforce_max_irql(PASSIVE_LEVEL);
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
     for (unsigned int i = 0; i < len; i++) {
@@ -106,8 +111,10 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
 }
 
 /* Allocate `size` bytes, aligned to `align` bytes */
+// IRQL: Passive level minimum (for all memory operations, unless expansion)
 void* kmalloc(size_t wanted_size, size_t align) {
     tracelast_func("kmalloc");
+    enforce_max_irql(PASSIVE_LEVEL);
     /* Round up the requested size to satisfy alignment of payload */
     size_t payload_size = (wanted_size + align - 1) & ~(align - 1);
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
@@ -157,6 +164,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
 /* Merge adjacent free blocks to reduce fragmentation */
 void coalesce_free_list(void) {
     tracelast_func("coalesce_free_list");
+    enforce_max_irql(PASSIVE_LEVEL);
     BLOCK_HEADER* b = free_list;
     while (b && b->next) {
         uintptr_t end_of_b = (uintptr_t)b + b->size;
@@ -174,6 +182,7 @@ void coalesce_free_list(void) {
 /* Return a block to the free list */
 void kfree(void* ptr) {
     tracelast_func("kfree");
+    enforce_max_irql(PASSIVE_LEVEL);
     if (!ptr) {
 #ifdef DEBUG
         gop_printf(&gop_local, 0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");

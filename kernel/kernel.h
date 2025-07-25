@@ -22,40 +22,16 @@ typedef struct _LASTFUNC_HISTORY {
     int current_index;
 } LASTFUNC_HISTORY;
 
+typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
+typedef struct _BOOT_INFO BOOT_INFO;
+typedef struct _REGS REGS;
+
 extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
 // Standard globals
 extern bool isBugChecking;
 
-
-/* Uncomment to trigger a bugcheck on entry */
-//#define CAUSE_BUGCHECK
-
-/* Uncomment to enable debug prints */
-#define DEBUG
-
-#define UNREFERENCED_PARAMETER(x) (void)(x)
-
-#include "memory/allocator/uefi_memory.h"
-#include "memory/memory.h"
-#include "memory/paging/paging.h"
-#include "defs/stdarg_myos.h"
-#include "interrupts/idt.h"
-#include "intrin/intrin.h"
-#include "interrupts/handlers/handlers.h"
-#include "bugcheck/bugcheck.h"
-#include "memory/allocator/allocator.h"
-#include "drivers/blk/block.h"
-#include "drivers/blk/ata.h"
-#include "drivers/gop/gop.h"
-#include "filesystem/fat32/fat32.h"
-
-// Entry point in C
-void kernel_main(BOOT_INFO* boot_info);
-
-// Custom assembly functions externals.
-extern void read_registers(REGS* registers);
-
+// Custom header inline functions.
 static inline void tracelast_func(const char* function_name) {
     if (!function_name) return;
     if (isBugChecking) return;
@@ -70,5 +46,34 @@ static inline void tracelast_func(const char* function_name) {
     }
     lastfunc_history.names[lastfunc_history.current_index][i] = '\0';  // null terminate
 }
+
+/* Uncomment to trigger a bugcheck on entry */
+//#define CAUSE_BUGCHECK
+
+/* Uncomment to enable debug prints */
+#define DEBUG
+
+#define UNREFERENCED_PARAMETER(x) (void)(x)
+
+#include "intrin/intrin.h"
+#include "filesystem/fat32/fat32.h"
+#include "memory/allocator/uefi_memory.h"
+#include "memory/memory.h"
+#include "memory/paging/paging.h"
+#include "defs/stdarg_myos.h"
+#include "interrupts/idt.h"
+#include "interrupts/handlers/handlers.h"
+#include "bugcheck/bugcheck.h"
+#include "memory/allocator/allocator.h"
+#include "drivers/blk/block.h"
+#include "drivers/blk/ata.h"
+#include "drivers/gop/gop.h"
+#include "irql/irql.h"
+
+// Entry point in C
+void kernel_main(BOOT_INFO* boot_info);
+
+// Custom assembly functions externals.
+extern void read_registers(REGS* registers);
 
 #endif // X86_KERNEL_H

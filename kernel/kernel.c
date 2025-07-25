@@ -1,6 +1,6 @@
 ﻿/*
  * PROJECT:      MatanelOS Kernel
- * LICENSE:      NONE
+ * LICENSE:      GPLv3
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.
  */
 
@@ -78,7 +78,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     ata_init_primary();
 
     __sti(); // only now enable interrupts
-
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
     // test if init heap works
@@ -97,16 +96,16 @@ void kernel_main(BOOT_INFO* boot_info) {
     bugcheck_system(NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
 
-    if (!fat32_init(0)) { // init fat32.
-        gop_printf(&gop_local, 0xFF8B0000, "Couldn't initialize FAT32 Filesystem.\n");
-        REGS registers;
-        read_registers(&registers);
-        bugcheck_system(&registers, FILESYSTEM_PANIC, 0, false);
-    }
-    else {
-        gop_printf(&gop_local, 0xFF00FF00, "FAT32 Filesystem successfully initialized.\n");
-    }
-    fat32_list_root();
+    //if (!fat32_init(0)) { // init fat32.
+    //    gop_printf(&gop_local, 0xFF8B0000, "Couldn't initialize FAT32 Filesystem.\n");
+    //    REGS registers;
+    //    read_registers(&registers);
+    //    bugcheck_system(&registers, FILESYSTEM_PANIC, 0, false);
+    //}
+    //else {
+    //    gop_printf(&gop_local, 0xFF00FF00, "FAT32 Filesystem successfully initialized.\n");
+    //}
+    //fat32_list_root();
 
     // 3. FINAL KERNEL IDLE LOOP
     while (1) {

@@ -38,7 +38,10 @@ typedef enum _CUSTOM_BUGCHECK_CODES {
     NULL_POINTER_DEREFERENCE = 0xDEAD, // Attempted dereference of a null pointer.
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
     UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main
-    FRAME_LIMIT_REACHED = 0xBADA55 // frame limit reached when trying to allocate a physical frame.
+    FRAME_LIMIT_REACHED = 0xBADA55, // frame limit reached when trying to allocate a physical frame.
+    IRQL_NOT_HIGHER_OR_EQUAL = 0x1337, // A task that requires higher or equal IRQL (e.g - accessing pagable memory, mutex, something on my kernel that would require that, i'll implement it)
+    IRQL_NOT_LESS_OR_EQUAL = 0x1338, // required for lowering IRQL that is already higher than the current IRQL (vice versa for increasing)
+    INVALID_IRQL_SUPPLIED = 0x69420,
 } CUSTOM_BUGCHECK_CODES;
 
 // Function to initiate bugcheck.

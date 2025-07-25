@@ -29,10 +29,11 @@ void print_lastfunc_chain(uint32_t color) {
 
 
 void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
-    isBugChecking = true;
-	// Critical system error, instead of triple faulting, we hang the system with specified error codes.
-	// Disable interrupts if they werent disabled before.
-	__cli();
+    // Critical system error, instead of triple faulting, we hang the system with specified error codes.
+    // Disable interrupts if they werent disabled before.
+    __cli();
+    isBugChecking = true;   
+    _SetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core.
 
 	// Clear the screen to blue (bsod windows style)
 	gop_clear_screen(&gop_local, 0xFF0000FF);
