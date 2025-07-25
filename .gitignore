@@ -12,6 +12,12 @@
 *.lib
 *.a
 
+# Generic ignore, like disassembly, texts, and bash scripts that are made for my machine, you may request them.
+*.dis
+*.txt
+*.sh
+*.bash
+
 # Ignore all build output folders (adjust paths if needed)
 tools/buildtools/cross-compiler-gcc/bin/
 tools/buildtools/cross-compiler-gcc/libexec/
@@ -24,6 +30,7 @@ obj/
 
 # Ignore the entire tools folder
 /tools/
+/tools64/
 
 # Ignore temporary files
 *.tmp

@@ -32,6 +32,7 @@ unsigned char make_color(unsigned char foreground, unsigned char background) {
 }
 
 void print_to_screen(char* text, unsigned char fg_color) {
+    return; // unused.
     volatile unsigned char* video_memory = (volatile unsigned char*)0xB8000;
     unsigned char attribute = (unsigned char)((current_bg_color << 4) | (fg_color & 0x0F));
 
@@ -241,24 +242,51 @@ void myos_printf(unsigned char color, const char* fmt, ...) {
             i++;
             char spec = fmt[i];
 
-            if (spec == 'd') {
+            switch (spec) {
+            case 'd': {
                 int int_val = va_arg(args, int);
                 print_dec((unsigned int)int_val, color);
+                break;
             }
-            else if (spec == 's') {
-                const char* str_val = va_arg(args, const char*);
-                if (str_val) print_to_screen((char*)str_val, color);
+            case 'u': {
+                unsigned int uint_val = va_arg(args, unsigned int);
+                print_dec(uint_val, color);
+                break;
             }
-            else if (spec == 'x') {
+            case 'x': {
                 unsigned int hex_val = va_arg(args, unsigned int);
                 print_hex(hex_val, color);
+                break;
             }
-            else {
-                // Unknown specifier, print as is
+            case 'p': {
+                void* ptr_val = va_arg(args, void*);
+                print_to_screen("0x", color);
+                print_hex((unsigned int)(uintptr_t)ptr_val, color);
+                break;
+            }
+            case 'c': {
+                char c = (char)va_arg(args, int); // char promoted to int in va_arg
+                char s[2] = { c, '\0' };
+                print_to_screen(s, color);
+                break;
+            }
+            case 's': {
+                const char* str_val = va_arg(args, const char*);
+                if (str_val) print_to_screen((char*)str_val, color);
+                break;
+            }
+            case '%': {
+                print_to_screen("%", color);
+                break;
+            }
+            default: {
+                // Unknown specifier: print as is, with %
                 char s[2] = { '%', '\0' };
                 print_to_screen(s, color);
                 char s2[2] = { spec, '\0' };
                 print_to_screen(s2, color);
+                break;
+            }
             }
         }
         else {

@@ -5,7 +5,16 @@
  */
 #ifndef X86_INTRINSICS_H
 #define X86_INTRINSICS_H
-#include "../kernel.h"
+
+ // PIC Ports
+#define PIC1_COMMAND_MASTER 0x20
+#define PIC1_DATA           0x21
+#define PIC2_COMMAND_SLAVE  0xA0
+#define PIC2_DATA           0xA1
+
+// End of Interrupt command code
+#define PIC_EOI 0x20
+
 
 // Disable interrupts (cli)
 static inline void __cli(void) {
@@ -56,6 +65,18 @@ static inline void __write_eflags(unsigned long int eflags) {
         "popfl"
         :: "r"(eflags)
         );
+}
+
+// Read port (inw)
+static inline unsigned short __inword(unsigned short port) {
+    unsigned short ret;
+    __asm__ volatile ("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+// Write port (outw)
+static inline void __outword(unsigned short port, unsigned short val) {
+    __asm__ volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
 // Read port (inb)

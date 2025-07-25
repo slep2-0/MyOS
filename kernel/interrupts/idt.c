@@ -1,20 +1,22 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:		IMPLEMENTATION To SETUP IDT Entries.
  */
 #include "idt.h"
 
-IDT_ENTRY IDT[IDT_ENTRIES];
+IDT_ENTRY64 IDT[IDT_ENTRIES];
 IDT_PTR   PIDT;
 
 /* Set one gate. */
 void set_idt_gate(int n, unsigned long int handler) {
     IDT[n].offset_low = handler & 0xFFFF;
-    IDT[n].selector = 0x08; // CS is at 0x08 when it was set-upped in the GDT.
+    IDT[n].selector = 0x08;   // code segment selector
+    IDT[n].ist = 0;           // right now it's zero, I don't use IST.
+    IDT[n].type_attr = 0x8E;  // interrupt gate, present, ring 0
+    IDT[n].offset_mid = (handler >> 16) & 0xFFFF;
+    IDT[n].offset_high = (handler >> 32) & 0xFFFFFFFF;
     IDT[n].zero = 0;
-    IDT[n].type_attr = 0x8E; // Interrupt gate, present, ring 0.
-    IDT[n].offset_high = (uint16_t)((handler >> 16) & 0xFFFF);
 }
 
 /* Populate IDT: exceptions, IRQ, and then finally load it. */
@@ -31,7 +33,7 @@ void install_idt() {
     __outbyte(0x21, 0x0);
     __outbyte(0xA1, 0x0);
 
-    /* Fill IDT Entries for CPU Exceptions (0-31) */
+    /* Fill IDT Entries for CPU Exceptions (0-31) */ /* For clarifications, all of the ISR and IRQ externals live in isr_stub (where it defines the functions and gets linked together, via the global keyword) and isr_common_stub (where it does the routine), where they are linked together via the linker (externs) */
     extern void isr0(void); extern void isr1(void); extern void isr2(void); extern void isr3(void); extern void isr4(void); extern void isr5(void); extern void isr6(void); extern void isr7(void); extern void isr8(void); extern void isr9(void); extern void isr10(void); extern void isr11(void); extern void isr12(void); extern void isr13(void); extern void isr14(void); extern void isr15(void); extern void isr16(void); extern void isr17(void); extern void isr18(void); extern void isr19(void); extern void isr20(void); extern void isr21(void); extern void isr22(void); extern void isr23(void); extern void isr24(void); extern void isr25(void); extern void isr26(void); extern void isr27(void); extern void isr28(void); extern void isr29(void); extern void isr30(void); extern void isr31(void);
     /* I forgot to set n in the set_idt_gate, they were all zeros and I didn't understand why I got IRQ of like 50 thousand and error code of 4 billion. (i copy pasted each line instead of typing manually) */
     set_idt_gate(0, (unsigned long)isr0);
@@ -87,8 +89,7 @@ void install_idt() {
     set_idt_gate(47, (unsigned long)irq15);
     
     /* Finally, Load IDT. */
-    PIDT.limit = sizeof(IDT_ENTRY) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
+    PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;
     __lidt(&PIDT);
-    __sti(); // Enable interrupts.
 }

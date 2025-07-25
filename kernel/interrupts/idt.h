@@ -47,6 +47,7 @@ Interrupt Definitions
 typedef enum _INTERRUPT_LIST {
     TIMER_INTERRUPT = 32,
     KEYBOARD_INTERRUPT = 33,
+    ATA_INTERRUPT = 46,
 } INTERRUPT_LIST;
 /*
 Ended
@@ -58,7 +59,7 @@ typedef struct _IDT_PTR {
 typedef struct __attribute__((packed)) _IDT_PTR {
 #endif
     uint16_t limit;
-    uint32_t base;
+    uint64_t base;
 } IDT_PTR;
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -69,14 +70,16 @@ typedef struct __attribute__((packed)) _IDT_PTR {
 #pragma pack(push, 1)
 typedef struct _IDT_ENTRY {
 #else
-typedef struct __attribute__((packed)) _IDT_ENTRY {
+typedef struct __attribute__((packed)) _IDT_ENTRY_64 {
 #endif
-    uint16_t offset_low; // lower 16 bits of the handler function address. 0-15
-    uint16_t selector; // CS (code) segment in the GDT.
-    uint8_t zero; // Always 0.
-    uint8_t type_attr; // type and attributes (e.g, 0x8E - present, ring 0, 32-bit interrupt gate)
-    uint16_t offset_high; // higher 16 bits of handler address 16-31
-} IDT_ENTRY;
+    uint16_t offset_low;    // lower 16 bits of handler address (0-15)
+    uint16_t selector;      // CS segment selector
+    uint8_t ist;           // Interrupt Stack Table (0-2 bits), reserved (3-7 bits)
+    uint8_t type_attr;     // type and attributes
+    uint16_t offset_mid;   // middle 16 bits of handler address (16-31)
+    uint32_t offset_high;  // upper 32 bits of handler address (32-63)
+    uint32_t zero;         // reserved, must be zero
+} IDT_ENTRY64;
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
@@ -88,12 +91,13 @@ typedef struct _REGS {
 #else
 typedef struct __attribute__((packed)) _REGS {
 #endif
-    uint32_t gs, fs, es, ds;             // Segment registers
-    uint32_t edi, esi, ebp, esp;         // Pushed by pusha -> Special Registers -> FIXME, PUSHA pushes the OLD esp, and not the current (when the cpu switches).
-    uint32_t ebx, edx, ecx, eax;         // Pushed by pusha -> General purpose registers
-    uint32_t error_code;                 // Manually pushed -> Error code (if any)
-    uint32_t vec_num;                     // Vector number -> Vector Number.
-    uint32_t eip, cs, eflags;           // Pushed by CPU. EIP -> Current instruction pointer address. CS -> Code Segment. EFLAGS -> EFLAGS Register.
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t vector;
+    uint64_t error_code;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
 } REGS;
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -109,5 +113,8 @@ void install_idt(void);
 
 // Load all interupts and ISR's.
 void init_interrupts(void);
+
+// forward declaration for prototype error in gcc.
+void isr_handler64(int vec_num, REGS* r);
 
 #endif /* X86_IDT_H */

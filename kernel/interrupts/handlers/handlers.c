@@ -7,6 +7,8 @@
 #include "handlers.h"
 #include "scancodes.h"
 
+extern GOP_PARAMS gop_local;
+
 char scancode_to_ascii[] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
     '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -39,92 +41,93 @@ void init_keyboard() {
 }
 
 void keyboard_handler() {
-    // Read the scan port from the status port.
-    unsigned char scancode = __inbyte(KEYBOARD_DATA_PORT);
-
-    // Extended scancode recognition.
-    if (scancode == 0xE0) {
-        extended_scancode = true;
-        __outbyte(0x20, PIC_EOI); //ack
-        return;
-    }
-
-    if (extended_scancode) {
-        // second byte of extended scancode.
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_UP:
-            cursor_y--; // reveresd, even though it's - on the y scale, it goes up on screen.
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI); //ack
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_DOWN:
-            cursor_y++;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_RIGHT:
-            cursor_x++;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_LEFT:
-            cursor_x--;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        }
-    }
-
-    // Check if it's a key press, bit 7 of the inbyte.
-    // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
-    if (!(scancode & 0x80)) {
-        // Conver scan code to ASCII to see if it's even a printable character.
-        if ((scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) || (scancode < sizeof(scancode_to_ascii_shift) && scancode_to_ascii_shift[scancode])) {
-            char key = scancode_to_ascii[scancode];
-            char keyShift = scancode_to_ascii_shift[scancode];
-            char str[2] = { key, '\0' }; // default string (key) + null terminator.
-            char strShift[2] = { keyShift, '\0' };
-            switch (key) {
-            case '\n': // newline char
-                print_to_screen("\r\n", COLOR_BLACK);
-                break;
-            case '\b': // backspace
-                /* FIXME TODO : Implement backspace handling in print_to_screen */
-                print_to_screen("\b \b", COLOR_BLACK);
-                break;
-            case '\t': // TAB
-                print_to_screen("    ", COLOR_BLACK);
-                break;
-            default:
-                if (shift_pressed || caps_lock_on) {
-                    print_to_screen(strShift, COLOR_WHITE);
-                }
-                else {
-                    print_to_screen(str, COLOR_WHITE);
-                }
-                break;
-            }
-        }
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_PRESSED_LEFT_SHIFT:
-            shift_pressed = true;
-            break;
-        case KEYBOARD_SCANCODE_PRESSED_CAPS_LOCK:
-            caps_lock_on = !caps_lock_on;
-        }
-
-    }
-    else {
-        // It's a release, bit 7 is 0.
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_RELEASE_LEFT_SHIFT:
-            shift_pressed = false;
-            break;
-        }
-
-    }
-    // Send End Of Interrupt (EOI) to the PIC.
-    __outbyte(0x20, PIC_EOI); // Only sent to master since this is a master interrupt.
+    return;
+//    // Read the scan port from the status port.
+//    unsigned char scancode = __inbyte(KEYBOARD_DATA_PORT);
+//
+//    // Extended scancode recognition.
+//    if (scancode == 0xE0) {
+//        extended_scancode = true;
+//        __outbyte(0x20, PIC_EOI); //ack
+//        return;
+//    }
+//
+//    if (extended_scancode) {
+//        // second byte of extended scancode.
+//        switch (scancode) {
+//        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_UP:
+//            cursor_y--; // reveresd, even though it's - on the y scale, it goes up on screen.
+//            extended_scancode = false;
+//            __outbyte(0x20, PIC_EOI); //ack
+//            return;
+//        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_DOWN:
+//            cursor_y++;
+//            extended_scancode = false;
+//            __outbyte(0x20, PIC_EOI);
+//            return;
+//        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_RIGHT:
+//            cursor_x++;
+//            extended_scancode = false;
+//            __outbyte(0x20, PIC_EOI);
+//            return;
+//        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_LEFT:
+//            cursor_x--;
+//            extended_scancode = false;
+//            __outbyte(0x20, PIC_EOI);
+//            return;
+//        }
+//    }
+//
+//    // Check if it's a key press, bit 7 of the inbyte.
+//    // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
+//    if (!(scancode & 0x80)) {
+//        // Conver scan code to ASCII to see if it's even a printable character.
+//        if ((scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) || (scancode < sizeof(scancode_to_ascii_shift) && scancode_to_ascii_shift[scancode])) {
+//            char key = scancode_to_ascii[scancode];
+//            char keyShift = scancode_to_ascii_shift[scancode];
+//            char str[2] = { key, '\0' }; // default string (key) + null terminator.
+//            char strShift[2] = { keyShift, '\0' };
+//            switch (key) {
+//            case '\n': // newline char
+//                print_to_screen("\r\n", COLOR_BLACK);
+//                break;
+//            case '\b': // backspace
+//                /* FIXME TODO : Implement backspace handling in print_to_screen */
+//                print_to_screen("\b \b", COLOR_BLACK);
+//                break;
+//            case '\t': // TAB
+//                print_to_screen("    ", COLOR_BLACK);
+//                break;
+//            default:
+//                if (shift_pressed || caps_lock_on) {
+//                    print_to_screen(strShift, COLOR_WHITE);
+//                }
+//                else {
+//                    print_to_screen(str, COLOR_WHITE);
+//                }
+//                break;
+//            }
+//        }
+//        switch (scancode) {
+//        case KEYBOARD_SCANCODE_PRESSED_LEFT_SHIFT:
+//            shift_pressed = true;
+//            break;
+//        case KEYBOARD_SCANCODE_PRESSED_CAPS_LOCK:
+//            caps_lock_on = !caps_lock_on;
+//        }
+//
+//    }
+//    else {
+//        // It's a release, bit 7 is 0.
+//        switch (scancode) {
+//        case KEYBOARD_SCANCODE_RELEASE_LEFT_SHIFT:
+//            shift_pressed = false;
+//            break;
+//        }
+//
+//    }
+//    // Send End Of Interrupt (EOI) to the PIC.
+//    __outbyte(0x20, PIC_EOI); // Only sent to master since this is a master interrupt.
 }
 
 void init_timer(unsigned long int frequency) {
@@ -143,15 +146,24 @@ static int tick = 0;
 void timer_handler() {
     tick++;
     if (tick % 20 == 0) {
-        blink_cursor(); // Every 20 timer interrupts
+        //blink_cursor(); // Every 20 timer interrupts
     }
 }
 
+void ata_handler(void) {
+    // Just send EOI to both PICS.
+    __outbyte(0xA0, 0x20);
+    __outbyte(0x20, 0x20);
+}
+
 void pagefault_handler(REGS* r) {
-    uint32_t fault_addr;
+    uint64_t fault_addr;
     // cr2 holds the faulty address that caused the page fault.
     
-    __asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
+    __asm__ __volatile__ (
+    "movq %%cr2, %0"
+    : "=r"(fault_addr)
+	);
     bugcheck_system(r, PAGE_FAULT, fault_addr, true);
     
     // __hlt(); -> When an HLT instruction is called when the CPU is in interrupt mode, (interrupts are already disabled to let this interrupt go through), iretd never executes, and so the CPU Is just stuck in place. Only an NMI or SMI can wake the processor back up
@@ -168,12 +180,12 @@ void doublefault_handler(REGS* r) {
 void dividebyzero_handler(REGS* r) {
     UNREFERENCED_PARAMETER(r);
     // handle diving by zero.
-    print_to_screen("\r\nERROR: Diving by zero is not allowed.\r\n", COLOR_RED);
+    gop_printf(&gop_local, 0xFFFF0000, "\nERROR: Dividing by zero is not allowed.\n");
 }
 
 void debugsinglestep_handler(REGS* r) {
     UNREFERENCED_PARAMETER(r);
-    print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
+    gop_printf(&gop_local, 0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
     __hlt();
 }
 
@@ -184,7 +196,7 @@ void nmi_handler(REGS* r) {
 
 void breakpoint_handler(REGS* r) {
     UNREFERENCED_PARAMETER(r);
-    print_to_screen("\r\nERROR: Debugging is not currently supported, halting.\r\n", COLOR_RED);
+    gop_printf(&gop_local, 0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
     __hlt();
 }
 
@@ -201,7 +213,7 @@ void boundscheck_handler(REGS* r) {
 
 void invalidopcode_handler(REGS* r) {
     UNREFERENCED_PARAMETER(r);
-    print_to_screen("\r\nERROR: Invalid CPU Instruction...\r\n", COLOR_RED);
+    gop_printf(&gop_local, 0xFFFF0000, "\nERROR: Invalid CPU Instruction...\n");
 }
 
 void nocoprocessor_handler(REGS* r) {
@@ -240,7 +252,7 @@ void gpf_handler(REGS* registers) {
 void fpu_handler(REGS* r) {
     UNREFERENCED_PARAMETER(r);
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
-    print_to_screen("\r\nERROR: Floating Point error, have you done a correct calculationn?\r\n", COLOR_RED);
+    gop_printf(&gop_local, 0xFFFF0000, "Error: Floating Point error, have you done a correct calculation?\n");
 }
 
 void alignment_check_handler(REGS* r) {

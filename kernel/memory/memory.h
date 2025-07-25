@@ -9,9 +9,15 @@
 #include "../kernel.h"
 
  /* Symbol defined in linker script, end of loaded kernel */
-extern char kernel_end;
-extern char kernel_start;
+extern uint8_t kernel_end;
+extern uint8_t kernel_start;
 extern const size_t kernel_length;
+
+/* Zero Out BSS */
+extern uint8_t bss_start;
+extern uint8_t bss_end;
+
+void zero_bss(void);
 
 /* Heap Size */
 
@@ -33,6 +39,9 @@ void init_heap(void);
 
 /* Simple Memset */
 void* kmemset(void* dest, int val, uint32_t len);
+
+/* Added Memcpy */
+void* kmemcpy(void* dest, const void* src, uint32_t len);
 
 /* Simple allocator/free */
 void* kmalloc(size_t size, size_t align);

@@ -6,7 +6,6 @@
 #ifndef X86_BUGCHECK_H
 #define X86_BUGCHECK_H
 #include "../kernel.h"
-#include "../bugcheck/bugcheck.h"
 
 // Bugcheck error code enums, use same exception list from CPU.
 typedef enum _BUGCHECK_CODES {
@@ -30,6 +29,13 @@ typedef enum _BUGCHECK_CODES {
     ALIGNMENT_CHECK,
     SEVERE_MACHINE_CHECK,
 } BUGCHECK_CODES;
+
+typedef enum _CUSTOM_BUGCHECK_CODES {
+    MEMORY_MAP_SIZE_OVERRUN = 0xBEEF,
+    MANUALLY_INITIATED_CRASH = 0xBABE,
+    BAD_PAGING = 0xBAD,
+    BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.
+} CUSTOM_BUGCHECK_CODES;
 
 // Function to initiate bugcheck.
 void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
