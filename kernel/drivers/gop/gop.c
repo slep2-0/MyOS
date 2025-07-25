@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)
+ * PURPOSE:     GOP Driver to draw onto screen Implementation (8Ã—16 font)
  */
 
 #include "gop.h"
@@ -22,7 +22,7 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
             if (!(bits & (1 << (7 - col))))
                 continue;
 
-            // scale each pixel up to FONT_SCALE×FONT_SCALE
+            // scale each pixel up to FONT_SCALEÃ—FONT_SCALE
             for (int dy = 0; dy < FONT_SCALE; dy++) {
                 uint32_t py = y + row * FONT_SCALE + dy;
                 if (py >= gop->Height) continue;

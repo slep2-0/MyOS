@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      NONE
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.

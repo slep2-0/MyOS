@@ -13,7 +13,7 @@ extern GOP_PARAMS gop_local;
 static int device_count = 0;
 
 void register_block_device(BLOCK_DEVICE* dev) {
-    // print the index we’re about to use and the device pointer
+    // print the index weÂ’re about to use and the device pointer
 #ifdef DEBUG
     gop_printf(&gop_local, 0xFFFFFF00, "Registering block #%d at %x\n", device_count, (unsigned)dev);
 #endif
