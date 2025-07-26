@@ -5,7 +5,13 @@
  */
 #ifndef X86_BUGCHECK_H
 #define X86_BUGCHECK_H
-#include "../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../cpu/irql/irql.h"
+#include "../drivers/gop/gop.h"
+#include "../trace.h"
 
 // Bugcheck error code enums, use same exception list from CPU.
 typedef enum _BUGCHECK_CODES {
@@ -46,5 +52,7 @@ typedef enum _CUSTOM_BUGCHECK_CODES {
 
 // Function to initiate bugcheck.
 void bugcheck_system(REGS* registers, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
+
+void print_lastfunc_chain(uint32_t color);
 
 #endif

@@ -7,7 +7,14 @@
 #ifndef X86_GOP_DRIVER_H
 #define X86_GOP_DRIVER_H
 
-#include "../../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../defs/stdarg_myos.h"
+#include "../../trace.h"
+#include "../../memory/memory.h"
+#include "../../memory/allocator/uefi_memory.h"
 
  // integer font scale (1 = native 8×16, 2 = 16×32, etc)
 #define FONT_SCALE 1

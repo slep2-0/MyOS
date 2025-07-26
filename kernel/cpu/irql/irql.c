@@ -5,32 +5,35 @@
  */
 
 #include "irql.h"
+#include "../../bugcheck/bugcheck.h"
+#include "../../interrupts/idt.h"
 
+ // IRQ → DIRQL mapping (legacy non‑APIC: IRQn + DIRQL = PROFILE_LEVEL (27))
 IRQL irq_irql[16] = {
-    DISPATCH_LEVEL,   // IRQ0 - Timer (must keep timer enabled at DISPATCH_LEVEL)
-    DEVICE_LEVEL,     // IRQ1 - Keyboard
-    DEVICE_LEVEL,     // IRQ2 - Cascade (usually for IRQs 8-15, treat as DEVICE_LEVEL)
-    DEVICE_LEVEL,     // IRQ3 - Serial COM2
-    DEVICE_LEVEL,     // IRQ4 - Serial COM1
-    DEVICE_LEVEL,     // IRQ5 - Sound Card / LPT2
-    DEVICE_LEVEL,     // IRQ6 - Floppy Disk
-    DEVICE_LEVEL,     // IRQ7 - LPT1 / Printer
-    DEVICE_LEVEL,     // IRQ8 - RTC / CMOS Alarm
-    DEVICE_LEVEL,     // IRQ9 - Free for peripherals (often redirected cascade)
-    DEVICE_LEVEL,     // IRQ10 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ11 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ12 - Mouse
-    DEVICE_LEVEL,     // IRQ13 - FPU / Coprocessor / Inter-processor
-    DEVICE_LEVEL,     // IRQ14 - Primary ATA Channel
-    DEVICE_LEVEL      // IRQ15 - Secondary ATA Channel
+    DIRQL_TIMER,          // IRQ0  – System Timer (27) -- highest.
+    DIRQL_KEYBOARD,       // IRQ1  – Keyboard (26)
+    DIRQL_CASCADE,        // IRQ2  – Cascade (IRQs 8–15) (25)
+    DIRQL_COM2,           // IRQ3  – Serial COM2 (24)
+    DIRQL_COM1,           // IRQ4  – Serial COM1 (23)
+    DIRQL_SOUND_LPT2,     // IRQ5  – Sound Card / LPT2 (22)
+    DIRQL_FLOPPY,         // IRQ6  – Floppy Disk (21)
+    DIRQL_LPT1,           // IRQ7  – LPT1 / Printer (20)
+    DIRQL_RTC,            // IRQ8  – RTC / CMOS Alarm (19)
+    DIRQL_PERIPHERAL9,    // IRQ9  – Free / redirected cascade (18)
+    DIRQL_PERIPHERAL10,   // IRQ10 – Free for peripherals (17)
+    DIRQL_PERIPHERAL11,   // IRQ11 – Free for peripherals (16)
+    DIRQL_MOUSE,          // IRQ12 – Mouse (15)
+    DIRQL_FPU,            // IRQ13 – FPU / Coprocessor (14)
+    DIRQL_PRIMARY_ATA,    // IRQ14 – Primary ATA Channel (13)
+    DIRQL_SECONDARY_ATA   // IRQ15 – Secondary ATA Channel (12)
 };
 
-static IRQL currentirql = PASSIVE_LEVEL;
+#define IRQ_LINES  (sizeof(irq_irql) / sizeof(irq_irql[0]))
 
 static void apply_masking_for_irql(IRQL level) {
     // Mask any IRQ whose assigned IRQL is < current IRQL.
     // Unmask those >= current IRQL.
-    for (uint8_t i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < IRQ_LINES; i++) {
         if (irq_irql[i] < level)
             mask_irq(i);
         else
@@ -40,14 +43,14 @@ static void apply_masking_for_irql(IRQL level) {
 
 void GetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
-    *out = currentirql;
+    *out = cpu.currentIrql;
 }
 
 void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     tracelast_func("RaiseIRQL");
-    *old_irql = currentirql;
+    *old_irql = cpu.currentIrql;
 
-    if (new_irql < currentirql) {
+    if (new_irql < cpu.currentIrql) {
         REGS regs;
         read_registers(&regs);
         bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
@@ -55,7 +58,7 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     }
 
     // first, raise the IRQL
-    currentirql = new_irql;
+    cpu.currentIrql = new_irql;
 
     // then apply masking
     apply_masking_for_irql(new_irql);
@@ -67,11 +70,9 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         __cli();
 }
 
-void LowerIRQL(IRQL new_irql, IRQL* old_irql) {
+void LowerIRQL(IRQL new_irql) {
     tracelast_func("LowerIRQL");
-    *old_irql = currentirql;
-
-    if (new_irql > currentirql) {
+    if (new_irql > cpu.currentIrql) {
         REGS regs;
         read_registers(&regs);
         bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
@@ -79,7 +80,7 @@ void LowerIRQL(IRQL new_irql, IRQL* old_irql) {
     }
 
     // first, set the new IRQL
-    currentirql = new_irql;
+    cpu.currentIrql = new_irql;
 
     // reapply masking for the lower level
     apply_masking_for_irql(new_irql);
@@ -95,7 +96,7 @@ void LowerIRQL(IRQL new_irql, IRQL* old_irql) {
 void _SetIRQL(IRQL new_irql) {
     tracelast_func("SetIRQL");
 
-    currentirql = new_irql;
+    cpu.currentIrql = new_irql;
     apply_masking_for_irql(new_irql);
 
     if (new_irql < HIGH_LEVEL)
@@ -105,11 +106,9 @@ void _SetIRQL(IRQL new_irql) {
 }
 
 void enforce_max_irql(IRQL max_allowed) {
-    IRQL cur;
-    GetCurrentIRQL(&cur);
-    if (cur > max_allowed) {
+    if (cpu.currentIrql > max_allowed) {
         REGS regs;
         read_registers(&regs);
-        bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, cur, false);
+        bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 }

@@ -6,7 +6,11 @@
 
 #ifndef X86_KERNEL_FILESYSTEM_FAT32_HEADER
 #define X86_KERNEL_FILESYSTEM_FAT32_HEADER
-#include "../../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../drivers/gop/gop.h"
 
 #define ATTR_LONG_NAME 0x0F
 #define ATTR_DIRECTORY 0x10

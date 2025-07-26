@@ -5,6 +5,8 @@
  */
 
 #include "paging.h"
+#include "../../interrupts/idt.h"
+#include "../memory.h"
 
  // Constants for x86_64 paging
 #define PAGE_ENTRIES        512
@@ -177,7 +179,7 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }
 
@@ -212,7 +214,7 @@ bool unmap_page(void* virtualaddress) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 
     // Free physical frame if applicable
@@ -254,7 +256,7 @@ void set_page_writable(void* virtualaddress, bool writable) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }
 
@@ -292,6 +294,6 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }

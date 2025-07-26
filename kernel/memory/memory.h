@@ -6,8 +6,14 @@
 
 #ifndef MEMORY_H
 #define MEMORY_H
-#include "../kernel.h"
-
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../cpu/cpu.h"
+#include "../memory/allocator/allocator.h"
+#include "../memory/paging/paging.h"
+#include "../trace.h"
  /* Symbol defined in linker script, end of loaded kernel */
 extern uint8_t kernel_end;
 extern uint8_t kernel_start;

@@ -5,6 +5,7 @@
  */
 
 #include "fat32.h"
+#include "../../drivers/blk/block.h"
 
 static FAT32_BPB bpb;
 static FAT32_FSINFO fs;

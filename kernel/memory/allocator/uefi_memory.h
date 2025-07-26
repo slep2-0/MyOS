@@ -1,7 +1,13 @@
 #ifndef UEFI_MEMORY_H
 #define UEFI_MEMORY_H
 
-#include "../../kernel.h"
+// Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+// global
+typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
 
 // Minimal UEFI memory descriptor for kernel use
 // Matches UEFI spec EFI_MEMORY_DESCRIPTOR up to PhysicalStart, NumberOfPages, Type

@@ -6,7 +6,13 @@
 #ifndef X86_ALLOCATOR_H
 #define X86_ALLOCATOR_H
 
-#include "../../kernel.h"
+// Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../cpu/cpu.h"
+#include "../../trace.h"
+#include "uefi_memory.h"
 
  // Total physical memory (up to 3.9GB)
 #ifndef PHYS_MEM_SIZE

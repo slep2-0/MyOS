@@ -6,6 +6,7 @@
 
 #include "handlers.h"
 #include "scancodes.h"
+#include "../idt.h"
 
 // NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
 
@@ -141,11 +142,10 @@ void init_timer(unsigned long int frequency) {
     __outbyte(0x40, (unsigned char)((divisor >> 8) & 0xFF)); // High byte
 }
 
-static int tick = 0;
-
 void timer_handler() {
     return;
     /* unused function, later timer handler will be used for context switching.
+    static int tick = 0;
     tick++;
     if (tick % 20 == 0) {
         return;

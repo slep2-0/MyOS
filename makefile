@@ -9,9 +9,13 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 # Flags
 ASMFLAGS_ELF = -f elf64
 ASMFLAGS_BIN = -f bin
-# warning as errors disabled: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
-CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra
+# warning as errors ENABLED: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
+CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
+
+ifeq ($(DEBUG), 1)
+    CFLAGS += -DDEBUG
+endif
 
 # Targets
 all: clearlog build/os-image.img
@@ -71,7 +75,7 @@ build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/irql.o: kernel/irql/irql.c
+build/irql.o: kernel/cpu/irql/irql.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 

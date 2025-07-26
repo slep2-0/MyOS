@@ -18,38 +18,13 @@ const bool has_error_code[] = {
     false, false, false, false, false, false, false, false  // 24-31
 };
 
-static IRQL irq_irql[16] = {
-    DISPATCH_LEVEL,   // IRQ0 - Timer (must keep timer enabled at DISPATCH_LEVEL)
-    DEVICE_LEVEL,     // IRQ1 - Keyboard
-    DEVICE_LEVEL,     // IRQ2 - Cascade (usually for IRQs 8-15, treat as DEVICE_LEVEL)
-    DEVICE_LEVEL,     // IRQ3 - Serial COM2
-    DEVICE_LEVEL,     // IRQ4 - Serial COM1
-    DEVICE_LEVEL,     // IRQ5 - Sound Card / LPT2
-    DEVICE_LEVEL,     // IRQ6 - Floppy Disk
-    DEVICE_LEVEL,     // IRQ7 - LPT1 / Printer
-    DEVICE_LEVEL,     // IRQ8 - RTC / CMOS Alarm
-    DEVICE_LEVEL,     // IRQ9 - Free for peripherals (often redirected cascade)
-    DEVICE_LEVEL,     // IRQ10 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ11 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ12 - Mouse
-    DEVICE_LEVEL,     // IRQ13 - FPU / Coprocessor / Inter-processor
-    DEVICE_LEVEL,     // IRQ14 - Primary ATA Channel
-    DEVICE_LEVEL      // IRQ15 - Secondary ATA Channel
-};
-
 #ifndef _MSC_VER
 __attribute__((used))
 #endif
 void isr_handler64(int vec_num, REGS* r) {
-
-    IRQL irq_level = (vec_num < 16) ? irq_irql[vec_num] : PASSIVE_LEVEL;
     IRQL oldIrql;
-    RaiseIRQL(irq_level, &oldIrql);
 
     switch (vec_num) {
-    case TIMER_INTERRUPT:
-        timer_handler();
-        break;
     case EXCEPTION_DIVIDE_BY_ZERO:
         dividebyzero_handler(r);
         break;
@@ -104,18 +79,26 @@ void isr_handler64(int vec_num, REGS* r) {
     case EXCEPTION_SEVERE_MACHINE_CHECK:
         severe_machine_check_handler(r);
         break;
+    case TIMER_INTERRUPT:
+        RaiseIRQL(CLOCK_LEVEL, &oldIrql);
+        timer_handler();
+        LowerIRQL(oldIrql);
+        break;
     case KEYBOARD_INTERRUPT:
+        RaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
         keyboard_handler();
+        LowerIRQL(oldIrql);
         break;
     case ATA_INTERRUPT:
+        RaiseIRQL(DIRQL_PRIMARY_ATA, &oldIrql);
         ata_handler();
+        LowerIRQL(oldIrql);
         break;
     default:
         gop_printf(&gop_local, 0xFFFF0000, "Interrupt Exception: ");
         gop_printf(&gop_local, 0xFFFFFFFF, "%d\r\n", vec_num);
         break;
     }
-    LowerIRQL(oldIrql, &oldIrql);
 }
 
 void init_interrupts() {

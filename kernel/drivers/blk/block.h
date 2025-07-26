@@ -2,7 +2,12 @@
 #ifndef X86_KERNEL_DRIVER_BLK_BLOCK_H
 #define X86_KERNEL_DRIVER_BLK_BLOCK_H
 
-#include "../../kernel.h"
+// Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../trace.h"
+#include "../../bugcheck/bugcheck.h"
 
 typedef struct _BLOCK_DEVICE {
     bool (*read_sector)(struct _BLOCK_DEVICE* dev,

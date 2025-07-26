@@ -4,6 +4,7 @@
  * PURPOSE:     Memory Management Implementation
  */
 #include "memory.h"
+#include "../drivers/gop/gop.h"
 
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;

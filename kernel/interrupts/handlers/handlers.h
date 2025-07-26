@@ -5,7 +5,12 @@
  */
 #ifndef X86_HANDLER_FUNCTIONS_H
 #define X86_HANDLER_FUNCTIONS_H
-#include "../../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../cpu/irql/irql.h"
+#include "../../bugcheck/bugcheck.h"
 
 // Obtained from https://wiki.osdev.org/Interrupts
 #define KEYBOARD_DATA_PORT 0x60
