@@ -14,7 +14,7 @@ static int device_count = 0;
 
 void register_block_device(BLOCK_DEVICE* dev) {
     tracelast_func("register_block_device");
-    // print the index weâ€™re about to use and the device pointer
+    // print the index we’re about to use and the device pointer
 #ifdef DEBUG
     gop_printf(&gop_local, 0xFFFFFF00, "Registering block #%d at %x\n", device_count, (unsigned)dev);
 #endif
