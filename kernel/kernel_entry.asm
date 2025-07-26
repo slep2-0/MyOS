@@ -1,4 +1,4 @@
-﻿; PROJECT:     MatanelOS Kernel
+; PROJECT:     MatanelOS Kernel
 ; LICENSE:     NONE
 ; PURPOSE:     Bootstrap to set up GDT, stack and call C kernel_main
 [bits 64]

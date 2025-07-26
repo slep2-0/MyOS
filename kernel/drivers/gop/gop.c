@@ -12,7 +12,6 @@ bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;
 
-
 void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
     tracelast_func("draw_char");
     uint8_t c = (uint8_t)c_;

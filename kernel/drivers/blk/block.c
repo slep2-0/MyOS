@@ -16,7 +16,7 @@ void register_block_device(BLOCK_DEVICE* dev) {
     tracelast_func("register_block_device");
     // print the index we’re about to use and the device pointer
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFFF00, "Registering block #%d at %x\n", device_count, (unsigned)dev);
+    gop_printf(&gop_local, 0xFFFFFF00, "Registering block #%d at %x\n", device_count, (uintptr_t)dev);
 #endif
     if (device_count < MAX_BLK_DEV) {
         devices[device_count++] = dev;

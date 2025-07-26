@@ -14,6 +14,9 @@
 #include "cpu_types.h"
 #include "irql/irql.h"
 
+/* Declaration to make compiler shut up :) */
+void read_registers(REGS* registers);
+
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
