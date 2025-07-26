@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:		IMPLEMENTATION To SETUP IDT Entries.

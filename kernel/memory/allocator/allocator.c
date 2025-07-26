@@ -1,7 +1,12 @@
+<<<<<<< HEAD
 ﻿#include "allocator.h"
 #include "../../bugcheck/bugcheck.h"
 #include "../memory.h"
  
+=======
+#include "allocator.h"
+
+>>>>>>> 22292317a51eb5ec59cb07f05f898b6f1c59feec
 static uint8_t frame_bitmap[MAX_FRAMES / 8];
 
 static inline void set_frame(size_t frame) {

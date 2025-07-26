@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     64-bit Memory Paging Implementation (4-level paging)

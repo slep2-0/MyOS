@@ -74,8 +74,13 @@ build/fat32.o: kernel/filesystem/fat32/fat32.c
 build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+<<<<<<< HEAD
 	
 build/irql.o: kernel/cpu/irql/irql.c
+=======
+
+build/irql.o: kernel/irql/irql.c
+>>>>>>> 22292317a51eb5ec59cb07f05f898b6f1c59feec
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
