@@ -26,7 +26,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
         // handle error, memory map too big
-        bugcheck_system(NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
+        bugcheck_system(NULL, NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
     }
 
     // Copy the entire memory map into the static buffer
@@ -59,7 +59,7 @@ void init_boot_info(BOOT_INFO* boot_info) {
 
 void InitCPU(void) {
     cpu.currentIrql = PASSIVE_LEVEL;
-    cpu.schedulerEnabled = true;
+    cpu.schedulerEnabled = NULL; // since NULL is 0, it would be false.
     cpu.currentThread = NULL;
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
 }
@@ -102,9 +102,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     void* buf5 = kmalloc(64, 16);
     gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
 #ifdef CAUSE_BUGCHECK
-    REGS regs;
-    read_registers(&regs);
-    bugcheck_system(&regs, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+    CTX_FRAME regs;
+    read_context_frame(&regs);
+    bugcheck_system(&regs, 0, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
 
     //if (!fat32_init(0)) { // init fat32.

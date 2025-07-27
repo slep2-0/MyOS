@@ -15,7 +15,8 @@
 #include "irql/irql.h"
 
 /* Declaration to make compiler shut up :) */
-void read_registers(REGS* registers);
+void read_context_frame(CTX_FRAME* frame);
+void read_interrupt_frame(INT_FRAME* frame);
 
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)

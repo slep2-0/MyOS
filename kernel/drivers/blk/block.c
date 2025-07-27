@@ -23,7 +23,7 @@ void register_block_device(BLOCK_DEVICE* dev) {
     }
     else {
         // too many!
-        bugcheck_system(NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
+        bugcheck_system(NULL, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
     }
 }
 

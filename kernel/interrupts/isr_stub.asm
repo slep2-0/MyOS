@@ -1,4 +1,4 @@
-; * PROJECT:     MatanelOS Kernel (64-bit ISR Stubs)
+﻿; * PROJECT:     MatanelOS Kernel (64-bit ISR Stubs)
 ; * PURPOSE:     64-bit compatible assembly stubs for interrupt handling.
 BITS 64
 DEFAULT REL
@@ -59,6 +59,7 @@ isr_common_stub64:
     push    rsi
     push    rdi
     push    rbp
+    push    rsp
     push    r8
     push    r9
     push    r10
@@ -83,7 +84,7 @@ isr_common_stub64:
     
     ; Set up parameters for C function call
     ; First parameter (vector number) in RDI
-    mov     rdi, [rsp + 120]        ; vector number
+    mov     rdi, [rsp + 128]        ; vector number // NOTE - Forgot to increase by 8 since I added RSP
     ; Second parameter (pointer to REGS struct) in RSI
     mov     rsi, rsp                ; pointer to start of pushed registers
     
@@ -117,6 +118,7 @@ isr_common_stub64:
     pop     r10
     pop     r9
     pop     r8
+    pop     rsp
     pop     rbp
     pop     rdi
     pop     rsi

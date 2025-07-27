@@ -34,7 +34,7 @@ static void apply_masking_for_irql(IRQL level) {
     // Mask any IRQ whose assigned IRQL is < current IRQL.
     // Unmask those >= current IRQL.
     for (uint8_t i = 0; i < IRQ_LINES; i++) {
-        if (irq_irql[i] < level)
+        if (irq_irql[i] <= level) // Forgot to add = operator, so it didn't mask the current device irq line as well, caused a bugcheck when I was typing fast on the keyboard and it didn't lowerIRQL in time (because of a nested keyboard interrupt)
             mask_irq(i);
         else
             unmask_irq(i);
@@ -51,9 +51,9 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     *old_irql = cpu.currentIrql;
 
     if (new_irql < cpu.currentIrql) {
-        REGS regs;
-        read_registers(&regs);
-        bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME regs;
+        read_context_frame(&regs);
+        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
         return;
     }
 
@@ -62,6 +62,8 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 
     // then apply masking
     apply_masking_for_irql(new_irql);
+
+    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL);
 
     // enable interrupts if we're below HIGH_LEVEL
     if (new_irql < HIGH_LEVEL)
@@ -73,9 +75,9 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 void LowerIRQL(IRQL new_irql) {
     tracelast_func("LowerIRQL");
     if (new_irql > cpu.currentIrql) {
-        REGS regs;
-        read_registers(&regs);
-        bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME regs;
+        read_context_frame(&regs);
+        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
         return;
     }
 
@@ -84,6 +86,8 @@ void LowerIRQL(IRQL new_irql) {
 
     // reapply masking for the lower level
     apply_masking_for_irql(new_irql);
+    
+    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL);
 
     // enable interrupts if we're below HIGH_LEVEL
     if (new_irql < HIGH_LEVEL)
@@ -99,6 +103,8 @@ void _SetIRQL(IRQL new_irql) {
     cpu.currentIrql = new_irql;
     apply_masking_for_irql(new_irql);
 
+    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL); 
+
     if (new_irql < HIGH_LEVEL)
         __sti();
     else
@@ -107,8 +113,8 @@ void _SetIRQL(IRQL new_irql) {
 
 void enforce_max_irql(IRQL max_allowed) {
     if (cpu.currentIrql > max_allowed) {
-        REGS regs;
-        read_registers(&regs);
-        bugcheck_system(&regs, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME regs;
+        read_context_frame(&regs);
+        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 }

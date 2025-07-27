@@ -25,6 +25,6 @@ void LowerIRQL(IRQL new_irql);
 // Use carefully, non careful use could halt machine.
 void _SetIRQL(IRQL new_irql);
 
-void enforce_max_irql(IRQL max_allowed); 
+void enforce_max_irql(IRQL max_allowed);
 
 #endif

@@ -35,7 +35,7 @@ static uint64_t* allocate_page_table(void) {
     // 2) otherwise fall back on the frame‐bitmap
     void* phys = alloc_frame();
     if (!phys) {
-        bugcheck_system(NULL, BAD_PAGING, 0, true);
+        bugcheck_system(NULL, NULL, BAD_PAGING, 0, false);
         return NULL;
     }
     // zero it before use

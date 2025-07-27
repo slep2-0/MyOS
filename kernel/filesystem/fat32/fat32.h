@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "../../trace.h"
 #include "../../drivers/gop/gop.h"
 
 #define ATTR_LONG_NAME 0x0F

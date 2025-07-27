@@ -47,16 +47,42 @@ typedef enum _IRQL {
 
 
 
+// Interrupt frame pushed by CPU (and stub) on every entry
 #pragma pack(push, 1)
-typedef struct _REGS {
+typedef struct _INT_FRAME {
+    uint64_t vector;      // software‑pushed for IRQs; hardware‑pushed for exceptions
+    uint64_t error_code;  // hardware‑pushed on faults, or 0 for IRQs
+    uint64_t rip;         // hardware‑pushed
+    uint64_t cs;          // hardware‑pushed
+    uint64_t rflags;      // hardware‑pushed
+} INT_FRAME;
+#pragma pack(pop)
+
+
+// Context frame for saving/restoring thread state
+#pragma pack(push, 1)
+typedef struct _CTX_FRAME {
+    // General‑purpose registers, in whatever order your save/restore stub uses
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t rsp;         // stack pointer at time of interrupt
+
+    // no more vector and err_num, since it's better for clarity now.
+} CTX_FRAME;
+#pragma pack(pop)
+
+// In order for compatiblity with the interrupt service routines, and the stub. I'm still gonna retain the old REGS struct, with a different name.
+#pragma pack(push, 1)
+typedef struct _INTERRUPT_FULL_REGS {
 	uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
 	uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t rsp;
 	uint64_t vector;
 	uint64_t error_code;
 	uint64_t rip;
 	uint64_t cs;
 	uint64_t rflags;
-} REGS;
+} INTERRUPT_FULL_REGS;
 #pragma pack(pop)
 
 typedef struct _Queue {
@@ -66,7 +92,7 @@ typedef struct _Queue {
 
 typedef struct _Thread {
 	// CPU Registers for context switching
-	REGS registers;
+	CTX_FRAME registers;
 
 	// Scheduling metadata
 	THREAD_STATE threadState;

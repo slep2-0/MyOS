@@ -13,11 +13,11 @@
 #include <stdint.h>
 #include "trace.h"
 
-// Trace last func globals
+// forward declarations, i don't think i need them.
 
 typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
 typedef struct _BOOT_INFO BOOT_INFO;
-typedef struct _REGS REGS;
+typedef struct _CTX_FRAME CTX_FRAME;
 
 
 // Standard globals
@@ -25,7 +25,7 @@ extern bool isBugChecking;
 extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
 /* Uncomment to trigger a bugcheck on entry */
-//#define CAUSE_BUGCHECK
+#define CAUSE_BUGCHECK
 
 /* To define DEBUG globally, use a compiler flag. I removed this since I now transitioned each header to iself and others instead of relying on kernel.h that caused circular includes. */
 
@@ -45,7 +45,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "drivers/blk/block.h"
 #include "drivers/blk/ata.h"
 #include "drivers/gop/gop.h"
-#include "cpu/irql/irql.h"
+#include "cpu/scheduler/scheduler.h"
 
 // Entry point in C
 void kernel_main(BOOT_INFO* boot_info);
@@ -56,6 +56,7 @@ void init_boot_info(BOOT_INFO* boot_info);
 void InitCPU(void);
 
 // Custom assembly functions externals.
-extern void read_registers(REGS* registers);
+extern void read_context_frame(CTX_FRAME* registers);
+extern void read_interrupt_frame(INT_FRAME* intfr);
 
 #endif // X86_KERNEL_H

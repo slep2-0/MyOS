@@ -93,7 +93,7 @@ typedef struct _IDT_ENTRY_64 {
 void set_idt_gate(int n, unsigned long int handler);
 void install_idt(void);
 void init_interrupts(void);
-void isr_handler64(int vec_num, REGS* r);
+void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r);
 
 /** PIC Masking Helpers **/
 static inline void mask_irq(PIC_IRQ_LINE irq_line) {
