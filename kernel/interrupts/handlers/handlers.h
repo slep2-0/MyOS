@@ -5,7 +5,13 @@
  */
 #ifndef X86_HANDLER_FUNCTIONS_H
 #define X86_HANDLER_FUNCTIONS_H
-#include "../../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../cpu/cpu.h"
+#include "../../trace.h"
+#include "../../bugcheck/bugcheck.h"
 
 // Obtained from https://wiki.osdev.org/Interrupts
 #define KEYBOARD_DATA_PORT 0x60
@@ -29,43 +35,43 @@ void ata_handler(void);
 
 
 // Handle Page Faults.
-void pagefault_handler(REGS* r);
+void pagefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle Double Fault - Bugcheck.
-void doublefault_handler(REGS* r);
+void doublefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle Division By Zero.
-void dividebyzero_handler(REGS* r);
+void dividebyzero_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 
 // New added.
 
 // Handle debugger single step exception.
-void debugsinglestep_handler(REGS* r);
+void debugsinglestep_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle Non Maskable Interrupt exception.
-void nmi_handler(REGS* r);
+void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle breakpoint exception.
-void breakpoint_handler(REGS* r);
+void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle overflow exception.
-void overflow_handler(REGS* r);
+void overflow_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle bounds check exception.
-void boundscheck_handler(REGS* r);
+void boundscheck_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle invalid opcode exception.
-void invalidopcode_handler(REGS* r);
+void invalidopcode_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle no coprocessor exception.
-void nocoprocessor_handler(REGS* r);
+void nocoprocessor_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle coprocessor segment overrun exception.
-void coprocessor_segment_overrun_handler(REGS* r);
+void coprocessor_segment_overrun_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle Invalid TSS Exception.
-void invalidtss_handler(REGS* r);
+void invalidtss_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle segment selector not present exception.
-void segment_selector_not_present_handler(REGS* r);
+void segment_selector_not_present_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle stack segment overrun exception.
-void stack_segment_overrun_handler(REGS* r);
+void stack_segment_overrun_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle GPF Exception. -- important exception, we use the registers and error code for it.
-void gpf_handler(REGS* registers);
+void gpf_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle floating point error exception.
-void fpu_handler(REGS* r);
+void fpu_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle alignment check exception.
-void alignment_check_handler(REGS* r);
+void alignment_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle severe machine check exception.
-void severe_machine_check_handler(REGS* r);
+void severe_machine_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 #endif
 

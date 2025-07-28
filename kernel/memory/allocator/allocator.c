@@ -1,12 +1,14 @@
 #include "allocator.h"
-
+#include "../../bugcheck/bugcheck.h"
+#include "../memory.h"
+ 
 static uint8_t frame_bitmap[MAX_FRAMES / 8];
 
 static inline void set_frame(size_t frame) {
     tracelast_func("set_frame");
     enforce_max_irql(PASSIVE_LEVEL);
     if (frame >= MAX_FRAMES) {
-        bugcheck_system(NULL, FRAME_LIMIT_REACHED, 0xBADF00D, true);
+        bugcheck_system(NULL, NULL, FRAME_LIMIT_REACHED, 0, false);
     }
     frame_bitmap[frame / 8] |= (uint8_t)(1 << (frame % 8));
 }
@@ -57,14 +59,14 @@ void frame_bitmap_init(void) {
     }
 }
 
-static uint8_t* next_pt = &__pt_start;
+static uint8_t* next_pt = (uint8_t*)& __pt_start;
 
 // Early‐boot frame allocator:
 void* alloc_frame(void) {
     tracelast_func("alloc_frame");
     enforce_max_irql(PASSIVE_LEVEL);
     // If we still have reserved pages, carve from there
-    if (next_pt + FRAME_SIZE <= __pt_end) {
+    if (next_pt + FRAME_SIZE <= (uint8_t*)&__pt_end) {
         void* phys = next_pt;
         next_pt += FRAME_SIZE;
         return phys;

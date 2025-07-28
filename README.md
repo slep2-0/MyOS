@@ -14,6 +14,10 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 **SUPPORTED FEATURES:**
 `64 BIT addressing (long mode) is now supported, along with it's equivalent features.`
 
+`Preemption - Kernel is fully preemptive using scheduling and kernel threads`
+
+`DPC's (Deferred Procedure Call) - Used to defer execution to a later lower IRQL in the kernel, to avoid staying on a high interrupt IRQL (supports only timer isr for now)`
+
 `IRQLs - IRQL support has been added (almost exactly like in windows)`
 
 `Bugcheck - Half Bugcheck support, doesn't write to disk a minidump like windows, but does show a bugcheck screen, and halts the system`
@@ -27,8 +31,6 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 **WORKING ON:**
 
 `FAT32 FileSystem accessing in the kernel itself.`
-
-`Scheduler & DPC's`
 
 `Userland`
 

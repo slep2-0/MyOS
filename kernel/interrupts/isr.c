@@ -18,104 +18,113 @@ const bool has_error_code[] = {
     false, false, false, false, false, false, false, false  // 24-31
 };
 
-static IRQL irq_irql[16] = {
-    DISPATCH_LEVEL,   // IRQ0 - Timer (must keep timer enabled at DISPATCH_LEVEL)
-    DEVICE_LEVEL,     // IRQ1 - Keyboard
-    DEVICE_LEVEL,     // IRQ2 - Cascade (usually for IRQs 8-15, treat as DEVICE_LEVEL)
-    DEVICE_LEVEL,     // IRQ3 - Serial COM2
-    DEVICE_LEVEL,     // IRQ4 - Serial COM1
-    DEVICE_LEVEL,     // IRQ5 - Sound Card / LPT2
-    DEVICE_LEVEL,     // IRQ6 - Floppy Disk
-    DEVICE_LEVEL,     // IRQ7 - LPT1 / Printer
-    DEVICE_LEVEL,     // IRQ8 - RTC / CMOS Alarm
-    DEVICE_LEVEL,     // IRQ9 - Free for peripherals (often redirected cascade)
-    DEVICE_LEVEL,     // IRQ10 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ11 - Free for peripherals
-    DEVICE_LEVEL,     // IRQ12 - Mouse
-    DEVICE_LEVEL,     // IRQ13 - FPU / Coprocessor / Inter-processor
-    DEVICE_LEVEL,     // IRQ14 - Primary ATA Channel
-    DEVICE_LEVEL      // IRQ15 - Secondary ATA Channel
-};
-
 #ifndef _MSC_VER
 __attribute__((used))
 #endif
-void isr_handler64(int vec_num, REGS* r) {
-
-    IRQL irq_level = (vec_num < 16) ? irq_irql[vec_num] : PASSIVE_LEVEL;
+void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r) {
     IRQL oldIrql;
-    RaiseIRQL(irq_level, &oldIrql);
+    CTX_FRAME ctx;
+    INT_FRAME intfr;
+
+    // Since we are now using both a registration context, and an interrupt context, for compatibility I didn't change the asm stub, and just created 3 structs, 2 are the ctx and int, third is both (legacy).
+    ctx.rax = r->rax;
+    ctx.rbx = r->rbx;
+    ctx.rcx = r->rcx;
+    ctx.rdi = r->rdi;
+    ctx.rsi = r->rsi;
+    ctx.rsp = (uint64_t)-1; // max val, to signify invalidation that it's not here.
+    ctx.r8 = r->r8;
+    ctx.r9 = r->r9;
+    ctx.r10 = r->r10;
+    ctx.r11 = r->r11;
+    ctx.r12 = r->r12;
+    ctx.r13 = r->r13;
+    ctx.r14 = r->r14;
+    ctx.r15 = r->r15;
+
+    intfr.cs = r->cs;
+    intfr.error_code = r->error_code;
+    intfr.rflags = r->rflags;
+    intfr.rip = r->rip;
+    intfr.vector = r->vector;
 
     switch (vec_num) {
-    case TIMER_INTERRUPT:
-        timer_handler();
-        break;
     case EXCEPTION_DIVIDE_BY_ZERO:
-        dividebyzero_handler(r);
+        dividebyzero_handler(&ctx, &intfr);
         break;
     case EXCEPTION_SINGLE_STEP:
-        debugsinglestep_handler(r);
+        debugsinglestep_handler(&ctx, &intfr);
         break;
     case EXCEPTION_NON_MASKABLE_INTERRUPT:
-        nmi_handler(r);
+        _SetIRQL(HIGH_LEVEL); // Non Maskable Interrupt - basically when the CPU encounters a hardware fault, cannot be masked, very alarming.
+        nmi_handler(&ctx, &intfr);
         break;
     case EXCEPTION_BREAKPOINT:
-        breakpoint_handler(r);
+        breakpoint_handler(&ctx, &intfr);
         break;
     case EXCEPTION_OVERFLOW:
-        overflow_handler(r);
+        overflow_handler(&ctx, &intfr);
         break;
     case EXCEPTION_BOUNDS_CHECK:
-        boundscheck_handler(r);
+        boundscheck_handler(&ctx, &intfr);
         break;
     case EXCEPTION_INVALID_OPCODE:
-        invalidopcode_handler(r);
+        invalidopcode_handler(&ctx, &intfr);
         break;
     case EXCEPTION_NO_COPROCESSOR:
-        nocoprocessor_handler(r);
+        nocoprocessor_handler(&ctx, &intfr);
         break;
     case EXCEPTION_DOUBLE_FAULT:
-        doublefault_handler(r);
+        doublefault_handler(&ctx, &intfr);
         break;
     case EXCEPTION_COPROCESSOR_SEGMENT_OVERRUN:
-        coprocessor_segment_overrun_handler(r);
+        coprocessor_segment_overrun_handler(&ctx, &intfr);
         break;
     case EXCEPTION_SEGMENT_SELECTOR_NOTPRESENT:
-        segment_selector_not_present_handler(r);
+        segment_selector_not_present_handler(&ctx, &intfr);
         break;
     case EXCEPTION_INVALID_TSS:
-        invalidtss_handler(r);
+        invalidtss_handler(&ctx, &intfr);
         break;
     case EXCEPTION_GENERAL_PROTECTION_FAULT:
-        gpf_handler(r);
+        gpf_handler(&ctx, &intfr);
         break;
     case EXCEPTION_PAGE_FAULT:
-        pagefault_handler(r);
+        pagefault_handler(&ctx, &intfr);
         break;
     case EXCEPTION_RESERVED:
         // reserved, do not use.
         break;
     case EXCEPTION_FLOATING_POINT_ERROR:
-        fpu_handler(r);
+        fpu_handler(&ctx, &intfr);
         break;
     case EXCEPTION_ALIGNMENT_CHECK:
-        alignment_check_handler(r);
+        alignment_check_handler(&ctx, &intfr);
         break;
     case EXCEPTION_SEVERE_MACHINE_CHECK:
-        severe_machine_check_handler(r);
+        _SetIRQL(HIGH_LEVEL); // machine check, like NMI, high irql.
+        severe_machine_check_handler(&ctx, &intfr);
+        break;
+    case TIMER_INTERRUPT:
+        RaiseIRQL(CLOCK_LEVEL, &oldIrql);
+        timer_handler();
+        LowerIRQL(oldIrql);
         break;
     case KEYBOARD_INTERRUPT:
+        RaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
         keyboard_handler();
+        LowerIRQL(oldIrql);
         break;
     case ATA_INTERRUPT:
+        RaiseIRQL(DIRQL_PRIMARY_ATA, &oldIrql);
         ata_handler();
+        LowerIRQL(oldIrql);
         break;
     default:
         gop_printf(&gop_local, 0xFFFF0000, "Interrupt Exception: ");
         gop_printf(&gop_local, 0xFFFFFFFF, "%d\r\n", vec_num);
         break;
     }
-    LowerIRQL(oldIrql, &oldIrql);
 }
 
 void init_interrupts() {

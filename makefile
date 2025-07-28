@@ -9,9 +9,13 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 # Flags
 ASMFLAGS_ELF = -f elf64
 ASMFLAGS_BIN = -f bin
-# warning as errors disabled: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
-CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra
+# warning as errors ENABLED: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
+CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
+
+ifeq ($(DEBUG), 1)
+    CFLAGS += -DDEBUG -g -O0
+endif
 
 # Targets
 all: clearlog build/os-image.img
@@ -70,11 +74,22 @@ build/fat32.o: kernel/filesystem/fat32/fat32.c
 build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-
-build/irql.o: kernel/irql/irql.c
+	
+build/irql.o: kernel/cpu/irql/irql.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+build/scheduler.o: kernel/cpu/scheduler/scheduler.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/dpc.o: kernel/cpu/dpc/dpc.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+build/thread.o: kernel/cpu/thread/thread.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
@@ -93,8 +108,12 @@ build/capture_registers.o: kernel/intrin/capture_registers.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 	
+build/context.o: kernel/cpu/scheduler/context.asm
+	mkdir -p build
+	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
+
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/isr_stub.o build/paging_asm.o build/capture_registers.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

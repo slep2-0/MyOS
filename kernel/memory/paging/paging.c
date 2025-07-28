@@ -1,10 +1,12 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     64-bit Memory Paging Implementation (4-level paging)
  */
 
 #include "paging.h"
+#include "../../interrupts/idt.h"
+#include "../memory.h"
 
  // Constants for x86_64 paging
 #define PAGE_ENTRIES        512
@@ -33,7 +35,7 @@ static uint64_t* allocate_page_table(void) {
     // 2) otherwise fall back on the frame‐bitmap
     void* phys = alloc_frame();
     if (!phys) {
-        bugcheck_system(NULL, BAD_PAGING, 0, true);
+        bugcheck_system(NULL, NULL, BAD_PAGING, 0, false);
         return NULL;
     }
     // zero it before use
@@ -177,7 +179,7 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }
 
@@ -212,7 +214,7 @@ bool unmap_page(void* virtualaddress) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 
     // Free physical frame if applicable
@@ -254,7 +256,7 @@ void set_page_writable(void* virtualaddress, bool writable) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }
 
@@ -292,6 +294,6 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        invlpg(va);
+        invlpg((void*)va);
     }
 }

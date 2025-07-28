@@ -5,7 +5,15 @@
  */
 #ifndef X86_PAGING_H
 #define X86_PAGING_H
-#include "../../kernel.h"
+
+
+// Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../cpu/cpu.h"
+#include "../../drivers/gop/gop.h"
+#include "../../trace.h"
 
 // Total physical memory (upto 3.9GB)
 #define PHYS_MEM_BASE  ((uintptr_t)&kernel_start)  // 0x10000 from linker

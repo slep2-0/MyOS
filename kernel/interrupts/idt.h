@@ -6,7 +6,13 @@
 #ifndef X86_IDT_H
 #define X86_IDT_H
 
-#include "../kernel.h"
+// Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../cpu/cpu.h"
+#include "../trace.h"
+#include "handlers/handlers.h"
 
 #define PIC1_COMMAND_MASTER 0x20
 #define PIC1_DATA_MASTER    0x21
@@ -82,28 +88,17 @@ typedef struct _IDT_ENTRY_64 {
 	uint32_t zero;
 } IDT_ENTRY64;
 #pragma pack(pop)
-
-#pragma pack(push, 1)
-typedef struct _REGS {
-	uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
-	uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-	uint64_t vector;
-	uint64_t error_code;
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-} REGS;
-#pragma pack(pop)
-
+ 
 /** Functions */
 void set_idt_gate(int n, unsigned long int handler);
 void install_idt(void);
 void init_interrupts(void);
-void isr_handler64(int vec_num, REGS* r);
+void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r);
 
 /** PIC Masking Helpers **/
+/// REMOVED tracelast_func HERE SINCE, IT CLOBBERED UP THE FUNCTION TRACE, GIVING USELESS INFO (ONLY WHEN IRQL HAPPENS, AND WE TRACK THAT ANYWAY)
+/// sorry for caps :)
 static inline void mask_irq(PIC_IRQ_LINE irq_line) {
-	tracelast_func("mask_irq");
 	uint16_t port;
 	uint8_t mask;
 	if (irq_line < 8) {
@@ -119,7 +114,6 @@ static inline void mask_irq(PIC_IRQ_LINE irq_line) {
 }
 
 static inline void unmask_irq(PIC_IRQ_LINE irq_line) {
-	tracelast_func("unmask_irq");
 	uint16_t port;
 	uint8_t mask;
 	if (irq_line < 8) {

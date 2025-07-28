@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     GOP Driver to draw onto screen (long‑mode framebuffer)
@@ -7,7 +7,14 @@
 #ifndef X86_GOP_DRIVER_H
 #define X86_GOP_DRIVER_H
 
-#include "../../kernel.h"
+ // Standard headers, required.
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "../../defs/stdarg_myos.h"
+#include "../../trace.h"
+#include "../../memory/memory.h"
+#include "../../memory/allocator/uefi_memory.h"
 
  // integer font scale (1 = native 8×16, 2 = 16×32, etc)
 #define FONT_SCALE 1
@@ -29,5 +36,7 @@ void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color);
 void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color);
 void gop_scroll(GOP_PARAMS* gop);
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
+void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color);
+void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color);
 
 #endif // X86_GOP_DRIVER_H

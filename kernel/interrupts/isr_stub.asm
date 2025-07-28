@@ -6,6 +6,9 @@ DEFAULT REL
 ; Extern the ISR handler.
 extern isr_handler64
 
+; Extern the DPC handler.
+extern DispatchDPC
+
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
 ; Creates an ISR entry for exception vectors 0-31
@@ -108,6 +111,7 @@ isr_common_stub64:
 .no_slave_eoi:
 
 .no_eoi:
+
     ; Restore all general purpose registers in reverse order
     pop     r15
     pop     r14
