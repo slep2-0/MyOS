@@ -15,6 +15,10 @@ Global variables initialization
 bool isBugChecking = false;
 LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
 CPU cpu;
+
+// thread
+DECLARE_THREAD(mainThread, 4096)
+//DECLARE_THREAD(workerThread, 4096)
 /*
 Ended
 */
@@ -64,12 +68,37 @@ void InitCPU(void) {
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
 }
 
+extern DPC* dpcQueueHead;
+
+void kernel_idle_checks(void) {
+    // Here the main thread would HALT the CPU, and not in kernel_main
+    volatile int z = 0;
+    gop_printf(&gop_local, 0xFF000FF0, "Reached the scheduler!\n");
+    for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
+        z++;
+    }
+    gop_printf(&gop_local, 0xFF000FF0, "**Ended Testing Thread Exceution**\n");
+    while (1) {
+        __hlt();
+    }
+}
+
+void test(void);
+
+void test(void) {
+    gop_printf(&gop_local, 0xFF00FF00, "Hit Test!\n");
+    volatile uint64_t z = 0;
+    for (uint64_t i = 0; i < 0xFFF; i++) {
+        z++;
+    }
+    gop_printf(&gop_local, 0xFFA020F0, "**Ended Test.**\n");
+}
+
 void kernel_main(BOOT_INFO* boot_info) {
-    tracelast_func("kernel_main");
+    //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
     __cli();
     zero_bss();
-
     // Create the local boot struct.
     init_boot_info(boot_info);
     // Initialize the global CPU struct.
@@ -84,6 +113,11 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_heap();
     // Initialize ATA, will soon be unused & replaced & deleted.
     ata_init_primary();
+    _SetIRQL(PASSIVE_LEVEL);
+    /* Initiate Scheduler and DPCs */
+    InitScheduler();
+    init_dpc_system();
+    init_timer(100);
 
     __sti(); // only now enable interrupts
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
@@ -106,21 +140,13 @@ void kernel_main(BOOT_INFO* boot_info) {
     read_context_frame(&regs);
     bugcheck_system(&regs, 0, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
-
-    //if (!fat32_init(0)) { // init fat32.
-    //    gop_printf(&gop_local, 0xFF8B0000, "Couldn't initialize FAT32 Filesystem.\n");
-    //    REGS registers;
-    //    read_registers(&registers);
-    //    bugcheck_system(&registers, FILESYSTEM_PANIC, 0, false);
-    //}
-    //else {
-    //    gop_printf(&gop_local, 0xFF00FF00, "FAT32 Filesystem successfully initialized.\n");
-    //}
-    //fat32_list_root();
-
-    // 3. FINAL KERNEL IDLE LOOP
+    
+    CREATE_THREAD(mainThread, test, NULL, true);
+    //CREATE_THREAD(workerThread, kernel_idle_checks, NULL, true);
     while (1) {
-        // until next interrupt.
         __hlt();
+        if (dpcQueueHead) {
+            DispatchDPC();
+        }
     }
 }

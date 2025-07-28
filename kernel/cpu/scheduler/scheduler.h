@@ -1,39 +1,33 @@
 /*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
- * PURPOSE:		 Scheduler types and functions.
+ * PURPOSE:		 Scheduler types and functions headers.
  */
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
 #include "../cpu.h"
+#include "../../memory/memory.h"
 
 extern CPU cpu;
 
-#define KERNEL_CS       0x08
-#define INITIAL_RFLAGS  0x202
-
-// The ones below will be incorporated fully when user mode arrives.
-#define USER_CS         0x1B 
-#define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
-
 // Default timeslice for a new thread.
 #define DEFAULT_TIMESLICE 1
+
+#define KERNEL_CS       0x08    // Entry 1: Kernel Code
+#define KERNEL_DS       0x10    // Entry 2: Kernel Data  
+#define KERNEL_SS       0x10    // Same as KERNEL_DS (data segment used for stack)
+#define USER_CS         0x18    // Entry 3: User Code (for future)
+#define USER_DS         0x20    // Entry 4: User Data (for future)
+#define USER_SS         0x20    // Same as USER_DS (for future)
+#define INITIAL_RFLAGS  0x202
+#define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
 
 // Initialize scheduler: sets up idle thread and enables preemption
 void InitScheduler(void);
 
 // Core schedule function; performs a context switch
 void Schedule(void);
-
-/* 
-*  -- Create a new thread:
-*  - `thread`: pointer to a Thread struct
-*  - `entry`: function entry point (no args)
-*  - `stackTop`: top of the thread's stack (stack grows downward)
-*  - 'kernelThread': specifies if the thread should be a kernel one or not.
-*/
-void CreateThread(Thread* thread, void (*entry)(void), void* stackTop, bool kernelThread);
 
 // Voluntarily relinquish CPU
 void Yield(void);

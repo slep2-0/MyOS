@@ -96,8 +96,9 @@ void init_interrupts(void);
 void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r);
 
 /** PIC Masking Helpers **/
+/// REMOVED tracelast_func HERE SINCE, IT CLOBBERED UP THE FUNCTION TRACE, GIVING USELESS INFO (ONLY WHEN IRQL HAPPENS, AND WE TRACK THAT ANYWAY)
+/// sorry for caps :)
 static inline void mask_irq(PIC_IRQ_LINE irq_line) {
-	tracelast_func("mask_irq");
 	uint16_t port;
 	uint8_t mask;
 	if (irq_line < 8) {
@@ -113,7 +114,6 @@ static inline void mask_irq(PIC_IRQ_LINE irq_line) {
 }
 
 static inline void unmask_irq(PIC_IRQ_LINE irq_line) {
-	tracelast_func("unmask_irq");
 	uint16_t port;
 	uint8_t mask;
 	if (irq_line < 8) {

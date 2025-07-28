@@ -7,6 +7,8 @@
 #include "bugcheck.h"
 #include "../trace.h"
 
+#define NOTHING
+
 // We require GOP, so we extern it.
 extern GOP_PARAMS gop_local;
 extern LASTFUNC_HISTORY lastfunc_history;
@@ -123,6 +125,12 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case INVALID_IRQL_SUPPLIED:
         *s = "INVALID_IRQL_SUPPLIED";
         break;
+    case NULL_CTX_RECEIVED:
+        *s = "NULL_CTX_RECEIVED";
+        break;
+    case THREAD_EXIT_FAILURE:
+        *s = "THREAD_EXIT_FAILURE";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -152,10 +160,9 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
 	// Write some debugging and an error message
 	gop_printf(&gop_local, 0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
 	gop_printf(&gop_local, 0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
-
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
-
+    uint64_t rspIfExist = (context->rsp) ? context->rsp : 0;
 	gop_printf(&gop_local, 0xFFFFFFFF, "**STOP CODE: ");
 	gop_printf(&gop_local, 0xFF8B0000, "%s", stopCodeToStr);
     gop_printf(&gop_local, 0xFF00FF00, " (numerical: %d)**", err_code);
@@ -163,7 +170,7 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         gop_printf(&gop_local, 0xFFFFFFFF,
             "\n\nRegisters:\n\n"
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
-            "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
+            "RSI: %p RDI: %p RBP: %p\n\n"
             "R8 : %p R9 : %p R10: %p R11: %p \n\n"
             "R12: %p R13: %p R14: %p R15: %p\n\n\n",
             context->rax,
@@ -173,7 +180,7 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
             context->rsi,
             context->rdi,
             context->rbp,
-            context->rsp,
+            rspIfExist,
             context->r8,
             context->r9,
             context->r10,
@@ -201,7 +208,7 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         );
     }
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFA500, "\r\n**Last IRQL: %d**", recordedIrql);
+    gop_printf(&gop_local, 0xFFFFA500, "**Last IRQL: %d**", recordedIrql);
 #endif
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
@@ -219,5 +226,10 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
     }
 #endif
 	//test
-	__hlt();
+    update_pic_mask_for_current_irql();
+    __cli();
+    // spin the CPU.
+    while (1) {
+        NOTHING;
+    }
 }

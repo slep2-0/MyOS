@@ -1,120 +1,101 @@
 ﻿/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
- * PURPOSE:      IRQL Implementation for MatanelOS.
+ * PURPOSE:      IRQL Implementation (Fixed)
  */
 
 #include "irql.h"
 #include "../../bugcheck/bugcheck.h"
 #include "../../interrupts/idt.h"
 
- // IRQ → DIRQL mapping (legacy non‑APIC: IRQn + DIRQL = PROFILE_LEVEL (27))
+ // This is your existing mapping, it is correct.
 IRQL irq_irql[16] = {
-    DIRQL_TIMER,          // IRQ0  – System Timer (27) -- highest.
-    DIRQL_KEYBOARD,       // IRQ1  – Keyboard (26)
-    DIRQL_CASCADE,        // IRQ2  – Cascade (IRQs 8–15) (25)
-    DIRQL_COM2,           // IRQ3  – Serial COM2 (24)
-    DIRQL_COM1,           // IRQ4  – Serial COM1 (23)
-    DIRQL_SOUND_LPT2,     // IRQ5  – Sound Card / LPT2 (22)
-    DIRQL_FLOPPY,         // IRQ6  – Floppy Disk (21)
-    DIRQL_LPT1,           // IRQ7  – LPT1 / Printer (20)
-    DIRQL_RTC,            // IRQ8  – RTC / CMOS Alarm (19)
-    DIRQL_PERIPHERAL9,    // IRQ9  – Free / redirected cascade (18)
-    DIRQL_PERIPHERAL10,   // IRQ10 – Free for peripherals (17)
-    DIRQL_PERIPHERAL11,   // IRQ11 – Free for peripherals (16)
-    DIRQL_MOUSE,          // IRQ12 – Mouse (15)
-    DIRQL_FPU,            // IRQ13 – FPU / Coprocessor (14)
-    DIRQL_PRIMARY_ATA,    // IRQ14 – Primary ATA Channel (13)
-    DIRQL_SECONDARY_ATA   // IRQ15 – Secondary ATA Channel (12)
+    DIRQL_TIMER, DIRQL_KEYBOARD, DIRQL_CASCADE, DIRQL_COM2,
+    DIRQL_COM1, DIRQL_SOUND_LPT2, DIRQL_FLOPPY, DIRQL_LPT1,
+    DIRQL_RTC, DIRQL_PERIPHERAL9, DIRQL_PERIPHERAL10, DIRQL_PERIPHERAL11,
+    DIRQL_MOUSE, DIRQL_FPU, DIRQL_PRIMARY_ATA, DIRQL_SECONDARY_ATA
 };
 
-#define IRQ_LINES  (sizeof(irq_irql) / sizeof(irq_irql[0]))
+#define IRQ_LINES (sizeof(irq_irql) / sizeof(irq_irql[0]))
 
-static void apply_masking_for_irql(IRQL level) {
-    // Mask any IRQ whose assigned IRQL is < current IRQL.
-    // Unmask those >= current IRQL.
+// This helper function now correctly represents its single purpose.
+void update_pic_mask_for_current_irql(void) {
+    tracelast_func("update_pic_mask_for_current_irql");
+    IRQL level = cpu.currentIrql;
+
+    // Mask any IRQ whose assigned IRQL is <= the current CPU IRQL.
+    // Unmask any IRQ whose assigned IRQL is > the current CPU IRQL.
     for (uint8_t i = 0; i < IRQ_LINES; i++) {
-        if (irq_irql[i] <= level) // Forgot to add = operator, so it didn't mask the current device irq line as well, caused a bugcheck when I was typing fast on the keyboard and it didn't lowerIRQL in time (because of a nested keyboard interrupt)
+        if (irq_irql[i] <= level) {
             mask_irq(i);
-        else
+        }
+        else {
             unmask_irq(i);
+        }
     }
 }
 
 void GetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
-    *out = cpu.currentIrql;
+    if (out) *out = cpu.currentIrql;
 }
 
 void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     tracelast_func("RaiseIRQL");
-    *old_irql = cpu.currentIrql;
 
-    if (new_irql < cpu.currentIrql) {
-        CTX_FRAME regs;
-        read_context_frame(&regs);
-        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
-        return;
+    // It's good practice to disable interrupts for the duration of the change.
+    // The CPU automatically does this when entering an ISR.
+    // We do it here to ensure atomicity.
+    __cli();
+
+    if (old_irql) {
+        *old_irql = cpu.currentIrql;
     }
 
-    // first, raise the IRQL
+    if (new_irql < cpu.currentIrql) {
+        // You cannot "raise" to a lower level. This is a fatal kernel bug.
+        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+    }
+
     cpu.currentIrql = new_irql;
+    update_pic_mask_for_current_irql();
 
-    // then apply masking
-    apply_masking_for_irql(new_irql);
-
-    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL);
-
-    // enable interrupts if we're below HIGH_LEVEL
-    if (new_irql < HIGH_LEVEL)
-        __sti();
-    else
-        __cli();
+    // We do NOT call __sti() here. We let the caller (or iretq) handle it.
+    // In the case of Schedule(), interrupts are already enabled, so we restore that state.
+    __sti();
 }
 
 void LowerIRQL(IRQL new_irql) {
     tracelast_func("LowerIRQL");
+
+    // Atomically update the IRQL and PIC mask.
+    __cli();
+
     if (new_irql > cpu.currentIrql) {
-        CTX_FRAME regs;
-        read_context_frame(&regs);
-        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
-        return;
+        // You cannot "lower" to a higher level. This is a fatal kernel bug.
+        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 
-    // first, set the new IRQL
     cpu.currentIrql = new_irql;
+    update_pic_mask_for_current_irql();
 
-    // reapply masking for the lower level
-    apply_masking_for_irql(new_irql);
-    
-    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL);
-
-    // enable interrupts if we're below HIGH_LEVEL
-    if (new_irql < HIGH_LEVEL)
-        __sti();
-    else
-        __cli();
+    // Now that the masks are correctly set for the lower IRQL,
+    // we can safely re-enable interrupts.
+    __sti();
 }
 
-// INTERNAL USE, BEWARE.
+// This function should be used sparingly, only during initialization.
 void _SetIRQL(IRQL new_irql) {
-    tracelast_func("SetIRQL");
-
+    tracelast_func("_SetIRQL");
+    __cli();
     cpu.currentIrql = new_irql;
-    apply_masking_for_irql(new_irql);
-
-    cpu.schedulerEnabled = (cpu.currentIrql <= DISPATCH_LEVEL); 
-
-    if (new_irql < HIGH_LEVEL)
-        __sti();
-    else
-        __cli();
+    update_pic_mask_for_current_irql();
+    __sti();
 }
 
 void enforce_max_irql(IRQL max_allowed) {
+    tracelast_func("enforce_max_irql");
     if (cpu.currentIrql > max_allowed) {
-        CTX_FRAME regs;
-        read_context_frame(&regs);
-        bugcheck_system(&regs, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 }

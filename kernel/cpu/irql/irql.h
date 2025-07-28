@@ -16,6 +16,8 @@
 extern CPU cpu;
 
 // Functions
+void update_pic_mask_for_current_irql(void);
+
 void GetCurrentIRQL(IRQL* current_irql);
 
 void RaiseIRQL(IRQL new_irql, IRQL* old_irql);

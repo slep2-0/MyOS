@@ -14,7 +14,7 @@ CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-proto
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
 ifeq ($(DEBUG), 1)
-    CFLAGS += -DDEBUG
+    CFLAGS += -DDEBUG -g -O0
 endif
 
 # Targets
@@ -82,6 +82,14 @@ build/irql.o: kernel/cpu/irql/irql.c
 build/scheduler.o: kernel/cpu/scheduler/scheduler.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/dpc.o: kernel/cpu/dpc/dpc.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+build/thread.o: kernel/cpu/thread/thread.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
@@ -105,7 +113,7 @@ build/context.o: kernel/cpu/scheduler/context.asm
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/isr_stub.o build/paging_asm.o build/capture_registers.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

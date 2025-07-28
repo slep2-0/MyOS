@@ -47,6 +47,8 @@ typedef enum _CUSTOM_BUGCHECK_CODES {
     FRAME_LIMIT_REACHED = 0xBADA55, // frame limit reached when trying to allocate a physical frame.
     IRQL_NOT_LESS_OR_EQUAL = 0x1337, // required for lowering IRQL that is already higher than the current IRQL (vice versa for increasing)
     INVALID_IRQL_SUPPLIED = 0x69420,
+    NULL_CTX_RECEIVED = 0xF1FA,
+    THREAD_EXIT_FAILURE = 0x123123FF,
 } CUSTOM_BUGCHECK_CODES;
 
 // Function to initiate bugcheck.

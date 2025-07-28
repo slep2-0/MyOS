@@ -13,6 +13,9 @@
 #include <stdint.h>
 #include "cpu_types.h"
 #include "irql/irql.h"
+#include "dpc/dpc.h"
+#include "scheduler/scheduler.h"
+#include "thread/thread.h"
 
 /* Declaration to make compiler shut up :) */
 void read_context_frame(CTX_FRAME* frame);
@@ -23,6 +26,7 @@ void read_interrupt_frame(INT_FRAME* frame);
 #endif
 
 static inline void enqueue(Queue* queue, Thread* thread) {
+	tracelast_func("enqueue");
 	thread->nextThread = NULL;
 	if (!queue->head) queue->head = thread;
 	else queue->tail->nextThread = thread;
@@ -30,6 +34,7 @@ static inline void enqueue(Queue* queue, Thread* thread) {
 }
 
 static inline Thread* dequeue(Queue* queue) {
+	tracelast_func("dequeue");
 	Thread* thread = queue->head;
 	if (!thread) return NULL;
 

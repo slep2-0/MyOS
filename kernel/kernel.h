@@ -25,7 +25,7 @@ extern bool isBugChecking;
 extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
 /* Uncomment to trigger a bugcheck on entry */
-#define CAUSE_BUGCHECK
+///#define CAUSE_BUGCHECK
 
 /* To define DEBUG globally, use a compiler flag. I removed this since I now transitioned each header to iself and others instead of relying on kernel.h that caused circular includes. */
 
@@ -45,9 +45,9 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "drivers/blk/block.h"
 #include "drivers/blk/ata.h"
 #include "drivers/gop/gop.h"
-#include "cpu/scheduler/scheduler.h"
 
 // Entry point in C
+void kernel_idle_checks(void);
 void kernel_main(BOOT_INFO* boot_info);
 // Function declarations.
 void copy_memory_map(BOOT_INFO* boot_info);

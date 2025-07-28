@@ -15,6 +15,9 @@
 // End of Interrupt command code
 #define PIC_EOI 0x20
 
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(x) (void)(x)
+#endif
 
 // Disable interrupts (cli)
 static inline void __cli(void) {

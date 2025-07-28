@@ -142,16 +142,23 @@ void init_timer(unsigned long int frequency) {
     __outbyte(0x40, (unsigned char)((divisor >> 8) & 0xFF)); // High byte
 }
 
+static CTX_FRAME dummyCtx;
+static DPC scheduleDpc = {
+    .Next = NULL,
+    .callback = TimerDPC,
+    .ctx = &dummyCtx, /// FIXME : As soon as a DPC fires to and gets dispatched (this one), it will page fault since it dereferenced a NULLPTR (since it accesses DPC->CTX which is 0 here)
+    .Kind = DPC_SCHEDULE,
+    .hasCtx = false,
+    .priority = MEDIUM_PRIORITY
+};
+
+extern bool isScheduleDpcQueued;
+
 void timer_handler() {
-    return;
-    /* unused function, later timer handler will be used for context switching.
-    static int tick = 0;
-    tick++;
-    if (tick % 20 == 0) {
-        return;
-        //gop_blink_cursor(); // Every 20 timer interrupts
+    if (!isScheduleDpcQueued) {
+        queue_dpc(&scheduleDpc);
+        isScheduleDpcQueued = true;
     }
-    */
 }
 
 void ata_handler(void) {

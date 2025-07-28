@@ -27,12 +27,26 @@ void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r) {
     INT_FRAME intfr;
 
     // Since we are now using both a registration context, and an interrupt context, for compatibility I didn't change the asm stub, and just created 3 structs, 2 are the ctx and int, third is both (legacy).
+    ctx.rax = r->rax;
+    ctx.rbx = r->rbx;
+    ctx.rcx = r->rcx;
+    ctx.rdi = r->rdi;
+    ctx.rsi = r->rsi;
+    ctx.rsp = (uint64_t)-1; // max val, to signify invalidation that it's not here.
+    ctx.r8 = r->r8;
+    ctx.r9 = r->r9;
+    ctx.r10 = r->r10;
+    ctx.r11 = r->r11;
+    ctx.r12 = r->r12;
+    ctx.r13 = r->r13;
+    ctx.r14 = r->r14;
+    ctx.r15 = r->r15;
 
-    // Copy the register context
-    kmemcpy(&ctx, r, sizeof(CTX_FRAME));  // Copies up to rsp
-
-    // Copy the interrupt frame info
-    kmemcpy(&intfr, &r->vector, sizeof(INT_FRAME));  // Start at vector, which follows rsp
+    intfr.cs = r->cs;
+    intfr.error_code = r->error_code;
+    intfr.rflags = r->rflags;
+    intfr.rip = r->rip;
+    intfr.vector = r->vector;
 
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:
