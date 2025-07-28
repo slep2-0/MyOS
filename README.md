@@ -24,7 +24,7 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 
 `Paging - Virtual Memory Paging with permissions, like PAGE_PRESENT (is the page even mapped to physical memory?), PAGE_RW (Is the page read/write or only read?), PAGE_USER (Is the page both for user mode and kernel mode, or only kernel mode?)`
 
-`Interrupts (with full exception management) -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer (unused, working on it).`
+`Interrupts (with full exception management) - basic keyboard interrupt to write to screen, as well as a basic interrupt timer (used for scheduling).`
 
 `Full dynamic heap memory allocation.`
 
