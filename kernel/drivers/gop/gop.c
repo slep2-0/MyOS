@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)

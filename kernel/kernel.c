@@ -1,10 +1,13 @@
-/*
+﻿/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.
  */
 
 #include "kernel.h"
+#ifndef _MSC_VER
+_Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
+#endif
 
 GOP_PARAMS gop_local;
 BOOT_INFO boot_info_local;
@@ -71,13 +74,17 @@ void InitCPU(void) {
 extern DPC* dpcQueueHead;
 
 void kernel_idle_checks(void) {
-    // Here the main thread would HALT the CPU, and not in kernel_main
-    volatile int z = 0;
-    gop_printf(&gop_local, 0xFF000FF0, "Reached the scheduler!\n");
-    for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
-        z++;
+    static bool first_time = true;
+
+    if (first_time) {
+        first_time = false;
+        gop_printf(&gop_local, 0xFF000FF0, "Reached the scheduler!\n");
+        for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
+            /* delay loop */
+        }
+        gop_printf(&gop_local, 0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
-    gop_printf(&gop_local, 0xFF000FF0, "**Ended Testing Thread Exceution**\n");
+
     while (1) {
         __hlt();
         if (dpcQueueHead) {

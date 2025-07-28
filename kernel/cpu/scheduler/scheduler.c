@@ -83,7 +83,6 @@ void Schedule(void) {
     restore_context(&next->registers);
 }
 
-
 void Yield(void) {
     tracelast_func("Yield");
     Schedule();

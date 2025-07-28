@@ -1,4 +1,4 @@
-#include "allocator.h"
+﻿#include "allocator.h"
 #include "../../bugcheck/bugcheck.h"
 #include "../memory.h"
  

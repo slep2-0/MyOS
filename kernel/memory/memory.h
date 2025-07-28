@@ -30,7 +30,7 @@ void zero_bss(void);
 /* Start and end of the heap region */
 #define HEAP_START ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFFU) & ~0xFFFU)))
 #define HEAP_END (PHYS_MEM_BASE + PHYS_MEM_SIZE)
-uintptr_t heap_current_end;
+extern uintptr_t heap_current_end;
 
 #define HEAP_SIZE (HEAP_END - HEAP_START) // This ensures heap stays within mapped range // 128 MiB MAX. You may change it to an upper limit of 3.9GB.
 

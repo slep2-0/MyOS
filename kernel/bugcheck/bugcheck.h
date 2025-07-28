@@ -34,9 +34,7 @@ typedef enum _BUGCHECK_CODES {
     FLOATING_POINT_ERROR,
     ALIGNMENT_CHECK,
     SEVERE_MACHINE_CHECK,
-} BUGCHECK_CODES;
-
-typedef enum _CUSTOM_BUGCHECK_CODES {
+    /// Custom ones
     MEMORY_MAP_SIZE_OVERRUN = 0xBEEF,
     MANUALLY_INITIATED_CRASH = 0xBABE,
     BAD_PAGING = 0xBAD,
@@ -49,7 +47,7 @@ typedef enum _CUSTOM_BUGCHECK_CODES {
     INVALID_IRQL_SUPPLIED = 0x69420,
     NULL_CTX_RECEIVED = 0xF1FA,
     THREAD_EXIT_FAILURE = 0x123123FF,
-} CUSTOM_BUGCHECK_CODES;
+} BUGCHECK_CODES;
 
 // Function to initiate bugcheck.
 void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);

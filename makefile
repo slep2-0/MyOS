@@ -10,7 +10,7 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 ASMFLAGS_ELF = -f elf64
 ASMFLAGS_BIN = -f bin
 # warning as errors ENABLED: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
-CFLAGS = -std=gnu99 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
+CFLAGS = -std=gnu11 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align -fdiagnostics-color=always -fdiagnostics-show-option
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
 ifeq ($(DEBUG), 1)

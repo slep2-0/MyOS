@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     Core Kernel Includes, includes all core and necessary header files.

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     Memory Management Implementation
@@ -9,6 +9,7 @@
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
 extern GOP_PARAMS gop_local;
+uintptr_t heap_current_end;
 
 void zero_bss(void) {
     tracelast_func("zero_bss");
