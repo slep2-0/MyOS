@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.
