@@ -8,7 +8,7 @@ UEFI Bootloader -> Kernel.
 
 Tested with QEMU (64bit ver this time), built with gcc ffreestanding for no runtime libraries, and stripped to bare metal using objcopy -> then formatted in kali linux to a FAT32 binary (for the UEFI bootloader to load the kernel.bin).
 
-Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 that let me use a UEFI bootloader: https://github.com/tianocore/edk2
+Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im using) with the latest binutils, along with this EDK2 that let me use a UEFI bootloader: https://github.com/tianocore/edk2
 
 
 **SUPPORTED FEATURES:**
