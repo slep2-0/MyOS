@@ -80,9 +80,6 @@ void kernel_idle_checks(void) {
     gop_printf(&gop_local, 0xFF000FF0, "**Ended Testing Thread Exceution**\n");
     while (1) {
         __hlt();
-        if (dpcQueueHead) {
-            DispatchDPC();
-        }
     }
 }
 
