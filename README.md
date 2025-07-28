@@ -28,4 +28,8 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 
 `FAT32 FileSystem accessing in the kernel itself.`
 
+`Scheduler & DPC's`
+
+`Userland`
+
 `life.`
