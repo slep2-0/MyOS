@@ -1,4 +1,4 @@
-; * PROJECT:     MatanelOS Kernel (64-bit ISR Stubs)
+﻿; * PROJECT:     MatanelOS Kernel (64-bit ISR Stubs)
 ; * PURPOSE:     64-bit compatible assembly stubs for interrupt handling.
 BITS 64
 DEFAULT REL
