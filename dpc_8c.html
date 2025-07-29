@@ -108,6 +108,7 @@ Variables</h2></td></tr>
 <tr class="memitem:ad16cde0fabdc2cf7c8f72cfa45dcca98" id="r_ad16cde0fabdc2cf7c8f72cfa45dcca98"><td class="memItemLeft" align="right" valign="top"><a class="el" href="cpu__types_8h.html#ab4a5c3c2096f05e5f0db35f80685b4a2">DPC</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad16cde0fabdc2cf7c8f72cfa45dcca98">dpcQueueHead</a> = NULL</td></tr>
 <tr class="memitem:aaf45ddfb35ee121ac0a0b188f5d0d079" id="r_aaf45ddfb35ee121ac0a0b188f5d0d079"><td class="memItemLeft" align="right" valign="top"><a class="el" href="cpu__types_8h.html#ab4a5c3c2096f05e5f0db35f80685b4a2">DPC</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaf45ddfb35ee121ac0a0b188f5d0d079">dpcQueueTail</a> = NULL</td></tr>
 <tr class="memitem:a047ae2c1273f4fa9ca2ac1579670596f" id="r_a047ae2c1273f4fa9ca2ac1579670596f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a047ae2c1273f4fa9ca2ac1579670596f">reschedule_needed</a></td></tr>
+<tr class="memdesc:a047ae2c1273f4fa9ca2ac1579670596f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean Flag to signify to the timer ISR handler if a reschedule is needed (e.g, the <a class="el" href="cpu__types_8h.html#ab4a5c3c2096f05e5f0db35f80685b4a2">DPC</a> hasn't reached the TimerDPC func yet..)  <br /></td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
 <a id="a2913d0c80d87388a2b9ab6321de499a5" name="a2913d0c80d87388a2b9ab6321de499a5"></a>
@@ -223,7 +224,9 @@ Variables</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="scheduler_8c_source.html#l00014">14</a> of file <a class="el" href="scheduler_8c_source.html">scheduler.c</a>.</p>
+<p>Boolean Flag to signify to the timer ISR handler if a reschedule is needed (e.g, the <a class="el" href="cpu__types_8h.html#ab4a5c3c2096f05e5f0db35f80685b4a2">DPC</a> hasn't reached the TimerDPC func yet..) </p>
+
+<p class="definition">Definition at line <a class="el" href="dpc__list_8c_source.html#l00012">12</a> of file <a class="el" href="dpc__list_8c_source.html">dpc_list.c</a>.</p>
 
 </div>
 </div>

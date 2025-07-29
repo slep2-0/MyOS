@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MyOS: Globals</title>
+<title>MyOS: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc_list.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,7 +63,7 @@ $(function() {
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('globals_r.html','',''); });
+$(function(){initNavTree('dpc__list_8h_source.html','',''); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -88,26 +88,31 @@ $(function(){initNavTree('globals_r.html','',''); });
 </div>
 </div>
 
+<div class="header">
+  <div class="headertitle"><div class="title">dpc_list.h</div></div>
+</div><!--header-->
 <div class="contents">
-<div class="textblock">Here is a list of all functions, variables, defines, enums, and typedefs with links to the files they belong to:</div>
-
-<h3 class="doxsection"><a id="index_r" name="index_r"></a>- r -</h3><ul>
-<li>RaiseIRQL()&#160;:&#160;<a class="el" href="irql_8c.html#af4939ab5a9dc445882db06cbe4ef22f2">irql.c</a>, <a class="el" href="irql_8h.html#af4939ab5a9dc445882db06cbe4ef22f2">irql.h</a></li>
-<li>read_context_frame()&#160;:&#160;<a class="el" href="cpu_8h.html#a307a9fdea425d80d462e0556d1a9b256">cpu.h</a>, <a class="el" href="kernel_8h.html#a7614d4a9e62a3f55e776c1230bb27627">kernel.h</a></li>
-<li>read_interrupt_frame()&#160;:&#160;<a class="el" href="cpu_8h.html#a6231fdd5aa998aada7a1efa3bd325219">cpu.h</a>, <a class="el" href="kernel_8h.html#a29b0957b94e2cdc2783958bd0a2d43ff">kernel.h</a></li>
-<li>READY&#160;:&#160;<a class="el" href="cpu__types_8h.html#aa10ee122164d8eab53bd059c31538ca3a6564f2f3e15be06b670547bbcaaf0798">cpu_types.h</a></li>
-<li>register_block_device()&#160;:&#160;<a class="el" href="block_8c.html#a5907b72093bd3ea0bee7c7409d3a6090">block.c</a>, <a class="el" href="block_8h.html#a5907b72093bd3ea0bee7c7409d3a6090">block.h</a></li>
-<li>reschedule_needed&#160;:&#160;<a class="el" href="dpc_8c.html#a047ae2c1273f4fa9ca2ac1579670596f">dpc.c</a>, <a class="el" href="dpc__list_8c.html#a047ae2c1273f4fa9ca2ac1579670596f">dpc_list.c</a></li>
-<li>RESERVED&#160;:&#160;<a class="el" href="bugcheck_8h.html#a3dd6c077b2422dcc0d05246537da5c82afe4c21755babfece7188666f75c7386b">bugcheck.h</a></li>
-<li>restore_context()&#160;:&#160;<a class="el" href="scheduler_8c.html#a202dc9a1e40ab830b96b528764bf8415">scheduler.c</a>, <a class="el" href="thread_8c.html#a202dc9a1e40ab830b96b528764bf8415">thread.c</a></li>
-<li>RUNNING&#160;:&#160;<a class="el" href="cpu__types_8h.html#aa10ee122164d8eab53bd059c31538ca3a1061be6c3fb88d32829cba6f6b2be304">cpu_types.h</a></li>
-</ul>
-</div><!-- contents -->
+<a href="dpc__list_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">/*</span></div>
+<div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="comment"> * PROJECT:      MatanelOS Kernel</span></div>
+<div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="comment"> * LICENSE:      GPLv3</span></div>
+<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment"> * PURPOSE:      DPC Function list.</span></div>
+<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="comment"> */</span></div>
+<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span> </div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#ifndef X86_DPC_FUNCS_H</span></div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define X86_DPC_FUNCS_H</span></div>
+<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="comment">// Invoked by timer DPC to trigger scheduling (DPC is a deferred procedure call, basically stuff to do in interrupt service routines, instead of staying on such a high DIRQL)</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="keywordtype">void</span> <a class="code hl_function" href="dpc__list_8h.html#a5cd3bdc987e82c62c283955de9576114">TimerDPC</a>(<span class="keywordtype">void</span>);</div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#endif</span></div>
+<div class="ttc" id="adpc__list_8h_html_a5cd3bdc987e82c62c283955de9576114"><div class="ttname"><a href="dpc__list_8h.html#a5cd3bdc987e82c62c283955de9576114">TimerDPC</a></div><div class="ttdeci">void TimerDPC(void)</div><div class="ttdef"><b>Definition</b> <a href="dpc__list_8c_source.html#l00014">dpc_list.c:14</a></div></div>
+</div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
+    <li class="navelem"><a href="dir_d522931ffa1371640980b621734a4381.html">Users</a></li><li class="navelem"><a href="dir_e4108698badaaf36ae0e3b14b6bcf359.html">matanel</a></li><li class="navelem"><a href="dir_4e60904b950616c42c0f817452614c20.html">Desktop</a></li><li class="navelem"><a href="dir_99fc1fd6614120fc91b3fe1bddd34da0.html">Projects</a></li><li class="navelem"><a href="dir_b3e2b2d55acba24480631368833d62ed.html">KernelDevelopment</a></li><li class="navelem"><a href="dir_65de698274afa69a99ce1d85982b80cd.html">kernel</a></li><li class="navelem"><a href="dir_77d3fdbd258334bd779b881a10ea6474.html">cpu</a></li><li class="navelem"><a href="dir_10746aa391236164080969c399207022.html">dpc</a></li><li class="navelem"><a href="dpc__list_8h.html">dpc_list.h</a></li>
     <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.14.0 </li>
   </ul>
 </div>

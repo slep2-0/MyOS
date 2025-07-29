@@ -34,10 +34,12 @@ var searchData=
   ['dpc_2ec_31',['dpc.c',['../dpc_8c.html',1,'']]],
   ['dpc_2eh_32',['dpc.h',['../dpc_8h.html',1,'']]],
   ['dpc_5fkind_33',['DPC_KIND',['../cpu__types_8h.html#aec230e33cf313fd73792a25b841ddd36',1,'cpu_types.h']]],
-  ['dpc_5fpriority_34',['DPC_PRIORITY',['../cpu__types_8h.html#a7f413397165967ca4cdadfb6310158be',1,'cpu_types.h']]],
-  ['dpc_5fschedule_35',['DPC_SCHEDULE',['../cpu__types_8h.html#a5d218e5c26f9e9afec421f768f8d0b02abd393abde0837104a6fa0e441d063e78',1,'cpu_types.h']]],
-  ['dpcqueuehead_36',['dpcQueueHead',['../dpc_8c.html#ad16cde0fabdc2cf7c8f72cfa45dcca98',1,'dpcQueueHead:&#160;dpc.c'],['../kernel_8c.html#ad16cde0fabdc2cf7c8f72cfa45dcca98',1,'dpcQueueHead:&#160;dpc.c']]],
-  ['dpcqueuetail_37',['dpcQueueTail',['../dpc_8c.html#aaf45ddfb35ee121ac0a0b188f5d0d079',1,'dpc.c']]],
-  ['draw_5fchar_38',['draw_char',['../gop_8c.html#adb470bc658b9038f97a6451acdd592ae',1,'draw_char(GOP_PARAMS *gop, char c_, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#ac25b38930cb651982843fb9ff481f571',1,'draw_char(GOP_PARAMS *gop, char c, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]],
-  ['draw_5fstring_39',['draw_string',['../gop_8c.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]]
+  ['dpc_5flist_2ec_34',['dpc_list.c',['../dpc__list_8c.html',1,'']]],
+  ['dpc_5flist_2eh_35',['dpc_list.h',['../dpc__list_8h.html',1,'']]],
+  ['dpc_5fpriority_36',['DPC_PRIORITY',['../cpu__types_8h.html#a7f413397165967ca4cdadfb6310158be',1,'cpu_types.h']]],
+  ['dpc_5fschedule_37',['DPC_SCHEDULE',['../cpu__types_8h.html#a5d218e5c26f9e9afec421f768f8d0b02abd393abde0837104a6fa0e441d063e78',1,'cpu_types.h']]],
+  ['dpcqueuehead_38',['dpcQueueHead',['../dpc_8c.html#ad16cde0fabdc2cf7c8f72cfa45dcca98',1,'dpcQueueHead:&#160;dpc.c'],['../kernel_8c.html#ad16cde0fabdc2cf7c8f72cfa45dcca98',1,'dpcQueueHead:&#160;dpc.c']]],
+  ['dpcqueuetail_39',['dpcQueueTail',['../dpc_8c.html#aaf45ddfb35ee121ac0a0b188f5d0d079',1,'dpc.c']]],
+  ['draw_5fchar_40',['draw_char',['../gop_8c.html#adb470bc658b9038f97a6451acdd592ae',1,'draw_char(GOP_PARAMS *gop, char c_, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#ac25b38930cb651982843fb9ff481f571',1,'draw_char(GOP_PARAMS *gop, char c, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]],
+  ['draw_5fstring_41',['draw_string',['../gop_8c.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]]
 ];

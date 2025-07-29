@@ -13,7 +13,7 @@ var searchData=
   ['threadstate_10',['threadState',['../struct___thread.html#afdd851bd7df189dc990877158f4a7293',1,'_Thread']]],
   ['timer_5fhandler_11',['timer_handler',['../handlers_8c.html#a9e63ea32abae3f871fcbe66fd99003b2',1,'timer_handler():&#160;handlers.c'],['../handlers_8h.html#aa9c1f035c82a93594d9838ea8ceae094',1,'timer_handler(void):&#160;handlers.c']]],
   ['timer_5finterrupt_12',['TIMER_INTERRUPT',['../idt_8h.html#ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa',1,'idt.h']]],
-  ['timerdpc_13',['TimerDPC',['../scheduler_8c.html#a5cd3bdc987e82c62c283955de9576114',1,'TimerDPC(void):&#160;scheduler.c'],['../scheduler_8h.html#a5cd3bdc987e82c62c283955de9576114',1,'TimerDPC(void):&#160;scheduler.c']]],
+  ['timerdpc_13',['TimerDPC',['../dpc__list_8c.html#a5cd3bdc987e82c62c283955de9576114',1,'TimerDPC(void):&#160;dpc_list.c'],['../dpc__list_8h.html#a5cd3bdc987e82c62c283955de9576114',1,'TimerDPC(void):&#160;dpc_list.c']]],
   ['trace_2eh_14',['trace.h',['../trace_8h.html',1,'']]],
   ['type_15',['Type',['../struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r.html#a140acdd7ac30628e97d1851104f05c03',1,'_EFI_MEMORY_DESCRIPTOR']]],
   ['type_5fattr_16',['type_attr',['../struct___i_d_t___e_n_t_r_y__64.html#a5e7eb925db6957f19edc1e5d7d74c8f6',1,'_IDT_ENTRY_64']]]

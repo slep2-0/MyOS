@@ -17,7 +17,7 @@ var searchData=
   ['read_5fsector_14',['read_sector',['../struct___b_l_o_c_k___d_e_v_i_c_e.html#ab4c378fc1e82cb8ceaeb13eae8c2acd3',1,'_BLOCK_DEVICE']]],
   ['readyqueue_15',['readyQueue',['../struct___c_p_u.html#ad80200657034d9ee5ad1da8cb0e4026d',1,'_CPU']]],
   ['registers_16',['registers',['../struct___thread.html#ad2512b298eb9343532eaea46827c44c7',1,'_Thread']]],
-  ['reschedule_5fneeded_17',['reschedule_needed',['../dpc_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;scheduler.c'],['../scheduler_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;scheduler.c']]],
+  ['reschedule_5fneeded_17',['reschedule_needed',['../dpc_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;dpc_list.c'],['../dpc__list_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;dpc_list.c']]],
   ['reserved_5fsector_5fcount_18',['reserved_sector_count',['../struct___f_a_t32___f_s_i_n_f_o.html#a8a0e3c08b5b5adbffd764906e068086f',1,'_FAT32_FSINFO']]],
   ['rflags_19',['rflags',['../struct___i_n_t___f_r_a_m_e.html#ac67e007ae346a1499c5a276869bfd1bb',1,'_INT_FRAME::rflags'],['../struct___i_n_t_e_r_r_u_p_t___f_u_l_l___r_e_g_s.html#ac67e007ae346a1499c5a276869bfd1bb',1,'_INTERRUPT_FULL_REGS::rflags']]],
   ['rip_20',['rip',['../struct___i_n_t___f_r_a_m_e.html#a90e28f434559f0582a69699dc4dbc286',1,'_INT_FRAME::rip'],['../struct___c_t_x___f_r_a_m_e.html#a90e28f434559f0582a69699dc4dbc286',1,'_CTX_FRAME::rip'],['../struct___i_n_t_e_r_r_u_p_t___f_u_l_l___r_e_g_s.html#a90e28f434559f0582a69699dc4dbc286',1,'_INTERRUPT_FULL_REGS::rip']]],

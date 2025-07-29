@@ -22,7 +22,7 @@ var searchData=
   ['readyqueue_19',['readyQueue',['../struct___c_p_u.html#ad80200657034d9ee5ad1da8cb0e4026d',1,'_CPU']]],
   ['register_5fblock_5fdevice_20',['register_block_device',['../block_8c.html#a5907b72093bd3ea0bee7c7409d3a6090',1,'register_block_device(BLOCK_DEVICE *dev):&#160;block.c'],['../block_8h.html#a5907b72093bd3ea0bee7c7409d3a6090',1,'register_block_device(BLOCK_DEVICE *dev):&#160;block.c']]],
   ['registers_21',['registers',['../struct___thread.html#ad2512b298eb9343532eaea46827c44c7',1,'_Thread']]],
-  ['reschedule_5fneeded_22',['reschedule_needed',['../dpc_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;scheduler.c'],['../scheduler_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;scheduler.c']]],
+  ['reschedule_5fneeded_22',['reschedule_needed',['../dpc_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;dpc_list.c'],['../dpc__list_8c.html#a047ae2c1273f4fa9ca2ac1579670596f',1,'reschedule_needed:&#160;dpc_list.c']]],
   ['reserved_23',['RESERVED',['../bugcheck_8h.html#a3dd6c077b2422dcc0d05246537da5c82afe4c21755babfece7188666f75c7386b',1,'bugcheck.h']]],
   ['reserved_5fsector_5fcount_24',['reserved_sector_count',['../struct___f_a_t32___f_s_i_n_f_o.html#a8a0e3c08b5b5adbffd764906e068086f',1,'_FAT32_FSINFO']]],
   ['restore_5fcontext_25',['restore_context',['../scheduler_8c.html#a202dc9a1e40ab830b96b528764bf8415',1,'restore_context(CTX_FRAME *regs):&#160;scheduler.c'],['../thread_8c.html#a202dc9a1e40ab830b96b528764bf8415',1,'restore_context(CTX_FRAME *regs):&#160;thread.c']]],

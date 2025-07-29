@@ -113,35 +113,34 @@ $(function(){initNavTree('trace_8h_source.html','',''); });
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">// this stays `static inline` so every .c gets its own copy</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">void</span> tracelast_func(<span class="keyword">const</span> <span class="keywordtype">char</span>* function_name) {</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <a class="code hl_define" href="intrin_8h.html#a7b1a47a94be3cc9455621cecad58b168">UNREFERENCED_PARAMETER</a>(function_name);</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="comment">/*</span></div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">    extern bool isBugChecking;</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">    extern LASTFUNC_HISTORY lastfunc_history;</span></div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment"></span> </div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="comment">    if (!function_name || isBugChecking) return;</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="comment"></span> </div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="comment">    lastfunc_history.current_index =</span></div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="comment">        (lastfunc_history.current_index + 1) % LASTFUNC_HISTORY_SIZE;</span></div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="comment"></span> </div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="comment">    // Clear entire buffer slot to 0 to avoid leftover garbage</span></div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">    for (size_t j = 0; j &lt; LASTFUNC_BUFFER_SIZE; j++) {</span></div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="comment">        lastfunc_history.names[lastfunc_history.current_index][j] = 0;</span></div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="comment">    }</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment"></span> </div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">    // Copy function_name safely</span></div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment">    for (size_t i = 0; i &lt; LASTFUNC_BUFFER_SIZE - 1 &amp;&amp; function_name[i]; i++) {</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">        lastfunc_history.names[lastfunc_history.current_index][i] =</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">            (uint8_t)function_name[i];</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">    }</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">    // Explicit null terminator already guaranteed by zero clear</span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment">    */</span></div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>}</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="preprocessor">#endif </span><span class="comment">// TRACE_H</span></div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="comment">//UNREFERENCED_PARAMETER(function_name);</span></div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="comment">//return;</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keyword">extern</span> <span class="keywordtype">bool</span> <a class="code hl_variable" href="bugcheck_8c.html#a3e4cb7a3337aa00fccafe03c7b5a59fc">isBugChecking</a>;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>    <span class="keyword">extern</span> <a class="code hl_struct" href="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y.html">LASTFUNC_HISTORY</a> <a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>;</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keywordflow">if</span> (!function_name || <a class="code hl_variable" href="bugcheck_8c.html#a3e4cb7a3337aa00fccafe03c7b5a59fc">isBugChecking</a>) <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.current_index =</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>        (<a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.current_index + 1) % <a class="code hl_define" href="trace_8h.html#ae8a5c5e8b2736c49f4d949c5a3510c11">LASTFUNC_HISTORY_SIZE</a>;</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="comment">// Clear entire buffer slot to 0 to avoid leftover garbage</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> j = 0; j &lt; <a class="code hl_define" href="trace_8h.html#a1058858396753f9017e43578043a9de9">LASTFUNC_BUFFER_SIZE</a>; j++) {</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>        <a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.names[<a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.current_index][j] = 0;</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    }</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="comment">// Copy function_name safely</span></div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; <a class="code hl_define" href="trace_8h.html#a1058858396753f9017e43578043a9de9">LASTFUNC_BUFFER_SIZE</a> - 1 &amp;&amp; function_name[i]; i++) {</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>        <a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.names[<a class="code hl_variable" href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a>.current_index][i] =</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>            (uint8_t)function_name[i];</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    }</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    <span class="comment">// Explicit null terminator already guaranteed by zero clear</span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>}</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span> </div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="preprocessor">#endif </span><span class="comment">// TRACE_H</span></div>
+<div class="ttc" id="abugcheck_8c_html_a3e4cb7a3337aa00fccafe03c7b5a59fc"><div class="ttname"><a href="bugcheck_8c.html#a3e4cb7a3337aa00fccafe03c7b5a59fc">isBugChecking</a></div><div class="ttdeci">bool isBugChecking</div><div class="ttdef"><b>Definition</b> <a href="kernel_8c_source.html#l00018">kernel.c:18</a></div></div>
+<div class="ttc" id="abugcheck_8c_html_a84fdaa754c58bd3a02ef7e0c36cfff33"><div class="ttname"><a href="bugcheck_8c.html#a84fdaa754c58bd3a02ef7e0c36cfff33">lastfunc_history</a></div><div class="ttdeci">LASTFUNC_HISTORY lastfunc_history</div><div class="ttdef"><b>Definition</b> <a href="kernel_8c_source.html#l00019">kernel.c:19</a></div></div>
 <div class="ttc" id="aintrin_8h_html"><div class="ttname"><a href="intrin_8h.html">intrin.h</a></div></div>
-<div class="ttc" id="aintrin_8h_html_a7b1a47a94be3cc9455621cecad58b168"><div class="ttname"><a href="intrin_8h.html#a7b1a47a94be3cc9455621cecad58b168">UNREFERENCED_PARAMETER</a></div><div class="ttdeci">#define UNREFERENCED_PARAMETER(x)</div><div class="ttdef"><b>Definition</b> <a href="intrin_8h_source.html#l00019">intrin.h:19</a></div></div>
 <div class="ttc" id="astruct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_html"><div class="ttname"><a href="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y.html">LASTFUNC_HISTORY</a></div><div class="ttdef"><b>Definition</b> <a href="#l00013">trace.h:13</a></div></div>
 <div class="ttc" id="astruct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_html_aa109b69c74e781d1c99d60b2861cbf5d"><div class="ttname"><a href="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y.html#aa109b69c74e781d1c99d60b2861cbf5d">LASTFUNC_HISTORY::current_index</a></div><div class="ttdeci">int current_index</div><div class="ttdef"><b>Definition</b> <a href="#l00015">trace.h:15</a></div></div>
 <div class="ttc" id="astruct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_html_ade49e81be26c6ae61a2bbe26e4b85bdb"><div class="ttname"><a href="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y.html#ade49e81be26c6ae61a2bbe26e4b85bdb">LASTFUNC_HISTORY::names</a></div><div class="ttdeci">uint8_t names[LASTFUNC_HISTORY_SIZE][LASTFUNC_BUFFER_SIZE]</div><div class="ttdef"><b>Definition</b> <a href="#l00014">trace.h:14</a></div></div>

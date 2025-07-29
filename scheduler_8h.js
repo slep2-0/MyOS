@@ -11,7 +11,6 @@ var scheduler_8h =
     [ "USER_SS", "scheduler_8h.html#ab7835d5c0b7d8988f4b58c033cd8e8d0", null ],
     [ "InitScheduler", "scheduler_8h.html#aeeccb93d922e4fb825916b6ca880ec10", null ],
     [ "Schedule", "scheduler_8h.html#a3f4dc5fcea4efe91c75e4760d804828e", null ],
-    [ "TimerDPC", "scheduler_8h.html#a5cd3bdc987e82c62c283955de9576114", null ],
     [ "Yield", "scheduler_8h.html#a284c5823fecbe537eef1e1f37828fc61", null ],
     [ "cpu", "scheduler_8h.html#a0b2a3530e9a5998456be351b4251b878", null ]
 ];

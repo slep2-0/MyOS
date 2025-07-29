@@ -6,9 +6,7 @@ var scheduler_8c =
     [ "restore_context", "scheduler_8c.html#a202dc9a1e40ab830b96b528764bf8415", null ],
     [ "save_context", "scheduler_8c.html#a344e73941b0bd3ebd6b93439fbb02714", null ],
     [ "Schedule", "scheduler_8c.html#a3f4dc5fcea4efe91c75e4760d804828e", null ],
-    [ "TimerDPC", "scheduler_8c.html#a5cd3bdc987e82c62c283955de9576114", null ],
     [ "Yield", "scheduler_8c.html#a284c5823fecbe537eef1e1f37828fc61", null ],
     [ "idleThread", "scheduler_8c.html#ada33617347d56d0bc6105b12620d0faf", null ],
-    [ "isScheduleDpcQueued", "scheduler_8c.html#aa019b7be548d953c1444c81e2e8145a0", null ],
-    [ "reschedule_needed", "scheduler_8c.html#a047ae2c1273f4fa9ca2ac1579670596f", null ]
+    [ "isScheduleDpcQueued", "scheduler_8c.html#aa019b7be548d953c1444c81e2e8145a0", null ]
 ];
