@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['callback_0',['callback',['../struct___d_p_c.html#a11f084a69a85b6e1da79695b6a3d07c3',1,'_DPC']]],
+  ['callbackwithctx_1',['callbackWithCtx',['../struct___d_p_c.html#a854b1b18e30ea4ffcafcde1b83eabdad',1,'_DPC']]],
+  ['caps_5flock_5fon_2',['caps_lock_on',['../handlers_8c.html#aca50450c34efc412517edefbb05ea87a',1,'handlers.c']]],
+  ['clock_5flevel_3',['CLOCK_LEVEL',['../cpu__types_8h.html#a6ff101fd8adf1c79792d98893f8dee3ea9562f0a4b039e529f5e7a949b6afc3fd',1,'cpu_types.h']]],
+  ['coalesce_5ffree_5flist_4',['coalesce_free_list',['../memory_8c.html#a7dd41707c711e3b3b0b9f278a7b54ff0',1,'coalesce_free_list(void):&#160;memory.c'],['../memory_8h.html#a7dd41707c711e3b3b0b9f278a7b54ff0',1,'coalesce_free_list(void):&#160;memory.c']]],
+  ['coprocessor_5fsegment_5foverrun_5',['COPROCESSOR_SEGMENT_OVERRUN',['../bugcheck_8h.html#a3dd6c077b2422dcc0d05246537da5c82a1a0ee5dd87418541502549cd7d87da92',1,'bugcheck.h']]],
+  ['coprocessor_5fsegment_5foverrun_5fhandler_6',['coprocessor_segment_overrun_handler',['../handlers_8c.html#a26e585eb170d255d03c6323349df7e83',1,'coprocessor_segment_overrun_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c'],['../handlers_8h.html#a26e585eb170d255d03c6323349df7e83',1,'coprocessor_segment_overrun_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c']]],
+  ['copy_5fgop_7',['copy_gop',['../kernel_8c.html#a8bf2519b1a607ce677d092c706b92f00',1,'copy_gop(BOOT_INFO *boot_info):&#160;kernel.c'],['../kernel_8h.html#a8bf2519b1a607ce677d092c706b92f00',1,'copy_gop(BOOT_INFO *boot_info):&#160;kernel.c']]],
+  ['copy_5fmemory_5fmap_8',['copy_memory_map',['../kernel_8c.html#a26b7a33ce7ac27191c39745d6852acd1',1,'copy_memory_map(BOOT_INFO *boot_info):&#160;kernel.c'],['../kernel_8h.html#a26b7a33ce7ac27191c39745d6852acd1',1,'copy_memory_map(BOOT_INFO *boot_info):&#160;kernel.c']]],
+  ['cpu_9',['CPU',['../cpu__types_8h.html#a9bb4e76feb6dc6ad7a88c5a7cab56467',1,'cpu_types.h']]],
+  ['cpu_10',['cpu',['../cpu_8h.html#a0b2a3530e9a5998456be351b4251b878',1,'cpu:&#160;kernel.c'],['../irql_8h.html#a0b2a3530e9a5998456be351b4251b878',1,'cpu:&#160;kernel.c'],['../scheduler_8h.html#a0b2a3530e9a5998456be351b4251b878',1,'cpu:&#160;kernel.c'],['../kernel_8c.html#a0b2a3530e9a5998456be351b4251b878',1,'cpu:&#160;kernel.c']]],
+  ['cpu_2eh_11',['cpu.h',['../cpu_8h.html',1,'']]],
+  ['cpu_5fexceptions_12',['CPU_EXCEPTIONS',['../idt_8h.html#a0dbafbab3ffb90922f14b0459e58d436',1,'idt.h']]],
+  ['cpu_5ftypes_2eh_13',['cpu_types.h',['../cpu__types_8h.html',1,'']]],
+  ['create_5fthread_14',['CREATE_THREAD',['../thread_8h.html#a8a3abbabd675202e98acbf8ea43adb83',1,'thread.h']]],
+  ['createthread_15',['CreateThread',['../thread_8c.html#a804766ed95e2dcc9f050033cefa88432',1,'CreateThread(Thread *thread, void(*entry)(void), void *stackTop, bool kernelThread):&#160;thread.c'],['../thread_8h.html#a804766ed95e2dcc9f050033cefa88432',1,'CreateThread(Thread *thread, void(*entry)(void), void *stackTop, bool kernelThread):&#160;thread.c']]],
+  ['cs_16',['cs',['../struct___i_n_t___f_r_a_m_e.html#aea3e8b50ef91f54dad11c01a77675324',1,'_INT_FRAME::cs'],['../struct___i_n_t_e_r_r_u_p_t___f_u_l_l___r_e_g_s.html#aea3e8b50ef91f54dad11c01a77675324',1,'_INTERRUPT_FULL_REGS::cs']]],
+  ['ctrl_5fpressed_17',['ctrl_pressed',['../handlers_8c.html#aec4e866abc16cc8217d33dfae87d5877',1,'handlers.c']]],
+  ['ctx_18',['ctx',['../struct___d_p_c.html#a06038abc2a409c61d812d8b8bfb5c660',1,'_DPC']]],
+  ['ctx_5fframe_19',['CTX_FRAME',['../cpu__types_8h.html#ac240bdf341c5e0ae333252cd5ecf0261',1,'cpu_types.h']]],
+  ['current_5findex_20',['current_index',['../struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y.html#aa109b69c74e781d1c99d60b2861cbf5d',1,'LASTFUNC_HISTORY']]],
+  ['currentirql_21',['currentIrql',['../struct___c_p_u.html#ae71676da5c6df2063d20451c5c7f8893',1,'_CPU']]],
+  ['currentthread_22',['currentThread',['../struct___c_p_u.html#adaaeabb00ed38fe27a24eb9d81eb2ace',1,'_CPU']]],
+  ['cursor_5fx_23',['cursor_x',['../bugcheck_8c.html#aed43839a3c8b74504a97930edbe8b735',1,'cursor_x:&#160;gop.c'],['../gop_8c.html#aed43839a3c8b74504a97930edbe8b735',1,'cursor_x:&#160;gop.c'],['../handlers_8c.html#aed43839a3c8b74504a97930edbe8b735',1,'cursor_x:&#160;gop.c']]],
+  ['cursor_5fy_24',['cursor_y',['../bugcheck_8c.html#ad3e70ba50f805f295792f5dc66599d51',1,'cursor_y:&#160;gop.c'],['../gop_8c.html#ad3e70ba50f805f295792f5dc66599d51',1,'cursor_y:&#160;gop.c'],['../handlers_8c.html#ad3e70ba50f805f295792f5dc66599d51',1,'cursor_y:&#160;gop.c']]]
+];
