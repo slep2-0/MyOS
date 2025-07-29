@@ -32,7 +32,4 @@ void Schedule(void);
 // Voluntarily relinquish CPU
 void Yield(void);
 
-// Invoked by timer DPC to trigger scheduling (DPC is a deferred procedure call, basically stuff to do in interrupt service routines, instead of staying on such a high DIRQL)
-void TimerDPC(void);
-
 #endif // SCHEDULER_H

@@ -87,6 +87,10 @@ build/dpc.o: kernel/cpu/dpc/dpc.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+build/dpc_list.o: kernel/cpu/dpc/dpc_list.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
 build/thread.o: kernel/cpu/thread/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
@@ -113,7 +117,7 @@ build/context.o: kernel/cpu/scheduler/context.asm
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ata.o build/block.o build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

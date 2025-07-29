@@ -146,7 +146,7 @@ static CTX_FRAME dummyCtx;
 static DPC scheduleDpc = {
     .Next = NULL,
     .callback = TimerDPC,
-    .ctx = &dummyCtx, /// FIXME : As soon as a DPC fires to and gets dispatched (this one), it will page fault since it dereferenced a NULLPTR (since it accesses DPC->CTX which is 0 here)
+    .ctx = &dummyCtx,
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
     .priority = MEDIUM_PRIORITY

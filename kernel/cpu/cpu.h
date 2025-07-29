@@ -14,6 +14,7 @@
 #include "cpu_types.h"
 #include "irql/irql.h"
 #include "dpc/dpc.h"
+#include "dpc/dpc_list.h"
 #include "scheduler/scheduler.h"
 #include "thread/thread.h"
 

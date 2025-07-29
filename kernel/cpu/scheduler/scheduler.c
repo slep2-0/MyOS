@@ -11,7 +11,6 @@
 extern void save_context(CTX_FRAME* regs);
 extern void restore_context(CTX_FRAME* regs);
 
-bool reschedule_needed = false;
 bool isScheduleDpcQueued = false;
 
 // Idle thread, runs when no other is ready.
@@ -86,12 +85,4 @@ void Schedule(void) {
 void Yield(void) {
     tracelast_func("Yield");
     Schedule();
-}
-
-void TimerDPC(void) {
-    tracelast_func("TimerDPC");
-    // Don't call Schedule() directly. Just set a flag.
-    if (cpu.schedulerEnabled) {
-        reschedule_needed = true;
-    }
 }
