@@ -10,7 +10,7 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 ASMFLAGS_ELF = -f elf64
 ASMFLAGS_BIN = -f bin
 # warning as errors ENABLED: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
-CFLAGS = -std=gnu11 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align -fdiagnostics-color=always -fdiagnostics-show-option
+CFLAGS = -std=gnu11 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align -fdiagnostics-color=always -fdiagnostics-show-option -Wno-unused-function -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" -mcmodel=large -mno-red-zone -fno-pie -fno-pic
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
 ifeq ($(DEBUG), 1)

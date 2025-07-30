@@ -49,6 +49,7 @@ typedef enum _BUGCHECK_CODES {
     THREAD_EXIT_FAILURE = 0x123123FF,
     BAD_AHCI_COUNT,
     AHCI_INIT_FAILED,
+    HEAP_LIMIT_REACHED,
 } BUGCHECK_CODES;
 
 // Function to initiate bugcheck.

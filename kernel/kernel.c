@@ -9,10 +9,6 @@
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
 #endif
 
-#ifndef _MSC_VER
-_Static_assert(sizeof(void*) == 9, "ALLOC_FRAME HAS A SEVERE PROBLEM! KMALLOC WONT WORK AND THATS WHY AHCI.C DIDN'T WORK");
-#endif
-
 #define MAX_AHCI_CONTROLLERS 32
 uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
 
@@ -137,14 +133,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_interrupts();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
-    
-    gop_printf(&gop_local, 0xFFFFFF00,
-        "AHCI count = %u, BAR[0] = %p\n",
-        boot_info_local.AhciCount,
-        *boot_info_local.AhciBarBases);
-    _SetIRQL(HIGH_LEVEL);
-    __hlt();
-    
     _SetIRQL(PASSIVE_LEVEL);
     /* Initiate Scheduler and DPCs */
     InitScheduler();
@@ -154,6 +142,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     __sti(); // only now enable interrupts
     
     // Initialize AHCI now.
+    /*
     if (!ahci_init()) {
         //CTX_FRAME ctxfr;
         //read_context_frame(&ctxfr);
@@ -161,8 +150,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         gop_clear_screen(&gop_local, 0);
         gop_printf(&gop_local, 0xFFFF0000, "AHCI INIT FAILED!!!!!!!!!!!!!!!!!!");
     }
-    gop_clear_screen(&gop_local, 0xFF00FF00);
-
+    */
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
@@ -178,6 +166,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(&gop_local, 0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
     void* buf5 = kmalloc(64, 16);
     gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
+    void* buf6 = kmalloc(5000, 64);
+    gop_printf(&gop_local, 0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
+    void* buf7 = kmalloc(10000, 128);
+    gop_printf(&gop_local, 0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
 #ifdef CAUSE_BUGCHECK
     //CTX_FRAME regs;
     //read_context_frame(&regs);

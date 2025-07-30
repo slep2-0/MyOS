@@ -5,6 +5,7 @@
  */
 #include "memory.h"
 #include "../drivers/gop/gop.h"
+#include "../bugcheck/bugcheck.h"
 
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
@@ -19,51 +20,16 @@ void zero_bss(void) {
 
 /* Initialize the free list to one big block spanning the heap */
 void init_heap(void) {
-    tracelast_func("init_heap");
-    enforce_max_irql(DISPATCH_LEVEL);
     heap_current_end = HEAP_START;
-    uintptr_t start = HEAP_START;
-    size_t total = HEAP_SIZE;
-
-    /* Carve out one big free block */
-    free_list = (BLOCK_HEADER*)start;
-    free_list->size = total;
+    free_list = (BLOCK_HEADER*)HEAP_START;
+    free_list->size = FRAME_SIZE;    // only 4 KiB initially
     free_list->next = NULL;
 
-    /// Map the first page.
-    /*
+    // map that frame:
     void* phys = alloc_frame();
     map_page((void*)HEAP_START, phys, PAGE_PRESENT | PAGE_RW);
     kmemset((void*)HEAP_START, 0, FRAME_SIZE);
     heap_current_end += FRAME_SIZE;
-    */
-}
-
-
-// Functions.
-static bool grow_heap_by_one_page(void) {
-    tracelast_func("grow_heap_by_one_page");
-    enforce_max_irql(DISPATCH_LEVEL);
-    // grab a physical frame
-    void* phys = alloc_frame();
-    if (!phys) { return false; }
-
-    // map it at the end of the heap.
-    // here it where it maps the page, I was confused on how it worked, forgot about it.
-    map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW /* | PAGE_USER Would be used later on, when this kernel has both user mode and kernel mode */ );
-    
-    // Zero the page.
-    kmemset((void*)heap_current_end, 0, FRAME_SIZE);
-    // insert a new region
-    BLOCK_HEADER* block = (BLOCK_HEADER*)heap_current_end;
-    block->size = FRAME_SIZE;
-    block->next = free_list;
-    free_list = block;
-    coalesce_free_list();
-
-    // advance our end.
-    heap_current_end += FRAME_SIZE;
-    return true;
 }
 
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
@@ -82,6 +48,31 @@ static void insert_block_sorted(BLOCK_HEADER* newblock) {
 
     newblock->next = current->next;
     current->next = newblock;
+}
+
+// Functions.
+static bool grow_heap_by_one_page(void) {
+    tracelast_func("grow_heap_by_one_page");
+    enforce_max_irql(DISPATCH_LEVEL);
+    // grab a physical frame
+    void* phys = alloc_frame();
+    if (!phys) { return false; }
+
+    // map it at the end of the heap.
+    // here it where it maps the page, I was confused on how it worked, forgot about it.
+    map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW /* | PAGE_USER Would be used later on, when this kernel has both user mode and kernel mode */ );
+    
+    // Zero the page.
+    kmemset((void*)heap_current_end, 0, FRAME_SIZE);
+    // insert a new region
+    BLOCK_HEADER* block = (BLOCK_HEADER*)heap_current_end;
+    block->size = FRAME_SIZE;
+    insert_block_sorted(block);
+    coalesce_free_list();
+
+    // advance our end.
+    heap_current_end += FRAME_SIZE;
+    return true;
 }
 
 // unused.
@@ -130,7 +121,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
 
     /* First‑fit search through free list */
-    // A pointer to a pointer, since we also want the previous node (which is cur, a ponter to the next field of the previous node.)
+    // A pointer to a pointer, since we also want the previous node (which is cur, a pointer to the next field of the previous node.)
     BLOCK_HEADER** cur = &free_list;
     while (*cur) {
         BLOCK_HEADER* blk = *cur;
@@ -162,9 +153,13 @@ void* kmalloc(size_t wanted_size, size_t align) {
     }
     if (!*cur) {
         // Out of memory, add new page maps.
-        if (heap_current_end + FRAME_SIZE <= HEAP_END && grow_heap_by_one_page()) {
+        bool grew = grow_heap_by_one_page();
+        if (!grew) {
+            bugcheck_system(NULL, NULL, HEAP_LIMIT_REACHED, 0, false);
+        }
+        if (heap_current_end + FRAME_SIZE <= HEAP_END && grew) {
             // new block now, restart the kmalloc.
-            kmalloc(wanted_size, align);
+            return kmalloc(wanted_size, align);
         }
     }
     // No physical memory left.

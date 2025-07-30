@@ -74,12 +74,16 @@ static uint8_t* next_pt = (uint8_t*)& __pt_start;
 void* alloc_frame(void) {
     tracelast_func("alloc_frame");
     enforce_max_irql(PASSIVE_LEVEL);
+    next_pt = (uint8_t*) & __pt_end;
     // If we still have reserved pages, carve from there
+    /// Use the bitmap.
+    /*
     if (next_pt + FRAME_SIZE <= (uint8_t*)&__pt_end) {
         void* phys = next_pt;
         next_pt += FRAME_SIZE;
         return phys;
     }
+    */
 
     // Otherwise fall back on the bitmap (for heap allocations)
     for (size_t frame = 0; frame < MAX_FRAMES; ++frame) {
