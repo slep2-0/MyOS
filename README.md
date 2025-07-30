@@ -26,7 +26,7 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 
 `Interrupts (with full exception management) - basic keyboard interrupt to write to screen, as well as a basic interrupt timer (used for scheduling).`
 
-`Full dynamic heap memory allocation.`
+`Full dynamic heap memory allocation. (bugged)`
 
 **WORKING ON:**
 
