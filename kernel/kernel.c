@@ -152,6 +152,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
     */
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
+    extern uint32_t cursor_x, cursor_y;
+    cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
     // test if init heap works
@@ -170,10 +172,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(&gop_local, 0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
     void* buf7 = kmalloc(10000, 128);
     gop_printf(&gop_local, 0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
-#ifdef CAUSE_BUGCHECK
-    //CTX_FRAME regs;
-    //read_context_frame(&regs);
-    bugcheck_system(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+#ifndef CAUSE_BUGCHECK
+    CTX_FRAME regs;
+    SAVE_CTX_FRAME(&regs);
+    bugcheck_system(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
     /*
     if (!fat32_init(0)) {

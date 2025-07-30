@@ -198,7 +198,7 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         );
     }
 	else {
-        gop_printf(&gop_local, 0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**");
+        gop_printf(&gop_local, 0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
 	}
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
     if (isThereIntFrame) {

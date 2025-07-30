@@ -54,7 +54,9 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 
     if (new_irql < cpu.currentIrql) {
         // You cannot "raise" to a lower level. This is a fatal kernel bug.
-        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 
     cpu.currentIrql = new_irql;
@@ -96,6 +98,8 @@ void _SetIRQL(IRQL new_irql) {
 void enforce_max_irql(IRQL max_allowed) {
     tracelast_func("enforce_max_irql");
     if (cpu.currentIrql > max_allowed) {
-        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 }

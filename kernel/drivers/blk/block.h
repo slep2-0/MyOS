@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "../../trace.h"
 #include "../../bugcheck/bugcheck.h"
+#include "../../cpu/cpu.h"
 
 typedef struct _BLOCK_DEVICE {
     bool (*read_sector)(struct _BLOCK_DEVICE* dev,

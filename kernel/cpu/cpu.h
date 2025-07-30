@@ -7,6 +7,76 @@
 #ifndef X86_CPU_H
 #define X86_CPU_H
 
+#ifdef _MSC_VER
+#define __asm__ __asm
+#endif
+
+#ifndef __INTELLISENSE__
+#define SAVE_CTX_FRAME(ctx_ptr)                            \
+    do {                                                   \
+        __asm__ volatile (                                \
+            /* push all 16 GPRs */                        \
+            "push %%rax\n\t"                              \
+            "push %%rbx\n\t"                              \
+            "push %%rcx\n\t"                              \
+            "push %%rdx\n\t"                              \
+            "push %%rsi\n\t"                              \
+            "push %%rdi\n\t"                              \
+            "push %%rbp\n\t"                              \
+            "push %%r8\n\t"                               \
+            "push %%r9\n\t"                               \
+            "push %%r10\n\t"                              \
+            "push %%r11\n\t"                              \
+            "push %%r12\n\t"                              \
+            "push %%r13\n\t"                              \
+            "push %%r14\n\t"                              \
+            "push %%r15\n\t"                              \
+                                                            \
+            /* store saved regs into the CTX_FRAME */      \
+            "mov %%r15,  0x00(%[c])\n\t"                   \
+            "mov %%r14,  0x08(%[c])\n\t"                   \
+            "mov %%r13,  0x10(%[c])\n\t"                   \
+            "mov %%r12,  0x18(%[c])\n\t"                   \
+            "mov %%r11,  0x20(%[c])\n\t"                   \
+            "mov %%r10,  0x28(%[c])\n\t"                   \
+            "mov %%r9,   0x30(%[c])\n\t"                   \
+            "mov %%r8,   0x38(%[c])\n\t"                   \
+            "mov %%rbp,  0x40(%[c])\n\t"                   \
+            "mov %%rdi,  0x48(%[c])\n\t"                   \
+            "mov %%rsi,  0x50(%[c])\n\t"                   \
+            "mov %%rdx,  0x58(%[c])\n\t"                   \
+            "mov %%rcx,  0x60(%[c])\n\t"                   \
+            "mov %%rbx,  0x68(%[c])\n\t"                   \
+            "mov %%rax,  0x70(%[c])\n\t"                   \
+            /* RSP before the first push = (current RSP + 15*8) */ \
+            "lea 0x78(%%rax), %%rax\n\t" /* compute offset in-place */ \
+            "mov %%rax, 0x78(%[c])\n\t"                   \
+                                                            \
+            /* pop in reverse order */                     \
+            "pop  %%r15\n\t"                               \
+            "pop  %%r14\n\t"                               \
+            "pop  %%r13\n\t"                               \
+            "pop  %%r12\n\t"                               \
+            "pop  %%r11\n\t"                               \
+            "pop  %%r10\n\t"                               \
+            "pop  %%r9\n\t"                                \
+            "pop  %%r8\n\t"                                \
+            "pop  %%rbp\n\t"                               \
+            "pop  %%rdi\n\t"                               \
+            "pop  %%rsi\n\t"                               \
+            "pop  %%rdx\n\t"                               \
+            "pop  %%rcx\n\t"                               \
+            "pop  %%rbx\n\t"                               \
+            "pop  %%rax\n\t"                               \
+            :                                              \
+            : [c] "r" (ctx_ptr)     /* loads ctx_ptr into a temp reg */ \
+            : "memory"              /* we write to memory */         \
+        );                                                     \
+    } while (0)
+#else
+#define SAVE_CTX_FRAME(ctx_ptr) (void*)(0)
+#endif
+
 // instead of including kernel.h this time which causes problems, ill include each file I need.
 #include <stdbool.h>
 #include <stddef.h>
@@ -18,8 +88,10 @@
 #include "scheduler/scheduler.h"
 #include "thread/thread.h"
 
-/* Declaration to make compiler shut up :) */
-void read_context_frame(CTX_FRAME* frame);
+/// <summary>
+/// Read the current interrupt frame.
+/// </summary>
+/// <param name="frame">INT_FRAME pointer.</param>
 void read_interrupt_frame(INT_FRAME* frame);
 
 #ifndef UNREFERENCED_PARAMETER

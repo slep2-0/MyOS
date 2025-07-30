@@ -1,4 +1,4 @@
-; PROJECT:      MatanelOS Kernel
+﻿; PROJECT:      MatanelOS Kernel
 ; LICENSE:      GPLv3
 ; PURPOSE:      Corrected context switching routines.
 

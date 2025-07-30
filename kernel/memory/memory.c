@@ -7,18 +7,34 @@
 #include "../drivers/gop/gop.h"
 #include "../bugcheck/bugcheck.h"
 
+/// As my understanding of the memory fades with time, I will leave thorough comments for reminders.
+
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
 extern GOP_PARAMS gop_local;
 uintptr_t heap_current_end;
 
+/// <summary>
+/// Zeroes out the BSS section (garbage data that might have left there)
+/// </summary>
+/// <remarks>
+/// The function takes the start and end address of the `.bss` section (provided by the linker script),
+/// and iterates over each byte from the start address up to (but not including) the end address,
+/// writing zero to each location. This ensures all global/static variables without initializers are zeroed.
+/// </remarks>
 void zero_bss(void) {
     tracelast_func("zero_bss");
     uint8_t* p = &bss_start;
     while (p < &bss_end) *p++ = 0;
 }
 
-/* Initialize the free list to one big block spanning the heap */
+/// <summary>
+/// Initializes the Kernel's HEAP for dynamic memory allocation.
+/// </summary>
+/// <remarks>
+/// The function declares the globals for the heap current end, as well as setting up the free_list pointer.
+/// It first creates 1 initial 4KiB frame, maps it to be paged in virtual memory, and increases the heap current end by the frame size (4KiB), so that 1 starting page is allocated.
+/// </remarks>
 void init_heap(void) {
     heap_current_end = HEAP_START;
     free_list = (BLOCK_HEADER*)HEAP_START;
@@ -32,6 +48,12 @@ void init_heap(void) {
     heap_current_end += FRAME_SIZE;
 }
 
+/// <summary>
+/// IRQL Requirement: DISPATCH_LEVEL or below.
+/// 
+/// The function inserts the "newblock" parameter into the free_list in ascending order.
+/// </summary>
+/// <param name="newblock">The pointer to the new block to insert in ascending order e.g: (A -> A[A + 0x1000] -> NULL (or A[A + 0x2000])</param>
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
     tracelast_func("insert_block_sorted");
     enforce_max_irql(DISPATCH_LEVEL);
@@ -111,59 +133,62 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
     return dest;
 }
 
-/* Allocate `size` bytes, aligned to `align` bytes */
-// IRQL: Passive level minimum (for all memory operations, unless expansion)
+/// <summary>
+/// Allocate `size` bytes, aligned to `align` bytes.
+/// </summary>
+/// <param name="wanted_size">Amount of size to allocate memory in BYTES.</param>
+/// <param name="align">Alignment, align by your struct header (using alignof) OR use a normal one (e.g 64,128)</param>
+/// <returns></returns>
 void* kmalloc(size_t wanted_size, size_t align) {
     tracelast_func("kmalloc");
     enforce_max_irql(DISPATCH_LEVEL);
     /* Round up the requested size to satisfy alignment of payload */
     size_t payload_size = (wanted_size + align - 1) & ~(align - 1);
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
+    
+    // Infinite loop, either allocate the required memory, or bugcheck that we have ran out.
+    for (;;) {
+        // 1 - First fit search.
+        BLOCK_HEADER** cur = &free_list;
+        while (*cur) {
+            BLOCK_HEADER* blk = *cur;
 
-    /* First‑fit search through free list */
-    // A pointer to a pointer, since we also want the previous node (which is cur, a pointer to the next field of the previous node.)
-    BLOCK_HEADER** cur = &free_list;
-    while (*cur) {
-        BLOCK_HEADER* blk = *cur;
+            if (blk->size >= total_size) {
+                /* If the block is big enough to split */
+                if (blk->size >= total_size + sizeof(BLOCK_HEADER) + align) {
+                    /* Split off the tail into a new free block */
+                    BLOCK_HEADER* next_blk = (BLOCK_HEADER*)((uintptr_t)blk + total_size);
+                    next_blk->size = blk->size - total_size;
+                    next_blk->next = blk->next;
 
-        if (blk->size >= total_size) {
-            /* If the block is big enough to split */
-            if (blk->size >= total_size + sizeof(BLOCK_HEADER) + align) {
-                /* Split off the tail into a new free block */
-                BLOCK_HEADER* next_blk = (BLOCK_HEADER*)((uintptr_t)blk + total_size);
-                next_blk->size = blk->size - total_size;
-                next_blk->next = blk->next;
+                    /* Shrink current block to allocated size */
+                    blk->size = total_size;
+                    *cur = next_blk;
+                }
+                else {
+                    /* Use the entire block */
+                    *cur = blk->next;
+                }
 
-                /* Shrink current block to allocated size */
-                blk->size = total_size;
-                *cur = next_blk;
+                void* raw_ptr = (void*)(blk + 1);
+                void* aligned_ptr = align_up((void*)((uintptr_t)raw_ptr + sizeof(void*)), align);
+                ((BLOCK_HEADER**)aligned_ptr)[-1] = blk;
+                return aligned_ptr;
             }
-            else {
-                /* Use the entire block */
-                *cur = blk->next;
+
+            cur = &blk->next;
+        }
+
+        // 2 - No available block is found, grow by how many we need.
+        size_t pages_needed = (total_size + FRAME_SIZE - 1) / FRAME_SIZE; // Round up.
+        for (size_t i = 0; i < pages_needed; i++) {
+            if (!grow_heap_by_one_page()) {
+                bugcheck_system(NULL, NULL, MEMORY_LIMIT_REACHED, 0, false);
             }
-
-            void* raw_ptr = (void*)(blk + 1);
-            void* aligned_ptr = align_up((void*)((uintptr_t)raw_ptr + sizeof(void*)), align);
-            ((BLOCK_HEADER**)aligned_ptr)[-1] = blk;
-            return aligned_ptr;
         }
-
-        cur = &blk->next;
+        // We have grown the amount, retry.
+        continue;
     }
-    if (!*cur) {
-        // Out of memory, add new page maps.
-        bool grew = grow_heap_by_one_page();
-        if (!grew) {
-            bugcheck_system(NULL, NULL, HEAP_LIMIT_REACHED, 0, false);
-        }
-        if (heap_current_end + FRAME_SIZE <= HEAP_END && grew) {
-            // new block now, restart the kmalloc.
-            return kmalloc(wanted_size, align);
-        }
-    }
-    // No physical memory left.
-    return NULL;
 }
 
 /* Merge adjacent free blocks to reduce fragmentation */

@@ -24,7 +24,7 @@ void register_block_device(BLOCK_DEVICE* dev) {
     else {
         // too many!
         CTX_FRAME ctx;
-        read_context_frame(&ctx);
+        SAVE_CTX_FRAME(&ctx);
         bugcheck_system(&ctx, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
     }
 }
