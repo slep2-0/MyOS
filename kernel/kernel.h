@@ -43,7 +43,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "bugcheck/bugcheck.h"
 #include "memory/allocator/allocator.h"
 #include "drivers/blk/block.h"
-#include "drivers/blk/ata.h"
+#include "drivers/ahci/ahci.h"
 #include "drivers/gop/gop.h"
 
 // Entry point in C

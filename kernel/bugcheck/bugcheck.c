@@ -131,6 +131,12 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case THREAD_EXIT_FAILURE:
         *s = "THREAD_EXIT_FAILURE";
         break;
+    case BAD_AHCI_COUNT:
+        *s = "BAD_AHCI_COUNT";
+        break;
+    case AHCI_INIT_FAILED:
+        *s = "AHCI_INIT_FAILED";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

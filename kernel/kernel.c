@@ -9,6 +9,13 @@
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
 #endif
 
+#ifndef _MSC_VER
+_Static_assert(sizeof(void*) == 9, "ALLOC_FRAME HAS A SEVERE PROBLEM! KMALLOC WONT WORK AND THATS WHY AHCI.C DIDN'T WORK");
+#endif
+
+#define MAX_AHCI_CONTROLLERS 32
+uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
+
 GOP_PARAMS gop_local;
 BOOT_INFO boot_info_local;
 
@@ -62,6 +69,14 @@ void init_boot_info(BOOT_INFO* boot_info) {
 
     copy_memory_map(boot_info);
     copy_gop(boot_info);
+    if (boot_info->AhciCount > MAX_AHCI_CONTROLLERS) {
+        bugcheck_system(NULL, NULL, BAD_AHCI_COUNT, 0, false);
+    }
+    for (uint32_t i = 0; i < boot_info->AhciCount; i++) {
+        ahci_bases_local[i] = boot_info->AhciBarBases[i];
+    }
+    boot_info_local.AhciBarBases = ahci_bases_local;
+    boot_info_local.AhciCount = boot_info->AhciCount;
 }
 
 void InitCPU(void) {
@@ -111,6 +126,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     zero_bss();
     // Create the local boot struct.
     init_boot_info(boot_info);
+    gop_clear_screen(&gop_local, 0);
     // Initialize the global CPU struct.
     InitCPU();
     // Initialize the frame bitmaps for dynamic frame allocation.
@@ -119,10 +135,16 @@ void kernel_main(BOOT_INFO* boot_info) {
     paging_init();
     // Initialize interrupts & exceptions.
     init_interrupts();
-    // Finally, initialize our heap for memory allocation (like threads, processes, sturcts..)
+    // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
-    // Initialize ATA, will soon be unused & replaced & deleted.
-    ata_init_primary();
+    
+    gop_printf(&gop_local, 0xFFFFFF00,
+        "AHCI count = %u, BAR[0] = %p\n",
+        boot_info_local.AhciCount,
+        *boot_info_local.AhciBarBases);
+    _SetIRQL(HIGH_LEVEL);
+    __hlt();
+    
     _SetIRQL(PASSIVE_LEVEL);
     /* Initiate Scheduler and DPCs */
     InitScheduler();
@@ -130,6 +152,17 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_timer(100);
 
     __sti(); // only now enable interrupts
+    
+    // Initialize AHCI now.
+    if (!ahci_init()) {
+        //CTX_FRAME ctxfr;
+        //read_context_frame(&ctxfr);
+        //bugcheck_system(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
+        gop_clear_screen(&gop_local, 0);
+        gop_printf(&gop_local, 0xFFFF0000, "AHCI INIT FAILED!!!!!!!!!!!!!!!!!!");
+    }
+    gop_clear_screen(&gop_local, 0xFF00FF00);
+
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
@@ -146,11 +179,20 @@ void kernel_main(BOOT_INFO* boot_info) {
     void* buf5 = kmalloc(64, 16);
     gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
 #ifdef CAUSE_BUGCHECK
-    CTX_FRAME regs;
-    read_context_frame(&regs);
-    bugcheck_system(&regs, 0, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+    //CTX_FRAME regs;
+    //read_context_frame(&regs);
+    bugcheck_system(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
-    
+    /*
+    if (!fat32_init(0)) {
+        //CTX_FRAME ctxfr;
+        //read_context_frame(&ctxfr);
+        //bugcheck_system(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
+        gop_clear_screen(&gop_local, 0);
+        gop_printf(&gop_local, 0xFFFF0000, "FILESYSTEM PANIC!!!!!!!!!!!!!!!!!!");
+    }
+    fat32_list_root();
+    */
     CREATE_THREAD(mainThread, test, NULL, true);
     //CREATE_THREAD(workerThread, kernel_idle_checks, NULL, true);
     while (1) {

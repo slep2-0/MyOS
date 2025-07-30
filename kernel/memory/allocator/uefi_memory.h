@@ -32,21 +32,25 @@ typedef struct _GOP_PARAMS {
 typedef struct _BOOT_INFO {
     GOP_PARAMS* Gop;
     EFI_MEMORY_DESCRIPTOR* MemoryMap;
-    size_t                    MapSize;        // Changed from UINTN to size_t
-    size_t                    DescriptorSize; // Changed from UINTN to size_t
+    size_t                    MapSize;       
+    size_t                    DescriptorSize;
     uint32_t                  DescriptorVersion;
-    BLOCK_DEVICE*             DiskDevice;
+    size_t                  AhciCount;
+    uint64_t*                 AhciBarBases;
 } BOOT_INFO;
+#ifndef _MSC_VER 
+_Static_assert(sizeof(BOOT_INFO) == 56, "Size of BOOT_INFO doesn't equal 56 bytes. Update the struct.");
+#endif
 
 // Memory types (we only need ConventionalMemory here)
 #define EfiReservedMemoryType          0
 #define EfiLoaderCode                  1
 #define EfiLoaderData                  2
-#define EfiBootServicesCode            3
-#define EfiBootServicesData            4
+#define EfiBootServicesCode            3 /// USABLE MEMORY (thank you reactOS)
+#define EfiBootServicesData            4 /// USABLE MEMORY (thank you reactOS)
 #define EfiRuntimeServicesCode         5
 #define EfiRuntimeServicesData         6
-#define EfiConventionalMemory          7
+#define EfiConventionalMemory          7 /// USABLE MEMORY
 // ... other types omitted for brevity
 
 extern BOOT_INFO boot_info_local;

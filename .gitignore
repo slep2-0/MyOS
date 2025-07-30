@@ -32,6 +32,8 @@ obj/
 /tools/
 /tools64/
 /tools64_bak/
+uefiboot/
+/uefiboot/
 
 # Ignore temporary files
 *.tmp

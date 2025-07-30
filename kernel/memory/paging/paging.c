@@ -7,10 +7,16 @@
 #include "paging.h"
 #include "../../interrupts/idt.h"
 #include "../memory.h"
+#include "../../drivers/ahci/ahci.h"
 
  // Constants for x86_64 paging
 #define PAGE_ENTRIES        512
 #define PAGE_SIZE_4K        0x1000
+
+// Constants for aligning paging for AHCI
+#define PAGE_MASK        0xFFFULL
+#define PAGE_ALIGN_DOWN(x)  ((x) & ~PAGE_MASK)
+#define PAGE_ALIGN_UP(x)    (((x) + PAGE_MASK) & ~PAGE_MASK)
 
 // Extern symbols for bootloader-allocated pages, or allocate dynamically in your kernel
 extern uint64_t __pml4_start[]; // Allocate this page aligned to 4KiB
@@ -52,8 +58,10 @@ static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
     tracelast_func("map_range_identity");
     enforce_max_irql(PASSIVE_LEVEL);
-    for (uint64_t addr = start; addr < end; addr += PAGE_SIZE_4K) {
-        map_page((void*)addr, (void*)addr, flags);
+    uint64_t va = PAGE_ALIGN_DOWN(start);
+    uint64_t last = PAGE_ALIGN_UP(end);
+    for (; va < last; va += PAGE_SIZE_4K) {
+        map_page((void*)va, (void*)va, flags);
     }
 }
 
@@ -74,9 +82,7 @@ void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
 //
 
 extern GOP_PARAMS gop_local;
-
-
-
+extern BOOT_INFO boot_info_local;
 
 void paging_init(void) {
     tracelast_func("paging_init");
@@ -105,23 +111,40 @@ void paging_init(void) {
         (uintptr_t)&kernel_end + 1,
         flags);
 
-    extern uint8_t __stack_start[], __stack_end[];
+    extern uint8_t __stack_start[], __stack_end[]; /// Note to self: since they stack start and end have an array start, they are decayed into pointers automatically and so & isn't needed.
     map_range_identity((uintptr_t)__stack_start,
         (uintptr_t)__stack_end,
         flags);
 
-    {
-        uint64_t fb = gop_local.FrameBufferBase;
-        uint64_t end = fb + gop_local.FrameBufferSize;
-        map_range_identity(fb, end, flags);
+    uint64_t fb = gop_local.FrameBufferBase;
+    uint64_t end = fb + gop_local.FrameBufferSize;
+    map_range_identity(fb, end, flags);
+    
+    extern uint64_t ahci_bases_local[32];
+    uintptr_t bar_arr = (uintptr_t)ahci_bases_local;
+    uintptr_t bar_arr_end = bar_arr + sizeof(uint64_t) * boot_info_local.AhciCount;
+    map_range_identity(bar_arr, bar_arr_end, flags);
+
+    for (uint32_t i = 0; i < boot_info_local.AhciCount; i++) {
+        uint64_t base = boot_info_local.AhciBarBases[i];
+
+        // AHCI BARs are usually 1 page or 2 pages (4KiB or 8KiB); we'll map 2 pages for now.
+        map_range_identity(base, base + 0x2000, flags);
     }
+#ifdef DEBUG
+    for (uint32_t i = 0; i < boot_info_local.AhciCount; i++) {
+        uint64_t base = boot_info_local.AhciBarBases[i];
+        gop_printf(&gop_local, 0xFFFFFF00, "Mapped AHCI BAR %u at %p -> %p\n",
+            i, base, base + 0x2000);
+    }
+#endif
 
     extern IDT_ENTRY64 IDT[];
     map_range_identity((uintptr_t)IDT,
         (uintptr_t)IDT + sizeof(IDT_ENTRY64) * IDT_ENTRIES,
         flags);
 
-    // …then load CR3 and enable paging as before…
+    // then load CR3 and enable paging.
     enable_paging((uint64_t)pml4);
 }
 

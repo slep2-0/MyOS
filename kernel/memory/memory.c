@@ -29,6 +29,14 @@ void init_heap(void) {
     free_list = (BLOCK_HEADER*)start;
     free_list->size = total;
     free_list->next = NULL;
+
+    /// Map the first page.
+    /*
+    void* phys = alloc_frame();
+    map_page((void*)HEAP_START, phys, PAGE_PRESENT | PAGE_RW);
+    kmemset((void*)HEAP_START, 0, FRAME_SIZE);
+    heap_current_end += FRAME_SIZE;
+    */
 }
 
 

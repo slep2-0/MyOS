@@ -47,7 +47,7 @@ void frame_bitmap_init(void) {
     for (size_t i = 0; i < entry_count; ++i) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)
             ((uint8_t*)boot_info_local.MemoryMap + i * boot_info_local.DescriptorSize);
-        if (desc->Type == EfiConventionalMemory) {
+        if (classify(desc->Type)) {
             uintptr_t base = desc->PhysicalStart;
             uint64_t pages = desc->NumberOfPages;
             for (uint64_t p = 0; p < pages; ++p) {
@@ -56,6 +56,15 @@ void frame_bitmap_init(void) {
                 clear_frame(frame);
             }
         }
+    }
+
+    // 4. reserve the page‑tables region itself
+    uintptr_t pt_base = (uintptr_t)&__pt_start;
+    uintptr_t pt_end = (uintptr_t)&__pt_end;
+    size_t    first_pt_frame = pt_base / FRAME_SIZE;
+    size_t    last_pt_frame = (pt_end + FRAME_SIZE - 1) / FRAME_SIZE;
+    for (size_t f = first_pt_frame; f < last_pt_frame; ++f) {
+        set_frame(f);
     }
 }
 

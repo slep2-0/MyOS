@@ -6,7 +6,7 @@
 
 #include "block.h"
 
-#define MAX_BLK_DEV 4
+#define MAX_BLK_DEV 32 // AHCI is a maximum of 32, anymore than that and we bugcheck.
 
 static BLOCK_DEVICE* devices[MAX_BLK_DEV];
 extern GOP_PARAMS gop_local;
@@ -23,7 +23,9 @@ void register_block_device(BLOCK_DEVICE* dev) {
     }
     else {
         // too many!
-        bugcheck_system(NULL, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
+        CTX_FRAME ctx;
+        read_context_frame(&ctx);
+        bugcheck_system(&ctx, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
     }
 }
 
