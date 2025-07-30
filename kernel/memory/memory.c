@@ -183,7 +183,9 @@ void* kmalloc(size_t wanted_size, size_t align) {
         size_t pages_needed = (total_size + FRAME_SIZE - 1) / FRAME_SIZE; // Round up.
         for (size_t i = 0; i < pages_needed; i++) {
             if (!grow_heap_by_one_page()) {
-                bugcheck_system(NULL, NULL, MEMORY_LIMIT_REACHED, 0, false);
+                CTX_FRAME ctx;
+                SAVE_CTX_FRAME(&ctx);
+                bugcheck_system(&ctx, NULL, MEMORY_LIMIT_REACHED, 0, false);
             }
         }
         // We have grown the amount, retry.

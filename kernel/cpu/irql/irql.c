@@ -75,7 +75,9 @@ void LowerIRQL(IRQL new_irql) {
 
     if (new_irql > cpu.currentIrql) {
         // You cannot "lower" to a higher level. This is a fatal kernel bug.
-        bugcheck_system(NULL, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 
     cpu.currentIrql = new_irql;

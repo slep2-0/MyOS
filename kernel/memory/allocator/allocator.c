@@ -8,7 +8,9 @@ static inline void set_frame(size_t frame) {
     tracelast_func("set_frame");
     enforce_max_irql(PASSIVE_LEVEL);
     if (frame >= MAX_FRAMES) {
-        bugcheck_system(NULL, NULL, FRAME_LIMIT_REACHED, 0, false);
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        bugcheck_system(&ctx, NULL, FRAME_LIMIT_REACHED, 0, false);
     }
     frame_bitmap[frame / 8] |= (uint8_t)(1 << (frame % 8));
 }

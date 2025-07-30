@@ -41,8 +41,10 @@ static uint64_t* allocate_page_table(void) {
     // 2) otherwise fall back on the frame‐bitmap
     void* phys = alloc_frame();
     if (!phys) {
-        bugcheck_system(NULL, NULL, BAD_PAGING, 0, false);
-        return NULL;
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        bugcheck_system(&ctx, NULL, BAD_PAGING, 0, false);
+        return NULL; //shouldn't reach here.
     }
     // zero it before use
     kmemset(phys, 0, PAGE_SIZE_4K);
