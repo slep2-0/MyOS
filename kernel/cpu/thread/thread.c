@@ -9,12 +9,25 @@ static void remove_thread_from_queue(Queue* q, Thread* target) {
     Thread* cur = q->head;
     while (cur) {
         if (cur == target) {
-            if (prev)         prev->nextThread = cur->nextThread;
-            else              q->head = cur->nextThread;
-            if (q->tail == cur) q->tail = prev;
+            // If previous, skip it over our thread.
+            if (prev) {
+                prev->nextThread = cur->nextThread;
+            }
+            // No previous but this is the target, we are in the head of the queue, make the new head skip us.
+            else {
+                q->head = cur->nextThread;
+            }
+            // We are at the end of the queue, the new end is the previous.
+            if (q->tail == cur) {
+                q->tail = prev;
+            }
+            
+            // Any access to the thread nextThread will result in NULLPTR DEREFERENCE. (dangling pointer)
             target->nextThread = NULL;
             return;
         }
+        
+        // Advance.
         prev = cur;
         cur = cur->nextThread;
     }
@@ -47,18 +60,20 @@ static void ThreadExit(Thread* thread) {
     MtBugcheck(&next->registers, NULL, THREAD_EXIT_FAILURE, 0, false);
 }
 
-static void ThreadWrapper(void (*thread_entry)(void), Thread* thread) {
-    thread_entry();
+static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameters, Thread* thread) {
+    // thread_entry(parameters) -> void func(void*)
+    thread_entry(parameters); // If thread entry takes no parameters, passing NULL is still fine.
     /// When the thread finishes execution, it will go to ThreadExit to manage cleanup.
     ThreadExit(thread);
 }
 
-void MtCreateThread(void(*entry)(void), bool kernelThread) {
+void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameters, bool kernelThread) {
     if (!kernelThread) {
         /// TODO implement user mode.
         return;
     }
-    // Allocate a new thread.
+
+    // First, allocate a new thread.
     Thread* thread = MtAllocateMemory(sizeof(Thread), _Alignof(Thread));
     if (!thread) {
         CTX_FRAME ctx;
@@ -72,17 +87,21 @@ void MtCreateThread(void(*entry)(void), bool kernelThread) {
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
+    /// For when we context switch (this is why cfm is in stackTop), set the registers to all 0. (since the stack for the thread holds the registers when we context switch)
     uint8_t* sp = (uint8_t*)stackTop;
     sp -= sizeof(CTX_FRAME);
     CTX_FRAME* cfm = (CTX_FRAME*)sp;
 
     kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
 
+    /// Here comes the actual part that separates between the normal and Ex version of creating the thread. - Remmber to use System V ABI as this is GCC.
     cfm->rsp = (uint64_t)sp;
-    cfm->rip = (uint64_t)ThreadWrapper; /// We use System-V ABI, which pushes register parameters in this order: rdi, rsi, rdx, rcx, r8, and r9
-    cfm->rdi = (uint64_t)entry;   // first argument to ThreadWrapper
-    cfm->rsi = (uint64_t)thread;  // second argument to ThreadWrapper
+    cfm->rip = (uint64_t)ThreadWrapperEx;
+    cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
+    cfm->rsi = (uint64_t)parameters; // second arugment to ThreadWrapperEx (the parameter pointer)
+    cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
 
+    // Set it's registers.
     thread->registers = *cfm;
     thread->threadState = READY;
     enqueue(&cpu.readyQueue, thread);

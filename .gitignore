@@ -17,6 +17,8 @@
 *.txt
 *.sh
 *.bash
+*.i
+*.s
 
 # Ignore all build output folders (adjust paths if needed)
 tools/buildtools/cross-compiler-gcc/bin/

@@ -191,7 +191,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
     fat32_list_root();
     */
-    MtCreateThread(test, true);
+    MtCreateThread((ThreadEntry)test, NULL, true);
     //CREATE_THREAD(workerThread, kernel_idle_checks, NULL, true);
     while (1) {
         __hlt();
