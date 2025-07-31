@@ -7,6 +7,27 @@
 #ifndef X86_GOP_DRIVER_H
 #define X86_GOP_DRIVER_H
 
+/// Colors definitions for easier access
+#define COLOR_RED        0xFFFF0000
+#define COLOR_GREEN      0xFF00FF00
+#define COLOR_BLUE       0xFF0000FF
+#define COLOR_WHITE      0xFFFFFFFF
+#define COLOR_BLACK      0xFF000000
+#define COLOR_YELLOW     0xFFFFFF00
+#define COLOR_CYAN       0xFF00FFFF
+#define COLOR_MAGENTA    0xFFFF00FF
+#define COLOR_GRAY       0xFF808080
+#define COLOR_DARK_GRAY  0xFF404040
+#define COLOR_LIGHT_GRAY 0xFFD3D3D3
+#define COLOR_ORANGE     0xFFFFA500
+#define COLOR_BROWN      0xFFA52A2A
+#define COLOR_PURPLE     0xFF800080
+#define COLOR_PINK       0xFFFFC0CB
+#define COLOR_LIME       0xFF32CD32
+#define COLOR_NAVY       0xFF000080
+#define COLOR_TEAL       0xFF008080
+#define COLOR_OLIVE      0xFF808000
+
  // Standard headers, required.
 #include <stddef.h>
 #include <stdbool.h>
@@ -31,7 +52,7 @@ static inline uint32_t line_height(void) { return 16 * FONT_SCALE; }
 void draw_char(GOP_PARAMS* gop, char c, uint32_t x, uint32_t y, uint32_t color);
 void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color);
 
-void gop_printf(GOP_PARAMS* gop, uint32_t color, const char* fmt, ...);
+void gop_printf(uint32_t color, const char* fmt, ...);
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color);
 void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color);
 void gop_scroll(GOP_PARAMS* gop);

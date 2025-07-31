@@ -44,7 +44,7 @@ static void ThreadExit(Thread* thread) {
     restore_context(&next->registers);
 
     // should never get here
-    bugcheck_system(&next->registers, NULL, THREAD_EXIT_FAILURE, 0, false);
+    MtBugcheck(&next->registers, NULL, THREAD_EXIT_FAILURE, 0, false);
 }
 
 static void ThreadWrapper(void (*thread_entry)(void), Thread* thread) {
@@ -53,12 +53,25 @@ static void ThreadWrapper(void (*thread_entry)(void), Thread* thread) {
     ThreadExit(thread);
 }
 
-void CreateThread(Thread* thread, void(*entry)(void), void* stackTop, bool kernelThread) {
+void MtCreateThread(void(*entry)(void), bool kernelThread) {
     if (!kernelThread) {
-        thread->threadState = TERMINATED;
+        /// TODO implement user mode.
         return;
     }
-
+    // Allocate a new thread.
+    Thread* thread = MtAllocateMemory(sizeof(Thread), _Alignof(Thread));
+    if (!thread) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
+    }
+    // Allocate a stackTop for the thread.
+    void* stackTop = MtAllocateMemory(4096, 16);
+    if (!stackTop) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
+    }
     uint8_t* sp = (uint8_t*)stackTop;
     sp -= sizeof(CTX_FRAME);
     CTX_FRAME* cfm = (CTX_FRAME*)sp;

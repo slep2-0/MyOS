@@ -35,12 +35,12 @@ void update_pic_mask_for_current_irql(void) {
     }
 }
 
-void GetCurrentIRQL(IRQL* out) {
+void MtGetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
     if (out) *out = cpu.currentIrql;
 }
 
-void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
+void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     tracelast_func("RaiseIRQL");
 
     // It's good practice to disable interrupts for the duration of the change.
@@ -56,7 +56,7 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         // You cannot "raise" to a lower level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 
     cpu.currentIrql = new_irql;
@@ -67,7 +67,7 @@ void RaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     __sti();
 }
 
-void LowerIRQL(IRQL new_irql) {
+void MtLowerIRQL(IRQL new_irql) {
     tracelast_func("LowerIRQL");
 
     // Atomically update the IRQL and PIC mask.
@@ -77,7 +77,7 @@ void LowerIRQL(IRQL new_irql) {
         // You cannot "lower" to a higher level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 
     cpu.currentIrql = new_irql;
@@ -89,7 +89,7 @@ void LowerIRQL(IRQL new_irql) {
 }
 
 // This function should be used sparingly, only during initialization.
-void _SetIRQL(IRQL new_irql) {
+void _MtSetIRQL(IRQL new_irql) {
     tracelast_func("_SetIRQL");
     __cli();
     cpu.currentIrql = new_irql;
@@ -102,6 +102,6 @@ void enforce_max_irql(IRQL max_allowed) {
     if (cpu.currentIrql > max_allowed) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
     }
 }

@@ -18,14 +18,14 @@ extern CPU cpu;
 // Functions
 void update_pic_mask_for_current_irql(void);
 
-void GetCurrentIRQL(IRQL* current_irql);
+void MtGetCurrentIRQL(IRQL* current_irql);
 
-void RaiseIRQL(IRQL new_irql, IRQL* old_irql);
+void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql);
 
-void LowerIRQL(IRQL new_irql);
+void MtLowerIRQL(IRQL new_irql);
 
 // Use carefully, non careful use could halt machine.
-void _SetIRQL(IRQL new_irql);
+void _MtSetIRQL(IRQL new_irql);
 
 void enforce_max_irql(IRQL max_allowed);
 

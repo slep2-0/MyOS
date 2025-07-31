@@ -117,7 +117,7 @@ typedef enum _DPC_KIND {
 } DPC_KIND;
 
 typedef struct _DPC {
-    DPC* Next; // Next DPC in the pending queue.
+    volatile DPC* Next; // Next DPC in the pending queue.
     void (*callbackWithCtx)(void* ctx); // Callback entry for this DPC, along with context register info.
     void (*callback)(void); /// Callback without any CONTEXT (no registers), used to invoke DPC's like scheduler.
     CTX_FRAME* ctx; // Caller supplied context pointer (registers)

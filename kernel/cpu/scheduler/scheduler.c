@@ -62,10 +62,11 @@ void Schedule(void) {
         isScheduleDpcQueued = false;
     }
     IRQL oldIrql;
-    RaiseIRQL(DISPATCH_LEVEL, &oldIrql);
+    MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
     Thread* prev = cpu.currentThread;
     if (prev != &idleThread) {
+        __asm__ __volatile__("" ::: "memory");     // fence-before
         save_context(&prev->registers);
         // Only enqueue non-idle
         enqueue_runnable(prev);
@@ -78,7 +79,8 @@ void Schedule(void) {
 
     next->threadState = RUNNING;
     cpu.currentThread = next;
-    LowerIRQL(oldIrql);
+    MtLowerIRQL(oldIrql);
+    __asm__ __volatile__("" ::: "memory");     // fence-mid
     restore_context(&next->registers);
 }
 

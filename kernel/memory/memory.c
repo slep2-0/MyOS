@@ -72,7 +72,24 @@ static void insert_block_sorted(BLOCK_HEADER* newblock) {
     current->next = newblock;
 }
 
-// Functions.
+/* Merge adjacent free blocks to reduce fragmentation */
+static void coalesce_free_list(void) {
+    tracelast_func("coalesce_free_list");
+    enforce_max_irql(DISPATCH_LEVEL);
+    BLOCK_HEADER* b = free_list;
+    while (b && b->next) {
+        uintptr_t end_of_b = (uintptr_t)b + b->size;
+        if (end_of_b == (uintptr_t)b->next) {
+            /* Adjacent: merge */
+            b->size += b->next->size;
+            b->next = b->next->next;
+        }
+        else {
+            b = b->next;
+        }
+    }
+}
+
 static bool grow_heap_by_one_page(void) {
     tracelast_func("grow_heap_by_one_page");
     enforce_max_irql(DISPATCH_LEVEL);
@@ -133,13 +150,7 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
     return dest;
 }
 
-/// <summary>
-/// Allocate `size` bytes, aligned to `align` bytes.
-/// </summary>
-/// <param name="wanted_size">Amount of size to allocate memory in BYTES.</param>
-/// <param name="align">Alignment, align by your struct header (using alignof) OR use a normal one (e.g 64,128)</param>
-/// <returns></returns>
-void* kmalloc(size_t wanted_size, size_t align) {
+void* MtAllocateMemory(size_t wanted_size, size_t align) {
     tracelast_func("kmalloc");
     enforce_max_irql(DISPATCH_LEVEL);
     /* Round up the requested size to satisfy alignment of payload */
@@ -173,6 +184,9 @@ void* kmalloc(size_t wanted_size, size_t align) {
                 void* raw_ptr = (void*)(blk + 1);
                 void* aligned_ptr = align_up((void*)((uintptr_t)raw_ptr + sizeof(void*)), align);
                 ((BLOCK_HEADER**)aligned_ptr)[-1] = blk;
+                /// Zero the new memory block out.
+                kmemset(aligned_ptr, 0, wanted_size);
+                // Return the newly allocated memory ptr.
                 return aligned_ptr;
             }
 
@@ -185,7 +199,7 @@ void* kmalloc(size_t wanted_size, size_t align) {
             if (!grow_heap_by_one_page()) {
                 CTX_FRAME ctx;
                 SAVE_CTX_FRAME(&ctx);
-                bugcheck_system(&ctx, NULL, MEMORY_LIMIT_REACHED, 0, false);
+                MtBugcheck(&ctx, NULL, MEMORY_LIMIT_REACHED, 0, false);
             }
         }
         // We have grown the amount, retry.
@@ -193,31 +207,12 @@ void* kmalloc(size_t wanted_size, size_t align) {
     }
 }
 
-/* Merge adjacent free blocks to reduce fragmentation */
-void coalesce_free_list(void) {
-    tracelast_func("coalesce_free_list");
-    enforce_max_irql(DISPATCH_LEVEL);
-    BLOCK_HEADER* b = free_list;
-    while (b && b->next) {
-        uintptr_t end_of_b = (uintptr_t)b + b->size;
-        if (end_of_b == (uintptr_t)b->next) {
-            /* Adjacent: merge */
-            b->size += b->next->size;
-            b->next = b->next->next;
-        }
-        else {
-            b = b->next;
-        }
-    }
-}
-
-/* Return a block to the free list */
-void kfree(void* ptr) {
+void MtFreeMemory(void* ptr) {
     tracelast_func("kfree");
     enforce_max_irql(DISPATCH_LEVEL);
     if (!ptr) {
 #ifdef DEBUG
-        gop_printf(&gop_local, 0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");
+        gop_printf(0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");
 #endif
         return;
     }
@@ -225,7 +220,7 @@ void kfree(void* ptr) {
     BLOCK_HEADER* blk = ((BLOCK_HEADER**)ptr)[-1];
    
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFFF00, "<-- KFREE() DEBUG --> blk: %p\n", blk);
+    gop_printf(0xFFFFFF00, "<-- KFREE() DEBUG --> blk: %p\n", blk);
 #endif
     /* Zero it out. */
     // FATAL ERROR BEFORE, it zeroed out the block metadata as well, so kmalloc didn't even know it existed.
@@ -235,8 +230,8 @@ void kfree(void* ptr) {
     /* Push it onto the free list */
     insert_block_sorted(blk);
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFFF00 ,"<-- KFREE() DEBUG --> ");
-    gop_printf(&gop_local, 0xFF00FFFF, "Pushed the block to the free list.\n");
+    gop_printf(0xFFFFFF00 ,"<-- KFREE() DEBUG --> ");
+    gop_printf(0xFF00FFFF, "Pushed the block to the free list.\n");
 #endif
     /* Optionally merge neighbors */
     coalesce_free_list();

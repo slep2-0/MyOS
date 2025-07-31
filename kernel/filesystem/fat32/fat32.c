@@ -104,14 +104,14 @@ void fat32_list_root(void) {
 				}
 
 				if (dir->attr == ATTR_LONG_NAME) {
-					// i don't support long names for now.
+					// we don't support long names for now.
 					continue;
 				}
 #ifdef DEBUG
-				gop_printf(&gop_local, 0xFF00FFFF, "Found: ");
+				gop_printf(0xFF00FFFF, "Found: ");
 				for (uint32_t k = 0; k < 11; k++)
-					gop_printf(&gop_local, 0xFFD3D3D3, "%c", dir->name[k]);
-				gop_printf(&gop_local, 0, "\n");
+					gop_printf(0xFFD3D3D3, "%c", dir->name[k]);
+				gop_printf(0, "\n");
 #endif
 			}
 		}

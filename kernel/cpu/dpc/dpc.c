@@ -7,15 +7,15 @@
 #include "dpc.h"
 #include "../../bugcheck/bugcheck.h"
 
-DPC* dpcQueueHead = NULL;
-DPC* dpcQueueTail = NULL;
+volatile DPC* dpcQueueHead = NULL;
+volatile DPC* dpcQueueTail = NULL;
 
 void init_dpc_system(void) {
 	tracelast_func("init_dpc_system");
 	dpcQueueHead = dpcQueueTail = NULL;
 }
 
-void queue_dpc(DPC* dpc) {
+void MtQueueDPC(volatile DPC* dpc) {
 	tracelast_func("queue_dpc");
 	if (!dpc) return;
 	dpc->Next = NULL;
@@ -35,7 +35,7 @@ void queue_dpc(DPC* dpc) {
 		return;
 	}
 	// else, find our insertion point.
-	DPC* cur = dpcQueueHead;
+	volatile DPC* cur = dpcQueueHead;
 	// Check each DPC entry for it's priority, and insert the DPC requested accordingly.
 	while (cur->Next && cur->Next->priority >= dpc->priority) {
 		cur = cur->Next;
@@ -55,11 +55,11 @@ void DispatchDPC(void) {
 	if (!dpcQueueHead) return;
 
 	IRQL oldIrql;
-	RaiseIRQL(DISPATCH_LEVEL, &oldIrql);
+	MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
 	// This loop will now complete, because TimerDPC no longer hijacks execution.
 	while (dpcQueueHead) {
-		DPC* d = dpcQueueHead;
+		volatile DPC* d = dpcQueueHead;
 		dpcQueueHead = d->Next;
 		if (!dpcQueueHead) {
 			dpcQueueTail = NULL;
@@ -75,7 +75,7 @@ void DispatchDPC(void) {
 	}
 
 	// Lower the IRQL *before* checking the reschedule flag.
-	LowerIRQL(oldIrql);
+	MtLowerIRQL(oldIrql);
 
 	// Now that we are back at a safe IRQL (PASSIVE_LEVEL\DISPATCH_LEVEL), check if we need to schedule.
 	if (reschedule_needed) {

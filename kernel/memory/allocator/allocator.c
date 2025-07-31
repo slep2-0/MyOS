@@ -10,7 +10,7 @@ static inline void set_frame(size_t frame) {
     if (frame >= MAX_FRAMES) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, FRAME_LIMIT_REACHED, 0, false);
+        MtBugcheck(&ctx, NULL, FRAME_LIMIT_REACHED, 0, false);
     }
     frame_bitmap[frame / 8] |= (uint8_t)(1 << (frame % 8));
 }
@@ -77,15 +77,8 @@ void* alloc_frame(void) {
     tracelast_func("alloc_frame");
     enforce_max_irql(PASSIVE_LEVEL);
     next_pt = (uint8_t*) & __pt_end;
-    // If we still have reserved pages, carve from there
-    /// Use the bitmap.
-    /*
-    if (next_pt + FRAME_SIZE <= (uint8_t*)&__pt_end) {
-        void* phys = next_pt;
-        next_pt += FRAME_SIZE;
-        return phys;
-    }
-    */
+
+    /// Removed reserved pages use, for safeguarding against memory corruption within the kernel.
 
     // Otherwise fall back on the bitmap (for heap allocations)
     for (size_t frame = 0; frame < MAX_FRAMES; ++frame) {

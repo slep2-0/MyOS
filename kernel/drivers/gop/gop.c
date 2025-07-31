@@ -160,7 +160,10 @@ void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     gop_puts(gop, buf, color);
 }
 
-void gop_printf(GOP_PARAMS* gop, uint32_t color, const char* fmt, ...) {
+extern GOP_PARAMS gop_local;
+
+void gop_printf(uint32_t color, const char* fmt, ...) {
+    GOP_PARAMS* gop = &gop_local;
     tracelast_func("gop_printf");
     va_list ap;
     va_start(ap, fmt);

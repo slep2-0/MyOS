@@ -43,7 +43,7 @@ static uint64_t* allocate_page_table(void) {
     if (!phys) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, BAD_PAGING, 0, false);
+        MtBugcheck(&ctx, NULL, BAD_PAGING, 0, false);
         return NULL; //shouldn't reach here.
     }
     // zero it before use
@@ -136,7 +136,7 @@ void paging_init(void) {
 #ifdef DEBUG
     for (uint32_t i = 0; i < boot_info_local.AhciCount; i++) {
         uint64_t base = boot_info_local.AhciBarBases[i];
-        gop_printf(&gop_local, 0xFFFFFF00, "Mapped AHCI BAR %u at %p -> %p\n",
+        gop_printf(0xFFFFFF00, "Mapped AHCI BAR %u at %p -> %p\n",
             i, base, base + 0x2000);
     }
 #endif

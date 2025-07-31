@@ -29,7 +29,7 @@ void InitScheduler(void);
 // Core schedule function; performs a context switch
 void Schedule(void);
 
-// Voluntarily relinquish CPU
+// Voluntarily relinquish CPU -- Alias to Schedule()
 void Yield(void);
 
 #endif // SCHEDULER_H

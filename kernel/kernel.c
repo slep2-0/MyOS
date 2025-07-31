@@ -22,8 +22,6 @@ bool isBugChecking = false;
 LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
 CPU cpu;
 
-// thread
-DECLARE_THREAD(mainThread, 4096)
 //DECLARE_THREAD(workerThread, 4096)
 /*
 Ended
@@ -36,7 +34,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
         // handle error, memory map too big
-        bugcheck_system(NULL, NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
+        MtBugcheck(NULL, NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
     }
 
     // Copy the entire memory map into the static buffer
@@ -66,7 +64,7 @@ void init_boot_info(BOOT_INFO* boot_info) {
     copy_memory_map(boot_info);
     copy_gop(boot_info);
     if (boot_info->AhciCount > MAX_AHCI_CONTROLLERS) {
-        bugcheck_system(NULL, NULL, BAD_AHCI_COUNT, 0, false);
+        MtBugcheck(NULL, NULL, BAD_AHCI_COUNT, 0, false);
     }
     for (uint32_t i = 0; i < boot_info->AhciCount; i++) {
         ahci_bases_local[i] = boot_info->AhciBarBases[i];
@@ -82,18 +80,18 @@ void InitCPU(void) {
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
 }
 
-extern DPC* dpcQueueHead;
+extern volatile DPC* dpcQueueHead;
 
 void kernel_idle_checks(void) {
-    static bool first_time = true;
+    static volatile bool first_time = true;
 
     if (first_time) {
         first_time = false;
-        gop_printf(&gop_local, 0xFF000FF0, "Reached the scheduler!\n");
+        gop_printf(0xFF000FF0, "Reached the scheduler!\n");
         for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
             /* delay loop */
         }
-        gop_printf(&gop_local, 0xFF000FF0, "**Ended Testing Thread Execution**\n");
+        gop_printf(0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
 
     while (1) {
@@ -107,12 +105,12 @@ void kernel_idle_checks(void) {
 void test(void);
 
 void test(void) {
-    gop_printf(&gop_local, 0xFF00FF00, "Hit Test!\n");
+    gop_printf(0xFF00FF00, "Hit Test!\n");
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFF; i++) {
         z++;
     }
-    gop_printf(&gop_local, 0xFFA020F0, "**Ended Test.**\n");
+    gop_printf(0xFFA020F0, "**Ended Test.**\n");
 }
 
 void kernel_main(BOOT_INFO* boot_info) {
@@ -133,7 +131,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_interrupts();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
-    _SetIRQL(PASSIVE_LEVEL);
+    _MtSetIRQL(PASSIVE_LEVEL);
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     init_dpc_system();
@@ -142,52 +140,58 @@ void kernel_main(BOOT_INFO* boot_info) {
     __sti(); // only now enable interrupts
     
     // Initialize AHCI now.
-    /*
     if (!ahci_init()) {
-        //CTX_FRAME ctxfr;
-        //read_context_frame(&ctxfr);
-        //bugcheck_system(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
-        gop_clear_screen(&gop_local, 0);
-        gop_printf(&gop_local, 0xFFFF0000, "AHCI INIT FAILED!!!!!!!!!!!!!!!!!!");
+        CTX_FRAME ctxfr;
+        SAVE_CTX_FRAME(&ctxfr);
+        MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
-    */
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
-    gop_printf(&gop_local, 0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
-    gop_printf(&gop_local, 0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
+    gop_printf(0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
+    gop_printf(0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
     // test if init heap works
-    void* buf = kmalloc(64, 16);
-    gop_printf(&gop_local, 0xFFFFFF00, "buf addr: %p\n", buf);
-    void* buf2 = kmalloc(128, 16);
-    gop_printf(&gop_local, 0xFFFFFF00, "buf2 addr: %p\n", buf2);
-    kfree(buf2);
-    void* buf3 = kmalloc(128, 16);
-    gop_printf(&gop_local, 0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
-    void* buf4 = kmalloc(2048, 16);
-    gop_printf(&gop_local, 0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
-    void* buf5 = kmalloc(64, 16);
-    gop_printf(&gop_local, 0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
-    void* buf6 = kmalloc(5000, 64);
-    gop_printf(&gop_local, 0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
-    void* buf7 = kmalloc(10000, 128);
-    gop_printf(&gop_local, 0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
-#ifndef CAUSE_BUGCHECK
+    void* buf = MtAllocateMemory(64, 16);
+    gop_printf(0xFFFFFF00, "buf addr: %p\n", buf);
+    void* buf2 = MtAllocateMemory(128, 16);
+    gop_printf(0xFFFFFF00, "buf2 addr: %p\n", buf2);
+    MtFreeMemory(buf2);
+    void* buf3 = MtAllocateMemory(128, 16);
+    gop_printf(0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
+    void* buf4 = MtAllocateMemory(2048, 16);
+    gop_printf(0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
+    void* buf5 = MtAllocateMemory(64, 16);
+    gop_printf(0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
+    void* buf6 = MtAllocateMemory(5000, 64);
+    gop_printf(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
+    void* buf7 = MtAllocateMemory(10000, 128);
+    gop_printf(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
+#ifdef CAUSE_BUGCHECK
     CTX_FRAME regs;
     SAVE_CTX_FRAME(&regs);
-    bugcheck_system(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+    MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
     /*
+    void* writebuf = MtAllocateMemory(512, 16);
+    gop_printf(COLOR_GREEN, "Attempting to read to writebuf...\n");
+    if (ahci_read_sector(get_block_device(0), 0, writebuf)) {
+        for (int i = 0; i < 512; i++) {
+            gop_printf(0xFFFFA500, "%d", ((uint8_t*)writebuf)[i]);
+        }
+    }
+    else {
+        gop_printf(COLOR_RED, "Could not read AHCI...\n");
+    }
+    */
+    /*
     if (!fat32_init(0)) {
-        //CTX_FRAME ctxfr;
-        //read_context_frame(&ctxfr);
-        //bugcheck_system(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
-        gop_clear_screen(&gop_local, 0);
-        gop_printf(&gop_local, 0xFFFF0000, "FILESYSTEM PANIC!!!!!!!!!!!!!!!!!!");
+        CTX_FRAME ctxfr;
+        SAVE_CTX_FRAME(&ctxfr);
+        bugcheck_system(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
     }
     fat32_list_root();
     */
-    CREATE_THREAD(mainThread, test, NULL, true);
+    MtCreateThread(test, true);
     //CREATE_THREAD(workerThread, kernel_idle_checks, NULL, true);
     while (1) {
         __hlt();

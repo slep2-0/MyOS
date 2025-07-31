@@ -9,13 +9,37 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 # Flags
 ASMFLAGS_ELF = -f elf64
 ASMFLAGS_BIN = -f bin
-# warning as errors ENABLED: -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align
-CFLAGS = -std=gnu11 -m64 -ffreestanding -c -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wcast-align -fdiagnostics-color=always -fdiagnostics-show-option -Wno-unused-function -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" -mcmodel=large -mno-red-zone -fno-pie -fno-pic
-LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
-ifeq ($(DEBUG), 1)
-    CFLAGS += -DDEBUG -g -O0
+# Base CFLAGS (no optimization level hardcoded here)
+CFLAGS = -std=gnu11 \
+         -m64 -ffreestanding -c \
+         -Wall -Wextra -Werror -Wmissing-prototypes \
+         -Wstrict-prototypes -Wshadow -Wcast-align \
+         -fdiagnostics-color=always \
+         -fdiagnostics-show-option \
+         -Wno-unused-function \
+         -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
+         -mcmodel=large -mno-red-zone -fno-pie -fno-pic
+
+# Scheduler special flags (frame-pointer and no tail-call)
+SCHED_EXTRA = -fno-omit-frame-pointer -fno-optimize-sibling-calls
+
+# Set optimization based on DEBUG
+ifeq ($(DEBUG),1)
+    CFLAGS += -DDEBUG -O0 -g
+else
+    CFLAGS += -O2
 endif
+
+# $(SCHED_CFLAGS) means no optimizations will be applied on the C file.
+ifeq ($(DEBUG),1)
+    SCHED_CFLAGS = $(CFLAGS) $(SCHED_EXTRA)
+else
+    SCHED_CFLAGS = $(filter-out -O2,$(CFLAGS)) $(SCHED_EXTRA)
+endif
+
+# Linker flags
+LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
 # Targets
 all: clearlog build/os-image.img
@@ -26,7 +50,7 @@ clearlog:
 clean:
 	rm -f build/*.o build/*.elf build/os-image.img
 
-# Compile C files
+# Compile C files with common CFLAGS
 build/kernel.o: kernel/kernel.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
@@ -74,24 +98,25 @@ build/fat32.o: kernel/filesystem/fat32/fat32.c
 build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-	
+
 build/irql.o: kernel/cpu/irql/irql.c
 	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
 build/scheduler.o: kernel/cpu/scheduler/scheduler.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-	
+
 build/dpc.o: kernel/cpu/dpc/dpc.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/dpc_list.o: kernel/cpu/dpc/dpc_list.c
+build/thread.o: kernel/cpu/thread/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/thread.o: kernel/cpu/thread/thread.c
+# DPC list can use common CFLAGS
+build/dpc_list.o: kernel/cpu/dpc/dpc_list.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
@@ -103,7 +128,7 @@ build/kernel_entry.o: kernel/kernel_entry.asm
 build/isr_stub.o: kernel/interrupts/isr_stub.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-	
+
 build/paging_asm.o: kernel/memory/paging/paging_asm.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
@@ -111,13 +136,17 @@ build/paging_asm.o: kernel/memory/paging/paging_asm.asm
 build/capture_registers.o: kernel/intrin/capture_registers.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-	
+
 build/context.o: kernel/cpu/scheduler/context.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o kernel/linker.ld
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
+                      build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
+                      build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
+                      build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o \
+                      kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

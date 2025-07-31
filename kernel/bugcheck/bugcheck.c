@@ -17,7 +17,7 @@ extern bool isBugChecking;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
-void print_lastfunc_chain(uint32_t color) {
+static void print_lastfunc_chain(uint32_t color) {
     // Start at the oldest entry: that's the slot `index` points to (next write).
     int idx = lastfunc_history.current_index;
 
@@ -28,9 +28,9 @@ void print_lastfunc_chain(uint32_t color) {
         char* name = (char*)lastfunc_history.names[idx];
         if (!*name) break;
         if (!first) {
-            gop_printf(&gop_local, color, " -> ");
+            gop_printf(color, " -> ");
         }
-        gop_printf(&gop_local, color, "%s", name);
+        gop_printf(color, "%s", name);
         first = false;
     }
 }
@@ -143,7 +143,7 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     }
 }
 
-void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
+void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
@@ -155,7 +155,7 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
     cursor_y = 0;
-    _SetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core.
+    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core.
 
 	// Clear the screen to blue (bsod windows style)
 	gop_clear_screen(&gop_local, 0xFF0035b8);
@@ -164,16 +164,16 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         err_code = NULL_POINTER_DEREFERENCE;
     }
 	// Write some debugging and an error message
-	gop_printf(&gop_local, 0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
-	gop_printf(&gop_local, 0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
+	gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
+	gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
     uint64_t rspIfExist = (context->rsp) ? context->rsp : 0;
-	gop_printf(&gop_local, 0xFFFFFFFF, "**STOP CODE: ");
-	gop_printf(&gop_local, 0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(&gop_local, 0xFF00FF00, " (numerical: %d)**", err_code);
+	gop_printf(0xFFFFFFFF, "**STOP CODE: ");
+	gop_printf(0xFF8B0000, "%s", stopCodeToStr);
+    gop_printf(0xFF00FF00, " (numerical: %d)**", err_code);
     if (context) {
-        gop_printf(&gop_local, 0xFFFFFFFF,
+        gop_printf(0xFFFFFFFF,
             "\n\nRegisters:\n\n"
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p\n\n"
@@ -198,11 +198,11 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         );
     }
 	else {
-        gop_printf(&gop_local, 0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
+        gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
 	}
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
     if (isThereIntFrame) {
-        gop_printf(&gop_local, (uint32_t)-1,
+        gop_printf((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %p\n\n"
             "RIP: %p CS: %p RFLAGS: %p\n",
@@ -214,21 +214,21 @@ void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES er
         );
     }
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFA500, "**Last IRQL: %d**", recordedIrql);
+    gop_printf(0xFFFFA500, "**Last IRQL: %d**", recordedIrql);
 #endif
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-            gop_printf(&gop_local, 0xFFFFA500, "\n\n\n**FAULTY ADDRESS: %p**", additional);
+            gop_printf(0xFFFFA500, "\n\n\n**FAULTY ADDRESS: %p**", additional);
 		}
 		else {
-            gop_printf(&gop_local, 0xFFBF40BF, "\n\n\n**ADDITIONALS: %p**", additional);
+            gop_printf(0xFFBF40BF, "\n\n\n**ADDITIONALS: %p**", additional);
 		}
 	}
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
-        gop_printf(&gop_local, 0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
+        gop_printf(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
         print_lastfunc_chain(0xFFBF40BF);
-        gop_printf(&gop_local, 0xFFBF40BF, "**");
+        gop_printf(0xFFBF40BF, "**");
     }
 #endif
 	//test

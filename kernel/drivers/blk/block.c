@@ -16,7 +16,7 @@ void register_block_device(BLOCK_DEVICE* dev) {
     tracelast_func("register_block_device");
     // print the index we’re about to use and the device pointer
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFFFFFF00, "Registering block #%d at %x\n", device_count, (uintptr_t)dev);
+    gop_printf(0xFFFFFF00, "Registering block #%d at %x\n", device_count, (uintptr_t)dev);
 #endif
     if (device_count < MAX_BLK_DEV) {
         devices[device_count++] = dev;
@@ -25,7 +25,7 @@ void register_block_device(BLOCK_DEVICE* dev) {
         // too many!
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        bugcheck_system(&ctx, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
+        MtBugcheck(&ctx, NULL, BLOCK_DEVICE_LIMIT_REACHED, 0, false);
     }
 }
 

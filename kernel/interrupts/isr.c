@@ -56,7 +56,7 @@ void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r) {
         debugsinglestep_handler(&ctx, &intfr);
         break;
     case EXCEPTION_NON_MASKABLE_INTERRUPT:
-        _SetIRQL(HIGH_LEVEL); // Non Maskable Interrupt - basically when the CPU encounters a hardware fault, cannot be masked, very alarming.
+        _MtSetIRQL(HIGH_LEVEL); // Non Maskable Interrupt - basically when the CPU encounters a hardware fault, cannot be masked, very alarming.
         nmi_handler(&ctx, &intfr);
         break;
     case EXCEPTION_BREAKPOINT:
@@ -102,32 +102,32 @@ void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r) {
         alignment_check_handler(&ctx, &intfr);
         break;
     case EXCEPTION_SEVERE_MACHINE_CHECK:
-        _SetIRQL(HIGH_LEVEL); // machine check, like NMI, high irql.
+        _MtSetIRQL(HIGH_LEVEL); // machine check, like NMI, high irql.
         severe_machine_check_handler(&ctx, &intfr);
         break;
     case TIMER_INTERRUPT:
-        RaiseIRQL(CLOCK_LEVEL, &oldIrql);
+        MtRaiseIRQL(CLOCK_LEVEL, &oldIrql);
         timer_handler();
-        LowerIRQL(oldIrql);
+        MtLowerIRQL(oldIrql);
         break;
     case KEYBOARD_INTERRUPT:
-        RaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
+        MtRaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
         keyboard_handler();
-        LowerIRQL(oldIrql);
+        MtLowerIRQL(oldIrql);
         break;
     case ATA_INTERRUPT:
-        RaiseIRQL(DIRQL_PRIMARY_ATA, &oldIrql);
+        MtRaiseIRQL(DIRQL_PRIMARY_ATA, &oldIrql);
         ata_handler();
-        LowerIRQL(oldIrql);
+        MtLowerIRQL(oldIrql);
         break;
     default:
-        gop_printf(&gop_local, 0xFFFF0000, "Interrupt Exception: ");
-        gop_printf(&gop_local, 0xFFFFFFFF, "%d\r\n", vec_num);
+        gop_printf(0xFFFF0000, "Interrupt Exception: ");
+        gop_printf(0xFFFFFFFF, "%d\r\n", vec_num);
         break;
     }
 }
 
 void init_interrupts() {
 	install_idt();
-    _SetIRQL(PASSIVE_LEVEL);
+    _MtSetIRQL(PASSIVE_LEVEL);
 }

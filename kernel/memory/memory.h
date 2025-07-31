@@ -49,11 +49,18 @@ void* kmemset(void* dest, int val, uint32_t len);
 /* Added Memcpy */
 void* kmemcpy(void* dest, const void* src, uint32_t len);
 
-/* Simple allocator/free */
-void* kmalloc(size_t size, size_t align);
-void kfree(void* ptr);
+/// <summary>
+/// Allocates a block of memory from the kernel’s memory manager.
+/// </summary>
+/// <param name="size">Size in bytes to allocate</param>
+/// <param name="align">Alignment for each byte block (use internal structs for process \ other - use _Alignof)</param>
+/// <returns>Pointer to start of allocated memory</returns>
+void* MtAllocateMemory(size_t size, size_t align);
 
-/* For debugging, merge adjacent free blocks */
-void coalesce_free_list(void);
+/// <summary>
+/// Releases (frees) a previously allocated block of memory back to the kernel’s memory manager.
+/// </summary>
+/// <param name="ptr">Pointer to the allocated memory block to free</param>
+void MtFreeMemory(void* ptr);
 
 #endif /* MEMORY_H */

@@ -57,14 +57,14 @@ static bool init_one_port(int idx) {
     if ((status & 0x0F) != 3) return false; // no device present
 
     // Allocate and zero CLB (1 KiB)
-    void* clb = kmalloc(1024, 1024);
+    void* clb = MtAllocateMemory(1024, 1024);
     if (!clb) return false;
     kmemset(clb, 0, 1024);
     p->clb = (uint32_t)(uintptr_t)clb;
     p->clbu = (uint32_t)((uintptr_t)clb >> 32);
 
     // Allocate and zero FIS receive buffer (256 B)
-    void* fis_buf = kmalloc(256, 256);
+    void* fis_buf = MtAllocateMemory(256, 256);
     if (!fis_buf) return false;
     kmemset(fis_buf, 0, 256);
     p->fb = (uint32_t)(uintptr_t)fis_buf;
@@ -72,7 +72,7 @@ static bool init_one_port(int idx) {
 
     // Allocate and zero Command Table buffers: 256 B × 32 slots
     size_t tbl_size = 256 * 32;
-    void* cmd_tbl = kmalloc(tbl_size, 256);
+    void* cmd_tbl = MtAllocateMemory(tbl_size, 256);
     if (!cmd_tbl) return false;
     kmemset(cmd_tbl, 0, tbl_size);
 
@@ -113,43 +113,22 @@ bool ahci_init(void) {
     uint64_t bar = boot_info_local.AhciBarBases[0];
     hba_mem = (HBA_MEM*)(uintptr_t)bar;
 #ifdef DEBUG
-    gop_printf(&gop_local, 0xFF00FFFF, "About to touch AHCI at %p\n", hba_mem);
+    gop_printf(0xFF00FFFF, "About to touch AHCI at %p\n", hba_mem);
 #endif
     enable_controller();
-    /*
-    gop_printf(&gop_local, 0xFF00FF00, "Reached after enable controller!");
-    __cli();
-    __hlt();
-    */
     port_count = 0; // Start from 0.
     uint32_t pi = hba_mem->pi;
-    /*
-    gop_printf(&gop_local, 0xFF00FF00, "Reached after pi hba mem!");
-    __cli();
-    __hlt();
-    */
-    // Initialize ports.
-    /// TEST TODO THAT KMALLOC DYNAMIC MEM WORKS!
 
-    void* testbuffer = kmalloc(4096, 128);
-    gop_printf(&gop_local, 0xFF00FF00, "KMalloc Works! Address: %p", testbuffer);
-    __cli();
-    __hlt();
     for (int idx = 0; idx < AHCI_MAX_PORTS; idx++) {
         if (pi & (1u << idx)) {
             init_one_port(idx);
         }
     }
-    gop_printf(&gop_local, 0xFF00FF00, "Reached after init_one_port!");
-    __cli();
-    __hlt();
+
     // Register ALL block devices.
     for (int i = 0; i < port_count; i++) {
         register_block_device(&ports[i].bdev);
     }
-    gop_printf(&gop_local, 0xFF00FF00, "Reached after register block device!");
-    __cli();
-    __hlt();
     return port_count > 0; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
 }
 
@@ -190,12 +169,22 @@ bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     // Issue the command.
     // The port listens in the command issue for new data.
     p->ci |= (1u << slot);
-
+    uint32_t i = 0;
     // Wait for completion
-    while (p->ci & (1u << slot));
+    while (p->ci & (1u << slot)) {
+        if (i == 100000000) {
+            break;
+        }
+        i++;
+    }
     // Clear interrupt flags
     p->is = p->is;
-
+    if (i == 100000000) {
+#ifdef DEBUG
+        gop_printf(0xFFFF0000, "Failed to read AHCI...\n");
+#endif
+        return false;
+    }
     return true;
 }
 

@@ -43,18 +43,17 @@ typedef enum _BUGCHECK_CODES {
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
     UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main
     FRAME_LIMIT_REACHED = 0xBADA55, // frame limit reached when trying to allocate a physical frame.
-    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // required for lowering IRQL that is already higher than the current IRQL (vice versa for increasing)
+    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // Access to functions while going over the max IRQL set for them. Or raising to lower \ lowering to higher IRQL than current IRQL.
     INVALID_IRQL_SUPPLIED = 0x69420,
     NULL_CTX_RECEIVED = 0xF1FA,
     THREAD_EXIT_FAILURE = 0x123123FF,
     BAD_AHCI_COUNT,
     AHCI_INIT_FAILED,
     MEMORY_LIMIT_REACHED,
+    HEAP_ALLOCATION_FAILED,
 } BUGCHECK_CODES;
 
 // Function to initiate bugcheck.
-void bugcheck_system(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
-
-void print_lastfunc_chain(uint32_t color);
+void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
 
 #endif

@@ -33,18 +33,16 @@
 ///   isKernel:    bool, true = kernel thread
 #define CREATE_THREAD(name, entry, parameter, isKernel)     \
     do {                                                     \
-        CreateThread(&name##_t,                              \
+        MtCreateThread(&name##_t,                              \
                      entry,                    \
                      name##_stack + sizeof(name##_stack),    \
                      (isKernel));                            \
     } while (0)
  /*
  *  -- Create a new thread:
- *  - `thread`: pointer to a Thread struct
  *  - `entry`: function entry point (no args)
- *  - `stackTop`: top of the thread's stack (stack grows downward)
  *  - 'kernelThread': specifies if the thread should be a kernel one or not.
  */
-void CreateThread(Thread* thread, void(*entry)(void), void* stackTop, bool kernelThread);
+void MtCreateThread(void(*entry)(void), bool kernelThread);
 
 #endif
