@@ -14,7 +14,7 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 **SUPPORTED FEATURES:**
 `64 BIT addressing (long mode) is now supported, along with it's equivalent features.`
 
-`Preemption - Kernel is fully preemptive using scheduling and kernel threads`
+`Preemption (bugged - hard fix) - Kernel is fully preemptive using scheduling and kernel threads`
 
 `DPC's (Deferred Procedure Call) - Used to defer execution to a later lower IRQL in the kernel, to avoid staying on a high interrupt IRQL (supports only timer isr for now)`
 
@@ -35,3 +35,4 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 `Userland`
 
 `life.`
+
