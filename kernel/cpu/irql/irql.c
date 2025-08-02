@@ -18,7 +18,10 @@ IRQL irq_irql[16] = {
 
 #define IRQ_LINES (sizeof(irq_irql) / sizeof(irq_irql[0]))
 
+// IMPORTANT: Before It didn't CLI and STI (disable/enable interrupts), on function call and return, so it corrupted the current IRQL (race condition via timer)
+
 void update_pic_mask_for_current_irql(void) {
+    __cli();
     IRQL level = cpu.currentIrql;
 
     // Mask any IRQ whose assigned IRQL is <= the current CPU IRQL.
@@ -31,26 +34,27 @@ void update_pic_mask_for_current_irql(void) {
             unmask_irq(i);
         }
     }
+    __sti();
 }
 
 void MtGetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
-    if (out) *out = cpu.currentIrql;
+    *out = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
 }
 
 void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
-    tracelast_func("RaiseIRQL");
-
     // It's good practice to disable interrupts for the duration of the change.
     // The CPU automatically does this when entering an ISR.
     // We do it here to ensure atomicity.
     __cli();
+    tracelast_func("RaiseIRQL");
 
     if (old_irql) {
         *old_irql = cpu.currentIrql;
     }
 
-    if (new_irql < cpu.currentIrql) {
+    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (new_irql < irql) {
         // You cannot "raise" to a lower level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -69,12 +73,12 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 }
 
 void MtLowerIRQL(IRQL new_irql) {
-    tracelast_func("LowerIRQL");
-
     // Atomically update the IRQL and PIC mask.
     __cli();
+    tracelast_func("LowerIRQL");
 
-    if (new_irql > cpu.currentIrql) {
+    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (new_irql > irql) {
         // You cannot "lower" to a higher level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -94,16 +98,18 @@ void MtLowerIRQL(IRQL new_irql) {
 
 // This function should be used sparingly, only during initialization.
 void _MtSetIRQL(IRQL new_irql) {
-    tracelast_func("_SetIRQL");
     __cli();
+    tracelast_func("_SetIRQL");
     cpu.currentIrql = new_irql;
     update_pic_mask_for_current_irql();
     __sti();
 }
 
 void enforce_max_irql(IRQL max_allowed) {
+    __cli();
     tracelast_func("enforce_max_irql");
-    if (cpu.currentIrql > max_allowed) {
+    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (irql > max_allowed) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
         BUGCHECK_ADDITIONALS addt;
@@ -111,4 +117,5 @@ void enforce_max_irql(IRQL max_allowed) {
         addt.str = "Function was called above it's maximum IRQL limit.";
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
+    __sti();
 }

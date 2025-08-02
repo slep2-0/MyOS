@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include "trace.h"
 
 // forward declarations, i don't think i need them.

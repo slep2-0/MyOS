@@ -96,16 +96,13 @@ void kernel_idle_checks(void) {
 
     while (1) {
         __hlt();
-        if (dpcQueueHead) {
-            DispatchDPC();
-        }
     }
 }
 
 static void test(void) {
     gop_printf(0xFF00FF00, "Hit Test!\n");
     volatile uint64_t z = 0;
-    for (uint64_t i = 0; i < 0xFFFFFFFFF; i++) {
+    for (uint64_t i = 0; i < 0xFFFFFF; i++) {
         z++;
     }
     gop_printf(0xFFA020F0, "**Ended Test.**\n");
@@ -114,7 +111,7 @@ static void test(void) {
 static void funcWithParam(int* integer) {
     gop_printf(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
     volatile uint64_t z = 0;
-    for (uint64_t i = 0; i < 0xFFFFFFFFF; i++) {
+    for (uint64_t i = 0; i < 0xFFFFFF; i++) {
         z++;
     }
     gop_printf(COLOR_OLIVE, "**Ended funcWithParam.**\n");

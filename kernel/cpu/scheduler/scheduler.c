@@ -8,7 +8,6 @@
 #include "../../bugcheck/bugcheck.h"
 
  // assembly stubs to save and restore register contexts.
-extern void save_context(CTX_FRAME* regs); // UNUSED.
 extern void restore_context(CTX_FRAME* regs);
 
 bool isScheduleDpcQueued = false;

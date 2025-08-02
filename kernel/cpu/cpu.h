@@ -81,6 +81,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include "cpu_types.h"
 #include "irql/irql.h"
 #include "dpc/dpc.h"

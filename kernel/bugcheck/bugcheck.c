@@ -148,6 +148,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case NULL_THREAD:
         *s = "NULL_THREAD";
         break;
+    case FATAL_IRQL_CORRUPTION:
+        *s = "FATAL_IRQL_CORRUPTION";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
