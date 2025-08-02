@@ -67,22 +67,7 @@ typedef struct _CTX_FRAME {
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
     uint64_t rsp;
     uint64_t rip;
-    // no more vector and err_num, since it's better for clarity now.
 } CTX_FRAME;
-#pragma pack(pop)
-
-// In order for compatiblity with the interrupt service routines, and the stub. I'm still gonna retain the old REGS struct, with a different name.
-#pragma pack(push, 1)
-typedef struct _INTERRUPT_FULL_REGS {
-	uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
-	uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-    // HAS NO RSP, INTERRUPT MUST NOT USE IT!
-	uint64_t vector;
-	uint64_t error_code;
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-} INTERRUPT_FULL_REGS;
 #pragma pack(pop)
 
 typedef struct _Queue {
@@ -90,14 +75,40 @@ typedef struct _Queue {
 	Thread* tail;
 } Queue;
 
+#define TICK_MS 4
+
+/// <summary>
+/// Do not use for timeSlicing a thread.
+/// </summary>
+typedef enum _timeSliceMs {
+    DEFAULT_TIMESLICE_MS = 40, // Default.
+    LOW_TIMESLICE_MS = 16, // Low timeslice, for threads/processes with low-none impact on the system.
+    HIGH_TIMESLICE_MS = 100, // Most time to schedule, used for performance critical tasks.
+} timeSliceMs;
+
+/// <summary>
+/// Used to determine how much time in ms a thread should have before being involuntarily relinquished.
+/// </summary>
+typedef enum _timeSliceTicks {
+    LOW_TIMESLICE_TICKS = LOW_TIMESLICE_MS / TICK_MS,   // 4 MS
+    DEFAULT_TIMESLICE_TICKS = DEFAULT_TIMESLICE_MS / TICK_MS,   // 10 MS
+    HIGH_TIMESLICE_TICKS = HIGH_TIMESLICE_MS / TICK_MS,   // 25 MS
+} timeSliceTicks;
+
+#define THREAD_SIGNATURE 0xCAFEBABE
+
 typedef struct _Thread {
+    uint64_t magic; // MUST BE - 0xCAFEBABE 
 	// CPU Registers for context switching
 	CTX_FRAME registers;
 
 	// Scheduling metadata
 	THREAD_STATE threadState;
-	// Remaining ticks until switch.
-	///uint32_t timeSlice; /// TODO , is this used? -- IT IS NOT USED CURRENTLY - As the timer interrupt fires and queues a DPC, the timeSlice doesn't decide when the thread will yield, it's the same for each thread in the system - could be changed.
+
+    // Remaining ticks until switch.
+    timeSliceTicks timeSlice;
+    timeSliceTicks origTimeSlice;
+
 	Thread* nextThread; // For queue linking.
 	// TODO later: priority, affinity, wait list pointer, etc.
 } Thread;

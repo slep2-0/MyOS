@@ -102,15 +102,22 @@ void kernel_idle_checks(void) {
     }
 }
 
-void test(void);
-
-void test(void) {
+static void test(void) {
     gop_printf(0xFF00FF00, "Hit Test!\n");
     volatile uint64_t z = 0;
-    for (uint64_t i = 0; i < 0xFFF; i++) {
+    for (uint64_t i = 0; i < 0xFFFFFFFFF; i++) {
         z++;
     }
     gop_printf(0xFFA020F0, "**Ended Test.**\n");
+}
+
+static void funcWithParam(int* integer) {
+    gop_printf(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
+    volatile uint64_t z = 0;
+    for (uint64_t i = 0; i < 0xFFFFFFFFF; i++) {
+        z++;
+    }
+    gop_printf(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
 
 void kernel_main(BOOT_INFO* boot_info) {
@@ -191,12 +198,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
     fat32_list_root();
     */
-    MtCreateThread((ThreadEntry)test, NULL, true);
-    //CREATE_THREAD(workerThread, kernel_idle_checks, NULL, true);
-    while (1) {
-        __hlt();
-        if (dpcQueueHead) {
-            DispatchDPC();
-        }
-    }
+    MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
+    int integer = 1234;
+    MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true);
+
+    Schedule();
 }

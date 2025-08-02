@@ -7,7 +7,9 @@
 #include "bugcheck.h"
 #include "../trace.h"
 
+#ifndef NOTHING
 #define NOTHING
+#endif
 
 // We require GOP, so we extern it.
 extern GOP_PARAMS gop_local;
@@ -137,6 +139,15 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case AHCI_INIT_FAILED:
         *s = "AHCI_INIT_FAILED";
         break;
+    case MEMORY_LIMIT_REACHED:
+        *s = "MEMORY_LIMIT_REACHED";
+        break;
+    case HEAP_ALLOCATION_FAILED:
+        *s = "HEAP_ALLOCATION_FAILED";
+        break;
+    case NULL_THREAD:
+        *s = "NULL_THREAD";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -168,7 +179,10 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 	gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
-    uint64_t rspIfExist = (context->rsp) ? context->rsp : 0;
+    uint64_t rspIfExist;
+    if (context) {
+        rspIfExist = (context->rsp) ? context->rsp : (uint64_t)(-1);
+    }
 	gop_printf(0xFFFFFFFF, "**STOP CODE: ");
 	gop_printf(0xFF8B0000, "%s", stopCodeToStr);
     gop_printf(0xFF00FF00, " (numerical: %d)**", err_code);
@@ -176,7 +190,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         gop_printf(0xFFFFFFFF,
             "\n\nRegisters:\n\n"
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
-            "RSI: %p RDI: %p RBP: %p\n\n"
+            "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
             "R8 : %p R9 : %p R10: %p R11: %p \n\n"
             "R12: %p R13: %p R14: %p R15: %p\n\n\n",
             context->rax,
@@ -214,16 +228,122 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         );
     }
 #ifdef DEBUG
-    gop_printf(0xFFFFA500, "**Last IRQL: %d**", recordedIrql);
+    gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
 #endif
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-            gop_printf(0xFFFFA500, "\n\n\n**FAULTY ADDRESS: %p**", additional);
+            gop_printf(0xFFFFA500, "\n\n**FAULTY ADDRESS: %p**\n", additional);
 		}
 		else {
-            gop_printf(0xFFBF40BF, "\n\n\n**ADDITIONALS: %p**", additional);
+            gop_printf(0xFFBF40BF, "\n\n**ADDITIONALS: %p**\n", additional);
 		}
 	}
+#ifdef DEBUG
+    if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
+        gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest): ");
+        print_lastfunc_chain(0xFFBF40BF);
+        gop_printf(0xFFBF40BF, "**");
+    }
+#endif
+	//test
+    update_pic_mask_for_current_irql();
+    __cli();
+    // spin the CPU.
+    while (1) {
+        NOTHING;
+    }
+}
+
+
+void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, BUGCHECK_ADDITIONALS* additional, bool isAdditionals) {
+    // Critical system error, instead of triple faulting, we hang the system with specified error codes.
+    // Disable interrupts if they werent disabled before.
+    __cli();
+    isBugChecking = true;
+    bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
+#ifdef DEBUG
+    IRQL recordedIrql = cpu.currentIrql;
+#endif
+    // Force to be redrawn from the top, instead of last place.
+    cursor_x = 0;
+    cursor_y = 0;
+    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core. TODO
+
+    // Clear the screen to blue (bsod windows style)
+    gop_clear_screen(&gop_local, 0xFF0035b8);
+    // Write some debugging and an error message
+    gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
+    gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
+    char* stopCodeToStr = ""; // empty at first.
+    resolveStopCode(&stopCodeToStr, err_code);
+    uint64_t rspIfExist;
+    if (context) {
+        rspIfExist = (context->rsp) ? context->rsp : (uint64_t)(-1);
+    }
+    gop_printf(0xFFFFFFFF, "**STOP CODE: ");
+    gop_printf(0xFF8B0000, "%s", stopCodeToStr);
+    gop_printf(0xFF00FF00, " (numerical: %d)**", err_code);
+    if (context) {
+        gop_printf(0xFFFFFFFF,
+            "\n\nRegisters:\n\n"
+            "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
+            "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
+            "R8 : %p R9 : %p R10: %p R11: %p \n\n"
+            "R12: %p R13: %p R14: %p R15: %p\n\n\n",
+            context->rax,
+            context->rbx,
+            context->rcx,
+            context->rdx,
+            context->rsi,
+            context->rdi,
+            context->rbp,
+            rspIfExist,
+            context->r8,
+            context->r9,
+            context->r10,
+            context->r11,
+            context->r12,
+            context->r13,
+            context->r14,
+            context->r15
+        );
+    }
+    else {
+        gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
+    }
+    // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
+    if (isThereIntFrame) {
+        gop_printf((uint32_t)-1,
+            "Exceptions:\n\n"
+            "Vector Number: %d Error Code: %p\n\n"
+            "RIP: %p CS: %p RFLAGS: %p\n",
+            int_frame->vector,
+            int_frame->error_code,
+            int_frame->rip,
+            int_frame->cs,
+            int_frame->rflags
+        );
+    }
+#ifdef DEBUG
+    gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+#endif
+    if (isAdditionals) {
+        if (additional->boolean) {
+            gop_printf(COLOR_RED, "**BOOLEAN ADDITIONAL: %d**\n", additional->boolean);
+        }
+        if (additional->num) {
+            gop_printf(COLOR_RED, "**UNSIGNED NUMBER ADDITIONAL: %d**\n", additional->num);
+        }
+        if (additional->ptr) {
+            gop_printf(COLOR_RED, "**POINTER ADDITIONAL: %p**\n", additional->ptr);
+        }
+        if (additional->signednum) {
+            gop_printf(COLOR_RED, "**SIGNED NUMBER ADDITIONAL: %d**\n", additional->signednum);
+        }
+        if (additional->str) {
+            gop_printf(COLOR_RED, "**STRING ADDITIONAL: %s**\n", additional->str);
+        }
+    }
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
         gop_printf(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
@@ -231,7 +351,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         gop_printf(0xFFBF40BF, "**");
     }
 #endif
-	//test
+    //test
     update_pic_mask_for_current_irql();
     __cli();
     // spin the CPU.

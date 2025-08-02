@@ -8,7 +8,7 @@
 #include "../../bugcheck/bugcheck.h"
 
  // assembly stubs to save and restore register contexts.
-extern void save_context(CTX_FRAME* regs);
+extern void save_context(CTX_FRAME* regs); // UNUSED.
 extern void restore_context(CTX_FRAME* regs);
 
 bool isScheduleDpcQueued = false;
@@ -25,9 +25,6 @@ void InitScheduler(void) {
     tracelast_func("InitScheduler");
     cpu.schedulerEnabled = true;
 
-    // --- Build a CLEAN context for the idle thread from scratch ---
-    // Do NOT call save_context().
-
     CTX_FRAME cfm;
     kmemset(&cfm, 0, sizeof(cfm)); // Start with a clean, all-zero context
 
@@ -36,12 +33,12 @@ void InitScheduler(void) {
     cfm.rip = (uint64_t)kernel_idle_checks;
 
     // Assign the clean context to the idle thread
+    idleThread.magic = THREAD_SIGNATURE;
     idleThread.registers = cfm;
-    idleThread.threadState = RUNNING;
+    idleThread.threadState = READY;
     idleThread.nextThread = NULL;
 
-    // Set the idle thread as the one currently running
-    cpu.currentThread = &idleThread;
+    cpu.currentThread = NULL;
 
     // The ready queue starts empty
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
@@ -50,6 +47,14 @@ void InitScheduler(void) {
 // Enqueue the thread if it's still RUNNABLE.
 static void enqueue_runnable(Thread* t) {
     tracelast_func("enqueue_runnable");
+    if (!t) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        BUGCHECK_ADDITIONALS addt;
+        kmemset((void*)&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        addt.str = "Thread was to be enqueued, but it is a null pointer."; // no newline char, bugcheck already does it.
+        MtBugcheckEx(&ctx, NULL, NULL_THREAD, &addt, true);
+    }
     if (t->threadState == RUNNING) {
         t->threadState = READY;
         enqueue(&cpu.readyQueue, t); // Insert into CPU ready queue
@@ -65,10 +70,8 @@ void Schedule(void) {
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
     Thread* prev = cpu.currentThread;
-    if (prev != &idleThread) {
-        __asm__ __volatile__("" ::: "memory");     // fence-before
-        save_context(&prev->registers);
-        // Only enqueue non-idle
+    if (prev && prev != &idleThread) {
+        // The current thread's registers were already saved in isr_stub. (look after the pushes)
         enqueue_runnable(prev);
     }
 
@@ -79,12 +82,10 @@ void Schedule(void) {
 
     next->threadState = RUNNING;
     cpu.currentThread = next;
-    MtLowerIRQL(oldIrql);
-    __asm__ __volatile__("" ::: "memory");     // fence-mid
+    MtLowerIRQL(PASSIVE_LEVEL);
     restore_context(&next->registers);
 }
 
 void Yield(void) {
-    tracelast_func("Yield");
     Schedule();
 }

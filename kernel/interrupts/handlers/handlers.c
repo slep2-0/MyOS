@@ -142,11 +142,14 @@ void init_timer(unsigned long int frequency) {
     __outbyte(0x40, (unsigned char)((divisor >> 8) & 0xFF)); // High byte
 }
 
-static CTX_FRAME dummyCtx;
+
+// REVISE THAT SCHEDULEDPC WILL ALSO SEND CTX.
+
 static DPC scheduleDpc = {
     .Next = NULL,
-    .callback = TimerDPC,
-    .ctx = &dummyCtx,
+    .callback = Schedule,
+    .callbackWithCtx = NULL,
+    .ctx = NULL,
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
     .priority = MEDIUM_PRIORITY
@@ -156,8 +159,11 @@ extern bool isScheduleDpcQueued;
 
 void timer_handler() {
     if (!isScheduleDpcQueued) {
-        MtQueueDPC(&scheduleDpc);
-        isScheduleDpcQueued = true;
+        if (cpu.currentThread && cpu.currentThread->timeSlice-- <= 0) {
+            cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
+            MtQueueDPC(&scheduleDpc);
+            isScheduleDpcQueued = true;
+        }
     }
 }
 

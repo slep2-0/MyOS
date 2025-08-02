@@ -48,8 +48,6 @@ void MtQueueDPC(volatile DPC* dpc) {
 	}
 }
 
-extern bool reschedule_needed;
-
 void DispatchDPC(void) {
 	tracelast_func("DispatchDPC");
 	if (!dpcQueueHead) return;
@@ -64,7 +62,7 @@ void DispatchDPC(void) {
 		if (!dpcQueueHead) {
 			dpcQueueTail = NULL;
 		}
-		if (d->callback) {
+		if (d->callback || d->callbackWithCtx) {
 			if (d->hasCtx) {
 				d->callbackWithCtx(d->ctx);
 			}
@@ -76,10 +74,4 @@ void DispatchDPC(void) {
 
 	// Lower the IRQL *before* checking the reschedule flag.
 	MtLowerIRQL(oldIrql);
-
-	// Now that we are back at a safe IRQL (PASSIVE_LEVEL\DISPATCH_LEVEL), check if we need to schedule.
-	if (reschedule_needed) {
-		reschedule_needed = false; // Clear the flag
-		Yield();                   // Yield() is just a clean wrapper for Schedule()
-	}
 }

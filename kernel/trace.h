@@ -17,8 +17,11 @@ typedef struct {
 
 // this stays `static inline` so every .c gets its own copy
 static inline void tracelast_func(const char* function_name) {
-    //UNREFERENCED_PARAMETER(function_name);
-    //return;
+#ifdef GDB
+    // if GDB is defined, we wont trace last functions, as it is VERY hard to debug with having to step 128 times.
+    UNREFERENCED_PARAMETER(function_name);
+    return;
+#else
     extern bool isBugChecking;
     extern LASTFUNC_HISTORY lastfunc_history;
 
@@ -38,7 +41,7 @@ static inline void tracelast_func(const char* function_name) {
             (uint8_t)function_name[i];
     }
     // Explicit null terminator already guaranteed by zero clear
+#endif
 }
-
 
 #endif // TRACE_H

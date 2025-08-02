@@ -18,7 +18,7 @@
 void init_dpc_system(void);
 
 /// Enqueue DPC for deferred exceution
-/// Safe to call at IRQL <= CLOCK_LEVEL, anything else will bugcheck with IRQL_NOT_LESS_OR_EQUAL.
+/// Safe to at ANY IRQL.
 void MtQueueDPC(volatile DPC* dpc);
 
 /// Walk through the DPC queue, raising the IRQL to DISPATCH_LEVEL in the process.

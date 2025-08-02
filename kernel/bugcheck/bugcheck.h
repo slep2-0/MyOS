@@ -51,9 +51,26 @@ typedef enum _BUGCHECK_CODES {
     AHCI_INIT_FAILED,
     MEMORY_LIMIT_REACHED,
     HEAP_ALLOCATION_FAILED,
+    NULL_THREAD
 } BUGCHECK_CODES;
+
+typedef struct _BUGCHECK_ADDITIONALS {
+    // A String
+    char* str;
+    // A Number (UNSIGNED)
+    uint64_t num;
+    // A Number (SIGNED)
+    int64_t signednum;
+    // A Boolean
+    bool boolean;
+    // A general pointer.
+    void* ptr;
+} BUGCHECK_ADDITIONALS;
 
 // Function to initiate bugcheck.
 void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
+
+// Function to initiate bugcheck + Revised additionals
+void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, BUGCHECK_ADDITIONALS* additional, bool isAdditionals);
 
 #endif

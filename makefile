@@ -18,17 +18,22 @@ CFLAGS = -std=gnu11 \
          -fdiagnostics-color=always \
          -fdiagnostics-show-option \
          -Wno-unused-function \
+         -fno-omit-frame-pointer \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -fno-pie -fno-pic
 
 # Scheduler special flags (frame-pointer and no tail-call)
-SCHED_EXTRA = -fno-omit-frame-pointer -fno-optimize-sibling-calls
+SCHED_EXTRA = -fno-optimize-sibling-calls
 
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
     CFLAGS += -DDEBUG -O0 -g
 else
-    CFLAGS += -O2
+    CFLAGS += -O2 -g
+endif
+
+ifeq ($(GDB),1)
+    CFLAGS += -DGDB
 endif
 
 # $(SCHED_CFLAGS) means no optimizations will be applied on the C file.
@@ -105,7 +110,7 @@ build/irql.o: kernel/cpu/irql/irql.c
 
 build/scheduler.o: kernel/cpu/scheduler/scheduler.c
 	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
 build/dpc.o: kernel/cpu/dpc/dpc.c
 	mkdir -p build

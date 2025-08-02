@@ -52,9 +52,12 @@ irq%1:
 ; [rsp + 48]  = SS (pushed by CPU if privilege change)
 ;---------------------------------------------------------------------------
 global isr_common_stub64
+
+extern cpu
+
 isr_common_stub64:
     ; Save all general purpose registers
-    ; Push in reverse order so REGS struct matches
+    ; Push in reverse order so CTX_FRAME struct matches
     push    rax
     push    rbx
     push    rcx
@@ -71,6 +74,45 @@ isr_common_stub64:
     push    r14
     push    r15
     
+    ; THEN - Save the current frame into the CTX_FRAME of the thread.
+    ; CPU Struct: 
+    mov     rax, [rel cpu + 8]  ; directly load cpu.currentThread
+    test    rax, rax
+    je      .no_thread
+    add rax, 8 ; Go to the CTX_FRAME struct.
+
+    ; Begin filling the CTX_FRAME struct now.
+    mov [rax + 0x00], r15
+    mov [rax + 0x08], r14
+    mov [rax + 0x10], r13
+    mov [rax + 0x18], r12
+    mov [rax + 0x20], r11
+    mov [rax + 0x28], r10
+    mov [rax + 0x30], r9
+    mov [rax + 0x38], r8
+    mov [rax + 0x40], rbp
+    mov [rax + 0x48], rdi
+    mov [rax + 0x50], rsi
+    mov [rax + 0x58], rdx
+    mov [rax + 0x60], rcx
+    mov [rax + 0x68], rbx
+    
+    ; Move RAX and others using PUSH and POP trick.
+    push qword [rsp + 0x70]
+    pop qword [rax + 0x70]
+
+    ; Now moving RSP and RIP.
+    
+    ; To MOV RSP, we must give it the original RSP - for that, we will access this stack RSP.
+    push qword [rsp + 0xA0]
+    pop qword [rax + 0x78]
+   
+    ; RIP, the same.
+    push qword [rsp + 0x88]
+    pop qword [rax + 0x80]
+    
+    ; We are done saving the thread's registers into it's intended CTX_FRAME struct, continue normal execution.
+
     ; Stack layout after register pushes (15 registers * 8 bytes = 120 bytes):
     ; [rsp + 0]   = r15 (last pushed)
     ; [rsp + 8]   = r14
@@ -85,10 +127,16 @@ isr_common_stub64:
     ; [rsp + 168] = SS (if privilege change)
     
     ; Set up parameters for C function call
+.no_thread:
     ; First parameter (vector number) in RDI
     mov     rdi, [rsp + 120]        ; vector number
+
     ; Second parameter (pointer to REGS struct) in RSI
     mov     rsi, rsp                ; pointer to start of pushed registers
+
+    ; Third paramter (pointer to interrupt frame), in RDX.
+    ; We use LEA because we want the address, not it's dereference. (we want the ptr, not dereferencing it basically)
+    lea rdx, [rsp + 120]
     
     ; Save vector number for EOI logic (function call may clobber RDI)
     mov     r10, rdi
@@ -98,7 +146,7 @@ isr_common_stub64:
     
     ; Send EOI (End of Interrupt) if this was an IRQ (vector >= 32)
     cmp     r10, 32
-    jl      .no_eoi
+    jl      .dpc
     
     ; Send EOI to master PIC
     mov     al, 0x20
@@ -110,7 +158,17 @@ isr_common_stub64:
     out     0xA0, al
 .no_slave_eoi:
 
-.no_eoi:
+extern dpcQueueHead
+
+.dpc:
+    ; Check the global pending_schedule flag.
+    mov rax, [dpcQueueHead]
+    test rax, rax
+    jz .no_dpcs
+    call DispatchDPC
+    jmp .dpc
+
+.no_dpcs:
 
     ; Restore all general purpose registers in reverse order
     pop     r15

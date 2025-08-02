@@ -93,7 +93,7 @@ typedef struct _IDT_ENTRY_64 {
 void set_idt_gate(int n, unsigned long int handler);
 void install_idt(void);
 void init_interrupts(void);
-void isr_handler64(int vec_num, INTERRUPT_FULL_REGS* r);
+void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr);
 
 /** PIC Masking Helpers **/
 /// REMOVED tracelast_func HERE SINCE, IT CLOBBERED UP THE FUNCTION TRACE, GIVING USELESS INFO (ONLY WHEN IRQL HAPPENS, AND WE TRACK THAT ANYWAY)

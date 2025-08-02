@@ -18,9 +18,7 @@ IRQL irq_irql[16] = {
 
 #define IRQ_LINES (sizeof(irq_irql) / sizeof(irq_irql[0]))
 
-// This helper function now correctly represents its single purpose.
 void update_pic_mask_for_current_irql(void) {
-    tracelast_func("update_pic_mask_for_current_irql");
     IRQL level = cpu.currentIrql;
 
     // Mask any IRQ whose assigned IRQL is <= the current CPU IRQL.
@@ -56,7 +54,10 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         // You cannot "raise" to a lower level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        BUGCHECK_ADDITIONALS addt;
+        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        addt.str = "Attempted to raise IRQL to a lower level than current IRQL.";
+        MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 
     cpu.currentIrql = new_irql;
@@ -77,7 +78,10 @@ void MtLowerIRQL(IRQL new_irql) {
         // You cannot "lower" to a higher level. This is a fatal kernel bug.
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        BUGCHECK_ADDITIONALS addt;
+        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        addt.str = "Attempted to lower IRQL to a higher level than current IRQL.";
+        MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 
     cpu.currentIrql = new_irql;
@@ -102,6 +106,9 @@ void enforce_max_irql(IRQL max_allowed) {
     if (cpu.currentIrql > max_allowed) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        MtBugcheck(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, 0, false);
+        BUGCHECK_ADDITIONALS addt;
+        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        addt.str = "Function was called above it's maximum IRQL limit.";
+        MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 }

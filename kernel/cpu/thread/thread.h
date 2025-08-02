@@ -35,6 +35,6 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 /// <param name="entry">The entry point address. (usually a function, I don't see any other use.)</param>
 /// <param name="parameters">The pointer to the parameters (passed as a pointer, the function itself must convert it back to its original parameter variable)</param>
 /// <param name="kernelThread">Specificies if the thread should be a kernel one or not. (If not, it will setup a process, idk how I would implement it, when I'll get on it) TODO</param>
-void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameters, bool kernelThread);
+void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTicks TIMESLICE, bool kernelThread);
 
 #endif
