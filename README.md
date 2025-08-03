@@ -16,7 +16,7 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 
 `Preemption (bugged - hard fix -- fixed in developer branch, will merge when done fixing minor bugs. (and also finishing the AHCI && FAT32)) - Kernel is fully preemptive using scheduling and kernel threads`
 
-`DPC's (Deferred Procedure Call) - Used to defer execution to a later lower IRQL in the kernel, to avoid staying on a high interrupt IRQL (supports only timer isr for now)`
+`DPC's (Deferred Procedure Call (broken -- fixed in developer)) - Used to defer execution to a later lower IRQL in the kernel, to avoid staying on a high interrupt IRQL (supports only timer isr for now)`
 
 `IRQLs - IRQL support has been added (almost exactly like in windows)`
 
@@ -35,5 +35,6 @@ Use GCC 10.3 (updated from 4.6.3, now using C11 as well from C99) (the one im us
 `Userland`
 
 `life.`
+
 
 
