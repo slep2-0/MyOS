@@ -23,6 +23,6 @@ void MtQueueDPC(volatile DPC* dpc);
 
 /// Walk through the DPC queue, raising the IRQL to DISPATCH_LEVEL in the process.
 /// This gets called in a kernel idle (main) function thread.
-void DispatchDPC(void);
+void RetireDPCs(void);
 
 #endif

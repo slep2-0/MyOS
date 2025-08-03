@@ -10,6 +10,9 @@
 volatile DPC* dpcQueueHead = NULL;
 volatile DPC* dpcQueueTail = NULL;
 
+volatile bool schedule_pending = false;
+static SPINLOCK dpc_lock; // SPINLOCK for the dpc, only 1 thread is allowed to use it at a time.
+
 void init_dpc_system(void) {
 	tracelast_func("init_dpc_system");
 	dpcQueueHead = dpcQueueTail = NULL;
@@ -48,30 +51,38 @@ void MtQueueDPC(volatile DPC* dpc) {
 	}
 }
 
-void DispatchDPC(void) {
-	tracelast_func("DispatchDPC");
+void RetireDPCs(void) {
+	tracelast_func("RetireDPCs");
 	if (!dpcQueueHead) return;
 
 	IRQL oldIrql;
+	uint64_t flags;
+
+	// 1) Raise once
 	MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
-	// This loop will now complete, because TimerDPC no longer hijacks execution.
+	// 2) Acquire lock for the whole drain
+	MtAcquireSpinlock(&dpc_lock, &flags);
+
+	// 3) Drain the queue
 	while (dpcQueueHead) {
 		volatile DPC* d = dpcQueueHead;
 		dpcQueueHead = d->Next;
 		if (!dpcQueueHead) {
 			dpcQueueTail = NULL;
 		}
-		if (d->callback || d->callbackWithCtx) {
-			if (d->hasCtx) {
-				d->callbackWithCtx(d->ctx);
-			}
-			else {
-				d->callback();
-			}
-		}
+		// release lock so callback can queue new DPCs if needed
+		MtReleaseSpinlock(&dpc_lock, flags);
+
+		// STILL at DISPATCH_LEVEL
+		if (d->hasCtx)      d->callbackWithCtx(d->ctx);
+		else if (d->callback) d->callback();
+
+		// re-acquire for next pop
+		MtAcquireSpinlock(&dpc_lock, &flags);
 	}
 
-	// Lower the IRQL *before* checking the reschedule flag.
+	// 4) Release lock and lower once
+	MtReleaseSpinlock(&dpc_lock, flags);
 	MtLowerIRQL(oldIrql);
 }

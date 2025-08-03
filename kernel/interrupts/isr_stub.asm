@@ -7,7 +7,7 @@ DEFAULT REL
 extern isr_handler64
 
 ; Extern the DPC handler.
-extern DispatchDPC
+extern RetireDPCs
 
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
@@ -75,7 +75,14 @@ isr_common_stub64:
     push    r15
     
     ; THEN - Save the current frame into the CTX_FRAME of the thread.
-    ; CPU Struct: 
+.first_check
+    ; Before doing all of this, first of all, check if this is a timer_interrupt (because scehduling DPCs only happen there.)
+    mov rax, [rsp + 120]
+    cmp rax, 32 ; Timer interrupt is 0x20, 32 in decimal. (if vec num is 32, 32 - 32 is 0, so jnz.)
+    jnz .no_thread
+    jmp .save_thread_ctx
+
+.save_thread_ctx
     mov     rax, [rel cpu + 8]  ; directly load cpu.currentThread
     test    rax, rax
     je      .no_thread
@@ -159,16 +166,29 @@ isr_common_stub64:
 .no_slave_eoi:
 
 extern dpcQueueHead
+extern schedule_pending
+extern Schedule
 
 .dpc:
-    ; Check the global pending_schedule flag.
+    ; Dispatch only 1 DPC per.
     mov rax, [dpcQueueHead]
     test rax, rax
-    jz .no_dpcs
-    call DispatchDPC
-    jmp .dpc
+    jz .done
+    call RetireDPCs
 
-.no_dpcs:
+.check_for_schedule
+    cmp byte [rel schedule_pending], 0
+    jz .done
+
+    ; clear it, so we don't re-enter.
+    mov byte [rel schedule_pending], 0
+
+    ; Schedule now.
+    call Schedule
+
+    ; IF SCHEDULE WAS CALLED, THIS WILL NEVER RETURN HERE, AS IT SHOULD.
+
+.done:
 
     ; Restore all general purpose registers in reverse order
     pop     r15

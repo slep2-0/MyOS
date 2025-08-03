@@ -77,6 +77,9 @@
 #define SAVE_CTX_FRAME(ctx_ptr) (void*)(0)
 #endif
 
+#define GET_RIP(var) \
+    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (var))
+
 // instead of including kernel.h this time which causes problems, ill include each file I need.
 #include <stdbool.h>
 #include <stddef.h>
@@ -84,6 +87,7 @@
 #include <stdatomic.h>
 #include "cpu_types.h"
 #include "irql/irql.h"
+#include "spinlock/spinlock.h"
 #include "dpc/dpc.h"
 #include "dpc/dpc_list.h"
 #include "scheduler/scheduler.h"

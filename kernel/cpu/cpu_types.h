@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdatomic.h>
 
 // Global - Per CPU.
 
@@ -45,7 +46,9 @@ typedef enum _IRQL {
     HIGH_LEVEL = 31   // NMI and machine‑check (non‑maskable) (also gets set at bugchecks, to mask all interrupts)
 } IRQL;
 
-
+typedef struct _SPINLOCK {
+    atomic_flag LOCKED;
+} SPINLOCK;
 
 #pragma pack(push, 1)
 typedef struct _INT_FRAME {

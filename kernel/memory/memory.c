@@ -56,7 +56,9 @@ void init_heap(void) {
 /// <param name="newblock">The pointer to the new block to insert in ascending order e.g: (A -> A[A + 0x1000] -> NULL (or A[A + 0x2000])</param>
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
     tracelast_func("insert_block_sorted");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     if (!free_list || newblock < free_list) {
         newblock->next = free_list;
         free_list = newblock;
@@ -75,7 +77,9 @@ static void insert_block_sorted(BLOCK_HEADER* newblock) {
 /* Merge adjacent free blocks to reduce fragmentation */
 static void coalesce_free_list(void) {
     tracelast_func("coalesce_free_list");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     BLOCK_HEADER* b = free_list;
     while (b && b->next) {
         uintptr_t end_of_b = (uintptr_t)b + b->size;
@@ -92,7 +96,9 @@ static void coalesce_free_list(void) {
 
 static bool grow_heap_by_one_page(void) {
     tracelast_func("grow_heap_by_one_page");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     // grab a physical frame
     void* phys = alloc_frame();
     if (!phys) { return false; }
@@ -118,7 +124,9 @@ static bool grow_heap_by_one_page(void) {
 /* Align `addr` up to the next multiple of `align` (align must be power of two) */
 static void* align_up(void* addr, size_t align) {
     tracelast_func("align_up - memory");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     uintptr_t a = (uintptr_t)addr;
     uintptr_t mask = align - 1;
     if (a & mask) {
@@ -130,7 +138,9 @@ static void* align_up(void* addr, size_t align) {
 // Memory Set.
 void* kmemset(void* dest, int val, uint32_t len) {
     tracelast_func("kmemset");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     uint8_t* ptr = dest;
     for (uint32_t i = 0; i < len; i++) {
         ptr[i] = (uint8_t)val;
@@ -141,7 +151,9 @@ void* kmemset(void* dest, int val, uint32_t len) {
 // Memory copy.
 void* kmemcpy(void* dest, const void* src, uint32_t len) {
     tracelast_func("kmemcpy");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
     for (unsigned int i = 0; i < len; i++) {
@@ -152,7 +164,9 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
 
 void* MtAllocateMemory(size_t wanted_size, size_t align) {
     tracelast_func("kmalloc");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     /* Round up the requested size to satisfy alignment of payload */
     size_t payload_size = (wanted_size + align - 1) & ~(align - 1);
     size_t total_size = payload_size + sizeof(BLOCK_HEADER);
@@ -209,7 +223,9 @@ void* MtAllocateMemory(size_t wanted_size, size_t align) {
 
 void MtFreeMemory(void* ptr) {
     tracelast_func("kfree");
-    enforce_max_irql(DISPATCH_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     if (!ptr) {
 #ifdef DEBUG
         gop_printf(0xFFFF0000, "<-- KFREE() DEBUG --> nullptr passed as argument, returning\n");

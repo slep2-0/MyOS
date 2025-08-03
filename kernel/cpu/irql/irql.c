@@ -1,14 +1,13 @@
 ﻿/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
- * PURPOSE:      IRQL Implementation (Fixed)
+ * PURPOSE:      IRQL Implementation (Fixed with Dispatch Level scheduling toggle)
  */
 
 #include "irql.h"
 #include "../../bugcheck/bugcheck.h"
 #include "../../interrupts/idt.h"
 
- // This is your existing mapping, it is correct.
 IRQL irq_irql[16] = {
     DIRQL_TIMER, DIRQL_KEYBOARD, DIRQL_CASCADE, DIRQL_COM2,
     DIRQL_COM1, DIRQL_SOUND_LPT2, DIRQL_FLOPPY, DIRQL_LPT1,
@@ -18,8 +17,7 @@ IRQL irq_irql[16] = {
 
 #define IRQ_LINES (sizeof(irq_irql) / sizeof(irq_irql[0]))
 
-// IMPORTANT: Before It didn't CLI and STI (disable/enable interrupts), on function call and return, so it corrupted the current IRQL (race condition via timer)
-
+// IMPORTANT: We disable interrupts around PIC updates to avoid races.
 void update_pic_mask_for_current_irql(void) {
     __cli();
     IRQL level = cpu.currentIrql;
@@ -37,15 +35,17 @@ void update_pic_mask_for_current_irql(void) {
     __sti();
 }
 
+static inline void toggle_scheduler(void) {
+    // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL
+    cpu.schedulerEnabled = (cpu.currentIrql < DISPATCH_LEVEL);
+}
+
 void MtGetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
     *out = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
 }
 
 void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
-    // It's good practice to disable interrupts for the duration of the change.
-    // The CPU automatically does this when entering an ISR.
-    // We do it here to ensure atomicity.
     __cli();
     tracelast_func("RaiseIRQL");
 
@@ -53,46 +53,37 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         *old_irql = cpu.currentIrql;
     }
 
-    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
-    if (new_irql < irql) {
-        // You cannot "raise" to a lower level. This is a fatal kernel bug.
+    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (new_irql < curr) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        BUGCHECK_ADDITIONALS addt;
-        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        BUGCHECK_ADDITIONALS addt = { 0 };
         addt.str = "Attempted to raise IRQL to a lower level than current IRQL.";
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 
     cpu.currentIrql = new_irql;
+    toggle_scheduler();
     update_pic_mask_for_current_irql();
-
-    // We do NOT call __sti() here. We let the caller (or iretq) handle it.
-    // In the case of Schedule(), interrupts are already enabled, so we restore that state.
     __sti();
 }
 
 void MtLowerIRQL(IRQL new_irql) {
-    // Atomically update the IRQL and PIC mask.
     __cli();
     tracelast_func("LowerIRQL");
 
-    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
-    if (new_irql > irql) {
-        // You cannot "lower" to a higher level. This is a fatal kernel bug.
+    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (new_irql > curr) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        BUGCHECK_ADDITIONALS addt;
-        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
+        BUGCHECK_ADDITIONALS addt = { 0 };
         addt.str = "Attempted to lower IRQL to a higher level than current IRQL.";
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 
     cpu.currentIrql = new_irql;
+    toggle_scheduler();
     update_pic_mask_for_current_irql();
-
-    // Now that the masks are correctly set for the lower IRQL,
-    // we can safely re-enable interrupts.
     __sti();
 }
 
@@ -100,21 +91,23 @@ void MtLowerIRQL(IRQL new_irql) {
 void _MtSetIRQL(IRQL new_irql) {
     __cli();
     tracelast_func("_SetIRQL");
+
     cpu.currentIrql = new_irql;
+    toggle_scheduler();
     update_pic_mask_for_current_irql();
     __sti();
 }
 
-void enforce_max_irql(IRQL max_allowed) {
+void enforce_max_irql(IRQL max_allowed, void* RIP) {
     __cli();
     tracelast_func("enforce_max_irql");
-    IRQL irql = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
-    if (irql > max_allowed) {
+    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    if (curr > max_allowed) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
-        BUGCHECK_ADDITIONALS addt;
-        kmemset(&addt, 0, sizeof(BUGCHECK_ADDITIONALS));
-        addt.str = "Function was called above it's maximum IRQL limit.";
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        addt.str = "Function was called above its maximum IRQL limit.";
+        addt.ptr = RIP;
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
     __sti();

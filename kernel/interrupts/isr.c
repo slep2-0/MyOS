@@ -22,10 +22,14 @@ const bool has_error_code[] = {
 __attribute__((used))
 #endif
 void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
+    char buf[256];
+    ksprintf(buf, "INTERRUPT: %d", vec_num);
+    tracelast_func(buf);
     IRQL oldIrql;
 
     ctx->rip = intfr->rip;
     ctx->rsp = intfr->rsp;
+    intfr->vector = vec_num;
 
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:

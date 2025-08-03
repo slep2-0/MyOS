@@ -82,6 +82,7 @@ void Schedule(void) {
     next->threadState = RUNNING;
     cpu.currentThread = next;
     MtLowerIRQL(PASSIVE_LEVEL);
+    tracelast_func("Entering restore_context.");
     restore_context(&next->registers);
 }
 

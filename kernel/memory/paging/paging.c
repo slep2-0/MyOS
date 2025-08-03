@@ -29,7 +29,9 @@ static uint8_t* const end_pt = (uint8_t*)&__pt_end;
 static uint64_t* allocate_page_table(void) {
     tracelast_func("allocate_page_table");
     // CHECK IRQL.
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     // 1) if we still have one of the linker‑reserved tables, carve that out:
     if (next_pt + PAGE_SIZE_4K <= end_pt) {
         uint64_t* table = (uint64_t*)next_pt;
@@ -59,7 +61,9 @@ static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
 void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
     tracelast_func("map_range_identity");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     uint64_t va = PAGE_ALIGN_DOWN(start);
     uint64_t last = PAGE_ALIGN_UP(end);
     for (; va < last; va += PAGE_SIZE_4K) {
@@ -88,7 +92,9 @@ extern BOOT_INFO boot_info_local;
 
 void paging_init(void) {
     tracelast_func("paging_init");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     // zero your PML4…
     kmemset(pml4, 0, PAGE_SIZE_4K);
     // carve out the first few tables (PML4→PDPT→PD→PT)
@@ -154,7 +160,9 @@ void paging_init(void) {
 // Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc)
 void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     tracelast_func("map_page");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     uint64_t va = (uint64_t)virtualaddress;
     uint64_t pa = (uint64_t)physicaladdress;
 
@@ -211,7 +219,9 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
 // Unmap a page (remove mapping and free frame)
 bool unmap_page(void* virtualaddress) {
     tracelast_func("unmap_page");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     uint64_t va = (uint64_t)virtualaddress;
 
     size_t pml4_i = get_pml4_index(va);
@@ -251,7 +261,9 @@ bool unmap_page(void* virtualaddress) {
 // Set writable flag on a page
 void set_page_writable(void* virtualaddress, bool writable) {
     tracelast_func("set_page_writable");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     uint64_t va = (uint64_t)virtualaddress;
 
     size_t pml4_i = get_pml4_index(va);
@@ -287,7 +299,9 @@ void set_page_writable(void* virtualaddress, bool writable) {
 
 void set_page_user_access(void* virtualaddress, bool user_accessible) {
     tracelast_func("set_page_user_access");
-    enforce_max_irql(PASSIVE_LEVEL);
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(PASSIVE_LEVEL, (void*)rip);
     uint64_t va = (uint64_t)virtualaddress;
 
     size_t pml4_i = get_pml4_index(va);

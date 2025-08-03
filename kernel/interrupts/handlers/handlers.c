@@ -5,46 +5,24 @@
  */
 
 #include "handlers.h"
-#include "scancodes.h"
 #include "../idt.h"
 
 // NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
 
-extern GOP_PARAMS gop_local;
+static bool extended_scancode = false;
 
-char scancode_to_ascii[] = {
-    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
-    '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
-    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
-    0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0,
-    '*', 0, ' '
+CTX_FRAME ctxfr;
+static DPC keyboardDpc = {
+    .Next = NULL,
+    .callback = NULL,
+    .callbackWithCtx = keyboard_dpc,
+    .ctx = &ctxfr,
+    .Kind = NO_KIND,
+    .hasCtx = true,
+    .priority = MEDIUM_PRIORITY
 };
-
-char scancode_to_ascii_shift[] = {
-    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
-    '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
-    0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
-    0, '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0,
-    '*', 0, ' '
-};
-
-extern uint32_t cursor_x;
-extern uint32_t cursor_y;
-
-bool shift_pressed = false;
-bool ctrl_pressed = false;
-bool caps_lock_on = false;
-bool extended_scancode = false;
-
-void init_keyboard() {
-    shift_pressed = false;
-    ctrl_pressed = false;
-    caps_lock_on = false;
-    extended_scancode = false;
-}
 
 void keyboard_handler() {
-    // Read the scan port from the status port.
     unsigned char scancode = __inbyte(KEYBOARD_DATA_PORT);
 
     // Extended scancode recognition.
@@ -54,79 +32,11 @@ void keyboard_handler() {
         return;
     }
 
-    if (extended_scancode) {
-        // second byte of extended scancode.
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_UP:
-            cursor_y--; // reveresd, even though it's - on the y scale, it goes up on screen.
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI); //ack
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_DOWN:
-            cursor_y++;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_RIGHT:
-            cursor_x++;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_LEFT:
-            cursor_x--;
-            extended_scancode = false;
-            __outbyte(0x20, PIC_EOI);
-            return;
-        }
-    }
+    ctxfr.rax = scancode;
+    ctxfr.rbx = extended_scancode;
+    extended_scancode = false;
+    MtQueueDPC(&keyboardDpc);
 
-    // Check if it's a key press, bit 7 of the inbyte.
-    // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
-    if (!(scancode & 0x80)) {
-        // Conver scan code to ASCII to see if it's even a printable character.
-        if ((scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) || (scancode < sizeof(scancode_to_ascii_shift) && scancode_to_ascii_shift[scancode])) {
-            char key = scancode_to_ascii[scancode];
-            char keyShift = scancode_to_ascii_shift[scancode];
-            char str[2] = { key, '\0' }; // default string (key) + null terminator.
-            char strShift[2] = { keyShift, '\0' };
-            switch (key) {
-            case '\n': // newline char
-                gop_printf(0, "\n");
-                break;
-            case '\b': // backspace
-                gop_printf(0, "\b \b");
-                break;
-            case '\t': // TAB
-                gop_printf(0, "    ");
-                break;
-            default:
-                if (shift_pressed || caps_lock_on) {
-                    gop_printf((uint32_t)-1, strShift); // basically underflow to max 32bit val.
-                }
-                else {
-                    gop_printf((uint32_t)-1, str); // basically underflow to max 32bit val.
-                }
-                break;
-            }
-        }
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_PRESSED_LEFT_SHIFT:
-            shift_pressed = true;
-            break;
-        case KEYBOARD_SCANCODE_PRESSED_CAPS_LOCK:
-            caps_lock_on = !caps_lock_on;
-        }
-
-    }
-    else {
-        // It's a release, bit 7 is 0.
-        switch (scancode) {
-        case KEYBOARD_SCANCODE_RELEASE_LEFT_SHIFT:
-            shift_pressed = false;
-            break;
-        }
-
-    }
     // Send End Of Interrupt (EOI) to the PIC.
     __outbyte(0x20, PIC_EOI); // Only sent to master since this is a master interrupt.
 }
@@ -147,22 +57,22 @@ void init_timer(unsigned long int frequency) {
 
 static DPC scheduleDpc = {
     .Next = NULL,
-    .callback = Schedule,
+    .callback = ScheduleDPC,
     .callbackWithCtx = NULL,
     .ctx = NULL,
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
-    .priority = MEDIUM_PRIORITY
+    .priority = HIGH_PRIORITY
 };
 
-extern bool isScheduleDpcQueued;
+extern volatile bool schedule_pending;
 
 void timer_handler() {
-    if (!isScheduleDpcQueued) {
+    if (!schedule_pending) {
         if (cpu.currentThread && cpu.currentThread->timeSlice-- <= 0) {
             cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
             MtQueueDPC(&scheduleDpc);
-            isScheduleDpcQueued = true;
+            /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
         }
     }
 }
@@ -232,9 +142,7 @@ void boundscheck_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 }
 
 void invalidopcode_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
-    UNREFERENCED_PARAMETER(ctx);
-    UNREFERENCED_PARAMETER(intfr);
-    gop_printf(0xFFFF0000, "\nERROR: Invalid CPU Instruction...\n");
+    MtBugcheck(ctx, intfr, INVALID_OPCODE, 0, false);
 }
 
 void nocoprocessor_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {

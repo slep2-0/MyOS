@@ -203,3 +203,103 @@ void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);
 }
+
+// Writes a single char and advances the pointer
+static inline void buf_put_char(char** out, char c) {
+    **out = c;
+    (*out)++;
+}
+
+// Writes a NUL-terminated string
+static inline void buf_puts(char** out, const char* s) {
+    while (*s) {
+        buf_put_char(out, *s++);
+    }
+}
+
+// Writes a signed decimal integer
+static void buf_print_dec(char** out, int value) {
+    char tmp[12];  // enough for -2^31
+    char* t = tmp + sizeof(tmp);
+    bool neg = (value < 0);
+    unsigned u = neg ? -(unsigned)value : (unsigned)value;
+    *--t = '\0';
+    if (u == 0) {
+        *--t = '0';
+    }
+    else {
+        while (u) {
+            *--t = '0' + (u % 10);
+            u /= 10;
+        }
+    }
+    if (neg) *--t = '-';
+    buf_puts(out, t);
+}
+
+// Writes an unsigned integer in hex (lowercase, no prefix)
+static void buf_print_hex(char** out, unsigned value) {
+    char tmp[9];  // 8 digits + NUL
+    char* t = tmp + sizeof(tmp);
+    const char* hex = "0123456789abcdef";
+    *--t = '\0';
+    if (value == 0) {
+        *--t = '0';
+    }
+    else {
+        while (value) {
+            *--t = hex[value & 0xF];
+            value >>= 4;
+        }
+    }
+    buf_puts(out, t);
+}
+
+// Kernel-style sprintf: returns number of bytes written (excluding NUL)
+int ksprintf(char* buf, const char* fmt, ...) {
+    char* out = buf;
+    va_list ap;
+    va_start(ap, fmt);
+
+    for (const char* p = fmt; *p; p++) {
+        if (*p == '%' && p[1]) {
+            switch (*++p) {
+            case 'd':
+                buf_print_dec(&out, va_arg(ap, int));
+                break;
+            case 'u':
+                buf_print_dec(&out, va_arg(ap, unsigned));
+                break;
+            case 'x':
+                buf_print_hex(&out, va_arg(ap, unsigned));
+                break;
+            case 'p':
+                // pointer printed as hex of uintptr_t
+                buf_print_hex(&out, (unsigned)(uintptr_t)va_arg(ap, void*));
+                break;
+            case 'c':
+                buf_put_char(&out, (char)va_arg(ap, int));
+                break;
+            case 's': {
+                const char* s = va_arg(ap, const char*);
+                buf_puts(&out, s ? s : "(null)");
+                break;
+            }
+            case '%':
+                buf_put_char(&out, '%');
+                break;
+            default:
+                // unknown specifier: print literally
+                buf_put_char(&out, '%');
+                buf_put_char(&out, *p);
+            }
+        }
+        else {
+            buf_put_char(&out, *p);
+        }
+    }
+
+    va_end(ap);
+    *out = '\0';
+    return (int)(out - buf);
+}
