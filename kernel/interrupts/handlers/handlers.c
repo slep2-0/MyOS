@@ -67,9 +67,9 @@ static DPC scheduleDpc = {
 
 extern volatile bool schedule_pending;
 
-void timer_handler() {
+void timer_handler(bool schedulerEnabled) {
     if (!schedule_pending) {
-        if (cpu.currentThread && cpu.currentThread->timeSlice-- <= 0) {
+        if (schedulerEnabled && cpu.currentThread && cpu.currentThread->timeSlice-- <= 0) {
             cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
             MtQueueDPC(&scheduleDpc);
             /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!

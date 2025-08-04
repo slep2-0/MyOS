@@ -61,11 +61,12 @@ void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color);
 void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color);
 
 /// <summary>
-/// Sprintf equivalent.
+/// Sprintf equivalent. -- Safe to run at ANY IRQL.
 /// </summary>
 /// <param name="buf">Buffer to format.</param>
+/// <param name="bufSize">Size of the buffer.</param>
 /// <param name="fmt">String and format.</param>
 /// <return>Amount of bytes written. (excluding null terminator)</return>
-int ksprintf(char* buf, const char* fmt, ...);
+int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...);
 
 #endif // X86_GOP_DRIVER_H

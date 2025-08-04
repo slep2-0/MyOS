@@ -10,8 +10,6 @@
  // assembly stubs to save and restore register contexts.
 extern void restore_context(CTX_FRAME* regs);
 
-bool isScheduleDpcQueued = false;
-
 // Idle thread, runs when no other is ready.
 Thread idleThread;
 // Stack for idle thread
@@ -62,9 +60,6 @@ static void enqueue_runnable(Thread* t) {
 
 void Schedule(void) {
     tracelast_func("Schedule");
-    if (isScheduleDpcQueued) {
-        isScheduleDpcQueued = false;
-    }
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 

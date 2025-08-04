@@ -23,7 +23,7 @@ isr%1:
 %else
     push    0
 %endif
-    push    %1
+    push    %1 ; Push Vector Exception Number (vec_num).
     jmp     isr_common_stub64
 %endmacro
 
@@ -36,7 +36,7 @@ isr%1:
 irq%1:
     cli
     push    0          ; Push dummy error code
-    push    %1 + 32    ; Push IRQ number + 32
+    push    %1 + 32    ; Push IRQ number + 32 (vec_num)
     jmp     isr_common_stub64
 %endmacro
 
@@ -170,7 +170,8 @@ extern schedule_pending
 extern Schedule
 
 .dpc:
-    ; Dispatch only 1 DPC per.
+    ; Dispatch ALL DPCs. -- Side Note: DPCs that WILL NOT RETURN, do not get executed, instead they place a global flag.
+    ; DPCs that don't return are very much - not common, I think the Scheduler DPC is the only one that does this.
     mov rax, [dpcQueueHead]
     test rax, rax
     jz .done
@@ -186,7 +187,7 @@ extern Schedule
     ; Schedule now.
     call Schedule
 
-    ; IF SCHEDULE WAS CALLED, THIS WILL NEVER RETURN HERE, AS IT SHOULD.
+    ; If Schedule was called, it would never return here, (and in restore_context, we switch RSPs so those pops and stack cleanup will happen anyway.)
 
 .done:
 

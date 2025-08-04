@@ -23,9 +23,10 @@ __attribute__((used))
 #endif
 void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
     char buf[256];
-    ksprintf(buf, "INTERRUPT: %d", vec_num);
+    ksnprintf(buf, sizeof(buf), "INTERRUPT: %d", vec_num);
     tracelast_func(buf);
     IRQL oldIrql;
+    bool schedulerEnabled;
 
     ctx->rip = intfr->rip;
     ctx->rsp = intfr->rsp;
@@ -89,8 +90,9 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         severe_machine_check_handler(ctx, intfr);
         break;
     case TIMER_INTERRUPT:
+        schedulerEnabled = cpu.schedulerEnabled;
         MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
-        timer_handler();
+        timer_handler(schedulerEnabled);
         MtLowerIRQL(oldIrql);
         break;
     case KEYBOARD_INTERRUPT:

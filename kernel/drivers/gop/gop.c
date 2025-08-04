@@ -204,26 +204,25 @@ void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
             plot_pixel(gop, x, y, color);
 }
 
-// Writes a single char and advances the pointer
-static inline void buf_put_char(char** out, char c) {
-    **out = c;
-    (*out)++;
+static inline void buf_put_char(char* buf, size_t size, size_t* written, char c) {
+    if (*written + 1 < size) {
+        buf[*written] = c;
+    }
+    (*written)++;
 }
 
-// Writes a NUL-terminated string
-static inline void buf_puts(char** out, const char* s) {
+static void buf_puts(char* buf, size_t size, size_t* written, const char* s) {
     while (*s) {
-        buf_put_char(out, *s++);
+        buf_put_char(buf, size, written, *s++);
     }
 }
 
-// Writes a signed decimal integer
-static void buf_print_dec(char** out, int value) {
-    char tmp[12];  // enough for -2^31
-    char* t = tmp + sizeof(tmp);
+static void buf_print_dec(char* buf, size_t size, size_t* written, int value) {
+    char tmp[12]; // enough for -2^31 and NUL
+    char* t = tmp + sizeof(tmp) - 1;
     bool neg = (value < 0);
     unsigned u = neg ? -(unsigned)value : (unsigned)value;
-    *--t = '\0';
+    *t = '\0';
     if (u == 0) {
         *--t = '0';
     }
@@ -233,16 +232,17 @@ static void buf_print_dec(char** out, int value) {
             u /= 10;
         }
     }
-    if (neg) *--t = '-';
-    buf_puts(out, t);
+    if (neg) {
+        *--t = '-';
+    }
+    buf_puts(buf, size, written, t);
 }
 
-// Writes an unsigned integer in hex (lowercase, no prefix)
-static void buf_print_hex(char** out, unsigned value) {
-    char tmp[9];  // 8 digits + NUL
-    char* t = tmp + sizeof(tmp);
+static void buf_print_hex(char* buf, size_t size, size_t* written, unsigned value) {
+    char tmp[9]; // 8 digits + NUL
+    char* t = tmp + sizeof(tmp) - 1;
     const char* hex = "0123456789abcdef";
-    *--t = '\0';
+    *t = '\0';
     if (value == 0) {
         *--t = '0';
     }
@@ -252,54 +252,55 @@ static void buf_print_hex(char** out, unsigned value) {
             value >>= 4;
         }
     }
-    buf_puts(out, t);
+    buf_puts(buf, size, written, t);
 }
 
-// Kernel-style sprintf: returns number of bytes written (excluding NUL)
-int ksprintf(char* buf, const char* fmt, ...) {
-    char* out = buf;
+int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
+    size_t written = 0;
     va_list ap;
     va_start(ap, fmt);
 
     for (const char* p = fmt; *p; p++) {
         if (*p == '%' && p[1]) {
-            switch (*++p) {
+            p++;
+            switch (*p) {
             case 'd':
-                buf_print_dec(&out, va_arg(ap, int));
-                break;
-            case 'u':
-                buf_print_dec(&out, va_arg(ap, unsigned));
-                break;
-            case 'x':
-                buf_print_hex(&out, va_arg(ap, unsigned));
-                break;
-            case 'p':
-                // pointer printed as hex of uintptr_t
-                buf_print_hex(&out, (unsigned)(uintptr_t)va_arg(ap, void*));
+                buf_print_dec(buf, bufsize, &written, va_arg(ap, int));
+                break;      
+            case 'u':       
+                buf_print_dec(buf, bufsize, &written, va_arg(ap, unsigned));
+                break;   
+            case 'x':    
+                buf_print_hex(buf, bufsize, &written, va_arg(ap, unsigned));
+                break;      
+            case 'p':       
+                buf_print_hex(buf, bufsize, &written, (unsigned)(uintptr_t)va_arg(ap, void*));
                 break;
             case 'c':
-                buf_put_char(&out, (char)va_arg(ap, int));
+                buf_put_char(buf, bufsize, &written, (char)va_arg(ap, int));
                 break;
             case 's': {
                 const char* s = va_arg(ap, const char*);
-                buf_puts(&out, s ? s : "(null)");
+                buf_puts(buf, bufsize, &written, s ? s : "(null)");
                 break;
             }
             case '%':
-                buf_put_char(&out, '%');
+                buf_put_char(buf, bufsize, &written, '%');
                 break;
             default:
-                // unknown specifier: print literally
-                buf_put_char(&out, '%');
-                buf_put_char(&out, *p);
+                buf_put_char(buf, bufsize, &written, '%');
+                buf_put_char(buf, bufsize, &written, *p);
             }
         }
         else {
-            buf_put_char(&out, *p);
+            buf_put_char(buf, bufsize, &written, *p);
         }
     }
 
     va_end(ap);
-    *out = '\0';
-    return (int)(out - buf);
+    if (bufsize > 0) {
+        buf[written < bufsize ? written : bufsize - 1] = '\0';
+    }
+
+    return (int)written;
 }

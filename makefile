@@ -29,7 +29,7 @@ SCHED_EXTRA = -fno-optimize-sibling-calls
 ifeq ($(DEBUG),1)
     CFLAGS += -DDEBUG -O0 -g
 else
-    CFLAGS += -O2 -g
+    CFLAGS += -O2
 endif
 
 ifeq ($(GDB),1)

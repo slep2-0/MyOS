@@ -141,18 +141,18 @@ void kernel_main(BOOT_INFO* boot_info) {
     InitScheduler();
     init_dpc_system();
     init_timer(100);
-
+    gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     __sti(); // only now enable interrupts
-    
+    extern uint32_t cursor_x, cursor_y;
+    cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
     // Initialize AHCI now.
+    /*
     if (!ahci_init()) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
         MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
-    gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
-    extern uint32_t cursor_x, cursor_y;
-    cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
+    */
     gop_printf(0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
     gop_printf(0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
     // test if init heap works
@@ -187,12 +187,11 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf(COLOR_RED, "Could not read AHCI...\n");
     }
-    */
-    /*
+
     if (!fat32_init(0)) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
-        bugcheck_system(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
+        MtBugcheck(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
     }
     fat32_list_root();
     */

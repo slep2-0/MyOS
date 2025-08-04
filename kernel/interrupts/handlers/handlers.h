@@ -26,7 +26,7 @@ void keyboard_handler(void);
 // Initiate timer with a specified frequency.
 void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
-void timer_handler(void);
+void timer_handler(bool schedulerEnabled);
 // Handle ATA Operations.
 void ata_handler(void);
 
