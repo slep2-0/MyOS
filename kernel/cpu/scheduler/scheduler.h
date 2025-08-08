@@ -30,6 +30,6 @@ void InitScheduler(void);
 void Schedule(void);
 
 // Voluntarily relinquish CPU -- Alias to Schedule()
-void Yield(void);
+#define Yield() Schedule()
 
 #endif // SCHEDULER_H

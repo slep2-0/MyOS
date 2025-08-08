@@ -76,17 +76,15 @@ isr_common_stub64:
     
     ; THEN - Save the current frame into the CTX_FRAME of the thread.
 .first_check
-    ; Before doing all of this, first of all, check if this is a timer_interrupt (because scehduling DPCs only happen there.)
-    mov rax, [rsp + 120]
-    cmp rax, 32 ; Timer interrupt is 0x20, 32 in decimal. (if vec num is 32, 32 - 32 is 0, so jnz.)
-    jnz .no_thread
-    jmp .save_thread_ctx
+    mov rax, [rel cpu + 4] ; cpu.schedulerEnabled
+    test rax, rax
+    jz .no_thread ; If schedulerEnabled false, jump to ISR setup.
+    jmp .save_thread_ctx ; ELSE (schedulerEnabled TRUE), jump to saving the thread's context.
 
 .save_thread_ctx
     mov     rax, [rel cpu + 8]  ; directly load cpu.currentThread
     test    rax, rax
     je      .no_thread
-    add rax, 8 ; Go to the CTX_FRAME struct.
 
     ; Begin filling the CTX_FRAME struct now.
     mov [rax + 0x00], r15
@@ -104,7 +102,7 @@ isr_common_stub64:
     mov [rax + 0x60], rcx
     mov [rax + 0x68], rbx
     
-    ; Move RAX and others using PUSH and POP trick.
+    ; Move RAX and others.
     push qword [rsp + 0x70]
     pop qword [rax + 0x70]
 

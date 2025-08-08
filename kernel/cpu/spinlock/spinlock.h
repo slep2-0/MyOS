@@ -51,6 +51,7 @@ static inline void spinlock_init(SPINLOCK* lock) {
 /// </summary>
 /// <param name="lock">Pointer to SPINLOCK object.</param>
 static inline void MtAcquireSpinlock(SPINLOCK* lock, uint64_t* flags_out) {
+	tracelast_func("MtAcquireSpinlock");
 	if (!lock) return;
 	// spin until we grab the lock.
 	*flags_out = save_and_cli();
@@ -65,6 +66,7 @@ static inline void MtAcquireSpinlock(SPINLOCK* lock, uint64_t* flags_out) {
 /// </summary>
 /// <param name="lock">Pointer to SPINLOCK object.</param>
 static inline void MtReleaseSpinlock(SPINLOCK* lock, uint64_t flags) {
+	tracelast_func("MtReleaseSpinlock");
 	if (!lock) return;
 	atomic_flag_clear_explicit(&lock->LOCKED, memory_order_release);
 	restore_flags(flags);

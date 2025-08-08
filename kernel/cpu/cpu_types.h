@@ -98,10 +98,7 @@ typedef enum _timeSliceTicks {
     HIGH_TIMESLICE_TICKS = HIGH_TIMESLICE_MS / TICK_MS,   // 25 MS
 } timeSliceTicks;
 
-#define THREAD_SIGNATURE 0xCAFEBABE
-
 typedef struct _Thread {
-    uint64_t magic; // MUST BE - 0xCAFEBABE 
 	// CPU Registers for context switching
 	CTX_FRAME registers;
 
@@ -113,6 +110,9 @@ typedef struct _Thread {
     timeSliceTicks origTimeSlice;
 
 	Thread* nextThread; // For queue linking.
+
+    // Thread ID.
+    uint32_t TID;
 	// TODO later: priority, affinity, wait list pointer, etc.
 } Thread;
 

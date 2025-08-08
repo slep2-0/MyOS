@@ -77,8 +77,8 @@
 #define SAVE_CTX_FRAME(ctx_ptr) (void*)(0)
 #endif
 
-#define GET_RIP(var) \
-    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (var))
+#define GET_RIP(RIPVAR_NOPTR) \
+    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (RIPVAR_NOPTR))
 
 // instead of including kernel.h this time which causes problems, ill include each file I need.
 #include <stdbool.h>
@@ -103,6 +103,8 @@ void read_interrupt_frame(INT_FRAME* frame);
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
 
+extern SPINLOCK queueLock;
+
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
 /// CTX_FRAME* ctxframeptr = 0x1234; // Hypothetical address of the pointer.
@@ -114,20 +116,31 @@ void read_interrupt_frame(INT_FRAME* frame);
 
 static inline void enqueue(Queue* queue, Thread* thread) {
 	tracelast_func("enqueue");
+    uint64_t flags;
+    MtAcquireSpinlock(&queueLock, &flags);
 	thread->nextThread = NULL;
 	if (!queue->head) queue->head = thread;
 	else queue->tail->nextThread = thread;
 	queue->tail = thread;
+    MtReleaseSpinlock(&queueLock, flags);
 }
 
-static inline Thread* dequeue(Queue* queue) {
-	tracelast_func("dequeue");
-	Thread* thread = queue->head;
-	if (!thread) return NULL;
+static inline Thread* dequeue(Queue* q) {
+    tracelast_func("dequeue");
+    uint64_t flags;
+    MtAcquireSpinlock(&queueLock, &flags);
+    if (!q->head) {
+        return NULL;
+    }
 
-	queue->head = thread->nextThread;
-	if (!queue->head) queue->tail = NULL;
-	return thread;
+    Thread* t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
+    MtReleaseSpinlock(&queueLock, flags);
+    return t;
 }
 
 void InitCPU(void); // defined in kernel.c

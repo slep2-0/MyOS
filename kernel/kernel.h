@@ -60,4 +60,49 @@ void InitCPU(void);
 extern void read_context_frame(CTX_FRAME* registers);
 extern void read_interrupt_frame(INT_FRAME* intfr);
 
+
+#define ALLOCATIONS 1000
+#define BLOCK_SIZE  128
+#define ALIGNMENT   16
+
+/// Memory test to run to check for memory issues - identified a problem.
+static int MemoryTest(void) {
+    void* blocks[ALLOCATIONS];
+
+    // Allocation + write test
+    for (int i = 0; i < ALLOCATIONS; i++) {
+        blocks[i] = MtAllocateMemory(BLOCK_SIZE, ALIGNMENT);
+        if (!blocks[i]) {
+            gop_printf_forced(0xFFFF0000, "Allocation failed at index %d\n", i);
+            return -1;
+        }
+
+        // Alignment test
+        if ((uintptr_t)blocks[i] % ALIGNMENT != 0) {
+            gop_printf_forced(0xFFFF8000, "Misaligned block at index %d: %p\n", i, blocks[i]);
+            return -2;
+        }
+
+        // Fill memory
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            ((uint8_t*)blocks[i])[j] = (uint8_t)(i + j);
+        }
+    }
+
+    // Verify and free
+    for (int i = 0; i < ALLOCATIONS; i++) {
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            if (((uint8_t*)blocks[i])[j] != (uint8_t)(i + j)) {
+                gop_printf_forced(0xFF0000FF, "Memory corruption at block %d, byte %d\n", i, j);
+                return -3;
+            }
+        }
+
+        MtFreeMemory(blocks[i]);
+    }
+
+    gop_printf_forced(0xFF00FF00, "Memory test completed successfully.\n");
+    return 0;
+}
+
 #endif // X86_KERNEL_H

@@ -1,38 +1,61 @@
 ﻿#include "thread.h"
 #include "../../bugcheck/bugcheck.h"
 
-/*
-static uint32_t CreateTID(void) {
-    uint32_t newTID;
+#define MIN_TID           4u
+#define MAX_TID           0xFFFFFFFCu
+#define ALIGN_DELTA       4u
+#define MAX_FREE_POOL     1024u
 
-    AcquireTIDLock();
+///
+// Call with freedTid == 0 → allocate a new TID (returns 0 on failure)
+// Call with freedTid  > 0 → release that TID back into the pool (always returns 0)
+///
+static uint32_t ManageTID(uint32_t freedTid)
+{
+    static uint32_t nextTID = MIN_TID;
+    static uint32_t freePool[MAX_FREE_POOL];
+    static uint32_t freeCount = 0;
+    uint32_t result = 0;
 
-    // Get the next TID
-    newTID = g_NextTID;
-
-    // Increment by 4 to maintain alignment (Windows behavior)
-    g_NextTID += 4;
-
-    // Handle wrap-around case
-    if (g_NextTID < 4) {  // Overflow occurred
-        g_NextTID = 4;    // Reset to first valid TID
+    if (freedTid) {
+        // Release path: push into free pool if aligned & room
+        if ((freedTid % ALIGN_DELTA) == 0 && freeCount < MAX_FREE_POOL) {
+            freePool[freeCount++] = freedTid;
+        }
+        // else drop silently
     }
+    else {
+        // Allocate path:
+        if (freeCount > 0) {
+            // Reuse most‐recently freed
+            result = freePool[--freeCount];
+        }
+        else {
+            // Hand out next aligned TID
+            result = nextTID;
+            nextTID += ALIGN_DELTA;
 
-    ReleaseTIDLock();
-
-    return newTID;
+            // Wrap/overflow check
+            if (nextTID < ALIGN_DELTA || result > MAX_TID) {
+                // Exhausted all TIDs
+                result = 0;
+            }
+        }
+    }
+    return result;
 }
-*/
+
 
 // Clean exit for a thread—never returns!
 static void ThreadExit(Thread* thread) {
+    tracelast_func("ThreadExit");
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Reached ThreadExit\n");
+    gop_printf_forced(COLOR_RED, "Reached ThreadExit\n");
 #endif
     // 1) mark as dead
     thread->threadState = TERMINATED;
     thread->timeSlice = 0;
-
+    ManageTID(thread->TID);
     Schedule();
 
     // should never get here
@@ -53,7 +76,8 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         /// TODO implement user mode.
         return;
     }
-
+    IRQL oldIrql;
+    MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
     // First, allocate a new thread.
     Thread* thread = MtAllocateMemory(sizeof(Thread), _Alignof(Thread));
     if (!thread) {
@@ -61,6 +85,10 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
+
+    // Zero it.
+    kmemset((void*)thread, 0, sizeof(Thread));
+
     // Allocate a stackTop for the thread.
     void* stackTop = MtAllocateMemory(4096, 16);
     if (!stackTop) {
@@ -68,6 +96,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
+
     /// For when we context switch (this is why cfm is in stackTop), set the registers to all 0. (since the stack for the thread holds the registers when we context switch)
     uint8_t* sp = (uint8_t*)stackTop;
     sp -= sizeof(CTX_FRAME);
@@ -78,7 +107,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
 
     // Set our sig and timeslice.
-    thread->magic = THREAD_SIGNATURE;
     thread->timeSlice = TIMESLICE;
     thread->origTimeSlice = TIMESLICE;
 
@@ -88,9 +116,27 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
     cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
+    
+    uint32_t tid = ManageTID(0);
 
-    // Set it's registers.
+    if (!tid) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        uint32_t RIP;
+        GET_RIP(RIP);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        addt.str = "Creation of new TID resulted in an error <--> MtCreateThread";
+        addt.ptr = (void*)(uintptr_t)RIP;
+        MtBugcheckEx(&ctx, NULL, THREAD_ID_CREATION_FAILURE, &addt, true);
+    }
+    
+    // Set it's registers and others.
     thread->registers = *cfm;
     thread->threadState = READY;
+    thread->nextThread = NULL;
+    thread->TID = tid;
+
     enqueue(&cpu.readyQueue, thread);
+    // Lower IRQL.
+    MtLowerIRQL(oldIrql);
 }

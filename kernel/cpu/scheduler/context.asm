@@ -1,7 +1,7 @@
 ; PROJECT:      MatanelOS Kernel
 ; LICENSE:      GPLv3
 ; PURPOSE:      Corrected context switching routine.
-section .textr
+section .text
 
 ; void restore_context(CTX_FRAME* src);
 ; System V ABI: src in RDI

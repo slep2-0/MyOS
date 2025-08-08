@@ -12,8 +12,11 @@ bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;
 
+char deferredArr[1000];
+int arrIndex = 0;
+static uint32_t deferredColor = 0;
+
 void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
-    tracelast_func("draw_char");
     uint8_t c = (uint8_t)c_;
     if (c > 0x7F) return;
 
@@ -49,7 +52,6 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
 }
 
 void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
-    tracelast_func("draw_string");
     while (*s) {
         draw_char(gop, *s, x, y, color);
         x += char_width();
@@ -58,7 +60,6 @@ void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_
 }
 
 void gop_scroll(GOP_PARAMS* gop) {
-    tracelast_func("gop_scroll");
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
     uint32_t  stride = gop->PixelsPerScanLine;
     uint32_t  h = gop->Height;
@@ -79,7 +80,6 @@ void gop_scroll(GOP_PARAMS* gop) {
 }
 
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
-    tracelast_func("gop_put_char");
     if (c == '\b') {
         // move cursor back one character (and clear it)
         if (cursor_x >= char_width()) {
@@ -121,14 +121,12 @@ void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
 }
 
 void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
-    tracelast_func("gop_puts");
     while (*s) {
         gop_put_char(gop, *s++, color);
     }
 }
 
 static void sprint_dec(char* buf, unsigned v) {
-    tracelast_func("sprint_dec");
     char* p = buf;
     if (v == 0) { *p++ = '0'; }
     else {
@@ -143,14 +141,12 @@ static void sprint_dec(char* buf, unsigned v) {
 }
 
 void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
-    tracelast_func("gop_print_dec");
     char buf[16];
     sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }
 
 void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
-    tracelast_func("gop_print_hex");
     char buf[19] = "0x0000000000000000"; // 64 bit addressing
     for (int i = 0; i < 16; i++) {
         unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
@@ -162,43 +158,79 @@ void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
 
 extern GOP_PARAMS gop_local;
 
-void gop_printf(uint32_t color, const char* fmt, ...) {
+void secure_print(void) {
     GOP_PARAMS* gop = &gop_local;
-    tracelast_func("gop_printf");
+    for (int i = 0; i < arrIndex; i++) {
+        gop_put_char(gop, deferredArr[i], deferredColor);
+    }
+    // reset for next use
+    arrIndex = 0;
+}
+
+static void defer_char(char c) {
+    if (arrIndex < (int)(sizeof deferredArr - 1))
+        deferredArr[arrIndex++] = c;
+}
+static void defer_str(const char* s) {
+    while (*s) defer_char(*s++);
+}
+static void defer_dec(unsigned v) {
+    char tmp[16]; int t = 0;
+    if (v == 0) tmp[t++] = '0';
+    else while (v && t < (int)sizeof tmp)
+        tmp[t++] = '0' + (v % 10), v /= 10;
+    while (t--) defer_char(tmp[t]);
+}
+static void defer_hex(uint64_t v) {
+    char tmp[17]; int t = 0;
+    if (v == 0) tmp[t++] = '0';
+    else while (v && t < 16) {
+        unsigned n = v & 0xF;
+        tmp[t++] = n < 10 ? '0' + n : 'a' + (n - 10);
+        v >>= 4;
+    }
+    while (t--) defer_char(tmp[t]);
+}
+
+void gop_printf(uint32_t color, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
+
+    deferredColor = color;
+    arrIndex = 0;
+
     for (const char* p = fmt; *p; p++) {
-        if (*p == '*' && p[1] == '*') {
-            gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
-            p++; // skip the second '*'
-            continue;
-        }
         if (*p == '%' && p[1]) {
-            switch (*++p) {
-            case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
-            case 'u': gop_print_dec(gop, va_arg(ap, unsigned), color); break;
-            case 'x': gop_print_hex(gop, va_arg(ap, unsigned), color); break;
-            case 'p': gop_print_hex(gop, (unsigned)(uintptr_t)va_arg(ap, void*), color); break;
-            case 'c': gop_put_char(gop, (char)va_arg(ap, int), color); break;
+            p++;
+            switch (*p) {
+            case 'd': defer_dec((unsigned)va_arg(ap, int));           break;
+            case 'u': defer_dec(va_arg(ap, unsigned));               break;
+            case 'x': defer_hex((uint64_t)(unsigned)va_arg(ap, unsigned)); break;
+            case 'p':
+                defer_str("0x");
+                defer_hex((uint64_t)(uintptr_t)va_arg(ap, void*));
+                break;
+            case 'c': defer_char((char)va_arg(ap, int));             break;
             case 's': {
-                const char* str = va_arg(ap, const char*);
-                if (str) gop_puts(gop, str, color);
-            } break;
-            case '%': gop_put_char(gop, '%', color); break;
+                const char* s = va_arg(ap, const char*);
+                defer_str(s ? s : "(null)");
+            }   break;
+            case '%': defer_char('%');                              break;
             default:
-                gop_put_char(gop, '%', color);
-                gop_put_char(gop, *p, color);
+                defer_char('%');
+                defer_char(*p);
             }
         }
         else {
-            gop_put_char(gop, *p, color);
+            defer_char(*p);
         }
     }
+
     va_end(ap);
+    deferredArr[arrIndex] = '\0';
 }
 
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
-    tracelast_func("gop_clear_screen");
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);
@@ -303,4 +335,41 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     }
 
     return (int)written;
+}
+
+void gop_printf_forced(uint32_t color, const char* fmt, ...) {
+    __cli();
+    GOP_PARAMS* gop = &gop_local;
+    tracelast_func("gop_printf_forced");
+    va_list ap;
+    va_start(ap, fmt);
+    for (const char* p = fmt; *p; p++) {
+        if (*p == '*' && p[1] == '*') {
+            gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
+            p++; // skip the second '*'
+            continue;
+        }
+        if (*p == '%' && p[1]) {
+            switch (*++p) {
+            case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
+            case 'u': gop_print_dec(gop, va_arg(ap, unsigned), color); break;
+            case 'x': gop_print_hex(gop, va_arg(ap, unsigned), color); break;
+            case 'p': gop_print_hex(gop, (unsigned)(uintptr_t)va_arg(ap, void*), color); break;
+            case 'c': gop_put_char(gop, (char)va_arg(ap, int), color); break;
+            case 's': {
+                const char* str = va_arg(ap, const char*);
+                if (str) gop_puts(gop, str, color);
+            } break;
+            case '%': gop_put_char(gop, '%', color); break;
+            default:
+                gop_put_char(gop, '%', color);
+                gop_put_char(gop, *p, color);
+            }
+        }
+        else {
+            gop_put_char(gop, *p, color);
+        }
+    }
+    va_end(ap);
+    __sti();
 }

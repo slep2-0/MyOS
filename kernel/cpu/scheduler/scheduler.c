@@ -1,14 +1,16 @@
 /*
- * PROJECT:      MatanelOS Kernel
- * LICENSE:      GPLv3
- * PURPOSE:      Scheduler Implementation.
- */
+    * PROJECT:      MatanelOS Kernel
+    * LICENSE:      GPLv3
+    * PURPOSE:      Scheduler Implementation.
+    */
 
 #include "scheduler.h"
 #include "../../bugcheck/bugcheck.h"
 
- // assembly stubs to save and restore register contexts.
+    // assembly stubs to save and restore register contexts.
 extern void restore_context(CTX_FRAME* regs);
+
+SPINLOCK queueLock = { .LOCKED = ATOMIC_FLAG_INIT };
 
 // Idle thread, runs when no other is ready.
 Thread idleThread;
@@ -30,10 +32,10 @@ void InitScheduler(void) {
     cfm.rip = (uint64_t)kernel_idle_checks;
 
     // Assign the clean context to the idle thread
-    idleThread.magic = THREAD_SIGNATURE;
     idleThread.registers = cfm;
     idleThread.threadState = READY;
     idleThread.nextThread = NULL;
+    idleThread.TID = 0; // Scheduler thread, TID is 0.
 
     cpu.currentThread = NULL;
 
@@ -64,12 +66,14 @@ void Schedule(void) {
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
     Thread* prev = cpu.currentThread;
-    if (prev && prev != &idleThread) {
+
+    if (prev && prev != &idleThread && prev->threadState == RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes)
         enqueue_runnable(prev);
     }
 
     Thread* next = dequeue(&cpu.readyQueue);
+
     if (!next) {
         next = &idleThread;
     }
@@ -79,8 +83,4 @@ void Schedule(void) {
     MtLowerIRQL(PASSIVE_LEVEL);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);
-}
-
-void Yield(void) {
-    Schedule();
 }

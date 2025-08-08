@@ -9,6 +9,18 @@
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
 #endif
 
+#ifndef _MSC_VER
+_Static_assert(sizeof(CTX_FRAME) == 0x88, "CTX_FRAME must be 0x88 bytes");
+_Static_assert(offsetof(CTX_FRAME, rsp) == 0x78, "CTX_FRAME.rsp offset must be 0x78");
+_Static_assert(offsetof(CTX_FRAME, rip) == 0x80, "CTX_FRAME.rip offset must be 0x80");
+
+_Static_assert(sizeof(Thread) >= 0xA0, "Thread must be at least 0xA0 bytes");
+_Static_assert(offsetof(Thread, threadState) == 0x88, "Thread.threadState offset must be 0x88");
+_Static_assert(offsetof(Thread, timeSlice) == 0x8C, "Thread.timeSlice offset must be 0x8C");
+_Static_assert(offsetof(Thread, origTimeSlice) == 0x90, "Thread.origTimeSlice offset must be 0x90");
+_Static_assert(offsetof(Thread, nextThread) == 0x98, "Thread.nextThread offset must be 0x98");
+#endif
+
 #define MAX_AHCI_CONTROLLERS 32
 uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
 
@@ -83,16 +95,17 @@ void InitCPU(void) {
 extern volatile DPC* dpcQueueHead;
 
 void kernel_idle_checks(void) {
+    tracelast_func("kernel_idle_checks - Thread");  
     static volatile bool first_time = true;
 
     if (first_time) {
         first_time = false;
-        gop_printf(0xFF000FF0, "Reached the scheduler!\n");
+        gop_printf_forced(0xFF000FF0, "Reached the scheduler!\n");
         for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
             /* delay loop */
         }
         
-        gop_printf(0xFF000FF0, "**Ended Testing Thread Execution**\n");
+        gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
 
     while (1) {
@@ -101,21 +114,23 @@ void kernel_idle_checks(void) {
 }
 
 static void test(void) {
-    gop_printf(0xFF00FF00, "Hit Test!\n");
+    tracelast_func("test - Thread");
+    gop_printf_forced(0xFF00FF00, "Hit Test!\n");
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
         z++;
     }
-    gop_printf(0xFFA020F0, "**Ended Test.**\n");
+    gop_printf_forced(0xFFA020F0, "**Ended Test.**\n");
 }
 
 static void funcWithParam(int* integer) {
-    gop_printf(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
+    tracelast_func("funcWithParam - Thread");
+    gop_printf_forced(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
         z++;
     }
-    gop_printf(COLOR_OLIVE, "**Ended funcWithParam.**\n");
+    gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
 
 void kernel_main(BOOT_INFO* boot_info) {
@@ -142,6 +157,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_dpc_system();
     init_timer(100);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
+    ///MemoryTest();
+    ///__cli();
+    ///__hlt();
     __sti(); // only now enable interrupts
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
@@ -153,24 +171,24 @@ void kernel_main(BOOT_INFO* boot_info) {
         MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
     */
-    gop_printf(0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
-    gop_printf(0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
+    gop_printf_forced(0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
+    gop_printf_forced(0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
     // test if init heap works
     void* buf = MtAllocateMemory(64, 16);
-    gop_printf(0xFFFFFF00, "buf addr: %p\n", buf);
+    gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateMemory(128, 16);
-    gop_printf(0xFFFFFF00, "buf2 addr: %p\n", buf2);
+    gop_printf_forced(0xFFFFFF00, "buf2 addr: %p\n", buf2);
     MtFreeMemory(buf2);
     void* buf3 = MtAllocateMemory(128, 16);
-    gop_printf(0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
+    gop_printf_forced(0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
     void* buf4 = MtAllocateMemory(2048, 16);
-    gop_printf(0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
+    gop_printf_forced(0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
     void* buf5 = MtAllocateMemory(64, 16);
-    gop_printf(0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
+    gop_printf_forced(0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
     void* buf6 = MtAllocateMemory(5000, 64);
-    gop_printf(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
+    gop_printf_forced(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
     void* buf7 = MtAllocateMemory(10000, 128);
-    gop_printf(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
+    gop_printf_forced(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
 #ifdef CAUSE_BUGCHECK
     CTX_FRAME regs;
     SAVE_CTX_FRAME(&regs);
@@ -198,6 +216,5 @@ void kernel_main(BOOT_INFO* boot_info) {
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true);
-
     Schedule();
 }

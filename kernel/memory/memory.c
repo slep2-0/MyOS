@@ -162,32 +162,41 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
     return dest;
 }
 
+/// <summary>
+/// Allocate `wanted_size` bytes with `align` alignment.
+/// </summary>
 void* MtAllocateMemory(size_t wanted_size, size_t align) {
     tracelast_func("kmalloc");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    /* Round up the requested size to satisfy alignment of payload */
-    size_t payload_size = (wanted_size + align - 1) & ~(align - 1);
-    size_t total_size = payload_size + sizeof(BLOCK_HEADER);
-    
-    // Infinite loop, either allocate the required memory, or bugcheck that we have ran out.
+
+    // Precompute maximum pages we'll ever need (worst-case alignment overhead)
+    size_t max_overhead = sizeof(BLOCK_HEADER) + sizeof(void*) + (align - 1);
+    size_t max_alloc = max_overhead + wanted_size;
+
     for (;;) {
         // 1 - First fit search.
         BLOCK_HEADER** cur = &free_list;
         while (*cur) {
             BLOCK_HEADER* blk = *cur;
 
-            if (blk->size >= total_size) {
+            uintptr_t raw_start = (uintptr_t)(blk + 1) + sizeof(void*);
+            uintptr_t aligned_start = (raw_start + align - 1) & ~(align - 1);
+            uintptr_t header_store = aligned_start - sizeof(void*);
+            uintptr_t alloc_end = aligned_start + wanted_size;
+            size_t    real_total = alloc_end - (uintptr_t)blk;
+
+            if (blk->size >= real_total) {
                 /* If the block is big enough to split */
-                if (blk->size >= total_size + sizeof(BLOCK_HEADER) + align) {
+                if (blk->size >= real_total + sizeof(BLOCK_HEADER) + align) {
                     /* Split off the tail into a new free block */
-                    BLOCK_HEADER* next_blk = (BLOCK_HEADER*)((uintptr_t)blk + total_size);
-                    next_blk->size = blk->size - total_size;
+                    BLOCK_HEADER* next_blk = (BLOCK_HEADER*)((uintptr_t)blk + real_total);
+                    next_blk->size = blk->size - real_total;
                     next_blk->next = blk->next;
 
                     /* Shrink current block to allocated size */
-                    blk->size = total_size;
+                    blk->size = real_total;
                     *cur = next_blk;
                 }
                 else {
@@ -195,20 +204,19 @@ void* MtAllocateMemory(size_t wanted_size, size_t align) {
                     *cur = blk->next;
                 }
 
-                void* raw_ptr = (void*)(blk + 1);
-                void* aligned_ptr = align_up((void*)((uintptr_t)raw_ptr + sizeof(void*)), align);
-                ((BLOCK_HEADER**)aligned_ptr)[-1] = blk;
+                // Store header pointer for free
+                ((BLOCK_HEADER**)header_store)[0] = blk;
                 /// Zero the new memory block out.
-                kmemset(aligned_ptr, 0, wanted_size);
+                kmemset((void*)aligned_start, 0, wanted_size);
                 // Return the newly allocated memory ptr.
-                return aligned_ptr;
+                return (void*)aligned_start;
             }
 
             cur = &blk->next;
         }
 
-        // 2 - No available block is found, grow by how many we need.
-        size_t pages_needed = (total_size + FRAME_SIZE - 1) / FRAME_SIZE; // Round up.
+        // 2 - No available block is found, grow heap conservatively
+        size_t pages_needed = (max_alloc + FRAME_SIZE - 1) / FRAME_SIZE;
         for (size_t i = 0; i < pages_needed; i++) {
             if (!grow_heap_by_one_page()) {
                 CTX_FRAME ctx;
@@ -220,6 +228,8 @@ void* MtAllocateMemory(size_t wanted_size, size_t align) {
         continue;
     }
 }
+
+
 
 void MtFreeMemory(void* ptr) {
     tracelast_func("kfree");
@@ -249,6 +259,6 @@ void MtFreeMemory(void* ptr) {
     gop_printf(0xFFFFFF00 ,"<-- KFREE() DEBUG --> ");
     gop_printf(0xFF00FFFF, "Pushed the block to the free list.\n");
 #endif
-    /* Optionally merge neighbors */
+    /* Merge Neighbors if conditions are met. */
     coalesce_free_list();
 }

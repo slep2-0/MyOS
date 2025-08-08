@@ -69,11 +69,28 @@ extern volatile bool schedule_pending;
 
 void timer_handler(bool schedulerEnabled) {
     if (!schedule_pending) {
-        if (schedulerEnabled && cpu.currentThread && cpu.currentThread->timeSlice-- <= 0) {
-            cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
-            MtQueueDPC(&scheduleDpc);
-            /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
+        if (schedulerEnabled) {
+            if (cpu.currentThread) {
+                if (cpu.currentThread->timeSlice-- <= 0) {
+                    cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
+                    tracelast_func("Queuing DPC in timer_handler");
+                    MtQueueDPC(&scheduleDpc);
+                    /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
+                }
+                else {
+                    tracelast_func("Did not queue DPC in timer handler. Reason: Thread's timeslice isn't over.");
+                }
+            }
+            else {
+                tracelast_func("Did not queue DPC in timer handler. Reason: Thread is NULL (no current thread)");
+            }
         }
+        else {
+            tracelast_func("Did not queue DPC in timer handler. Reason: Scheduler isn't enabled..");
+        }
+    }
+    else {
+        tracelast_func("Did not queue DPC in timer handler. Reason: Schedule DPC is already pending..");
     }
 }
 
@@ -94,8 +111,8 @@ void pagefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     MtBugcheck(ctx, intfr, PAGE_FAULT, fault_addr, true);
     
     // __hlt(); -> When an HLT instruction is called when the CPU is in interrupt mode, (interrupts are already disabled to let this interrupt go through), iretd never executes, and so the CPU Is just stuck in place. Only an NMI or SMI can wake the processor back up
-    // NMI - Non Maskable Interrupt, happens when a watchdog timer expires, system bus errors, (or memory parity errors, that rarily occur in modern systems).
-    // SMI - A System Managment Interrupt is a special kind of an interurpt that also masks over HLT (even when interrupts are already disabled, like NMI), that is used for thermal throttling of the CPU, power management, or hardware emulation.
+    // NMI - Non Maskable Interrupt, happens when a watchdog timer expires, system bus errors, (or memory parity errors, that rarily occur in modern systems -- unless a gamma ray strikes through).
+    // SMI - A System Managment Interrupt is a special kind of an interurpt that also masks over CLI (even when interrupts are already disabled, like NMI), that is used for thermal throttling of the CPU, power management, or hardware emulation.
 }
 
 void doublefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {

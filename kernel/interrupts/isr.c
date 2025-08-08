@@ -9,8 +9,6 @@
 
 extern GOP_PARAMS gop_local;
 
-// DO NOT PUT TRACELAST_FUNC HERE.
-
 const bool has_error_code[] = {
     false, false, false, false, false, false, false, false, // 0-7
     true,  false, true,  true,  true,  true,  true,  false, // 8-15
@@ -26,7 +24,7 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
     ksnprintf(buf, sizeof(buf), "INTERRUPT: %d", vec_num);
     tracelast_func(buf);
     IRQL oldIrql;
-    bool schedulerEnabled;
+    bool schedulerEnabled = cpu.schedulerEnabled;
 
     ctx->rip = intfr->rip;
     ctx->rsp = intfr->rsp;
@@ -90,7 +88,6 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         severe_machine_check_handler(ctx, intfr);
         break;
     case TIMER_INTERRUPT:
-        schedulerEnabled = cpu.schedulerEnabled;
         MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
         timer_handler(schedulerEnabled);
         MtLowerIRQL(oldIrql);

@@ -15,6 +15,7 @@
 extern GOP_PARAMS gop_local;
 extern LASTFUNC_HISTORY lastfunc_history;
 extern bool isBugChecking;
+extern CPU cpu;
 
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
@@ -30,9 +31,9 @@ static void print_lastfunc_chain(uint32_t color) {
         char* name = (char*)lastfunc_history.names[idx];
         if (!*name) break;
         if (!first) {
-            gop_printf(color, " -> ");
+            gop_printf_forced(color, " -> ");
         }
-        gop_printf(color, "%s", name);
+        gop_printf_forced(color, "%s", name);
         first = false;
     }
 }
@@ -151,6 +152,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case FATAL_IRQL_CORRUPTION:
         *s = "FATAL_IRQL_CORRUPTION";
         break;
+    case THREAD_ID_CREATION_FAILURE:
+        *s = "THREAD_ID_CREATION_FAILURE";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -178,19 +182,19 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         err_code = NULL_POINTER_DEREFERENCE;
     }
 	// Write some debugging and an error message
-	gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
-	gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
+	gop_printf_forced(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
+	gop_printf_forced(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
     uint64_t rspIfExist;
     if (context) {
         rspIfExist = (context->rsp) ? context->rsp : (uint64_t)(-1);
     }
-	gop_printf(0xFFFFFFFF, "**STOP CODE: ");
-	gop_printf(0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(0xFF00FF00, " (numerical: %d)**", err_code);
+	gop_printf_forced(0xFFFFFFFF, "**STOP CODE: ");
+	gop_printf_forced(0xFF8B0000, "%s", stopCodeToStr);
+    gop_printf_forced(0xFF00FF00, " (numerical: %d)**", err_code);
     if (context) {
-        gop_printf(0xFFFFFFFF,
+        gop_printf_forced(0xFFFFFFFF,
             "\n\nRegisters:\n\n"
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
@@ -215,11 +219,11 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         );
     }
 	else {
-        gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
+        gop_printf_forced(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
 	}
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
     if (isThereIntFrame) {
-        gop_printf((uint32_t)-1,
+        gop_printf_forced((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %p\n\n"
             "RIP: %p CS: %p RFLAGS: %p\n",
@@ -231,21 +235,25 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         );
     }
 #ifdef DEBUG
-    gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+    gop_printf_forced(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
 #endif
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-            gop_printf(0xFFFFA500, "\n\n**FAULTY ADDRESS: %p**\n", additional);
+            gop_printf_forced(0xFFFFA500, "\n\n**FAULTY ADDRESS: %p**\n", additional);
 		}
 		else {
-            gop_printf(0xFFBF40BF, "\n\n**ADDITIONALS: %p**\n", additional);
+            gop_printf_forced(0xFFBF40BF, "\n\n**ADDITIONALS: %p**\n", additional);
 		}
 	}
 #ifdef DEBUG
+    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : 69;
+    gop_printf_forced(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
+#endif
+#ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
-        gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest): ");
+        gop_printf_forced(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest): ");
         print_lastfunc_chain(0xFFBF40BF);
-        gop_printf(0xFFBF40BF, "**");
+        gop_printf_forced(0xFFBF40BF, "**");
     }
 #endif
 	//test
@@ -275,19 +283,19 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     // Clear the screen to blue (bsod windows style)
     gop_clear_screen(&gop_local, 0xFF0035b8);
     // Write some debugging and an error message
-    gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
-    gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
+    gop_printf_forced(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
+    gop_printf_forced(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
     uint64_t rspIfExist;
     if (context) {
         rspIfExist = (context->rsp) ? context->rsp : (uint64_t)(-1);
     }
-    gop_printf(0xFFFFFFFF, "**STOP CODE: ");
-    gop_printf(0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(0xFF00FF00, " (numerical: %d)**", err_code);
+    gop_printf_forced(0xFFFFFFFF, "**STOP CODE: ");
+    gop_printf_forced(0xFF8B0000, "%s", stopCodeToStr);
+    gop_printf_forced(0xFF00FF00, " (numerical: %d)**", err_code);
     if (context) {
-        gop_printf(0xFFFFFFFF,
+        gop_printf_forced(0xFFFFFFFF,
             "\n\nRegisters:\n\n"
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
@@ -312,11 +320,11 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
         );
     }
     else {
-        gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
+        gop_printf_forced(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
     }
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
     if (isThereIntFrame) {
-        gop_printf((uint32_t)-1,
+        gop_printf_forced((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %p\n\n"
             "RIP: %p CS: %p RFLAGS: %p\n",
@@ -328,30 +336,34 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
         );
     }
 #ifdef DEBUG
-    gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+    gop_printf_forced(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+#endif
+#ifdef DEBUG
+    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : 69;
+    gop_printf_forced(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #endif
     if (isAdditionals) {
         if (additional->boolean) {
-            gop_printf(COLOR_RED, "**BOOLEAN ADDITIONAL: %d**\n", additional->boolean);
+            gop_printf_forced(COLOR_RED, "**BOOLEAN ADDITIONAL: %d**\n", additional->boolean);
         }
         if (additional->num) {
-            gop_printf(COLOR_RED, "**UNSIGNED NUMBER ADDITIONAL: %d**\n", additional->num);
+            gop_printf_forced(COLOR_RED, "**UNSIGNED NUMBER ADDITIONAL: %d**\n", additional->num);
         }
         if (additional->ptr) {
-            gop_printf(COLOR_RED, "**POINTER ADDITIONAL: %p**\n", additional->ptr);
+            gop_printf_forced(COLOR_RED, "**POINTER ADDITIONAL: %p**\n", additional->ptr);
         }
         if (additional->signednum) {
-            gop_printf(COLOR_RED, "**SIGNED NUMBER ADDITIONAL: %d**\n", additional->signednum);
+            gop_printf_forced(COLOR_RED, "**SIGNED NUMBER ADDITIONAL: %d**\n", additional->signednum);
         }
         if (additional->str) {
-            gop_printf(COLOR_RED, "**STRING ADDITIONAL: %s**\n", additional->str);
+            gop_printf_forced(COLOR_RED, "**STRING ADDITIONAL: %s**\n", additional->str);
         }
     }
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
-        gop_printf(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
+        gop_printf_forced(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
         print_lastfunc_chain(0xFFBF40BF);
-        gop_printf(0xFFBF40BF, "**");
+        gop_printf_forced(0xFFBF40BF, "**");
     }
 #endif
     //test
