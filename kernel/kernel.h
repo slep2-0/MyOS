@@ -60,6 +60,9 @@ void InitCPU(void);
 extern void read_context_frame(CTX_FRAME* registers);
 extern void read_interrupt_frame(INT_FRAME* intfr);
 
+void kernel_after_switch(void);
+
+#define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
 
 #define ALLOCATIONS 1000
 #define BLOCK_SIZE  128

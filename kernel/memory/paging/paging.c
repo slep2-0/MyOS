@@ -2,6 +2,7 @@
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     64-bit Memory Paging Implementation (4-level paging)
+ * TODO: This code is VERY unorganized, I do not like how it looks, cleanup: merge allocate_page_table, and map_page.
  */
 
 #include "paging.h"
@@ -26,7 +27,52 @@ static uint64_t* pml4 = __pml4_start; // Base of PML4 table
 static uint8_t* next_pt = (uint8_t*)&__pt_start;
 static uint8_t* const end_pt = (uint8_t*)&__pt_end;
 
-static uint64_t* allocate_page_table(void) {
+// From now on, physical addresses are uintptr_t, and virtual addresses are void pointers.
+
+typedef struct _PAGE_FRAME {
+    uintptr_t phys;
+    void* virt;
+} PAGE_FRAME;
+
+static PAGE_FRAME allocate_page_table(void) {
+    tracelast_func("allocate_page_table");
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
+
+    /* 1) Use linker-reserved (virtual) pages first */
+    if ((uintptr_t)next_pt + PAGE_SIZE_4K <= (uintptr_t)end_pt) {
+        uint64_t* table = (uint64_t*)next_pt;   // virtual pointer -> safe to deref
+        next_pt += PAGE_SIZE_4K;
+        kmemset((void*)table, 0, PAGE_SIZE_4K);
+
+        PAGE_FRAME fr;
+        fr.virt = (void*)table;
+        fr.phys = MtTranslateKernelVirtualToPhysical(fr.virt); // returns uintptr_t
+        return fr;
+    }
+
+    /* 2) Fallback: allocate a physical frame (alloc_frame returns physical uintptr_t) */
+    uintptr_t phys = alloc_frame();  // must return physical address
+    if (!phys) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        MtBugcheck(&ctx, NULL, BAD_PAGING, 0, false);
+        PAGE_FRAME null = { 0, NULL };
+        return null; /* unreachable if bugcheck halts */
+    }
+
+    void* virt = MtTranslateKernelPhysicalToVirtual(phys); // map phys -> virt
+    kmemset(virt, 0, PAGE_SIZE_4K);
+
+    PAGE_FRAME retval;
+    retval.phys = phys;
+    retval.virt = virt;
+    return retval;
+}
+
+// returns virt = phys
+static uint64_t* allocate_page_table_identity(void) {
     tracelast_func("allocate_page_table");
     // CHECK IRQL.
     uint64_t rip;
@@ -41,7 +87,7 @@ static uint64_t* allocate_page_table(void) {
     }
 
     // 2) otherwise fall back on the frame‐bitmap
-    void* phys = alloc_frame();
+    void* phys = (void*)alloc_frame();
     if (!phys) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -67,10 +113,18 @@ void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
     uint64_t va = PAGE_ALIGN_DOWN(start);
     uint64_t last = PAGE_ALIGN_UP(end);
     for (; va < last; va += PAGE_SIZE_4K) {
-        map_page((void*)va, (void*)va, flags);
+        map_page_identity((void*)va, (void*)va, flags);
     }
 }
 
+static void map_range_higher(uintptr_t phys_start, uintptr_t phys_end, void* va_start, uint64_t flags) {
+    uintptr_t p = phys_start;
+    uintptr_t v = (uintptr_t)va_start;
+
+    for (; p < phys_end; p += PAGE_SIZE_4K, v += PAGE_SIZE_4K) {
+        map_page((void*)v, p, flags);
+    }
+}
 
 //
 //
@@ -90,6 +144,15 @@ void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
 extern GOP_PARAMS gop_local;
 extern BOOT_INFO boot_info_local;
 
+static void unmap_range_identity(uintptr_t start, uintptr_t end) {
+    start = PAGE_ALIGN_DOWN(start);
+    end = PAGE_ALIGN_UP(end);
+
+    for (uintptr_t va = start; va < end; va += PAGE_SIZE_4K) {
+        unmap_page((void*)va);
+    }
+}
+
 void paging_init(void) {
     tracelast_func("paging_init");
     uint64_t rip;
@@ -98,9 +161,9 @@ void paging_init(void) {
     // zero your PML4…
     kmemset(pml4, 0, PAGE_SIZE_4K);
     // carve out the first few tables (PML4→PDPT→PD→PT)
-    uint64_t* pdpt = allocate_page_table();
-    uint64_t* pd = allocate_page_table();
-    uint64_t* pt = allocate_page_table();
+    uint64_t* pdpt = allocate_page_table_identity();
+    uint64_t* pd = allocate_page_table_identity();
+    uint64_t* pt = allocate_page_table_identity();
     pml4[0] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_RW;
     pdpt[0] = (uint64_t)pd | PAGE_PRESENT | PAGE_RW;
     pd[0] = (uint64_t)pt | PAGE_PRESENT | PAGE_RW;
@@ -127,7 +190,7 @@ void paging_init(void) {
     uint64_t fb = gop_local.FrameBufferBase;
     uint64_t end = fb + gop_local.FrameBufferSize;
     map_range_identity(fb, end, flags);
-    
+
     extern uint64_t ahci_bases_local[32];
     uintptr_t bar_arr = (uintptr_t)ahci_bases_local;
     uintptr_t bar_arr_end = bar_arr + sizeof(uint64_t) * boot_info_local.AhciCount;
@@ -154,12 +217,47 @@ void paging_init(void) {
 
     // then load CR3 and enable paging.
     enable_paging((uint64_t)pml4);
+
+    // Now, that we have identity paging that works, we map to higher half
+    map_range_higher((uintptr_t)&__pml4_start,
+        (uintptr_t)&__pml4_start + PAGE_SIZE_4K,
+        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__pml4_start),
+        flags);
+
+    map_range_higher((uintptr_t)&__pt_start,
+        (uintptr_t)&__pt_end,
+        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__pt_start),
+        flags);
+
+    map_range_higher((uintptr_t)&kernel_start,
+        (uintptr_t)&kernel_end + 1,
+        MtTranslateKernelPhysicalToVirtual((uintptr_t)&kernel_start),
+        flags);
+
+    extern uint8_t __stack_start[], __stack_end[]; /// Note to self: since they stack start and end have an array start, they are decayed into pointers automatically and so & isn't needed.
+    map_range_higher((uintptr_t)__stack_start,
+        (uintptr_t)__stack_end,
+        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__stack_start),
+        flags);
+
+    map_range_higher((uintptr_t)IDT,
+        (uintptr_t)IDT + sizeof(IDT_ENTRY64) * IDT_ENTRIES,
+        MtTranslateKernelPhysicalToVirtual((uintptr_t)IDT),
+        flags);
+
+    // grab addr
+    extern void switch_higher(uint64_t cr3, uint64_t newaddrjmp);
+    extern void kernel_after_switch(void);
+    uint64_t cr3;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+
+    uint64_t new_va = (uint64_t)MtTranslateKernelPhysicalToVirtual((uintptr_t)&kernel_after_switch);
+    switch_higher(cr3, new_va);
 }
 
-
-// Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc)
-void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
-    tracelast_func("map_page");
+// Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc) (IDENTITY ONLY)
+void map_page_identity(void* virtualaddress, void* physicaladdress, uint64_t flags) {
+    tracelast_func("map_page_identity");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
@@ -174,9 +272,9 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     // Traverse or allocate PDPT
     uint64_t* pdpt;
     if (!(pml4[pml4_i] & PAGE_PRESENT)) {
-        pdpt = allocate_page_table();
+        pdpt = allocate_page_table_identity();
         if (!pdpt) return; // fail
-        pml4[pml4_i] = ((uint64_t)pdpt) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        pml4[pml4_i] = ((uint64_t)pdpt) | flags;
     }
     else {
         pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
@@ -185,9 +283,9 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     // Traverse or allocate PD
     uint64_t* pd;
     if (!(pdpt[pdpt_i] & PAGE_PRESENT)) {
-        pd = allocate_page_table();
+        pd = allocate_page_table_identity();
         if (!pd) return; // fail
-        pdpt[pdpt_i] = ((uint64_t)pd) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        pdpt[pdpt_i] = ((uint64_t)pd) | flags;
     }
     else {
         pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
@@ -196,16 +294,75 @@ void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags) {
     // Traverse or allocate PT
     uint64_t* pt;
     if (!(pd[pd_i] & PAGE_PRESENT)) {
-        pt = allocate_page_table();
+        pt = allocate_page_table_identity();
         if (!pt) return; // fail
-        pd[pd_i] = ((uint64_t)pt) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        pd[pd_i] = ((uint64_t)pt) | flags;
     }
     else {
         pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
     }
 
     // Map the page
-    pt[pt_i] = (pa & ~0xFFFULL) | (flags & (PAGE_RW | PAGE_USER)) | PAGE_PRESENT;
+    pt[pt_i] = (pa & ~0xFFFULL) | (flags);
+
+    // Flush TLB for this virtual address
+    // only flush if paging is already on:
+    uint64_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    if (cr0 & 0x80000000) {
+        invlpg((void*)va);
+    }
+}
+
+static uint64_t va_to_phys(void* va) {
+    uint64_t v = (uint64_t)va;
+    if (v >= KERNEL_VA_START) {
+        return MtTranslateKernelVirtualToPhysical((void*)v);
+    }
+    else {
+        return v; // identity mapped addresses equal physical
+    }
+}
+
+void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
+    uint64_t va = (uint64_t)virtualaddress;
+    uintptr_t pa = physicaladdress;
+
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
+
+    // --- PDPT ---
+    uint64_t* pdpt;
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) {
+        pdpt = allocate_page_table_identity(); // identity-mapped pointer
+        pml4[pml4_i] = va_to_phys(pdpt) | flags;
+    }
+    else {
+        pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL); // identity-mapped access
+    }
+
+    uint64_t* pd;
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) {
+        pd = allocate_page_table_identity();
+        pdpt[pdpt_i] = va_to_phys(pd) | flags;
+    }
+    else {
+        pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL); // identity-mapped
+    }
+
+    uint64_t* pt;
+    if (!(pd[pd_i] & PAGE_PRESENT)) {
+        pt = allocate_page_table_identity();
+        pd[pd_i] = va_to_phys(pt) | flags;
+    }
+    else {
+        pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL); // identity-mapped
+    }
+
+    // Map the page
+    pt[pt_i] = (pa & ~0xFFFULL) | (flags);
 
     // Flush TLB for this virtual address
     // only flush if paging is already on:
@@ -240,7 +397,7 @@ bool unmap_page(void* virtualaddress) {
 
     if (!(pt[pt_i] & PAGE_PRESENT)) return false;
 
-    void* phys_addr = (void*)(pt[pt_i] & ~0xFFFULL);
+    uintptr_t phys_addr = (uintptr_t)(pt[pt_i] & ~0xFFFULL);
 
     // Clear the entry
     pt[pt_i] = 0;

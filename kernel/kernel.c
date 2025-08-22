@@ -92,8 +92,6 @@ void InitCPU(void) {
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
 }
 
-extern volatile DPC* dpcQueueHead;
-
 void kernel_idle_checks(void) {
     tracelast_func("kernel_idle_checks - Thread");  
     static volatile bool first_time = true;
@@ -133,6 +131,7 @@ static void funcWithParam(int* integer) {
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
 
+/** Remember that paging is on when this is called, as UEFI turned it on. */
 void kernel_main(BOOT_INFO* boot_info) {
     //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
@@ -147,6 +146,11 @@ void kernel_main(BOOT_INFO* boot_info) {
     frame_bitmap_init();
     // Initialize paging.
     paging_init();
+}
+
+void kernel_after_switch(void) {
+    // Reaching here meant that we have finished paging and jumped to this address via its virtual addr. (0xfffffffff80000...)
+
     // Initialize interrupts & exceptions.
     init_interrupts();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
@@ -163,17 +167,30 @@ void kernel_main(BOOT_INFO* boot_info) {
     __sti(); // only now enable interrupts
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
-    // Initialize AHCI now.
+
+    uint64_t rip;
+    __asm__ volatile (
+        "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
+        "1:"                     // The label whose address we want
+        : "=r"(rip)              // Output to the 'rip' variable
+        );
+
+    gop_printf_forced(0xFFFFFF00, "Current RIP: %p\n", rip);
+
+    if (rip >= KERNEL_VA_START) {
+        gop_printf_forced(0x00FF00FF, "**[+] Running in higher-half**\n");
+    }
+    else {
+        gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
+    }
     /*
+    // Initialize AHCI now.
     if (!ahci_init()) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
         MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
     */
-    gop_printf_forced(0xFFFF0000, "Hello People! Number: %d , String: %s , HEX: %p\n", 5, "MyOS!", 0x123123);
-    gop_printf_forced(0xFF0000FF, "Testing! %d %d %d\n", 1, 2, 3);
-    // test if init heap works
     void* buf = MtAllocateMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateMemory(128, 16);
@@ -196,16 +213,15 @@ void kernel_main(BOOT_INFO* boot_info) {
 #endif
     /*
     void* writebuf = MtAllocateMemory(512, 16);
-    gop_printf(COLOR_GREEN, "Attempting to read to writebuf...\n");
+    gop_printf_forced(COLOR_GREEN, "Attempting to read to writebuf...\n");
     if (ahci_read_sector(get_block_device(0), 0, writebuf)) {
         for (int i = 0; i < 512; i++) {
-            gop_printf(0xFFFFA500, "%d", ((uint8_t*)writebuf)[i]);
+            gop_printf_forced(0xFFFFA500, "%d", ((uint8_t*)writebuf)[i]);
         }
     }
     else {
-        gop_printf(COLOR_RED, "Could not read AHCI...\n");
+        gop_printf_forced(COLOR_RED, "Could not read AHCI...\n");
     }
-
     if (!fat32_init(0)) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
@@ -215,6 +231,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     */
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
-    MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true);
+    MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
     Schedule();
 }

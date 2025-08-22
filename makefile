@@ -13,11 +13,11 @@ ASMFLAGS_BIN = -f bin
 # Base CFLAGS (no optimization level hardcoded here)
 CFLAGS = -std=gnu11 \
          -m64 -ffreestanding -c \
-         -Wall -Wextra -Werror -Wmissing-prototypes \
-         -Wstrict-prototypes -Wshadow -Wcast-align \
          -fdiagnostics-color=always \
          -fdiagnostics-show-option \
          -Wno-unused-function \
+         -Wall -Wextra -Werror -Wmissing-prototypes \
+         -Wstrict-prototypes -Wshadow -Wcast-align \
          -fno-omit-frame-pointer \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -fno-pie -fno-pic

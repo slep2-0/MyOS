@@ -28,11 +28,13 @@ void zero_bss(void);
 /* Heap Size */
 
 /* Start and end of the heap region */
-#define HEAP_START ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFFU) & ~0xFFFU)))
-#define HEAP_END (PHYS_MEM_BASE + PHYS_MEM_SIZE)
-extern uintptr_t heap_current_end;
+#define HEAP_START_PHYS ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFFU) & ~0xFFFU)))
+#define HEAP_END_PHYS   (PHYS_MEM_BASE + PHYS_MEM_SIZE)
 
-#define HEAP_SIZE (HEAP_END - HEAP_START) // This ensures heap stays within mapped range // 128 MiB MAX. You may change it to an upper limit of 3.9GB.
+#define HEAP_START_VA ((uintptr_t)MtTranslateKernelPhysicalToVirtual(HEAP_START_PHYS))
+#define HEAP_END_VA   ((uintptr_t)MtTranslateKernelPhysicalToVirtual(HEAP_END_PHYS))
+
+#define HEAP_SIZE_VA  (HEAP_END_VA - HEAP_START_VA)
 
 /* Block header placed immediately before each allocated chunk */
 typedef struct _BLOCK_HEADER {

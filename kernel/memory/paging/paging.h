@@ -23,6 +23,9 @@
 #define PAGE_DIR_ENTRIES 1024
 #define PAGE_TABLE_ENTRIES 1024
 
+#define KERNEL_VA_START 0xfffff80000000000ULL
+#define KERNEL_PHYS_BASE 0x100000
+
 // Flags for PDE/PTE
 typedef enum _FLAGS {
 	PAGE_PRESENT = 1 << 0, // 0 - ANY access to this page will fault, unmapped. 1 - the page is valid and the MMU will translate and allow accesses (subject to RW and USER)
@@ -44,16 +47,33 @@ extern uint64_t __pt_end;
 void paging_init(void);
 void set_page_writable(void* virtualaddress, bool writable);
 void set_page_user_access(void* virtualaddress, bool user_accessible);
-void map_page(void* virtualaddress, void* physicaladdress, uint64_t flags);
+// identity only.
+void map_page_identity(void* virtualaddress, void* physicaladdress, uint64_t flags);
+
+void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags);
+
 void map_range_identity(uint64_t start, uint64_t end, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
-// Assembly FUNCS
+static inline uintptr_t MtTranslateKernelVirtualToPhysical(void* virtualaddr) {
+    uintptr_t va = (uintptr_t)virtualaddr;
+    if (va < KERNEL_VA_START) {
+        // Not a kernel virtual address
+        // Could assert, bugcheck, or just return 0
+        return 0;
+    }
+    return va - KERNEL_VA_START + KERNEL_PHYS_BASE;
+}
+
+static inline void* MtTranslateKernelPhysicalToVirtual(uintptr_t physaddr) {
+    if (physaddr < KERNEL_PHYS_BASE) {
+        // Not a kernel physical address
+        return NULL;
+    }
+    return (void*)(physaddr - KERNEL_PHYS_BASE + KERNEL_VA_START);
+}
 
 // Enable paging with given PML4 physical address -- found in ASM.
 void enable_paging(uint64_t pml4_phys);
-
-// Disable paging -- found in ASM.
-void disable_paging(void);
 
 #endif

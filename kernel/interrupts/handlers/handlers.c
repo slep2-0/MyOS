@@ -5,24 +5,31 @@
  */
 
 #include "handlers.h"
+#include "scancodes.h"
 #include "../idt.h"
 
 // NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
 
-static bool extended_scancode = false;
 
-CTX_FRAME ctxfr;
-static DPC keyboardDpc = {
-    .Next = NULL,
-    .callback = NULL,
-    .callbackWithCtx = keyboard_dpc,
-    .ctx = &ctxfr,
-    .Kind = NO_KIND,
-    .hasCtx = true,
-    .priority = MEDIUM_PRIORITY
-};
+extern uint32_t cursor_x;
+extern uint32_t cursor_y;
+
+bool shift_pressed = false;
+bool ctrl_pressed = false;
+bool caps_lock_on = false;
+bool extended_scancode = false;
+
+void init_keyboard() {
+    shift_pressed = false;
+    ctrl_pressed = false;
+    caps_lock_on = false;
+    extended_scancode = false;
+}
+
+extern GOP_PARAMS gop_local;
 
 void keyboard_handler() {
+    // Read the scan port from the status port.
     unsigned char scancode = __inbyte(KEYBOARD_DATA_PORT);
 
     // Extended scancode recognition.
@@ -32,11 +39,79 @@ void keyboard_handler() {
         return;
     }
 
-    ctxfr.rax = scancode;
-    ctxfr.rbx = extended_scancode;
-    extended_scancode = false;
-    MtQueueDPC(&keyboardDpc);
+    if (extended_scancode) {
+        // second byte of extended scancode.
+        switch (scancode) {
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_UP:
+            cursor_y--; // reveresd, even though it's - on the y scale, it goes up on screen.
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI); //ack
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_DOWN:
+            cursor_y++;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_RIGHT:
+            cursor_x++;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        case KEYBOARD_SCANCODE_EXTENDED_PRESSED_CURSOR_LEFT:
+            cursor_x--;
+            extended_scancode = false;
+            __outbyte(0x20, PIC_EOI);
+            return;
+        }
+    }
 
+    // Check if it's a key press, bit 7 of the inbyte.
+    // 0x80 in binary is 1000 0000 -> BIT 7 AND -> if 1 - press, if 0 release.
+    if (!(scancode & 0x80)) {
+        // Conver scan code to ASCII to see if it's even a printable character.
+        if ((scancode < sizeof(scancode_to_ascii) && scancode_to_ascii[scancode]) || (scancode < sizeof(scancode_to_ascii_shift) && scancode_to_ascii_shift[scancode])) {
+            char key = scancode_to_ascii[scancode];
+            char keyShift = scancode_to_ascii_shift[scancode];
+            char str[2] = { key, '\0' }; // default string (key) + null terminator.
+            char strShift[2] = { keyShift, '\0' };
+            switch (key) {
+            case '\n': // newline char
+                gop_printf_forced(1, "\n");
+                break;
+            case '\b': // backspace
+                gop_printf_forced(1, "\b \b");
+                break;
+            case '\t': // TAB
+                gop_printf_forced(1, "    ");
+                break;
+            default:
+                if (shift_pressed || caps_lock_on) {
+                    gop_printf_forced(0xFFFFFFFE, strShift); // basically underflow to max 32bit val.
+                }
+                else {
+                    gop_printf_forced(0xFFFFFFFE, str); // basically underflow to max 32bit val.
+                }
+                break;
+            }
+        }
+        switch (scancode) {
+        case KEYBOARD_SCANCODE_PRESSED_LEFT_SHIFT:
+            shift_pressed = true;
+            break;
+        case KEYBOARD_SCANCODE_PRESSED_CAPS_LOCK:
+            caps_lock_on = !caps_lock_on;
+        }
+
+    }
+    else {
+        // It's a release, bit 7 is 0.
+        switch (scancode) {
+        case KEYBOARD_SCANCODE_RELEASE_LEFT_SHIFT:
+            shift_pressed = false;
+            break;
+        }
+
+    }
     // Send End Of Interrupt (EOI) to the PIC.
     __outbyte(0x20, PIC_EOI); // Only sent to master since this is a master interrupt.
 }
@@ -125,13 +200,13 @@ void dividebyzero_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);
     // handle diving by zero.
-    gop_printf(0xFFFF0000, "\nERROR: Dividing by zero is not allowed.\n");
+    gop_printf_forced(0xFFFF0000, "\nERROR: Dividing by zero is not allowed.\n");
 }
 
 void debugsinglestep_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);
-    gop_printf(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
+    gop_printf_forced(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
     __hlt();
 }
 
@@ -143,7 +218,7 @@ void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);
-    gop_printf(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
+    gop_printf_forced(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
     __hlt();
 }
 
@@ -199,7 +274,7 @@ void fpu_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);;
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
-    gop_printf(0xFFFF0000, "Error: Floating Point error, have you done a correct calculation?\n");
+    gop_printf_forced(0xFFFF0000, "Error: Floating Point error, have you done a correct calculation?\n");
 }
 
 void alignment_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {

@@ -78,30 +78,24 @@ void frame_bitmap_init(void) {
     }
 }
 
-static uint8_t* next_pt = (uint8_t*)& __pt_start;
-
 // Early‐boot frame allocator:
-void* alloc_frame(void) {
+uintptr_t alloc_frame(void) {
     tracelast_func("alloc_frame");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    next_pt = (uint8_t*) & __pt_end;
-
     /// Removed reserved pages use, for safeguarding against memory corruption within the kernel.
-
-    // Otherwise fall back on the bitmap (for heap allocations)
     for (size_t frame = 0; frame < MAX_FRAMES; ++frame) {
         if (!(frame_bitmap[frame / 8] & (1 << (frame % 8)))) {
             // mark and return
             frame_bitmap[frame / 8] |= (1 << (frame % 8));
-            return (void*)(frame * FRAME_SIZE);
+            return (uintptr_t)(frame * FRAME_SIZE);
         }
     }
-    return NULL;
+    return 0;
 }
 
-void free_frame(void* p) {
+void free_frame(uintptr_t p) {
     tracelast_func("free_frame");
     uint64_t rip;
     GET_RIP(rip);

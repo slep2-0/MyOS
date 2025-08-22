@@ -78,7 +78,7 @@
 #endif
 
 #define GET_RIP(RIPVAR_NOPTR) \
-    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (RIPVAR_NOPTR))
+    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (RIPVAR_NOPTR));
 
 // instead of including kernel.h this time which causes problems, ill include each file I need.
 #include <stdbool.h>

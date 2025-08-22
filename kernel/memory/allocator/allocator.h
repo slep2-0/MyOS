@@ -50,10 +50,10 @@ static inline bool classify(int type) {
 // Must be called after gEfiMemoryMap* variables are set
 void frame_bitmap_init(void);
 
-// Allocate one 4KiB physical frame; returns physical address or NULL
-void* alloc_frame(void);
+// Allocate one 4KiB physical frame; returns physical address or 0 if NULL.
+uintptr_t alloc_frame(void);
 
 // Free a previously allocated frame (pass the physical address)
-void free_frame(void* p);
+void free_frame(uintptr_t p);
 
 #endif // ALLOCATOR_H

@@ -134,57 +134,85 @@ bool ahci_init(void) {
 
 bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     tracelast_func("ahci_read_sector");
-    // Our port context is the dev data
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
-    // Port HBA.
     HBA_PORT* p = ctx->port;
 
     int slot = find_free_slot(p->sact | p->ci);
-    if (slot < 0) return false; // Didn't find a free slot to read from.
+    if (slot < 0) return false;
 
-    // Command table per slot: 256B CFIS + 16*6B overhead + 1 PRDT
-    //uint32_t cmd_offset = slot * 1024 / 32; // each header is 32 bytes.
-    uint8_t* clb_mem = (uint8_t*)ctx->clb;
-    HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)(clb_mem + slot * 256);
-    kmemset(cmd, 0, sizeof(FIS_REG_H2D) + sizeof(HBA_PRDT_ENTRY));
+    /* Command table for this slot (256 bytes per slot) */
+    HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)((uint8_t*)ctx->cmd_tbl + slot * 256);
+    kmemset(cmd, 0, 256);
 
-    // Prepare Register - Host to Device FIS.
+    /* Command header in CLB for this slot */
+    HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)ctx->clb + slot * sizeof(HBA_CMD_HEADER));
+    hdr->cfl = (sizeof(FIS_REG_H2D) + 3) / 4; /* CFIS length in DWORDs (20 bytes -> 5) */
+    hdr->w = 0;       /* read */
+    hdr->prdbc = 0;   /* clear transferred byte count */
+    hdr->prdtl = 1;   /* one PRDT entry */
+
+    /* Build CFIS */
     FIS_REG_H2D* fis = &cmd->cfis;
-    fis->fis_type = FIS_TYPE_REG_H2D; // FIS Type of REG_H2D buffer.
-    fis->c = 1; // Command 
-    fis->command = 0x25; // READ_DMA_EXT
-    fis->lba0 = (uint8_t)lba;
-    fis->lba1 = (uint8_t)(lba >> 8);
-    fis->lba2 = (uint8_t)(lba >> 16);
-    fis->lba3 = (uint8_t)(lba >> 24);
+    kmemset(fis, 0, sizeof(*fis));
+    fis->fis_type = FIS_TYPE_REG_H2D;
+    fis->c = 1;
+    fis->command = 0x25; /* READ DMA EXT */
+    fis->device = 1 << 6;
+    fis->lba0 = (uint8_t)(lba & 0xFF);
+    fis->lba1 = (uint8_t)((lba >> 8) & 0xFF);
+    fis->lba2 = (uint8_t)((lba >> 16) & 0xFF);
+    fis->lba3 = (uint8_t)((lba >> 24) & 0xFF);
+    fis->lba4 = 0;
+    fis->lba5 = 0;
     fis->countl = 1;
+    fis->counth = 0;
 
-    // Setup PRDT for one 512-byte buffer.
-    HBA_PRDT_ENTRY* prdt = (HBA_PRDT_ENTRY*)((uint8_t*)cmd + sizeof(FIS_REG_H2D) + 16 + 48);
+    /* PRDT (one entry) */
+    HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
     prdt->dba = (uint32_t)(uintptr_t)buf;
-    prdt->dbau = (uint32_t)((uintptr_t)buf >> 32);
-    prdt->dbc = 512 - 1;
+    prdt->dbau = (uint32_t)(((uintptr_t)buf) >> 32);
+    prdt->dbc = 512 - 1; /* 512 bytes */
     prdt->i = 1;
 
-    // Issue the command.
-    // The port listens in the command issue for new data.
-    p->ci |= (1u << slot);
-    uint32_t i = 0;
-    // Wait for completion
-    while (p->ci & (1u << slot)) {
-        if (i == 100000000) {
-            break;
-        }
-        i++;
-    }
-    // Clear interrupt flags
+    /* Clear pending interrupts for the port (read/write to acknowledge) */
     p->is = p->is;
-    if (i == 100000000) {
+
+    /* Issue command */
+    p->ci |= (1u << slot);
+
+    /* Wait for completion with timeout */
+    uint32_t spin = 0;
+    const uint32_t TIMEOUT = 100000000;
+    while (p->ci & (1u << slot)) {
+        if (++spin >= TIMEOUT) break;
+    }
+
+    /* Acknowledge/clear interrupts */
+    p->is = p->is;
+
+    if (spin >= TIMEOUT) {
 #ifdef DEBUG
-        gop_printf(0xFFFF0000, "Failed to read AHCI...\n");
+        gop_printf_forced(0xFFFF0000, "AHCI read timeout\n");
+        /* print useful registers and pointers using %p (cast ints to pointer-sized) */
+        gop_printf_forced(0xFFFFFF00,
+            "tfd=%p serr=%p is=%p\n",
+            (void*)(uintptr_t)p->tfd,
+            (void*)(uintptr_t)p->serr,
+            (void*)(uintptr_t)p->is);
+        gop_printf_forced(0xFFFFFF00,
+            "hdr.ctba=%p hdr.prdtl=%u\n",
+            (void*)(uintptr_t)hdr->ctba,
+            hdr->prdtl);
+        gop_printf_forced(0xFFFFFF00,
+            "ctx=%p ctx->cmd_tbl=%p ctx->clb=%p port=%p\n",
+            (void*)ctx,
+            (void*)ctx->cmd_tbl,
+            (void*)ctx->clb,
+            (void*)p);
 #endif
         return false;
     }
+
     return true;
 }
 
@@ -196,33 +224,80 @@ bool ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
     int slot = find_free_slot(p->sact | p->ci);
     if (slot < 0) return false;
 
-    uint8_t* clb_mem = (uint8_t*)ctx->clb;
-    HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)(clb_mem + slot * 256);
-    kmemset(cmd, 0, sizeof(FIS_REG_H2D) + sizeof(HBA_PRDT_ENTRY));
+    /* Command table for this slot */
+    HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)((uint8_t*)ctx->cmd_tbl + slot * 256);
+    kmemset(cmd, 0, 256);
 
+    /* Command header */
+    HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)ctx->clb + slot * sizeof(HBA_CMD_HEADER));
+    hdr->cfl = (sizeof(FIS_REG_H2D) + 3) / 4;
+    hdr->w = 1;       /* write */
+    hdr->prdbc = 0;
+    hdr->prdtl = 1;
+
+    /* Build CFIS */
     FIS_REG_H2D* fis = &cmd->cfis;
+    kmemset(fis, 0, sizeof(*fis));
     fis->fis_type = FIS_TYPE_REG_H2D;
     fis->c = 1;
-    fis->command = 0x35; // WRITE_DMA_EXT
-    fis->lba0 = (uint8_t)lba;
-    fis->lba1 = (uint8_t)(lba >> 8);
-    fis->lba2 = (uint8_t)(lba >> 16);
-    fis->lba3 = (uint8_t)(lba >> 24);
+    fis->command = 0x35; /* WRITE DMA EXT */
+    fis->device = 1 << 6;
+    fis->lba0 = (uint8_t)(lba & 0xFF);
+    fis->lba1 = (uint8_t)((lba >> 8) & 0xFF);
+    fis->lba2 = (uint8_t)((lba >> 16) & 0xFF);
+    fis->lba3 = (uint8_t)((lba >> 24) & 0xFF);
+    fis->lba4 = 0;
+    fis->lba5 = 0;
     fis->countl = 1;
+    fis->counth = 0;
 
-    HBA_PRDT_ENTRY* prdt = (HBA_PRDT_ENTRY*)((uint8_t*)cmd + sizeof(FIS_REG_H2D) + 16 + 48);
+    /* PRDT */
+    HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
     prdt->dba = (uint32_t)(uintptr_t)buf;
-    prdt->dbau = (uint32_t)((uintptr_t)buf >> 32);
+    prdt->dbau = (uint32_t)(((uintptr_t)buf) >> 32);
     prdt->dbc = 512 - 1;
     prdt->i = 1;
 
-    p->ci |= (1u << slot);
-    // busy wait
-    while (p->ci & (1u << slot));
+    /* Clear pending interrupts */
     p->is = p->is;
+
+    /* Issue */
+    p->ci |= (1u << slot);
+
+    /* Wait */
+    uint32_t spin = 0;
+    const uint32_t TIMEOUT = 100000000;
+    while (p->ci & (1u << slot)) {
+        if (++spin >= TIMEOUT) break;
+    }
+
+    p->is = p->is;
+
+    if (spin >= TIMEOUT) {
+#ifdef DEBUG
+        gop_printf_forced(0xFFFF0000, "AHCI write timeout\n");
+        gop_printf_forced(0xFFFFFF00,
+            "tfd=%p serr=%p is=%p\n",
+            (void*)(uintptr_t)p->tfd,
+            (void*)(uintptr_t)p->serr,
+            (void*)(uintptr_t)p->is);
+        gop_printf_forced(0xFFFFFF00,
+            "hdr.ctba=%p hdr.prdtl=%u\n",
+            (void*)(uintptr_t)hdr->ctba,
+            hdr->prdtl);
+        gop_printf_forced(0xFFFFFF00,
+            "ctx=%p ctx->cmd_tbl=%p ctx->clb=%p port=%p\n",
+            (void*)ctx,
+            (void*)ctx->cmd_tbl,
+            (void*)ctx->clb,
+            (void*)p);
+#endif
+        return false;
+    }
 
     return true;
 }
+
 
 BLOCK_DEVICE* ahci_get_block_device(int index) {
     tracelast_func("ahci_get_block_device");

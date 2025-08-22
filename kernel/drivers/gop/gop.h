@@ -53,13 +53,9 @@ void draw_char(GOP_PARAMS* gop, char c, uint32_t x, uint32_t y, uint32_t color);
 void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color);
 
 void gop_printf(uint32_t color, const char* fmt, ...);
-/// <summary>
-/// Securely print the GOP characters (call in a thread)
-/// </summary>
-/// <param name=""></param>
-void secure_print(void);
 
-void gop_printf_forced(uint32_t color, const char* fmt, ...);
+#define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
+
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color);
 void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color);
 void gop_scroll(GOP_PARAMS* gop);

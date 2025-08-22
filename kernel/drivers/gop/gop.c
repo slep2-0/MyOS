@@ -12,10 +12,6 @@ bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;
 
-char deferredArr[1000];
-int arrIndex = 0;
-static uint32_t deferredColor = 0;
-
 void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
     uint8_t c = (uint8_t)c_;
     if (c > 0x7F) return;
@@ -158,78 +154,6 @@ void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
 
 extern GOP_PARAMS gop_local;
 
-void secure_print(void) {
-    GOP_PARAMS* gop = &gop_local;
-    for (int i = 0; i < arrIndex; i++) {
-        gop_put_char(gop, deferredArr[i], deferredColor);
-    }
-    // reset for next use
-    arrIndex = 0;
-}
-
-static void defer_char(char c) {
-    if (arrIndex < (int)(sizeof deferredArr - 1))
-        deferredArr[arrIndex++] = c;
-}
-static void defer_str(const char* s) {
-    while (*s) defer_char(*s++);
-}
-static void defer_dec(unsigned v) {
-    char tmp[16]; int t = 0;
-    if (v == 0) tmp[t++] = '0';
-    else while (v && t < (int)sizeof tmp)
-        tmp[t++] = '0' + (v % 10), v /= 10;
-    while (t--) defer_char(tmp[t]);
-}
-static void defer_hex(uint64_t v) {
-    char tmp[17]; int t = 0;
-    if (v == 0) tmp[t++] = '0';
-    else while (v && t < 16) {
-        unsigned n = v & 0xF;
-        tmp[t++] = n < 10 ? '0' + n : 'a' + (n - 10);
-        v >>= 4;
-    }
-    while (t--) defer_char(tmp[t]);
-}
-
-void gop_printf(uint32_t color, const char* fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-
-    deferredColor = color;
-    arrIndex = 0;
-
-    for (const char* p = fmt; *p; p++) {
-        if (*p == '%' && p[1]) {
-            p++;
-            switch (*p) {
-            case 'd': defer_dec((unsigned)va_arg(ap, int));           break;
-            case 'u': defer_dec(va_arg(ap, unsigned));               break;
-            case 'x': defer_hex((uint64_t)(unsigned)va_arg(ap, unsigned)); break;
-            case 'p':
-                defer_str("0x");
-                defer_hex((uint64_t)(uintptr_t)va_arg(ap, void*));
-                break;
-            case 'c': defer_char((char)va_arg(ap, int));             break;
-            case 's': {
-                const char* s = va_arg(ap, const char*);
-                defer_str(s ? s : "(null)");
-            }   break;
-            case '%': defer_char('%');                              break;
-            default:
-                defer_char('%');
-                defer_char(*p);
-            }
-        }
-        else {
-            defer_char(*p);
-        }
-    }
-
-    va_end(ap);
-    deferredArr[arrIndex] = '\0';
-}
-
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
@@ -337,10 +261,17 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     return (int)written;
 }
 
-void gop_printf_forced(uint32_t color, const char* fmt, ...) {
+static inline bool interrupts_enabled(void) {
+    unsigned long flags;
+    __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
+    return (flags & (1UL << 9)) != 0; // IF is bit 9
+}
+
+void gop_printf(uint32_t color, const char* fmt, ...) {
+    bool prev_if = interrupts_enabled();
     __cli();
     GOP_PARAMS* gop = &gop_local;
-    tracelast_func("gop_printf_forced");
+    tracelast_func("gop_printf");
     va_list ap;
     va_start(ap, fmt);
     for (const char* p = fmt; *p; p++) {
@@ -354,7 +285,7 @@ void gop_printf_forced(uint32_t color, const char* fmt, ...) {
             case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
             case 'u': gop_print_dec(gop, va_arg(ap, unsigned), color); break;
             case 'x': gop_print_hex(gop, va_arg(ap, unsigned), color); break;
-            case 'p': gop_print_hex(gop, (unsigned)(uintptr_t)va_arg(ap, void*), color); break;
+            case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
             case 'c': gop_put_char(gop, (char)va_arg(ap, int), color); break;
             case 's': {
                 const char* str = va_arg(ap, const char*);
@@ -371,5 +302,5 @@ void gop_printf_forced(uint32_t color, const char* fmt, ...) {
         }
     }
     va_end(ap);
-    __sti();
+    if (prev_if) __sti();
 }

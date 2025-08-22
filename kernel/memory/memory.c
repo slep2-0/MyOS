@@ -36,15 +36,15 @@ void zero_bss(void) {
 /// It first creates 1 initial 4KiB frame, maps it to be paged in virtual memory, and increases the heap current end by the frame size (4KiB), so that 1 starting page is allocated.
 /// </remarks>
 void init_heap(void) {
-    heap_current_end = HEAP_START;
-    free_list = (BLOCK_HEADER*)HEAP_START;
+    heap_current_end = HEAP_START_VA;
+    free_list = (BLOCK_HEADER*)HEAP_START_VA;
     free_list->size = FRAME_SIZE;    // only 4 KiB initially
     free_list->next = NULL;
 
     // map that frame:
-    void* phys = alloc_frame();
-    map_page((void*)HEAP_START, phys, PAGE_PRESENT | PAGE_RW);
-    kmemset((void*)HEAP_START, 0, FRAME_SIZE);
+    uintptr_t phys = alloc_frame();
+    map_page((void*)HEAP_START_VA, phys, PAGE_PRESENT | PAGE_RW);
+    kmemset((void*)HEAP_START_VA, 0, FRAME_SIZE);
     heap_current_end += FRAME_SIZE;
 }
 
@@ -100,7 +100,7 @@ static bool grow_heap_by_one_page(void) {
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     // grab a physical frame
-    void* phys = alloc_frame();
+    uintptr_t phys = alloc_frame();
     if (!phys) { return false; }
 
     // map it at the end of the heap.
@@ -118,21 +118,6 @@ static bool grow_heap_by_one_page(void) {
     // advance our end.
     heap_current_end += FRAME_SIZE;
     return true;
-}
-
-// unused.
-/* Align `addr` up to the next multiple of `align` (align must be power of two) */
-static void* align_up(void* addr, size_t align) {
-    tracelast_func("align_up - memory");
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    uintptr_t a = (uintptr_t)addr;
-    uintptr_t mask = align - 1;
-    if (a & mask) {
-        a = (a + mask) & ~mask;
-    }
-    return (void*)a;
 }
 
 // Memory Set.
