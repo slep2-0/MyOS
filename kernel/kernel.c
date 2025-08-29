@@ -156,9 +156,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_dpc_system();
     init_timer(100);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
-    ///MemoryTest();
-    ///__cli();
-    ///__hlt();
+    //MemoryTest();
+    //__cli();
+    //__hlt();
     __sti(); // only now enable interrupts
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
@@ -201,6 +201,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf_forced(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
     void* buf7 = MtAllocateVirtualMemory(10000, 128);
     gop_printf_forced(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
+    // check
+    void* addr = 0;
+    gop_printf(COLOR_ORANGE, "Address: %p is %s\n", addr, MtIsAddressValid(addr) ? "Valid" : "Invalid");
+    gop_printf(COLOR_ORANGE, "Address %p (buf7) is %s\n", buf7, MtIsAddressValid(buf7) ? "Valid" : "Invalid");
 #ifdef CAUSE_BUGCHECK
     CTX_FRAME regs;
     SAVE_CTX_FRAME(&regs);
@@ -217,6 +221,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(COLOR_RED, "Could not read AHCI...\n");
     }
+    */
+    /*
     if (!fat32_init(0)) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);

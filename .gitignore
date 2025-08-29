@@ -18,6 +18,7 @@
 *.sh
 *.bash
 *.i
+*.img
 *.s
 
 # Ignore all build output folders (adjust paths if needed)

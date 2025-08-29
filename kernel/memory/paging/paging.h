@@ -36,6 +36,13 @@ void set_page_user_access(void* virtualaddress, bool user_accessible);
 void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
+bool MtIsAddressValid(void* virtualAddr);
+
+/// <summary>
+/// UNUSED
+/// </summary>
+/// <param name="virtualaddr"></param>
+/// <returns></returns>
 static inline uintptr_t MtTranslateKernelVirtualToPhysical(void* virtualaddr) {
     uintptr_t va = (uintptr_t)virtualaddr;
     if (va < KERNEL_VA_START) {
@@ -46,6 +53,11 @@ static inline uintptr_t MtTranslateKernelVirtualToPhysical(void* virtualaddr) {
     return va - KERNEL_VA_START + KERNEL_PHYS_BASE;
 }
 
+/// <summary>
+/// UNUSED
+/// </summary>
+/// <param name="physaddr"></param>
+/// <returns></returns>
 static inline void* MtTranslateKernelPhysicalToVirtual(uintptr_t physaddr) {
     // Prefer high-half mapping
     if (physaddr >= KERNEL_PHYS_BASE) {

@@ -22,10 +22,14 @@ extern uint32_t cursor_y;
 
 // causes a page fault inside of the bugcheck, since it probably dereferences a ptr that was in the UEFI callstack, or something like that.
 static void print_stack_trace(int depth) {
+    return;
     // resolve curr RBP, then add the push offset (this kernel is 64bit, so 8 bytes)
     uint64_t* rbp = (uint64_t*)__read_rbp();
 
     for (int i = 0; rbp != 0 && i < depth; i++) {
+        // check if the address for the old call addr is paged in memory (the ptr)
+        if (!MtIsAddressValid((void*)(rbp + 1))) break;
+
         // print the current call addr
         gop_printf(COLOR_ORANGE, "%p\n", *(rbp + 1));
         rbp = (uint64_t*)*rbp;
@@ -269,8 +273,8 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     }
 
     // call stack trace
-    //gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
-    //print_stack_trace(10); // 10 function calls;
+    gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
+    print_stack_trace(10); // 10 function calls;
 #endif
 	//test
     update_pic_mask_for_current_irql();
@@ -385,8 +389,8 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
 
 
     // call stack trace
-    //gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
-    //print_stack_trace(10); // 10 function calls;
+    gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
+    print_stack_trace(10); // 10 function calls;
 #endif
     //test
     update_pic_mask_for_current_irql();

@@ -266,13 +266,13 @@ void set_page_writable(void* virtualaddress, bool writable) {
     uint64_t* pml4 = pml4_from_recursive();
 
     if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
-    uint64_t* pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
+    uint64_t* pdpt = pdpt_from_recursive(pml4_i);
 
     if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return;
-    uint64_t* pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
+    uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
 
     if (!(pd[pd_i] & PAGE_PRESENT)) return;
-    uint64_t* pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
+    uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
 
     uint64_t entry = pt[pt_i];
     if (writable) {
@@ -306,11 +306,11 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     uint64_t* pml4 = pml4_from_recursive();
 
     if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
-    uint64_t* pdpt = (uint64_t*)((pml4[pml4_i] & ~0xFFFULL));
+    uint64_t* pdpt = pdpt_from_recursive(pml4_i);
     if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return;
-    uint64_t* pd = (uint64_t*)((pdpt[pdpt_i] & ~0xFFFULL));
+    uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
     if (!(pd[pd_i] & PAGE_PRESENT)) return;
-    uint64_t* pt = (uint64_t*)((pd[pd_i] & ~0xFFFULL));
+    uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
     if (!(pt[pt_i] & PAGE_PRESENT)) return;
 
     uint64_t entry = pt[pt_i];
@@ -328,4 +328,33 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     if (cr0 & 0x80000000) {
         invlpg((void*)va);
     }
+}
+
+bool MtIsAddressValid(void* virtualAddr) {
+    tracelast_func("MtIsAddressValid");
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
+
+    uint64_t va = (uint64_t)virtualAddr;
+
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
+
+    uint64_t* pml4 = pml4_from_recursive();
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) return false;
+
+    // advance
+    uint64_t* pdpt = pdpt_from_recursive(pml4_i);
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return false;
+
+    uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
+    if (!(pd[pd_i] & PAGE_PRESENT)) return false;
+
+    uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
+    if (!(pt[pt_i] & PAGE_PRESENT)) return false;
+
+    return true;
 }
