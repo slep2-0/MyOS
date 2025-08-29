@@ -15,14 +15,6 @@
 #include "../../drivers/gop/gop.h"
 #include "../../trace.h"
 
-// Total physical memory (upto 3.9GB)
-#define PHYS_MEM_BASE  ((uintptr_t)&kernel_start)  // 0x10000 from linker
-#define PHYS_MEM_SIZE (128 * 1024 * 1024)  // 128 MiB
-
-// Page directory has 1024 entries -> each page-table covers 4 MiB
-#define PAGE_DIR_ENTRIES 1024
-#define PAGE_TABLE_ENTRIES 1024
-
 #define KERNEL_VA_START 0xfffff80000000000ULL
 #define KERNEL_PHYS_BASE 0x100000
 
@@ -39,20 +31,9 @@ typedef enum _FLAGS {
     PAGE_GLOBAL    =     0x100,
 } FLAGS;
 
-// Symobls that come from the linker script that define the start of page directory and page tables (allocated by linker)
-extern uint64_t __pd_start;
-extern uint64_t __pt_start;
-extern uint64_t __pt_end;
-
-void paging_init(void);
 void set_page_writable(void* virtualaddress, bool writable);
 void set_page_user_access(void* virtualaddress, bool user_accessible);
-// identity only.
-void map_page_identity(void* virtualaddress, void* physicaladdress, uint64_t flags);
-
 void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags);
-
-void map_range_identity(uint64_t start, uint64_t end, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
 static inline uintptr_t MtTranslateKernelVirtualToPhysical(void* virtualaddr) {
@@ -66,14 +47,13 @@ static inline uintptr_t MtTranslateKernelVirtualToPhysical(void* virtualaddr) {
 }
 
 static inline void* MtTranslateKernelPhysicalToVirtual(uintptr_t physaddr) {
-    if (physaddr < KERNEL_PHYS_BASE) {
-        // Not a kernel physical address
-        return NULL;
+    // Prefer high-half mapping
+    if (physaddr >= KERNEL_PHYS_BASE) {
+        return (void*)(physaddr - KERNEL_PHYS_BASE + KERNEL_VA_START);
     }
-    return (void*)(physaddr - KERNEL_PHYS_BASE + KERNEL_VA_START);
+    // Fallback: assume bootloader identity-mapped the physical range.
+    // This is safe only because you identity-mapped usable memory earlier.
+    return (void*)(uintptr_t)physaddr;
 }
-
-// Enable paging with given PML4 physical address -- found in ASM.
-void enable_paging(uint64_t pml4_phys);
 
 #endif

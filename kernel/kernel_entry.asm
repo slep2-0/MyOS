@@ -24,6 +24,10 @@ _start:
     mov  al, 0xFF
     out  0x80, al
 
+    ; Signify that we have reached the entrypoint for debugging. 
+    mov rax, 0xFFFFFFFACCE55
+    mov dr2, rax
+
     lgdt [gdt_descriptor]
 
     push 0x08
@@ -39,10 +43,10 @@ _start:
     mov  gs, ax
     mov  ss, ax
 
-    lea  rsp, [__stack_end]
-    mov  rbp, rsp
+    mov rsp, [rdi + 0x38]
+    mov rbp, rsp
 
-    lea  rax, [kernel_main]   ; or: mov rax, kernel_main
+    lea  rax, [kernel_main]   ; or: mov rax, kernel_main -- RDI is the BOOT_INFO ptr.
     call rax
 
 .halt:

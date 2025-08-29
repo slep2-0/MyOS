@@ -1,7 +1,7 @@
-ï»¿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     GOP Driver to draw onto screen Implementation (8Ã—16 font)
+ * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)
  */
 
 #include "gop.h"
@@ -24,7 +24,7 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
             if (!(bits & (1 << (7 - col))))
                 continue;
 
-            // scale each pixel up to FONT_SCALEÃ—FONT_SCALE
+            // scale each pixel up to FONT_SCALE×FONT_SCALE
             for (int dy = 0; dy < FONT_SCALE; dy++) {
                 uint32_t py = y + row * FONT_SCALE + dy;
                 if (py >= gop->Height) continue;
@@ -282,11 +282,11 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         }
         if (*p == '%' && p[1]) {
             switch (*++p) {
-            case 'd': gop_print_dec(gop, va_arg(ap, int), color); break;
-            case 'u': gop_print_dec(gop, va_arg(ap, unsigned), color); break;
-            case 'x': gop_print_hex(gop, va_arg(ap, unsigned), color); break;
+            case 'd': gop_print_dec(gop, va_arg(ap, int64_t), color); break;
+            case 'u': gop_print_dec(gop, va_arg(ap, uint64_t), color); break;
+            case 'x': gop_print_hex(gop, va_arg(ap, uint64_t), color); break;
             case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
-            case 'c': gop_put_char(gop, (char)va_arg(ap, int), color); break;
+            case 'c': gop_put_char(gop, (char)va_arg(ap, uint64_t), color); break;
             case 's': {
                 const char* str = va_arg(ap, const char*);
                 if (str) gop_puts(gop, str, color);

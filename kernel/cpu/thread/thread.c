@@ -1,4 +1,4 @@
-﻿#include "thread.h"
+#include "thread.h"
 #include "../../bugcheck/bugcheck.h"
 
 #define MIN_TID           4u
@@ -7,8 +7,8 @@
 #define MAX_FREE_POOL     1024u
 
 ///
-// Call with freedTid == 0 → allocate a new TID (returns 0 on failure)
-// Call with freedTid  > 0 → release that TID back into the pool (always returns 0)
+// Call with freedTid == 0 ? allocate a new TID (returns 0 on failure)
+// Call with freedTid  > 0 ? release that TID back into the pool (always returns 0)
 ///
 static uint32_t ManageTID(uint32_t freedTid)
 {
@@ -27,7 +27,7 @@ static uint32_t ManageTID(uint32_t freedTid)
     else {
         // Allocate path:
         if (freeCount > 0) {
-            // Reuse most‐recently freed
+            // Reuse most-recently freed
             result = freePool[--freeCount];
         }
         else {
@@ -46,7 +46,7 @@ static uint32_t ManageTID(uint32_t freedTid)
 }
 
 
-// Clean exit for a thread—never returns!
+// Clean exit for a thread�never returns!
 static void ThreadExit(Thread* thread) {
     tracelast_func("ThreadExit");
 #ifdef DEBUG
@@ -79,7 +79,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
     // First, allocate a new thread.
-    Thread* thread = MtAllocateMemory(sizeof(Thread), _Alignof(Thread));
+    Thread* thread = MtAllocateVirtualMemory(sizeof(Thread), _Alignof(Thread));
     if (!thread) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -90,7 +90,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     kmemset((void*)thread, 0, sizeof(Thread));
 
     // Allocate a stackTop for the thread.
-    void* stackTop = MtAllocateMemory(4096, 16);
+    void* stackTop = MtAllocateVirtualMemory(4096, 16);
     if (!stackTop) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);

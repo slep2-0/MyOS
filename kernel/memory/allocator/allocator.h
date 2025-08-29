@@ -14,36 +14,15 @@
 #include "../../trace.h"
 #include "uefi_memory.h"
 
- // Total physical memory (up to 3.9GB)
-#ifndef PHYS_MEM_SIZE
-#define PHYS_MEM_SIZE (128 * 1024 * 1024)  // 128 MiB
-#endif
-
-#define FRAME_SIZE 4096U
-#define MAX_FRAMES (PHYS_MEM_SIZE / FRAME_SIZE)
-
-/// <summary>
-///  UNUSED!.
-/// </summary>
-typedef enum _MEMORY_DESCRIPTOR {
-	Free = EfiConventionalMemory,
-	TempFree,
-	Bad,
-} MEMORY_DESCRIPTOR;
+#define FRAME_SIZE 4096ULL
 
 /// <summary>
 /// A function to return a boolean value if the type of UEFI Memory is usable for memory allocation.
 /// </summary>
 /// <param name="type">EfiMemoryType</param>
-/// <returns>True or False based on the "type" param.</returns>
+/// <returns>True or False based on the type of Efi Memory passed.</returns>
 static inline bool classify(int type) {
-	if (type == EfiConventionalMemory) {
-		return true;
-	}
-	if (type == EfiBootServicesCode || type == EfiBootServicesData) {
-		return true;
-	}
-	return false;
+	return type == EfiConventionalMemory;
 }
 
 // Initialize frame bitmap based on UEFI memory map

@@ -1,4 +1,4 @@
-ï»¿#ifndef X86_CPU_TYPES_H
+#ifndef X86_CPU_TYPES_H
 #define X86_CPU_TYPES_H
 
 // Standard headers, required.
@@ -23,27 +23,27 @@ typedef enum _IRQL {
     PASSIVE_LEVEL = 0,   // Normal thread execution, all interrupts enabled.
     DISPATCH_LEVEL = 2,   // Scheduler disabled, page faults fatal. (page faults are always fatal for now, until I implement an exception handler)
     // Device DIRQLs (chosen so IRQn + DIRQL = PROFILE_LEVEL (27))
-    DIRQL_SECONDARY_ATA = 12,   // IRQ15 â€“ Secondary ATA Channel  
-    DIRQL_PRIMARY_ATA = 13,     // IRQ14 â€“ Primary ATA Channel  
-    DIRQL_FPU = 14,             // IRQ13 â€“ FPU / Coprocessor  
-    DIRQL_MOUSE = 15,           // IRQ12 â€“ Mouse  
-    DIRQL_PERIPHERAL11 = 16,    // IRQ11 â€“ Free for peripherals  
-    DIRQL_PERIPHERAL10 = 17,    // IRQ10 â€“ Free for peripherals  
-    DIRQL_PERIPHERAL9 = 18,     // IRQ9  â€“ Free / redirected cascade  
-    DIRQL_RTC = 19,             // IRQ8  â€“ RTC / CMOS Alarm  
-    DIRQL_LPT1 = 20,            // IRQ7  â€“ LPT1 / Printer  
-    DIRQL_FLOPPY = 21,          // IRQ6  â€“ Floppy Disk  
-    DIRQL_SOUND_LPT2 = 22,      // IRQ5  â€“ Sound Card / LPT2  
-    DIRQL_COM1 = 23,            // IRQ4  â€“ Serial COM1  
-    DIRQL_COM2 = 24,            // IRQ3  â€“ Serial COM2  
-    DIRQL_CASCADE = 25,         // IRQ2  â€“ Cascade (IRQsÂ 8â€“15)  
-    DIRQL_KEYBOARD = 26,        // IRQ1  â€“ Keyboard  
-    DIRQL_TIMER = 27,           // IRQ0  â€“ System Timer  
+    DIRQL_SECONDARY_ATA = 12,   // IRQ15 – Secondary ATA Channel  
+    DIRQL_PRIMARY_ATA = 13,     // IRQ14 – Primary ATA Channel  
+    DIRQL_FPU = 14,             // IRQ13 – FPU / Coprocessor  
+    DIRQL_MOUSE = 15,           // IRQ12 – Mouse  
+    DIRQL_PERIPHERAL11 = 16,    // IRQ11 – Free for peripherals  
+    DIRQL_PERIPHERAL10 = 17,    // IRQ10 – Free for peripherals  
+    DIRQL_PERIPHERAL9 = 18,     // IRQ9  – Free / redirected cascade  
+    DIRQL_RTC = 19,             // IRQ8  – RTC / CMOS Alarm  
+    DIRQL_LPT1 = 20,            // IRQ7  – LPT1 / Printer  
+    DIRQL_FLOPPY = 21,          // IRQ6  – Floppy Disk  
+    DIRQL_SOUND_LPT2 = 22,      // IRQ5  – Sound Card / LPT2  
+    DIRQL_COM1 = 23,            // IRQ4  – Serial COM1  
+    DIRQL_COM2 = 24,            // IRQ3  – Serial COM2  
+    DIRQL_CASCADE = 25,         // IRQ2  – Cascade (IRQs 8–15)  
+    DIRQL_KEYBOARD = 26,        // IRQ1  – Keyboard  
+    DIRQL_TIMER = 27,           // IRQ0  – System Timer  
     PROFILE_LEVEL = 27,  // Profile timer interrupts (alias of DIRQL_TIMER)
     CLOCK_LEVEL = 28,  // Clock/timer interrupts (second-level timer) (actual clock IRQ timer, for scheduler, time-of-day clock, and general timers, even context switching)
     SYNCH_LEVEL = 29,  // Synchronization level (internal kernel use) (unused in my kernel (until SMP), this level is used for multi core CPU synchronization)
     POWER_LEVEL = 30,  // Power failure interrupts
-    HIGH_LEVEL = 31   // NMI and machineâ€‘check (nonâ€‘maskable) (also gets set at bugchecks, to mask all interrupts)
+    HIGH_LEVEL = 31   // NMI and machine-check (non-maskable) (also gets set at bugchecks, to mask all interrupts)
 } IRQL;
 
 typedef struct _SPINLOCK {
@@ -65,7 +65,7 @@ typedef struct _INT_FRAME {
 // Context frame for saving/restoring thread state
 #pragma pack(push, 1)
 typedef struct _CTX_FRAME {
-    // Generalâ€‘purpose registers, in whatever order your save/restore stub uses
+    // General-purpose registers, in whatever order your save/restore stub uses
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
     uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
     uint64_t rsp;

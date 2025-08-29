@@ -13,12 +13,12 @@ typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
 // Matches UEFI spec EFI_MEMORY_DESCRIPTOR up to PhysicalStart, NumberOfPages, Type
 
 typedef struct _EFI_MEMORY_DESCRIPTOR {
-    uint32_t Type;
-    uint32_t Pad;
-    uint64_t PhysicalStart;
-    uint64_t VirtualStart;
-    uint64_t NumberOfPages;
-    uint64_t Attribute;
+    uint32_t Type;         // What this memory region is used for
+    uint32_t Pad;          // Alignment / padding
+    uint64_t PhysicalStart; // Physical start address of the region
+    uint64_t VirtualStart;  // Virtual start (usually 0 during boot)
+    uint64_t NumberOfPages; // Size of the region in pages (usually 4 KB)
+    uint64_t Attribute;     // Flags (cacheable, runtime, etc.)
 } EFI_MEMORY_DESCRIPTOR;
 
 typedef struct _GOP_PARAMS {
@@ -37,17 +37,19 @@ typedef struct _BOOT_INFO {
     uint32_t                  DescriptorVersion;
     size_t                  AhciCount;
     uint64_t*                 AhciBarBases;
+    uint64_t KernelStackTop;
+    uintptr_t Pml4Phys;
 } BOOT_INFO;
 #ifndef _MSC_VER 
-_Static_assert(sizeof(BOOT_INFO) == 56, "Size of BOOT_INFO doesn't equal 56 bytes. Update the struct.");
+_Static_assert(sizeof(BOOT_INFO) == 72, "Size of BOOT_INFO doesn't equal 72 bytes. Update the struct.");
 #endif
 
 // Memory types (we only need ConventionalMemory here)
 #define EfiReservedMemoryType          0
 #define EfiLoaderCode                  1
 #define EfiLoaderData                  2
-#define EfiBootServicesCode            3 /// USABLE MEMORY (thank you reactOS)
-#define EfiBootServicesData            4 /// USABLE MEMORY (thank you reactOS)
+#define EfiBootServicesCode            3 /// USABLE MEMORY
+#define EfiBootServicesData            4 /// USABLE MEMORY
 #define EfiRuntimeServicesCode         5
 #define EfiRuntimeServicesData         6
 #define EfiConventionalMemory          7 /// USABLE MEMORY

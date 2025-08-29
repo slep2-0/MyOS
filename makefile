@@ -15,10 +15,10 @@ CFLAGS = -std=gnu11 \
          -m64 -ffreestanding -c \
          -fdiagnostics-color=always \
          -fdiagnostics-show-option \
+         -fno-omit-frame-pointer \
          -Wno-unused-function \
          -Wall -Wextra -Werror -Wmissing-prototypes \
          -Wstrict-prototypes -Wshadow -Wcast-align \
-         -fno-omit-frame-pointer \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -fno-pie -fno-pic
 
@@ -134,10 +134,6 @@ build/isr_stub.o: kernel/interrupts/isr_stub.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/paging_asm.o: kernel/memory/paging/paging_asm.asm
-	mkdir -p build
-	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
 build/capture_registers.o: kernel/intrin/capture_registers.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
@@ -150,7 +146,7 @@ build/context.o: kernel/cpu/scheduler/context.asm
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
                       build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/isr_stub.o build/paging_asm.o build/capture_registers.o build/context.o \
+                      build/thread.o build/isr_stub.o build/capture_registers.o build/context.o \
                       kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

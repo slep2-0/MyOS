@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     Core Kernel Includes, includes all core and necessary header files.
@@ -60,8 +60,6 @@ void InitCPU(void);
 extern void read_context_frame(CTX_FRAME* registers);
 extern void read_interrupt_frame(INT_FRAME* intfr);
 
-void kernel_after_switch(void);
-
 #define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
 
 #define ALLOCATIONS 1000
@@ -74,7 +72,7 @@ static int MemoryTest(void) {
 
     // Allocation + write test
     for (int i = 0; i < ALLOCATIONS; i++) {
-        blocks[i] = MtAllocateMemory(BLOCK_SIZE, ALIGNMENT);
+        blocks[i] = MtAllocateVirtualMemory(BLOCK_SIZE, ALIGNMENT);
         if (!blocks[i]) {
             gop_printf_forced(0xFFFF0000, "Allocation failed at index %d\n", i);
             return -1;
@@ -101,7 +99,7 @@ static int MemoryTest(void) {
             }
         }
 
-        MtFreeMemory(blocks[i]);
+        MtFreeVirtualMemory(blocks[i]);
     }
 
     gop_printf_forced(0xFF00FF00, "Memory test completed successfully.\n");

@@ -19,15 +19,79 @@
 #define PAGE_ALIGN_DOWN(x)  ((x) & ~PAGE_MASK)
 #define PAGE_ALIGN_UP(x)    (((x) + PAGE_MASK) & ~PAGE_MASK)
 
-// Extern symbols for bootloader-allocated pages, or allocate dynamically in your kernel
-extern uint64_t __pml4_start[]; // Allocate this page aligned to 4KiB
-
-static uint64_t* pml4 = __pml4_start; // Base of PML4 table
-
-static uint8_t* next_pt = (uint8_t*)&__pt_start;
-static uint8_t* const end_pt = (uint8_t*)&__pt_end;
+#define RECURSIVE_INDEX 0x1FF
 
 // From now on, physical addresses are uintptr_t, and virtual addresses are void pointers.
+
+static inline uint64_t canonical_high(uint64_t addr) {
+    // If bit 47 is set, set all higher bits
+    if (addr & (1ULL << 47)) {
+        return addr | 0xFFFF000000000000ULL;
+    }
+    return addr;
+}
+
+
+// returns virt = phys
+static uint64_t* allocate_page_table_identity(void) {
+    tracelast_func("allocate_page_table");
+    // CHECK IRQL.
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
+
+    // 2) otherwise fall back on the frame‐bitmap
+    void* phys = (void*)alloc_frame();
+    if (!phys) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        MtBugcheck(&ctx, NULL, BAD_PAGING, 0, false);
+        return NULL; //shouldn't reach here.
+    }
+    // zero it before use
+    kmemset(phys, 0, PAGE_SIZE_4K);
+    return (uint64_t*)phys;
+}
+
+// Build recursive virtual pointer for different table levels:
+// To get PML4 pointer:
+static inline uint64_t* pml4_from_recursive(void) {
+    uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
+        ((uint64_t)RECURSIVE_INDEX << 30) |
+        ((uint64_t)RECURSIVE_INDEX << 21) |
+        ((uint64_t)RECURSIVE_INDEX << 12);
+    va = canonical_high(va);
+    return (uint64_t*)(uintptr_t)va;
+}
+
+static inline uint64_t* pdpt_from_recursive(size_t pml4_i) {
+    uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
+        ((uint64_t)RECURSIVE_INDEX << 30) |
+        ((uint64_t)RECURSIVE_INDEX << 21) |
+        ((uint64_t)pml4_i << 12); // <-- CORRECTED
+    va = canonical_high(va);
+    return (uint64_t*)(uintptr_t)va;
+}
+
+// To get PD page for pml4_i, pdpt_i
+static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i) {
+    uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
+        ((uint64_t)RECURSIVE_INDEX << 30) |
+        ((uint64_t)pml4_i << 21) |        // <-- CORRECTED
+        ((uint64_t)pdpt_i << 12);       // <-- CORRECTED
+    va = canonical_high(va);
+    return (uint64_t*)(uintptr_t)va;
+}
+
+// To get PT page for pml4_i, pdpt_i, pd_i
+static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t pd_i) {
+    uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
+        ((uint64_t)pml4_i << 30) |
+        ((uint64_t)pdpt_i << 21) |
+        ((uint64_t)pd_i << 12);
+    va = canonical_high(va);
+    return (uint64_t*)(uintptr_t)va;
+}
 
 typedef struct _PAGE_FRAME {
     uintptr_t phys;
@@ -40,19 +104,6 @@ static PAGE_FRAME allocate_page_table(void) {
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
 
-    /* 1) Use linker-reserved (virtual) pages first */
-    if ((uintptr_t)next_pt + PAGE_SIZE_4K <= (uintptr_t)end_pt) {
-        uint64_t* table = (uint64_t*)next_pt;   // virtual pointer -> safe to deref
-        next_pt += PAGE_SIZE_4K;
-        kmemset((void*)table, 0, PAGE_SIZE_4K);
-
-        PAGE_FRAME fr;
-        fr.virt = (void*)table;
-        fr.phys = MtTranslateKernelVirtualToPhysical(fr.virt); // returns uintptr_t
-        return fr;
-    }
-
-    /* 2) Fallback: allocate a physical frame (alloc_frame returns physical uintptr_t) */
     uintptr_t phys = alloc_frame();  // must return physical address
     if (!phys) {
         CTX_FRAME ctx;
@@ -71,51 +122,11 @@ static PAGE_FRAME allocate_page_table(void) {
     return retval;
 }
 
-// returns virt = phys
-static uint64_t* allocate_page_table_identity(void) {
-    tracelast_func("allocate_page_table");
-    // CHECK IRQL.
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    // 1) if we still have one of the linker‑reserved tables, carve that out:
-    if (next_pt + PAGE_SIZE_4K <= end_pt) {
-        uint64_t* table = (uint64_t*)next_pt;
-        next_pt += PAGE_SIZE_4K;
-        kmemset(table, 0, PAGE_SIZE_4K);
-        return table;
-    }
-
-    // 2) otherwise fall back on the frame‐bitmap
-    void* phys = (void*)alloc_frame();
-    if (!phys) {
-        CTX_FRAME ctx;
-        SAVE_CTX_FRAME(&ctx);
-        MtBugcheck(&ctx, NULL, BAD_PAGING, 0, false);
-        return NULL; //shouldn't reach here.
-    }
-    // zero it before use
-    kmemset(phys, 0, PAGE_SIZE_4K);
-    return (uint64_t*)phys;
-}
-
 // Extract indices from virtual address
 static inline size_t get_pml4_index(uint64_t va) { return (va >> 39) & 0x1FF; }
 static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
 static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
-
-void map_range_identity(uint64_t start, uint64_t end, uint64_t flags) {
-    tracelast_func("map_range_identity");
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    uint64_t va = PAGE_ALIGN_DOWN(start);
-    uint64_t last = PAGE_ALIGN_UP(end);
-    for (; va < last; va += PAGE_SIZE_4K) {
-        map_page_identity((void*)va, (void*)va, flags);
-    }
-}
 
 static void map_range_higher(uintptr_t phys_start, uintptr_t phys_end, void* va_start, uint64_t flags) {
     uintptr_t p = phys_start;
@@ -126,191 +137,12 @@ static void map_range_higher(uintptr_t phys_start, uintptr_t phys_end, void* va_
     }
 }
 
-//
-//
-// dev notes:
-// The reason paging didn't work when switching from 32bit to 64bit.
-// Is the UEFI Bootloader - It already setup it's own page tabels, GDT, segments, everything.
-// So every memory I accessed after switching to my paging, was INVALID (particularly the framebuffer memory)
-// Also it let me to notice that I didn't even cover my whole kernel page table and binary size (mark them as reserved - map_range_identity)
-// Solution to both:
-// Create a local struct of the boot info that UEFI passes (it passes pointers to the UEFI memory, I just replicated the data there to the kernel local .data section)
-// And the solution to the second was to use the ADDRESS of the label the linker passes to the C files - I used the variable itself (probably the instruction that was at the address .text) and not it's address.
-// Figured the first one out by looking at the logs of QEMU, didn't understand 1 bit of it at first, but then my mind understood that the faulty address (it was a page fault) was a UEFI address, and it was touched right after
-// setting paging (which was my GOP printing function), and also after reversing my kernel in ghidra (specifically paging_init), I saw it used the variable itself, and not it's address. (used kernel_start, not &kernel_start)
-//
-//
-
-extern GOP_PARAMS gop_local;
-extern BOOT_INFO boot_info_local;
-
 static void unmap_range_identity(uintptr_t start, uintptr_t end) {
     start = PAGE_ALIGN_DOWN(start);
     end = PAGE_ALIGN_UP(end);
 
     for (uintptr_t va = start; va < end; va += PAGE_SIZE_4K) {
         unmap_page((void*)va);
-    }
-}
-
-void paging_init(void) {
-    tracelast_func("paging_init");
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    // zero your PML4…
-    kmemset(pml4, 0, PAGE_SIZE_4K);
-    // carve out the first few tables (PML4→PDPT→PD→PT)
-    uint64_t* pdpt = allocate_page_table_identity();
-    uint64_t* pd = allocate_page_table_identity();
-    uint64_t* pt = allocate_page_table_identity();
-    pml4[0] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_RW;
-    pdpt[0] = (uint64_t)pd | PAGE_PRESENT | PAGE_RW;
-    pd[0] = (uint64_t)pt | PAGE_PRESENT | PAGE_RW;
-
-    const uint64_t flags = PAGE_PRESENT | PAGE_RW;
-
-    map_range_identity((uintptr_t)&__pml4_start,
-        (uintptr_t)&__pml4_start + PAGE_SIZE_4K,
-        flags);
-
-    map_range_identity((uintptr_t)&__pt_start,
-        (uintptr_t)&__pt_end,
-        flags);
-
-    map_range_identity((uintptr_t)&kernel_start,
-        (uintptr_t)&kernel_end + 1,
-        flags);
-
-    extern uint8_t __stack_start[], __stack_end[]; /// Note to self: since they stack start and end have an array start, they are decayed into pointers automatically and so & isn't needed.
-    map_range_identity((uintptr_t)__stack_start,
-        (uintptr_t)__stack_end,
-        flags);
-
-    uint64_t fb = gop_local.FrameBufferBase;
-    uint64_t end = fb + gop_local.FrameBufferSize;
-    map_range_identity(fb, end, flags);
-
-    extern uint64_t ahci_bases_local[32];
-    uintptr_t bar_arr = (uintptr_t)ahci_bases_local;
-    uintptr_t bar_arr_end = bar_arr + sizeof(uint64_t) * boot_info_local.AhciCount;
-    map_range_identity(bar_arr, bar_arr_end, flags);
-
-    for (uint32_t i = 0; i < boot_info_local.AhciCount; i++) {
-        uint64_t base = boot_info_local.AhciBarBases[i];
-
-        // AHCI BARs are usually 1 page or 2 pages (4KiB or 8KiB); we'll map 2 pages for now.
-        map_range_identity(base, base + 0x2000, flags);
-    }
-#ifdef DEBUG
-    for (uint32_t i = 0; i < boot_info_local.AhciCount; i++) {
-        uint64_t base = boot_info_local.AhciBarBases[i];
-        gop_printf(0xFFFFFF00, "Mapped AHCI BAR %u at %p -> %p\n",
-            i, base, base + 0x2000);
-    }
-#endif
-
-    extern IDT_ENTRY64 IDT[];
-    map_range_identity((uintptr_t)IDT,
-        (uintptr_t)IDT + sizeof(IDT_ENTRY64) * IDT_ENTRIES,
-        flags);
-
-    // then load CR3 and enable paging.
-    enable_paging((uint64_t)pml4);
-
-    // Now, that we have identity paging that works, we map to higher half
-    map_range_higher((uintptr_t)&__pml4_start,
-        (uintptr_t)&__pml4_start + PAGE_SIZE_4K,
-        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__pml4_start),
-        flags);
-
-    map_range_higher((uintptr_t)&__pt_start,
-        (uintptr_t)&__pt_end,
-        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__pt_start),
-        flags);
-
-    map_range_higher((uintptr_t)&kernel_start,
-        (uintptr_t)&kernel_end + 1,
-        MtTranslateKernelPhysicalToVirtual((uintptr_t)&kernel_start),
-        flags);
-
-    extern uint8_t __stack_start[], __stack_end[]; /// Note to self: since they stack start and end have an array start, they are decayed into pointers automatically and so & isn't needed.
-    map_range_higher((uintptr_t)__stack_start,
-        (uintptr_t)__stack_end,
-        MtTranslateKernelPhysicalToVirtual((uintptr_t)&__stack_start),
-        flags);
-
-    map_range_higher((uintptr_t)IDT,
-        (uintptr_t)IDT + sizeof(IDT_ENTRY64) * IDT_ENTRIES,
-        MtTranslateKernelPhysicalToVirtual((uintptr_t)IDT),
-        flags);
-
-    // grab addr
-    extern void switch_higher(uint64_t cr3, uint64_t newaddrjmp);
-    extern void kernel_after_switch(void);
-    uint64_t cr3;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
-
-    uint64_t new_va = (uint64_t)MtTranslateKernelPhysicalToVirtual((uintptr_t)&kernel_after_switch);
-    switch_higher(cr3, new_va);
-}
-
-// Map a 4KiB page: map virtual address to physical with given flags (PAGE_RW, PAGE_USER, etc) (IDENTITY ONLY)
-void map_page_identity(void* virtualaddress, void* physicaladdress, uint64_t flags) {
-    tracelast_func("map_page_identity");
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    uint64_t va = (uint64_t)virtualaddress;
-    uint64_t pa = (uint64_t)physicaladdress;
-
-    size_t pml4_i = get_pml4_index(va);
-    size_t pdpt_i = get_pdpt_index(va);
-    size_t pd_i = get_pd_index(va);
-    size_t pt_i = get_pt_index(va);
-
-    // Traverse or allocate PDPT
-    uint64_t* pdpt;
-    if (!(pml4[pml4_i] & PAGE_PRESENT)) {
-        pdpt = allocate_page_table_identity();
-        if (!pdpt) return; // fail
-        pml4[pml4_i] = ((uint64_t)pdpt) | flags;
-    }
-    else {
-        pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
-    }
-
-    // Traverse or allocate PD
-    uint64_t* pd;
-    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) {
-        pd = allocate_page_table_identity();
-        if (!pd) return; // fail
-        pdpt[pdpt_i] = ((uint64_t)pd) | flags;
-    }
-    else {
-        pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
-    }
-
-    // Traverse or allocate PT
-    uint64_t* pt;
-    if (!(pd[pd_i] & PAGE_PRESENT)) {
-        pt = allocate_page_table_identity();
-        if (!pt) return; // fail
-        pd[pd_i] = ((uint64_t)pt) | flags;
-    }
-    else {
-        pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
-    }
-
-    // Map the page
-    pt[pt_i] = (pa & ~0xFFFULL) | (flags);
-
-    // Flush TLB for this virtual address
-    // only flush if paging is already on:
-    uint64_t cr0;
-    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    if (cr0 & 0x80000000) {
-        invlpg((void*)va);
     }
 }
 
@@ -324,7 +156,12 @@ static uint64_t va_to_phys(void* va) {
     }
 }
 
+
+// Paging.c
+
+// Corrected map_page function
 void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
+    tracelast_func("map_page");
     uint64_t va = (uint64_t)virtualaddress;
     uintptr_t pa = physicaladdress;
 
@@ -333,44 +170,49 @@ void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
-    // --- PDPT ---
-    uint64_t* pdpt;
-    if (!(pml4[pml4_i] & PAGE_PRESENT)) {
-        pdpt = allocate_page_table_identity(); // identity-mapped pointer
-        pml4[pml4_i] = va_to_phys(pdpt) | flags;
-    }
-    else {
-        pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL); // identity-mapped access
-    }
+    uint64_t* pml4_va = pml4_from_recursive();
 
-    uint64_t* pd;
-    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) {
-        pd = allocate_page_table_identity();
-        pdpt[pdpt_i] = va_to_phys(pd) | flags;
-    }
-    else {
-        pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL); // identity-mapped
-    }
+    // 2. Ensure PDPT exists
+    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
+        uintptr_t new_pdpt_phys = alloc_frame();
+        if (!new_pdpt_phys) { /* handle error */ return; }
+        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pdpt_phys), 0, PAGE_SIZE_4K);
+        pml4_va[pml4_i] = new_pdpt_phys | flags;
 
-    uint64_t* pt;
-    if (!(pd[pd_i] & PAGE_PRESENT)) {
-        pt = allocate_page_table_identity();
-        pd[pd_i] = va_to_phys(pt) | flags;
+        // FIX: Invalidate the PDPT's virtual address, not the PT's
+        invlpg(pdpt_from_recursive(pml4_i));
     }
-    else {
-        pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL); // identity-mapped
-    }
+    uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
 
-    // Map the page
-    pt[pt_i] = (pa & ~0xFFFULL) | (flags);
+    // 3. Ensure PD exists
+    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
+        uintptr_t new_pd_phys = alloc_frame();
+        if (!new_pd_phys) { /* handle error */ return; }
+        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pd_phys), 0, PAGE_SIZE_4K);
+        pdpt_va[pdpt_i] = new_pd_phys | flags;
 
-    // Flush TLB for this virtual address
-    // only flush if paging is already on:
-    uint64_t cr0;
-    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    if (cr0 & 0x80000000) {
-        invlpg((void*)va);
+        // FIX: Invalidate the PD's virtual address
+        invlpg(pd_from_recursive(pml4_i, pdpt_i));
     }
+    uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
+
+    // 4. Ensure PT exists
+    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
+        uintptr_t new_pt_phys = alloc_frame();
+        if (!new_pt_phys) { /* handle error */ return; }
+        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pt_phys), 0, PAGE_SIZE_4K);
+        pd_va[pd_i] = new_pt_phys | flags;
+
+        // This one was already correct by coincidence
+        invlpg(pt_from_recursive(pml4_i, pdpt_i, pd_i));
+    }
+    uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
+
+    // 5. Map the page
+    pt_va[pt_i] = (pa & ~0xFFFULL) | flags;
+
+    // 6. Flush the TLB for the target virtual address
+    invlpg(virtualaddress);
 }
 
 // Unmap a page (remove mapping and free frame)
@@ -386,31 +228,24 @@ bool unmap_page(void* virtualaddress) {
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
+    // FIX: Use recursive helpers to get VIRTUAL addresses of tables
+    uint64_t* pml4 = pml4_from_recursive();
     if (!(pml4[pml4_i] & PAGE_PRESENT)) return false;
-    uint64_t* pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
 
+    uint64_t* pdpt = pdpt_from_recursive(pml4_i);
     if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return false;
-    uint64_t* pd = (uint64_t*)(pdpt[pdpt_i] & ~0xFFFULL);
 
+    uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
     if (!(pd[pd_i] & PAGE_PRESENT)) return false;
-    uint64_t* pt = (uint64_t*)(pd[pd_i] & ~0xFFFULL);
 
+    uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
     if (!(pt[pt_i] & PAGE_PRESENT)) return false;
 
     uintptr_t phys_addr = (uintptr_t)(pt[pt_i] & ~0xFFFULL);
 
-    // Clear the entry
-    pt[pt_i] = 0;
-
-    // only flush if paging is already on:
-    uint64_t cr0;
-    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    if (cr0 & 0x80000000) {
-        invlpg((void*)va);
-    }
-
-    // Free physical frame if applicable
-    free_frame(phys_addr);
+    pt[pt_i] = 0; // Clear the entry
+    invlpg(virtualaddress); // Invalidate the address
+    free_frame(phys_addr); // Free the underlying physical frame
 
     return true;
 }
@@ -427,6 +262,8 @@ void set_page_writable(void* virtualaddress, bool writable) {
     size_t pdpt_i = get_pdpt_index(va);
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
+
+    uint64_t* pml4 = pml4_from_recursive();
 
     if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
     uint64_t* pdpt = (uint64_t*)(pml4[pml4_i] & ~0xFFFULL);
@@ -466,8 +303,7 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
-    // Assume these pointers are declared and initialized elsewhere:
-    extern uint64_t* pml4;
+    uint64_t* pml4 = pml4_from_recursive();
 
     if (!(pml4[pml4_i] & PAGE_PRESENT)) return;
     uint64_t* pdpt = (uint64_t*)((pml4[pml4_i] & ~0xFFFULL));

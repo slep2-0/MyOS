@@ -19,6 +19,12 @@
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
 
+#ifdef _MSC_VER
+#ifndef __asm__
+#define __asm__ __asm
+#endif
+#endif
+
 // Disable interrupts (cli)
 static inline void __cli(void) {
     __asm__ volatile ("cli");
@@ -46,27 +52,96 @@ static inline void __write_cr0(unsigned long int val) {
     __asm__ volatile ("mov %0, %%cr0" :: "r"(val));
 }
 
+// CR2 (Page fault linear address)
+static inline unsigned long __read_cr2(void) {
+    unsigned long val;
+    __asm__ volatile("mov %%cr2, %0" : "=r"(val));
+    return val;
+}
+
+static inline void __write_cr2(unsigned long val) {
+    __asm__ volatile("mov %0, %%cr2" :: "r"(val) : "memory");
+}
+
+// CR3 (Page table base address)
+static inline unsigned long __read_cr3(void) {
+    unsigned long val;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(val));
+    return val;
+}
+static inline void __write_cr3(unsigned long val) {
+    __asm__ volatile("mov %0, %%cr3" :: "r"(val) : "memory");
+}
+
+// CR4 (Feature control)
+static inline unsigned long __read_cr4(void) {
+    unsigned long val;
+    __asm__ volatile("mov %%cr4, %0" : "=r"(val));
+    return val;
+}
+static inline void __write_cr4(unsigned long val) {
+    __asm__ volatile("mov %0, %%cr4" :: "r"(val) : "memory");
+}
+
+// CR8 (Task Priority Register, x86-64 only)
+static inline unsigned long __read_cr8(void) {
+    unsigned long val;
+    __asm__ volatile("mov %%cr8, %0" : "=r"(val));
+    return val;
+}
+static inline void __write_cr8(unsigned long val) {
+    __asm__ volatile("mov %0, %%cr8" :: "r"(val) : "memory");
+}
+
+
+// Read DRx register (dr0-dr7) (Usage __read_dr(3) = will return dr3.
+static inline uint64_t __read_dr(int reg) {
+    unsigned long val = 0;
+    switch (reg) {
+        case 0: __asm__ volatile("mov %%dr0, %0" : "=r"(val)); break;
+        case 1: __asm__ volatile("mov %%dr1, %0" : "=r"(val)); break;
+        case 2: __asm__ volatile("mov %%dr2, %0" : "=r"(val)); break;
+        case 3: __asm__ volatile("mov %%dr3, %0" : "=r"(val)); break;
+        case 6: __asm__ volatile("mov %%dr6, %0" : "=r"(val)); break;
+        case 7: __asm__ volatile("mov %%dr7, %0" : "=r"(val)); break;
+        default: break;
+    }
+    return val;
+}
+
+// Write DRx register (dr0-dr7) (Usage __write_dr(3, 0x5000) = will write 0x5000 to dr3.
+static inline void __write_dr(int reg, uint64_t val) {
+    switch (reg) {
+        case 0: __asm__ volatile("mov %0, %%dr0" :: "r"(val)); break;
+        case 1: __asm__ volatile("mov %0, %%dr1" :: "r"(val)); break;
+        case 2: __asm__ volatile("mov %0, %%dr2" :: "r"(val)); break;
+        case 3: __asm__ volatile("mov %0, %%dr3" :: "r"(val)); break;
+        case 6: __asm__ volatile("mov %0, %%dr6" :: "r"(val)); break;
+        case 7: __asm__ volatile("mov %0, %%dr7" :: "r"(val)); break;
+        default: break;
+    }
+}
 static inline void __lidt(void* idt_ptr) {
     __asm__ volatile ("lidt (%0)" :: "r"(idt_ptr));
 }
 
-// Read EFLAGS register
-static inline unsigned long int __read_eflags(void) {
-    unsigned long int eflags;
+// Read RFLAGS register
+static inline unsigned long int __read_rflags(void) {
+    unsigned long int rflags;
     __asm__ volatile (
         "pushfl\n\t"
         "pop %0"
-        : "=r"(eflags)
+        : "=r"(rflags)
         );
-    return eflags;
+    return rflags;
 }
 
-// Write EFLAGS register
-static inline void __write_eflags(unsigned long int eflags) {
+// Write RFLAGS register
+static inline void __write_rflags(unsigned long int rflags) {
     __asm__ volatile (
         "push %0\n\t"
         "popfl"
-        :: "r"(eflags)
+        :: "r"(rflags)
         );
 }
 
@@ -115,6 +190,24 @@ static inline void __writemsr(uint32_t msr, uint64_t value) {
     uint32_t lo = value & 0xFFFFFFFF;
     uint32_t hi = value >> 32;
     __asm__ volatile ("wrmsr" : : "c"(msr), "a"(lo), "d"(hi));
+}
+
+static inline uint64_t __read_rbp(void) {
+    uint64_t val;
+    __asm__ volatile ("mov %%rbp, %0" : "=r"(val));
+    return val;
+}
+
+static inline uint64_t __read_rsp(void) {
+    uint64_t val;
+    __asm__ volatile ("mov %%rsp, %0" : "=r"(val));
+    return val;
+}
+
+static inline uint64_t __read_rip(void) {
+    uint64_t rip;
+    __asm__ volatile ("leaq (%%rip), %0" : "=r"(rip));
+    return rip;
 }
 
 #endif // X86_INTRINSICS_H

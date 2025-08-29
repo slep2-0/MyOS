@@ -1,7 +1,7 @@
-﻿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
- * PURPOSE:     GOP Driver to draw onto screen (long‑mode framebuffer)
+ * PURPOSE:     GOP Driver to draw onto screen (long-mode framebuffer)
  */
 
 #ifndef X86_GOP_DRIVER_H
@@ -37,7 +37,7 @@
 #include "../../memory/memory.h"
 #include "../../memory/allocator/uefi_memory.h"
 
- // integer font scale (1 = native 8×16, 2 = 16×32, etc)
+ // integer font scale (1 = native 8�16, 2 = 16�32, etc)
 #define FONT_SCALE 1
 
 static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color) {

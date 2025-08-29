@@ -3,8 +3,8 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /* — Kernel placement at 0x100000 — */
-    . = 0x100000;
+    /* — Kernel placement at 0xfffff80000000000 — */
+    . = 0xfffff80000000000;
     PROVIDE(kernel_start = .);
 
     .text : {
@@ -30,6 +30,7 @@ SECTIONS
     }
     PROVIDE(bss_end = .);
 
+    
     /* — PML4 (4 KiB) — */
     . = ALIGN(0x1000);
     PROVIDE(__pml4_start = .);
@@ -47,15 +48,6 @@ SECTIONS
     /* --- IMPORTANT: End the page table pool HERE --- */
     PROVIDE(__pt_end = .);
 
-    /* — Kernel stack (8 KiB) — */
-    . = ALIGN(0x1000);
-    PROVIDE(__stack_start = .);
-    .stack (NOLOAD) : ALIGN(0x1000) {
-      . = . + 0x2000;  /* 8 KiB stack */
-    }
-    PROVIDE(__stack_end = .);
-
-
     /DISCARD/ : {
         *(.comment)
         *(.note*)
@@ -65,4 +57,4 @@ SECTIONS
     /* — End of kernel image — */
     PROVIDE(kernel_end = .);
     PROVIDE(kernel_length = kernel_end - kernel_start);
-}
+}   

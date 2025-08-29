@@ -7,7 +7,7 @@
 #ifndef X86_CPU_H
 #define X86_CPU_H
 
-#ifdef _MSC_VER
+#ifdef __INTELLISENSE__
 #define __asm__ __asm
 #endif
 

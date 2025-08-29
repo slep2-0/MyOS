@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     Memory Management Implementation
@@ -6,8 +6,6 @@
 #include "memory.h"
 #include "../drivers/gop/gop.h"
 #include "../bugcheck/bugcheck.h"
-
-/// As my understanding of the memory fades with time, I will leave thorough comments for reminders.
 
 /* Head of the free list */
 static BLOCK_HEADER* free_list = NULL;
@@ -36,15 +34,18 @@ void zero_bss(void) {
 /// It first creates 1 initial 4KiB frame, maps it to be paged in virtual memory, and increases the heap current end by the frame size (4KiB), so that 1 starting page is allocated.
 /// </remarks>
 void init_heap(void) {
-    heap_current_end = HEAP_START_VA;
-    free_list = (BLOCK_HEADER*)HEAP_START_VA;
-    free_list->size = FRAME_SIZE;    // only 4 KiB initially
-    free_list->next = NULL;
+    tracelast_func("init_heap");
 
     // map that frame:
     uintptr_t phys = alloc_frame();
-    map_page((void*)HEAP_START_VA, phys, PAGE_PRESENT | PAGE_RW);
-    kmemset((void*)HEAP_START_VA, 0, FRAME_SIZE);
+    map_page((void*)HEAP_START, phys, PAGE_PRESENT | PAGE_RW);
+
+    heap_current_end = HEAP_START;
+    free_list = (BLOCK_HEADER*)HEAP_START;
+    free_list->size = FRAME_SIZE;    // only 4 KiB initially
+    free_list->next = NULL;
+
+    kmemset((void*)HEAP_START, 0, FRAME_SIZE);
     heap_current_end += FRAME_SIZE;
 }
 
@@ -150,8 +151,8 @@ void* kmemcpy(void* dest, const void* src, uint32_t len) {
 /// <summary>
 /// Allocate `wanted_size` bytes with `align` alignment.
 /// </summary>
-void* MtAllocateMemory(size_t wanted_size, size_t align) {
-    tracelast_func("kmalloc");
+void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
+    tracelast_func("MtAllocateVirtualMemory");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
@@ -214,10 +215,8 @@ void* MtAllocateMemory(size_t wanted_size, size_t align) {
     }
 }
 
-
-
-void MtFreeMemory(void* ptr) {
-    tracelast_func("kfree");
+void MtFreeVirtualMemory(void* ptr) {
+    tracelast_func("MtFreeVirtualMemory");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);

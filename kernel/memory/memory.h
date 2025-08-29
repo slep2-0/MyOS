@@ -1,4 +1,4 @@
-ï»¿/*
+/*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     NONE
  * PURPOSE:     Memory Management Header
@@ -24,17 +24,15 @@ extern uint8_t bss_start;
 extern uint8_t bss_end;
 
 void zero_bss(void);
+bool check_bss_zeroed(void);
 
 /* Heap Size */
 
 /* Start and end of the heap region */
-#define HEAP_START_PHYS ((uintptr_t)((((uintptr_t)&kernel_end + 0xFFFU) & ~0xFFFU)))
-#define HEAP_END_PHYS   (PHYS_MEM_BASE + PHYS_MEM_SIZE)
+#define HEAP_START ((uintptr_t)(&kernel_end))
+#define HEAP_END   (PHYS_MEM_BASE + PHYS_MEM_SIZE)
 
-#define HEAP_START_VA ((uintptr_t)MtTranslateKernelPhysicalToVirtual(HEAP_START_PHYS))
-#define HEAP_END_VA   ((uintptr_t)MtTranslateKernelPhysicalToVirtual(HEAP_END_PHYS))
-
-#define HEAP_SIZE_VA  (HEAP_END_VA - HEAP_START_VA)
+#define HEAP_SIZE  (HEAP_END - HEAP_START)
 
 /* Block header placed immediately before each allocated chunk */
 typedef struct _BLOCK_HEADER {
@@ -52,17 +50,17 @@ void* kmemset(void* dest, int val, uint32_t len);
 void* kmemcpy(void* dest, const void* src, uint32_t len);
 
 /// <summary>
-/// Allocates a block of memory from the kernelâ€™s memory manager.
+/// Allocates a block of memory from the kernel’s memory manager.
 /// </summary>
 /// <param name="size">Size in bytes to allocate</param>
 /// <param name="align">Alignment for each byte block (use internal structs for process \ other - use _Alignof)</param>
 /// <returns>Pointer to start of allocated memory</returns>
-void* MtAllocateMemory(size_t size, size_t align);
+void* MtAllocateVirtualMemory(size_t size, size_t align);
 
 /// <summary>
-/// Releases (frees) a previously allocated block of memory back to the kernelâ€™s memory manager.
+/// Releases (frees) a previously allocated block of memory back to the kernel’s memory manager.
 /// </summary>
 /// <param name="ptr">Pointer to the allocated memory block to free</param>
-void MtFreeMemory(void* ptr);
+void MtFreeVirtualMemory(void* ptr);
 
 #endif /* MEMORY_H */

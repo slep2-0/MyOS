@@ -20,6 +20,18 @@ extern CPU cpu;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
+// causes a page fault inside of the bugcheck, since it probably dereferences a ptr that was in the UEFI callstack, or something like that.
+static void print_stack_trace(int depth) {
+    // resolve curr RBP, then add the push offset (this kernel is 64bit, so 8 bytes)
+    uint64_t* rbp = (uint64_t*)__read_rbp();
+
+    for (int i = 0; rbp != 0 && i < depth; i++) {
+        // print the current call addr
+        gop_printf(COLOR_ORANGE, "%p\n", *(rbp + 1));
+        rbp = (uint64_t*)*rbp;
+    }
+}
+
 static void print_lastfunc_chain(uint32_t color) {
     // Start at the oldest entry: that's the slot `index` points to (next write).
     int idx = lastfunc_history.current_index;
@@ -246,7 +258,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 		}
 	}
 #ifdef DEBUG
-    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : 69;
+    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : (uint32_t)-1;
     gop_printf_forced(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #endif
 #ifdef DEBUG
@@ -255,6 +267,10 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         print_lastfunc_chain(0xFFBF40BF);
         gop_printf_forced(0xFFBF40BF, "**");
     }
+
+    // call stack trace
+    //gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
+    //print_stack_trace(10); // 10 function calls;
 #endif
 	//test
     update_pic_mask_for_current_irql();
@@ -339,7 +355,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     gop_printf_forced(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
 #endif
 #ifdef DEBUG
-    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : 69;
+    int32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : (uint32_t)-1;
     gop_printf_forced(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #endif
     if (isAdditionals) {
@@ -359,12 +375,18 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
             gop_printf_forced(COLOR_RED, "**STRING ADDITIONAL: %s**\n", additional->str);
         }
     }
+
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
         gop_printf_forced(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
         print_lastfunc_chain(0xFFBF40BF);
         gop_printf_forced(0xFFBF40BF, "**");
     }
+
+
+    // call stack trace
+    //gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
+    //print_stack_trace(10); // 10 function calls;
 #endif
     //test
     update_pic_mask_for_current_irql();

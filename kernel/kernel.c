@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.
@@ -83,6 +83,8 @@ void init_boot_info(BOOT_INFO* boot_info) {
     }
     boot_info_local.AhciBarBases = ahci_bases_local;
     boot_info_local.AhciCount = boot_info->AhciCount;
+    boot_info_local.KernelStackTop = boot_info->KernelStackTop;
+    boot_info_local.Pml4Phys = boot_info->Pml4Phys;
 }
 
 void InitCPU(void) {
@@ -136,23 +138,16 @@ void kernel_main(BOOT_INFO* boot_info) {
     //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
     __cli();
+    // Zero the BSS.
     zero_bss();
     // Create the local boot struct.
     init_boot_info(boot_info);
-    gop_clear_screen(&gop_local, 0);
     // Initialize the global CPU struct.
     InitCPU();
-    // Initialize the frame bitmaps for dynamic frame allocation.
-    frame_bitmap_init();
-    // Initialize paging.
-    paging_init();
-}
-
-void kernel_after_switch(void) {
-    // Reaching here meant that we have finished paging and jumped to this address via its virtual addr. (0xfffffffff80000...)
-
     // Initialize interrupts & exceptions.
     init_interrupts();
+    // Initialize the frame bitmaps for dynamic frame allocation.
+    frame_bitmap_init();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
     _MtSetIRQL(PASSIVE_LEVEL);
@@ -191,20 +186,20 @@ void kernel_after_switch(void) {
         MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
     */
-    void* buf = MtAllocateMemory(64, 16);
+    void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
-    void* buf2 = MtAllocateMemory(128, 16);
+    void* buf2 = MtAllocateVirtualMemory(128, 16);
     gop_printf_forced(0xFFFFFF00, "buf2 addr: %p\n", buf2);
-    MtFreeMemory(buf2);
-    void* buf3 = MtAllocateMemory(128, 16);
+    MtFreeVirtualMemory(buf2);
+    void* buf3 = MtAllocateVirtualMemory(128, 16);
     gop_printf_forced(0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
-    void* buf4 = MtAllocateMemory(2048, 16);
+    void* buf4 = MtAllocateVirtualMemory(2048, 16);
     gop_printf_forced(0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
-    void* buf5 = MtAllocateMemory(64, 16);
+    void* buf5 = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
-    void* buf6 = MtAllocateMemory(5000, 64);
+    void* buf6 = MtAllocateVirtualMemory(5000, 64);
     gop_printf_forced(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
-    void* buf7 = MtAllocateMemory(10000, 128);
+    void* buf7 = MtAllocateVirtualMemory(10000, 128);
     gop_printf_forced(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
 #ifdef CAUSE_BUGCHECK
     CTX_FRAME regs;
@@ -212,7 +207,7 @@ void kernel_after_switch(void) {
     MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
     /*
-    void* writebuf = MtAllocateMemory(512, 16);
+    void* writebuf = MtAllocateVirtualMemory(512, 16);
     gop_printf_forced(COLOR_GREEN, "Attempting to read to writebuf...\n");
     if (ahci_read_sector(get_block_device(0), 0, writebuf)) {
         for (int i = 0; i < 512; i++) {

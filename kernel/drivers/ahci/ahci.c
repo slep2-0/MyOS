@@ -57,14 +57,14 @@ static bool init_one_port(int idx) {
     if ((status & 0x0F) != 3) return false; // no device present
 
     // Allocate and zero CLB (1 KiB)
-    void* clb = MtAllocateMemory(1024, 1024);
+    void* clb = MtAllocateVirtualMemory(1024, 1024);
     if (!clb) return false;
     kmemset(clb, 0, 1024);
     p->clb = (uint32_t)(uintptr_t)clb;
     p->clbu = (uint32_t)((uintptr_t)clb >> 32);
 
     // Allocate and zero FIS receive buffer (256 B)
-    void* fis_buf = MtAllocateMemory(256, 256);
+    void* fis_buf = MtAllocateVirtualMemory(256, 256);
     if (!fis_buf) return false;
     kmemset(fis_buf, 0, 256);
     p->fb = (uint32_t)(uintptr_t)fis_buf;
@@ -72,7 +72,7 @@ static bool init_one_port(int idx) {
 
     // Allocate and zero Command Table buffers: 256 B × 32 slots
     size_t tbl_size = 256 * 32;
-    void* cmd_tbl = MtAllocateMemory(tbl_size, 256);
+    void* cmd_tbl = MtAllocateVirtualMemory(tbl_size, 256);
     if (!cmd_tbl) return false;
     kmemset(cmd_tbl, 0, tbl_size);
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
  * PURPOSE:      IRQL Implementation (Fixed with Dispatch Level scheduling toggle)
