@@ -72,7 +72,7 @@ typedef volatile struct _HBA_PORT {
 /// Register - Host to Device FIS (FIS_TYPE_REG_H2D)
 #pragma pack(push, 1)
 typedef struct _FIS_REG_H2D {
-	FIS_TYPE fis_type;
+	uint8_t fis_type;
 	uint8_t pmport : 4;
 	uint8_t rsv0 : 3;
 	uint8_t c : 1;       // 1: command, 0: control

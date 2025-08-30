@@ -5,8 +5,6 @@
 static uint8_t* frame_bitmap = NULL;
 static size_t total_frames = 0;
 
-#define PHYS_MEM_OFFSET 0xffff880000000000ULL
-
 static inline void set_frame(size_t frame) {
     tracelast_func("set_frame");
     uint64_t rip;

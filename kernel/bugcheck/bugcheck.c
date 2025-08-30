@@ -20,19 +20,35 @@ extern CPU cpu;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
-// causes a page fault inside of the bugcheck, since it probably dereferences a ptr that was in the UEFI callstack, or something like that.
+static inline bool is_canonical_ptr(uint64_t x) {
+    // x86_64 canonical: bits 63..48 must be sign-extension of bit 47
+    uint64_t hi = x >> 47;
+    return (hi == 0 || hi == 0x1FFFF);
+}
+
 static void print_stack_trace(int depth) {
     return;
-    // resolve curr RBP, then add the push offset (this kernel is 64bit, so 8 bytes)
     uint64_t* rbp = (uint64_t*)__read_rbp();
+    for (int i = 0; rbp != NULL && i < depth; ++i) {
+        // validate the rbp pointer itself and the saved return address slot
+        if (!MtIsAddressValid((void*)rbp)) return;
+        if (!MtIsAddressValid((void*)(rbp + 1))) return;
 
-    for (int i = 0; rbp != 0 && i < depth; i++) {
-        // check if the address for the old call addr is paged in memory (the ptr)
-        if (!MtIsAddressValid((void*)(rbp + 1))) break;
+        uint64_t saved_ret = *(rbp + 1);
+        // print the pointer value (do not dereference saved_ret!)
+        gop_printf(COLOR_ORANGE, "frame %d rbp=%p ret=%p\n", i, rbp, (void*)saved_ret);
 
-        // print the current call addr
-        gop_printf(COLOR_ORANGE, "%p\n", *(rbp + 1));
-        rbp = (uint64_t*)*rbp;
+        // read the next rbp value (must validate it before using it)
+        uint64_t next_rbp_val = *rbp;
+        if (next_rbp_val == 0) return;
+        if (!is_canonical_ptr(next_rbp_val)) return;
+
+        // sane growth check: next rbp should be above current rbp (stack grows down),
+        // but frame pointer chain normally decreases addresses; adjust check to your ABI.
+        // Here we ensure it's not absurdly far away (protects against corrupted rbp)
+        if ((uintptr_t)next_rbp_val > (uintptr_t)rbp + (1024 * 1024 * 16)) return; // 16MB sanity cap
+
+        rbp = (uint64_t*)(uintptr_t)next_rbp_val;
     }
 }
 

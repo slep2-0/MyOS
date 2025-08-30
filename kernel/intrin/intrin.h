@@ -210,4 +210,8 @@ static inline uint64_t __read_rip(void) {
     return rip;
 }
 
+static inline void __pause(void) {
+    __asm__ volatile("pause" ::: "memory");
+}
+
 #endif // X86_INTRINSICS_H

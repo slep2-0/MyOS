@@ -7,6 +7,10 @@
 #include "ahci.h"
 #include "../../trace.h"
 
+#ifdef REMINDER
+_Static_assert(false, "Reminder: AHCI, and other DMA stuff DEAL WITH PHYSICAL ADDRESSES ONLY! not virtual, so supply to them the translated addresses.");
+#endif
+
 // Context per initialized port
 typedef struct _AHCI_PORT_CTX {
     HBA_PORT* port;             // MMIO base for this port
@@ -56,39 +60,54 @@ static bool init_one_port(int idx) {
     uint32_t status = p->ssts;
     if ((status & 0x0F) != 3) return false; // no device present
 
+    // Stop the port before configuration
+    p->cmd &= ~(1u << 0); // Clear ST (START)
+    p->cmd &= ~(1u << 4); // Clear PRE (FIS Receive Enable)
+
+    // Wait until port is idle
+    while ((p->cmd & (1u << 15)) || (p->cmd & (1u << 14))) {
+        __pause();
+    }
+
     // Allocate and zero CLB (1 KiB)
     void* clb = MtAllocateVirtualMemory(1024, 1024);
     if (!clb) return false;
     kmemset(clb, 0, 1024);
-    p->clb = (uint32_t)(uintptr_t)clb;
-    p->clbu = (uint32_t)((uintptr_t)clb >> 32);
+    // pass the PHYSICAL address.
+    uintptr_t clb_phys = MtTranslateVirtualToPhysical(clb);
+    p->clb = (uint32_t)(uintptr_t)clb_phys;
+    p->clbu = (uint32_t)((uintptr_t)clb_phys >> 32);
 
     // Allocate and zero FIS receive buffer (256 B)
     void* fis_buf = MtAllocateVirtualMemory(256, 256);
     if (!fis_buf) return false;
     kmemset(fis_buf, 0, 256);
-    p->fb = (uint32_t)(uintptr_t)fis_buf;
-    p->fbu = (uint32_t)((uintptr_t)fis_buf >> 32);
+    // Again, pass the PHYSICAL.
+    uintptr_t fis_buf_phys = MtTranslateVirtualToPhysical(fis_buf);
+    p->fb = (uint32_t)(uintptr_t)fis_buf_phys;
+    p->fbu = (uint32_t)((uintptr_t)fis_buf_phys >> 32);
 
     // Allocate and zero Command Table buffers: 256 B × 32 slots
     size_t tbl_size = 256 * 32;
     void* cmd_tbl = MtAllocateVirtualMemory(tbl_size, 256);
     if (!cmd_tbl) return false;
     kmemset(cmd_tbl, 0, tbl_size);
+    uintptr_t cmd_tbl_phys = MtTranslateVirtualToPhysical(cmd_tbl);
 
     // Point each command header to its table
     for (int slot = 0; slot < 32; slot++) {
         // Header at clb + slot*32 bytes
         HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)clb + slot * sizeof(HBA_CMD_HEADER));
-        uintptr_t tbl_pa = (uintptr_t)cmd_tbl + slot * 256;
-        hdr->ctba = (uint32_t)(tbl_pa & 0xFFFFFFFF);
-        hdr->ctbau = (uint32_t)(tbl_pa >> 32);
+        uintptr_t tbl_pa_phys = (uintptr_t)cmd_tbl_phys + slot * 256;
+        hdr->ctba = (uint32_t)(tbl_pa_phys & 0xFFFFFFFF);
+        hdr->ctbau = (uint32_t)(tbl_pa_phys >> 32);
         hdr->prdtl = 1; // one PRDT entry
     }
 
-    // Start FIS RX and command engine
-    p->cmd |= (1u << 4); // FRE
-    p->cmd |= (1u << 0); // ST
+    // Clear any old errors and start the port
+    p->serr = ~0U; // Clear all SERROR bits by writing 1 to them.
+    p->cmd |= (1u << 4); // Set FRE
+    p->cmd |= (1u << 0); // Set ST
 
     // Save context
     AHCI_PORT_CTX* ctx = &ports[port_count];
@@ -110,10 +129,22 @@ extern GOP_PARAMS gop_local;
 bool ahci_init(void) {
     tracelast_func("ahci_init");
     // Use BootInfo PCI BARs.
+
+    // identity mapping of AHCI
+    for (size_t i = 0; i < boot_info_local.AhciCount; i++) {
+        uint64_t base = boot_info_local.AhciBarBases[i];
+        void* virt = (void*)(base + PHYS_MEM_OFFSET);
+        map_page(virt, base, PAGE_PRESENT | PAGE_RW); // MMIO flags
+        gop_printf(COLOR_ORANGE, "Address of AHCI BAR %u (%p) is: %s\n", i, virt, MtIsAddressValid(virt) ? "Valid" : "Invalid");
+        // Now change the values in the struct
+        boot_info_local.AhciBarBases[i] = (uint64_t)virt;
+    }
+
     uint64_t bar = boot_info_local.AhciBarBases[0];
     hba_mem = (HBA_MEM*)(uintptr_t)bar;
 #ifdef DEBUG
-    gop_printf(0xFF00FFFF, "About to touch AHCI at %p\n", hba_mem);
+    gop_printf(0xFF00FFFF, "About to touch AHCI %u at %p | It's %s\n",0, hba_mem, MtIsAddressValid((void*)bar) ? "Valid" : "Invalid");
+    //_cli(); __hlt();
 #endif
     enable_controller();
     port_count = 0; // Start from 0.
@@ -169,8 +200,9 @@ bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
     /* PRDT (one entry) */
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    prdt->dba = (uint32_t)(uintptr_t)buf;
-    prdt->dbau = (uint32_t)(((uintptr_t)buf) >> 32);
+    uintptr_t buf_phys = MtTranslateVirtualToPhysical(buf);
+    prdt->dba = (uint32_t)(uintptr_t)buf_phys;
+    prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
     prdt->dbc = 512 - 1; /* 512 bytes */
     prdt->i = 1;
 
@@ -253,8 +285,10 @@ bool ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 
     /* PRDT */
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    prdt->dba = (uint32_t)(uintptr_t)buf;
-    prdt->dbau = (uint32_t)(((uintptr_t)buf) >> 32);
+    // this removes constness from buf, but it's fine since the translation DOES NOT write to the buffer, only makes translations.
+    uintptr_t buf_phys = MtTranslateVirtualToPhysical((void*)buf);
+    prdt->dba = (uint32_t)(uintptr_t)buf_phys;
+    prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
     prdt->dbc = 512 - 1;
     prdt->i = 1;
 

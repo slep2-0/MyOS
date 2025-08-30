@@ -6,6 +6,8 @@
 #ifndef X86_ALLOCATOR_H
 #define X86_ALLOCATOR_H
 
+#define PHYS_MEM_OFFSET 0xffff880000000000ULL
+
 // Standard headers, required.
 #include <stddef.h>
 #include <stdbool.h>

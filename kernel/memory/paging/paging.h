@@ -36,7 +36,21 @@ void set_page_user_access(void* virtualaddress, bool user_accessible);
 void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags);
 bool unmap_page(void* virtualaddress);
 
+/// <summary>
+/// This function checks if the virtual address given to it, is valid and present in the page tables of the kernel.
+/// </summary>
+/// <param name="virtualAddr"></param>
+/// <returns>True or False based if present or not.</returns>
 bool MtIsAddressValid(void* virtualAddr);
+
+/// <summary>
+/// This function translates the virtual address to its corresponding physical address in the page tables if present.
+/// </summary>
+/// <param name="virtualaddress"></param>
+/// <returns>Physical Address or 0 if not found.</returns>
+uintptr_t MtTranslateVirtualToPhysical(void* virtualaddress);
+
+
 
 /// <summary>
 /// UNUSED

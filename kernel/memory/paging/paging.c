@@ -128,6 +128,15 @@ static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
 static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
+static inline size_t get_offset(uint64_t va) {
+    return va & 0xFFF;
+}
+
+// Input pt[pt_i] into the function
+static inline uintptr_t get_frame_base(uint64_t pt_pti) {
+    return pt_pti & 0xFFFFFFFFF000;
+}
+
 static void map_range_higher(uintptr_t phys_start, uintptr_t phys_end, void* va_start, uint64_t flags) {
     uintptr_t p = phys_start;
     uintptr_t v = (uintptr_t)va_start;
@@ -357,4 +366,39 @@ bool MtIsAddressValid(void* virtualAddr) {
     if (!(pt[pt_i] & PAGE_PRESENT)) return false;
 
     return true;
+}
+
+uintptr_t MtTranslateVirtualToPhysical(void* virtualaddress) {
+    tracelast_func("MtTranslateVirtualToPhysical");
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
+
+    // Extract indices.
+    uint64_t va = (uint64_t)virtualaddress;
+
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+    size_t pt_i = get_pt_index(va);
+
+    size_t offset = get_offset(va);
+
+    uint64_t* pml4 = pml4_from_recursive();
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) return 0;
+
+    // advance
+    uint64_t* pdpt = pdpt_from_recursive(pml4_i);
+    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return 0;
+
+    uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
+    if (!(pd[pd_i] & PAGE_PRESENT)) return 0;
+
+    uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
+    if (!(pt[pt_i] & PAGE_PRESENT)) return 0;
+
+    // Retrieve the physical address and add the offset.
+    uintptr_t base = get_frame_base(pt[pt_i]);
+
+    return base + offset;
 }

@@ -178,14 +178,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-    /*
+    
     // Initialize AHCI now.
     if (!ahci_init()) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
         MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
     }
-    */
+    
     void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateVirtualMemory(128, 16);
@@ -210,26 +210,28 @@ void kernel_main(BOOT_INFO* boot_info) {
     SAVE_CTX_FRAME(&regs);
     MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
-    /*
-    void* writebuf = MtAllocateVirtualMemory(512, 16);
-    gop_printf_forced(COLOR_GREEN, "Attempting to read to writebuf...\n");
-    if (ahci_read_sector(get_block_device(0), 0, writebuf)) {
-        for (int i = 0; i < 512; i++) {
-            gop_printf_forced(0xFFFFA500, "%d", ((uint8_t*)writebuf)[i]);
+    
+    for (int i = 0; i < 512; i++) {
+        void* writebuf = MtAllocateVirtualMemory(512, 16);
+        gop_printf_forced(COLOR_GREEN, "Attempting to read to writebuf...\n");
+        if (ahci_read_sector(get_block_device(0), i, writebuf)) {
+            for (int j = 0; j < 512; j++) {
+                gop_printf_forced(0xFFFFA500, "%d", ((uint8_t*)writebuf)[i]);
+            }
+        }
+        else {
+            gop_printf_forced(COLOR_RED, "Could not read AHCI...\n");
         }
     }
-    else {
-        gop_printf_forced(COLOR_RED, "Could not read AHCI...\n");
-    }
-    */
-    /*
+    
+    
     if (!fat32_init(0)) {
         CTX_FRAME ctxfr;
         SAVE_CTX_FRAME(&ctxfr);
         MtBugcheck(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
     }
     fat32_list_root();
-    */
+    
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
