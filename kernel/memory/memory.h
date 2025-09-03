@@ -57,7 +57,7 @@ void* kmemcpy(void* dest, const void* src, uint32_t len);
 /// Allocates a block of memory from the kernel’s memory manager.
 /// </summary>
 /// <param name="size">Size in bytes to allocate</param>
-/// <param name="align">Alignment for each byte block (use internal structs for process \ other - use _Alignof)</param>
+/// <param name="align">Alignment for each byte block (use internal structs for process \ other - use _Alignof) (**ALIGN MUST BE POWER OF 2 OR NON ZERO**)</param>
 /// <returns>Pointer to start of allocated memory</returns>
 void* MtAllocateVirtualMemory(size_t size, size_t align);
 
@@ -67,7 +67,7 @@ void* MtAllocateVirtualMemory(size_t size, size_t align);
 /// Allocates a block of memory from the kernel's memory manager, and sets the paging flags according to the user.
 /// </summary>
 /// <param name="size">Size in bytes to allocate</param>
-/// <param name="align">Alignment for each byteblock (use internal structs for process \ other - use _Alignof)</param>
+/// <param name="align">Alignment for each byteblock (use internal structs for process \ other - use _Alignof) (**ALIGN MUST BE POWER OF 2 OR NON ZERO**)</param>
 /// <param name="flags">PAGE_FLAGS flags.</param>
 /// <returns>Pointer to start of allocated memory</returns>
 void* MtAllocateVirtualMemoryEx(size_t size, size_t align, uint64_t flags);

@@ -264,7 +264,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         SAVE_CTX_FRAME(&ctxfr);
         MtBugcheck(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
     }
-    
+    //fat32_delete_directory("test");
     fat32_list_root();
     
     uint32_t fileSize;
@@ -273,10 +273,11 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     char buffer[256];
     ksnprintf(buffer, sizeof(buffer), "This is test data inserted by the OS! Num: %d\n", 10);
-    fat32_write_file("hello.txt", (void*)buffer, sizeof(buffer));
+    fat32_write_file("hello.txt", (void*)buffer, (uint32_t)kstrlen(buffer), FAT32_WRITE_MODE_APPEND);
     textbuf = fat32_read_file("hello.txt", &fileSize);
     gop_printf(COLOR_GREEN, "In hello.txt: %s\n", textbuf);
-
+    fat32_create_directory("test");
+    fat32_delete_file("hello.txt");
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.

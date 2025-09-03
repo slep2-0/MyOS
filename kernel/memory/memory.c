@@ -156,7 +156,7 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-
+    if (align == 0 || (align & (align - 1)) != 0) return NULL;
     // Precompute maximum pages we'll ever need (worst-case alignment overhead)
     size_t max_overhead = sizeof(BLOCK_HEADER) + sizeof(void*) + (align - 1);
     size_t max_alloc = max_overhead + wanted_size;
@@ -227,7 +227,7 @@ bool MtIsHeapAddressAllocated(void* ptr) {
 
 void* MtAllocateVirtualMemoryEx(size_t wanted_size, size_t align, uint64_t flags) {
     tracelast_func("MtAllocateVirtualMemoryEx");
-
+    if (align == 0 || (align & (align - 1)) != 0) return NULL;
     // 1. Calculate the total size needed, including our header and alignment padding.
     size_t header_size = sizeof(BLOCK_HEADER) + sizeof(void*); // For header and original pointer
     size_t total_size = wanted_size + header_size + (align - 1);
@@ -295,7 +295,7 @@ void MtFreeVirtualMemory(void* ptr) {
         }
         return;
     }
-
+    
     kmemset((void*)(blk + 1), 0, blk->size - sizeof(BLOCK_HEADER));
     blk->in_use = false;
     insert_block_sorted(blk);

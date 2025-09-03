@@ -117,11 +117,28 @@ static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char*
 
 	// If no LFN entries collected, just copy short name into out_name and return short_entry.
 	if (lfn_count == 0) {
-		// format short 11-byte name to null-terminated ascii-ish (no dot)
-		char shortname_formatted[11];
-		format_short_name(short_entry->name, shortname_formatted);
-		kstrcpy(out_name, shortname_formatted);
-		out_name[11] = '\0';
+		// Convert 11-byte SFN to human readable name "NAME.EXT"
+		const unsigned char* s = (const unsigned char*)short_entry->name;
+		int pos = 0;
+
+		// name part (0..7)
+		for (int n = 0; n < 8; ++n) {
+			if (s[n] == ' ') break;
+			if (pos < (int)MAX_LFN_LEN - 1) out_name[pos++] = s[n];
+		}
+
+		// extension (8..10)
+		bool has_ext = false;
+		for (int n = 8; n < 11; ++n) if (s[n] != ' ') { has_ext = true; break; }
+		if (has_ext) {
+			if (pos < (int)MAX_LFN_LEN - 1) out_name[pos++] = '.';
+			for (int n = 8; n < 11; ++n) {
+				if (s[n] == ' ') break;
+				if (pos < (int)MAX_LFN_LEN - 1) out_name[pos++] = s[n];
+			}
+		}
+
+		out_name[pos] = '\0';
 		*out_consumed = 1;
 		return short_entry;
 	}
@@ -203,33 +220,51 @@ static uint32_t first_sector_of_cluster(uint32_t cluster) {
 
 
 static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
-	tracelast_func("fat32_write_fat");
+    uint32_t fat_offset = cluster * 4;
+    uint32_t fat_sector_base = fs.fat_start; // first FAT start
+    uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
+    uint32_t sec_index = fat_offset / fs.bytes_per_sector;
 
-	uint32_t fat_offset = cluster * 4;
-	uint32_t fat_sector = fs.fat_start + (fat_offset / fs.bytes_per_sector);
-	uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
+    void* buf = MtAllocateVirtualMemory(512, 512);
+    if (!buf) return false;
 
-	// We must read the sector first, modify it, then write it back
-	void* buf = MtAllocateVirtualMemory(512, 512);
-	if (!buf) return false;
+    bool ok = true;
+    for (uint32_t fat_i = 0; fat_i < bpb.num_fats; ++fat_i) {
+        uint32_t fat_sector = fat_sector_base + fat_i * fs.sectors_per_fat + sec_index;
+        if (!read_sector(fat_sector, buf)) { ok = false; break; }
 
-	if (!read_sector(fat_sector, buf)) {
-		// free the memory before returning
-		MtFreeVirtualMemory(buf);
-		return false;
-	}
+        uint32_t* fat_entry = (uint32_t*)((uint8_t*)buf + ent_offset);
+        *fat_entry = (*fat_entry & 0xF0000000) | (value & 0x0FFFFFFF);
 
-	// Modify the entry in the buffer
-	uint32_t* fat_entry = (uint32_t*)((uint8_t*)buf + ent_offset);
-	*fat_entry = (*fat_entry & 0xF0000000) | (value & 0x0FFFFFFF); // Preserve top 4 bits.
+        if (!write_sector(fat_sector, buf)) { ok = false; break; }
+    }
 
-	// Write the modified sector back to to disk
-	bool success = write_sector(fat_sector, buf);
-
-	// Cleanup
-	MtFreeVirtualMemory(buf);
-	return success;
+    MtFreeVirtualMemory(buf);
+    return ok;
 }
+
+
+static inline uint32_t get_dir_cluster(FAT32_DIR_ENTRY* entry) {
+	return ((uint32_t)entry->fst_clus_hi << 16) | entry->fst_clus_lo;
+}
+
+// Free a cluster chain starting at start_cluster (set each entry to FREE)
+static bool fat32_free_cluster_chain(uint32_t start_cluster) {
+	tracelast_func("fat32_free_cluster_chain");
+	if (start_cluster < 2 || start_cluster >= FAT32_EOC_MIN) return false;
+
+	uint32_t cur = start_cluster;
+	while (cur < FAT32_EOC_MIN) {
+		uint32_t next = fat32_read_fat(cur);
+		// mark current as free
+		if (!fat32_write_fat(cur, FAT32_FREE_CLUSTER)) return false;
+		// protect against pathological loops
+		if (next == cur) break;
+		cur = next;
+	}
+	return true;
+}
+
 
 static uint32_t fat32_find_free_cluster(void) {
 	tracelast_func("fat32_find_free_cluster");
@@ -260,6 +295,25 @@ static bool zero_cluster(uint32_t cluster) {
 
 	MtFreeVirtualMemory(buf);
 	return success;
+}
+
+// Simple, strict compare: dir_name is on-disk 11 bytes, short_name is formatted 11 bytes
+static bool cmp_short_name(const char* dir_name, const char short_name[11]) {
+	for (int i = 0; i < 11; ++i) {
+		if ((unsigned char)dir_name[i] != (unsigned char)short_name[i]) return false;
+	}
+	return true;
+}
+
+// ASCII case-insensitive compare
+static inline bool ci_equal(const char* a, const char* b) {
+	size_t la = kstrlen(a);
+	size_t lb = kstrlen(b);
+	if (la != lb) return false;
+	for (size_t i = 0; i < la; ++i) {
+		if ((char)toupper((int)a[i]) != (char)toupper((int)b[i])) return false;
+	}
+	return true;
 }
 
 /// <summary>
@@ -318,14 +372,44 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 					uint32_t consumed = 0;
 					FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], num_entries - j, lfn_buf, &consumed);
 
-					if (sfn && kstrcmp(lfn_buf, token) == 0) {
-						kmemcpy(&last_found_entry, sfn, sizeof(FAT32_DIR_ENTRY));
-						found_this_token = true;
+					if (sfn) {
+						bool match = false;
 
-						// Move to the next level of the path
-						current_cluster = (sfn->fst_clus_hi << 16) | sfn->fst_clus_lo;
-						goto token_found_and_continue;
+						// 1) exact LFN match
+						if (kstrcmp(lfn_buf, token) == 0) match = true;
+
+						// 2) case-insensitive LFN match
+						if (!match) {
+							size_t la = kstrlen(lfn_buf);
+							size_t lb = kstrlen(token);
+							if (la == lb) {
+								bool eq = true;
+								for (size_t z = 0; z < la; ++z) {
+									char ca = lfn_buf[z];
+									char cb = token[z];
+									if (ca >= 'a' && ca <= 'z') ca -= ('a' - 'A');
+									if (cb >= 'a' && cb <= 'z') cb -= ('a' - 'A');
+									if (ca != cb) { eq = false; break; }
+								}
+								if (eq) match = true;
+							}
+						}
+
+						// 3) SFN compare (format token to 11-byte SFN and compare bytes)
+						if (!match) {
+							char token_sfn[11];
+							format_short_name(token, token_sfn);
+							if (cmp_short_name(sfn->name, token_sfn)) match = true;
+						}
+
+						if (match) {
+							kmemcpy(&last_found_entry, sfn, sizeof(FAT32_DIR_ENTRY));
+							found_this_token = true;
+							current_cluster = (sfn->fst_clus_hi << 16) | sfn->fst_clus_lo;
+							goto token_found_and_continue;
+						}
 					}
+
 					j += (consumed > 0) ? consumed : 1;
 				}
 			}
@@ -455,14 +539,6 @@ bool fat32_init(int disk_index) {
 	fs.fat_start = BPB_SECTOR_START + bpb.reserved_sector_count; // technically also reserved_sector_count of fs. holds it as well.
 	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat;
 	MtFreeVirtualMemory(buf);
-	return true;
-}
-
-// Simple, strict compare: dir_name is on-disk 11 bytes, short_name is formatted 11 bytes
-static bool cmp_short_name(const char* dir_name, const char short_name[11]) {
-	for (int i = 0; i < 11; ++i) {
-		if ((unsigned char)dir_name[i] != (unsigned char)short_name[i]) return false;
-	}
 	return true;
 }
 
@@ -619,7 +695,7 @@ static uint32_t extract_dir_cluster(const char* filename) {
 }
 
 void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
-	tracelast_func("fat32_read_file_alloc");
+	tracelast_func("fat32_read_file");
 
 	// We still need a temporary buffer for reading sectors
 	void* sblk = MtAllocateVirtualMemory(512, 512);
@@ -891,12 +967,17 @@ static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const ch
 	return num_lfn_entries;
 }
 
-
-bool fat32_write_file(const char* path, const void* data, uint32_t size) {
+bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_WRITE_MODE mode) {
 	tracelast_func("fat32_write_file_full");
 
 	// Steps 1 & 2: Same as create_directory to find parent path and new filename
-	if (fat32_find_entry(path, NULL, NULL)) { return false; } // Exists
+
+	// Safety check.
+	if (mode != FAT32_WRITE_MODE_CREATE_OR_OVERWRITE && mode != FAT32_WRITE_MODE_APPEND) {
+		return false;
+	}
+	uint32_t first_cluster = 0;
+	// parse parent + filename.
 	char path_copy[260];
 	kstrcpy(path_copy, path);
 	char* filename = NULL;
@@ -914,49 +995,275 @@ bool fat32_write_file(const char* path, const void* data, uint32_t size) {
 	if (!fat32_find_entry(parent_path, &parent_entry, NULL) || !(parent_entry.attr & ATTR_DIRECTORY)) { return false; }
 	uint32_t parent_cluster = (parent_entry.fst_clus_hi << 16) | parent_entry.fst_clus_lo;
 
-	// Step 4: Allocate clusters for file data
-	uint32_t first_cluster = 0;
+	// locate existing entry if any
+	FAT32_DIR_ENTRY existing_entry;
+	bool exists = fat32_find_entry(path, &existing_entry, NULL);
+
+	// Helper: locate on-disk sector + index for the entry (so we can update SFN/LFN in-place)
+	uint32_t located_sector = 0;
+	uint32_t located_index = 0;
+	uint32_t located_consumed = 0;
+	bool located = false;
+
+	{
+		void* buf = MtAllocateVirtualMemory(512, 512);
+		if (!buf) return false;
+		uint32_t cluster = parent_cluster;
+		do {
+			uint32_t sector_lba = first_sector_of_cluster(cluster);
+			for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
+				if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
+				uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
+
+				for (uint32_t j = 0; j < entries_per_sector; ) {
+					uint8_t first = (uint8_t)entries[j].name[0];
+					if (first == END_OF_DIRECTORY) { MtFreeVirtualMemory(buf); goto locate_done; }
+					if (first == DELETED_DIR_ENTRY) { j++; continue; }
+
+					char lfn_buf[MAX_LFN_LEN];
+					uint32_t consumed = 0;
+					FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], entries_per_sector - j, lfn_buf, &consumed);
+					if (sfn) {
+						bool match = false;
+						// exact LFN
+						if (kstrcmp(lfn_buf, filename) == 0) match = true;
+						// case-insensitive LFN
+						if (!match && ci_equal(lfn_buf, filename)) match = true;
+						// SFN compare
+						if (!match) {
+							char token_sfn[11];
+							format_short_name(filename, token_sfn);
+							if (cmp_short_name(sfn->name, token_sfn)) match = true;
+						}
+						if (match) {
+							located_sector = sector_lba + s;
+							located_index = j;
+							located_consumed = consumed;
+							located = true;
+							MtFreeVirtualMemory(buf);
+							goto locate_done;
+						}
+						j += consumed;
+						continue;
+					}
+					else {
+						j++;
+					}
+				}
+			}
+			cluster = fat32_read_fat(cluster);
+		} while (cluster < FAT32_EOC_MIN);
+		MtFreeVirtualMemory(buf);
+	}
+locate_done:
+
+	// 4) Allocate clusters for file data 
+	if (exists) first_cluster = (existing_entry.fst_clus_hi << 16) | existing_entry.fst_clus_lo;
+
+	// Behavior:
+	// - CREATE_OR_OVERWRITE: if file exists -> free its clusters; treat as new file
+	// - APPEND: if file exists -> append to its chain; otherwise behave like create
+	if (mode == FAT32_WRITE_MODE_CREATE_OR_OVERWRITE) {
+		// If exists, free existing cluster chain and reset first_cluster
+		if (exists && first_cluster >= 2) {
+			if (!fat32_free_cluster_chain(first_cluster)) {
+				return false;
+			}
+		}
+		first_cluster = 0;
+	}
+	// For append, we'll compute writing start later.
+
+	/* Step 5: Write data to the allocated clusters */
+	// If size > 0 allocate clusters and write data. Handle append partial-last-cluster case.
 	if (size > 0) {
 		uint32_t cluster_size = fs.sectors_per_cluster * fs.bytes_per_sector;
-		uint32_t clusters_needed = (size + cluster_size - 1) / cluster_size;
+		uint32_t clusters_needed = 0;
 		uint32_t prev_cluster = 0;
+		uint32_t last_cluster = 0;
+		uint32_t append_offset = 0;
 
-		for (uint32_t i = 0; i < clusters_needed; i++) {
-			uint32_t new_cluster = fat32_find_free_cluster();
-			if (new_cluster == 0) { return false; }
-			if (i == 0) first_cluster = new_cluster; else fat32_write_fat(prev_cluster, new_cluster);
-			prev_cluster = new_cluster;
+		if (mode == FAT32_WRITE_MODE_APPEND && exists && first_cluster != 0) {
+			// find last cluster of existing file and offset
+			uint32_t cur = first_cluster;
+			uint32_t next = cur;
+			uint32_t file_size = existing_entry.file_size;
+			if (file_size == 0) {
+				last_cluster = 0;
+				append_offset = 0;
+			}
+			else {
+				// reach last cluster
+				while (cur < FAT32_EOC_MIN) {
+					next = fat32_read_fat(cur);
+					if (next >= FAT32_EOC_MIN) { last_cluster = cur; break; }
+					cur = next;
+				}
+				append_offset = existing_entry.file_size % cluster_size;
+			}
 		}
-		fat32_write_fat(prev_cluster, FAT32_EOC_MAX);
-	}
 
-	// Step 5: Write data to the allocated clusters
-	if (size > 0) {
-		uint32_t bytes_left = size;
-		const uint8_t* data_ptr = (const uint8_t*)data;
-		uint32_t current_cluster = first_cluster;
+		// compute clusters needed (account for partial last cluster when appending)
+		if (mode == FAT32_WRITE_MODE_APPEND && exists && append_offset > 0) {
+			uint32_t bytes_fit = cluster_size - append_offset;
+			if (size <= bytes_fit) clusters_needed = 0;
+			else clusters_needed = (size - bytes_fit + cluster_size - 1) / cluster_size;
+		}
+		else {
+			clusters_needed = (size + cluster_size - 1) / cluster_size;
+			// if appending into empty file that had no clusters, clusters_needed is as above
+		}
+
+		// allocate required clusters
+		uint32_t first_new = 0;
+		prev_cluster = 0;
+		for (uint32_t i = 0; i < clusters_needed; ++i) {
+			uint32_t nc = fat32_find_free_cluster();
+			if (nc == 0) {
+				// cleanup on failure
+				if (first_new) fat32_free_cluster_chain(first_new);
+				return false;
+			}
+			if (!zero_cluster(nc)) {
+				// free and abort
+				fat32_write_fat(nc, FAT32_FREE_CLUSTER);
+				if (first_new) fat32_free_cluster_chain(first_new);
+				return false;
+			}
+			if (first_new == 0) first_new = nc;
+			if (prev_cluster != 0) {
+				if (!fat32_write_fat(prev_cluster, nc)) {
+					// cleanup
+					if (first_new) fat32_free_cluster_chain(first_new);
+					return false;
+				}
+			}
+			prev_cluster = nc;
+		}
+		if (prev_cluster != 0) fat32_write_fat(prev_cluster, FAT32_EOC_MAX);
+
+		// Link newly allocated clusters into file chain
+		if (mode == FAT32_WRITE_MODE_APPEND && exists) {
+			if (first_new != 0) {
+				if (last_cluster == 0) {
+					// file had no cluster, new allocation becomes first
+					first_cluster = first_new;
+				}
+				else {
+					// link last_cluster -> first_new
+					if (!fat32_write_fat(last_cluster, first_new)) {
+						if (first_new) fat32_free_cluster_chain(first_new);
+						return false;
+					}
+				}
+			}
+			// else nothing newly allocated, file continues as-is
+		}
+		else {
+			// create/overwrite or new file -> new chain starts at first_new
+			if (first_new != 0) first_cluster = first_new;
+		}
+
+		// Now write bytes to cluster chain
 		void* sector_buf = MtAllocateVirtualMemory(512, 512);
-		if (!sector_buf) { /* Error handling */ return false; }
+		if (!sector_buf) {
+			// cleanup allocated clusters on error
+			if (mode != FAT32_WRITE_MODE_APPEND || !exists) {
+				if (first_cluster) fat32_free_cluster_chain(first_cluster);
+			}
+			return false;
+		}
 
-		while (bytes_left > 0 && current_cluster < FAT32_EOC_MIN) {
-			uint32_t sector_lba = first_sector_of_cluster(current_cluster);
-			for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
-				uint32_t to_write = (bytes_left > 512) ? 512 : bytes_left;
-				if (to_write == 0) break;
-				kmemcpy(sector_buf, data_ptr, to_write);
-				if (to_write < 512) kmemset((uint8_t*)sector_buf + to_write, 0, 512 - to_write);
+		const uint8_t* src = (const uint8_t*)data;
+		uint32_t bytes_left = size;
 
-				write_sector(sector_lba + i, sector_buf);
-				data_ptr += to_write;
+		// If appending into an existing partial last cluster, fill its tail first
+		uint32_t cur_cluster = 0;
+		uint32_t write_cluster = 0;
+		uint32_t write_offset = 0;
+
+		if (mode == FAT32_WRITE_MODE_APPEND && exists && append_offset > 0) {
+			write_cluster = last_cluster;
+			write_offset = append_offset;
+		}
+		else {
+			write_cluster = first_cluster;
+			write_offset = 0;
+		}
+
+		// If write_cluster == 0 here (shouldn't happen when size>0) treat as error
+		if (write_cluster == 0) {
+			// may happen for append when file had no clusters but we didn't allocate - but in that case we did allocate above.
+			MtFreeVirtualMemory(sector_buf);
+			return false;
+		}
+
+		// loop writing clusters one by one
+		cur_cluster = write_cluster;
+		while (bytes_left > 0 && cur_cluster < FAT32_EOC_MIN) {
+			uint32_t sector_lba = first_sector_of_cluster(cur_cluster);
+			// write sectors in cluster
+			for (uint32_t sc = 0; sc < fs.sectors_per_cluster && bytes_left > 0; ++sc) {
+				// if starting in the middle of cluster, handle first sector specially
+				if (sc == 0 && write_offset > 0) {
+					// read sector, patch from write_offset, write back
+					if (!read_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					uint32_t off_in_sector = write_offset % fs.bytes_per_sector;
+					uint32_t to_copy = fs.bytes_per_sector - off_in_sector;
+					if (to_copy > bytes_left) to_copy = bytes_left;
+
+					// Copy new data
+					kmemcpy((uint8_t*)sector_buf + off_in_sector, src, to_copy);
+
+					// Zero out remaining bytes in the sector
+					if (to_copy < fs.bytes_per_sector - off_in_sector)
+						kmemset((uint8_t*)sector_buf + off_in_sector + to_copy, 0,
+							fs.bytes_per_sector - off_in_sector - to_copy);
+
+					// Patch the sector.
+					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+
+					src += to_copy;
+					bytes_left -= to_copy;
+					write_offset = 0;
+					continue;
+				}
+
+				// normal full-sector write
+				uint32_t to_write = (bytes_left > fs.bytes_per_sector) ? fs.bytes_per_sector : bytes_left;
+				if (to_write < fs.bytes_per_sector) {
+					// partial sector: read-modify-write to preserve rest
+					if (!read_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					kmemcpy(sector_buf, src, to_write);
+					kmemset((uint8_t*)sector_buf + to_write, 0, fs.bytes_per_sector - to_write);
+					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+				}
+				else {
+					// full sector
+					kmemcpy(sector_buf, src, fs.bytes_per_sector);
+					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+				}
+				src += to_write;
 				bytes_left -= to_write;
 			}
-			current_cluster = fat32_read_fat(current_cluster);
+			// advance to next cluster in chain
+			uint32_t next = fat32_read_fat(cur_cluster);
+			if (bytes_left == 0) break;
+			if (next >= FAT32_EOC_MIN) {
+				// Shouldn't happen because we allocated enough clusters, but guard anyway
+				MtFreeVirtualMemory(sector_buf);
+				return false;
+			}
+			cur_cluster = next;
 		}
-		// free sector_buf
+
 		MtFreeVirtualMemory(sector_buf);
 	}
 
 	// Step 6: Create and write directory entries (LFN + SFN)
+	// When file already existed -> update its SFN entry in-place (file_size + fst_clus)
+	// When file didn't exist -> create new LFN+SFN entries (as original impl)
 	char sfn[11];
 	format_short_name(filename, sfn); // Again, using simple SFN for now
 	uint8_t checksum = lfn_checksum((uint8_t*)sfn);
@@ -972,25 +1279,80 @@ bool fat32_write_file(const char* path, const void* data, uint32_t size) {
 	kmemset(sfn_entry, 0, sizeof(FAT32_DIR_ENTRY));
 	kmemcpy(sfn_entry->name, sfn, 11);
 	sfn_entry->attr = 0; // Not a directory, archive bit can be set.
-	sfn_entry->file_size = size;
+	// set file size & first_cluster (first_cluster may be zero for size==0)
+	uint32_t final_size = size;
+	if (mode == FAT32_WRITE_MODE_APPEND && exists) final_size = existing_entry.file_size + size;
+	sfn_entry->file_size = final_size;
 	sfn_entry->fst_clus_lo = (uint16_t)first_cluster;
 	sfn_entry->fst_clus_hi = (uint16_t)(first_cluster >> 16);
 
-	// Find space and write the entries
-	uint32_t entry_sector, entry_index;
-	if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
-		// cleanup clusters...
-		return false;
+	if (exists && located) {
+		// Update existing on-disk SFN+LFN in-place: overwrite SFN fields + file_size + fst_clus (but preserve other fields).
+		void* write_buf = MtAllocateVirtualMemory(512, 512);
+		if (!write_buf) return false;
+		if (!read_sector(located_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+
+		FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)write_buf;
+		// The located_index is the start (LFN or SFN). We assumed read_lfn returned consumed entries for that start.
+		// If the located entry was an LFN chain, the SFN is at located_index + (located_consumed - 1)
+		uint32_t sfn_pos = located_index + (located_consumed ? (located_consumed - 1) : 0);
+		// Update SFN's cluster and filesize
+		entries[sfn_pos].fst_clus_lo = (uint16_t)first_cluster;
+		entries[sfn_pos].fst_clus_hi = (uint16_t)(first_cluster >> 16);
+		entries[sfn_pos].file_size = final_size;
+
+		// If original file had no LFN and we're writing a long-name (lfn_count>0), we cannot expand in-place safely.
+		// In that case we fallback to find free slots and write a new LFN+SFN pair and mark old entries deleted.
+		bool can_update_inplace = (lfn_count == 0) || (located_consumed == total_entries);
+		if (!can_update_inplace) {
+			// mark old consumed entries deleted (0xE5), then write new entries in free slots
+			for (uint32_t k = 0; k < located_consumed; ++k) {
+				((uint8_t*)entries[located_index + k].name)[0] = DELETED_DIR_ENTRY;
+			}
+			if (!write_sector(located_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+			MtFreeVirtualMemory(write_buf);
+
+			// find new free slots and write new entries (reuse original creation path)
+			uint32_t entry_sector, entry_index;
+			if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
+				// cleanup clusters if we've allocated them
+				return false;
+			}
+			void* write_buf2 = MtAllocateVirtualMemory(512, 512);
+			if (!read_sector(entry_sector, write_buf2)) { MtFreeVirtualMemory(write_buf2); return false; }
+			kmemcpy(&((FAT32_DIR_ENTRY*)write_buf2)[entry_index], entry_buf, total_entries * sizeof(FAT32_DIR_ENTRY));
+			bool success = write_sector(entry_sector, write_buf2);
+			MtFreeVirtualMemory(write_buf2);
+			return success;
+		}
+		else {
+			// safe to update in-place: write sector
+			bool ok = write_sector(located_sector, write_buf);
+			MtFreeVirtualMemory(write_buf);
+			return ok;
+		}
+	}
+	else {
+		// File did not exist: find space and write the entries (original flow)
+		uint32_t entry_sector, entry_index;
+		if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
+			// If we allocated new clusters earlier, free them (best effort)
+			if (first_cluster) fat32_free_cluster_chain(first_cluster);
+			return false;
+		}
+
+		void* write_buf = MtAllocateVirtualMemory(512, 512);
+		if (!read_sector(entry_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+		kmemcpy(&((FAT32_DIR_ENTRY*)write_buf)[entry_index], entry_buf, total_entries * sizeof(FAT32_DIR_ENTRY));
+		bool success = write_sector(entry_sector, write_buf);
+
+		// free write_buf
+		MtFreeVirtualMemory(write_buf);
+		return success;
 	}
 
-	void* write_buf = MtAllocateVirtualMemory(512, 512);
-	read_sector(entry_sector, write_buf);
-	kmemcpy(&((FAT32_DIR_ENTRY*)write_buf)[entry_index], entry_buf, total_entries * sizeof(FAT32_DIR_ENTRY));
-	bool success = write_sector(entry_sector, write_buf);
-
-	// free write_buf
-	MtFreeVirtualMemory(write_buf);
-	return success;
+	// Should not reach here
+	return false;
 }
 
 void fat32_list_directory(const char* path) {
@@ -1057,4 +1419,326 @@ void fat32_list_directory(const char* path) {
 	} while (cluster < FAT32_EOC_MIN);
 
 	MtFreeVirtualMemory(buf);
+}
+
+// Check that a directory cluster contains only '.' and '..' (and deleted entries).
+// Returns true if empty ,false if non-empty or error.
+bool fat32_directory_is_empty(const char* path) {
+	tracelast_func("fat32_directory_is_empty");
+
+	FAT32_DIR_ENTRY entry;
+	uint32_t parent_cluster = 0;
+	fat32_find_entry(path, &entry, &parent_cluster);
+
+	uint32_t dir_cluster = get_dir_cluster(&entry);
+	if (dir_cluster == 0) return false;
+
+	void* buf = MtAllocateVirtualMemory(512, 512);
+	if (!buf) return false;
+
+	uint32_t cluster = dir_cluster;
+	do {
+		uint32_t sector_lba = first_sector_of_cluster(cluster);
+		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
+			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+
+			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
+			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
+
+			for (uint32_t j = 0; j < entries_per_sector; ) {
+				uint8_t first = (uint8_t)entries[j].name[0];
+
+				if (first == END_OF_DIRECTORY) { MtFreeVirtualMemory(buf); return true; } // no more entries
+				if (first == DELETED_DIR_ENTRY) { j++; continue; }
+
+				// Build full name (LFN or SFN)
+				char lfn_buf[MAX_LFN_LEN];
+				uint32_t consumed = 0;
+				FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], entries_per_sector - j, lfn_buf, &consumed);
+				if (!sfn) { j++; continue; }
+
+				// skip '.' and '..'
+				if ((unsigned char)sfn->name[0] == '.') {
+					j += consumed;
+					continue;
+				}
+
+				// There is a non-deleted entry that is not '.'/'..' -> directory not empty
+				MtFreeVirtualMemory(buf);
+				return false;
+			}
+		}
+		cluster = fat32_read_fat(cluster);
+	} while (cluster < FAT32_EOC_MIN);
+
+	MtFreeVirtualMemory(buf);
+	return true;
+}
+
+// Mark the SFN and all preceding LFN entries for `filename` in parent_cluster as deleted.
+// `path` is the full path. parent_cluster is cluster of parent directory.
+// Returns true on success (sector written), false otherwise.
+static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluster) {
+	tracelast_func("mark_entry_and_lfns_deleted");
+	// extract filename (last component)
+	char path_copy[260];
+	kstrcpy(path_copy, path);
+	int len = (int)kstrlen(path_copy);
+	// strip trailing slashes
+	while (len > 1 && path_copy[len - 1] == '/') { path_copy[--len] = '\0'; }
+
+	int last_slash = -1;
+	for (int i = len - 1; i >= 0; --i) {
+		if (path_copy[i] == '/') { last_slash = i; break; }
+	}
+
+	const char* filename = (last_slash == -1) ? path_copy : &path_copy[last_slash + 1];
+
+	// Prepare SFN format for short-name comparison
+	char sfn_formatted[11];
+	format_short_name(filename, sfn_formatted);
+
+	void* buf = MtAllocateVirtualMemory(512, 512);
+	if (!buf) return false;
+
+	uint32_t cluster = parent_cluster;
+	do {
+		uint32_t sector_lba = first_sector_of_cluster(cluster);
+		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
+			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+
+			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
+			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
+
+			for (uint32_t j = 0; j < entries_per_sector; ) {
+				uint8_t first = (uint8_t)entries[j].name[0];
+
+				if (first == END_OF_DIRECTORY) { MtFreeVirtualMemory(buf); return false; } // not found in parent
+				if (first == DELETED_DIR_ENTRY) { j++; continue; }
+
+				char lfn_buf[MAX_LFN_LEN];
+				uint32_t consumed = 0;
+				FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], entries_per_sector - j, lfn_buf, &consumed);
+
+				if (sfn) {
+					// Match by LFN (exact), LFN (case-insensitive), or SFN bytes
+					bool match = false;
+
+					// 1) exact LFN match
+					if (kstrcmp(lfn_buf, filename) == 0) {
+						match = true;
+					}
+
+					// 2) case-insensitive LFN match
+					if (!match && ci_equal(lfn_buf, filename)) {
+						match = true;
+					}
+
+					// 3) SFN byte-wise compare (token formatted)
+					if (!match && cmp_short_name(sfn->name, sfn_formatted)) {
+						match = true;
+					}
+
+					if (match) {
+						// Mark all consumed entries (LFN...SFN) as deleted (0xE5)
+						for (uint32_t k = 0; k < consumed; ++k) {
+							((uint8_t*)entries[j + k].name)[0] = DELETED_DIR_ENTRY;
+						}
+
+						// Write sector back to disk
+						bool ok = write_sector(sector_lba + s, buf);
+						MtFreeVirtualMemory(buf);
+						return ok;
+					}
+
+					j += consumed;
+					continue;
+				}
+				else {
+					// read_lfn failed (corrupted LFN chain?), skip this entry
+					j++;
+				}
+			}
+		}
+		cluster = fat32_read_fat(cluster);
+	} while (cluster < FAT32_EOC_MIN);
+
+	MtFreeVirtualMemory(buf);
+	return false; // not found
+}
+
+
+// Recursively delete directory contents and free the directory's cluster chain.
+// This function deletes all children (files & subdirs) found inside dir_cluster,
+// marks their directory entries as DELETED on disk, and finally frees dir_cluster itself.
+// Returns true on success, false on any error.
+static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
+	tracelast_func("fat32_rm_rf_dir");
+
+	if (dir_cluster == 0 || dir_cluster == fs.root_cluster) return false; // never delete root here
+
+	void* buf = MtAllocateVirtualMemory(512, 512);
+	if (!buf) return false;
+
+	uint32_t cluster = dir_cluster;
+	// Iterate cluster chain
+	while (cluster < FAT32_EOC_MIN) {
+		uint32_t sector_lba = first_sector_of_cluster(cluster);
+
+		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
+			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+
+			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
+			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
+
+			for (uint32_t j = 0; j < entries_per_sector; ) {
+				uint8_t first = (uint8_t)entries[j].name[0];
+
+				// End of directory: nothing after this in this directory
+				if (first == END_OF_DIRECTORY) {
+					// we can stop scanning this directory entirely
+					// free buffer and break out to free cluster chain
+					MtFreeVirtualMemory(buf);
+					goto free_and_return;
+				}
+
+				// Deleted entry: skip
+				if (first == DELETED_DIR_ENTRY) { j++; continue; }
+
+				// Attempt to read LFN + SFN at this position
+				char lfn_name[MAX_LFN_LEN];
+				uint32_t consumed = 0;
+				FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], entries_per_sector - j, lfn_name, &consumed);
+
+				if (!sfn) {
+					// corrupted chain or not an entry we can parse: skip single entry
+					j++;
+					continue;
+				}
+
+				// Skip '.' and '..' entries
+				if ((unsigned char)sfn->name[0] == '.') {
+					j += consumed;
+					continue;
+				}
+
+				// If directory -> recurse
+				if (sfn->attr & ATTR_DIRECTORY) {
+					uint32_t child_cluster = get_dir_cluster(sfn);
+					if (child_cluster != 0 && child_cluster != 1 && child_cluster != dir_cluster) {
+						// Recursively delete child directory contents and free its clusters.
+						if (!fat32_rm_rf_dir(child_cluster)) {
+							// recursion failed — return false
+							MtFreeVirtualMemory(buf);
+							return false;
+						}
+						// At this point child's clusters are freed by the recursive call.
+					}
+					// After child deleted, mark child's LFN+SFN entries as deleted in this parent sector
+					for (uint32_t k = 0; k < consumed; ++k) {
+						((uint8_t*)entries[j + k].name)[0] = DELETED_DIR_ENTRY;
+					}
+					// write this sector back
+					if (!write_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+					// advance past consumed entries
+					j += consumed;
+					continue;
+				}
+				else {
+					// It's a file: free its cluster chain (if any) then mark entries deleted
+					uint32_t file_cluster = get_dir_cluster(sfn);
+					if (file_cluster >= 2) {
+						if (!fat32_free_cluster_chain(file_cluster)) {
+							MtFreeVirtualMemory(buf);
+							return false;
+						}
+					}
+					// mark the LFN+SFN entries as deleted
+					for (uint32_t k = 0; k < consumed; ++k) {
+						((uint8_t*)entries[j + k].name)[0] = DELETED_DIR_ENTRY;
+					}
+					// write sector back
+					if (!write_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+					j += consumed;
+					continue;
+				}
+			} // for each entry in sector
+		} // for each sector in cluster
+
+		cluster = fat32_read_fat(cluster);
+	} // while cluster chain
+
+free_and_return:
+	// Free this directory's own cluster chain (we deleted contents)
+	if (!fat32_free_cluster_chain(dir_cluster)) {
+		// if freeing fails, we still consider it an error
+		return false;
+	}
+	return true;
+}
+
+bool fat32_delete_directory(const char* path) {
+	tracelast_func("fat32_delete_directory");
+
+	// Find entry & its parent cluster
+	FAT32_DIR_ENTRY entry;
+	uint32_t parent_cluster;
+	if (!fat32_find_entry(path, &entry, &parent_cluster)) return false;
+
+	// Must be a directory
+	if (!(entry.attr & ATTR_DIRECTORY)) return false;
+
+	uint32_t dir_cluster = get_dir_cluster(&entry);
+	if (dir_cluster == 0) dir_cluster = fs.root_cluster;
+
+	// Don't allow removing root via this function
+	if (dir_cluster == fs.root_cluster) return false;
+
+	// Recursively delete children and free the directory's clusters.
+	if (!fat32_rm_rf_dir(dir_cluster)) return false;
+
+	// Now mark this directory's entry (LFN+SFN) in parent as deleted.
+	if (!mark_entry_and_lfns_deleted(path, parent_cluster)) return false;
+
+	return true;
+}
+
+static inline bool is_file(FAT32_DIR_ENTRY* entry) {
+	uint8_t attr = entry->attr;
+	if ((attr & ATTR_LONG_NAME) == ATTR_LONG_NAME) return false; // skip LFN
+	if (attr & ATTR_DIRECTORY) return false; // skip directories
+	return true; // it's a regular file
+}
+
+bool fat32_delete_file(const char* path) {
+	tracelast_func("fat32_delete_file");
+
+	// Find the file entry and its parent cluster
+	FAT32_DIR_ENTRY entry;
+	uint32_t parent_cluster;
+	if (!fat32_find_entry(path, &entry, &parent_cluster)) {
+		return false; // File not found
+	}
+
+	// Must be a file (not a directory)
+	if (!is_file(&entry)) {
+		return false; // Not a file
+	}
+
+	// Get the file's first cluster
+	uint32_t file_cluster = get_dir_cluster(&entry);
+
+	// Free the file's cluster chain (if it has any clusters allocated)
+	if (file_cluster >= 2 && file_cluster < FAT32_EOC_MIN) {
+		if (!fat32_free_cluster_chain(file_cluster)) {
+			return false; // Failed to free cluster chain
+		}
+	}
+
+	// Mark the file's directory entry (LFN + SFN) as deleted in the parent directory
+	if (!mark_entry_and_lfns_deleted(path, parent_cluster)) {
+		return false; // Failed to mark directory entries as deleted
+	}
+
+	return true; // Success
 }

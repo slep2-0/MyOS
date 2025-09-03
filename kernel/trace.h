@@ -21,7 +21,7 @@ static inline void tracelast_func(const char* function_name) {
     // if GDB is defined, we wont trace last functions, as it is VERY hard to debug with having to step 128 times.
     UNREFERENCED_PARAMETER(function_name);
     return;
-#else
+#elif defined(DEBUG)
     extern bool isBugChecking;
     extern LASTFUNC_HISTORY lastfunc_history;
 

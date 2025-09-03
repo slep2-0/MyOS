@@ -13,10 +13,6 @@
 #include "../../trace.h"
 #include "../../drivers/gop/gop.h"
 
-#define ATTR_LONG_NAME 0x0F
-#define ATTR_DIRECTORY 0x10
-#define ATTR_VOLUME_ID 0x08
-
 #define END_OF_DIRECTORY 0x00
 #define DELETED_DIR_ENTRY 0xE5
 
@@ -99,6 +95,22 @@ bool fat32_init(int disk_index);
 // List files in root dir
 void fat32_list_root(void);
 
+typedef enum _FAT32_ATTRIBUTES {
+	ATTR_READ_ONLY = 0x01,  // File is read-only
+	ATTR_HIDDEN = 0x02,  // File is hidden
+	ATTR_SYSTEM = 0x04,  // System file
+	ATTR_VOLUME_ID = 0x08,  // Volume label
+	ATTR_DIRECTORY = 0x10,  // Entry is a directory
+	ATTR_ARCHIVE = 0x20,  // File should be archived
+	// Special combination values
+	ATTR_LONG_NAME = 0x0F,  // Long File Name entry (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
+} FAT32_ATTRIBUTES;
+
+typedef enum _FAT32_WRITE_MODE {
+	FAT32_WRITE_MODE_CREATE_OR_OVERWRITE,
+	FAT32_WRITE_MODE_APPEND
+} FAT32_WRITE_MODE;
+
 /// <summary>
 /// A FAT32 Function that reads the file requested into a dynamically allocated buffer.
 /// </summary>
@@ -121,13 +133,35 @@ bool fat32_create_directory(const char* path);
 /// <param name="path">The full path of the file to create</param>
 /// <param name="data">A pointer to the data to write.</param>
 /// <param name="size">The number of bytes to write</param>
+/// <param name="file_modification_mode">Whether to APPEND or REPLACE the file. (in FAT32_WRITE_MODE enum)</param>
 /// <returns></returns>
-bool fat32_write_file(const char* path, const void* data, uint32_t size);
+bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_WRITE_MODE file_modification_mode);
 
 /// <summary>
 /// Lists the directory given.
 /// </summary>
 /// <param name="path">Path to directory, e.g "mydir/" </param>
 void fat32_list_directory(const char* path);
+
+/// <summary>
+/// This function deletes the directory given to the function from the system.
+/// </summary>
+/// <param name="path">Full path to delete directory.</param>
+/// <returns>True or false based on succession</returns>
+bool fat32_delete_directory(const char* path);
+
+/// <summary>
+/// This function deletes the file given to the function from the system.
+/// </summary>
+/// <param name="path">Full path to delete file.</param>
+/// <returns>True or false based on succession.</returns>
+bool fat32_delete_file(const char* path);
+
+/// <summary>
+/// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries)
+/// </summary>
+/// <param name="path">Full path to dir</param>
+/// <returns>True or false based if empty or not.</returns>
+bool fat32_directory_is_empty(const char* path);
 
 #endif
