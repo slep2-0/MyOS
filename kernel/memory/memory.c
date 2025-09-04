@@ -156,7 +156,6 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-    if (align == 0 || (align & (align - 1)) != 0) return NULL;
     // Precompute maximum pages we'll ever need (worst-case alignment overhead)
     size_t max_overhead = sizeof(BLOCK_HEADER) + sizeof(void*) + (align - 1);
     size_t max_alloc = max_overhead + wanted_size;

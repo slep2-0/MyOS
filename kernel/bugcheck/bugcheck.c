@@ -380,7 +380,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
         gop_printf_forced((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %p\n\n"
-            "RIP: %p CS: %p RFLAGS: %p\n",
+            "RIP: %p CS: %p RFLAGS: %b\n",
             int_frame->vector,
             int_frame->error_code,
             int_frame->rip,

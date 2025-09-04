@@ -248,6 +248,7 @@ DEFINE_ISR 28
 DEFINE_ISR 29
 DEFINE_ISR 30
 DEFINE_ISR 31
+DEFINE_ISR 239 ; LAPIC
 
 ;---------------------------------------------------------------------------
 ; Instantiate IRQs 0-15 (Hardware Interrupts)

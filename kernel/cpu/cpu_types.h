@@ -108,8 +108,8 @@ typedef struct _Thread {
 	THREAD_STATE threadState;
 
     // Remaining ticks until switch.
-    timeSliceTicks timeSlice;
-    timeSliceTicks origTimeSlice;
+    uint32_t timeSlice;
+    uint32_t origTimeSlice;
 
 	Thread* nextThread; // For queue linking.
 

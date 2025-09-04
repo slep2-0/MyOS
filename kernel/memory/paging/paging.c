@@ -98,7 +98,7 @@ void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
     tracelast_func("map_page");
     uint64_t va = (uint64_t)virtualaddress;
     uintptr_t pa = physicaladdress;
-
+    BUGCHECK_ADDITIONALS addt = { 0 };
     size_t pml4_i = get_pml4_index(va);
     size_t pdpt_i = get_pdpt_index(va);
     size_t pd_i = get_pd_index(va);
@@ -108,37 +108,22 @@ void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
 
     // 2. Ensure PDPT exists
     if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        uintptr_t new_pdpt_phys = alloc_frame();
-        if (!new_pdpt_phys) { /* handle error */ return; }
-        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pdpt_phys), 0, PAGE_SIZE_4K);
-        pml4_va[pml4_i] = new_pdpt_phys | flags | PAGE_PRESENT;
-
-        // FIX: Invalidate the PDPT's virtual address, not the PT's
-        invlpg(pdpt_from_recursive(pml4_i));
+        ksnprintf(addt.str, sizeof(addt.str), "In PML4, VA: %p, PA: %p, FLAGS: %d", virtualaddress, physicaladdress, flags);
+        MtBugcheckEx(NULL, NULL, BAD_PAGING, &addt, true);
     }
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
 
     // 3. Ensure PD exists
     if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        uintptr_t new_pd_phys = alloc_frame();
-        if (!new_pd_phys) { /* handle error */ return; }
-        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pd_phys), 0, PAGE_SIZE_4K);
-        pdpt_va[pdpt_i] = new_pd_phys | flags | PAGE_PRESENT;
-
-        // FIX: Invalidate the PD's virtual address
-        invlpg(pd_from_recursive(pml4_i, pdpt_i));
+        ksnprintf(addt.str, sizeof(addt.str), "In PDPT, VA: %p, PA: %p, FLAGS: %d", virtualaddress, physicaladdress, flags);
+        MtBugcheckEx(NULL, NULL, BAD_PAGING, &addt, true);
     }
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
 
     // 4. Ensure PT exists
     if (!(pd_va[pd_i] & PAGE_PRESENT)) {
-        uintptr_t new_pt_phys = alloc_frame();
-        if (!new_pt_phys) { /* handle error */ return; }
-        kmemset((void*)MtTranslateKernelPhysicalToVirtual(new_pt_phys), 0, PAGE_SIZE_4K);
-        pd_va[pd_i] = new_pt_phys | flags | PAGE_PRESENT; 
-
-        // This one was already correct by coincidence
-        invlpg(pt_from_recursive(pml4_i, pdpt_i, pd_i));
+        ksnprintf(addt.str, sizeof(addt.str), "In PD, VA: %p, PA: %p, FLAGS: %d", virtualaddress, physicaladdress, flags);
+        MtBugcheckEx(NULL, NULL, BAD_PAGING, &addt, true);
     }
     uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
 
