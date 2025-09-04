@@ -1,0 +1,44 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc_list.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc_list.h
+.SH SYNOPSIS
+.br
+.PP
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBkeyboard_dpc\fP (void *ctxfr)"
+.br
+.RI "Keyboard Handling \fBDPC\fP\&. "
+.ti -1c
+.RI "void \fBScheduleDPC\fP (void)"
+.br
+.RI "ScheduleDPC, used to enable the Scheduling_needed flag to TRUE\&. "
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "void keyboard_dpc (void * ctxfr)"
+
+.PP
+Keyboard Handling \fBDPC\fP\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIscancode\fP Scancode (RDI)
+.br
+\fIextended\fP Is Extended Scancode? (RSI)
+.RE
+.PP
+
+.SS "void ScheduleDPC (void )"
+
+.PP
+ScheduleDPC, used to enable the Scheduling_needed flag to TRUE\&. 
+.PP
+Definition at line \fB10\fP of file \fBdpc_list\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

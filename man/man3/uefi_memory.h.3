@@ -1,0 +1,127 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/uefi_memory.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/uefi_memory.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_EFI_MEMORY_DESCRIPTOR\fP"
+.br
+.ti -1c
+.RI "struct \fB_GOP_PARAMS\fP"
+.br
+.ti -1c
+.RI "struct \fB_BOOT_INFO\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBEfiReservedMemoryType\fP   0"
+.br
+.ti -1c
+.RI "#define \fBEfiLoaderCode\fP   1"
+.br
+.ti -1c
+.RI "#define \fBEfiLoaderData\fP   2"
+.br
+.ti -1c
+.RI "#define \fBEfiBootServicesCode\fP   3"
+.br
+.ti -1c
+.RI "#define \fBEfiBootServicesData\fP   4"
+.br
+.ti -1c
+.RI "#define \fBEfiRuntimeServicesCode\fP   5"
+.br
+.ti -1c
+.RI "#define \fBEfiRuntimeServicesData\fP   6"
+.br
+.ti -1c
+.RI "#define \fBEfiConventionalMemory\fP   7"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct \fB_EFI_MEMORY_DESCRIPTOR\fP \fBEFI_MEMORY_DESCRIPTOR\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_GOP_PARAMS\fP \fBGOP_PARAMS\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_BOOT_INFO\fP \fBBOOT_INFO\fP"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBBOOT_INFO\fP \fBboot_info_local\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define EfiBootServicesCode   3"
+
+.PP
+Definition at line \fB51\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiBootServicesData   4"
+
+.PP
+Definition at line \fB52\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiConventionalMemory   7"
+
+.PP
+Definition at line \fB55\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiLoaderCode   1"
+
+.PP
+Definition at line \fB49\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiLoaderData   2"
+
+.PP
+Definition at line \fB50\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiReservedMemoryType   0"
+
+.PP
+Definition at line \fB48\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiRuntimeServicesCode   5"
+
+.PP
+Definition at line \fB53\fP of file \fBuefi_memory\&.h\fP\&.
+.SS "#define EfiRuntimeServicesData   6"
+
+.PP
+Definition at line \fB54\fP of file \fBuefi_memory\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_BOOT_INFO\fP \fBBOOT_INFO\fP"
+
+.SS "typedef struct \fB_EFI_MEMORY_DESCRIPTOR\fP \fBEFI_MEMORY_DESCRIPTOR\fP"
+
+.SS "typedef struct \fB_GOP_PARAMS\fP \fBGOP_PARAMS\fP"
+
+.SH "Variable Documentation"
+.PP 
+.SS "\fBBOOT_INFO\fP boot_info_local\fR [extern]\fP"
+
+.PP
+Definition at line \fB16\fP of file \fBkernel\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

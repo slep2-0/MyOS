@@ -1,0 +1,104 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/thread/thread.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/thread/thread.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include '\&.\&./cpu\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./memory/memory\&.h'\fP
+.br
+\fR#include '\&.\&./scheduler/scheduler\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBTHREAD_DEFAULT_STACK_SIZE\fP   4096"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef void * \fBTHREAD_PARAMETER\fP"
+.br
+.RI "These work the same as how windows does thread parameters, they just turn the parameter into 1 void* ptr, and the function that handles it must turn it into it's equivalent struct ptr\&. So essentially, you convert your struct ptr you want to call with the function into a void* ptr (so THREAD_PARAMETERS*), and then use that and the function you use the thread on must convert it back\&. "
+.ti -1c
+.RI "typedef void(* \fBThreadEntry\fP) (\fBTHREAD_PARAMETER\fP)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBMtCreateThread\fP (\fBThreadEntry\fP entry, \fBTHREAD_PARAMETER\fP parameter, \fBtimeSliceTicks\fP TIMESLICE, bool kernelThread)"
+.br
+.RI "Create a new thread with parameters\&. (if no parameters are supplied (NULL), it will be handled, so no worries) "
+.ti -1c
+.RI "\fBThread\fP * \fBMtGetCurrentThread\fP (void)"
+.br
+.RI "This function will return the current working thread\&. "
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define THREAD_DEFAULT_STACK_SIZE   4096"
+
+.PP
+Definition at line \fB14\fP of file \fBthread\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef void* \fBTHREAD_PARAMETER\fP"
+
+.PP
+These work the same as how windows does thread parameters, they just turn the parameter into 1 void* ptr, and the function that handles it must turn it into it's equivalent struct ptr\&. So essentially, you convert your struct ptr you want to call with the function into a void* ptr (so THREAD_PARAMETERS*), and then use that and the function you use the thread on must convert it back\&. 
+.PP
+Definition at line \fB20\fP of file \fBthread\&.h\fP\&.
+.SS "typedef void(* ThreadEntry) (\fBTHREAD_PARAMETER\fP)"
+
+.PP
+Definition at line \fB21\fP of file \fBthread\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void MtCreateThread (\fBThreadEntry\fP entry, \fBTHREAD_PARAMETER\fP parameter, \fBtimeSliceTicks\fP TIMESLICE, bool kernelThread)"
+
+.PP
+Create a new thread with parameters\&. (if no parameters are supplied (NULL), it will be handled, so no worries) 
+.PP
+\fBParameters\fP
+.RS 4
+\fIentry\fP The entry point address\&. (usually a function, I don't see any other use\&.)
+.br
+\fIparameters\fP The pointer to the parameters (passed as a pointer, the function itself must convert it back to its original parameter variable)
+.br
+\fIkernelThread\fP Specificies if the thread should be a kernel one or not\&. (If not, it will setup a process, idk how I would implement it, when I'll get on it) TODO
+.RE
+.PP
+TODO implement user mode\&.
+
+.PP
+For when we context switch (this is why cfm is in stackTop), set the registers to all 0\&. (since the stack for the thread holds the registers when we context switch)
+
+.PP
+Here comes the actual part that separates between the normal and Ex version of creating the thread\&. - Remmber to use System V ABI as this is GCC\&.
+.PP
+Definition at line \fB84\fP of file \fBthread\&.c\fP\&.
+.SS "\fBThread\fP * MtGetCurrentThread (void )"
+
+.PP
+This function will return the current working thread\&. 
+.PP
+\fBReturns\fP
+.RS 4
+Pointer to current \fBThread\fP (struct)
+.RE
+.PP
+
+.PP
+Definition at line \fB156\fP of file \fBthread\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

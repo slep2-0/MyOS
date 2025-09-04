@@ -1,0 +1,75 @@
+.TH "_DPC" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+_DPC
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fR#include <cpu_types\&.h>\fP
+.SS "Data Fields"
+
+.in +1c
+.ti -1c
+.RI "volatile \fBDPC\fP * \fBNext\fP"
+.br
+.ti -1c
+.RI "void(* \fBcallbackWithCtx\fP )(void *\fBctx\fP)"
+.br
+.ti -1c
+.RI "void(* \fBcallback\fP )(void)"
+.br
+.ti -1c
+.RI "\fBCTX_FRAME\fP * \fBctx\fP"
+.br
+.RI "Callback without any CONTEXT (no registers), used to invoke \fBDPC\fP's like scheduler\&. "
+.ti -1c
+.RI "\fBDPC_KIND\fP \fBKind\fP"
+.br
+.ti -1c
+.RI "bool \fBhasCtx\fP"
+.br
+.ti -1c
+.RI "\fBDPC_PRIORITY\fP \fBpriority\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line \fB138\fP of file \fBcpu_types\&.h\fP\&.
+.SH "Field Documentation"
+.PP 
+.SS "void(* callback) (void)"
+
+.PP
+Definition at line \fB141\fP of file \fBcpu_types\&.h\fP\&.
+.SS "void(* callbackWithCtx) (void *\fBctx\fP)"
+
+.PP
+Definition at line \fB140\fP of file \fBcpu_types\&.h\fP\&.
+.SS "\fBCTX_FRAME\fP* ctx"
+
+.PP
+Callback without any CONTEXT (no registers), used to invoke \fBDPC\fP's like scheduler\&. 
+.PP
+Definition at line \fB142\fP of file \fBcpu_types\&.h\fP\&.
+.SS "bool hasCtx"
+
+.PP
+Definition at line \fB144\fP of file \fBcpu_types\&.h\fP\&.
+.SS "\fBDPC_KIND\fP Kind"
+
+.PP
+Definition at line \fB143\fP of file \fBcpu_types\&.h\fP\&.
+.SS "volatile \fBDPC\fP* Next"
+
+.PP
+Definition at line \fB139\fP of file \fBcpu_types\&.h\fP\&.
+.SS "\fBDPC_PRIORITY\fP priority"
+
+.PP
+Definition at line \fB145\fP of file \fBcpu_types\&.h\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

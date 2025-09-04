@@ -1,0 +1,54 @@
+.TH "_HBA_CMD_TBL" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+_HBA_CMD_TBL \- Command Table: one per slot\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fR#include <ahci\&.h>\fP
+.SS "Data Fields"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBcfis\fP [64]"
+.br
+.ti -1c
+.RI "uint8_t \fBacmd\fP [16]"
+.br
+.ti -1c
+.RI "uint8_t \fBrsv\fP [48]"
+.br
+.ti -1c
+.RI "\fBHBA_PRDT_ENTRY\fP \fBprdt_entry\fP [1]"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Command Table: one per slot\&. 
+.PP
+Definition at line \fB110\fP of file \fBahci\&.h\fP\&.
+.SH "Field Documentation"
+.PP 
+.SS "uint8_t acmd[16]"
+
+.PP
+Definition at line \fB115\fP of file \fBahci\&.h\fP\&.
+.SS "uint8_t cfis[64]"
+
+.PP
+Definition at line \fB112\fP of file \fBahci\&.h\fP\&.
+.SS "\fBHBA_PRDT_ENTRY\fP prdt_entry[1]"
+
+.PP
+Definition at line \fB121\fP of file \fBahci\&.h\fP\&.
+.SS "uint8_t rsv[48]"
+
+.PP
+Definition at line \fB118\fP of file \fBahci\&.h\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

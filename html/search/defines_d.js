@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['page_5falign_5fdown_0',['PAGE_ALIGN_DOWN',['../paging_8c.html#add9fd0c9693ecc63a358073a5578ef23',1,'paging.c']]],
+  ['page_5falign_5fup_1',['PAGE_ALIGN_UP',['../paging_8c.html#a4cbb7f0db5ee5430437a2617c2a0f410',1,'paging.c']]],
+  ['page_5fentries_2',['PAGE_ENTRIES',['../paging_8c.html#a04d95f827e85da8915a4eebff582a7be',1,'paging.c']]],
+  ['page_5fmask_3',['PAGE_MASK',['../paging_8c.html#ae4aa620ce57c7c3171b916de2c5f09f2',1,'paging.c']]],
+  ['page_5fsize_5f4k_4',['PAGE_SIZE_4K',['../paging_8c.html#ae8f4eec8c194962159f36f934954d2a3',1,'paging.c']]],
+  ['phys_5fmem_5foffset_5',['PHYS_MEM_OFFSET',['../allocator_8h.html#aa884a3bb19dee79e8e3ca8a529726372',1,'allocator.h']]],
+  ['pic1_5fcommand_5fmaster_6',['PIC1_COMMAND_MASTER',['../idt_8h.html#a03c0db7a4cafd35e99b7c78605419d3e',1,'PIC1_COMMAND_MASTER:&#160;idt.h'],['../intrin_8h.html#a03c0db7a4cafd35e99b7c78605419d3e',1,'PIC1_COMMAND_MASTER:&#160;intrin.h']]],
+  ['pic1_5fdata_7',['PIC1_DATA',['../intrin_8h.html#af27e966ec947ca1172f30ae301c5f24b',1,'intrin.h']]],
+  ['pic1_5fdata_5fmaster_8',['PIC1_DATA_MASTER',['../idt_8h.html#a20c9b9531f3bd09c5ae5327fe29bec69',1,'idt.h']]],
+  ['pic2_5fcommand_5fslave_9',['PIC2_COMMAND_SLAVE',['../idt_8h.html#a219552e186c48addf9752e17045ab0d0',1,'PIC2_COMMAND_SLAVE:&#160;idt.h'],['../intrin_8h.html#a219552e186c48addf9752e17045ab0d0',1,'PIC2_COMMAND_SLAVE:&#160;intrin.h']]],
+  ['pic2_5fdata_10',['PIC2_DATA',['../intrin_8h.html#ab6d3b9f6f427357310896adf176145f1',1,'intrin.h']]],
+  ['pic2_5fdata_5fslave_11',['PIC2_DATA_SLAVE',['../idt_8h.html#aa3494fa5e915f7d1a51ef047365799a8',1,'idt.h']]],
+  ['pic_5feoi_12',['PIC_EOI',['../idt_8h.html#a170d8eebdb48c16cfcd60cbd46760cb2',1,'PIC_EOI:&#160;idt.h'],['../intrin_8h.html#a170d8eebdb48c16cfcd60cbd46760cb2',1,'PIC_EOI:&#160;intrin.h']]],
+  ['pit_5fch0_5fport_13',['PIT_CH0_PORT',['../pit_8c.html#a52d3b48aa20d4710106fd580ed9b82a3',1,'pit.c']]],
+  ['pit_5fcmd_5flatch_5fch0_14',['PIT_CMD_LATCH_CH0',['../pit_8c.html#a16a0a00705c65d7d4182d6911cf3890d',1,'pit.c']]],
+  ['pit_5fcmd_5fmode2_5flbhb_15',['PIT_CMD_MODE2_LBHB',['../pit_8c.html#a4287cf8f5cff07319c87565fcfecb291',1,'pit.c']]],
+  ['pit_5fcmd_5fport_16',['PIT_CMD_PORT',['../pit_8c.html#af3222276bab8b1bf12325e35ee2c0337',1,'pit.c']]],
+  ['pit_5ffreq_5fhz_17',['PIT_FREQ_HZ',['../pit_8c.html#a6c77d2958775f3d8b93ed6dcae758a07',1,'pit.c']]]
+];

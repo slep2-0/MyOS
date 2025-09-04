@@ -1,0 +1,72 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/pit.c" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/pit.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'pit\&.h'\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include '\&.\&./\&.\&./intrin/intrin\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBPIT_FREQ_HZ\fP   1193182U"
+.br
+.ti -1c
+.RI "#define \fBPIT_CMD_PORT\fP   0x43"
+.br
+.ti -1c
+.RI "#define \fBPIT_CH0_PORT\fP   0x40"
+.br
+.ti -1c
+.RI "#define \fBPIT_CMD_MODE2_LBHB\fP   0x34"
+.br
+.ti -1c
+.RI "#define \fBPIT_CMD_LATCH_CH0\fP   0x00"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBpit_sleep_ms\fP (uint32_t ms)"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define PIT_CH0_PORT   0x40"
+
+.PP
+Definition at line \fB12\fP of file \fBpit\&.c\fP\&.
+.SS "#define PIT_CMD_LATCH_CH0   0x00"
+
+.PP
+Definition at line \fB19\fP of file \fBpit\&.c\fP\&.
+.SS "#define PIT_CMD_MODE2_LBHB   0x34"
+
+.PP
+Definition at line \fB18\fP of file \fBpit\&.c\fP\&.
+.SS "#define PIT_CMD_PORT   0x43"
+
+.PP
+Definition at line \fB11\fP of file \fBpit\&.c\fP\&.
+.SS "#define PIT_FREQ_HZ   1193182U"
+
+.PP
+Definition at line \fB10\fP of file \fBpit\&.c\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void pit_sleep_ms (uint32_t ms)"
+
+.PP
+Definition at line \fB22\fP of file \fBpit\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

@@ -1,0 +1,70 @@
+\doxysection{pit.\+c}
+\hypertarget{pit_8c_source}{}\label{pit_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/pit.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/pit.c}}
+\mbox{\hyperlink{pit_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{pit_8h}{pit.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00002}00002\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00003}00003\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{intrin_8h}{../../intrin/intrin.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00004}00004\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00005}00005\ \textcolor{comment}{/*\ cli/sti\ helpers\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00006}00006\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ disable\_interrupts(\textcolor{keywordtype}{void})\ \{\ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}cli"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});\ \}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00007}00007\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ enable\_interrupts(\textcolor{keywordtype}{void})\ \{\ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}sti"{}});\ \}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00009}00009\ \textcolor{comment}{/*\ PIT\ constants\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00010}\mbox{\hyperlink{pit_8c_a6c77d2958775f3d8b93ed6dcae758a07}{00010}}\ \textcolor{preprocessor}{\#define\ PIT\_FREQ\_HZ\ 1193182U}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00011}\mbox{\hyperlink{pit_8c_af3222276bab8b1bf12325e35ee2c0337}{00011}}\ \textcolor{preprocessor}{\#define\ PIT\_CMD\_PORT\ 0x43}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00012}\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{00012}}\ \textcolor{preprocessor}{\#define\ PIT\_CH0\_PORT\ 0x40}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00014}00014\ \textcolor{comment}{/*\ Command\ bytes:}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00015}00015\ \textcolor{comment}{\ \ \ -\/\ 0x34\ =\ channel\ 0,\ lobyte/hibyte,\ mode\ 2\ (rate\ generator),\ binary}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00016}00016\ \textcolor{comment}{\ \ \ -\/\ 0x00\ =\ latch\ command\ for\ channel\ 0\ (bits\ 7..6\ =\ 00,\ rest\ 0\ =\ latch)}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00017}00017\ \textcolor{comment}{*/}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00018}\mbox{\hyperlink{pit_8c_a4287cf8f5cff07319c87565fcfecb291}{00018}}\ \textcolor{preprocessor}{\#define\ PIT\_CMD\_MODE2\_LBHB\ 0x34}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00019}\mbox{\hyperlink{pit_8c_a16a0a00705c65d7d4182d6911cf3890d}{00019}}\ \textcolor{preprocessor}{\#define\ PIT\_CMD\_LATCH\_CH0\ \ 0x00}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00021}00021\ \textcolor{comment}{/*\ Sleep\ ms\ implementation\ (blocking).\ Uses\ chunks\ <=\ 0xFFFF\ PIT\ ticks.\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00022}\mbox{\hyperlink{pit_8c_a9ce3663b57d1010d886159f6ba120e37}{00022}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{pit_8c_a9ce3663b57d1010d886159f6ba120e37}{pit\_sleep\_ms}}(uint32\_t\ ms)\ \{}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00023}00023\ \ \ \ \ \textcolor{keywordflow}{if}\ (ms\ ==\ 0)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00024}00024\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00025}00025\ \ \ \ \ \textcolor{comment}{/*\ total\ ticks\ needed\ (rounded\ up)\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00026}00026\ \ \ \ \ uint64\_t\ total\_ticks\ =\ ((uint64\_t)\mbox{\hyperlink{pit_8c_a6c77d2958775f3d8b93ed6dcae758a07}{PIT\_FREQ\_HZ}}\ *\ ms\ +\ 999)\ /\ 1000;}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00027}00027\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00028}00028\ \ \ \ \ \textcolor{keywordflow}{while}\ (total\_ticks\ >\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ chunk\ <=\ 0xFFFF\ for\ PIT\ 16-\/bit\ counter\ (0\ means\ 65536)\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ uint32\_t\ chunk\ =\ (total\_ticks\ >\ 0xFFFF)\ ?\ 0xFFFF\ :\ (uint32\_t)total\_ticks;}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00031}00031\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (chunk\ ==\ 0)\ chunk\ =\ 0xFFFF;}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00033}00033\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Program\ PIT\ channel\ 0\ (mode\ 2,\ lobyte/hibyte)\ with\ 'chunk'\ reload\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00034}00034\ \ \ \ \ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{pit_8c_af3222276bab8b1bf12325e35ee2c0337}{PIT\_CMD\_PORT}},\ \mbox{\hyperlink{pit_8c_a4287cf8f5cff07319c87565fcfecb291}{PIT\_CMD\_MODE2\_LBHB}});}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00035}00035\ \ \ \ \ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}},\ (uint8\_t)(chunk\ \&\ 0xFF));\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ low\ byte}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00036}00036\ \ \ \ \ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}},\ (uint8\_t)((chunk\ >>\ 8)\ \&\ 0xFF));\ \ \textcolor{comment}{//\ high\ byte}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00037}00037\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Read\ a\ latched\ current\ count\ and\ then\ poll\ until\ elapsed\ >=\ chunk\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00039}00039\ \ \ \ \ \ \ \ \ disable\_interrupts();}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00041}00041\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ latch\ current\ count\ into\ internal\ latch\ register\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00042}00042\ \ \ \ \ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{pit_8c_af3222276bab8b1bf12325e35ee2c0337}{PIT\_CMD\_PORT}},\ \mbox{\hyperlink{pit_8c_a16a0a00705c65d7d4182d6911cf3890d}{PIT\_CMD\_LATCH\_CH0}});}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00043}00043\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00044}00044\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ read\ latched\ low/high\ bytes\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ uint16\_t\ start\ =\ (uint16\_t)\_\_inbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}})\ |\ ((uint16\_t)\_\_inbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}})\ <<\ 8);}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00046}00046\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ latch\ and\ read\ current\ count\ again\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{pit_8c_af3222276bab8b1bf12325e35ee2c0337}{PIT\_CMD\_PORT}},\ \mbox{\hyperlink{pit_8c_a16a0a00705c65d7d4182d6911cf3890d}{PIT\_CMD\_LATCH\_CH0}});}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ curr\ =\ (uint16\_t)\_\_inbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}})\ |\ ((uint16\_t)\_\_inbyte(\mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\_CH0\_PORT}})\ <<\ 8);}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00052}00052\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ elapsed\ =\ (start\ -\/\ curr)\ modulo\ 65536\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00053}00053\ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ elapsed\ =\ (uint16\_t)(start\ -\/\ curr);}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((uint32\_t)elapsed\ >=\ chunk)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ small\ CPU-\/friendly\ pause\ */}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}pause"{}});}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ enable\_interrupts();}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ total\_ticks\ -\/=\ chunk;}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00063}00063\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pit_8c_source_l00064}00064\ \}}
+
+\end{DoxyCode}

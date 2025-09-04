@@ -1,0 +1,441 @@
+\doxysection{bugcheck.\+c}
+\hypertarget{bugcheck_8c_source}{}\label{bugcheck_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/bugcheck/bugcheck.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/bugcheck/bugcheck.c}}
+\mbox{\hyperlink{bugcheck_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Bugcheck\ functions\ implementation.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{bugcheck_8h}{bugcheck.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{trace_8h}{../trace.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00009}00009\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00010}00010\ \textcolor{preprocessor}{\#ifndef\ NOTHING}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00011}\mbox{\hyperlink{bugcheck_8c_aad4a7ebff687dc5228cc3fd4d25067f2}{00011}}\ \textcolor{preprocessor}{\#define\ NOTHING}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00012}00012\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00014}00014\ \textcolor{comment}{//\ We\ require\ GOP,\ so\ we\ extern\ it.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00015}00015\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00016}00016\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\_HISTORY}}\ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00017}00017\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00018}00018\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}}\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00019}00019\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00020}00020\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00021}00021\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00023}00023\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ is\_canonical\_ptr(uint64\_t\ x)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00024}00024\ \ \ \ \ \textcolor{comment}{//\ x86\_64\ canonical:\ bits\ 63..48\ must\ be\ sign-\/extension\ of\ bit\ 47}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00025}00025\ \ \ \ \ uint64\_t\ hi\ =\ x\ >>\ 47;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{return}\ (hi\ ==\ 0\ ||\ hi\ ==\ 0x1FFFF);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00027}00027\ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00029}00029\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ print\_stack\_trace(\textcolor{keywordtype}{int}\ depth)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00030}00030\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00031}00031\ \ \ \ \ uint64\_t*\ rbp\ =\ (uint64\_t*)\_\_read\_rbp();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00032}00032\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ rbp\ !=\ NULL\ \&\&\ i\ <\ depth;\ ++i)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00033}00033\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}((\textcolor{keywordtype}{void}*)rbp))\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00034}00034\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}((\textcolor{keywordtype}{void}*)(rbp\ +\ 1)))\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00035}00035\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00036}00036\ \ \ \ \ \ \ \ \ uint64\_t\ saved\_ret\ =\ *(rbp\ +\ 1);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00037}00037\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Validate\ saved\_ret\ before\ any\ symbolization/dereference\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00039}00039\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!is\_canonical\_ptr(saved\_ret))\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00040}00040\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ optional:\ ensure\ saved\_ret\ is\ in\ known\ kernel\ text\ range\ if\ you\ have\ that\ info\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00041}00041\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ if\ (!address\_in\_kernel\_text(saved\_ret))\ break;\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Print\ raw\ hex\ —\ avoid\ any\ logger\ symbolization\ that\ may\ dereference\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00044}00044\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_aef75f616b9a3fdb10d38395dfb996873}{COLOR\_ORANGE}},\ \textcolor{stringliteral}{"{}frame\ \%d\ rbp=\%016llx\ ret=\%016llx\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ \ \ \ \ i,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long})(uintptr\_t)rbp,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long})saved\_ret);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ uint64\_t\ next\_rbp\_val\ =\ *rbp;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (next\_rbp\_val\ ==\ 0)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00051}00051\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!is\_canonical\_ptr(next\_rbp\_val))\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00052}00052\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00053}00053\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ SANITY:\ next\ RBP\ should\ be\ at\ a\ *higher*\ address\ (older\ frame)}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00054}00054\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ and\ not\ unreasonably\ far\ away.\ Enforce\ both\ direction\ and\ delta.\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ uintptr\_t\ cur\ =\ (uintptr\_t)rbp;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ uintptr\_t\ next\ =\ (uintptr\_t)next\_rbp\_val;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (next\ <=\ cur)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (next\ -\/\ cur\ >\ (16\ *\ 1024\ *\ 1024))\ \textcolor{keywordflow}{break};\ \textcolor{comment}{/*\ 16MB\ cap\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ optional:\ require\ alignment\ */}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00061}00061\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (next\ \&\ 0xF)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ rbp\ =\ (uint64\_t*)(uintptr\_t)next\_rbp\_val;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00064}00064\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00065}00065\ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00067}00067\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00068}00068\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ print\_lastfunc\_chain(uint32\_t\ color)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00069}00069\ \ \ \ \ \textcolor{comment}{//\ Start\ at\ the\ oldest\ entry:\ that's\ the\ slot\ \`{}index`\ points\ to\ (next\ write).}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00070}00070\ \ \ \ \ \textcolor{keywordtype}{int}\ idx\ =\ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00072}00072\ \ \ \ \ \textcolor{keywordtype}{int}\ start\ =\ (idx\ +\ 1)\ \%\ \mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{LASTFUNC\_HISTORY\_SIZE}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00073}00073\ \ \ \ \ \textcolor{keywordtype}{bool}\ first\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00074}00074\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ \mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{LASTFUNC\_HISTORY\_SIZE}};\ i++)\ \{\ \textcolor{comment}{//\ start\ from\ oldest\ to\ newest}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ idx\ =\ (start\ +\ i)\ \%\ \mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{LASTFUNC\_HISTORY\_SIZE}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00076}00076\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}*\ name\ =\ (\textcolor{keywordtype}{char}*)\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.names[idx];}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00077}00077\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!*name)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!first)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00079}00079\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(color,\ \textcolor{stringliteral}{"{}\ -\/>\ "{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00080}00080\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(color,\ \textcolor{stringliteral}{"{}\%s"{}},\ name);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ first\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00083}00083\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00084}00084\ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00085}00085\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00086}00086\ \textcolor{comment}{//\ switched\ to\ uint64\_t\ and\ not\ BUGCHECK\_CODES\ since\ the\ custom\ ones\ arent\ in\ that\ enum,\ and\ compiler\ throws\ an\ error.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00087}00087\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ resolveStopCode(\textcolor{keywordtype}{char}**\ s,\ uint64\_t\ stopcode)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00088}00088\ \ \ \ \ \textcolor{keywordflow}{switch}\ (stopcode)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00089}00089\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a69d6cfabaf125c5b02337f57ec437944}{DIVIDE\_BY\_ZERO}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}DIVIDE\_BY\_ZERO"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00091}00091\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00092}00092\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a4cf77e5736bd9a94342342d774b2e264}{SINGLE\_STEP}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}SINGLE\_STEP"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00095}00095\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a87e52d2cb1f7eed8d18cc811445dc3d7}{NON\_MASKABLE\_INTERRUPT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}NON\_MASKABLE\_INTERRUPT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00098}00098\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a6aa885639b9e8fafc14f77f6d418fc1b}{BREAKPOINT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}BREAKPOINT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00101}00101\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a07df634c8cb7e4cafe8b14c4172e3de7}{OVERFLOW}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00102}00102\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}OVERFLOW"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00104}00104\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82aebcc435bdd66b726f1f9823509cc5809}{BOUNDS\_CHECK}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}BOUNDS\_CHECK"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00106}00106\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00107}00107\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a8da3fbe11c0dd6f9f693d6a9d08d26c4}{INVALID\_OPCODE}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}INVALID\_OPCODE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00110}00110\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a27d757891efbf8ddbaba31968b943ffc}{NO\_COPROCESSOR}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}NO\_COPROCESSOR"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00113}00113\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ac76cffed7f5a7cc73ae64eb0df1d4a83}{DOUBLE\_FAULT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}DOUBLE\_FAULT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00115}00115\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00116}00116\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a1a0ee5dd87418541502549cd7d87da92}{COPROCESSOR\_SEGMENT\_OVERRUN}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}COPROCESSOR\_SEGMENT\_OVERRUN"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00119}00119\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a97e80b6e5bb52587e0551b03d8a87070}{INVALID\_TSS}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}INVALID\_TSS"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00122}00122\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82adb32eceeecfe855034f998ddefab5bde}{SEGMENT\_SELECTOR\_NOTPRESENT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}SEGMENT\_SELECTOR\_NOTPRESENT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00125}00125\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82acbf56036797b0df791819f5480a1a466}{STACK\_SEGMENT\_OVERRUN}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}STACK\_SEGMENT\_OVERRUN"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00128}00128\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ad675d88011ac94b90d8ef65d628fc13b}{GENERAL\_PROTECTION\_FAULT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}GENERAL\_PROTECTION\_FAULT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00131}00131\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00132}00132\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}PAGE\_FAULT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00133}00133\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00134}00134\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82afe4c21755babfece7188666f75c7386b}{RESERVED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00135}00135\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}RESERVED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00136}00136\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00137}00137\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a32137c920f7328ff1d72bfbed6369d01}{FLOATING\_POINT\_ERROR}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}FLOATING\_POINT\_ERROR"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00140}00140\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a6e5b58ac1832f6e8c74c43b27992b3b0}{ALIGNMENT\_CHECK}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}ALIGNMENT\_CHECK"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00143}00143\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a12654d2e9be8ec0848207e887ece4442}{SEVERE\_MACHINE\_CHECK}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}SEVERE\_MACHINE\_CHECK"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00146}00146\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a4a2640e8c7cdd34c55bb095e68507dd5}{MEMORY\_MAP\_SIZE\_OVERRUN}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}MEMORY\_MAP\_SIZE\_OVERRUN"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00149}00149\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a004606430fc1208a6ca0e03f033d0867}{MANUALLY\_INITIATED\_CRASH}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}MANUALLY\_INITIATED\_CRASH"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00152}00152\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a71ed9198969276e82b45d9d99cba1d01}{BAD\_PAGING}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00153}00153\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}BAD\_PAGING"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00154}00154\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00155}00155\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a86a0afc377d7467b59b6246828e04b1b}{BLOCK\_DEVICE\_LIMIT\_REACHED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00156}00156\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}BLOCK\_DEVICE\_LIMIT\_REACHED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00158}00158\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a0166a2887ad422fbb5090c699f4134ea}{NULL\_POINTER\_DEREFERENCE}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}NULL\_POINTER\_DEREFERENCE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00161}00161\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a0f1a69904473988b332b7e0f24efbb45}{FILESYSTEM\_PANIC}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}FILESYSTEM\_PANIC"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00164}00164\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82aae9306a3b6612e75a315fa93b59fd9a9}{UNABLE\_TO\_INIT\_TRACELASTFUNC}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}UNABLE\_TO\_INIT\_TRACELASTFUNC"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00166}00166\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00167}00167\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a1c8943d908dca2a4a06855d7681fe869}{FRAME\_LIMIT\_REACHED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00168}00168\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}FRAME\_LIMIT\_REACHED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00169}00169\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00170}00170\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ae3e824eb536b02e7941e6545b6979fc7}{IRQL\_NOT\_LESS\_OR\_EQUAL}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00171}00171\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}IRQL\_NOT\_LESS\_OR\_EQUAL"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00172}00172\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00173}00173\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82aee92440cfade6c289128197994564ea3}{INVALID\_IRQL\_SUPPLIED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}INVALID\_IRQL\_SUPPLIED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00175}00175\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00176}00176\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82aa1fa21643f5f76795b25ea2a8009360b}{NULL\_CTX\_RECEIVED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00177}00177\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}NULL\_CTX\_RECEIVED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00178}00178\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00179}00179\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a41dd385358291e20e440e5a2dc04ae57}{THREAD\_EXIT\_FAILURE}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00180}00180\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}THREAD\_EXIT\_FAILURE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00181}00181\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00182}00182\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a9ff084588ec0461c821ca07a6efbe62f}{BAD\_AHCI\_COUNT}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00183}00183\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}BAD\_AHCI\_COUNT"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00184}00184\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00185}00185\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82adfa960726932d8e1ced67c2048f957ae}{AHCI\_INIT\_FAILED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00186}00186\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}AHCI\_INIT\_FAILED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00187}00187\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00188}00188\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a121a295ec700e703d5d24727e88efae6}{MEMORY\_LIMIT\_REACHED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00189}00189\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}MEMORY\_LIMIT\_REACHED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00190}00190\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00191}00191\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a2013982b550ccc1add420ae9a2337180}{HEAP\_ALLOCATION\_FAILED}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00192}00192\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}HEAP\_ALLOCATION\_FAILED"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00193}00193\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00194}00194\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a6a2ef928301fb664576f34dfa48a45dc}{NULL\_THREAD}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00195}00195\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}NULL\_THREAD"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00196}00196\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00197}00197\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82af4aaea6a7408db0252c9f6023f6c95f1}{FATAL\_IRQL\_CORRUPTION}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00198}00198\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}FATAL\_IRQL\_CORRUPTION"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00199}00199\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00200}00200\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ab7d7974e8a23b7f4deefff1c40343732}{THREAD\_ID\_CREATION\_FAILURE}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00201}00201\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}THREAD\_ID\_CREATION\_FAILURE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00202}00202\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00203}00203\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3}{ASSERTION\_FAILURE}}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}ASSERTION\_FAILURE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00206}00206\ \ \ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00207}00207\ \ \ \ \ \ \ \ \ *s\ =\ \textcolor{stringliteral}{"{}UNKNOWN\_BUGCHECK\_CODE"{}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00208}00208\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00209}00209\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00210}00210\ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00212}\mbox{\hyperlink{bugcheck_8c_a1b6824bfd4ec0404a4f875ed8db0274e}{00212}}\ \mbox{\hyperlink{bugcheck_8c_a1b6824bfd4ec0404a4f875ed8db0274e}{\_\_attribute\_\_}}((noreturn))}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00213}00213\ \textcolor{keywordtype}{void}\ MtBugcheck(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ context,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}},\ \mbox{\hyperlink{bugcheck_8h_aec7c4f5d577b4ebbff3ba86c9c70381a}{BUGCHECK\_CODES}}\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}},\ uint32\_t\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}},\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8h_aa07d1f281c35578dff6bfec3540c0ed0}{isAdditionals}})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00214}00214\ \ \ \ \ \textcolor{comment}{//\ Critical\ system\ error,\ instead\ of\ triple\ faulting,\ we\ hang\ the\ system\ with\ specified\ error\ codes.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00215}00215\ \ \ \ \ \textcolor{comment}{//\ Disable\ interrupts\ if\ they\ werent\ disabled\ before.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00216}00216\ \ \ \ \ \_\_cli();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00217}00217\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00218}00218\ \ \ \ \ \textcolor{keywordtype}{bool}\ isThereIntFrame\ =\ (\mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}})\ ?\ \textcolor{keyword}{true}\ :\ \textcolor{keyword}{false};\ \textcolor{comment}{//\ basic\ ternary}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00219}00219\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00220}00220\ \ \ \ \ \mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ recordedIrql\ =\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentIrql;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00221}00221\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00222}00222\ \ \ \ \ \textcolor{comment}{//\ Force\ to\ be\ redrawn\ from\ the\ top,\ instead\ of\ last\ place.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00223}00223\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00224}00224\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00225}00225\ \ \ \ \ \mbox{\hyperlink{irql_8c_a4fb94a50a85a92c8939fa2201c5ba0d8}{\_MtSetIRQL}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf}{HIGH\_LEVEL}});\ \textcolor{comment}{//\ SET\ the\ irql\ to\ high\ level\ (not\ raise)\ (we\ could\ raise,\ but\ this\ takes\ less\ cycles\ and\ so\ is\ faster)\ (When\ I\ will\ integrate\ multi\ core\ functionality,\ this\ should\ SetIRQL\ to\ each\ cpu\ core.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00226}00226\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00227}00227\ \ \ \ \ \textcolor{comment}{//\ Clear\ the\ screen\ to\ blue\ (bsod\ windows\ style)}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00228}00228\ \ \ \ \ \mbox{\hyperlink{gop_8c_a99f29e094035e6b5420d63874004ed9f}{gop\_clear\_screen}}(\&\mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}},\ 0xFF0035b8);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00229}00229\ \ \ \ \ \textcolor{comment}{//\ check\ if\ nullptr\ deref.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00230}00230\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}}\ ==\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}}\ \&\&\ \mbox{\hyperlink{bugcheck_8h_aa07d1f281c35578dff6bfec3540c0ed0}{isAdditionals}}\ \&\&\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00231}00231\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}}\ =\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a0166a2887ad422fbb5090c699f4134ea}{NULL\_POINTER\_DEREFERENCE}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00232}00232\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00233}00233\ \ \ \ \ \textcolor{comment}{//\ Write\ some\ debugging\ and\ an\ error\ message}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00234}00234\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}FATAL\ ERROR:\ Your\ system\ has\ encountered\ a\ fatal\ error.\(\backslash\)n\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00235}00235\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}Your\ system\ has\ been\ stopped\ for\ safety.\(\backslash\)n\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00236}00236\ \ \ \ \ \textcolor{keywordtype}{char}*\ stopCodeToStr\ =\ \textcolor{stringliteral}{"{}"{}};\ \textcolor{comment}{//\ empty\ at\ first.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00237}00237\ \ \ \ \ resolveStopCode(\&stopCodeToStr,\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00238}00238\ \ \ \ \ uint64\_t\ rspIfExist;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00239}00239\ \ \ \ \ \textcolor{keywordflow}{if}\ (context)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00240}00240\ \ \ \ \ \ \ \ \ rspIfExist\ =\ (context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}})\ ?\ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}}\ :\ (uint64\_t)(-\/1);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00241}00241\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00242}00242\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}**STOP\ CODE:\ "{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00243}00243\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF8B0000,\ \textcolor{stringliteral}{"{}\%s"{}},\ stopCodeToStr);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00244}00244\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF00FF00,\ \textcolor{stringliteral}{"{}\ (numerical:\ \%d)**"{}},\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00245}00245\ \ \ \ \ \textcolor{keywordflow}{if}\ (context)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00246}00246\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00247}00247\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)nRegisters:\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00248}00248\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RAX:\ \%p\ RBX:\ \%p\ RCX:\ \%p\ RDX:\ \%p\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00249}00249\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RSI:\ \%p\ RDI:\ \%p\ RBP:\ \%p\ RSP:\ \%p\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00250}00250\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}R8\ :\ \%p\ R9\ :\ \%p\ R10:\ \%p\ R11:\ \%p\ \(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00251}00251\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}R12:\ \%p\ R13:\ \%p\ R14:\ \%p\ R15:\ \%p\(\backslash\)n\(\backslash\)n\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00252}00252\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_afae317c0ec04889d6c9452dc30711975}{rax}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00253}00253\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a49647568f68fbd9082c6be345350f483}{rbx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00254}00254\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a914f17516921c8917ca4a809893138d6}{rcx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00255}00255\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a7e87c5e2faab8a404c01084ddeed4588}{rdx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00256}00256\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_ac778707d44587840c5bd1269e8644eb9}{rsi}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00257}00257\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a5764734a394146dcf093f9295c2fd5b4}{rdi}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00258}00258\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a9d073dc105e374fd995ca8f3308cb0df}{rbp}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00259}00259\ \ \ \ \ \ \ \ \ \ \ \ \ rspIfExist,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00260}00260\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a338c714a93a43aa16b7b45f969e22e31}{r8}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00261}00261\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a478d9f99683e61a00d104d13f0739f64}{r9}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00262}00262\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a672542f94403b54948dff9d8fa7cb0f1}{r10}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00263}00263\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a9fc079aa0f66433a06c5fcc4d20bec15}{r11}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00264}00264\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a81851bdb2d1f3807d556089ba028635c}{r12}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00265}00265\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a73627200093b3cc3dd28586a8a68962a}{r13}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00266}00266\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a035e4a25722738af6914767d3e90bf46}{r14}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00267}00267\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a88c0b64834f9e74a82375b66aebee207}{r15}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00268}00268\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00269}00269\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00270}00270\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00271}00271\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)n\(\backslash\)n**ERROR:\ NO\ REGISTERS.**\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00272}00272\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00273}00273\ \ \ \ \ \textcolor{comment}{//\ don't\ alert\ if\ there\ is\ no\ interrupt\ frame,\ the\ user\ shouldn't\ care\ and\ know.\ -\/\ i\ should\ do\ an\ IFDEF\ here\ for\ debug,\ but\ I\ could\ not\ remember\ that\ I\ didn't\ define,\ i'd\ rather\ keep\ it\ like\ this\ for\ now.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00274}00274\ \ \ \ \ \textcolor{keywordflow}{if}\ (isThereIntFrame)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00275}00275\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}((uint32\_t)-\/1,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00276}00276\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Exceptions:\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00277}00277\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Vector\ Number:\ \%d\ Error\ Code:\ \%d\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00278}00278\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RIP:\ \%p\ CS:\ \%p\ RFLAGS:\ \%b\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00279}00279\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>vector,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00280}00280\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>error\_code,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00281}00281\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>rip,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00282}00282\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>cs,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00283}00283\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>rflags}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00284}00284\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00285}00285\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00286}00286\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00287}00287\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFA500,\ \textcolor{stringliteral}{"{}**Last\ IRQL:\ \%d**\(\backslash\)n"{}},\ recordedIrql);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00288}00288\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00289}00289\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_aa07d1f281c35578dff6bfec3540c0ed0}{isAdditionals}})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00290}00290\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}}\ ==\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00291}00291\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFA500,\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)n**FAULTY\ ADDRESS:\ \%p**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00292}00292\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00293}00293\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00294}00294\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFBF40BF,\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)n**ADDITIONALS:\ \%p**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00295}00295\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00296}00296\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00297}00297\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00298}00298\ \ \ \ \ uint32\_t\ currTid\ =\ (\mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread)\ ?\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread-\/>TID\ :\ (uint32\_t)-\/1;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00299}00299\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Current\ Thread\ ID:\ \%d\(\backslash\)n"{}},\ currTid);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00300}00300\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00301}00301\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00302}00302\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.names[\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index][0]\ !=\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00303}00303\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFBF40BF,\ \textcolor{stringliteral}{"{}\(\backslash\)n**FUNCTION\ TRACE\ (oldest\ to\ newest):\ "{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00304}00304\ \ \ \ \ \ \ \ \ print\_lastfunc\_chain(0xFFBF40BF);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00305}00305\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFBF40BF,\ \textcolor{stringliteral}{"{}**"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00306}00306\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00307}00307\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00308}00308\ \ \ \ \ \textcolor{comment}{//\ call\ stack\ trace}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00309}00309\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)nCall\ Stack\ Trace:\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00310}00310\ \ \ \ \ print\_stack\_trace(10);\ \textcolor{comment}{//\ 10\ function\ calls;}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00311}00311\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00312}00312\ \ \ \ \ \textcolor{comment}{//test}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00313}00313\ \ \ \ \ \mbox{\hyperlink{irql_8c_ab5f701d7ea67d78af40e6bc73264e0c4}{update\_pic\_mask\_for\_current\_irql}}();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00314}00314\ \ \ \ \ \_\_cli();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00315}00315\ \ \ \ \ \textcolor{comment}{//\ spin\ the\ CPU.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00316}00316\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00317}00317\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aad4a7ebff687dc5228cc3fd4d25067f2}{NOTHING}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00318}00318\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00319}00319\ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00320}00320\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00321}00321\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00322}\mbox{\hyperlink{bugcheck_8c_a882a1431cb6ee4d732b3aaf8a3cfda97}{00322}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{bugcheck_8c_a882a1431cb6ee4d732b3aaf8a3cfda97}{MtBugcheckEx}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ context,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}},\ \mbox{\hyperlink{bugcheck_8h_aec7c4f5d577b4ebbff3ba86c9c70381a}{BUGCHECK\_CODES}}\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}},\ \mbox{\hyperlink{bugcheck_8h_a0ea5d5717f65abd50f45d343b6a251c9}{BUGCHECK\_ADDITIONALS}}*\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}},\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8h_aa07d1f281c35578dff6bfec3540c0ed0}{isAdditionals}})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00323}00323\ \ \ \ \ \textcolor{comment}{//\ Critical\ system\ error,\ instead\ of\ triple\ faulting,\ we\ hang\ the\ system\ with\ specified\ error\ codes.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00324}00324\ \ \ \ \ \textcolor{comment}{//\ Disable\ interrupts\ if\ they\ werent\ disabled\ before.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00325}00325\ \ \ \ \ \_\_cli();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00326}00326\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00327}00327\ \ \ \ \ \textcolor{keywordtype}{bool}\ isThereIntFrame\ =\ (\mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}})\ ?\ \textcolor{keyword}{true}\ :\ \textcolor{keyword}{false};\ \textcolor{comment}{//\ basic\ ternary}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00328}00328\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00329}00329\ \ \ \ \ \mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ recordedIrql\ =\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentIrql;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00330}00330\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00331}00331\ \ \ \ \ \textcolor{comment}{//\ Force\ to\ be\ redrawn\ from\ the\ top,\ instead\ of\ last\ place.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00332}00332\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00333}00333\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00334}00334\ \ \ \ \ \mbox{\hyperlink{irql_8c_a4fb94a50a85a92c8939fa2201c5ba0d8}{\_MtSetIRQL}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf}{HIGH\_LEVEL}});\ \textcolor{comment}{//\ SET\ the\ irql\ to\ high\ level\ (not\ raise)\ (we\ could\ raise,\ but\ this\ takes\ less\ cycles\ and\ so\ is\ faster)\ (When\ I\ will\ integrate\ multi\ core\ functionality,\ this\ should\ SetIRQL\ to\ each\ cpu\ core.\ TODO}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00335}00335\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00336}00336\ \ \ \ \ \textcolor{comment}{//\ Clear\ the\ screen\ to\ blue\ (bsod\ windows\ style)}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00337}00337\ \ \ \ \ \mbox{\hyperlink{gop_8c_a99f29e094035e6b5420d63874004ed9f}{gop\_clear\_screen}}(\&\mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}},\ 0xFF0035b8);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00338}00338\ \ \ \ \ \textcolor{comment}{//\ Write\ some\ debugging\ and\ an\ error\ message}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00339}00339\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}FATAL\ ERROR:\ Your\ system\ has\ encountered\ a\ fatal\ error.\(\backslash\)n\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00340}00340\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}Your\ system\ has\ been\ stopped\ for\ safety.\(\backslash\)n\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00341}00341\ \ \ \ \ \textcolor{keywordtype}{char}*\ stopCodeToStr\ =\ \textcolor{stringliteral}{"{}"{}};\ \textcolor{comment}{//\ empty\ at\ first.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00342}00342\ \ \ \ \ resolveStopCode(\&stopCodeToStr,\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00343}00343\ \ \ \ \ uint64\_t\ rspIfExist;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00344}00344\ \ \ \ \ \textcolor{keywordflow}{if}\ (context)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00345}00345\ \ \ \ \ \ \ \ \ rspIfExist\ =\ (context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}})\ ?\ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}}\ :\ (uint64\_t)(-\/1);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00346}00346\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00347}00347\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,\ \textcolor{stringliteral}{"{}**STOP\ CODE:\ "{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00348}00348\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF8B0000,\ \textcolor{stringliteral}{"{}\%s"{}},\ stopCodeToStr);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00349}00349\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF00FF00,\ \textcolor{stringliteral}{"{}\ (numerical:\ \%d)**"{}},\ \mbox{\hyperlink{bugcheck_8h_a1aec972749a18e93ee61a2367d30d280}{err\_code}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00350}00350\ \ \ \ \ \textcolor{keywordflow}{if}\ (context)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00351}00351\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFF,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00352}00352\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)nRegisters:\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00353}00353\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RAX:\ \%p\ RBX:\ \%p\ RCX:\ \%p\ RDX:\ \%p\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00354}00354\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RSI:\ \%p\ RDI:\ \%p\ RBP:\ \%p\ RSP:\ \%p\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00355}00355\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}R8\ :\ \%p\ R9\ :\ \%p\ R10:\ \%p\ R11:\ \%p\ \(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00356}00356\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}R12:\ \%p\ R13:\ \%p\ R14:\ \%p\ R15:\ \%p\(\backslash\)n\(\backslash\)n\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00357}00357\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_afae317c0ec04889d6c9452dc30711975}{rax}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00358}00358\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a49647568f68fbd9082c6be345350f483}{rbx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00359}00359\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a914f17516921c8917ca4a809893138d6}{rcx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00360}00360\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a7e87c5e2faab8a404c01084ddeed4588}{rdx}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00361}00361\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_ac778707d44587840c5bd1269e8644eb9}{rsi}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00362}00362\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a5764734a394146dcf093f9295c2fd5b4}{rdi}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00363}00363\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a9d073dc105e374fd995ca8f3308cb0df}{rbp}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00364}00364\ \ \ \ \ \ \ \ \ \ \ \ \ rspIfExist,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00365}00365\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a338c714a93a43aa16b7b45f969e22e31}{r8}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00366}00366\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a478d9f99683e61a00d104d13f0739f64}{r9}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00367}00367\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a672542f94403b54948dff9d8fa7cb0f1}{r10}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00368}00368\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a9fc079aa0f66433a06c5fcc4d20bec15}{r11}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00369}00369\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a81851bdb2d1f3807d556089ba028635c}{r12}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00370}00370\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a73627200093b3cc3dd28586a8a68962a}{r13}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00371}00371\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a035e4a25722738af6914767d3e90bf46}{r14}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00372}00372\ \ \ \ \ \ \ \ \ \ \ \ \ context-\/>\mbox{\hyperlink{struct___c_t_x___f_r_a_m_e_a88c0b64834f9e74a82375b66aebee207}{r15}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00373}00373\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00374}00374\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00375}00375\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00376}00376\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)n\(\backslash\)n**ERROR:\ NO\ REGISTERS.**\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00377}00377\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00378}00378\ \ \ \ \ \textcolor{comment}{//\ don't\ alert\ if\ there\ is\ no\ interrupt\ frame,\ the\ user\ shouldn't\ care\ and\ know.\ -\/\ i\ should\ do\ an\ IFDEF\ here\ for\ debug,\ but\ I\ could\ not\ remember\ that\ I\ didn't\ define,\ i'd\ rather\ keep\ it\ like\ this\ for\ now.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00379}00379\ \ \ \ \ \textcolor{keywordflow}{if}\ (isThereIntFrame)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00380}00380\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}((uint32\_t)-\/1,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00381}00381\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Exceptions:\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00382}00382\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Vector\ Number:\ \%d\ Error\ Code:\ \%p\(\backslash\)n\(\backslash\)n"{}}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00383}00383\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RIP:\ \%p\ CS:\ \%p\ RFLAGS:\ \%b\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00384}00384\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>vector,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00385}00385\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>error\_code,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00386}00386\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>rip,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00387}00387\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>cs,}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00388}00388\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_ac88171ba03fdeabee04873681e251fbb}{int\_frame}}-\/>rflags}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00389}00389\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00390}00390\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00391}00391\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00392}00392\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFA500,\ \textcolor{stringliteral}{"{}**Last\ IRQL:\ \%d**\(\backslash\)n"{}},\ recordedIrql);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00393}00393\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00394}00394\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00395}00395\ \ \ \ \ int32\_t\ currTid\ =\ (\mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread)\ ?\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread-\/>TID\ :\ (uint32\_t)-\/1;}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00396}00396\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Current\ Thread\ ID:\ \%d\(\backslash\)n"{}},\ currTid);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00397}00397\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00398}00398\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_aa07d1f281c35578dff6bfec3540c0ed0}{isAdditionals}})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00399}00399\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>boolean)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00400}00400\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**BOOLEAN\ ADDITIONAL:\ \%d**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>boolean);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00401}00401\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00402}00402\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>num)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00403}00403\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**UNSIGNED\ NUMBER\ ADDITIONAL:\ \%d**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>num);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00404}00404\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00405}00405\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>ptr)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00406}00406\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**POINTER\ ADDITIONAL:\ \%p**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>ptr);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00407}00407\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00408}00408\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>signednum)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00409}00409\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**SIGNED\ NUMBER\ ADDITIONAL:\ \%d**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>signednum);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00410}00410\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00411}00411\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>str)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00412}00412\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**STRING\ ADDITIONAL:\ \%s**\(\backslash\)n"{}},\ \mbox{\hyperlink{bugcheck_8h_ab0d01939dc10a733a7796950d161d41a}{additional}}-\/>str);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00413}00413\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00414}00414\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00415}00415\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00416}00416\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00417}00417\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.names[\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index][0]\ !=\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00418}00418\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFBF40BF,\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)n**FUNCTION\ TRACE\ (oldest\ to\ newest):\ "{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00419}00419\ \ \ \ \ \ \ \ \ print\_lastfunc\_chain(0xFFBF40BF);}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00420}00420\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFBF40BF,\ \textcolor{stringliteral}{"{}**"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00421}00421\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00422}00422\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00423}00423\ }
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00424}00424\ \ \ \ \ \textcolor{comment}{//\ call\ stack\ trace}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00425}00425\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}\(\backslash\)n\(\backslash\)nCall\ Stack\ Trace:\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00426}00426\ \ \ \ \ print\_stack\_trace(10);\ \textcolor{comment}{//\ 10\ function\ calls;}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00427}00427\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00428}00428\ \ \ \ \ \textcolor{comment}{//test}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00429}00429\ \ \ \ \ \mbox{\hyperlink{irql_8c_ab5f701d7ea67d78af40e6bc73264e0c4}{update\_pic\_mask\_for\_current\_irql}}();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00430}00430\ \ \ \ \ \_\_cli();}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00431}00431\ \ \ \ \ \textcolor{comment}{//\ spin\ the\ CPU.}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00432}00432\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00433}00433\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aad4a7ebff687dc5228cc3fd4d25067f2}{NOTHING}};}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00434}00434\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{bugcheck_8c_source_l00435}00435\ \}}
+
+\end{DoxyCode}

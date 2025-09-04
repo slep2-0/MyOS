@@ -1,0 +1,148 @@
+\doxysection{cpu.\+h}
+\hypertarget{cpu_8h_source}{}\label{cpu_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h}}
+\mbox{\hyperlink{cpu_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ Core\ CPU\ Sturcture\ and\ definitions.}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00007}00007\ \textcolor{preprocessor}{\#ifndef\ X86\_CPU\_H}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00008}00008\ \textcolor{preprocessor}{\#define\ X86\_CPU\_H}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00009}00009\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00010}00010\ \textcolor{preprocessor}{\#ifdef\ \_\_INTELLISENSE\_\_}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00011}00011\ \textcolor{preprocessor}{\#define\ \_\_asm\_\_\ \_\_asm}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00012}00012\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00014}00014\ \textcolor{preprocessor}{\#ifndef\ \_\_INTELLISENSE\_\_}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00015}\mbox{\hyperlink{cpu_8h_a4cb54878e75e454401e12e4865c7d122}{00015}}\ \textcolor{preprocessor}{\#define\ SAVE\_CTX\_FRAME(ctx\_ptr)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00016}00016\ \textcolor{preprocessor}{\ \ \ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00017}00017\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_\_asm\_\_\ volatile\ (\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00018}00018\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ push\ all\ 16\ GPRs\ */}\textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00019}00019\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rax\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00020}00020\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rbx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00021}00021\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rcx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00022}00022\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rdx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00023}00023\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rsi\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00024}00024\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rdi\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00025}00025\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%rbp\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00026}00026\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r8\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00027}00027\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r9\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00028}00028\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r10\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00029}00029\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r11\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00030}00030\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r12\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00031}00031\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r13\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00032}00032\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r14\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00033}00033\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}push\ \%\%r15\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00034}00034\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00035}00035\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ store\ saved\ regs\ into\ the\ CTX\_FRAME\ */}\textcolor{preprocessor}{\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00036}00036\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r15,\ \ 0x00(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00037}00037\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r14,\ \ 0x08(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00038}00038\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r13,\ \ 0x10(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00039}00039\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r12,\ \ 0x18(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00040}00040\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r11,\ \ 0x20(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00041}00041\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r10,\ \ 0x28(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00042}00042\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r9,\ \ \ 0x30(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00043}00043\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%r8,\ \ \ 0x38(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00044}00044\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rbp,\ \ 0x40(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00045}00045\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rdi,\ \ 0x48(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00046}00046\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rsi,\ \ 0x50(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00047}00047\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rdx,\ \ 0x58(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00048}00048\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rcx,\ \ 0x60(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00049}00049\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rbx,\ \ 0x68(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00050}00050\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rax,\ \ 0x70(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00051}00051\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ RSP\ before\ the\ first\ push\ =\ (current\ RSP\ +\ 15*8)\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00052}00052\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}lea\ 0x78(\%\%rax),\ \%\%rax\(\backslash\)n\(\backslash\)t"{}\ }\textcolor{comment}{/*\ compute\ offset\ in-\/place\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00053}00053\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}mov\ \%\%rax,\ 0x78(\%[c])\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00054}00054\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00055}00055\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ pop\ in\ reverse\ order\ */}\textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00056}00056\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r15\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00057}00057\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r14\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00058}00058\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r13\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00059}00059\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r12\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00060}00060\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r11\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00061}00061\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r10\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00062}00062\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r9\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00063}00063\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%r8\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00064}00064\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rbp\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00065}00065\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rdi\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00066}00066\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rsi\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00067}00067\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rdx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00068}00068\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rcx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00069}00069\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rbx\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00070}00070\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}pop\ \ \%\%rax\(\backslash\)n\(\backslash\)t"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00071}00071\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ :\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00072}00072\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ :\ [c]\ "{}r"{}\ (ctx\_ptr)\ \ \ \ \ }\textcolor{comment}{/*\ loads\ ctx\_ptr\ into\ a\ temp\ reg\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00073}00073\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ :\ "{}memory"{}\ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ we\ write\ to\ memory\ */}\textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00074}00074\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ );\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00075}00075\ \textcolor{preprocessor}{\ \ \ \ \}\ while\ (0)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00076}00076\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00077}00077\ \textcolor{preprocessor}{\#define\ SAVE\_CTX\_FRAME(ctx\_ptr)\ (void*)(0)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00078}00078\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00079}00079\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00080}\mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{00080}}\ \textcolor{preprocessor}{\#define\ GET\_RIP(RIPVAR\_NOPTR)\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00081}00081\ \textcolor{preprocessor}{\ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_\ ("{}lea\ (\%\%rip),\ \%0"{}\ :\ "{}=r"{}\ (RIPVAR\_NOPTR));}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00082}00082\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00083}00083\ \textcolor{comment}{//\ instead\ of\ including\ kernel.h\ this\ time\ which\ causes\ problems,\ ill\ include\ each\ file\ I\ need.}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00084}00084\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00085}00085\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00086}00086\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00087}00087\ \textcolor{preprocessor}{\#include\ <stdatomic.h>}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00088}00088\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{cpu__types_8h}{cpu\_types.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00089}00089\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{irql_8h}{irql/irql.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00090}00090\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{spinlock_8h}{spinlock/spinlock.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00091}00091\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{dpc_8h}{dpc/dpc.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00092}00092\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{dpc__list_8h}{dpc/dpc\_list.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00093}00093\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{scheduler_8h}{scheduler/scheduler.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00094}00094\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{thread_8h}{thread/thread.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00095}00095\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00100}\mbox{\hyperlink{cpu_8h_a6231fdd5aa998aada7a1efa3bd325219}{00100}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{cpu_8h_a6231fdd5aa998aada7a1efa3bd325219}{read\_interrupt\_frame}}(\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ frame);}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00101}00101\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00102}00102\ \textcolor{preprocessor}{\#ifndef\ UNREFERENCED\_PARAMETER}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00103}00103\ \textcolor{preprocessor}{\#define\ UNREFERENCED\_PARAMETER(x)\ (void)(x)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00104}00104\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00105}00105\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00106}00106\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{cpu__types_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}}\ \mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queueLock}};}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00107}00107\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00112}00112\ \textcolor{preprocessor}{\#ifndef\ CONTAINING\_RECORD}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00113}00113\ \textcolor{preprocessor}{\#define\ CONTAINING\_RECORD(ptr,\ type,\ member)\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00114}00114\ \textcolor{preprocessor}{\ \ \ \ ((type\ *)((char\ *)(ptr)\ -\/\ offsetof(type,\ member)))}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00115}00115\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00116}00116\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00117}00117\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ enqueue(\mbox{\hyperlink{cpu__types_8h_aaa31d02f2b2876d12bb8f83900eacce6}{Queue}}*\ queue,\ \mbox{\hyperlink{cpu__types_8h_ad4bfc71eef5e5a6bb0806753203c7a48}{Thread}}*\ thread)\ \{}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00118}00118\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}enqueue"{}});}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00119}00119\ \ \ \ \ uint64\_t\ flags;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00120}00120\ \ \ \ \ MtAcquireSpinlock(\&\mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queueLock}},\ \&flags);}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00121}00121\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}{nextThread}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00122}00122\ \ \ \ \ \textcolor{keywordflow}{if}\ (!queue-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}})\ queue-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}}\ =\ thread;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00123}00123\ \ \ \ \ \textcolor{keywordflow}{else}\ queue-\/>\mbox{\hyperlink{struct___queue_a258e47d4a5c79d9711da8e1074135a6a}{tail}}-\/>\mbox{\hyperlink{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}{nextThread}}\ =\ thread;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00124}00124\ \ \ \ \ queue-\/>\mbox{\hyperlink{struct___queue_a258e47d4a5c79d9711da8e1074135a6a}{tail}}\ =\ thread;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00125}00125\ \ \ \ \ MtReleaseSpinlock(\&\mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queueLock}},\ flags);}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00126}00126\ \}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00127}00127\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00128}00128\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{cpu__types_8h_ad4bfc71eef5e5a6bb0806753203c7a48}{Thread}}*\ dequeue(\mbox{\hyperlink{cpu__types_8h_aaa31d02f2b2876d12bb8f83900eacce6}{Queue}}*\ q)\ \{}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00129}00129\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}dequeue"{}});}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00130}00130\ \ \ \ \ uint64\_t\ flags;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00131}00131\ \ \ \ \ MtAcquireSpinlock(\&\mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queueLock}},\ \&flags);}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00132}00132\ \ \ \ \ \textcolor{keywordflow}{if}\ (!q-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}})\ \{}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00133}00133\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00134}00134\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00135}00135\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00136}00136\ \ \ \ \ \mbox{\hyperlink{cpu__types_8h_ad4bfc71eef5e5a6bb0806753203c7a48}{Thread}}*\ t\ =\ q-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}};}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00137}00137\ \ \ \ \ q-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}}\ =\ t-\/>\mbox{\hyperlink{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}{nextThread}};}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00138}00138\ \ \ \ \ \textcolor{keywordflow}{if}\ (!q-\/>\mbox{\hyperlink{struct___queue_a4b5feed7fa6b5f410b10986eb691df14}{head}})\ \{}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00139}00139\ \ \ \ \ \ \ \ \ q-\/>\mbox{\hyperlink{struct___queue_a258e47d4a5c79d9711da8e1074135a6a}{tail}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00140}00140\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00141}00141\ \ \ \ \ t-\/>\mbox{\hyperlink{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}{nextThread}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00142}00142\ \ \ \ \ MtReleaseSpinlock(\&\mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queueLock}},\ flags);}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00143}00143\ \ \ \ \ \textcolor{keywordflow}{return}\ t;}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00144}00144\ \}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00145}00145\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00146}00146\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{cpu_8h_a4aa078dcf96e9f06ce620519a93593c1}{InitCPU}}(\textcolor{keywordtype}{void});\ \textcolor{comment}{//\ defined\ in\ kernel.c}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00147}00147\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00148}00148\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}}\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}};\ \textcolor{comment}{//\ Grab\ from\ KERNEL.C}}
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00149}00149\ }
+\DoxyCodeLine{\Hypertarget{cpu_8h_source_l00150}00150\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

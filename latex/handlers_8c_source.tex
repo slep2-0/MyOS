@@ -1,0 +1,300 @@
+\doxysection{handlers.\+c}
+\hypertarget{handlers_8c_source}{}\label{handlers_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c}}
+\mbox{\hyperlink{handlers_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Implementation\ of\ handler\ functions\ for\ interrupts.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{handlers_8h}{handlers.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{scancodes_8h}{scancodes.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{idt_8h}{../idt.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00011}00011\ \textcolor{comment}{//\ NOTE\ TO\ SELF:\ DO\ NOT\ PUT\ TRACELAST\_FUNC\ HERE,\ THESE\ ARE\ INTERRUPT/EXCEPTION\ HANDLERS!}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00014}00014\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00015}00015\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00016}00016\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00017}\mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{00017}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\_pressed}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00018}\mbox{\hyperlink{handlers_8c_aec4e866abc16cc8217d33dfae87d5877}{00018}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{handlers_8c_aec4e866abc16cc8217d33dfae87d5877}{ctrl\_pressed}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00019}\mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{00019}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\_lock\_on}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00020}\mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{00020}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00022}\mbox{\hyperlink{handlers_8c_ac3a72156d4bbba013e4d62801992794d}{00022}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ac3a72156d4bbba013e4d62801992794d}{init\_keyboard}}()\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00023}00023\ \ \ \ \ \mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\_pressed}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00024}00024\ \ \ \ \ \mbox{\hyperlink{handlers_8c_aec4e866abc16cc8217d33dfae87d5877}{ctrl\_pressed}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00025}00025\ \ \ \ \ \mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\_lock\_on}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00026}00026\ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00027}00027\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00029}00029\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00031}\mbox{\hyperlink{handlers_8c_a2f4098fc71cbd39422c1001d66970bf5}{00031}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a2f4098fc71cbd39422c1001d66970bf5}{keyboard\_handler}}()\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00032}00032\ \ \ \ \ \textcolor{comment}{//\ Read\ the\ scan\ port\ from\ the\ status\ port.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00033}00033\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ scancode\ =\ \_\_inbyte(\mbox{\hyperlink{handlers_8h_a49e0a04e81098085d2948c1e9f8c99cb}{KEYBOARD\_DATA\_PORT}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00035}00035\ \ \ \ \ \textcolor{comment}{//\ Extended\ scancode\ recognition.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{if}\ (scancode\ ==\ 0xE0)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00037}00037\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});\ \textcolor{comment}{//ack}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00039}00039\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00040}00040\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00041}00041\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00042}00042\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}})\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ second\ byte\ of\ extended\ scancode.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00044}00044\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (scancode)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_aa768204f007f39e026b44a9c749a01f2}{KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_UP}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}}-\/-\/;\ \textcolor{comment}{//\ reveresd,\ even\ though\ it's\ -\/\ on\ the\ y\ scale,\ it\ goes\ up\ on\ screen.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});\ \textcolor{comment}{//ack}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_a093a7a1d5631e4b6d418b68d84c061f3}{KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_DOWN}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00051}00051\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}}++;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00052}00052\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00053}00053\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00054}00054\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_a8f68d454a58c300470d4b9aff84942ce}{KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_RIGHT}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}}++;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00059}00059\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_aef133551f8fb1e1fd7a6107dde5466e6}{KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_LEFT}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00061}00061\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}}-\/-\/;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\_scancode}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00064}00064\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00066}00066\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00067}00067\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00068}00068\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ it's\ a\ key\ press,\ bit\ 7\ of\ the\ inbyte.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00069}00069\ \ \ \ \ \textcolor{comment}{//\ 0x80\ in\ binary\ is\ 1000\ 0000\ -\/>\ BIT\ 7\ AND\ -\/>\ if\ 1\ -\/\ press,\ if\ 0\ release.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00070}00070\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(scancode\ \&\ 0x80))\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Conver\ scan\ code\ to\ ASCII\ to\ see\ if\ it's\ even\ a\ printable\ character.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((scancode\ <\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{scancodes_8h_a8bd92ab3be854bc4caa930a5df66594b}{scancode\_to\_ascii}})\ \&\&\ \mbox{\hyperlink{scancodes_8h_a8bd92ab3be854bc4caa930a5df66594b}{scancode\_to\_ascii}}[scancode])\ ||\ (scancode\ <\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{scancodes_8h_a1541347c599f4bf15b5f4e3f24fa30e3}{scancode\_to\_ascii\_shift}})\ \&\&\ \mbox{\hyperlink{scancodes_8h_a1541347c599f4bf15b5f4e3f24fa30e3}{scancode\_to\_ascii\_shift}}[scancode]))\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00073}00073\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ key\ =\ \mbox{\hyperlink{scancodes_8h_a8bd92ab3be854bc4caa930a5df66594b}{scancode\_to\_ascii}}[scancode];}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00074}00074\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ keyShift\ =\ \mbox{\hyperlink{scancodes_8h_a1541347c599f4bf15b5f4e3f24fa30e3}{scancode\_to\_ascii\_shift}}[scancode];}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ str[2]\ =\ \{\ key,\ \textcolor{charliteral}{'\(\backslash\)0'}\ \};\ \textcolor{comment}{//\ default\ string\ (key)\ +\ null\ terminator.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00076}00076\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ strShift[2]\ =\ \{\ keyShift,\ \textcolor{charliteral}{'\(\backslash\)0'}\ \};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00077}00077\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (key)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \textcolor{charliteral}{'\(\backslash\)n'}:\ \textcolor{comment}{//\ newline\ char}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00079}00079\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(1,\ \textcolor{stringliteral}{"{}\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00080}00080\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \textcolor{charliteral}{'\(\backslash\)b'}:\ \textcolor{comment}{//\ backspace}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(1,\ \textcolor{stringliteral}{"{}\(\backslash\)b\ \(\backslash\)b"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00083}00083\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00084}00084\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \textcolor{charliteral}{'\(\backslash\)t'}:\ \textcolor{comment}{//\ TAB}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00085}00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(1,\ \textcolor{stringliteral}{"{}\ \ \ \ "{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00086}00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00088}00088\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\_pressed}}\ ||\ \mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\_lock\_on}})\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00089}00089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFE,\ strShift);\ \textcolor{comment}{//\ basically\ underflow\ to\ max\ 32bit\ val.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00091}00091\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00092}00092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFFFE,\ str);\ \textcolor{comment}{//\ basically\ underflow\ to\ max\ 32bit\ val.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (scancode)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00098}00098\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_a02f6fdc117edff5bfcdc66ee3d62398f}{KEYBOARD\_SCANCODE\_PRESSED\_LEFT\_SHIFT}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\_pressed}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00101}00101\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_a838e608083862972f20f923742dad707}{KEYBOARD\_SCANCODE\_PRESSED\_CAPS\_LOCK}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00102}00102\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\_lock\_on}}\ =\ !\mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\_lock\_on}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00104}00104\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00105}00105\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ It's\ a\ release,\ bit\ 7\ is\ 0.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (scancode)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{scancodes_8h_a4d0a3c995b55a478cb45183d5862839d}{KEYBOARD\_SCANCODE\_RELEASE\_LEFT\_SHIFT}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\_pressed}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00113}00113\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00114}00114\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00115}00115\ \ \ \ \ \textcolor{comment}{//\ Send\ End\ Of\ Interrupt\ (EOI)\ to\ the\ PIC.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00116}00116\ \ \ \ \ \_\_outbyte(0x20,\ \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});\ \textcolor{comment}{//\ Only\ sent\ to\ master\ since\ this\ is\ a\ master\ interrupt.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00117}00117\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00118}00118\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00119}\mbox{\hyperlink{handlers_8c_a60d47ef3d9ff7566f06b13180b08bb29}{00119}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a60d47ef3d9ff7566f06b13180b08bb29}{init\_timer}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ frequency)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00120}00120\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ divisor\ =\ 1193180\ /\ frequency;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00121}00121\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00122}00122\ \ \ \ \ \textcolor{comment}{//\ Send\ the\ command\ byte}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00123}00123\ \ \ \ \ \_\_outbyte(0x43,\ 0x36);\ \ \textcolor{comment}{//\ Channel\ 0,\ lobyte/hibyte,\ mode\ 3\ (square\ wave)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00124}00124\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00125}00125\ \ \ \ \ \textcolor{comment}{//\ Send\ the\ frequency\ divisor}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00126}00126\ \ \ \ \ \_\_outbyte(0x40,\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char})(divisor\ \&\ 0xFF));\ \ \ \ \ \ \ \textcolor{comment}{//\ Low\ byte}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00127}00127\ \ \ \ \ \_\_outbyte(0x40,\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char})((divisor\ >>\ 8)\ \&\ 0xFF));\ \textcolor{comment}{//\ High\ byte}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00128}00128\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00129}00129\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00130}00130\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00131}00131\ \textcolor{comment}{//\ REVISE\ THAT\ SCHEDULEDPC\ WILL\ ALSO\ SEND\ CTX.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00132}00132\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00133}00133\ \textcolor{keyword}{static}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}\ scheduleDpc\ =\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00134}00134\ \ \ \ \ .Next\ =\ NULL,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00135}00135\ \ \ \ \ .callback\ =\ \mbox{\hyperlink{dpc__list_8c_a67164a4c67eab21fd1e2ee88e93f447b}{ScheduleDPC}},}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00136}00136\ \ \ \ \ .callbackWithCtx\ =\ NULL,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00137}00137\ \ \ \ \ .ctx\ =\ NULL,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00138}00138\ \ \ \ \ .Kind\ =\ \mbox{\hyperlink{cpu__types_8h_a5d218e5c26f9e9afec421f768f8d0b02abd393abde0837104a6fa0e441d063e78}{DPC\_SCHEDULE}},}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00139}00139\ \ \ \ \ .hasCtx\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00140}00140\ \ \ \ \ .priority\ =\ \mbox{\hyperlink{cpu__types_8h_ab43279866db2c797f7ec886b4ac344d6acb1785f11dd02aa7f5d164fb314c594e}{HIGH\_PRIORITY}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00141}00141\ \};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00142}00142\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00143}00143\ \textcolor{keyword}{extern}\ \textcolor{keyword}{volatile}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\_pending}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00144}00144\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00145}\mbox{\hyperlink{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be}{00145}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be}{timer\_handler}}(\textcolor{keywordtype}{bool}\ schedulerEnabled)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00146}00146\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\_pending}})\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (schedulerEnabled)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00149}00149\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread-\/>timeSlice-\/-\/\ <=\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread-\/>timeSlice\ =\ \mbox{\hyperlink{bugcheck_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread-\/>origTimeSlice;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}Queuing\ DPC\ in\ timer\_handler"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00152}00152\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a4a16fe16032924d21717e02d4447dbb8}{MtQueueDPC}}(\&scheduleDpc);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00154}00154\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00155}00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00156}00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}Did\ not\ queue\ DPC\ in\ timer\ handler.\ Reason:\ Thread's\ timeslice\ isn't\ over."{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00158}00158\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}Did\ not\ queue\ DPC\ in\ timer\ handler.\ Reason:\ Thread\ is\ NULL\ (no\ current\ thread)"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00161}00161\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}Did\ not\ queue\ DPC\ in\ timer\ handler.\ Reason:\ Scheduler\ isn't\ enabled.."{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00166}00166\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00167}00167\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00168}00168\ \ \ \ \ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}Did\ not\ queue\ DPC\ in\ timer\ handler.\ Reason:\ Schedule\ DPC\ is\ already\ pending.."{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00169}00169\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00170}00170\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00171}00171\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00172}00172\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\_eoi}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00173}00173\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00174}\mbox{\hyperlink{handlers_8c_ab748b00a3956d2d68d64e85374210e5a}{00174}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ab748b00a3956d2d68d64e85374210e5a}{lapic\_handler}}(\textcolor{keywordtype}{bool}\ schedulerEnabled)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00175}00175\ \ \ \ \ \mbox{\hyperlink{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\_eoi}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00176}00176\ \ \ \ \ \mbox{\hyperlink{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be}{timer\_handler}}(schedulerEnabled);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00177}00177\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00178}00178\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00179}\mbox{\hyperlink{handlers_8c_ac6967370e83425329246124a56e29b57}{00179}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ac6967370e83425329246124a56e29b57}{pagefault\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00180}00180\ \ \ \ \ uint64\_t\ fault\_addr;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00181}00181\ \ \ \ \ \textcolor{comment}{//\ cr2\ holds\ the\ faulty\ address\ that\ caused\ the\ page\ fault.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00182}00182\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00183}00183\ \ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00184}00184\ \ \ \ \ \textcolor{stringliteral}{"{}movq\ \%\%cr2,\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00185}00185\ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(fault\_addr)}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00186}00186\ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00187}00187\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}},\ fault\_addr,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00188}00188\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00189}00189\ \ \ \ \ \textcolor{comment}{//\ \_\_hlt();\ -\/>\ When\ an\ HLT\ instruction\ is\ called\ when\ the\ CPU\ is\ in\ interrupt\ mode,\ (interrupts\ are\ already\ disabled\ to\ let\ this\ interrupt\ go\ through),\ iretd\ never\ executes,\ and\ so\ the\ CPU\ Is\ just\ stuck\ in\ place.\ Only\ an\ NMI\ or\ SMI\ can\ wake\ the\ processor\ back\ up}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00190}00190\ \ \ \ \ \textcolor{comment}{//\ NMI\ -\/\ Non\ Maskable\ Interrupt,\ happens\ when\ a\ watchdog\ timer\ expires,\ system\ bus\ errors,\ (or\ memory\ parity\ errors,\ that\ rarily\ occur\ in\ modern\ systems\ -\/-\/\ unless\ a\ gamma\ ray\ strikes\ through).}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00191}00191\ \ \ \ \ \textcolor{comment}{//\ SMI\ -\/\ A\ System\ Managment\ Interrupt\ is\ a\ special\ kind\ of\ an\ interurpt\ that\ also\ masks\ over\ CLI\ (even\ when\ interrupts\ are\ already\ disabled,\ like\ NMI),\ that\ is\ used\ for\ thermal\ throttling\ of\ the\ CPU,\ power\ management,\ or\ hardware\ emulation.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00192}00192\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00193}00193\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00194}\mbox{\hyperlink{handlers_8c_acfe0741651b4edf7d92791e0656a5a48}{00194}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_acfe0741651b4edf7d92791e0656a5a48}{doublefault\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00195}00195\ \ \ \ \ \textcolor{comment}{//\ We\ reached\ a\ double\ fault,\ an\ exception\ within\ an\ exception\ handler.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00196}00196\ \ \ \ \ \textcolor{comment}{//\ To\ not\ reach\ a\ triple\ fault,\ we\ will\ bugcheck\ the\ system\ (similar\ to\ a\ windows\ bugcheck\ -\/\ BSOD)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00197}00197\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ac76cffed7f5a7cc73ae64eb0df1d4a83}{DOUBLE\_FAULT}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00198}00198\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00199}00199\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00200}\mbox{\hyperlink{handlers_8c_afdff5d9ebe56cdc7b4e405c5082f7016}{00200}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_afdff5d9ebe56cdc7b4e405c5082f7016}{dividebyzero\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00201}00201\ \ \ \ \ \textcolor{comment}{//\ handle\ diving\ by\ zero.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00202}00202\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a69d6cfabaf125c5b02337f57ec437944}{DIVIDE\_BY\_ZERO}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00203}00203\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00204}00204\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00205}\mbox{\hyperlink{handlers_8c_a4c7a9e8b64a2217f1db9849da60f4c39}{00205}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a4c7a9e8b64a2217f1db9849da60f4c39}{debugsinglestep\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00206}00206\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ctx);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00207}00207\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00208}00208\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}\(\backslash\)nERROR:\ Debugging\ is\ not\ currently\ supported,\ halting.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00209}00209\ \ \ \ \ \_\_hlt();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00210}00210\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00212}\mbox{\hyperlink{handlers_8c_ae0aa5bdafbe39e536fe71b3cab07d767}{00212}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ae0aa5bdafbe39e536fe71b3cab07d767}{nmi\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00213}00213\ \ \ \ \ \textcolor{comment}{//\ severe\ problem,\ bugchecking.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00214}00214\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a87e52d2cb1f7eed8d18cc811445dc3d7}{NON\_MASKABLE\_INTERRUPT}},0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00215}00215\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00216}00216\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00217}\mbox{\hyperlink{handlers_8c_a609ea769c187f7a0f997758b14ac3f73}{00217}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a609ea769c187f7a0f997758b14ac3f73}{breakpoint\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00218}00218\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ctx);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00219}00219\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00220}00220\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}\(\backslash\)nERROR:\ Debugging\ is\ not\ currently\ supported,\ halting.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00221}00221\ \ \ \ \ \_\_hlt();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00222}00222\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00223}00223\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00224}\mbox{\hyperlink{handlers_8c_adac02289d8e565aee7c9effa80747f93}{00224}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_adac02289d8e565aee7c9effa80747f93}{overflow\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00225}00225\ \ \ \ \ \textcolor{comment}{//\ almost\ never\ happens\ on\ modern\ systems\ (compilers\ dont\ generate\ the\ INTO\ instruction\ anymore,\ unless\ manual\ assembly\ is\ placed)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00226}00226\ \ \ \ \ \textcolor{comment}{//\ just\ bugcheck}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00227}00227\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a07df634c8cb7e4cafe8b14c4172e3de7}{OVERFLOW}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00228}00228\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00229}00229\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00230}\mbox{\hyperlink{handlers_8c_a0ea5fd9348cbe6ab00ff2f3a872e664a}{00230}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a0ea5fd9348cbe6ab00ff2f3a872e664a}{boundscheck\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00231}00231\ \ \ \ \ \textcolor{comment}{//\ bugcheck\ too,\ this\ is\ kernel\ mode.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00232}00232\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82aebcc435bdd66b726f1f9823509cc5809}{BOUNDS\_CHECK}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00233}00233\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00234}00234\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00235}\mbox{\hyperlink{handlers_8c_aff8a45b5d56042eacac1147077281fb3}{00235}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_aff8a45b5d56042eacac1147077281fb3}{invalidopcode\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00236}00236\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a8da3fbe11c0dd6f9f693d6a9d08d26c4}{INVALID\_OPCODE}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00237}00237\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00238}00238\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00239}\mbox{\hyperlink{handlers_8c_a6b703ce7de6f493f66cee51eb8e59a33}{00239}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a6b703ce7de6f493f66cee51eb8e59a33}{nocoprocessor\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00240}00240\ \ \ \ \ \textcolor{comment}{//\ rarely\ triggered,\ if\ a\ floating\ point\ chip\ is\ not\ integrated,\ or\ is\ not\ attached,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00241}00241\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a27d757891efbf8ddbaba31968b943ffc}{NO\_COPROCESSOR}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00242}00242\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00243}00243\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00244}\mbox{\hyperlink{handlers_8c_a26e585eb170d255d03c6323349df7e83}{00244}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a26e585eb170d255d03c6323349df7e83}{coprocessor\_segment\_overrun\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00245}00245\ \ \ \ \ \textcolor{comment}{//\ quite\ literally\ impossible\ in\ protected\ or\ long\ mode,\ since\ CPU's\ don't\ generate\ this\ exception\ on\ these\ modes,\ but\ if\ they\ did,\ bugcheck,\ severe\ code.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00246}00246\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a1a0ee5dd87418541502549cd7d87da92}{COPROCESSOR\_SEGMENT\_OVERRUN}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00247}00247\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00248}00248\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00249}\mbox{\hyperlink{handlers_8c_a0f81c6470be5e4bbb9f8b5e4997bbc5a}{00249}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a0f81c6470be5e4bbb9f8b5e4997bbc5a}{invalidtss\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00250}00250\ \ \ \ \ \textcolor{comment}{//\ a\ tss\ is\ when\ the\ CPU\ hardware\ switches\ (usually\ does\ not\ happen,\ since\ OS'es\ implement\ switching\ in\ software,\ like\ process\ timer\ context\ switch,\ all\ in\ software)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00251}00251\ \ \ \ \ \textcolor{comment}{//\ if\ it\ did\ happen\ though,\ we\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00252}00252\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a97e80b6e5bb52587e0551b03d8a87070}{INVALID\_TSS}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00253}00253\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00254}00254\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00255}\mbox{\hyperlink{handlers_8c_a8fec482647c6fb6fbbabdf55e602eef4}{00255}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a8fec482647c6fb6fbbabdf55e602eef4}{segment\_selector\_not\_present\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00256}00256\ \ \ \ \ \textcolor{comment}{//\ this\ happens\ when\ the\ CPU\ loads\ a\ segment\ that\ points\ to\ a\ valid\ descriptor,\ that\ is\ marked\ as\ "{}not\ present"{}\ (that\ the\ present\ bit\ is\ 0),\ which\ means\ it's\ swapped\ out\ to\ disk.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00257}00257\ \ \ \ \ \textcolor{comment}{//\ we\ don't\ have\ disk\ paging\ right\ now,\ we\ don't\ even\ have\ a\ current\ user\ mode\ or\ stable\ memory\ for\ now,\ so\ we\ just\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00258}00258\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82adb32eceeecfe855034f998ddefab5bde}{SEGMENT\_SELECTOR\_NOTPRESENT}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00259}00259\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00260}00260\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00261}\mbox{\hyperlink{handlers_8c_a5d7427a65db4d25785ff5eb89fc07a53}{00261}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a5d7427a65db4d25785ff5eb89fc07a53}{stack\_segment\_overrun\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00262}00262\ \ \ \ \ \textcolor{comment}{//\ this\ happens\ when\ the\ stack\ pointer\ (esp,\ rsp,\ sp\ on\ 16\ bit)\ moves\ OUTSIDE\ the\ bounds\ of\ the\ current\ stack\ segment,\ this\ is\ different\ from\ a\ stack\ overflow\ at\ the\ software\ level,\ this\ is\ a\ hardware\ level\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00263}00263\ \ \ \ \ \textcolor{comment}{//\ segment\ limits\ on\ protected\ mode\ usually\ gets\ switched\ off,\ so\ if\ this\ happens\ just\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00264}00264\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82acbf56036797b0df791819f5480a1a466}{STACK\_SEGMENT\_OVERRUN}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00265}00265\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00266}00266\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00267}\mbox{\hyperlink{handlers_8c_a1005cf7e59cf67342709473d87edf5bf}{00267}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a1005cf7e59cf67342709473d87edf5bf}{gpf\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00268}00268\ \ \ \ \ \textcolor{comment}{//\ important\ exception,\ view\ error\ code\ and\ bugcheck\ with\ it}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00269}00269\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82ad675d88011ac94b90d8ef65d628fc13b}{GENERAL\_PROTECTION\_FAULT}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00270}00270\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00271}00271\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00272}\mbox{\hyperlink{handlers_8c_af0c0283a079f47d9979e594f76e7c5ed}{00272}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_af0c0283a079f47d9979e594f76e7c5ed}{fpu\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00273}00273\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ctx);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00274}00274\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(intfr);;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00275}00275\ \ \ \ \ \textcolor{comment}{//\ this\ occurs\ when\ a\ floating\ point\ operation\ has\ an\ error,\ (even\ division\ by\ zero\ floating\ point\ will\ get\ here),\ or\ underflow/overflow}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00276}00276\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}Error:\ Floating\ Point\ error,\ have\ you\ done\ a\ correct\ calculation?\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00277}00277\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00278}00278\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00279}\mbox{\hyperlink{handlers_8c_ae2c429574b397c858bb4b59c670e1ce4}{00279}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ae2c429574b397c858bb4b59c670e1ce4}{alignment\_check\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00280}00280\ \ \ \ \ \textcolor{comment}{//\ 3\ conditions\ must\ be\ met\ in-\/order\ for\ this\ to\ even\ reach.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00281}00281\ \ \ \ \ \textcolor{comment}{//\ CR0.AM\ (Alignment\ Mask)\ must\ be\ set\ to\ 1.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00282}00282\ \ \ \ \ \textcolor{comment}{//\ EFLAGS.AC\ (Alignment\ Check)\ must\ be\ set\ to\ 1.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00283}00283\ \ \ \ \ \textcolor{comment}{//\ CPL\ (user\ mode\ or\ kernel\ mode)\ must\ be\ set\ to\ 3.\ (user\ mode\ only)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00284}00284\ \ \ \ \ \textcolor{comment}{//\ If\ all\ are\ 1\ and\ a\ stack\ alignment\ occurs\ (when\ doing\ char*\ ptr\ =\ kmalloc(64,\ 16);\ then\ writing\ like\ this\ *((uint32\_t*)ptr)\ =\ 0xdeadbeef;\ //\ It's\ an\ unaligned\ write,\ writing\ more\ than\ there\ is.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00285}00285\ \ \ \ \ \textcolor{comment}{//\ for\ now,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00286}00286\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a6e5b58ac1832f6e8c74c43b27992b3b0}{ALIGNMENT\_CHECK}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00287}00287\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00288}00288\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00289}\mbox{\hyperlink{handlers_8c_abf78eebebdfe77d4d5cb902171c44173}{00289}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_abf78eebebdfe77d4d5cb902171c44173}{severe\_machine\_check\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00290}00290\ \ \ \ \ \textcolor{comment}{//\ creepy.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00291}00291\ \ \ \ \ \textcolor{comment}{//\ This\ happens\ when\ the\ machine\ has\ a\ SEVERE\ problem,\ memory\ faults,\ CPU\ internal\ fault,\ all\ of\ that,\ the\ cpu\ registers\ this.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00292}00292\ \ \ \ \ \textcolor{comment}{//\ obviously\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00293}00293\ \ \ \ \ MtBugcheck(ctx,\ intfr,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a12654d2e9be8ec0848207e887ece4442}{SEVERE\_MACHINE\_CHECK}},\ 0,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00294}00294\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00295}00295\ }
+
+\end{DoxyCode}

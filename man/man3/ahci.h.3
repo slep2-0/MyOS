@@ -1,0 +1,406 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include '\&.\&./blk/block\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./mtstatus\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_HBA_MEM\fP"
+.br
+.RI "AHCI Register layout (Global HBA Registers) "
+.ti -1c
+.RI "struct \fB_HBA_PORT\fP"
+.br
+.RI "Per port registers at \fBHBA_MEM\fP + 0x100 + (port * 0x80) "
+.ti -1c
+.RI "struct \fB_FIS_REG_H2D\fP"
+.br
+.RI "Register - Host to Device FIS (FIS_TYPE_REG_H2D) "
+.ti -1c
+.RI "struct \fB_HBA_PRDT_ENTRY\fP"
+.br
+.RI "Physical Region Descriptor Table Entry\&. "
+.ti -1c
+.RI "struct \fB_HBA_CMD_TBL\fP"
+.br
+.RI "Command Table: one per slot\&. "
+.ti -1c
+.RI "struct \fB_HBA_CMD_HEADER\fP"
+.br
+.RI "HBA Command Header (defines an AHCI Command) "
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBAHCI_MAX_PORTS\fP   32"
+.br
+.ti -1c
+.RI "#define \fBHBA_CMD_HDR_CFL_MASK\fP   0x0000001Fu"
+.br
+.ti -1c
+.RI "#define \fBHBA_CMD_HDR_A_BIT\fP   (1u << 5)"
+.br
+.ti -1c
+.RI "#define \fBHBA_CMD_HDR_W_BIT\fP   (1u << 6)"
+.br
+.ti -1c
+.RI "#define \fBHBA_CMD_HDR_P_BIT\fP   (1u << 7)"
+.br
+.ti -1c
+.RI "#define \fBHBA_CMD_HDR_PRDTL_MASK\fP   0xFFFF0000u"
+.br
+.ti -1c
+.RI "#define \fBATA_DEV_BSY\fP   0x80"
+.br
+.ti -1c
+.RI "#define \fBATA_DEV_DRQ\fP   0x08"
+.br
+.ti -1c
+.RI "#define \fBATA_DEV_ERR\fP   0x01"
+.br
+.ti -1c
+.RI "#define \fBATA_CMD_READ_DMA_EX\fP   0x25"
+.br
+.ti -1c
+.RI "#define \fBATA_CMD_WRITE_DMA_EX\fP   0x35"
+.br
+.ti -1c
+.RI "#define \fBAHCI_DEV_NULL\fP   0"
+.br
+.ti -1c
+.RI "#define \fBAHCI_DEV_SATA\fP   1"
+.br
+.ti -1c
+.RI "#define \fBAHCI_DEV_SEMB\fP   2"
+.br
+.ti -1c
+.RI "#define \fBAHCI_DEV_PM\fP   3"
+.br
+.ti -1c
+.RI "#define \fBAHCI_DEV_SATAPI\fP   4"
+.br
+.ti -1c
+.RI "#define \fBHBA_PORT_IPM_ACTIVE\fP   1"
+.br
+.ti -1c
+.RI "#define \fBHBA_PORT_DET_PRESENT\fP   3"
+.br
+.ti -1c
+.RI "#define \fBHBA_PxCMD_ST\fP   0x0001"
+.br
+.ti -1c
+.RI "#define \fBHBA_PxCMD_FRE\fP   0x0010"
+.br
+.ti -1c
+.RI "#define \fBHBA_PxCMD_FR\fP   0x4000"
+.br
+.ti -1c
+.RI "#define \fBHBA_PxCMD_CR\fP   0x8000"
+.br
+.ti -1c
+.RI "#define \fBHBA_PxIS_TFES\fP   (1 << 30)       /* TFES \- Task File Error Status */"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef enum \fB_FIS_TYPE\fP \fBFIS_TYPE\fP"
+.br
+.ti -1c
+.RI "typedef volatile struct \fB_HBA_MEM\fP \fBHBA_MEM\fP"
+.br
+.RI "AHCI Register layout (Global HBA Registers) "
+.ti -1c
+.RI "typedef volatile struct \fB_HBA_PORT\fP \fBHBA_PORT\fP"
+.br
+.RI "Per port registers at \fBHBA_MEM\fP + 0x100 + (port * 0x80) "
+.ti -1c
+.RI "typedef struct \fB_FIS_REG_H2D\fP \fBFIS_REG_H2D\fP"
+.br
+.RI "Register - Host to Device FIS (FIS_TYPE_REG_H2D) "
+.ti -1c
+.RI "typedef struct \fB_HBA_PRDT_ENTRY\fP \fBHBA_PRDT_ENTRY\fP"
+.br
+.RI "Physical Region Descriptor Table Entry\&. "
+.ti -1c
+.RI "typedef struct \fB_HBA_CMD_TBL\fP \fBHBA_CMD_TBL\fP"
+.br
+.RI "Command Table: one per slot\&. "
+.ti -1c
+.RI "typedef struct \fB_HBA_CMD_HEADER\fP \fBHBA_CMD_HEADER\fP"
+.br
+.RI "HBA Command Header (defines an AHCI Command) "
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum \fB_FIS_TYPE\fP { \fBFIS_TYPE_REG_H2D\fP = 0x27, \fBFIS_TYPE_REG_D2H\fP = 0x34, \fBFIS_TYPE_DMA_ACT\fP = 0x39, \fBFIS_TYPE_DMA_SETUP\fP = 0x41, \fBFIS_TYPE_DATA\fP = 0x46, \fBFIS_TYPE_BIST\fP = 0x58, \fBFIS_TYPE_PIO_SETUP\fP = 0x5F, \fBFIS_TYPE_DEV_BITS\fP = 0xA1 }"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_init\fP (void)"
+.br
+.RI "#define AHCI_DEBUG_PRINT "
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_read_sector\fP (\fBBLOCK_DEVICE\fP *dev, uint32_t lba, void *buf)"
+.br
+.RI "Read a single 512-byte sector from the given LBA on a specific \fBBLOCK_DEVICE\fP\&. "
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_write_sector\fP (\fBBLOCK_DEVICE\fP *dev, uint32_t lba, const void *buf)"
+.br
+.RI "Write a single 512-byte sector to given LBA on a specific \fBBLOCK_DEVICE\fP\&. "
+.ti -1c
+.RI "\fBBLOCK_DEVICE\fP * \fBahci_get_block_device\fP (int index)"
+.br
+.RI "Retrieve a pointer to the AHCI driver's \fBBLOCK_DEVICE\fP instance\&. "
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define AHCI_DEV_NULL   0"
+
+.PP
+Definition at line \fB158\fP of file \fBahci\&.h\fP\&.
+.SS "#define AHCI_DEV_PM   3"
+
+.PP
+Definition at line \fB161\fP of file \fBahci\&.h\fP\&.
+.SS "#define AHCI_DEV_SATA   1"
+
+.PP
+Definition at line \fB159\fP of file \fBahci\&.h\fP\&.
+.SS "#define AHCI_DEV_SATAPI   4"
+
+.PP
+Definition at line \fB162\fP of file \fBahci\&.h\fP\&.
+.SS "#define AHCI_DEV_SEMB   2"
+
+.PP
+Definition at line \fB160\fP of file \fBahci\&.h\fP\&.
+.SS "#define AHCI_MAX_PORTS   32"
+
+.PP
+Definition at line \fB17\fP of file \fBahci\&.h\fP\&.
+.SS "#define ATA_CMD_READ_DMA_EX   0x25"
+
+.PP
+Definition at line \fB155\fP of file \fBahci\&.h\fP\&.
+.SS "#define ATA_CMD_WRITE_DMA_EX   0x35"
+
+.PP
+Definition at line \fB156\fP of file \fBahci\&.h\fP\&.
+.SS "#define ATA_DEV_BSY   0x80"
+
+.PP
+Definition at line \fB151\fP of file \fBahci\&.h\fP\&.
+.SS "#define ATA_DEV_DRQ   0x08"
+
+.PP
+Definition at line \fB152\fP of file \fBahci\&.h\fP\&.
+.SS "#define ATA_DEV_ERR   0x01"
+
+.PP
+Definition at line \fB153\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_CMD_HDR_A_BIT   (1u << 5)"
+
+.PP
+Definition at line \fB147\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_CMD_HDR_CFL_MASK   0x0000001Fu"
+
+.PP
+Definition at line \fB146\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_CMD_HDR_P_BIT   (1u << 7)"
+
+.PP
+Definition at line \fB149\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_CMD_HDR_PRDTL_MASK   0xFFFF0000u"
+
+.PP
+Definition at line \fB150\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_CMD_HDR_W_BIT   (1u << 6)"
+
+.PP
+Definition at line \fB148\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PORT_DET_PRESENT   3"
+
+.PP
+Definition at line \fB165\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PORT_IPM_ACTIVE   1"
+
+.PP
+Definition at line \fB164\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PxCMD_CR   0x8000"
+
+.PP
+Definition at line \fB170\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PxCMD_FR   0x4000"
+
+.PP
+Definition at line \fB169\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PxCMD_FRE   0x0010"
+
+.PP
+Definition at line \fB168\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PxCMD_ST   0x0001"
+
+.PP
+Definition at line \fB167\fP of file \fBahci\&.h\fP\&.
+.SS "#define HBA_PxIS_TFES   (1 << 30)       /* TFES \- Task File Error Status */"
+
+.PP
+Definition at line \fB171\fP of file \fBahci\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_FIS_REG_H2D\fP \fBFIS_REG_H2D\fP"
+
+.PP
+Register - Host to Device FIS (FIS_TYPE_REG_H2D) 
+.SS "typedef enum \fB_FIS_TYPE\fP \fBFIS_TYPE\fP"
+
+.SS "typedef struct \fB_HBA_CMD_HEADER\fP \fBHBA_CMD_HEADER\fP"
+
+.PP
+HBA Command Header (defines an AHCI Command) 
+.SS "typedef struct \fB_HBA_CMD_TBL\fP \fBHBA_CMD_TBL\fP"
+
+.PP
+Command Table: one per slot\&. 
+.SS "typedef volatile struct \fB_HBA_MEM\fP \fBHBA_MEM\fP"
+
+.PP
+AHCI Register layout (Global HBA Registers) 
+.SS "typedef volatile struct \fB_HBA_PORT\fP \fBHBA_PORT\fP"
+
+.PP
+Per port registers at \fBHBA_MEM\fP + 0x100 + (port * 0x80) 
+.SS "typedef struct \fB_HBA_PRDT_ENTRY\fP \fBHBA_PRDT_ENTRY\fP"
+
+.PP
+Physical Region Descriptor Table Entry\&. 
+.SH "Enumeration Type Documentation"
+.PP 
+.SS "enum \fB_FIS_TYPE\fP"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIFIS_TYPE_REG_H2D \fP
+.TP
+\f(BIFIS_TYPE_REG_D2H \fP
+.TP
+\f(BIFIS_TYPE_DMA_ACT \fP
+.TP
+\f(BIFIS_TYPE_DMA_SETUP \fP
+.TP
+\f(BIFIS_TYPE_DATA \fP
+.TP
+\f(BIFIS_TYPE_BIST \fP
+.TP
+\f(BIFIS_TYPE_PIO_SETUP \fP
+.TP
+\f(BIFIS_TYPE_DEV_BITS \fP
+.PP
+Definition at line \fB19\fP of file \fBahci\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "\fBBLOCK_DEVICE\fP * ahci_get_block_device (int index)"
+
+.PP
+Retrieve a pointer to the AHCI driver's \fBBLOCK_DEVICE\fP instance\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIindex\fP Index of the \fBBLOCK_DEVICE\fP registration\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+A \fBBLOCK_DEVICE\fP struct pointer\&.
+.RE
+.PP
+
+.PP
+Definition at line \fB642\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_init (void )"
+
+.PP
+#define AHCI_DEBUG_PRINT Initialize the AHCI Driver\&.
+
+.PP
+\fBReturns\fP
+.RS 4
+True or False based if it initialized correctly or not\&. (if failure = bugcheck)
+.RE
+.PP
+
+.PP
+Definition at line \fB288\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_read_sector (\fBBLOCK_DEVICE\fP * dev, uint32_t lba, void * buf)"
+
+.PP
+Read a single 512-byte sector from the given LBA on a specific \fBBLOCK_DEVICE\fP\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIdev\fP Takes the \fBBLOCK_DEVICE\fP device pointer (on register_block_device)
+.br
+\fIlba\fP LBA to read from\&.
+.br
+\fIbuf\fP Return buffer to place the data read\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+True or False based on succession | buf pointer changes\&.
+.RE
+.PP
+
+.PP
+Definition at line \fB328\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_write_sector (\fBBLOCK_DEVICE\fP * dev, uint32_t lba, const void * buf)"
+
+.PP
+Write a single 512-byte sector to given LBA on a specific \fBBLOCK_DEVICE\fP\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIdev\fP Takes the \fBBLOCK_DEVICE\fP device pointer (on register_block_device)
+.br
+\fIlba\fP LBA to read from\&.
+.br
+\fIbuf\fP The buffer to write to the specified LBA\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+True or False based on succession
+.RE
+.PP
+
+.PP
+Definition at line \fB551\fP of file \fBahci\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

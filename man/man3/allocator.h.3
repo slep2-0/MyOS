@@ -1,0 +1,71 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/allocator.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/allocator.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include '\&.\&./\&.\&./cpu/cpu\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./trace\&.h'\fP
+.br
+\fR#include 'uefi_memory\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBPHYS_MEM_OFFSET\fP   0xffff880000000000ULL"
+.br
+.ti -1c
+.RI "#define \fBFRAME_SIZE\fP   4096ULL"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBframe_bitmap_init\fP (void)"
+.br
+.ti -1c
+.RI "uintptr_t \fBalloc_frame\fP (void)"
+.br
+.ti -1c
+.RI "void \fBfree_frame\fP (uintptr_t p)"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define FRAME_SIZE   4096ULL"
+
+.PP
+Definition at line \fB19\fP of file \fBallocator\&.h\fP\&.
+.SS "#define PHYS_MEM_OFFSET   0xffff880000000000ULL"
+
+.PP
+Definition at line \fB9\fP of file \fBallocator\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "uintptr_t alloc_frame (void )"
+Removed reserved pages use, for safeguarding against memory corruption within the kernel\&.
+.PP
+Definition at line \fB133\fP of file \fBallocator\&.c\fP\&.
+.SS "void frame_bitmap_init (void )"
+
+.PP
+Definition at line \fB61\fP of file \fBallocator\&.c\fP\&.
+.SS "void free_frame (uintptr_t p)"
+
+.PP
+Definition at line \fB149\fP of file \fBallocator\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

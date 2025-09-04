@@ -1,0 +1,49 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/memory/allocator/allocator.c File Reference}
+\hypertarget{allocator_8c}{}\label{allocator_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/allocator.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/allocator.c}}
+{\ttfamily \#include "{}allocator.\+h"{}}\newline
+{\ttfamily \#include "{}../../bugcheck/bugcheck.\+h"{}}\newline
+{\ttfamily \#include "{}../memory.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{allocator_8c_af4512add62b5d487bf56ff115f3e16d7}{frame\+\_\+bitmap\+\_\+init}} (void)
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{allocator_8c_a8bb840f3e319d15269adf7f9110f4bc9}{alloc\+\_\+frame}} (void)
+\item 
+void \mbox{\hyperlink{allocator_8c_a000852beb10aa667f95a9ac94ebe847c}{free\+\_\+frame}} (uintptr\+\_\+t p)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{allocator_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{allocator_8c_a8bb840f3e319d15269adf7f9110f4bc9}\index{allocator.c@{allocator.c}!alloc\_frame@{alloc\_frame}}
+\index{alloc\_frame@{alloc\_frame}!allocator.c@{allocator.c}}
+\doxysubsubsection{\texorpdfstring{alloc\_frame()}{alloc\_frame()}}
+{\footnotesize\ttfamily \label{allocator_8c_a8bb840f3e319d15269adf7f9110f4bc9} 
+uintptr\+\_\+t alloc\+\_\+frame (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+Removed reserved pages use, for safeguarding against memory corruption within the kernel.
+
+Definition at line \mbox{\hyperlink{allocator_8c_source_l00133}{133}} of file \mbox{\hyperlink{allocator_8c_source}{allocator.\+c}}.
+
+\Hypertarget{allocator_8c_af4512add62b5d487bf56ff115f3e16d7}\index{allocator.c@{allocator.c}!frame\_bitmap\_init@{frame\_bitmap\_init}}
+\index{frame\_bitmap\_init@{frame\_bitmap\_init}!allocator.c@{allocator.c}}
+\doxysubsubsection{\texorpdfstring{frame\_bitmap\_init()}{frame\_bitmap\_init()}}
+{\footnotesize\ttfamily \label{allocator_8c_af4512add62b5d487bf56ff115f3e16d7} 
+void frame\+\_\+bitmap\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{allocator_8c_source_l00061}{61}} of file \mbox{\hyperlink{allocator_8c_source}{allocator.\+c}}.
+
+\Hypertarget{allocator_8c_a000852beb10aa667f95a9ac94ebe847c}\index{allocator.c@{allocator.c}!free\_frame@{free\_frame}}
+\index{free\_frame@{free\_frame}!allocator.c@{allocator.c}}
+\doxysubsubsection{\texorpdfstring{free\_frame()}{free\_frame()}}
+{\footnotesize\ttfamily \label{allocator_8c_a000852beb10aa667f95a9ac94ebe847c} 
+void free\+\_\+frame (\begin{DoxyParamCaption}\item[{uintptr\+\_\+t}]{p}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{allocator_8c_source_l00149}{149}} of file \mbox{\hyperlink{allocator_8c_source}{allocator.\+c}}.
+

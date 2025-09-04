@@ -1,0 +1,64 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/isr.c" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/isr.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'idt\&.h'\fP
+.br
+
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fB__attribute__\fP ((used))"
+.br
+.ti -1c
+.RI "void \fBinit_interrupts\fP ()"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBGOP_PARAMS\fP \fBgop_local\fP"
+.br
+.ti -1c
+.RI "const bool \fBhas_error_code\fP []"
+.br
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "__attribute__ ((used) )"
+
+.PP
+Definition at line \fB20\fP of file \fBisr\&.c\fP\&.
+.SS "void init_interrupts (void )"
+
+.PP
+Definition at line \fB110\fP of file \fBisr\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "\fBGOP_PARAMS\fP gop_local\fR [extern]\fP"
+
+.PP
+Definition at line \fB15\fP of file \fBkernel\&.c\fP\&.
+.SS "const bool has_error_code[]"
+\fBInitial value:\fP
+.nf
+= {
+    false, false, false, false, false, false, false, false, 
+    true,  false, true,  true,  true,  true,  true,  false, 
+    false, false, false, false, false, false, false, false, 
+    false, false, false, false, false, false, false, false  
+}
+.PP
+.fi
+
+.PP
+Definition at line \fB12\fP of file \fBisr\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

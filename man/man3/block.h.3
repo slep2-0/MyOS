@@ -1,0 +1,64 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include '\&.\&./\&.\&./trace\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./bugcheck/bugcheck\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./cpu/cpu\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./mtstatus\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_BLOCK_DEVICE\fP"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct \fB_BLOCK_DEVICE\fP \fBBLOCK_DEVICE\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBregister_block_device\fP (\fBBLOCK_DEVICE\fP *dev)"
+.br
+.ti -1c
+.RI "\fBBLOCK_DEVICE\fP * \fBget_block_device\fP (int index)"
+.br
+.in -1c
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_BLOCK_DEVICE\fP \fBBLOCK_DEVICE\fP"
+
+.SH "Function Documentation"
+.PP 
+.SS "\fBBLOCK_DEVICE\fP * get_block_device (int index)"
+
+.PP
+Definition at line \fB33\fP of file \fBblock\&.c\fP\&.
+.SS "void register_block_device (\fBBLOCK_DEVICE\fP * dev)"
+
+.PP
+Definition at line \fB15\fP of file \fBblock\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

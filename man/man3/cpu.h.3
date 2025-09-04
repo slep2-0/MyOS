@@ -1,0 +1,107 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include <stdatomic\&.h>\fP
+.br
+\fR#include 'cpu_types\&.h'\fP
+.br
+\fR#include 'irql/irql\&.h'\fP
+.br
+\fR#include 'spinlock/spinlock\&.h'\fP
+.br
+\fR#include 'dpc/dpc\&.h'\fP
+.br
+\fR#include 'dpc/dpc_list\&.h'\fP
+.br
+\fR#include 'scheduler/scheduler\&.h'\fP
+.br
+\fR#include 'thread/thread\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBSAVE_CTX_FRAME\fP(ctx_ptr)"
+.br
+.ti -1c
+.RI "#define \fBGET_RIP\fP(RIPVAR_NOPTR)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBread_interrupt_frame\fP (\fBINT_FRAME\fP *frame)"
+.br
+.RI "Read the current interrupt frame\&. "
+.ti -1c
+.RI "void \fBInitCPU\fP (void)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBSPINLOCK\fP \fBqueueLock\fP"
+.br
+.ti -1c
+.RI "\fBCPU\fP \fBcpu\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define GET_RIP( RIPVAR_NOPTR)"
+\fBValue:\fP
+.nf
+    __asm__ __volatile__ ("lea (%%rip), %0" : "=r" (RIPVAR_NOPTR));
+.PP
+.fi
+
+.PP
+Definition at line \fB80\fP of file \fBcpu\&.h\fP\&.
+.SS "#define SAVE_CTX_FRAME( ctx_ptr)"
+
+.PP
+Definition at line \fB15\fP of file \fBcpu\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void InitCPU (void )"
+
+.PP
+Definition at line \fB94\fP of file \fBkernel\&.c\fP\&.
+.SS "void read_interrupt_frame (\fBINT_FRAME\fP * frame)"
+
+.PP
+Read the current interrupt frame\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIframe\fP \fBINT_FRAME\fP pointer\&.
+.RE
+.PP
+
+.SH "Variable Documentation"
+.PP 
+.SS "\fBCPU\fP cpu\fR [extern]\fP"
+
+.PP
+Definition at line \fB23\fP of file \fBkernel\&.c\fP\&.
+.SS "\fBSPINLOCK\fP queueLock\fR [extern]\fP"
+
+.PP
+Definition at line \fB13\fP of file \fBscheduler\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.

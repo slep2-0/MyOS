@@ -1,0 +1,47 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/dpc/dpc\+\_\+list.c File Reference}
+\hypertarget{dpc__list_8c}{}\label{dpc__list_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc\_list.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc\_list.c}}
+{\ttfamily \#include "{}../cpu.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{dpc__list_8c_a67164a4c67eab21fd1e2ee88e93f447b}{Schedule\+DPC}} (void)
+\begin{DoxyCompactList}\small\item\em Schedule\+DPC, used to enable the Scheduling\+\_\+needed flag to TRUE. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+volatile bool \mbox{\hyperlink{dpc__list_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\+\_\+pending}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{dpc__list_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{dpc__list_8c_a67164a4c67eab21fd1e2ee88e93f447b}\index{dpc\_list.c@{dpc\_list.c}!ScheduleDPC@{ScheduleDPC}}
+\index{ScheduleDPC@{ScheduleDPC}!dpc\_list.c@{dpc\_list.c}}
+\doxysubsubsection{\texorpdfstring{ScheduleDPC()}{ScheduleDPC()}}
+{\footnotesize\ttfamily \label{dpc__list_8c_a67164a4c67eab21fd1e2ee88e93f447b} 
+void Schedule\+DPC (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Schedule\+DPC, used to enable the Scheduling\+\_\+needed flag to TRUE. 
+
+
+
+Definition at line \mbox{\hyperlink{dpc__list_8c_source_l00010}{10}} of file \mbox{\hyperlink{dpc__list_8c_source}{dpc\+\_\+list.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{dpc__list_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{dpc__list_8c_a4c2cfad020fec829877b17fb6ae3ee2d}\index{dpc\_list.c@{dpc\_list.c}!schedule\_pending@{schedule\_pending}}
+\index{schedule\_pending@{schedule\_pending}!dpc\_list.c@{dpc\_list.c}}
+\doxysubsubsection{\texorpdfstring{schedule\_pending}{schedule\_pending}}
+{\footnotesize\ttfamily \label{dpc__list_8c_a4c2cfad020fec829877b17fb6ae3ee2d} 
+volatile bool schedule\+\_\+pending\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00013}{13}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+

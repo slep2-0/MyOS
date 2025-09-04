@@ -1,0 +1,189 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/scheduler/scheduler.h File Reference}
+\hypertarget{scheduler_8h}{}\label{scheduler_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/scheduler/scheduler.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/scheduler/scheduler.h}}
+{\ttfamily \#include "{}../cpu.\+h"{}}\newline
+{\ttfamily \#include "{}../../memory/memory.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a77eed905fa1d3854b4b5db0478e3bed0}{DEFAULT\+\_\+\+TIMESLICE}}~1
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_ab0b69b822e9207a5960bc07fc3d36ee4}{KERNEL\+\_\+\+CS}}~0x08
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a9ab64d7031c0d5cca5b5cca826c4ce63}{KERNEL\+\_\+\+DS}}~0x10
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a0f0e6aa17e708f29f1de07be4d6c53e8}{KERNEL\+\_\+\+SS}}~0x10
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a32134ca8ad3890b9f208cf4ec56477e0}{USER\+\_\+\+CS}}~0x18
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a26cfc41c1bddc0fc379ca65503945da4}{USER\+\_\+\+DS}}~0x20
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_ab7835d5c0b7d8988f4b58c033cd8e8d0}{USER\+\_\+\+SS}}~0x20
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_adb8792df15fae65ccbdbe23328dbba0b}{INITIAL\+\_\+\+RFLAGS}}~0x202
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a42d2be9195a6eaec44cd3f5a9ff372eb}{USER\+\_\+\+RFLAGS}}~0x246
+\item 
+\#define \mbox{\hyperlink{scheduler_8h_a3704f03cdd4bf512f23ef7b0a9069d84}{Yield}}()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{scheduler_8h_aeeccb93d922e4fb825916b6ca880ec10}{Init\+Scheduler}} (void)
+\item 
+void \mbox{\hyperlink{scheduler_8h_a3f4dc5fcea4efe91c75e4760d804828e}{Schedule}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}} \mbox{\hyperlink{scheduler_8h_a0b2a3530e9a5998456be351b4251b878}{cpu}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{scheduler_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{scheduler_8h_a77eed905fa1d3854b4b5db0478e3bed0}\index{scheduler.h@{scheduler.h}!DEFAULT\_TIMESLICE@{DEFAULT\_TIMESLICE}}
+\index{DEFAULT\_TIMESLICE@{DEFAULT\_TIMESLICE}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{DEFAULT\_TIMESLICE}{DEFAULT\_TIMESLICE}}
+{\footnotesize\ttfamily \label{scheduler_8h_a77eed905fa1d3854b4b5db0478e3bed0} 
+\#define DEFAULT\+\_\+\+TIMESLICE~1}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00015}{15}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_adb8792df15fae65ccbdbe23328dbba0b}\index{scheduler.h@{scheduler.h}!INITIAL\_RFLAGS@{INITIAL\_RFLAGS}}
+\index{INITIAL\_RFLAGS@{INITIAL\_RFLAGS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{INITIAL\_RFLAGS}{INITIAL\_RFLAGS}}
+{\footnotesize\ttfamily \label{scheduler_8h_adb8792df15fae65ccbdbe23328dbba0b} 
+\#define INITIAL\+\_\+\+RFLAGS~0x202}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00023}{23}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_ab0b69b822e9207a5960bc07fc3d36ee4}\index{scheduler.h@{scheduler.h}!KERNEL\_CS@{KERNEL\_CS}}
+\index{KERNEL\_CS@{KERNEL\_CS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{KERNEL\_CS}{KERNEL\_CS}}
+{\footnotesize\ttfamily \label{scheduler_8h_ab0b69b822e9207a5960bc07fc3d36ee4} 
+\#define KERNEL\+\_\+\+CS~0x08}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00017}{17}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a9ab64d7031c0d5cca5b5cca826c4ce63}\index{scheduler.h@{scheduler.h}!KERNEL\_DS@{KERNEL\_DS}}
+\index{KERNEL\_DS@{KERNEL\_DS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{KERNEL\_DS}{KERNEL\_DS}}
+{\footnotesize\ttfamily \label{scheduler_8h_a9ab64d7031c0d5cca5b5cca826c4ce63} 
+\#define KERNEL\+\_\+\+DS~0x10}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00018}{18}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a0f0e6aa17e708f29f1de07be4d6c53e8}\index{scheduler.h@{scheduler.h}!KERNEL\_SS@{KERNEL\_SS}}
+\index{KERNEL\_SS@{KERNEL\_SS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{KERNEL\_SS}{KERNEL\_SS}}
+{\footnotesize\ttfamily \label{scheduler_8h_a0f0e6aa17e708f29f1de07be4d6c53e8} 
+\#define KERNEL\+\_\+\+SS~0x10}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00019}{19}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a32134ca8ad3890b9f208cf4ec56477e0}\index{scheduler.h@{scheduler.h}!USER\_CS@{USER\_CS}}
+\index{USER\_CS@{USER\_CS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{USER\_CS}{USER\_CS}}
+{\footnotesize\ttfamily \label{scheduler_8h_a32134ca8ad3890b9f208cf4ec56477e0} 
+\#define USER\+\_\+\+CS~0x18}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00020}{20}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a26cfc41c1bddc0fc379ca65503945da4}\index{scheduler.h@{scheduler.h}!USER\_DS@{USER\_DS}}
+\index{USER\_DS@{USER\_DS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{USER\_DS}{USER\_DS}}
+{\footnotesize\ttfamily \label{scheduler_8h_a26cfc41c1bddc0fc379ca65503945da4} 
+\#define USER\+\_\+\+DS~0x20}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00021}{21}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a42d2be9195a6eaec44cd3f5a9ff372eb}\index{scheduler.h@{scheduler.h}!USER\_RFLAGS@{USER\_RFLAGS}}
+\index{USER\_RFLAGS@{USER\_RFLAGS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{USER\_RFLAGS}{USER\_RFLAGS}}
+{\footnotesize\ttfamily \label{scheduler_8h_a42d2be9195a6eaec44cd3f5a9ff372eb} 
+\#define USER\+\_\+\+RFLAGS~0x246}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00024}{24}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_ab7835d5c0b7d8988f4b58c033cd8e8d0}\index{scheduler.h@{scheduler.h}!USER\_SS@{USER\_SS}}
+\index{USER\_SS@{USER\_SS}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{USER\_SS}{USER\_SS}}
+{\footnotesize\ttfamily \label{scheduler_8h_ab7835d5c0b7d8988f4b58c033cd8e8d0} 
+\#define USER\+\_\+\+SS~0x20}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00022}{22}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+\Hypertarget{scheduler_8h_a3704f03cdd4bf512f23ef7b0a9069d84}\index{scheduler.h@{scheduler.h}!Yield@{Yield}}
+\index{Yield@{Yield}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{Yield}{Yield}}
+{\footnotesize\ttfamily \label{scheduler_8h_a3704f03cdd4bf512f23ef7b0a9069d84} 
+\#define Yield(\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{scheduler_8c_a3f4dc5fcea4efe91c75e4760d804828e}{Schedule}}()}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{scheduler_8h_source_l00033}{33}} of file \mbox{\hyperlink{scheduler_8h_source}{scheduler.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{scheduler_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{scheduler_8h_aeeccb93d922e4fb825916b6ca880ec10}\index{scheduler.h@{scheduler.h}!InitScheduler@{InitScheduler}}
+\index{InitScheduler@{InitScheduler}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{InitScheduler()}{InitScheduler()}}
+{\footnotesize\ttfamily \label{scheduler_8h_aeeccb93d922e4fb825916b6ca880ec10} 
+void Init\+Scheduler (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00023}{23}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+
+\Hypertarget{scheduler_8h_a3f4dc5fcea4efe91c75e4760d804828e}\index{scheduler.h@{scheduler.h}!Schedule@{Schedule}}
+\index{Schedule@{Schedule}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{Schedule()}{Schedule()}}
+{\footnotesize\ttfamily \label{scheduler_8h_a3f4dc5fcea4efe91c75e4760d804828e} 
+void Schedule (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00063}{63}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{scheduler_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{scheduler_8h_a0b2a3530e9a5998456be351b4251b878}\index{scheduler.h@{scheduler.h}!cpu@{cpu}}
+\index{cpu@{cpu}!scheduler.h@{scheduler.h}}
+\doxysubsubsection{\texorpdfstring{cpu}{cpu}}
+{\footnotesize\ttfamily \label{scheduler_8h_a0b2a3530e9a5998456be351b4251b878} 
+\mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}} cpu\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00023}{23}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

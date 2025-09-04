@@ -1,0 +1,81 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/scheduler/scheduler.c" 3 "My Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/scheduler/scheduler.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'scheduler\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./bugcheck/bugcheck\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBIDLE_STACK_SIZE\fP   4096"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBrestore_context\fP (\fBCTX_FRAME\fP *regs)"
+.br
+.ti -1c
+.RI "void \fBkernel_idle_checks\fP (void)"
+.br
+.ti -1c
+.RI "void \fBInitScheduler\fP (void)"
+.br
+.ti -1c
+.RI "void \fBSchedule\fP (void)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBSPINLOCK\fP \fBqueueLock\fP = { \&.LOCKED = ATOMIC_FLAG_INIT }"
+.br
+.ti -1c
+.RI "\fBThread\fP \fBidleThread\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define IDLE_STACK_SIZE   4096"
+
+.PP
+Definition at line \fB18\fP of file \fBscheduler\&.c\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void InitScheduler (void )"
+
+.PP
+Definition at line \fB23\fP of file \fBscheduler\&.c\fP\&.
+.SS "void kernel_idle_checks (void )\fR [extern]\fP"
+
+.PP
+Definition at line \fB107\fP of file \fBkernel\&.c\fP\&.
+.SS "void restore_context (\fBCTX_FRAME\fP * regs)\fR [extern]\fP"
+
+.SS "void Schedule (void )"
+
+.PP
+Definition at line \fB63\fP of file \fBscheduler\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "\fBThread\fP idleThread"
+
+.PP
+Definition at line \fB16\fP of file \fBscheduler\&.c\fP\&.
+.SS "\fBSPINLOCK\fP queueLock = { \&.LOCKED = ATOMIC_FLAG_INIT }"
+
+.PP
+Definition at line \fB13\fP of file \fBscheduler\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for My Project from the source code\&.
