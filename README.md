@@ -1,42 +1,87 @@
+# MatanelOS Kernel
+
 ![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,_STABLE-purple?style=for-the-badge)
 
-Starting this as a neat project, driven by curiosity and 1 person telling me to actually start it.
+MatanelOS is a 64-bit operating system built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32). This project is for educational purposes and low-level OS experimentation.
 
-Currently super barebones - has a UEFI bootloader (might incorporate BCD into it, when we have an OS better than windows that is)
+---
 
-UEFI Bootloader -> Kernel.
+## Table of Contents
 
-Tested with QEMU (64bit ver this time), built with gcc ffreestanding for no runtime libraries, and stripped to bare metal using objcopy -> then formatted in kali linux to a FAT32 binary (for the UEFI bootloader to load the kernel.bin).
+1. [Supported Features](#supported-features)
+2. [Current Development](#current-development)
+3. [Build & Test Environment](#build--test-environment)
+4. [Roadmap & Future Enhancements](#roadmap--future-enhancements)
+5. [Important Notes](#important-notes)
 
-Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 that let me use a UEFI bootloader: https://github.com/tianocore/edk2
+---
 
+## Supported Features
 
-**SUPPORTED FEATURES:**
-`64 BIT addressing (long mode) is now supported, along with it's equivalent features.`
+### Core Kernel Features
+| Feature | Status |
+|---------|--------|
+| 64-bit Long Mode | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Preemptive Multitasking | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| IRQLs (Interrupt Request Levels) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Deferred Procedure Calls (DPC) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Bugcheck System | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
+| Paging & Virtual Memory | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Interrupt Handling | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 
-`Preemption - Kernel is fully preemptive using scheduling and kernel threads`
+### Driver & Hardware
+| Feature | Status |
+|---------|--------|
+| AHCI Driver | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Dynamic Heap Memory Allocation | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| MTSTATUS Integration | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 
-`DPC's (Deferred Procedure Call) - Used to defer execution to a later lower IRQL in the kernel, to avoid staying on a high interrupt IRQL (supports only timer isr for now)`
+### Filesystem & VFS
+| Feature | Status |
+|---------|--------|
+| Virtual File System (VFS) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| FAT32 Driver | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 
-`IRQLs - IRQL support has been added (almost exactly like in windows)`
+---
 
-`Bugcheck - Half Bugcheck support, doesn't write to disk a minidump like windows, but does show a bugcheck screen, and halts the system`
+## Current Development
 
-`Paging - Virtual Memory Paging with permissions, like PAGE_PRESENT (is the page even mapped to physical memory?), PAGE_RW (Is the page read/write or only read?), PAGE_USER (Is the page both for user mode and kernel mode, or only kernel mode?)`
+| Component | Status |
+|-----------|--------|
+| Userland Support | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
+| Enhanced VFS Features | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
+| Minidumps | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| APIC & SMP | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Advanced Kernel Services | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 
-`Interrupts (with full exception management) -- basic keyboard interrupt to write to screen, as well as a basic interrupt timer (used for scheduling).`
+---
 
-`Full dynamic heap memory allocation.`
+## Build & Test Environment
 
-`Full AHCI Driver implementation`
+- **Compiler:** GCC 10.3 (C11)
+- **Tools:** binutils
+- **Kernel Format:** ELF (no objcopy needed)
+- **UEFI Bootloader:** Using [EDK2](https://github.com/tianocore/edk2)
+- **Testing:** QEMU x64 virtual environment
 
-`Full VFS (Virtual File System) with the fully fledged FAT32 driver as the root mounting point`
+---
 
-**WORKING ON:**
+## Roadmap & Future Enhancements
 
+| Feature | Status |
+|---------|--------|
+| Minidumps | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Userland Programs & Syscalls | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| APIC / SMP | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Extended VFS Support | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Advanced DPC / Timer Integration | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Kernel Debugging Tools | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Security & Permissions | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 
-`Userland`
+---
 
-`life.`
+## Important Notes
 
+MatanelOS is a preemptive, 64-bit kernel with Windows-inspired architecture. It’s designed for learning, low-level OS experimentation, and controlled testing in virtual environments.
 
+*Use this project responsibly. Intended for educational purposes only.*
