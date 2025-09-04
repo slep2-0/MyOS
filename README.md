@@ -30,7 +30,7 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 
 `Full AHCI Driver implementation`
 
-`Full FAT32 FS Driver with complete API Functions (reading, writing, directories, deleting)`
+`Full VFS (Virtual File System) with the fully fledged FAT32 driver as the root mounting point`
 
 **WORKING ON:**
 
@@ -38,3 +38,4 @@ Use GCC 4.6.3 (the one im using) with the latest binutils, along with this EDK2 
 `Userland`
 
 `life.`
+
