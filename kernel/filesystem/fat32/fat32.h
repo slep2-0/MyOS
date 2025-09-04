@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include "../../trace.h"
 #include "../../drivers/gop/gop.h"
+#include "../../mtstatus.h"
 
 #define END_OF_DIRECTORY 0x00
 #define DELETED_DIR_ENTRY 0xE5
@@ -90,7 +91,7 @@ typedef struct _FAT32_FSINFO {
 } FAT32_FSINFO;
 
 // Initialize a FAT32 FileSystem on a given block device.
-bool fat32_init(int disk_index);
+MTSTATUS fat32_init(int disk_index);
 
 // List files in root dir
 void fat32_list_root(void);
@@ -106,26 +107,21 @@ typedef enum _FAT32_ATTRIBUTES {
 	ATTR_LONG_NAME = 0x0F,  // Long File Name entry (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
 } FAT32_ATTRIBUTES;
 
-typedef enum _FAT32_WRITE_MODE {
-	FAT32_WRITE_MODE_CREATE_OR_OVERWRITE,
-	FAT32_WRITE_MODE_APPEND
-} FAT32_WRITE_MODE;
-
 /// <summary>
 /// A FAT32 Function that reads the file requested into a dynamically allocated buffer.
 /// </summary>
 /// <param name="filename">The Filename to read, e.g "file.txt" or "tmp/folder/myfile.txt"</param>
 /// <param name="file_size_out">A pointer to put the file size in bytes</param>
-/// <returns>A pointer to a newly allocated buffer containing the file's data, or NULL on failure.</returns>
-void* fat32_read_file(const char* filename, uint32_t* file_size_out);
-
+/// <param name="bufferOut">A pointer to put the file buffer in (doesn't need to be dynamically allocated)</param>
+/// <returns>MTSTATUS Status Code.</returns>
+MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** buffer_out);
 
 /// <summary>
 /// Creates a new directory
 /// </summary>
 /// <param name="path">The full path to the new directory</param>
-/// <returns>True or false based on succession.</returns>
-bool fat32_create_directory(const char* path);
+/// <returns>MTSTATUS Status code.</returns>
+MTSTATUS fat32_create_directory(const char* path);
 
 /// <summary>
 /// Creates a new file and writes data to it.
@@ -133,29 +129,32 @@ bool fat32_create_directory(const char* path);
 /// <param name="path">The full path of the file to create</param>
 /// <param name="data">A pointer to the data to write.</param>
 /// <param name="size">The number of bytes to write</param>
-/// <param name="file_modification_mode">Whether to APPEND or REPLACE the file. (in FAT32_WRITE_MODE enum)</param>
-/// <returns></returns>
-bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_WRITE_MODE file_modification_mode);
+/// <param name="file_modification_mode">Whether to APPEND or REPLACE the file. (in FS_WRITE_MODES enum)</param>
+/// <returns>MTSTATUS Status code.</returns>
+MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t file_modification_mode);
 
 /// <summary>
 /// Lists the directory given.
 /// </summary>
 /// <param name="path">Path to directory, e.g "mydir/" </param>
-void fat32_list_directory(const char* path);
+/// <param name="listings">[OUT] Pointer to directory listing. (each seperated with a newline character)</param>
+/// <param name="max_len">[IN] Max size of listings buffer.</param>
+/// <returns>MTSTATUS Status code.</returns>
+MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len);
 
 /// <summary>
 /// This function deletes the directory given to the function from the system.
 /// </summary>
 /// <param name="path">Full path to delete directory.</param>
-/// <returns>True or false based on succession</returns>
-bool fat32_delete_directory(const char* path);
+/// <returns>MTSTATUS Status code.</returns>
+MTSTATUS fat32_delete_directory(const char* path);
 
 /// <summary>
 /// This function deletes the file given to the function from the system.
 /// </summary>
 /// <param name="path">Full path to delete file.</param>
-/// <returns>True or false based on succession.</returns>
-bool fat32_delete_file(const char* path);
+/// <returns>MTSTATUS Status code.</returns>
+MTSTATUS fat32_delete_file(const char* path);
 
 /// <summary>
 /// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries)

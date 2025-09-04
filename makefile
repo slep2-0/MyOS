@@ -120,6 +120,10 @@ build/thread.o: kernel/cpu/thread/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+build/vfs.o: kernel/filesystem/vfs/vfs.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
 # DPC list can use common CFLAGS
 build/dpc_list.o: kernel/cpu/dpc/dpc_list.c
 	mkdir -p build
@@ -150,7 +154,7 @@ build/cpuid.o: kernel/cpu/cpuid/cpuid.asm
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
                       build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/thread.o build/vfs.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       kernel/linker.ld
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

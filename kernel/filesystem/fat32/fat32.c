@@ -8,6 +8,9 @@
 #include "../../drivers/blk/block.h"
 #include "../../assert.h"
 
+#define WRITE_MODE_APPEND_EXISTING 0
+#define WRITE_MODE_CREATE_OR_REPLACE 1
+
 static FAT32_BPB bpb;
 static FAT32_FSINFO fs;
 static BLOCK_DEVICE* disk;
@@ -22,13 +25,13 @@ typedef struct {
 } LFN_ENTRY_BUFFER;
 
 // Read sector into the buffer.
-static bool read_sector(uint32_t lba, void* buf) {
+static MTSTATUS read_sector(uint32_t lba, void* buf) {
 	tracelast_func("read_sector - fat32");
 	return disk->read_sector(disk, lba, buf);
 }
 
 // Write to sector from buffer
-static bool write_sector(uint32_t lba, const void* buf) {
+static MTSTATUS write_sector(uint32_t lba, const void* buf) {
 	tracelast_func("write_sector - fat32");
 	return disk->write_sector(disk, lba, buf);
 }
@@ -193,15 +196,15 @@ done:
 // Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
 static uint32_t fat32_read_fat(uint32_t cluster) {
 	tracelast_func("fat32_read_fat");
-
+	MTSTATUS status;
 	uint32_t fat_offset = cluster * 4;
 	uint32_t fat_sector = fs.fat_start + (fat_offset / fs.bytes_per_sector);
 	uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
 
 	void* buf = MtAllocateVirtualMemory(512, 512);
 	if (!buf) return 0x0FFFFFFF; // treat as EOF on allocation failure
-
-	if (!read_sector(fat_sector, buf)) {
+	status = read_sector(fat_sector, buf);
+	if (MT_FAILURE(status)) {
 		tracelast_func("Couldn't read sector.");
 		MtFreeVirtualMemory(buf);
 		return 0x0FFFFFFF;
@@ -227,16 +230,17 @@ static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
 
     void* buf = MtAllocateVirtualMemory(512, 512);
     if (!buf) return false;
-
+	MTSTATUS status;
     bool ok = true;
     for (uint32_t fat_i = 0; fat_i < bpb.num_fats; ++fat_i) {
         uint32_t fat_sector = fat_sector_base + fat_i * fs.sectors_per_fat + sec_index;
-        if (!read_sector(fat_sector, buf)) { ok = false; break; }
+		status = read_sector(fat_sector, buf);
+        if (MT_FAILURE(status)) { ok = false; break; }
 
         uint32_t* fat_entry = (uint32_t*)((uint8_t*)buf + ent_offset);
         *fat_entry = (*fat_entry & 0xF0000000) | (value & 0x0FFFFFFF);
-
-        if (!write_sector(fat_sector, buf)) { ok = false; break; }
+		status = write_sector(fat_sector, buf);
+        if (MT_FAILURE(status)) { ok = false; break; }
     }
 
     MtFreeVirtualMemory(buf);
@@ -284,10 +288,11 @@ static bool zero_cluster(uint32_t cluster) {
 	bool success = true;
 	if (!buf) return false;
 	kmemset(buf, 0, 512);
-
+	MTSTATUS status;
 	uint32_t sector = first_sector_of_cluster(cluster);
 	for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
-		if (!write_sector(sector + i, buf)) {
+		status = write_sector(sector + i, buf);
+		if (MT_FAILURE(status)) {
 			success = false;
 			break;
 		}
@@ -326,7 +331,7 @@ static inline bool ci_equal(const char* a, const char* b) {
 static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint32_t* out_parent_cluster) {
 	char path_copy[260];
 	kstrcpy(path_copy, path); // Use a mutable copy
-
+	MTSTATUS status;
 	uint32_t current_cluster = fs.root_cluster;
 	uint32_t parent_cluster_of_last_found = fs.root_cluster;
 
@@ -359,7 +364,8 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 		do {
 			uint32_t sector = first_sector_of_cluster(current_cluster);
 			for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
-				if (!read_sector(sector + i, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+				status = read_sector(sector + i, sector_buf);
+				if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return false; }
 
 				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)sector_buf;
 				uint32_t num_entries = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
@@ -470,11 +476,12 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 	uint32_t current_cluster = dir_cluster;
 	void* sector_buf = MtAllocateVirtualMemory(512, 512);
 	if (!sector_buf) return false;
-
+	MTSTATUS status;
 	do {
 		uint32_t sector_lba = first_sector_of_cluster(current_cluster);
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
-			if (!read_sector(sector_lba + i, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+			status = read_sector(sector_lba + i, sector_buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return false; }
 
 			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)sector_buf;
 			uint32_t num_entries = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
@@ -520,13 +527,16 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 #define BPB_SECTOR_START 2048
 
 // Read BPB (Bios Parameter Block) and initialize.
-bool fat32_init(int disk_index) {
+MTSTATUS fat32_init(int disk_index) {
 	tracelast_func("fat32_init");
+	MTSTATUS status;
 	disk = get_block_device(disk_index);
-	if (!disk) { return false; }
+	if (!disk) { return MT_GENERAL_FAILURE; }
 
 	void* buf = MtAllocateVirtualMemory(512, 512);
-	if (!read_sector(BPB_SECTOR_START, buf)) { return false; } // First sector contains the BPB for FAT.
+	if (!buf) return MT_NO_MEMORY;
+	status = read_sector(BPB_SECTOR_START, buf);
+	if (MT_FAILURE(status)) { return status; } // First sector contains the BPB for FAT.
 	kmemcpy(&bpb, buf, sizeof(bpb)); // So copy that first sector into our local BPB structure.
 
 	// Then initialize it.
@@ -539,7 +549,7 @@ bool fat32_init(int disk_index) {
 	fs.fat_start = BPB_SECTOR_START + bpb.reserved_sector_count; // technically also reserved_sector_count of fs. holds it as well.
 	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat;
 	MtFreeVirtualMemory(buf);
-	return true;
+	return MT_SUCCESS;
 }
 
 // Walk cluster chain and read directory entries.
@@ -553,15 +563,16 @@ void fat32_list_root(void) {
 	// Temp buffer to accumulate LFN entries (and eventually the 8.3 entry).
 	FAT32_DIR_ENTRY temp_entries[MAX_LFN_ENTRIES + 1];
 	uint32_t lfn_accum = 0;
-
+	MTSTATUS status;
 	do {
 		uint32_t sector = first_sector_of_cluster(cluster);
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; ++i) {
-			if (!read_sector(sector + i, buf)) return;
+			status = read_sector(sector + i, buf);
+			if (MT_FAILURE(status)) return;
 
 			FAT32_DIR_ENTRY* dir = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries = fs.bytes_per_sector / sizeof(*dir);
-
+			
 			for (uint32_t j = 0; j < entries; ++j, ++dir) {
 				uint8_t first = (uint8_t)dir->name[0];
 
@@ -694,12 +705,12 @@ static uint32_t extract_dir_cluster(const char* filename) {
 	return cluster;
 }
 
-void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
+MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** buffer_out) {
 	tracelast_func("fat32_read_file");
-
+	MTSTATUS status;
 	// We still need a temporary buffer for reading sectors
 	void* sblk = MtAllocateVirtualMemory(512, 512);
-	if (!sblk) return NULL;
+	if (!sblk) return MT_NO_MEMORY;
 
 	// Get the cluster of the directory filename points to (e.g "tmp/folder/myfile.txt", we need the "folder" cluster.)
 	uint32_t cluster = 0;
@@ -708,7 +719,7 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 		cluster = extract_dir_cluster(filename);
 		if (!cluster) {
 			MtFreeVirtualMemory(sblk);
-			return NULL;
+			return MT_FAT32_INVALID_CLUSTER;
 		}
 	}
 	else {
@@ -718,10 +729,11 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 	do {
 		uint32_t sector = first_sector_of_cluster(cluster);
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; ++i) {
-			if (!read_sector(sector + i, sblk)) {
+			status = read_sector(sector + i, sblk);
+			if (MT_FAILURE(status)) {
 				// Free sblk before returning
 				MtFreeVirtualMemory(sblk);
-				return NULL;
+				return status;
 			}
 
 			FAT32_DIR_ENTRY* dir_entries = (FAT32_DIR_ENTRY*)sblk;
@@ -733,7 +745,7 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 				if (current_entry->name[0] == END_OF_DIRECTORY) {
 					// Free sblk
 					MtFreeVirtualMemory(sblk);
-					return NULL; // End of directory, file not found
+					return MT_FAT32_FILE_NOT_FOUND; // End of directory, file not found
 				}
 				if ((uint8_t)current_entry->name[0] == DELETED_DIR_ENTRY) {
 					j++;
@@ -771,7 +783,7 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 						if (!file_buffer) {
 							// Free sblk
 							MtFreeVirtualMemory(sblk);
-							return NULL;
+							return MT_NO_MEMORY;
 						}
 
 						uint32_t file_cluster = (uint32_t)((sfn_entry->fst_clus_hi << 16) | sfn_entry->fst_clus_lo);
@@ -781,11 +793,12 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 						while (file_cluster < FAT32_EOC_MIN && remaining_bytes > 0) {
 							uint32_t current_sector = first_sector_of_cluster(file_cluster);
 							for (uint32_t sc = 0; sc < fs.sectors_per_cluster && remaining_bytes > 0; ++sc) {
-								if (!read_sector(current_sector + sc, sblk)) {
+								status = read_sector(current_sector + sc, sblk);
+								if (MT_FAILURE(status)) {
 									// Free both buffers
 									MtFreeVirtualMemory(file_buffer);
 									MtFreeVirtualMemory(sblk);
-									return NULL;
+									return status;
 								}
 
 								uint32_t bytes_to_copy = fs.bytes_per_sector;
@@ -802,7 +815,8 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 
 						// Free the temporary sector buffer and return the file buffer
 						MtFreeVirtualMemory(sblk);
-						return file_buffer;
+						*buffer_out = file_buffer;
+						return MT_SUCCESS;
 					}
 				}
 				else {
@@ -815,20 +829,19 @@ void* fat32_read_file(const char* filename, uint32_t* file_size_out) {
 
 	// Free sblk
 	MtFreeVirtualMemory(sblk);
-	return NULL; // File not found after searching the entire directory
+	return MT_FAT32_FILE_NOT_FOUND; // File not found after searching the entire directory
 }
 
-bool fat32_create_directory(const char* path) {
+MTSTATUS fat32_create_directory(const char* path) {
 	tracelast_func("fat32_create_directory_full");
-
 	// 1. Check if an entry already exists at this path
 	if (fat32_find_entry(path, NULL, NULL)) {
 #ifdef DEBUG
 		gop_printf(0xFFFF0000, "Error: Path '%s' already exists.\n", path);
 #endif
-		return false;
+		return MT_FAT32_DIRECTORY_ALREADY_EXISTS;
 	}
-
+	MTSTATUS status;
 	// 2. Separate parent path and new directory name
 	char path_copy[260];
 	kstrcpy(path_copy, path);
@@ -856,26 +869,26 @@ bool fat32_create_directory(const char* path) {
 #ifdef DEBUG
 		gop_printf(0xFFFF0000, "Error: Parent path '%s' not found.\n", parent_path);
 #endif
-		return false;
+		return MT_FAT32_PARENT_PATH_NOT_FOUND;
 	}
 	if (!(parent_entry.attr & ATTR_DIRECTORY)) {
 #ifdef DEBUG
 		gop_printf(0xFFFF0000, "Error: Parent path is not a directory.\n", parent_path);
 #endif
-		return false;
+		return MT_FAT32_PARENT_PATH_NOT_DIR;
 	}
 	parent_cluster = (parent_entry.fst_clus_hi << 16) | parent_entry.fst_clus_lo;
 
 	// 4. Allocate a new cluster for this directory's contents
 	uint32_t new_cluster = fat32_find_free_cluster();
-	if (new_cluster == 0) return false;
+	if (new_cluster == 0) return MT_FAT32_CLUSTERS_FULL;
 
 	fat32_write_fat(new_cluster, FAT32_EOC_MAX);
 	zero_cluster(new_cluster);
 
 	// 5. Create '.' and '..' entries in the new cluster
 	void* sector_buf = MtAllocateVirtualMemory(512, 512);
-	if (!sector_buf) { /* handle error */ return false; }
+	if (!sector_buf) { /* handle error */ return MT_MEMORY_LIMIT; }
 	kmemset(sector_buf, 0, 512);
 	FAT32_DIR_ENTRY* dot_entries = (FAT32_DIR_ENTRY*)sector_buf;
 
@@ -901,11 +914,12 @@ bool fat32_create_directory(const char* path) {
 		// free sector_buf, free cluster...
 		MtFreeVirtualMemory(sector_buf);
 		fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
-		return false;
+		return MT_FAT32_DIR_FULL;
 	}
 
 	// Read the target sector, modify it, write it back
-	if (!read_sector(entry_sector, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+	status = read_sector(entry_sector, sector_buf);
+	if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 
 	FAT32_DIR_ENTRY* new_entry = &((FAT32_DIR_ENTRY*)sector_buf)[entry_index];
 	kmemset(new_entry, 0, sizeof(FAT32_DIR_ENTRY));
@@ -914,11 +928,11 @@ bool fat32_create_directory(const char* path) {
 	new_entry->fst_clus_lo = (uint16_t)new_cluster;
 	new_entry->fst_clus_hi = (uint16_t)(new_cluster >> 16);
 
-	bool success = write_sector(entry_sector, sector_buf);
+	status = write_sector(entry_sector, sector_buf);
 
 	// free sector_buf
 	MtFreeVirtualMemory(sector_buf);
-	return success;
+	return status;
 }
 
 static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const char* long_name, uint8_t sfn_checksum) {
@@ -967,15 +981,13 @@ static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const ch
 	return num_lfn_entries;
 }
 
-bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_WRITE_MODE mode) {
+MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
 	tracelast_func("fat32_write_file_full");
-
-	// Steps 1 & 2: Same as create_directory to find parent path and new filename
-
 	// Safety check.
-	if (mode != FAT32_WRITE_MODE_CREATE_OR_OVERWRITE && mode != FAT32_WRITE_MODE_APPEND) {
-		return false;
+	if (mode != WRITE_MODE_CREATE_OR_REPLACE && mode != WRITE_MODE_APPEND_EXISTING) {
+		return MT_FAT32_INVALID_WRITE_MODE;
 	}
+	MTSTATUS status;
 	uint32_t first_cluster = 0;
 	// parse parent + filename.
 	char path_copy[260];
@@ -992,7 +1004,7 @@ bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_W
 
 	// Step 3: Find parent directory cluster
 	FAT32_DIR_ENTRY parent_entry;
-	if (!fat32_find_entry(parent_path, &parent_entry, NULL) || !(parent_entry.attr & ATTR_DIRECTORY)) { return false; }
+	if (!fat32_find_entry(parent_path, &parent_entry, NULL) || !(parent_entry.attr & ATTR_DIRECTORY)) { return MT_FAT32_CLUSTER_NOT_FOUND; }
 	uint32_t parent_cluster = (parent_entry.fst_clus_hi << 16) | parent_entry.fst_clus_lo;
 
 	// locate existing entry if any
@@ -1007,12 +1019,13 @@ bool fat32_write_file(const char* path, const void* data, uint32_t size, FAT32_W
 
 	{
 		void* buf = MtAllocateVirtualMemory(512, 512);
-		if (!buf) return false;
+		if (!buf) return MT_NO_MEMORY;
 		uint32_t cluster = parent_cluster;
 		do {
 			uint32_t sector_lba = first_sector_of_cluster(cluster);
 			for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
-				if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+				status = read_sector(sector_lba + s, buf);
+				if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return status; }
 				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
 				uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
 
@@ -1064,11 +1077,11 @@ locate_done:
 	// Behavior:
 	// - CREATE_OR_OVERWRITE: if file exists -> free its clusters; treat as new file
 	// - APPEND: if file exists -> append to its chain; otherwise behave like create
-	if (mode == FAT32_WRITE_MODE_CREATE_OR_OVERWRITE) {
+	if (mode == WRITE_MODE_CREATE_OR_REPLACE) {
 		// If exists, free existing cluster chain and reset first_cluster
 		if (exists && first_cluster >= 2) {
 			if (!fat32_free_cluster_chain(first_cluster)) {
-				return false;
+				return MT_FAT32_INVALID_CLUSTER;
 			}
 		}
 		first_cluster = 0;
@@ -1084,7 +1097,7 @@ locate_done:
 		uint32_t last_cluster = 0;
 		uint32_t append_offset = 0;
 
-		if (mode == FAT32_WRITE_MODE_APPEND && exists && first_cluster != 0) {
+		if (mode == WRITE_MODE_APPEND_EXISTING && exists && first_cluster != 0) {
 			// find last cluster of existing file and offset
 			uint32_t cur = first_cluster;
 			uint32_t next = cur;
@@ -1105,7 +1118,7 @@ locate_done:
 		}
 
 		// compute clusters needed (account for partial last cluster when appending)
-		if (mode == FAT32_WRITE_MODE_APPEND && exists && append_offset > 0) {
+		if (mode == WRITE_MODE_APPEND_EXISTING && exists && append_offset > 0) {
 			uint32_t bytes_fit = cluster_size - append_offset;
 			if (size <= bytes_fit) clusters_needed = 0;
 			else clusters_needed = (size - bytes_fit + cluster_size - 1) / cluster_size;
@@ -1123,20 +1136,20 @@ locate_done:
 			if (nc == 0) {
 				// cleanup on failure
 				if (first_new) fat32_free_cluster_chain(first_new);
-				return false;
+				return MT_FAT32_CLUSTERS_FULL;
 			}
 			if (!zero_cluster(nc)) {
 				// free and abort
 				fat32_write_fat(nc, FAT32_FREE_CLUSTER);
 				if (first_new) fat32_free_cluster_chain(first_new);
-				return false;
+				return MT_FAT32_CLUSTER_GENERAL_FAILURE;
 			}
 			if (first_new == 0) first_new = nc;
 			if (prev_cluster != 0) {
 				if (!fat32_write_fat(prev_cluster, nc)) {
 					// cleanup
 					if (first_new) fat32_free_cluster_chain(first_new);
-					return false;
+					return MT_FAT32_CLUSTER_GENERAL_FAILURE;
 				}
 			}
 			prev_cluster = nc;
@@ -1144,7 +1157,7 @@ locate_done:
 		if (prev_cluster != 0) fat32_write_fat(prev_cluster, FAT32_EOC_MAX);
 
 		// Link newly allocated clusters into file chain
-		if (mode == FAT32_WRITE_MODE_APPEND && exists) {
+		if (mode == WRITE_MODE_APPEND_EXISTING && exists) {
 			if (first_new != 0) {
 				if (last_cluster == 0) {
 					// file had no cluster, new allocation becomes first
@@ -1154,7 +1167,7 @@ locate_done:
 					// link last_cluster -> first_new
 					if (!fat32_write_fat(last_cluster, first_new)) {
 						if (first_new) fat32_free_cluster_chain(first_new);
-						return false;
+						return MT_FAT32_CLUSTER_GENERAL_FAILURE;
 					}
 				}
 			}
@@ -1169,10 +1182,10 @@ locate_done:
 		void* sector_buf = MtAllocateVirtualMemory(512, 512);
 		if (!sector_buf) {
 			// cleanup allocated clusters on error
-			if (mode != FAT32_WRITE_MODE_APPEND || !exists) {
+			if (mode != WRITE_MODE_APPEND_EXISTING || !exists) {
 				if (first_cluster) fat32_free_cluster_chain(first_cluster);
 			}
-			return false;
+			return MT_NO_MEMORY;
 		}
 
 		const uint8_t* src = (const uint8_t*)data;
@@ -1183,7 +1196,7 @@ locate_done:
 		uint32_t write_cluster = 0;
 		uint32_t write_offset = 0;
 
-		if (mode == FAT32_WRITE_MODE_APPEND && exists && append_offset > 0) {
+		if (mode == WRITE_MODE_APPEND_EXISTING && exists && append_offset > 0) {
 			write_cluster = last_cluster;
 			write_offset = append_offset;
 		}
@@ -1196,7 +1209,7 @@ locate_done:
 		if (write_cluster == 0) {
 			// may happen for append when file had no clusters but we didn't allocate - but in that case we did allocate above.
 			MtFreeVirtualMemory(sector_buf);
-			return false;
+			return MT_FAT32_CLUSTER_GENERAL_FAILURE;
 		}
 
 		// loop writing clusters one by one
@@ -1208,7 +1221,8 @@ locate_done:
 				// if starting in the middle of cluster, handle first sector specially
 				if (sc == 0 && write_offset > 0) {
 					// read sector, patch from write_offset, write back
-					if (!read_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					status = read_sector(sector_lba + sc, sector_buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 					uint32_t off_in_sector = write_offset % fs.bytes_per_sector;
 					uint32_t to_copy = fs.bytes_per_sector - off_in_sector;
 					if (to_copy > bytes_left) to_copy = bytes_left;
@@ -1222,7 +1236,8 @@ locate_done:
 							fs.bytes_per_sector - off_in_sector - to_copy);
 
 					// Patch the sector.
-					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					status = write_sector(sector_lba + sc, sector_buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 
 					src += to_copy;
 					bytes_left -= to_copy;
@@ -1234,15 +1249,18 @@ locate_done:
 				uint32_t to_write = (bytes_left > fs.bytes_per_sector) ? fs.bytes_per_sector : bytes_left;
 				if (to_write < fs.bytes_per_sector) {
 					// partial sector: read-modify-write to preserve rest
-					if (!read_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					status = read_sector(sector_lba + sc, sector_buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 					kmemcpy(sector_buf, src, to_write);
 					kmemset((uint8_t*)sector_buf + to_write, 0, fs.bytes_per_sector - to_write);
-					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					status = write_sector(sector_lba + sc, sector_buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 				}
 				else {
 					// full sector
 					kmemcpy(sector_buf, src, fs.bytes_per_sector);
-					if (!write_sector(sector_lba + sc, sector_buf)) { MtFreeVirtualMemory(sector_buf); return false; }
+					status = write_sector(sector_lba + sc, sector_buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
 				}
 				src += to_write;
 				bytes_left -= to_write;
@@ -1253,7 +1271,7 @@ locate_done:
 			if (next >= FAT32_EOC_MIN) {
 				// Shouldn't happen because we allocated enough clusters, but guard anyway
 				MtFreeVirtualMemory(sector_buf);
-				return false;
+				return MT_FAT32_CLUSTERS_FULL;
 			}
 			cur_cluster = next;
 		}
@@ -1281,7 +1299,7 @@ locate_done:
 	sfn_entry->attr = 0; // Not a directory, archive bit can be set.
 	// set file size & first_cluster (first_cluster may be zero for size==0)
 	uint32_t final_size = size;
-	if (mode == FAT32_WRITE_MODE_APPEND && exists) final_size = existing_entry.file_size + size;
+	if (mode == WRITE_MODE_APPEND_EXISTING && exists) final_size = existing_entry.file_size + size;
 	sfn_entry->file_size = final_size;
 	sfn_entry->fst_clus_lo = (uint16_t)first_cluster;
 	sfn_entry->fst_clus_hi = (uint16_t)(first_cluster >> 16);
@@ -1289,8 +1307,9 @@ locate_done:
 	if (exists && located) {
 		// Update existing on-disk SFN+LFN in-place: overwrite SFN fields + file_size + fst_clus (but preserve other fields).
 		void* write_buf = MtAllocateVirtualMemory(512, 512);
-		if (!write_buf) return false;
-		if (!read_sector(located_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+		if (!write_buf) return MT_NO_MEMORY;
+		status = read_sector(located_sector, write_buf);
+		if (MT_FAILURE(status)) { MtFreeVirtualMemory(write_buf); return status; }
 
 		FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)write_buf;
 		// The located_index is the start (LFN or SFN). We assumed read_lfn returned consumed entries for that start.
@@ -1309,27 +1328,30 @@ locate_done:
 			for (uint32_t k = 0; k < located_consumed; ++k) {
 				((uint8_t*)entries[located_index + k].name)[0] = DELETED_DIR_ENTRY;
 			}
-			if (!write_sector(located_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+			status = write_sector(located_sector, write_buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(write_buf); return status; }
 			MtFreeVirtualMemory(write_buf);
 
 			// find new free slots and write new entries (reuse original creation path)
 			uint32_t entry_sector, entry_index;
 			if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
 				// cleanup clusters if we've allocated them
-				return false;
+				return MT_FAT32_DIR_FULL;
 			}
 			void* write_buf2 = MtAllocateVirtualMemory(512, 512);
-			if (!read_sector(entry_sector, write_buf2)) { MtFreeVirtualMemory(write_buf2); return false; }
+			if (!write_buf2) { return MT_NO_MEMORY; }
+			status = read_sector(entry_sector, write_buf2);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(write_buf2); return status; }
 			kmemcpy(&((FAT32_DIR_ENTRY*)write_buf2)[entry_index], entry_buf, total_entries * sizeof(FAT32_DIR_ENTRY));
-			bool success = write_sector(entry_sector, write_buf2);
+			status = write_sector(entry_sector, write_buf2);
 			MtFreeVirtualMemory(write_buf2);
-			return success;
+			return status;
 		}
 		else {
 			// safe to update in-place: write sector
-			bool ok = write_sector(located_sector, write_buf);
+			status = write_sector(located_sector, write_buf);
 			MtFreeVirtualMemory(write_buf);
-			return ok;
+			return status;
 		}
 	}
 	else {
@@ -1338,31 +1360,33 @@ locate_done:
 		if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
 			// If we allocated new clusters earlier, free them (best effort)
 			if (first_cluster) fat32_free_cluster_chain(first_cluster);
-			return false;
+			return MT_FAT32_DIR_FULL;
 		}
 
 		void* write_buf = MtAllocateVirtualMemory(512, 512);
-		if (!read_sector(entry_sector, write_buf)) { MtFreeVirtualMemory(write_buf); return false; }
+		if (!write_buf) return MT_NO_MEMORY;
+		status = read_sector(entry_sector, write_buf);
+		if (MT_FAILURE(status)) { MtFreeVirtualMemory(write_buf); return status; }
 		kmemcpy(&((FAT32_DIR_ENTRY*)write_buf)[entry_index], entry_buf, total_entries * sizeof(FAT32_DIR_ENTRY));
-		bool success = write_sector(entry_sector, write_buf);
+		status = write_sector(entry_sector, write_buf);
 
 		// free write_buf
 		MtFreeVirtualMemory(write_buf);
-		return success;
+		return status;
 	}
 
 	// Should not reach here
-	return false;
+	return MT_GENERAL_FAILURE;
 }
 
-void fat32_list_directory(const char* path) {
+MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) {
 	tracelast_func("fat32_list_directory");
-
+	MTSTATUS status;
 	// 1. Find the directory entry for the given path to get its starting cluster.
 	FAT32_DIR_ENTRY dir_entry;
 	if (!fat32_find_entry(path, &dir_entry, NULL) || !(dir_entry.attr & ATTR_DIRECTORY)) {
 		gop_printf(0xFFFF0000, "Error: Directory not found or path is not a directory: %s\n", path);
-		return;
+		return MT_FAT32_DIRECTORY_NOT_FOUND;
 	}
 
 	uint32_t cluster = (uint32_t)((dir_entry.fst_clus_hi << 16) | dir_entry.fst_clus_lo);
@@ -1370,16 +1394,15 @@ void fat32_list_directory(const char* path) {
 		cluster = fs.root_cluster;
 	}
 
-	gop_printf(0xFF00FFFF, "Listing of '%s':\n", path);
-
 	void* buf = MtAllocateVirtualMemory(512, 512);
-	if (!buf) return;
+	if (!buf) return MT_NO_MEMORY;
 
 	// 2. The rest of the logic is the same as fat32_list_root, just starting from `cluster`.
 	do {
 		uint32_t sector = first_sector_of_cluster(cluster);
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; ++i) {
-			if (!read_sector(sector + i, buf)) { MtFreeVirtualMemory(buf); return; }
+			status = read_sector(sector + i, buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return status; }
 
 			FAT32_DIR_ENTRY* dir = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries = fs.bytes_per_sector / sizeof(*dir);
@@ -1389,10 +1412,11 @@ void fat32_list_directory(const char* path) {
 
 				if (current_entry->name[0] == END_OF_DIRECTORY) {
 					MtFreeVirtualMemory(buf);
-					return;
+					return MT_FAT32_DIR_FULL;
 				}
 				// Skip deleted, '.', and '..' entries from the listing
-				if ((uint8_t)current_entry->name[0] == DELETED_DIR_ENTRY || current_entry->name[0] == '.') {
+				if ((uint8_t)current_entry->name[0] == DELETED_DIR_ENTRY ||
+					(current_entry->name[0] == '.' && (current_entry->name[1] == '\0' || current_entry->name[1] == '.'))) {
 					j++;
 					continue;
 				}
@@ -1400,13 +1424,15 @@ void fat32_list_directory(const char* path) {
 				char lfn_name[MAX_LFN_LEN];
 				uint32_t consumed = 0;
 				FAT32_DIR_ENTRY* sfn_entry = read_lfn(current_entry, entries - j, lfn_name, &consumed);
-
+				char line_buf[256];
 				if (sfn_entry) {
 					if (sfn_entry->attr & ATTR_DIRECTORY) {
-						gop_printf(0xFF00FFFF, "  <DIR>  %s\n", lfn_name);
+						ksnprintf(line_buf, sizeof(line_buf), "  <DIR>  %s\n", lfn_name);
+						kstrncat(listings, line_buf, max_len);
 					}
 					else {
-						gop_printf(0xFFFFFFFF, "         %s   (%u bytes)\n", lfn_name, sfn_entry->file_size);
+						ksnprintf(line_buf, sizeof(line_buf), "         %s   (%u bytes)\n", lfn_name, sfn_entry->file_size);
+						kstrncat(listings, line_buf, max_len);
 					}
 					j += consumed;
 				}
@@ -1417,8 +1443,8 @@ void fat32_list_directory(const char* path) {
 		}
 		cluster = fat32_read_fat(cluster);
 	} while (cluster < FAT32_EOC_MIN);
-
 	MtFreeVirtualMemory(buf);
+	return MT_SUCCESS;
 }
 
 // Check that a directory cluster contains only '.' and '..' (and deleted entries).
@@ -1437,10 +1463,12 @@ bool fat32_directory_is_empty(const char* path) {
 	if (!buf) return false;
 
 	uint32_t cluster = dir_cluster;
+	MTSTATUS status;
 	do {
 		uint32_t sector_lba = first_sector_of_cluster(cluster);
 		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
-			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+			status = read_sector(sector_lba + s, buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return false; }
 
 			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
@@ -1502,10 +1530,12 @@ static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluste
 	if (!buf) return false;
 
 	uint32_t cluster = parent_cluster;
+	MTSTATUS status;
 	do {
 		uint32_t sector_lba = first_sector_of_cluster(cluster);
 		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
-			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+			status = read_sector(sector_lba + s, buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return false; }
 
 			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
@@ -1582,11 +1612,13 @@ static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
 
 	uint32_t cluster = dir_cluster;
 	// Iterate cluster chain
+	MTSTATUS status;
 	while (cluster < FAT32_EOC_MIN) {
 		uint32_t sector_lba = first_sector_of_cluster(cluster);
 
 		for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
-			if (!read_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+			status = read_sector(sector_lba + s, buf);
+			if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return false; }
 
 			FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
@@ -1639,7 +1671,8 @@ static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
 						((uint8_t*)entries[j + k].name)[0] = DELETED_DIR_ENTRY;
 					}
 					// write this sector back
-					if (!write_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+					status = write_sector(sector_lba + s, buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return false; }
 					// advance past consumed entries
 					j += consumed;
 					continue;
@@ -1658,7 +1691,8 @@ static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
 						((uint8_t*)entries[j + k].name)[0] = DELETED_DIR_ENTRY;
 					}
 					// write sector back
-					if (!write_sector(sector_lba + s, buf)) { MtFreeVirtualMemory(buf); return false; }
+					status = write_sector(sector_lba + s, buf);
+					if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return false; }
 					j += consumed;
 					continue;
 				}
@@ -1677,30 +1711,30 @@ free_and_return:
 	return true;
 }
 
-bool fat32_delete_directory(const char* path) {
+MTSTATUS fat32_delete_directory(const char* path) {
 	tracelast_func("fat32_delete_directory");
 
 	// Find entry & its parent cluster
 	FAT32_DIR_ENTRY entry;
 	uint32_t parent_cluster;
-	if (!fat32_find_entry(path, &entry, &parent_cluster)) return false;
+	if (!fat32_find_entry(path, &entry, &parent_cluster)) return MT_FAT32_DIRECTORY_NOT_FOUND;
 
 	// Must be a directory
-	if (!(entry.attr & ATTR_DIRECTORY)) return false;
+	if (!(entry.attr & ATTR_DIRECTORY)) return MT_FAT32_INVALID_FILENAME;
 
 	uint32_t dir_cluster = get_dir_cluster(&entry);
 	if (dir_cluster == 0) dir_cluster = fs.root_cluster;
 
 	// Don't allow removing root via this function
-	if (dir_cluster == fs.root_cluster) return false;
+	if (dir_cluster == fs.root_cluster) return MT_GENERAL_FAILURE;
 
 	// Recursively delete children and free the directory's clusters.
-	if (!fat32_rm_rf_dir(dir_cluster)) return false;
+	if (!fat32_rm_rf_dir(dir_cluster)) return MT_GENERAL_FAILURE;
 
 	// Now mark this directory's entry (LFN+SFN) in parent as deleted.
-	if (!mark_entry_and_lfns_deleted(path, parent_cluster)) return false;
+	if (!mark_entry_and_lfns_deleted(path, parent_cluster)) return MT_GENERAL_FAILURE;
 
-	return true;
+	return MT_SUCCESS;
 }
 
 static inline bool is_file(FAT32_DIR_ENTRY* entry) {
@@ -1710,19 +1744,19 @@ static inline bool is_file(FAT32_DIR_ENTRY* entry) {
 	return true; // it's a regular file
 }
 
-bool fat32_delete_file(const char* path) {
+MTSTATUS fat32_delete_file(const char* path) {
 	tracelast_func("fat32_delete_file");
 
 	// Find the file entry and its parent cluster
 	FAT32_DIR_ENTRY entry;
 	uint32_t parent_cluster;
 	if (!fat32_find_entry(path, &entry, &parent_cluster)) {
-		return false; // File not found
+		return MT_FAT32_DIRECTORY_NOT_FOUND; // File not found
 	}
 
 	// Must be a file (not a directory)
 	if (!is_file(&entry)) {
-		return false; // Not a file
+		return MT_FAT32_INVALID_FILENAME; // Not a file
 	}
 
 	// Get the file's first cluster
@@ -1731,14 +1765,14 @@ bool fat32_delete_file(const char* path) {
 	// Free the file's cluster chain (if it has any clusters allocated)
 	if (file_cluster >= 2 && file_cluster < FAT32_EOC_MIN) {
 		if (!fat32_free_cluster_chain(file_cluster)) {
-			return false; // Failed to free cluster chain
+			return MT_GENERAL_FAILURE; // Failed to free cluster chain
 		}
 	}
 
 	// Mark the file's directory entry (LFN + SFN) as deleted in the parent directory
 	if (!mark_entry_and_lfns_deleted(path, parent_cluster)) {
-		return false; // Failed to mark directory entries as deleted
+		return MT_GENERAL_FAILURE; // Failed to mark directory entries as deleted
 	}
 
-	return true; // Success
+	return MT_SUCCESS; // Success
 }

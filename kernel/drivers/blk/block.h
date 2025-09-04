@@ -9,12 +9,13 @@
 #include "../../trace.h"
 #include "../../bugcheck/bugcheck.h"
 #include "../../cpu/cpu.h"
+#include "../../mtstatus.h"
 
 typedef struct _BLOCK_DEVICE {
-    bool (*read_sector)(struct _BLOCK_DEVICE* dev,
+    MTSTATUS(*read_sector)(struct _BLOCK_DEVICE* dev,
         uint32_t lba,
         void* buf);
-    bool (*write_sector)(struct _BLOCK_DEVICE* dev,
+    MTSTATUS(*write_sector)(struct _BLOCK_DEVICE* dev,
         uint32_t lba,
         const void* buf);
     void* dev_data;

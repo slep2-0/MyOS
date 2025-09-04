@@ -283,7 +283,10 @@ static bool init_one_port(int idx) {
 extern BOOT_INFO boot_info_local;
 extern GOP_PARAMS gop_local;
 
-bool ahci_init(void) {
+bool ahci_initialized = false;
+
+MTSTATUS ahci_init(void) {
+    if (ahci_initialized) { gop_printf(COLOR_RED, "AHCI Initialization got called again when alreaedy init.\n"); return MT_SUCCESS; }
     tracelast_func("ahci_init");
     // Use BootInfo PCI BARs.
     for (size_t i = 0; i < boot_info_local.AhciCount; i++) {
@@ -318,17 +321,18 @@ bool ahci_init(void) {
     for (int i = 0; i < port_count; i++) {
         register_block_device(&ports[i].bdev);
     }
-    return port_count > 0; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
+    ahci_initialized = true;
+    return port_count > 0 ? MT_SUCCESS : MT_AHCI_PORT_FAILURE; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
 }
 
-bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
+MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     tracelast_func("ahci_read_sector");
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
     HBA_PORT* p = ctx->port;
     // Clear pending interrupt bits.
     p->is = (uint32_t)-1;
     int slot = find_free_slot(p->sact | p->ci);
-    if (slot < 0) return false;
+    if (slot < 0) return MT_AHCI_PORT_FAILURE;
     uint32_t spin = 0;
     const uint32_t TIMEOUT = 100000000;
     while (p->ci & (1u << slot)) {
@@ -488,7 +492,7 @@ bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
             (void*)p);
 
 #endif
-        return false;
+        return MT_AHCI_TIMEOUT;
 
     }
 
@@ -502,7 +506,7 @@ bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
         gop_printf_forced(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
 
 #endif
-        return false;
+        return MT_AHCI_READ_FAILURE;
     }
 
 #ifdef AHCI_DEBUG_PRINT
@@ -541,16 +545,16 @@ bool ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     uint32_t port_is_after = p->is;
     p->is = port_is_after;
 
-    return true;
+    return MT_SUCCESS;
 }
 
-bool ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
+MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
     tracelast_func("ahci_write_sector");
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
     HBA_PORT* p = ctx->port;
 
     int slot = find_free_slot(p->sact | p->ci);
-    if (slot < 0) return false;
+    if (slot < 0) return MT_AHCI_GENERAL_FAILURE;
 
     /* Command table for this slot */
     HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)((uint8_t*)ctx->cmd_tbl + slot * 256);
@@ -616,7 +620,7 @@ bool ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 #ifdef AHCI_DEBUG_PRINT
         gop_printf(COLOR_RED, "AHCI TIMEOUT ahci_read_sector\n");
 #endif
-        return false;
+        return MT_AHCI_TIMEOUT;
     }
 
     // IMPORTANT: Check for errors from the device
@@ -625,13 +629,13 @@ bool ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
         gop_printf_forced(0xFFFF0000, "AHCI write error!\n");
         gop_printf_forced(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
 #endif
-        return false;
+        return MT_AHCI_WRITE_FAILURE;
     }
 
     // clear int
     p->is = p->is;
 
-    return true;
+    return MT_SUCCESS;
 }
 
 

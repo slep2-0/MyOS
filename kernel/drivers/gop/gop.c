@@ -224,6 +224,38 @@ static char* strchr(const char* s, int c) {
     return NULL;
 }
 
+/// <summary>
+/// Concatenates src onto dest, up to max_len total bytes in dest.
+/// </summary>
+/// <param name="dest">Destination buffer (must be mutable)</param>
+/// <param name="src">String to append</param>
+/// <param name="max_len">Total size of the destination buffer</param>
+/// <returns>Pointer to dest</returns>
+char* kstrncat(char* dest, const char* src, size_t max_len) {
+    if (!dest || !src || max_len == 0) return dest;
+
+    // Move dest_ptr to the end of the current string
+    size_t dest_len = 0;
+    while (dest_len < max_len && dest[dest_len] != '\0') {
+        dest_len++;
+    }
+
+    if (dest_len == max_len) {
+        // dest is already full, cannot append
+        return dest;
+    }
+
+    size_t i = 0;
+    while (dest_len + i < max_len - 1 && src[i] != '\0') {
+        dest[dest_len + i] = src[i];
+        i++;
+    }
+
+    // Null-terminate
+    dest[dest_len + i] = '\0';
+    return dest;
+}
+
 //-----------------------------------------------------------------------------
 // kstrlen: Return length of string (excluding null terminator).
 //-----------------------------------------------------------------------------
