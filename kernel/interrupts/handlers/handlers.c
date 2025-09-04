@@ -169,6 +169,13 @@ void timer_handler(bool schedulerEnabled) {
     }
 }
 
+extern void lapic_eoi(void);
+
+void lapic_handler(bool schedulerEnabled) {
+    lapic_eoi();
+    timer_handler(schedulerEnabled);
+}
+
 void pagefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     uint64_t fault_addr;
     // cr2 holds the faulty address that caused the page fault.

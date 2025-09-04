@@ -172,12 +172,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     init_dpc_system();
-    init_timer(100);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     //MemoryTest();
     //__cli();
     //__hlt();
-    __sti(); // only now enable interrupts
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
 
@@ -231,7 +229,7 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     MTSTATUS status;
     status = vfs_init();
-    gop_printf(COLOR_RED, "vfs_init returned: %d\n", status);
+    gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -243,19 +241,19 @@ void kernel_main(BOOT_INFO* boot_info) {
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
 
-    vfs_listrootdir();
-    char buffer_write[256];
-    ksnprintf(buffer_write, sizeof(buffer_write), "Test data inserted by MatanelOS.\n");
-    status = vfs_write("test.txt", (void*)buffer_write, kstrlen(buffer_write), WRITE_MODE_APPEND_EXISTING);
-    gop_printf(COLOR_RED, "vfs_write returned: %p\n", status);
-    void* retval_buf = NULL;
-    uint32_t file_size;
-    status = vfs_read("test.txt", &file_size, &retval_buf);
-    gop_printf(COLOR_RED, "vfs_read returned: %p\n", status);
-    gop_printf(COLOR_RED, "Buffer: %s\n", (char*)retval_buf);
+    char listings[256];
+    status = vfs_listdir("/", listings, sizeof(listings));
+    gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
+    gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
+    gop_printf(COLOR_CYAN, "%s", listings);
 
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
+    /* Enable LAPIC Now. */
+    lapic_init_bsp();
+    lapic_enable();
+    init_lapic_timer(100); // 10ms.
+    __sti();
     Schedule();
 }

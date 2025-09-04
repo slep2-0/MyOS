@@ -77,8 +77,9 @@ void Schedule(void) {
     if (!next) {
         next = &idleThread;
     }
-
+    //gop_printf(COLOR_RED, "The thread's timeslice before change is: %d", next->timeSlice);
     next->threadState = RUNNING;
+    next->timeSlice = next->origTimeSlice;
     cpu.currentThread = next;
 
     MtLowerIRQL(PASSIVE_LEVEL);

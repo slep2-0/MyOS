@@ -89,7 +89,11 @@ void install_idt() {
     set_idt_gate(45, (unsigned long)irq13);
     set_idt_gate(46, (unsigned long)irq14);
     set_idt_gate(47, (unsigned long)irq15);
-    
+#define LAPIC_TIMER_VECTOR 0xEF
+    /* For LAPIC */
+    extern void isr239(void); // LAPIC ISR.
+    set_idt_gate(LAPIC_TIMER_VECTOR, (unsigned long)isr239);
+
     /* Finally, Load IDT. */
     PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;

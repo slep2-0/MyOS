@@ -70,5 +70,7 @@ void fpu_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 void alignment_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle severe machine check exception.
 void severe_machine_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
+
+void lapic_handler(bool schedulerEnabled);
 #endif
 

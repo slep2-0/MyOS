@@ -7,6 +7,7 @@
 #include "fat32.h"
 #include "../../drivers/blk/block.h"
 #include "../../assert.h"
+#include "../../time.h"
 
 #define WRITE_MODE_APPEND_EXISTING 0
 #define WRITE_MODE_CREATE_OR_REPLACE 1
@@ -981,6 +982,22 @@ static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const ch
 	return num_lfn_entries;
 }
 
+static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date) {
+	TIME_ENTRY time;
+	uint8_t h, m, s;
+	uint8_t mon, day;
+	uint16_t y;
+	fat32_decode_date(fat32Date, &y, &mon, &day);
+	fat32_decode_time(fat32Time, &h, &m, &s);
+	time.hour = h;
+	time.minute = m;
+	time.second = s;
+	time.month = mon;
+	time.day = day;
+	time.year = y;
+	return time;
+}
+
 MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
 	tracelast_func("fat32_write_file_full");
 	// Safety check.
@@ -1303,6 +1320,14 @@ locate_done:
 	sfn_entry->file_size = final_size;
 	sfn_entry->fst_clus_lo = (uint16_t)first_cluster;
 	sfn_entry->fst_clus_hi = (uint16_t)(first_cluster >> 16);
+	TIME_ENTRY currTime = get_time();
+	uint16_t fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
+	uint16_t fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
+	sfn_entry->wrt_date = fat32date;
+	sfn_entry->wrt_time = fat32time;
+	sfn_entry->crt_date = fat32date;
+	sfn_entry->crt_time = fat32time;
+	sfn_entry->lst_acc_date = fat32date;
 
 	if (exists && located) {
 		// Update existing on-disk SFN+LFN in-place: overwrite SFN fields + file_size + fst_clus (but preserve other fields).
@@ -1319,6 +1344,13 @@ locate_done:
 		entries[sfn_pos].fst_clus_lo = (uint16_t)first_cluster;
 		entries[sfn_pos].fst_clus_hi = (uint16_t)(first_cluster >> 16);
 		entries[sfn_pos].file_size = final_size;
+		fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
+		fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
+		entries[sfn_pos].wrt_date = fat32date;
+		entries[sfn_pos].wrt_time = fat32time;
+		entries[sfn_pos].crt_date = fat32date;
+		entries[sfn_pos].crt_time = fat32time;
+		entries[sfn_pos].lst_acc_date = fat32date;
 
 		// If original file had no LFN and we're writing a long-name (lfn_count>0), we cannot expand in-place safely.
 		// In that case we fallback to find free slots and write a new LFN+SFN pair and mark old entries deleted.
@@ -1397,9 +1429,13 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 	void* buf = MtAllocateVirtualMemory(512, 512);
 	if (!buf) return MT_NO_MEMORY;
 
-	// 2. The rest of the logic is the same as fat32_list_root, just starting from `cluster`.
+	if (max_len > 0) listings[0] = '\0';
+	size_t used = 0;
+
 	do {
 		uint32_t sector = first_sector_of_cluster(cluster);
+		bool end_of_dir = false;
+
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; ++i) {
 			status = read_sector(sector + i, buf);
 			if (MT_FAILURE(status)) { MtFreeVirtualMemory(buf); return status; }
@@ -1411,10 +1447,10 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 				FAT32_DIR_ENTRY* current_entry = &dir[j];
 
 				if (current_entry->name[0] == END_OF_DIRECTORY) {
-					MtFreeVirtualMemory(buf);
-					return MT_FAT32_DIR_FULL;
+					end_of_dir = true;
+					break; // stop scanning entries in this sector -> will break outer loops below
 				}
-				// Skip deleted, '.', and '..' entries from the listing
+
 				if ((uint8_t)current_entry->name[0] == DELETED_DIR_ENTRY ||
 					(current_entry->name[0] == '.' && (current_entry->name[1] == '\0' || current_entry->name[1] == '.'))) {
 					j++;
@@ -1427,22 +1463,33 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 				char line_buf[256];
 				if (sfn_entry) {
 					if (sfn_entry->attr & ATTR_DIRECTORY) {
-						ksnprintf(line_buf, sizeof(line_buf), "  <DIR>  %s\n", lfn_name);
-						kstrncat(listings, line_buf, max_len);
+						ksnprintf(line_buf, sizeof(line_buf), "<DIR>  %s\n", lfn_name);
 					}
 					else {
-						ksnprintf(line_buf, sizeof(line_buf), "         %s   (%u bytes)\n", lfn_name, sfn_entry->file_size);
-						kstrncat(listings, line_buf, max_len);
+						ksnprintf(line_buf, sizeof(line_buf), "%s   (%u bytes)\n", lfn_name, sfn_entry->file_size);
+					}
+					// safe append: compute remaining and append up to remaining-1
+					size_t avail = (used < max_len) ? (max_len - used) : 0;
+					if (avail > 1) {
+						// write directly into listings+used
+						ksnprintf(listings + used, avail, "%s", line_buf);
+						used = kstrlen(listings);
 					}
 					j += consumed;
 				}
 				else {
-					j++; // Move to the next entry if read_lfn fails
+					j++;
 				}
 			}
+
+			if (end_of_dir) break;
 		}
+
+		if (end_of_dir) break;
+
 		cluster = fat32_read_fat(cluster);
 	} while (cluster < FAT32_EOC_MIN);
+
 	MtFreeVirtualMemory(buf);
 	return MT_SUCCESS;
 }

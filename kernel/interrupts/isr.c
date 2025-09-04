@@ -24,6 +24,8 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
     ksnprintf(buf, sizeof(buf), "INTERRUPT: %d", vec_num);
     tracelast_func(buf);
     IRQL oldIrql;
+    
+    // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level the scheduler gets disabled to disable pre-emption)
     bool schedulerEnabled = cpu.schedulerEnabled;
 
     ctx->rip = intfr->rip;
@@ -88,14 +90,14 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         _MtSetIRQL(HIGH_LEVEL); // machine check, like NMI, high irql.
         severe_machine_check_handler(ctx, intfr);
         break;
-    case TIMER_INTERRUPT:
-        MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
-        timer_handler(schedulerEnabled);
-        MtLowerIRQL(oldIrql);
-        break;
     case KEYBOARD_INTERRUPT:
         MtRaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
         keyboard_handler();
+        MtLowerIRQL(oldIrql);
+        break;
+    case LAPIC_INTERRUPT:
+        MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
+        lapic_handler(schedulerEnabled);
         MtLowerIRQL(oldIrql);
         break;
     default:

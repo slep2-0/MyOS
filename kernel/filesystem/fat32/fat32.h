@@ -107,6 +107,28 @@ typedef enum _FAT32_ATTRIBUTES {
 	ATTR_LONG_NAME = 0x0F,  // Long File Name entry (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
 } FAT32_ATTRIBUTES;
 
+static inline uint16_t fat32_encode_date(uint16_t year, uint8_t month, uint8_t day) {
+	// FAT date: YYYYYYYMMMMDDDDD (since 1980)
+	return ((year - 1980) << 9) | (month << 5) | (day);
+}
+
+static inline uint16_t fat32_encode_time(uint8_t hour, uint8_t min, uint8_t sec) {
+	// FAT time: HHHHHMMMMMMSSSSS (seconds / 2)
+	return (hour << 11) | (min << 5) | (sec / 2);
+}
+
+static inline void fat32_decode_date(uint16_t date, uint16_t* year, uint8_t* month, uint8_t* day) {
+	*year = 1980 + ((date >> 9) & 0x7F); // 7 bits for year
+	*month = (date >> 5) & 0x0F;          // 4 bits for month
+	*day = date & 0x1F;                 // 5 bits for day
+}
+
+static inline void fat32_decode_time(uint16_t time, uint8_t* hour, uint8_t* min, uint8_t* sec) {
+	*hour = (time >> 11) & 0x1F;          // 5 bits for hours
+	*min = (time >> 5) & 0x3F;           // 6 bits for minutes
+	*sec = (time & 0x1F) * 2;            // 5 bits for seconds (2-second resolution)
+}
+
 /// <summary>
 /// A FAT32 Function that reads the file requested into a dynamically allocated buffer.
 /// </summary>
