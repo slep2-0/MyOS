@@ -41,6 +41,9 @@ static inline void tracelast_func(const char* function_name) {
             (uint8_t)function_name[i];
     }
     // Explicit null terminator already guaranteed by zero clear
+#else
+    UNREFERENCED_PARAMETER(function_name);
+    return;
 #endif
 }
 

@@ -80,4 +80,13 @@ size_t kstrlen(const char* str);
 char* kstrcpy(char* dst, const char* src);
 char* kstrtok(char* str, const char* delim);
 
+/// <summary>
+/// Concatenates src onto dest, up to max_len total bytes in dest.
+/// </summary>
+/// <param name="dest">Destination buffer (must be mutable)</param>
+/// <param name="src">String to append</param>
+/// <param name="max_len">Total size of the destination buffer</param>
+/// <returns>Pointer to dest</returns>
+char* kstrncat(char* dest, const char* src, size_t max_len);
+
 #endif // X86_GOP_DRIVER_H

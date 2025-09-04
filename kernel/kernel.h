@@ -51,6 +51,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "drivers/gop/gop.h"
 #include "cpu/cpuid/cpuid.h"
 #include "time.h"
+#include "filesystem/vfs/vfs.h"
 
 // Entry point in C
 void kernel_idle_checks(void);

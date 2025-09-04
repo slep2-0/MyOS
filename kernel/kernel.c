@@ -105,7 +105,7 @@ static inline bool interrupts_enabled(void) {
 }
 
 void kernel_idle_checks(void) {
-    tracelast_func("kernel_idle_checks - Thread");  
+    tracelast_func("kernel_idle_checks - Thread");
     static volatile bool first_time = true;
 
     if (first_time) {
@@ -114,7 +114,7 @@ void kernel_idle_checks(void) {
         for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
             /* delay loop */
         }
-        
+
         gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
     /*
@@ -196,14 +196,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-    
-    // Initialize AHCI now.
-    if (!ahci_init()) {
-        CTX_FRAME ctxfr;
-        SAVE_CTX_FRAME(&ctxfr);
-        MtBugcheck(&ctxfr, NULL, AHCI_INIT_FAILED, 0, false);
-    }
-    
+
     void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateVirtualMemory(128, 16);
@@ -229,11 +222,20 @@ void kernel_main(BOOT_INFO* boot_info) {
     SAVE_CTX_FRAME(&regs);
     MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
-    
+
     if (checkcpuid()) {
         char str[256];
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
+    }
+
+    MTSTATUS status;
+    status = vfs_init();
+    gop_printf(COLOR_RED, "vfs_init returned: %d\n", status);
+    if (MT_FAILURE(status)) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        MtBugcheck(&ctx, NULL, FILESYSTEM_PANIC, 0, false);
     }
 
     TIME_ENTRY currTime = get_time();
@@ -241,43 +243,17 @@ void kernel_main(BOOT_INFO* boot_info) {
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
 
-    void* writebuf = MtAllocateVirtualMemory(512, 512);
-    void* readbuf = MtAllocateVirtualMemory(512, 512);
-    gop_printf_forced(COLOR_YELLOW, "Attempting to WRITE from writebuf... PHYS: %p\n", MtTranslateVirtualToPhysical(writebuf));
-    // set writebuf to something to signify if it was re-written
-    kmemset(writebuf, 12, 512);
-    if (ahci_write_sector(get_block_device(0), 1, writebuf)) {
-        if (ahci_read_sector(get_block_device(0), 1, readbuf)) {
-            for (int i = 0; i < 512; i++) {
-                gop_printf(COLOR_RED, "%d", ((uint8_t*)readbuf)[i]);
-            }
-        }
-        gop_printf(0, "\n");
-    }
-    else {
-        gop_printf_forced(COLOR_RED, "Could not write AHCI...\n");
-    }
-    
-    
-    if (!fat32_init(0)) {
-        CTX_FRAME ctxfr;
-        SAVE_CTX_FRAME(&ctxfr);
-        MtBugcheck(&ctxfr, NULL, FILESYSTEM_PANIC, 0, false);
-    }
-    //fat32_delete_directory("test");
-    fat32_list_root();
-    
-    uint32_t fileSize;
-    void* textbuf = fat32_read_file("hello.txt", &fileSize);
-    gop_printf(COLOR_RED, "In buffer: %s\n", textbuf);
+    vfs_listrootdir();
+    char buffer_write[256];
+    ksnprintf(buffer_write, sizeof(buffer_write), "Test data inserted by MatanelOS.\n");
+    status = vfs_write("test.txt", (void*)buffer_write, kstrlen(buffer_write), WRITE_MODE_APPEND_EXISTING);
+    gop_printf(COLOR_RED, "vfs_write returned: %p\n", status);
+    void* retval_buf = NULL;
+    uint32_t file_size;
+    status = vfs_read("test.txt", &file_size, &retval_buf);
+    gop_printf(COLOR_RED, "vfs_read returned: %p\n", status);
+    gop_printf(COLOR_RED, "Buffer: %s\n", (char*)retval_buf);
 
-    char buffer[256];
-    ksnprintf(buffer, sizeof(buffer), "This is test data inserted by the OS! Num: %d\n", 10);
-    fat32_write_file("hello.txt", (void*)buffer, (uint32_t)kstrlen(buffer), FAT32_WRITE_MODE_APPEND);
-    textbuf = fat32_read_file("hello.txt", &fileSize);
-    gop_printf(COLOR_GREEN, "In hello.txt: %s\n", textbuf);
-    fat32_create_directory("test");
-    fat32_delete_file("hello.txt");
     MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
     int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
