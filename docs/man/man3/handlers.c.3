@@ -1,0 +1,254 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'handlers\&.h'\fP
+.br
+\fR#include 'scancodes\&.h'\fP
+.br
+\fR#include '\&.\&./idt\&.h'\fP
+.br
+
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBinit_keyboard\fP ()"
+.br
+.ti -1c
+.RI "void \fBkeyboard_handler\fP ()"
+.br
+.ti -1c
+.RI "void \fBinit_timer\fP (unsigned long int frequency)"
+.br
+.ti -1c
+.RI "void \fBtimer_handler\fP (bool schedulerEnabled)"
+.br
+.ti -1c
+.RI "void \fBlapic_eoi\fP (void)"
+.br
+.ti -1c
+.RI "void \fBlapic_handler\fP (bool schedulerEnabled)"
+.br
+.ti -1c
+.RI "void \fBpagefault_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBdoublefault_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBdividebyzero_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBdebugsinglestep_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBnmi_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBbreakpoint_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBoverflow_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBboundscheck_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBinvalidopcode_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBnocoprocessor_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBcoprocessor_segment_overrun_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBinvalidtss_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBsegment_selector_not_present_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBstack_segment_overrun_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBgpf_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBfpu_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBalignment_check_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.ti -1c
+.RI "void \fBsevere_machine_check_handler\fP (\fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "uint32_t \fBcursor_x\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBcursor_y\fP"
+.br
+.ti -1c
+.RI "bool \fBshift_pressed\fP = false"
+.br
+.ti -1c
+.RI "bool \fBctrl_pressed\fP = false"
+.br
+.ti -1c
+.RI "bool \fBcaps_lock_on\fP = false"
+.br
+.ti -1c
+.RI "bool \fBextended_scancode\fP = false"
+.br
+.ti -1c
+.RI "\fBGOP_PARAMS\fP \fBgop_local\fP"
+.br
+.ti -1c
+.RI "volatile bool \fBschedule_pending\fP"
+.br
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "void alignment_check_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB279\fP of file \fBhandlers\&.c\fP\&.
+.SS "void boundscheck_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB230\fP of file \fBhandlers\&.c\fP\&.
+.SS "void breakpoint_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB217\fP of file \fBhandlers\&.c\fP\&.
+.SS "void coprocessor_segment_overrun_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB244\fP of file \fBhandlers\&.c\fP\&.
+.SS "void debugsinglestep_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB205\fP of file \fBhandlers\&.c\fP\&.
+.SS "void dividebyzero_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB200\fP of file \fBhandlers\&.c\fP\&.
+.SS "void doublefault_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB194\fP of file \fBhandlers\&.c\fP\&.
+.SS "void fpu_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB272\fP of file \fBhandlers\&.c\fP\&.
+.SS "void gpf_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB267\fP of file \fBhandlers\&.c\fP\&.
+.SS "void init_keyboard (void )"
+
+.PP
+Definition at line \fB22\fP of file \fBhandlers\&.c\fP\&.
+.SS "void init_timer (unsigned long int frequency)"
+
+.PP
+Definition at line \fB119\fP of file \fBhandlers\&.c\fP\&.
+.SS "void invalidopcode_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB235\fP of file \fBhandlers\&.c\fP\&.
+.SS "void invalidtss_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB249\fP of file \fBhandlers\&.c\fP\&.
+.SS "void keyboard_handler (void )"
+
+.PP
+Definition at line \fB31\fP of file \fBhandlers\&.c\fP\&.
+.SS "void lapic_eoi (void )\fR [extern]\fP"
+
+.PP
+Definition at line \fB127\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_handler (bool schedulerEnabled)"
+
+.PP
+Definition at line \fB174\fP of file \fBhandlers\&.c\fP\&.
+.SS "void nmi_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB212\fP of file \fBhandlers\&.c\fP\&.
+.SS "void nocoprocessor_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB239\fP of file \fBhandlers\&.c\fP\&.
+.SS "void overflow_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB224\fP of file \fBhandlers\&.c\fP\&.
+.SS "void pagefault_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB179\fP of file \fBhandlers\&.c\fP\&.
+.SS "void segment_selector_not_present_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB255\fP of file \fBhandlers\&.c\fP\&.
+.SS "void severe_machine_check_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB289\fP of file \fBhandlers\&.c\fP\&.
+.SS "void stack_segment_overrun_handler (\fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.PP
+Definition at line \fB261\fP of file \fBhandlers\&.c\fP\&.
+.SS "void timer_handler (bool schedulerEnabled)"
+DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
+.PP
+Definition at line \fB145\fP of file \fBhandlers\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "bool caps_lock_on = false"
+
+.PP
+Definition at line \fB19\fP of file \fBhandlers\&.c\fP\&.
+.SS "bool ctrl_pressed = false"
+
+.PP
+Definition at line \fB18\fP of file \fBhandlers\&.c\fP\&.
+.SS "uint32_t cursor_x\fR [extern]\fP"
+
+.PP
+Definition at line \fB12\fP of file \fBgop\&.c\fP\&.
+.SS "uint32_t cursor_y\fR [extern]\fP"
+
+.PP
+Definition at line \fB12\fP of file \fBgop\&.c\fP\&.
+.SS "bool extended_scancode = false"
+
+.PP
+Definition at line \fB20\fP of file \fBhandlers\&.c\fP\&.
+.SS "\fBGOP_PARAMS\fP gop_local\fR [extern]\fP"
+
+.PP
+Definition at line \fB15\fP of file \fBkernel\&.c\fP\&.
+.SS "volatile bool schedule_pending\fR [extern]\fP"
+
+.PP
+Definition at line \fB13\fP of file \fBdpc\&.c\fP\&.
+.SS "bool shift_pressed = false"
+
+.PP
+Definition at line \fB17\fP of file \fBhandlers\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

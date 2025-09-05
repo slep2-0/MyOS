@@ -1,0 +1,80 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/apic.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/apic/apic.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include '\&.\&./\&.\&./intrin/intrin\&.h'\fP
+.br
+\fR#include 'pit\&.h'\fP
+.br
+
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBlapic_init_bsp\fP (void)"
+.br
+.ti -1c
+.RI "void \fBlapic_enable\fP (void)"
+.br
+.ti -1c
+.RI "uint32_t \fBlapic_read\fP (uint32_t reg)"
+.br
+.ti -1c
+.RI "void \fBlapic_write\fP (uint32_t reg, uint32_t value)"
+.br
+.ti -1c
+.RI "void \fBlapic_eoi\fP (void)"
+.br
+.ti -1c
+.RI "void \fBlapic_init_siv\fP ()"
+.br
+.ti -1c
+.RI "void \fBlapic_send_ipi\fP (uint8_t apic_id, uint8_t vector, uint32_t flags)"
+.br
+.ti -1c
+.RI "int \fBinit_lapic_timer\fP (uint32_t hz)"
+.br
+.in -1c
+.SH "Function Documentation"
+.PP 
+.SS "int init_lapic_timer (uint32_t hz)"
+
+.PP
+Definition at line \fB158\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_enable (void )"
+
+.PP
+Definition at line \fB84\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_eoi (void )"
+
+.PP
+Definition at line \fB127\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_init_bsp (void )"
+
+.PP
+Definition at line \fB103\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_init_siv ()"
+
+.PP
+Definition at line \fB62\fP of file \fBapic\&.c\fP\&.
+.SS "uint32_t lapic_read (uint32_t reg)"
+
+.SS "void lapic_send_ipi (uint8_t apic_id, uint8_t vector, uint32_t flags)"
+
+.PP
+Definition at line \fB120\fP of file \fBapic\&.c\fP\&.
+.SS "void lapic_write (uint32_t reg, uint32_t value)"
+
+.PP
+Definition at line \fB57\fP of file \fBapic\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

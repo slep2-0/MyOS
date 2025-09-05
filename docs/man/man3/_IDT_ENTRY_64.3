@@ -1,0 +1,72 @@
+.TH "_IDT_ENTRY_64" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+_IDT_ENTRY_64
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fR#include <idt\&.h>\fP
+.SS "Data Fields"
+
+.in +1c
+.ti -1c
+.RI "uint16_t \fBoffset_low\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBselector\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBist\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBtype_attr\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBoffset_mid\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBoffset_high\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBzero\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line \fB83\fP of file \fBidt\&.h\fP\&.
+.SH "Field Documentation"
+.PP 
+.SS "uint8_t ist"
+
+.PP
+Definition at line \fB86\fP of file \fBidt\&.h\fP\&.
+.SS "uint32_t offset_high"
+
+.PP
+Definition at line \fB89\fP of file \fBidt\&.h\fP\&.
+.SS "uint16_t offset_low"
+
+.PP
+Definition at line \fB84\fP of file \fBidt\&.h\fP\&.
+.SS "uint16_t offset_mid"
+
+.PP
+Definition at line \fB88\fP of file \fBidt\&.h\fP\&.
+.SS "uint16_t selector"
+
+.PP
+Definition at line \fB85\fP of file \fBidt\&.h\fP\&.
+.SS "uint8_t type_attr"
+
+.PP
+Definition at line \fB87\fP of file \fBidt\&.h\fP\&.
+.SS "uint32_t zero"
+
+.PP
+Definition at line \fB90\fP of file \fBidt\&.h\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

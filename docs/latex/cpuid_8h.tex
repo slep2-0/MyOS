@@ -1,0 +1,728 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/cpuid/cpuid.h File Reference}
+\hypertarget{cpuid_8h}{}\label{cpuid_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpuid/cpuid.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpuid/cpuid.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$cpuid.\+h$>$}\newline
+{\ttfamily \#include "{}../../memory/memory.\+h"{}}\newline
+{\ttfamily \#include "{}../../trace.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ad0ae9d4658eb6c019efbb66384005dab}{CPUID\+\_\+\+VENDOR\+\_\+\+AMD}}~"{}Authentic\+AMD"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a2a410c2c23e57b58d3bc00c0e78f6b77}{CPUID\+\_\+\+VENDOR\+\_\+\+AMD\+\_\+\+OLD}}~"{}AMDisbetter!"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a2252d4da61bc8e76df71f8af33a547a2}{CPUID\+\_\+\+VENDOR\+\_\+\+INTEL}}~"{}Genuine\+Intel"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a01a0d8aa43e830f78626c61e5e6e8f7d}{CPUID\+\_\+\+VENDOR\+\_\+\+VIA}}~"{}VIA VIA VIA "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a887c960f636a4dcc41ecaa6624adc59d}{CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA}}~"{}Genuine\+TMx86"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a562203242a7d2f0b61c903f124528129}{CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA\+\_\+\+OLD}}~"{}Transmeta\+CPU"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ab044f1560728d8686fb1486afcf6b6ef}{CPUID\+\_\+\+VENDOR\+\_\+\+CYRIX}}~"{}Cyrix\+Instead"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_adf1e062a787c09bebb6624567aea1fff}{CPUID\+\_\+\+VENDOR\+\_\+\+CENTAUR}}~"{}Centaur\+Hauls"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a6c9020992dfe74959390a4b41f2fa71c}{CPUID\+\_\+\+VENDOR\+\_\+\+NEXGEN}}~"{}Nex\+Gen\+Driven"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a6b2b599ef09ec8629f294060c5cabe44}{CPUID\+\_\+\+VENDOR\+\_\+\+UMC}}~"{}UMC UMC UMC "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a4c65f683bafbe7ac750b02249275bcf3}{CPUID\+\_\+\+VENDOR\+\_\+\+SIS}}~"{}SiS SiS SiS "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a71ee70ea4a4803c3eb9644bf11970575}{CPUID\+\_\+\+VENDOR\+\_\+\+NSC}}~"{}Geode by NSC"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ab27dfdb9bc3c2aa51ab380516e679d98}{CPUID\+\_\+\+VENDOR\+\_\+\+RISE}}~"{}Rise\+Rise\+Rise"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a55a2a1e1e52003f706869af4e71eddc8}{CPUID\+\_\+\+VENDOR\+\_\+\+VORTEX}}~"{}Vortex86 So\+C"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ae6138d3bdeb94d4499217904767c57e5}{CPUID\+\_\+\+VENDOR\+\_\+\+AO486}}~"{}Mi\+STer AO486"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a98808464e9e6c98429996d4c3811d1be}{CPUID\+\_\+\+VENDOR\+\_\+\+AO486\+\_\+\+OLD}}~"{}Genuine\+AO486"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a5004b36fa5450cdf9be08dc1957d0a85}{CPUID\+\_\+\+VENDOR\+\_\+\+ZHAOXIN}}~"{}  Shanghai  "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a9928e1732754dc8767ff35483eae6f38}{CPUID\+\_\+\+VENDOR\+\_\+\+HYGON}}~"{}Hygon\+Genuine"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a9c883b77b32797a6122188618d4b0688}{CPUID\+\_\+\+VENDOR\+\_\+\+ELBRUS}}~"{}E2K MACHINE "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_aa1ea022493cda7c64ccd23c7005f74d2}{CPUID\+\_\+\+VENDOR\+\_\+\+QEMU}}~"{}TCGTCGTCGTCG"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a75f1171c2cf83b1977521d8f04206658}{CPUID\+\_\+\+VENDOR\+\_\+\+KVM}}~"{} KVMKVMKVM  "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_acd5893be73c6284b07f2fca012722dad}{CPUID\+\_\+\+VENDOR\+\_\+\+VMWARE}}~"{}VMware\+VMware"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ad746604474e223142f61cc21cd09761c}{CPUID\+\_\+\+VENDOR\+\_\+\+VIRTUALBOX}}~"{}VBox\+VBox\+VBox"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a8e1446bf0448f6931d4f4e716a6774e1}{CPUID\+\_\+\+VENDOR\+\_\+\+XEN}}~"{}Xen\+VMMXen\+VMM"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_ae00c6b7080effbee62bb23af839af426}{CPUID\+\_\+\+VENDOR\+\_\+\+HYPERV}}~"{}Microsoft Hv"{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a500f49e94c2df9199c46fb326fc37eef}{CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS}}~"{} prl hyperv "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_aa50777207a8b31650f9d444332171d98}{CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS\+\_\+\+ALT}}~"{} lrpepyh vr "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_a660bd5d4a6b094100373ec135e357dcf}{CPUID\+\_\+\+VENDOR\+\_\+\+BHYVE}}~"{}bhyve bhyve "{}
+\item 
+\#define \mbox{\hyperlink{cpuid_8h_abe20636bc9fc4f7d6b5d40b3a854896c}{CPUID\+\_\+\+VENDOR\+\_\+\+QNX}}~"{} QNXQVMBSQG "{}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \{ \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9ec1c52e0b19a9532baa8ce4f80add58}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE3}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 0
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aaa62b2a02d3829ace891eac7d1d8f746}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCLMUL}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 1
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aa84b899e336daf2d90cdab723a24d544}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DTES64}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 2
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6ffa8cdde16327f47b6a49aa5d676ee5}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MONITOR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 3
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a1be0388c15db5d77facac96d2efddc4f}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DS\+\_\+\+CPL}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 4
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a714125fa31dd21e46e385b8dc340214f}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+VMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 5
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab6deac61a50e0367b5475869e240ac06}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 6
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a150b3abab983011be08fc459b7b9b700}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+EST}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 7
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01acf4aa3ed6f11fc17b684281787f60949}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TM2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 8
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5957647e74d0eaea90bdb316e578e579}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSSE3}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 9
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb8bce29e8cfd07070b596f3912f608b}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CID}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 10
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01af4cb88b61cd0daff24dd016b2aca7d9a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SDBG}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 11
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c1fd66e736f5d3d344e919b57483336}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+FMA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 12
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ad30be7d0797e3aad723013154aa733d2}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CX16}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 13
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5dfdf86e2bc4ee8fdcd3fa7baf4399c1}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XTPR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 14
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a93ddbafd38f7a260286998ae9ddc8cad}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PDCM}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 15
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56aa3578bd577b2ea29f0e224bef9534}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCID}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 17
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2b75568ac85063fb0a96418fa0bfb29d}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DCA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 18
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a63ddf183b299d2fc7686dac65e1a555a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+1}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 19
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac35d5255d2ef4728b73348db7087c1c7}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 20
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a567f32d361128487193569f9ef177f77}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+X2\+APIC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 21
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac67b97fbc629b276f5c13dbf88c4f709}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MOVBE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 22
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a71e5348902e26fc6de23f4f5bd384f74}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+POPCNT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 23
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a0c644c82f246a9fb8bd489452c096017}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TSC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 24
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a8a62b9dd23a47562237c0370b8ed87a0}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AES}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 25
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c28569cd999d6cc2e9e0005b4fa6c9d}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XSAVE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 26
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56478550836d5fa258b03e9fd9eb8116}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+OSXSAVE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 27
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a749d00516968a015a4d8e15235bf07e6}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AVX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 28
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5367b88fac44977ce4bc466b143ad2a2}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+F16C}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 29
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a05f15dce448cb64b18439c6d2eb68865}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+RDRAND}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 30
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a21f722be79b1108cdbef6affda4cf96a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+HYPERVISOR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 31
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac07d767d714117e48c453b752f799610}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FPU}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 0
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5d32075fb1cfd95910c1eff1f0f3d056}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+VME}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 1
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a69236c580bf3feddd4a57b3072a7b521}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 2
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a59bc828bc43010ac71793759e8011335}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 3
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2ae56cfb5a846822cc095b79bf74de10}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TSC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 4
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6b8beb5908a936d7f00c848df0abe061}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MSR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 5
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a3a97eae0ba980bb5d9d9b10138d70aca}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 6
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ade0ff2978a54bc0c96dd71a7a7177d0f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 7
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a431ed484886fa29e4a7d16ab99523350}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CX8}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 8
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a7fa4170aae12fbc1642012ccba9855b0}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+APIC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 9
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a674ec4ce4025c0f520a30d6e461ed47d}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SEP}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 11
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5b30fec963effd4a0d2c8447028d0215}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MTRR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 12
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb0d4b99b2d0e98089be4ede2162eddf}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PGE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 13
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac9e7b8e9c0e19bfe48a4bcd749aaaa4e}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 14
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c90442380d5125737f106c44afce64f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CMOV}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 15
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac0e40c6f57efc979712596770aab9f8a}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 16
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9718e0367b529df69ee7c9b7fd998b83}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE36}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 17
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aac23260b012a04ea25d113844c631d44}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSN}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 18
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2041739ed2386501eab8636e1a6971ee}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CLFLUSH}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 19
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a160a42ab16256b365e2b82fdaf015e4b}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DS}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 21
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec94ddf1825bdde32627d9149beec9dc}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+ACPI}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 22
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac8185eb6b47dd2ef97a44cbb759f8e52}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 23
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a577b773d21178552d9d768da936479f6}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FXSR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 24
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab362f49f025f651238f57dcf8d5d281f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 25
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab64ff1599bf88ab91782ee4f9152f3ce}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 26
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec6daa5351cf0b927f4fcbad3f0cfef1}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SS}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 27
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac91c9cfc9f3165b25b10030ef82c491f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+HTT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 28
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a011b4b6541a2bb243222c0c33dfabcea}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TM}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 29
+, \mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a12ab79d3456f748b49340fa00e60c160}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+IA64}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 30
+, \newline
+\mbox{\hyperlink{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ae6cfc957052841ae578ddfb390f00a1a}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PBE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 31
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{cpuid_8h_a07baaa0cfda9434c8ac886b455ca685f}{checkcpuid}} (void)
+\begin{DoxyCompactList}\small\item\em This function checks if the CPUID assembly instruction is available in the current \doxylink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{cpuid_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{cpuid_8h_ad0ae9d4658eb6c019efbb66384005dab}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_AMD@{CPUID\_VENDOR\_AMD}}
+\index{CPUID\_VENDOR\_AMD@{CPUID\_VENDOR\_AMD}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AMD}{CPUID\_VENDOR\_AMD}}
+{\footnotesize\ttfamily \label{cpuid_8h_ad0ae9d4658eb6c019efbb66384005dab} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AMD~"{}Authentic\+AMD"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00013}{13}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a2a410c2c23e57b58d3bc00c0e78f6b77}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_AMD\_OLD@{CPUID\_VENDOR\_AMD\_OLD}}
+\index{CPUID\_VENDOR\_AMD\_OLD@{CPUID\_VENDOR\_AMD\_OLD}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AMD\_OLD}{CPUID\_VENDOR\_AMD\_OLD}}
+{\footnotesize\ttfamily \label{cpuid_8h_a2a410c2c23e57b58d3bc00c0e78f6b77} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AMD\+\_\+\+OLD~"{}AMDisbetter!"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00014}{14}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_ae6138d3bdeb94d4499217904767c57e5}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_AO486@{CPUID\_VENDOR\_AO486}}
+\index{CPUID\_VENDOR\_AO486@{CPUID\_VENDOR\_AO486}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AO486}{CPUID\_VENDOR\_AO486}}
+{\footnotesize\ttfamily \label{cpuid_8h_ae6138d3bdeb94d4499217904767c57e5} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AO486~"{}Mi\+STer AO486"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00027}{27}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a98808464e9e6c98429996d4c3811d1be}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_AO486\_OLD@{CPUID\_VENDOR\_AO486\_OLD}}
+\index{CPUID\_VENDOR\_AO486\_OLD@{CPUID\_VENDOR\_AO486\_OLD}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AO486\_OLD}{CPUID\_VENDOR\_AO486\_OLD}}
+{\footnotesize\ttfamily \label{cpuid_8h_a98808464e9e6c98429996d4c3811d1be} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AO486\+\_\+\+OLD~"{}Genuine\+AO486"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00028}{28}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a660bd5d4a6b094100373ec135e357dcf}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_BHYVE@{CPUID\_VENDOR\_BHYVE}}
+\index{CPUID\_VENDOR\_BHYVE@{CPUID\_VENDOR\_BHYVE}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_BHYVE}{CPUID\_VENDOR\_BHYVE}}
+{\footnotesize\ttfamily \label{cpuid_8h_a660bd5d4a6b094100373ec135e357dcf} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+BHYVE~"{}bhyve bhyve "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00042}{42}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_adf1e062a787c09bebb6624567aea1fff}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_CENTAUR@{CPUID\_VENDOR\_CENTAUR}}
+\index{CPUID\_VENDOR\_CENTAUR@{CPUID\_VENDOR\_CENTAUR}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_CENTAUR}{CPUID\_VENDOR\_CENTAUR}}
+{\footnotesize\ttfamily \label{cpuid_8h_adf1e062a787c09bebb6624567aea1fff} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+CENTAUR~"{}Centaur\+Hauls"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00020}{20}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_ab044f1560728d8686fb1486afcf6b6ef}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_CYRIX@{CPUID\_VENDOR\_CYRIX}}
+\index{CPUID\_VENDOR\_CYRIX@{CPUID\_VENDOR\_CYRIX}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_CYRIX}{CPUID\_VENDOR\_CYRIX}}
+{\footnotesize\ttfamily \label{cpuid_8h_ab044f1560728d8686fb1486afcf6b6ef} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+CYRIX~"{}Cyrix\+Instead"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00019}{19}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a9c883b77b32797a6122188618d4b0688}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_ELBRUS@{CPUID\_VENDOR\_ELBRUS}}
+\index{CPUID\_VENDOR\_ELBRUS@{CPUID\_VENDOR\_ELBRUS}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_ELBRUS}{CPUID\_VENDOR\_ELBRUS}}
+{\footnotesize\ttfamily \label{cpuid_8h_a9c883b77b32797a6122188618d4b0688} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+ELBRUS~"{}E2K MACHINE "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00031}{31}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a9928e1732754dc8767ff35483eae6f38}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_HYGON@{CPUID\_VENDOR\_HYGON}}
+\index{CPUID\_VENDOR\_HYGON@{CPUID\_VENDOR\_HYGON}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_HYGON}{CPUID\_VENDOR\_HYGON}}
+{\footnotesize\ttfamily \label{cpuid_8h_a9928e1732754dc8767ff35483eae6f38} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+HYGON~"{}Hygon\+Genuine"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00030}{30}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_ae00c6b7080effbee62bb23af839af426}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_HYPERV@{CPUID\_VENDOR\_HYPERV}}
+\index{CPUID\_VENDOR\_HYPERV@{CPUID\_VENDOR\_HYPERV}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_HYPERV}{CPUID\_VENDOR\_HYPERV}}
+{\footnotesize\ttfamily \label{cpuid_8h_ae00c6b7080effbee62bb23af839af426} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+HYPERV~"{}Microsoft Hv"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00039}{39}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a2252d4da61bc8e76df71f8af33a547a2}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_INTEL@{CPUID\_VENDOR\_INTEL}}
+\index{CPUID\_VENDOR\_INTEL@{CPUID\_VENDOR\_INTEL}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_INTEL}{CPUID\_VENDOR\_INTEL}}
+{\footnotesize\ttfamily \label{cpuid_8h_a2252d4da61bc8e76df71f8af33a547a2} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+INTEL~"{}Genuine\+Intel"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00015}{15}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a75f1171c2cf83b1977521d8f04206658}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_KVM@{CPUID\_VENDOR\_KVM}}
+\index{CPUID\_VENDOR\_KVM@{CPUID\_VENDOR\_KVM}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_KVM}{CPUID\_VENDOR\_KVM}}
+{\footnotesize\ttfamily \label{cpuid_8h_a75f1171c2cf83b1977521d8f04206658} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+KVM~"{} KVMKVMKVM  "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00035}{35}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a6c9020992dfe74959390a4b41f2fa71c}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_NEXGEN@{CPUID\_VENDOR\_NEXGEN}}
+\index{CPUID\_VENDOR\_NEXGEN@{CPUID\_VENDOR\_NEXGEN}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_NEXGEN}{CPUID\_VENDOR\_NEXGEN}}
+{\footnotesize\ttfamily \label{cpuid_8h_a6c9020992dfe74959390a4b41f2fa71c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+NEXGEN~"{}Nex\+Gen\+Driven"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00021}{21}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a71ee70ea4a4803c3eb9644bf11970575}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_NSC@{CPUID\_VENDOR\_NSC}}
+\index{CPUID\_VENDOR\_NSC@{CPUID\_VENDOR\_NSC}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_NSC}{CPUID\_VENDOR\_NSC}}
+{\footnotesize\ttfamily \label{cpuid_8h_a71ee70ea4a4803c3eb9644bf11970575} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+NSC~"{}Geode by NSC"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00024}{24}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a500f49e94c2df9199c46fb326fc37eef}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_PARALLELS@{CPUID\_VENDOR\_PARALLELS}}
+\index{CPUID\_VENDOR\_PARALLELS@{CPUID\_VENDOR\_PARALLELS}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_PARALLELS}{CPUID\_VENDOR\_PARALLELS}}
+{\footnotesize\ttfamily \label{cpuid_8h_a500f49e94c2df9199c46fb326fc37eef} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS~"{} prl hyperv "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00040}{40}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_aa50777207a8b31650f9d444332171d98}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_PARALLELS\_ALT@{CPUID\_VENDOR\_PARALLELS\_ALT}}
+\index{CPUID\_VENDOR\_PARALLELS\_ALT@{CPUID\_VENDOR\_PARALLELS\_ALT}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_PARALLELS\_ALT}{CPUID\_VENDOR\_PARALLELS\_ALT}}
+{\footnotesize\ttfamily \label{cpuid_8h_aa50777207a8b31650f9d444332171d98} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS\+\_\+\+ALT~"{} lrpepyh vr "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00041}{41}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_aa1ea022493cda7c64ccd23c7005f74d2}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_QEMU@{CPUID\_VENDOR\_QEMU}}
+\index{CPUID\_VENDOR\_QEMU@{CPUID\_VENDOR\_QEMU}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_QEMU}{CPUID\_VENDOR\_QEMU}}
+{\footnotesize\ttfamily \label{cpuid_8h_aa1ea022493cda7c64ccd23c7005f74d2} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+QEMU~"{}TCGTCGTCGTCG"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00034}{34}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_abe20636bc9fc4f7d6b5d40b3a854896c}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_QNX@{CPUID\_VENDOR\_QNX}}
+\index{CPUID\_VENDOR\_QNX@{CPUID\_VENDOR\_QNX}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_QNX}{CPUID\_VENDOR\_QNX}}
+{\footnotesize\ttfamily \label{cpuid_8h_abe20636bc9fc4f7d6b5d40b3a854896c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+QNX~"{} QNXQVMBSQG "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00043}{43}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_ab27dfdb9bc3c2aa51ab380516e679d98}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_RISE@{CPUID\_VENDOR\_RISE}}
+\index{CPUID\_VENDOR\_RISE@{CPUID\_VENDOR\_RISE}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_RISE}{CPUID\_VENDOR\_RISE}}
+{\footnotesize\ttfamily \label{cpuid_8h_ab27dfdb9bc3c2aa51ab380516e679d98} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+RISE~"{}Rise\+Rise\+Rise"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00025}{25}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a4c65f683bafbe7ac750b02249275bcf3}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_SIS@{CPUID\_VENDOR\_SIS}}
+\index{CPUID\_VENDOR\_SIS@{CPUID\_VENDOR\_SIS}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_SIS}{CPUID\_VENDOR\_SIS}}
+{\footnotesize\ttfamily \label{cpuid_8h_a4c65f683bafbe7ac750b02249275bcf3} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+SIS~"{}SiS SiS SiS "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00023}{23}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a887c960f636a4dcc41ecaa6624adc59d}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_TRANSMETA@{CPUID\_VENDOR\_TRANSMETA}}
+\index{CPUID\_VENDOR\_TRANSMETA@{CPUID\_VENDOR\_TRANSMETA}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_TRANSMETA}{CPUID\_VENDOR\_TRANSMETA}}
+{\footnotesize\ttfamily \label{cpuid_8h_a887c960f636a4dcc41ecaa6624adc59d} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA~"{}Genuine\+TMx86"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00017}{17}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a562203242a7d2f0b61c903f124528129}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_TRANSMETA\_OLD@{CPUID\_VENDOR\_TRANSMETA\_OLD}}
+\index{CPUID\_VENDOR\_TRANSMETA\_OLD@{CPUID\_VENDOR\_TRANSMETA\_OLD}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_TRANSMETA\_OLD}{CPUID\_VENDOR\_TRANSMETA\_OLD}}
+{\footnotesize\ttfamily \label{cpuid_8h_a562203242a7d2f0b61c903f124528129} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA\+\_\+\+OLD~"{}Transmeta\+CPU"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00018}{18}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a6b2b599ef09ec8629f294060c5cabe44}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_UMC@{CPUID\_VENDOR\_UMC}}
+\index{CPUID\_VENDOR\_UMC@{CPUID\_VENDOR\_UMC}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_UMC}{CPUID\_VENDOR\_UMC}}
+{\footnotesize\ttfamily \label{cpuid_8h_a6b2b599ef09ec8629f294060c5cabe44} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+UMC~"{}UMC UMC UMC "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00022}{22}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a01a0d8aa43e830f78626c61e5e6e8f7d}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_VIA@{CPUID\_VENDOR\_VIA}}
+\index{CPUID\_VENDOR\_VIA@{CPUID\_VENDOR\_VIA}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VIA}{CPUID\_VENDOR\_VIA}}
+{\footnotesize\ttfamily \label{cpuid_8h_a01a0d8aa43e830f78626c61e5e6e8f7d} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VIA~"{}VIA VIA VIA "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00016}{16}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_ad746604474e223142f61cc21cd09761c}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_VIRTUALBOX@{CPUID\_VENDOR\_VIRTUALBOX}}
+\index{CPUID\_VENDOR\_VIRTUALBOX@{CPUID\_VENDOR\_VIRTUALBOX}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VIRTUALBOX}{CPUID\_VENDOR\_VIRTUALBOX}}
+{\footnotesize\ttfamily \label{cpuid_8h_ad746604474e223142f61cc21cd09761c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VIRTUALBOX~"{}VBox\+VBox\+VBox"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00037}{37}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_acd5893be73c6284b07f2fca012722dad}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_VMWARE@{CPUID\_VENDOR\_VMWARE}}
+\index{CPUID\_VENDOR\_VMWARE@{CPUID\_VENDOR\_VMWARE}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VMWARE}{CPUID\_VENDOR\_VMWARE}}
+{\footnotesize\ttfamily \label{cpuid_8h_acd5893be73c6284b07f2fca012722dad} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VMWARE~"{}VMware\+VMware"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00036}{36}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a55a2a1e1e52003f706869af4e71eddc8}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_VORTEX@{CPUID\_VENDOR\_VORTEX}}
+\index{CPUID\_VENDOR\_VORTEX@{CPUID\_VENDOR\_VORTEX}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VORTEX}{CPUID\_VENDOR\_VORTEX}}
+{\footnotesize\ttfamily \label{cpuid_8h_a55a2a1e1e52003f706869af4e71eddc8} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VORTEX~"{}Vortex86 So\+C"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00026}{26}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a8e1446bf0448f6931d4f4e716a6774e1}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_XEN@{CPUID\_VENDOR\_XEN}}
+\index{CPUID\_VENDOR\_XEN@{CPUID\_VENDOR\_XEN}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_XEN}{CPUID\_VENDOR\_XEN}}
+{\footnotesize\ttfamily \label{cpuid_8h_a8e1446bf0448f6931d4f4e716a6774e1} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+XEN~"{}Xen\+VMMXen\+VMM"{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00038}{38}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+\Hypertarget{cpuid_8h_a5004b36fa5450cdf9be08dc1957d0a85}\index{cpuid.h@{cpuid.h}!CPUID\_VENDOR\_ZHAOXIN@{CPUID\_VENDOR\_ZHAOXIN}}
+\index{CPUID\_VENDOR\_ZHAOXIN@{CPUID\_VENDOR\_ZHAOXIN}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_ZHAOXIN}{CPUID\_VENDOR\_ZHAOXIN}}
+{\footnotesize\ttfamily \label{cpuid_8h_a5004b36fa5450cdf9be08dc1957d0a85} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+ZHAOXIN~"{}  Shanghai  "{}}
+
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00029}{29}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+
+
+\label{doc-enum-members}
+\Hypertarget{cpuid_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE3@{CPUID\_FEAT\_ECX\_SSE3}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SSE3@{CPUID\_FEAT\_ECX\_SSE3}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9ec1c52e0b19a9532baa8ce4f80add58}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9ec1c52e0b19a9532baa8ce4f80add58} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE3&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PCLMUL@{CPUID\_FEAT\_ECX\_PCLMUL}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_PCLMUL@{CPUID\_FEAT\_ECX\_PCLMUL}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aaa62b2a02d3829ace891eac7d1d8f746}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aaa62b2a02d3829ace891eac7d1d8f746} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCLMUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DTES64@{CPUID\_FEAT\_ECX\_DTES64}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_DTES64@{CPUID\_FEAT\_ECX\_DTES64}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aa84b899e336daf2d90cdab723a24d544}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aa84b899e336daf2d90cdab723a24d544} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DTES64&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_MONITOR@{CPUID\_FEAT\_ECX\_MONITOR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_MONITOR@{CPUID\_FEAT\_ECX\_MONITOR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6ffa8cdde16327f47b6a49aa5d676ee5}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6ffa8cdde16327f47b6a49aa5d676ee5} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MONITOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DS\_CPL@{CPUID\_FEAT\_ECX\_DS\_CPL}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_DS\_CPL@{CPUID\_FEAT\_ECX\_DS\_CPL}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a1be0388c15db5d77facac96d2efddc4f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a1be0388c15db5d77facac96d2efddc4f} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DS\+\_\+\+CPL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_VMX@{CPUID\_FEAT\_ECX\_VMX}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_VMX@{CPUID\_FEAT\_ECX\_VMX}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a714125fa31dd21e46e385b8dc340214f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a714125fa31dd21e46e385b8dc340214f} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+VMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SMX@{CPUID\_FEAT\_ECX\_SMX}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SMX@{CPUID\_FEAT\_ECX\_SMX}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab6deac61a50e0367b5475869e240ac06}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab6deac61a50e0367b5475869e240ac06} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_EST@{CPUID\_FEAT\_ECX\_EST}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_EST@{CPUID\_FEAT\_ECX\_EST}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a150b3abab983011be08fc459b7b9b700}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a150b3abab983011be08fc459b7b9b700} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+EST&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_TM2@{CPUID\_FEAT\_ECX\_TM2}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_TM2@{CPUID\_FEAT\_ECX\_TM2}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01acf4aa3ed6f11fc17b684281787f60949}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01acf4aa3ed6f11fc17b684281787f60949} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TM2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSSE3@{CPUID\_FEAT\_ECX\_SSSE3}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SSSE3@{CPUID\_FEAT\_ECX\_SSSE3}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5957647e74d0eaea90bdb316e578e579}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5957647e74d0eaea90bdb316e578e579} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSSE3&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_CID@{CPUID\_FEAT\_ECX\_CID}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_CID@{CPUID\_FEAT\_ECX\_CID}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb8bce29e8cfd07070b596f3912f608b}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb8bce29e8cfd07070b596f3912f608b} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SDBG@{CPUID\_FEAT\_ECX\_SDBG}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SDBG@{CPUID\_FEAT\_ECX\_SDBG}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01af4cb88b61cd0daff24dd016b2aca7d9a}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01af4cb88b61cd0daff24dd016b2aca7d9a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SDBG&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_FMA@{CPUID\_FEAT\_ECX\_FMA}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_FMA@{CPUID\_FEAT\_ECX\_FMA}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c1fd66e736f5d3d344e919b57483336}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c1fd66e736f5d3d344e919b57483336} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+FMA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_CX16@{CPUID\_FEAT\_ECX\_CX16}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_CX16@{CPUID\_FEAT\_ECX\_CX16}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ad30be7d0797e3aad723013154aa733d2}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ad30be7d0797e3aad723013154aa733d2} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CX16&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_XTPR@{CPUID\_FEAT\_ECX\_XTPR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_XTPR@{CPUID\_FEAT\_ECX\_XTPR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5dfdf86e2bc4ee8fdcd3fa7baf4399c1}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5dfdf86e2bc4ee8fdcd3fa7baf4399c1} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XTPR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PDCM@{CPUID\_FEAT\_ECX\_PDCM}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_PDCM@{CPUID\_FEAT\_ECX\_PDCM}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a93ddbafd38f7a260286998ae9ddc8cad}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a93ddbafd38f7a260286998ae9ddc8cad} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PDCM&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PCID@{CPUID\_FEAT\_ECX\_PCID}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_PCID@{CPUID\_FEAT\_ECX\_PCID}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56aa3578bd577b2ea29f0e224bef9534}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56aa3578bd577b2ea29f0e224bef9534} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DCA@{CPUID\_FEAT\_ECX\_DCA}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_DCA@{CPUID\_FEAT\_ECX\_DCA}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2b75568ac85063fb0a96418fa0bfb29d}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2b75568ac85063fb0a96418fa0bfb29d} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DCA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE4\_1@{CPUID\_FEAT\_ECX\_SSE4\_1}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SSE4\_1@{CPUID\_FEAT\_ECX\_SSE4\_1}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a63ddf183b299d2fc7686dac65e1a555a}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a63ddf183b299d2fc7686dac65e1a555a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+1&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE4\_2@{CPUID\_FEAT\_ECX\_SSE4\_2}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_SSE4\_2@{CPUID\_FEAT\_ECX\_SSE4\_2}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac35d5255d2ef4728b73348db7087c1c7}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac35d5255d2ef4728b73348db7087c1c7} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_X2APIC@{CPUID\_FEAT\_ECX\_X2APIC}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_X2APIC@{CPUID\_FEAT\_ECX\_X2APIC}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a567f32d361128487193569f9ef177f77}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a567f32d361128487193569f9ef177f77} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+X2\+APIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_MOVBE@{CPUID\_FEAT\_ECX\_MOVBE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_MOVBE@{CPUID\_FEAT\_ECX\_MOVBE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac67b97fbc629b276f5c13dbf88c4f709}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac67b97fbc629b276f5c13dbf88c4f709} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MOVBE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_POPCNT@{CPUID\_FEAT\_ECX\_POPCNT}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_POPCNT@{CPUID\_FEAT\_ECX\_POPCNT}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a71e5348902e26fc6de23f4f5bd384f74}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a71e5348902e26fc6de23f4f5bd384f74} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+POPCNT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_TSC@{CPUID\_FEAT\_ECX\_TSC}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_TSC@{CPUID\_FEAT\_ECX\_TSC}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a0c644c82f246a9fb8bd489452c096017}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a0c644c82f246a9fb8bd489452c096017} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TSC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_AES@{CPUID\_FEAT\_ECX\_AES}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_AES@{CPUID\_FEAT\_ECX\_AES}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a8a62b9dd23a47562237c0370b8ed87a0}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a8a62b9dd23a47562237c0370b8ed87a0} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AES&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_XSAVE@{CPUID\_FEAT\_ECX\_XSAVE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_XSAVE@{CPUID\_FEAT\_ECX\_XSAVE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c28569cd999d6cc2e9e0005b4fa6c9d}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c28569cd999d6cc2e9e0005b4fa6c9d} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XSAVE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_OSXSAVE@{CPUID\_FEAT\_ECX\_OSXSAVE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_OSXSAVE@{CPUID\_FEAT\_ECX\_OSXSAVE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56478550836d5fa258b03e9fd9eb8116}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a56478550836d5fa258b03e9fd9eb8116} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+OSXSAVE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_AVX@{CPUID\_FEAT\_ECX\_AVX}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_AVX@{CPUID\_FEAT\_ECX\_AVX}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a749d00516968a015a4d8e15235bf07e6}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a749d00516968a015a4d8e15235bf07e6} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AVX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_F16C@{CPUID\_FEAT\_ECX\_F16C}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_F16C@{CPUID\_FEAT\_ECX\_F16C}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5367b88fac44977ce4bc466b143ad2a2}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5367b88fac44977ce4bc466b143ad2a2} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+F16C&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_RDRAND@{CPUID\_FEAT\_ECX\_RDRAND}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_RDRAND@{CPUID\_FEAT\_ECX\_RDRAND}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a05f15dce448cb64b18439c6d2eb68865}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a05f15dce448cb64b18439c6d2eb68865} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+RDRAND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_HYPERVISOR@{CPUID\_FEAT\_ECX\_HYPERVISOR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_ECX\_HYPERVISOR@{CPUID\_FEAT\_ECX\_HYPERVISOR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a21f722be79b1108cdbef6affda4cf96a}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a21f722be79b1108cdbef6affda4cf96a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+HYPERVISOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_FPU@{CPUID\_FEAT\_EDX\_FPU}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_FPU@{CPUID\_FEAT\_EDX\_FPU}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac07d767d714117e48c453b752f799610}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac07d767d714117e48c453b752f799610} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FPU&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_VME@{CPUID\_FEAT\_EDX\_VME}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_VME@{CPUID\_FEAT\_EDX\_VME}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5d32075fb1cfd95910c1eff1f0f3d056}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5d32075fb1cfd95910c1eff1f0f3d056} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+VME&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_DE@{CPUID\_FEAT\_EDX\_DE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_DE@{CPUID\_FEAT\_EDX\_DE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a69236c580bf3feddd4a57b3072a7b521}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a69236c580bf3feddd4a57b3072a7b521} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSE@{CPUID\_FEAT\_EDX\_PSE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PSE@{CPUID\_FEAT\_EDX\_PSE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a59bc828bc43010ac71793759e8011335}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a59bc828bc43010ac71793759e8011335} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_TSC@{CPUID\_FEAT\_EDX\_TSC}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_TSC@{CPUID\_FEAT\_EDX\_TSC}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2ae56cfb5a846822cc095b79bf74de10}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2ae56cfb5a846822cc095b79bf74de10} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TSC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MSR@{CPUID\_FEAT\_EDX\_MSR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_MSR@{CPUID\_FEAT\_EDX\_MSR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6b8beb5908a936d7f00c848df0abe061}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a6b8beb5908a936d7f00c848df0abe061} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MSR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PAE@{CPUID\_FEAT\_EDX\_PAE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PAE@{CPUID\_FEAT\_EDX\_PAE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a3a97eae0ba980bb5d9d9b10138d70aca}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a3a97eae0ba980bb5d9d9b10138d70aca} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MCE@{CPUID\_FEAT\_EDX\_MCE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_MCE@{CPUID\_FEAT\_EDX\_MCE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ade0ff2978a54bc0c96dd71a7a7177d0f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ade0ff2978a54bc0c96dd71a7a7177d0f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CX8@{CPUID\_FEAT\_EDX\_CX8}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_CX8@{CPUID\_FEAT\_EDX\_CX8}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a431ed484886fa29e4a7d16ab99523350}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a431ed484886fa29e4a7d16ab99523350} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CX8&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_APIC@{CPUID\_FEAT\_EDX\_APIC}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_APIC@{CPUID\_FEAT\_EDX\_APIC}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a7fa4170aae12fbc1642012ccba9855b0}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a7fa4170aae12fbc1642012ccba9855b0} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+APIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SEP@{CPUID\_FEAT\_EDX\_SEP}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_SEP@{CPUID\_FEAT\_EDX\_SEP}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a674ec4ce4025c0f520a30d6e461ed47d}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a674ec4ce4025c0f520a30d6e461ed47d} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SEP&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MTRR@{CPUID\_FEAT\_EDX\_MTRR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_MTRR@{CPUID\_FEAT\_EDX\_MTRR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5b30fec963effd4a0d2c8447028d0215}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a5b30fec963effd4a0d2c8447028d0215} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MTRR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PGE@{CPUID\_FEAT\_EDX\_PGE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PGE@{CPUID\_FEAT\_EDX\_PGE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb0d4b99b2d0e98089be4ede2162eddf}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01afb0d4b99b2d0e98089be4ede2162eddf} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PGE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MCA@{CPUID\_FEAT\_EDX\_MCA}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_MCA@{CPUID\_FEAT\_EDX\_MCA}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac9e7b8e9c0e19bfe48a4bcd749aaaa4e}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac9e7b8e9c0e19bfe48a4bcd749aaaa4e} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CMOV@{CPUID\_FEAT\_EDX\_CMOV}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_CMOV@{CPUID\_FEAT\_EDX\_CMOV}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c90442380d5125737f106c44afce64f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9c90442380d5125737f106c44afce64f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CMOV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PAT@{CPUID\_FEAT\_EDX\_PAT}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PAT@{CPUID\_FEAT\_EDX\_PAT}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac0e40c6f57efc979712596770aab9f8a}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac0e40c6f57efc979712596770aab9f8a} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSE36@{CPUID\_FEAT\_EDX\_PSE36}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PSE36@{CPUID\_FEAT\_EDX\_PSE36}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9718e0367b529df69ee7c9b7fd998b83}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a9718e0367b529df69ee7c9b7fd998b83} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE36&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSN@{CPUID\_FEAT\_EDX\_PSN}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PSN@{CPUID\_FEAT\_EDX\_PSN}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aac23260b012a04ea25d113844c631d44}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aac23260b012a04ea25d113844c631d44} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CLFLUSH@{CPUID\_FEAT\_EDX\_CLFLUSH}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_CLFLUSH@{CPUID\_FEAT\_EDX\_CLFLUSH}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2041739ed2386501eab8636e1a6971ee}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a2041739ed2386501eab8636e1a6971ee} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CLFLUSH&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_DS@{CPUID\_FEAT\_EDX\_DS}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_DS@{CPUID\_FEAT\_EDX\_DS}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a160a42ab16256b365e2b82fdaf015e4b}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a160a42ab16256b365e2b82fdaf015e4b} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_ACPI@{CPUID\_FEAT\_EDX\_ACPI}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_ACPI@{CPUID\_FEAT\_EDX\_ACPI}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec94ddf1825bdde32627d9149beec9dc}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec94ddf1825bdde32627d9149beec9dc} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+ACPI&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MMX@{CPUID\_FEAT\_EDX\_MMX}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_MMX@{CPUID\_FEAT\_EDX\_MMX}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac8185eb6b47dd2ef97a44cbb759f8e52}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac8185eb6b47dd2ef97a44cbb759f8e52} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_FXSR@{CPUID\_FEAT\_EDX\_FXSR}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_FXSR@{CPUID\_FEAT\_EDX\_FXSR}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a577b773d21178552d9d768da936479f6}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a577b773d21178552d9d768da936479f6} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FXSR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SSE@{CPUID\_FEAT\_EDX\_SSE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_SSE@{CPUID\_FEAT\_EDX\_SSE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab362f49f025f651238f57dcf8d5d281f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab362f49f025f651238f57dcf8d5d281f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SSE2@{CPUID\_FEAT\_EDX\_SSE2}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_SSE2@{CPUID\_FEAT\_EDX\_SSE2}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab64ff1599bf88ab91782ee4f9152f3ce}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ab64ff1599bf88ab91782ee4f9152f3ce} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SS@{CPUID\_FEAT\_EDX\_SS}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_SS@{CPUID\_FEAT\_EDX\_SS}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec6daa5351cf0b927f4fcbad3f0cfef1}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01aec6daa5351cf0b927f4fcbad3f0cfef1} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_HTT@{CPUID\_FEAT\_EDX\_HTT}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_HTT@{CPUID\_FEAT\_EDX\_HTT}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac91c9cfc9f3165b25b10030ef82c491f}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ac91c9cfc9f3165b25b10030ef82c491f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+HTT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_TM@{CPUID\_FEAT\_EDX\_TM}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_TM@{CPUID\_FEAT\_EDX\_TM}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a011b4b6541a2bb243222c0c33dfabcea}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a011b4b6541a2bb243222c0c33dfabcea} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TM&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_IA64@{CPUID\_FEAT\_EDX\_IA64}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_IA64@{CPUID\_FEAT\_EDX\_IA64}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a12ab79d3456f748b49340fa00e60c160}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01a12ab79d3456f748b49340fa00e60c160} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+IA64&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PBE@{CPUID\_FEAT\_EDX\_PBE}!cpuid.h@{cpuid.h}}\index{cpuid.h@{cpuid.h}!CPUID\_FEAT\_EDX\_PBE@{CPUID\_FEAT\_EDX\_PBE}}}\Hypertarget{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ae6cfc957052841ae578ddfb390f00a1a}\label{cpuid_8h_a13251b6d5ef8d31bc9fd200d37ac4d01ae6cfc957052841ae578ddfb390f00a1a} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PBE&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{cpuid_8h_source_l00045}{45}} of file \mbox{\hyperlink{cpuid_8h_source}{cpuid.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{cpuid_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{cpuid_8h_a07baaa0cfda9434c8ac886b455ca685f}\index{cpuid.h@{cpuid.h}!checkcpuid@{checkcpuid}}
+\index{checkcpuid@{checkcpuid}!cpuid.h@{cpuid.h}}
+\doxysubsubsection{\texorpdfstring{checkcpuid()}{checkcpuid()}}
+{\footnotesize\ttfamily \label{cpuid_8h_a07baaa0cfda9434c8ac886b455ca685f} 
+bool checkcpuid (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+This function checks if the CPUID assembly instruction is available in the current \doxylink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}. 
+
+\begin{DoxyReturn}{Returns}
+True / False based if present or not.
+\end{DoxyReturn}

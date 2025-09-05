@@ -1,0 +1,261 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include '\&.\&./cpu/cpu\&.h'\fP
+.br
+\fR#include '\&.\&./trace\&.h'\fP
+.br
+\fR#include 'handlers/handlers\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_IDT_PTR\fP"
+.br
+.ti -1c
+.RI "struct \fB_IDT_ENTRY_64\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBPIC1_COMMAND_MASTER\fP   0x20"
+.br
+.ti -1c
+.RI "#define \fBPIC1_DATA_MASTER\fP   0x21"
+.br
+.ti -1c
+.RI "#define \fBPIC2_COMMAND_SLAVE\fP   0xA0"
+.br
+.ti -1c
+.RI "#define \fBPIC2_DATA_SLAVE\fP   0xA1"
+.br
+.ti -1c
+.RI "#define \fBPIC_EOI\fP   0x20"
+.br
+.ti -1c
+.RI "#define \fBIDT_ENTRIES\fP   256"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef enum \fB_CPU_EXCEPTIONS\fP \fBCPU_EXCEPTIONS\fP"
+.br
+.ti -1c
+.RI "typedef enum \fB_INTERRUPT_LIST\fP \fBINTERRUPT_LIST\fP"
+.br
+.ti -1c
+.RI "typedef enum \fB_PIC_IRQ_LINE\fP \fBPIC_IRQ_LINE\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_IDT_PTR\fP \fBIDT_PTR\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_IDT_ENTRY_64\fP \fBIDT_ENTRY64\fP"
+.br
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum \fB_CPU_EXCEPTIONS\fP { \fBEXCEPTION_DIVIDE_BY_ZERO\fP, \fBEXCEPTION_SINGLE_STEP\fP, \fBEXCEPTION_NON_MASKABLE_INTERRUPT\fP, \fBEXCEPTION_BREAKPOINT\fP, \fBEXCEPTION_OVERFLOW\fP, \fBEXCEPTION_BOUNDS_CHECK\fP, \fBEXCEPTION_INVALID_OPCODE\fP, \fBEXCEPTION_NO_COPROCESSOR\fP, \fBEXCEPTION_DOUBLE_FAULT\fP, \fBEXCEPTION_COPROCESSOR_SEGMENT_OVERRUN\fP, \fBEXCEPTION_INVALID_TSS\fP, \fBEXCEPTION_SEGMENT_SELECTOR_NOTPRESENT\fP, \fBEXCEPTION_STACK_SEGMENT_OVERRUN\fP, \fBEXCEPTION_GENERAL_PROTECTION_FAULT\fP, \fBEXCEPTION_PAGE_FAULT\fP, \fBEXCEPTION_RESERVED\fP, \fBEXCEPTION_FLOATING_POINT_ERROR\fP, \fBEXCEPTION_ALIGNMENT_CHECK\fP, \fBEXCEPTION_SEVERE_MACHINE_CHECK\fP }"
+.br
+.ti -1c
+.RI "enum \fB_INTERRUPT_LIST\fP { \fBTIMER_INTERRUPT\fP = 32, \fBKEYBOARD_INTERRUPT\fP = 33, \fBATA_INTERRUPT\fP = 46, \fBLAPIC_INTERRUPT\fP = 0xEF, \fBLAPIC_SIV_INTERRUPT\fP = 0xFF }"
+.br
+.ti -1c
+.RI "enum \fB_PIC_IRQ_LINE\fP { \fBIRQ0_TIMER\fP = 0, \fBIRQ1_KEYBOARD\fP = 1, \fBIRQ2_CASCADE\fP = 2, \fBIRQ3_SERIAL2\fP = 3, \fBIRQ4_SERIAL1\fP = 4, \fBIRQ5_LPT2\fP = 5, \fBIRQ6_FLOPPY\fP = 6, \fBIRQ7_LPT1\fP = 7, \fBIRQ8_CMOS\fP = 8, \fBIRQ9_FREE\fP = 9, \fBIRQ10_FREE\fP = 10, \fBIRQ11_FREE\fP = 11, \fBIRQ12_MOUSE\fP = 12, \fBIRQ13_FPU\fP = 13, \fBIRQ14_PRIMARY_ATA\fP = 14, \fBIRQ15_SECONDARY_ATA\fP = 15 }"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBset_idt_gate\fP (int n, unsigned long int handler)"
+.br
+.ti -1c
+.RI "void \fBinstall_idt\fP (void)"
+.br
+.ti -1c
+.RI "void \fBinit_interrupts\fP (void)"
+.br
+.ti -1c
+.RI "void \fBisr_handler64\fP (int vec_num, \fBCTX_FRAME\fP *ctx, \fBINT_FRAME\fP *intfr)"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define IDT_ENTRIES   256"
+
+.PP
+Definition at line \fB23\fP of file \fBidt\&.h\fP\&.
+.SS "#define PIC1_COMMAND_MASTER   0x20"
+
+.PP
+Definition at line \fB17\fP of file \fBidt\&.h\fP\&.
+.SS "#define PIC1_DATA_MASTER   0x21"
+
+.PP
+Definition at line \fB18\fP of file \fBidt\&.h\fP\&.
+.SS "#define PIC2_COMMAND_SLAVE   0xA0"
+
+.PP
+Definition at line \fB19\fP of file \fBidt\&.h\fP\&.
+.SS "#define PIC2_DATA_SLAVE   0xA1"
+
+.PP
+Definition at line \fB20\fP of file \fBidt\&.h\fP\&.
+.SS "#define PIC_EOI   0x20"
+
+.PP
+Definition at line \fB22\fP of file \fBidt\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef enum \fB_CPU_EXCEPTIONS\fP \fBCPU_EXCEPTIONS\fP"
+Exception Definitions 
+.SS "typedef struct \fB_IDT_ENTRY_64\fP \fBIDT_ENTRY64\fP"
+
+.SS "typedef struct \fB_IDT_PTR\fP \fBIDT_PTR\fP"
+
+.SS "typedef enum \fB_INTERRUPT_LIST\fP \fBINTERRUPT_LIST\fP"
+Interrupt Definitions 
+.SS "typedef enum \fB_PIC_IRQ_LINE\fP \fBPIC_IRQ_LINE\fP"
+PIC IRQ Lines 
+.SH "Enumeration Type Documentation"
+.PP 
+.SS "enum \fB_CPU_EXCEPTIONS\fP"
+Exception Definitions 
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIEXCEPTION_DIVIDE_BY_ZERO \fP
+.TP
+\f(BIEXCEPTION_SINGLE_STEP \fP
+.TP
+\f(BIEXCEPTION_NON_MASKABLE_INTERRUPT \fP
+.TP
+\f(BIEXCEPTION_BREAKPOINT \fP
+.TP
+\f(BIEXCEPTION_OVERFLOW \fP
+.TP
+\f(BIEXCEPTION_BOUNDS_CHECK \fP
+.TP
+\f(BIEXCEPTION_INVALID_OPCODE \fP
+.TP
+\f(BIEXCEPTION_NO_COPROCESSOR \fP
+.TP
+\f(BIEXCEPTION_DOUBLE_FAULT \fP
+.TP
+\f(BIEXCEPTION_COPROCESSOR_SEGMENT_OVERRUN \fP
+.TP
+\f(BIEXCEPTION_INVALID_TSS \fP
+.TP
+\f(BIEXCEPTION_SEGMENT_SELECTOR_NOTPRESENT \fP
+.TP
+\f(BIEXCEPTION_STACK_SEGMENT_OVERRUN \fP
+.TP
+\f(BIEXCEPTION_GENERAL_PROTECTION_FAULT \fP
+.TP
+\f(BIEXCEPTION_PAGE_FAULT \fP
+.TP
+\f(BIEXCEPTION_RESERVED \fP
+.TP
+\f(BIEXCEPTION_FLOATING_POINT_ERROR \fP
+.TP
+\f(BIEXCEPTION_ALIGNMENT_CHECK \fP
+.TP
+\f(BIEXCEPTION_SEVERE_MACHINE_CHECK \fP
+.PP
+Definition at line \fB26\fP of file \fBidt\&.h\fP\&.
+.SS "enum \fB_INTERRUPT_LIST\fP"
+Interrupt Definitions 
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BITIMER_INTERRUPT \fP
+.TP
+\f(BIKEYBOARD_INTERRUPT \fP
+.TP
+\f(BIATA_INTERRUPT \fP
+.TP
+\f(BILAPIC_INTERRUPT \fP
+.TP
+\f(BILAPIC_SIV_INTERRUPT \fP
+.PP
+Definition at line \fB49\fP of file \fBidt\&.h\fP\&.
+.SS "enum \fB_PIC_IRQ_LINE\fP"
+PIC IRQ Lines 
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIIRQ0_TIMER \fP
+.TP
+\f(BIIRQ1_KEYBOARD \fP
+.TP
+\f(BIIRQ2_CASCADE \fP
+.TP
+\f(BIIRQ3_SERIAL2 \fP
+.TP
+\f(BIIRQ4_SERIAL1 \fP
+.TP
+\f(BIIRQ5_LPT2 \fP
+.TP
+\f(BIIRQ6_FLOPPY \fP
+.TP
+\f(BIIRQ7_LPT1 \fP
+.TP
+\f(BIIRQ8_CMOS \fP
+.TP
+\f(BIIRQ9_FREE \fP
+.TP
+\f(BIIRQ10_FREE \fP
+.TP
+\f(BIIRQ11_FREE \fP
+.TP
+\f(BIIRQ12_MOUSE \fP
+.TP
+\f(BIIRQ13_FPU \fP
+.TP
+\f(BIIRQ14_PRIMARY_ATA \fP
+.TP
+\f(BIIRQ15_SECONDARY_ATA \fP
+.PP
+Definition at line \fB58\fP of file \fBidt\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void init_interrupts (void )"
+
+.PP
+Definition at line \fB115\fP of file \fBisr\&.c\fP\&.
+.SS "void install_idt (void )"
+
+.PP
+Definition at line \fB24\fP of file \fBidt\&.c\fP\&.
+.SS "void isr_handler64 (int vec_num, \fBCTX_FRAME\fP * ctx, \fBINT_FRAME\fP * intfr)"
+
+.SS "void set_idt_gate (int n, unsigned long int handler)"
+Functions 
+.PP
+Definition at line \fB12\fP of file \fBidt\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

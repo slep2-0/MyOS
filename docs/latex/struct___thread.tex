@@ -1,0 +1,110 @@
+\doxysection{\+\_\+\+Thread Struct Reference}
+\hypertarget{struct___thread}{}\label{struct___thread}\index{\_Thread@{\_Thread}}
+
+
+{\ttfamily \#include $<$cpu\+\_\+types.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \mbox{\hyperlink{struct___thread_ad2512b298eb9343532eaea46827c44c7}{registers}}
+\item 
+\mbox{\hyperlink{cpu__types_8h_a939887b24c254f8970e63700c62993e8}{THREAD\+\_\+\+STATE}} \mbox{\hyperlink{struct___thread_afdd851bd7df189dc990877158f4a7293}{thread\+State}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___thread_afcf923633638994697d71254d8e682ac}{time\+Slice}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___thread_a6173927d3a4490608d6d5cb417758468}{orig\+Time\+Slice}}
+\item 
+\mbox{\hyperlink{cpu__types_8h_ad4bfc71eef5e5a6bb0806753203c7a48}{Thread}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}{next\+Thread}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___thread_a1bfeff813189c88880444210b76097fd}{TID}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___thread_a9036f05699c6f6bd2a7e3dc61f6d26a2}{start\+Stack\+Ptr}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00103}{103}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___thread_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___thread_ad22b05d0ffb429aaced303c221aa32e9}\index{\_Thread@{\_Thread}!nextThread@{nextThread}}
+\index{nextThread@{nextThread}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{nextThread}{nextThread}}
+{\footnotesize\ttfamily \label{struct___thread_ad22b05d0ffb429aaced303c221aa32e9} 
+\mbox{\hyperlink{cpu__types_8h_ad4bfc71eef5e5a6bb0806753203c7a48}{Thread}}\texorpdfstring{$\ast$}{*} next\+Thread}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00114}{114}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_a6173927d3a4490608d6d5cb417758468}\index{\_Thread@{\_Thread}!origTimeSlice@{origTimeSlice}}
+\index{origTimeSlice@{origTimeSlice}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{origTimeSlice}{origTimeSlice}}
+{\footnotesize\ttfamily \label{struct___thread_a6173927d3a4490608d6d5cb417758468} 
+uint32\+\_\+t orig\+Time\+Slice}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00112}{112}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_ad2512b298eb9343532eaea46827c44c7}\index{\_Thread@{\_Thread}!registers@{registers}}
+\index{registers@{registers}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{registers}{registers}}
+{\footnotesize\ttfamily \label{struct___thread_ad2512b298eb9343532eaea46827c44c7} 
+\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} registers}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00105}{105}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_a9036f05699c6f6bd2a7e3dc61f6d26a2}\index{\_Thread@{\_Thread}!startStackPtr@{startStackPtr}}
+\index{startStackPtr@{startStackPtr}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{startStackPtr}{startStackPtr}}
+{\footnotesize\ttfamily \label{struct___thread_a9036f05699c6f6bd2a7e3dc61f6d26a2} 
+void\texorpdfstring{$\ast$}{*} start\+Stack\+Ptr}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00120}{120}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_afdd851bd7df189dc990877158f4a7293}\index{\_Thread@{\_Thread}!threadState@{threadState}}
+\index{threadState@{threadState}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{threadState}{threadState}}
+{\footnotesize\ttfamily \label{struct___thread_afdd851bd7df189dc990877158f4a7293} 
+\mbox{\hyperlink{cpu__types_8h_a939887b24c254f8970e63700c62993e8}{THREAD\+\_\+\+STATE}} thread\+State}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00108}{108}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_a1bfeff813189c88880444210b76097fd}\index{\_Thread@{\_Thread}!TID@{TID}}
+\index{TID@{TID}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{TID}{TID}}
+{\footnotesize\ttfamily \label{struct___thread_a1bfeff813189c88880444210b76097fd} 
+uint32\+\_\+t TID}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00117}{117}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+\Hypertarget{struct___thread_afcf923633638994697d71254d8e682ac}\index{\_Thread@{\_Thread}!timeSlice@{timeSlice}}
+\index{timeSlice@{timeSlice}!\_Thread@{\_Thread}}
+\doxysubsubsection{\texorpdfstring{timeSlice}{timeSlice}}
+{\footnotesize\ttfamily \label{struct___thread_afcf923633638994697d71254d8e682ac} 
+uint32\+\_\+t time\+Slice}
+
+
+
+Definition at line \mbox{\hyperlink{cpu__types_8h_source_l00111}{111}} of file \mbox{\hyperlink{cpu__types_8h_source}{cpu\+\_\+types.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/\mbox{\hyperlink{cpu__types_8h}{cpu\+\_\+types.\+h}}\end{DoxyCompactItemize}

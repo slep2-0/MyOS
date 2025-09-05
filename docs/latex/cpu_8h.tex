@@ -1,0 +1,119 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/cpu.h File Reference}
+\hypertarget{cpu_8h}{}\label{cpu_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu.h}}
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stdatomic.\+h$>$}\newline
+{\ttfamily \#include "{}cpu\+\_\+types.\+h"{}}\newline
+{\ttfamily \#include "{}irql/irql.\+h"{}}\newline
+{\ttfamily \#include "{}spinlock/spinlock.\+h"{}}\newline
+{\ttfamily \#include "{}dpc/dpc.\+h"{}}\newline
+{\ttfamily \#include "{}dpc/dpc\+\_\+list.\+h"{}}\newline
+{\ttfamily \#include "{}scheduler/scheduler.\+h"{}}\newline
+{\ttfamily \#include "{}thread/thread.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{cpu_8h_a4cb54878e75e454401e12e4865c7d122}{SAVE\+\_\+\+CTX\+\_\+\+FRAME}}(ctx\+\_\+ptr)
+\item 
+\#define \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\+\_\+\+RIP}}(RIPVAR\+\_\+\+NOPTR)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{cpu_8h_a6231fdd5aa998aada7a1efa3bd325219}{read\+\_\+interrupt\+\_\+frame}} (\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}frame)
+\begin{DoxyCompactList}\small\item\em Read the current interrupt frame. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{cpu_8h_a4aa078dcf96e9f06ce620519a93593c1}{Init\+CPU}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cpu__types_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{cpu_8h_a7926cf320f88a10a92103994fdb6066f}{queue\+Lock}}
+\item 
+\mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}} \mbox{\hyperlink{cpu_8h_a0b2a3530e9a5998456be351b4251b878}{cpu}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{cpu_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}\index{cpu.h@{cpu.h}!GET\_RIP@{GET\_RIP}}
+\index{GET\_RIP@{GET\_RIP}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{GET\_RIP}{GET\_RIP}}
+{\footnotesize\ttfamily \label{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01} 
+\#define GET\+\_\+\+RIP(\begin{DoxyParamCaption}\item[{}]{RIPVAR\+\_\+\+NOPTR}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_\ (\textcolor{stringliteral}{"{}lea\ (\%\%rip),\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}\ (RIPVAR\_NOPTR));}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{cpu_8h_source_l00080}{80}} of file \mbox{\hyperlink{cpu_8h_source}{cpu.\+h}}.
+
+\Hypertarget{cpu_8h_a4cb54878e75e454401e12e4865c7d122}\index{cpu.h@{cpu.h}!SAVE\_CTX\_FRAME@{SAVE\_CTX\_FRAME}}
+\index{SAVE\_CTX\_FRAME@{SAVE\_CTX\_FRAME}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{SAVE\_CTX\_FRAME}{SAVE\_CTX\_FRAME}}
+{\footnotesize\ttfamily \label{cpu_8h_a4cb54878e75e454401e12e4865c7d122} 
+\#define SAVE\+\_\+\+CTX\+\_\+\+FRAME(\begin{DoxyParamCaption}\item[{}]{ctx\+\_\+ptr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{cpu_8h_source_l00015}{15}} of file \mbox{\hyperlink{cpu_8h_source}{cpu.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{cpu_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{cpu_8h_a4aa078dcf96e9f06ce620519a93593c1}\index{cpu.h@{cpu.h}!InitCPU@{InitCPU}}
+\index{InitCPU@{InitCPU}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{InitCPU()}{InitCPU()}}
+{\footnotesize\ttfamily \label{cpu_8h_a4aa078dcf96e9f06ce620519a93593c1} 
+void Init\+CPU (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00094}{94}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{cpu_8h_a6231fdd5aa998aada7a1efa3bd325219}\index{cpu.h@{cpu.h}!read\_interrupt\_frame@{read\_interrupt\_frame}}
+\index{read\_interrupt\_frame@{read\_interrupt\_frame}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{read\_interrupt\_frame()}{read\_interrupt\_frame()}}
+{\footnotesize\ttfamily \label{cpu_8h_a6231fdd5aa998aada7a1efa3bd325219} 
+void read\+\_\+interrupt\+\_\+frame (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{frame}{}\end{DoxyParamCaption})}
+
+
+
+Read the current interrupt frame. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em frame} & \doxylink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME} pointer.\\
+\hline
+\end{DoxyParams}
+
+
+\label{doc-var-members}
+\Hypertarget{cpu_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{cpu_8h_a0b2a3530e9a5998456be351b4251b878}\index{cpu.h@{cpu.h}!cpu@{cpu}}
+\index{cpu@{cpu}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{cpu}{cpu}}
+{\footnotesize\ttfamily \label{cpu_8h_a0b2a3530e9a5998456be351b4251b878} 
+\mbox{\hyperlink{cpu__types_8h_a9bb4e76feb6dc6ad7a88c5a7cab56467}{CPU}} cpu\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00023}{23}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{cpu_8h_a7926cf320f88a10a92103994fdb6066f}\index{cpu.h@{cpu.h}!queueLock@{queueLock}}
+\index{queueLock@{queueLock}!cpu.h@{cpu.h}}
+\doxysubsubsection{\texorpdfstring{queueLock}{queueLock}}
+{\footnotesize\ttfamily \label{cpu_8h_a7926cf320f88a10a92103994fdb6066f} 
+\mbox{\hyperlink{cpu__types_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} queue\+Lock\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00013}{13}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+

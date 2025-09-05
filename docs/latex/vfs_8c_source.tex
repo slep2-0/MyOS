@@ -1,0 +1,141 @@
+\doxysection{vfs.\+c}
+\hypertarget{vfs_8c_source}{}\label{vfs_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.c}}
+\mbox{\hyperlink{vfs_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ Virtual\ File\ System\ (VFS)\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{vfs_8h}{vfs.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ahci_8h}{../../drivers/ahci/ahci.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{fat32_8h}{../fat32/fat32.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00012}\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{00012}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00013}\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_a57d4104a774ed6a6c8ce0c1cfe3c6ae2}{00013}}\ \ \ \ \ \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\_DRIVER}}*\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_a57d4104a774ed6a6c8ce0c1cfe3c6ae2}{driver}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00014}\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_aebf6cf4331fcc15f0d3ed0890e01a380}{00014}}\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_aebf6cf4331fcc15f0d3ed0890e01a380}{device\_id}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00015}\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_a7ab9e937048dcfc070b9662a6f17b136}{00015}}\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s_a7ab9e937048dcfc070b9662a6f17b136}{mount\_point}};\ \ \textcolor{comment}{//\ e.g.,\ "{}/"{},\ "{}/ext2"{}}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00016}\mbox{\hyperlink{vfs_8c_ac832aea006aea62c2d1c8c5e75a1b8ee}{00016}}\ \}\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00018}\mbox{\hyperlink{vfs_8c_a066ba4cb5f7cb431eaf26a66e34a1b5d}{00018}}\ \textcolor{preprocessor}{\#define\ MAX\_MOUNTS\ 4}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00019}00019\ \textcolor{keyword}{static}\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}\ mounted\_fs[\mbox{\hyperlink{vfs_8c_a066ba4cb5f7cb431eaf26a66e34a1b5d}{MAX\_MOUNTS}}];}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00020}00020\ \textcolor{keyword}{static}\ uint8\_t\ mount\_count\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00022}\mbox{\hyperlink{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911}{00022}}\ \textcolor{preprocessor}{\#define\ MAIN\_FS\_DEVICE\ 0}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00024}00024\ \textcolor{comment}{//\ Adapter\ for\ VFS\ FS\_DRIVER}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00025}00025\ \textcolor{keyword}{static}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ fat32\_fs\_init(uint8\_t\ device\_id)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{fat32_8c_a311ce2a795c9e78112568a0b90d4cbe8}{fat32\_init}}(device\_id);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00027}00027\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00029}\mbox{\hyperlink{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}{00029}}\ \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\_DRIVER}}\ \mbox{\hyperlink{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}{fat32\_driver}}\ =\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00030}00030\ \ \ \ \ .init\ =\ fat32\_fs\_init,}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00031}00031\ \ \ \ \ .read\ =\ \mbox{\hyperlink{fat32_8c_a71c6c7658a82c589657c4dc0a85e1e63}{fat32\_read\_file}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00032}00032\ \ \ \ \ .write\ =\ \mbox{\hyperlink{fat32_8c_ac039880198105828d484f919b1de2e59}{fat32\_write\_file}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00033}00033\ \ \ \ \ .delete\ =\ \mbox{\hyperlink{fat32_8c_ac0fe70241ba5f3c709198b99d8c2b972}{fat32\_delete\_file}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00034}00034\ \ \ \ \ .listdir\ =\ \mbox{\hyperlink{fat32_8c_a467adde29b891f25a9e1cd2365a67197}{fat32\_list\_directory}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00035}00035\ \ \ \ \ .mkdir\ =\ \mbox{\hyperlink{fat32_8c_a400a63d664bec5e30b5713ff3cbf35a6}{fat32\_create\_directory}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00036}00036\ \ \ \ \ .rmdir\ =\ \mbox{\hyperlink{fat32_8c_a60629b733e5b262b7367d972bf549ea9}{fat32\_delete\_directory}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00037}00037\ \ \ \ \ .is\_dir\_empty\ =\ \mbox{\hyperlink{fat32_8c_ae59b119946d406d4603400ae2e495700}{fat32\_directory\_is\_empty}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00038}00038\ \ \ \ \ .listrootdir\ =\ \mbox{\hyperlink{fat32_8c_adfca68a881df4fb301c3d55a00a781df}{fat32\_list\_root}},}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00039}00039\ \};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00041}\mbox{\hyperlink{vfs_8c_a90195d6c95683c2134cca9f87446be38}{00041}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a90195d6c95683c2134cca9f87446be38}{vfs\_init}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00042}00042\ \ \ \ \ \textcolor{comment}{//\ First\ initialize\ other\ FS\ Related\ stuff\ (FAT32,\ AHCI,\ etc..)}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00043}00043\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ status\ =\ \mbox{\hyperlink{ahci_8c_a237a75df76bac12d7652004b7f579692}{ahci\_init}}();}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00044}00044\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \textcolor{keywordflow}{return}\ status;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00045}00045\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00046}00046\ \ \ \ \ \textcolor{comment}{//\ Mount\ FAT32\ on\ MAIN\_FS\_DEVICE}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00047}00047\ \ \ \ \ status\ =\ \mbox{\hyperlink{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}{fat32\_driver}}.init(\mbox{\hyperlink{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911}{MAIN\_FS\_DEVICE}});}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00048}00048\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \textcolor{keywordflow}{return}\ status;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00049}00049\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00050}00050\ \ \ \ \ mounted\_fs[mount\_count++]\ =\ (\mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}})\{\ .driver\ =\ \&\mbox{\hyperlink{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}{fat32\_driver}},\ .device\_id\ =\ \mbox{\hyperlink{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911}{MAIN\_FS\_DEVICE}},\ .mount\_point\ =\ \textcolor{stringliteral}{"{}/"{}}\ \};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00052}00052\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00053}00053\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00055}00055\ \textcolor{keyword}{static}\ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ vfs\_find\_fs\_for\_path(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00056}00056\ \ \ \ \ \textcolor{keywordflow}{if}\ (!path)\ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00057}00057\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint8\_t\ i\ =\ 0;\ i\ <\ mount\_count;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ mount\ =\ mounted\_fs[i].mount\_point;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00059}00059\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ root\ mount\ should\ match\ anything}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (mount[0]\ ==\ \textcolor{charliteral}{'/'}\ \&\&\ mount[1]\ ==\ \textcolor{charliteral}{'\(\backslash\)0'})\ \textcolor{keywordflow}{return}\ \&mounted\_fs[i];}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ compute\ mount\_len}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ mount\_len\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00064}00064\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (mount[mount\_len])\ mount\_len++;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00065}00065\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00066}00066\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ path\ must\ be\ at\ least\ mount\_len}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ path\_len\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (path[path\_len])\ path\_len++;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (path\_len\ <\ mount\_len)\ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00070}00070\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ match\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ j\ =\ 0;\ j\ <\ mount\_len;\ j++)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00073}00073\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (path[j]\ !=\ mount[j])\ \{\ match\ =\ \textcolor{keyword}{false};\ \textcolor{keywordflow}{break};\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00074}00074\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (match)\ \textcolor{keywordflow}{return}\ \&mounted\_fs[i];}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00076}00076\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00077}00077\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00078}00078\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00079}00079\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00080}\mbox{\hyperlink{vfs_8c_a13a1411001190b9817c7fbe0ea690719}{00080}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a13a1411001190b9817c7fbe0ea690719}{vfs\_read}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ filename,\ uint32\_t*\ file\_size\_out,\ \textcolor{keywordtype}{void}**\ buffer\_out)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00081}00081\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(filename);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00082}00082\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>read)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00083}00083\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00084}00084\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>read(filename,\ file\_size\_out,\ buffer\_out);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00085}00085\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00087}\mbox{\hyperlink{vfs_8c_af028169605cce963cafbe02ee9af1ed1}{00087}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_af028169605cce963cafbe02ee9af1ed1}{vfs\_write}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ data,\ uint32\_t\ size,\ \mbox{\hyperlink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\_WRITE\_MODES}}\ write\_mode)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00088}00088\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00089}00089\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>write)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00090}00090\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00091}00091\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>write(path,\ data,\ size,\ (uint32\_t)write\_mode);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00092}00092\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00093}00093\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00094}\mbox{\hyperlink{vfs_8c_a6dec3ac9fd37a26dd07559f4fba44683}{00094}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a6dec3ac9fd37a26dd07559f4fba44683}{vfs\_delete}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00095}00095\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00096}00096\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>delete)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00097}00097\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00098}00098\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>delete(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00099}00099\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00101}\mbox{\hyperlink{vfs_8c_a49377ba7575cbad9c52cf142099215ce}{00101}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a49377ba7575cbad9c52cf142099215ce}{vfs\_listdir}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ listings,\ \textcolor{keywordtype}{size\_t}\ max\_len)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00102}00102\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00103}00103\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>listdir)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00104}00104\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00105}00105\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>listdir(path,\ listings,\ max\_len);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00106}00106\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00107}00107\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00108}\mbox{\hyperlink{vfs_8c_a503c4216a5757ddda6ddbbadbbba540c}{00108}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a503c4216a5757ddda6ddbbadbbba540c}{vfs\_mkdir}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00109}00109\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00110}00110\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>mkdir)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00111}00111\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00112}00112\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>mkdir(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00113}00113\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00114}00114\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00115}\mbox{\hyperlink{vfs_8c_a29fb95dd560efdb62e2a9760c3f41a97}{00115}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{vfs_8c_a29fb95dd560efdb62e2a9760c3f41a97}{vfs\_rmdir}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00116}00116\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00117}00117\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>rmdir)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00118}00118\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00119}00119\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>rmdir(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00120}00120\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00121}00121\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00122}\mbox{\hyperlink{vfs_8c_a617bde009f0493ff340ab914aafc5b27}{00122}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{vfs_8c_a617bde009f0493ff340ab914aafc5b27}{vfs\_is\_dir\_empty}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00123}00123\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00124}00124\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>is\_dir\_empty)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00125}00125\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00126}00126\ \ \ \ \ \textcolor{keywordflow}{return}\ fs-\/>driver-\/>is\_dir\_empty(path);}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00127}00127\ \}}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00128}00128\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00129}\mbox{\hyperlink{vfs_8c_a47b59810da81f9a8d47a70d137a70ada}{00129}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{vfs_8c_a47b59810da81f9a8d47a70d137a70ada}{vfs\_listrootdir}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00130}00130\ \ \ \ \ \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\_FS}}*\ fs\ =\ vfs\_find\_fs\_for\_path(\textcolor{stringliteral}{"{}/"{}});}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00131}00131\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fs\ ||\ !fs-\/>driver\ ||\ !fs-\/>driver-\/>listrootdir)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00132}00132\ }
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00133}00133\ \ \ \ \ fs-\/>driver-\/>listrootdir();}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00134}00134\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{vfs_8c_source_l00135}00135\ \}}
+
+\end{DoxyCode}

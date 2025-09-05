@@ -1,0 +1,78 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/interrupts/isr.c File Reference}
+\hypertarget{isr_8c}{}\label{isr_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/isr.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/isr.c}}
+{\ttfamily \#include "{}idt.\+h"{}}\newline
+{\ttfamily \#include "{}../cpu/apic/apic.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{isr_8c_a08a5bd6c9e05dcc56233cebc470c63e9}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}} ((used))
+\item 
+void \mbox{\hyperlink{isr_8c_a88ada49c1954d38252049786595d9a5f}{init\+\_\+interrupts}} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{isr_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\+\_\+local}}
+\item 
+const bool \mbox{\hyperlink{isr_8c_ab9b45563a6b3c0f9e83289c9ef86c9e2}{has\+\_\+error\+\_\+code}} \mbox{[}$\,$\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{isr_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{isr_8c_a08a5bd6c9e05dcc56233cebc470c63e9}\index{isr.c@{isr.c}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!isr.c@{isr.c}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_()}{\_\_attribute\_\_()}}
+{\footnotesize\ttfamily \label{isr_8c_a08a5bd6c9e05dcc56233cebc470c63e9} 
+\+\_\+\+\_\+attribute\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{(used)}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00021}{21}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+
+\Hypertarget{isr_8c_a88ada49c1954d38252049786595d9a5f}\index{isr.c@{isr.c}!init\_interrupts@{init\_interrupts}}
+\index{init\_interrupts@{init\_interrupts}!isr.c@{isr.c}}
+\doxysubsubsection{\texorpdfstring{init\_interrupts()}{init\_interrupts()}}
+{\footnotesize\ttfamily \label{isr_8c_a88ada49c1954d38252049786595d9a5f} 
+void init\+\_\+interrupts (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00115}{115}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{isr_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{isr_8c_ad8ca0be32b831aec9de80bcf0e22107e}\index{isr.c@{isr.c}!gop\_local@{gop\_local}}
+\index{gop\_local@{gop\_local}!isr.c@{isr.c}}
+\doxysubsubsection{\texorpdfstring{gop\_local}{gop\_local}}
+{\footnotesize\ttfamily \label{isr_8c_ad8ca0be32b831aec9de80bcf0e22107e} 
+\mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} gop\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00015}{15}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{isr_8c_ab9b45563a6b3c0f9e83289c9ef86c9e2}\index{isr.c@{isr.c}!has\_error\_code@{has\_error\_code}}
+\index{has\_error\_code@{has\_error\_code}!isr.c@{isr.c}}
+\doxysubsubsection{\texorpdfstring{has\_error\_code}{has\_error\_code}}
+{\footnotesize\ttfamily \label{isr_8c_ab9b45563a6b3c0f9e83289c9ef86c9e2} 
+const bool has\+\_\+error\+\_\+code\mbox{[}$\,$\mbox{]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{}
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ }
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{true},\ \ \textcolor{keyword}{false},\ \textcolor{keyword}{true},\ \ \textcolor{keyword}{true},\ \ \textcolor{keyword}{true},\ \ \textcolor{keyword}{true},\ \ \textcolor{keyword}{true},\ \ \textcolor{keyword}{false},\ }
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ }
+\DoxyCodeLine{\ \ \ \ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false}\ \ }
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00013}{13}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+

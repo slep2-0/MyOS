@@ -1,0 +1,102 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/irql/irql.c" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/irql/irql.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'irql\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./bugcheck/bugcheck\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./interrupts/idt\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBIRQ_LINES\fP   (sizeof(\fBirq_irql\fP) / sizeof(\fBirq_irql\fP[0]))"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBupdate_pic_mask_for_current_irql\fP (void)"
+.br
+.ti -1c
+.RI "void \fBMtGetCurrentIRQL\fP (\fBIRQL\fP *out)"
+.br
+.ti -1c
+.RI "void \fBMtRaiseIRQL\fP (\fBIRQL\fP new_irql, \fBIRQL\fP *old_irql)"
+.br
+.ti -1c
+.RI "void \fBMtLowerIRQL\fP (\fBIRQL\fP new_irql)"
+.br
+.ti -1c
+.RI "void \fB_MtSetIRQL\fP (\fBIRQL\fP new_irql)"
+.br
+.ti -1c
+.RI "void \fBenforce_max_irql\fP (\fBIRQL\fP max_allowed, void *RIP)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBIRQL\fP \fBirq_irql\fP [16]"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define IRQ_LINES   (sizeof(\fBirq_irql\fP) / sizeof(\fBirq_irql\fP[0]))"
+
+.PP
+Definition at line \fB18\fP of file \fBirql\&.c\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void _MtSetIRQL (\fBIRQL\fP new_irql)"
+
+.PP
+Definition at line \fB100\fP of file \fBirql\&.c\fP\&.
+.SS "void enforce_max_irql (\fBIRQL\fP max_allowed, void * RIP)"
+
+.PP
+Definition at line \fB111\fP of file \fBirql\&.c\fP\&.
+.SS "void MtGetCurrentIRQL (\fBIRQL\fP * out)"
+
+.PP
+Definition at line \fB50\fP of file \fBirql\&.c\fP\&.
+.SS "void MtLowerIRQL (\fBIRQL\fP new_irql)"
+
+.PP
+Definition at line \fB79\fP of file \fBirql\&.c\fP\&.
+.SS "void MtRaiseIRQL (\fBIRQL\fP new_irql, \fBIRQL\fP * old_irql)"
+
+.PP
+Definition at line \fB55\fP of file \fBirql\&.c\fP\&.
+.SS "void update_pic_mask_for_current_irql (void )"
+
+.PP
+Definition at line \fB27\fP of file \fBirql\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "\fBIRQL\fP irq_irql[16]"
+\fBInitial value:\fP
+.nf
+= {
+    DIRQL_TIMER, DIRQL_KEYBOARD, DIRQL_CASCADE, DIRQL_COM2,
+    DIRQL_COM1, DIRQL_SOUND_LPT2, DIRQL_FLOPPY, DIRQL_LPT1,
+    DIRQL_RTC, DIRQL_PERIPHERAL9, DIRQL_PERIPHERAL10, DIRQL_PERIPHERAL11,
+    DIRQL_MOUSE, DIRQL_FPU, DIRQL_PRIMARY_ATA, DIRQL_SECONDARY_ATA
+}
+.PP
+.fi
+
+.PP
+Definition at line \fB11\fP of file \fBirql\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

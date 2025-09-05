@@ -1,0 +1,170 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/memory/allocator/uefi\+\_\+memory.h File Reference}
+\hypertarget{uefi__memory_8h}{}\label{uefi__memory_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/uefi\_memory.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/allocator/uefi\_memory.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}
+\item 
+struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}}
+\item 
+struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_af4e9f34f6444eef713f1e6239642490d}{Efi\+Reserved\+Memory\+Type}}~0
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_a90aae2e90363a29ad96d432a5f7f72dc}{Efi\+Loader\+Code}}~1
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_a63d4f335cccc52962bc247c9001f0170}{Efi\+Loader\+Data}}~2
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_a4f64535d5504ac8f2ebf923f6d0ced08}{Efi\+Boot\+Services\+Code}}~3
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_aa4fa5f19b00f75592a5d1a5335409e28}{Efi\+Boot\+Services\+Data}}~4
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_af3cee49f9ec781299b538a17e9e02ff8}{Efi\+Runtime\+Services\+Code}}~5
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_a1f301de8ab02b899d7144cd4d2157789}{Efi\+Runtime\+Services\+Data}}~6
+\item 
+\#define \mbox{\hyperlink{uefi__memory_8h_af095fe56818f3bd8a310206b8777bb1c}{Efi\+Conventional\+Memory}}~7
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{uefi__memory_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \mbox{\hyperlink{uefi__memory_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{uefi__memory_8h_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{uefi__memory_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{uefi__memory_8h_a4f64535d5504ac8f2ebf923f6d0ced08}\index{uefi\_memory.h@{uefi\_memory.h}!EfiBootServicesCode@{EfiBootServicesCode}}
+\index{EfiBootServicesCode@{EfiBootServicesCode}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiBootServicesCode}{EfiBootServicesCode}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a4f64535d5504ac8f2ebf923f6d0ced08} 
+\#define Efi\+Boot\+Services\+Code~3}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00051}{51}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_aa4fa5f19b00f75592a5d1a5335409e28}\index{uefi\_memory.h@{uefi\_memory.h}!EfiBootServicesData@{EfiBootServicesData}}
+\index{EfiBootServicesData@{EfiBootServicesData}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiBootServicesData}{EfiBootServicesData}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_aa4fa5f19b00f75592a5d1a5335409e28} 
+\#define Efi\+Boot\+Services\+Data~4}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00052}{52}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_af095fe56818f3bd8a310206b8777bb1c}\index{uefi\_memory.h@{uefi\_memory.h}!EfiConventionalMemory@{EfiConventionalMemory}}
+\index{EfiConventionalMemory@{EfiConventionalMemory}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiConventionalMemory}{EfiConventionalMemory}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_af095fe56818f3bd8a310206b8777bb1c} 
+\#define Efi\+Conventional\+Memory~7}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00055}{55}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_a90aae2e90363a29ad96d432a5f7f72dc}\index{uefi\_memory.h@{uefi\_memory.h}!EfiLoaderCode@{EfiLoaderCode}}
+\index{EfiLoaderCode@{EfiLoaderCode}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiLoaderCode}{EfiLoaderCode}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a90aae2e90363a29ad96d432a5f7f72dc} 
+\#define Efi\+Loader\+Code~1}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00049}{49}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_a63d4f335cccc52962bc247c9001f0170}\index{uefi\_memory.h@{uefi\_memory.h}!EfiLoaderData@{EfiLoaderData}}
+\index{EfiLoaderData@{EfiLoaderData}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiLoaderData}{EfiLoaderData}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a63d4f335cccc52962bc247c9001f0170} 
+\#define Efi\+Loader\+Data~2}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00050}{50}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_af4e9f34f6444eef713f1e6239642490d}\index{uefi\_memory.h@{uefi\_memory.h}!EfiReservedMemoryType@{EfiReservedMemoryType}}
+\index{EfiReservedMemoryType@{EfiReservedMemoryType}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiReservedMemoryType}{EfiReservedMemoryType}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_af4e9f34f6444eef713f1e6239642490d} 
+\#define Efi\+Reserved\+Memory\+Type~0}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00048}{48}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_af3cee49f9ec781299b538a17e9e02ff8}\index{uefi\_memory.h@{uefi\_memory.h}!EfiRuntimeServicesCode@{EfiRuntimeServicesCode}}
+\index{EfiRuntimeServicesCode@{EfiRuntimeServicesCode}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiRuntimeServicesCode}{EfiRuntimeServicesCode}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_af3cee49f9ec781299b538a17e9e02ff8} 
+\#define Efi\+Runtime\+Services\+Code~5}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00053}{53}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+\Hypertarget{uefi__memory_8h_a1f301de8ab02b899d7144cd4d2157789}\index{uefi\_memory.h@{uefi\_memory.h}!EfiRuntimeServicesData@{EfiRuntimeServicesData}}
+\index{EfiRuntimeServicesData@{EfiRuntimeServicesData}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EfiRuntimeServicesData}{EfiRuntimeServicesData}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a1f301de8ab02b899d7144cd4d2157789} 
+\#define Efi\+Runtime\+Services\+Data~6}
+
+
+
+Definition at line \mbox{\hyperlink{uefi__memory_8h_source_l00054}{54}} of file \mbox{\hyperlink{uefi__memory_8h_source}{uefi\+\_\+memory.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{uefi__memory_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{uefi__memory_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}\index{uefi\_memory.h@{uefi\_memory.h}!BOOT\_INFO@{BOOT\_INFO}}
+\index{BOOT\_INFO@{BOOT\_INFO}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{BOOT\_INFO}{BOOT\_INFO}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_aa7f93145770b2b55fa44fc8b9a2cf58d} 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}}}
+
+\Hypertarget{uefi__memory_8h_ae2b15dcae1dcf3876131751b232dc591}\index{uefi\_memory.h@{uefi\_memory.h}!EFI\_MEMORY\_DESCRIPTOR@{EFI\_MEMORY\_DESCRIPTOR}}
+\index{EFI\_MEMORY\_DESCRIPTOR@{EFI\_MEMORY\_DESCRIPTOR}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{EFI\_MEMORY\_DESCRIPTOR}{EFI\_MEMORY\_DESCRIPTOR}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_ae2b15dcae1dcf3876131751b232dc591} 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{uefi__memory_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}}
+
+\Hypertarget{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}\index{uefi\_memory.h@{uefi\_memory.h}!GOP\_PARAMS@{GOP\_PARAMS}}
+\index{GOP\_PARAMS@{GOP\_PARAMS}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{GOP\_PARAMS}{GOP\_PARAMS}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828} 
+typedef struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}}}
+
+
+
+\label{doc-var-members}
+\Hypertarget{uefi__memory_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{uefi__memory_8h_a5f06053b8248ece91f68e4ae8da74ee4}\index{uefi\_memory.h@{uefi\_memory.h}!boot\_info\_local@{boot\_info\_local}}
+\index{boot\_info\_local@{boot\_info\_local}!uefi\_memory.h@{uefi\_memory.h}}
+\doxysubsubsection{\texorpdfstring{boot\_info\_local}{boot\_info\_local}}
+{\footnotesize\ttfamily \label{uefi__memory_8h_a5f06053b8248ece91f68e4ae8da74ee4} 
+\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00016}{16}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

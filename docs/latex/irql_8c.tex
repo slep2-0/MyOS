@@ -1,0 +1,135 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/irql/irql.c File Reference}
+\hypertarget{irql_8c}{}\label{irql_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/irql/irql.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/irql/irql.c}}
+{\ttfamily \#include "{}irql.\+h"{}}\newline
+{\ttfamily \#include "{}../../bugcheck/bugcheck.\+h"{}}\newline
+{\ttfamily \#include "{}../../interrupts/idt.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{irql_8c_a89b1dc79cdd1cbd04ef4a4470ed77604}{IRQ\+\_\+\+LINES}}~(sizeof(\mbox{\hyperlink{irql_8c_aff2fd5039d098c671403089630aa2a16}{irq\+\_\+irql}}) / sizeof(\mbox{\hyperlink{irql_8c_aff2fd5039d098c671403089630aa2a16}{irq\+\_\+irql}}\mbox{[}0\mbox{]}))
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{irql_8c_ab5f701d7ea67d78af40e6bc73264e0c4}{update\+\_\+pic\+\_\+mask\+\_\+for\+\_\+current\+\_\+irql}} (void)
+\item 
+void \mbox{\hyperlink{irql_8c_ab87b54fe7849700d6989baf517998ac8}{Mt\+Get\+Current\+IRQL}} (\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} \texorpdfstring{$\ast$}{*}out)
+\item 
+void \mbox{\hyperlink{irql_8c_a7b283751f37f08c240ae3ec69c88036c}{Mt\+Raise\+IRQL}} (\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} new\+\_\+irql, \mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} \texorpdfstring{$\ast$}{*}old\+\_\+irql)
+\item 
+void \mbox{\hyperlink{irql_8c_a173035246a571f36d2066be8fa9eef11}{Mt\+Lower\+IRQL}} (\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} new\+\_\+irql)
+\item 
+void \mbox{\hyperlink{irql_8c_a4fb94a50a85a92c8939fa2201c5ba0d8}{\+\_\+\+Mt\+Set\+IRQL}} (\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} new\+\_\+irql)
+\item 
+void \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\+\_\+max\+\_\+irql}} (\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} max\+\_\+allowed, void \texorpdfstring{$\ast$}{*}RIP)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} \mbox{\hyperlink{irql_8c_aff2fd5039d098c671403089630aa2a16}{irq\+\_\+irql}} \mbox{[}16\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{irql_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{irql_8c_a89b1dc79cdd1cbd04ef4a4470ed77604}\index{irql.c@{irql.c}!IRQ\_LINES@{IRQ\_LINES}}
+\index{IRQ\_LINES@{IRQ\_LINES}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{IRQ\_LINES}{IRQ\_LINES}}
+{\footnotesize\ttfamily \label{irql_8c_a89b1dc79cdd1cbd04ef4a4470ed77604} 
+\#define IRQ\+\_\+\+LINES~(sizeof(\mbox{\hyperlink{irql_8c_aff2fd5039d098c671403089630aa2a16}{irq\+\_\+irql}}) / sizeof(\mbox{\hyperlink{irql_8c_aff2fd5039d098c671403089630aa2a16}{irq\+\_\+irql}}\mbox{[}0\mbox{]}))}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00018}{18}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{irql_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{irql_8c_a4fb94a50a85a92c8939fa2201c5ba0d8}\index{irql.c@{irql.c}!\_MtSetIRQL@{\_MtSetIRQL}}
+\index{\_MtSetIRQL@{\_MtSetIRQL}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{\_MtSetIRQL()}{\_MtSetIRQL()}}
+{\footnotesize\ttfamily \label{irql_8c_a4fb94a50a85a92c8939fa2201c5ba0d8} 
+void \+\_\+\+Mt\+Set\+IRQL (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{new\+\_\+irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00100}{100}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}\index{irql.c@{irql.c}!enforce\_max\_irql@{enforce\_max\_irql}}
+\index{enforce\_max\_irql@{enforce\_max\_irql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{enforce\_max\_irql()}{enforce\_max\_irql()}}
+{\footnotesize\ttfamily \label{irql_8c_a18058aa8b45e4b81a66efa2f2d708215} 
+void enforce\+\_\+max\+\_\+irql (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{max\+\_\+allowed}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{RIP}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00111}{111}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_ab87b54fe7849700d6989baf517998ac8}\index{irql.c@{irql.c}!MtGetCurrentIRQL@{MtGetCurrentIRQL}}
+\index{MtGetCurrentIRQL@{MtGetCurrentIRQL}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MtGetCurrentIRQL()}{MtGetCurrentIRQL()}}
+{\footnotesize\ttfamily \label{irql_8c_ab87b54fe7849700d6989baf517998ac8} 
+void Mt\+Get\+Current\+IRQL (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} \texorpdfstring{$\ast$}{*}}]{out}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00050}{50}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a173035246a571f36d2066be8fa9eef11}\index{irql.c@{irql.c}!MtLowerIRQL@{MtLowerIRQL}}
+\index{MtLowerIRQL@{MtLowerIRQL}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MtLowerIRQL()}{MtLowerIRQL()}}
+{\footnotesize\ttfamily \label{irql_8c_a173035246a571f36d2066be8fa9eef11} 
+void Mt\+Lower\+IRQL (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{new\+\_\+irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00079}{79}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a7b283751f37f08c240ae3ec69c88036c}\index{irql.c@{irql.c}!MtRaiseIRQL@{MtRaiseIRQL}}
+\index{MtRaiseIRQL@{MtRaiseIRQL}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MtRaiseIRQL()}{MtRaiseIRQL()}}
+{\footnotesize\ttfamily \label{irql_8c_a7b283751f37f08c240ae3ec69c88036c} 
+void Mt\+Raise\+IRQL (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{new\+\_\+irql}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} \texorpdfstring{$\ast$}{*}}]{old\+\_\+irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00055}{55}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_ab5f701d7ea67d78af40e6bc73264e0c4}\index{irql.c@{irql.c}!update\_pic\_mask\_for\_current\_irql@{update\_pic\_mask\_for\_current\_irql}}
+\index{update\_pic\_mask\_for\_current\_irql@{update\_pic\_mask\_for\_current\_irql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{update\_pic\_mask\_for\_current\_irql()}{update\_pic\_mask\_for\_current\_irql()}}
+{\footnotesize\ttfamily \label{irql_8c_ab5f701d7ea67d78af40e6bc73264e0c4} 
+void update\+\_\+pic\+\_\+mask\+\_\+for\+\_\+current\+\_\+irql (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00027}{27}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{irql_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{irql_8c_aff2fd5039d098c671403089630aa2a16}\index{irql.c@{irql.c}!irq\_irql@{irq\_irql}}
+\index{irq\_irql@{irq\_irql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{irq\_irql}{irq\_irql}}
+{\footnotesize\ttfamily \label{irql_8c_aff2fd5039d098c671403089630aa2a16} 
+\mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} irq\+\_\+irql\mbox{[}16\mbox{]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{}
+\DoxyCodeLine{\ \ \ \ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3eaf269d1ff38f220586a36073e957c1c31}{DIRQL\_TIMER}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3eaa26c00abca6060aa0ef883d4feb64933}{DIRQL\_KEYBOARD}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea98db32e4c9f2f7038588637a8e0d8e02}{DIRQL\_CASCADE}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea3a0954558ba16ce10f86b27a1c260ab9}{DIRQL\_COM2}},}
+\DoxyCodeLine{\ \ \ \ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea07d2fc2ab4f645aa20a219f254e89c92}{DIRQL\_COM1}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea652d8fcb8d7178c43d659e05d5f0c61e}{DIRQL\_SOUND\_LPT2}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ead24bc1037757a8687b57431012e1ec7b}{DIRQL\_FLOPPY}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea06521f37ef85a73a21191dd7e17cfac3}{DIRQL\_LPT1}},}
+\DoxyCodeLine{\ \ \ \ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3eac17c317e38ad78a2774691e66da0e314}{DIRQL\_RTC}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea87be9ec49b4a5b948bf3708d00527745}{DIRQL\_PERIPHERAL9}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea7f6e3a59936365c2a9fab81afe3528f3}{DIRQL\_PERIPHERAL10}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea3f4f6178ac1c2cee47a6a70ae90c2d11}{DIRQL\_PERIPHERAL11}},}
+\DoxyCodeLine{\ \ \ \ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea4370ab4568401345c04e3c93a17d8f85}{DIRQL\_MOUSE}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3eaf5d0cfde2e4bea8ab1814ce632a6323e}{DIRQL\_FPU}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3eabe8e9b8a2dc2a7b98b72fe4d786de3d1}{DIRQL\_PRIMARY\_ATA}},\ \mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea4124f29d67ec38a0a9cf86411029b764}{DIRQL\_SECONDARY\_ATA}}}
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00011}{11}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+

@@ -1,0 +1,297 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu_types.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/cpu_types.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include <stdatomic\&.h>\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_SPINLOCK\fP"
+.br
+.ti -1c
+.RI "struct \fB_INT_FRAME\fP"
+.br
+.ti -1c
+.RI "struct \fB_CTX_FRAME\fP"
+.br
+.ti -1c
+.RI "struct \fB_Queue\fP"
+.br
+.ti -1c
+.RI "struct \fB_Thread\fP"
+.br
+.ti -1c
+.RI "struct \fB_DPC\fP"
+.br
+.ti -1c
+.RI "struct \fB_CPU\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBTICK_MS\fP   4"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef enum \fB_THREAD_STATE\fP \fBTHREAD_STATE\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_Thread\fP \fBThread\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_DPC\fP \fBDPC\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_Queue\fP \fBQueue\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_CPU\fP \fBCPU\fP"
+.br
+.ti -1c
+.RI "typedef enum \fB_IRQL\fP \fBIRQL\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_SPINLOCK\fP \fBSPINLOCK\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_INT_FRAME\fP \fBINT_FRAME\fP"
+.br
+.ti -1c
+.RI "typedef struct \fB_CTX_FRAME\fP \fBCTX_FRAME\fP"
+.br
+.ti -1c
+.RI "typedef enum \fB_timeSliceMs\fP \fBtimeSliceMs\fP"
+.br
+.RI "Do not use for timeSlicing a thread, use the \fBtimeSliceTicks\fP enum\&. "
+.ti -1c
+.RI "typedef enum \fB_timeSliceTicks\fP \fBtimeSliceTicks\fP"
+.br
+.RI "Used to determine how much time in ms a thread should have before being involuntarily relinquished\&. "
+.ti -1c
+.RI "typedef enum \fB_DPC_PRIORITY\fP \fBDPC_PRIORITY\fP"
+.br
+.ti -1c
+.RI "typedef enum \fB_DPC_KIND\fP \fBDPC_KIND\fP"
+.br
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum \fB_THREAD_STATE\fP { \fBRUNNING\fP, \fBREADY\fP, \fBBLOCKED\fP, \fBTERMINATING\fP, \fBTERMINATED\fP }"
+.br
+.ti -1c
+.RI "enum \fB_IRQL\fP { \fBPASSIVE_LEVEL\fP = 0, \fBDISPATCH_LEVEL\fP = 2, \fBDIRQL_SECONDARY_ATA\fP = 12, \fBDIRQL_PRIMARY_ATA\fP = 13, \fBDIRQL_FPU\fP = 14, \fBDIRQL_MOUSE\fP = 15, \fBDIRQL_PERIPHERAL11\fP = 16, \fBDIRQL_PERIPHERAL10\fP = 17, \fBDIRQL_PERIPHERAL9\fP = 18, \fBDIRQL_RTC\fP = 19, \fBDIRQL_LPT1\fP = 20, \fBDIRQL_FLOPPY\fP = 21, \fBDIRQL_SOUND_LPT2\fP = 22, \fBDIRQL_COM1\fP = 23, \fBDIRQL_COM2\fP = 24, \fBDIRQL_CASCADE\fP = 25, \fBDIRQL_KEYBOARD\fP = 26, \fBDIRQL_TIMER\fP = 27, \fBPROFILE_LEVEL\fP = 27, \fBCLOCK_LEVEL\fP = 28, \fBSYNCH_LEVEL\fP = 29, \fBPOWER_LEVEL\fP = 30, \fBHIGH_LEVEL\fP = 31 }"
+.br
+.ti -1c
+.RI "enum \fB_timeSliceMs\fP { \fB____DONT_USE_DEFAULT_TIMESLICE_MS\fP = 40, \fB____DONT_USE_LOW_TIMESLICE_MS\fP = 16, \fB____DONT_USE_HIGH_TIMESLICE_MS\fP = 100 }"
+.br
+.RI "Do not use for timeSlicing a thread, use the \fBtimeSliceTicks\fP enum\&. "
+.ti -1c
+.RI "enum \fB_timeSliceTicks\fP { \fBLOW_TIMESLICE_TICKS\fP = ____DONT_USE_LOW_TIMESLICE_MS / TICK_MS, \fBDEFAULT_TIMESLICE_TICKS\fP = ____DONT_USE_DEFAULT_TIMESLICE_MS / TICK_MS, \fBHIGH_TIMESLICE_TICKS\fP = ____DONT_USE_HIGH_TIMESLICE_MS / TICK_MS }"
+.br
+.RI "Used to determine how much time in ms a thread should have before being involuntarily relinquished\&. "
+.ti -1c
+.RI "enum \fB_DPC_PRIORITY\fP { \fBNO_PRIORITY\fP = 0, \fBLOW_PRIORITY\fP = 25, \fBMEDIUM_PRIORITY\fP = 50, \fBHIGH_PRIORITY\fP = 75, \fBSYSTEM_PRIORITY\fP = 99 }"
+.br
+.ti -1c
+.RI "enum \fB_DPC_KIND\fP { \fBNO_KIND\fP = 0, \fBDPC_SCHEDULE\fP }"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define TICK_MS   4"
+
+.PP
+Definition at line \fB83\fP of file \fBcpu_types\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_CPU\fP \fBCPU\fP"
+
+.PP
+Definition at line \fB18\fP of file \fBcpu_types\&.h\fP\&.
+.SS "typedef struct \fB_CTX_FRAME\fP \fBCTX_FRAME\fP"
+
+.SS "typedef struct \fB_DPC\fP \fBDPC\fP"
+
+.PP
+Definition at line \fB16\fP of file \fBcpu_types\&.h\fP\&.
+.SS "typedef enum \fB_DPC_KIND\fP \fBDPC_KIND\fP"
+
+.SS "typedef enum \fB_DPC_PRIORITY\fP \fBDPC_PRIORITY\fP"
+
+.SS "typedef struct \fB_INT_FRAME\fP \fBINT_FRAME\fP"
+
+.SS "typedef enum \fB_IRQL\fP \fBIRQL\fP"
+
+.SS "typedef struct \fB_Queue\fP \fBQueue\fP"
+
+.PP
+Definition at line \fB17\fP of file \fBcpu_types\&.h\fP\&.
+.SS "typedef struct \fB_SPINLOCK\fP \fBSPINLOCK\fP"
+
+.SS "typedef struct \fB_Thread\fP \fBThread\fP"
+
+.PP
+Definition at line \fB15\fP of file \fBcpu_types\&.h\fP\&.
+.SS "typedef enum \fB_THREAD_STATE\fP \fBTHREAD_STATE\fP"
+
+.SS "typedef enum \fB_timeSliceMs\fP \fBtimeSliceMs\fP"
+
+.PP
+Do not use for timeSlicing a thread, use the \fBtimeSliceTicks\fP enum\&. 
+.SS "typedef enum \fB_timeSliceTicks\fP \fBtimeSliceTicks\fP"
+
+.PP
+Used to determine how much time in ms a thread should have before being involuntarily relinquished\&. 
+.SH "Enumeration Type Documentation"
+.PP 
+.SS "enum \fB_DPC_KIND\fP"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BINO_KIND \fP
+.TP
+\f(BIDPC_SCHEDULE \fP
+.PP
+Definition at line \fB132\fP of file \fBcpu_types\&.h\fP\&.
+.SS "enum \fB_DPC_PRIORITY\fP"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BINO_PRIORITY \fP
+.TP
+\f(BILOW_PRIORITY \fP
+.TP
+\f(BIMEDIUM_PRIORITY \fP
+.TP
+\f(BIHIGH_PRIORITY \fP
+.TP
+\f(BISYSTEM_PRIORITY \fP
+.PP
+Definition at line \fB124\fP of file \fBcpu_types\&.h\fP\&.
+.SS "enum \fB_IRQL\fP"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIPASSIVE_LEVEL \fP
+.TP
+\f(BIDISPATCH_LEVEL \fP
+.TP
+\f(BIDIRQL_SECONDARY_ATA \fP
+.TP
+\f(BIDIRQL_PRIMARY_ATA \fP
+.TP
+\f(BIDIRQL_FPU \fP
+.TP
+\f(BIDIRQL_MOUSE \fP
+.TP
+\f(BIDIRQL_PERIPHERAL11 \fP
+.TP
+\f(BIDIRQL_PERIPHERAL10 \fP
+.TP
+\f(BIDIRQL_PERIPHERAL9 \fP
+.TP
+\f(BIDIRQL_RTC \fP
+.TP
+\f(BIDIRQL_LPT1 \fP
+.TP
+\f(BIDIRQL_FLOPPY \fP
+.TP
+\f(BIDIRQL_SOUND_LPT2 \fP
+.TP
+\f(BIDIRQL_COM1 \fP
+.TP
+\f(BIDIRQL_COM2 \fP
+.TP
+\f(BIDIRQL_CASCADE \fP
+.TP
+\f(BIDIRQL_KEYBOARD \fP
+.TP
+\f(BIDIRQL_TIMER \fP
+.TP
+\f(BIPROFILE_LEVEL \fP
+.TP
+\f(BICLOCK_LEVEL \fP
+.TP
+\f(BISYNCH_LEVEL \fP
+.TP
+\f(BIPOWER_LEVEL \fP
+.TP
+\f(BIHIGH_LEVEL \fP
+.PP
+Definition at line \fB24\fP of file \fBcpu_types\&.h\fP\&.
+.SS "enum \fB_THREAD_STATE\fP"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIRUNNING \fP
+.TP
+\f(BIREADY \fP
+.TP
+\f(BIBLOCKED \fP
+.TP
+\f(BITERMINATING \fP
+.TP
+\f(BITERMINATED \fP
+.PP
+Definition at line \fB12\fP of file \fBcpu_types\&.h\fP\&.
+.SS "enum \fB_timeSliceMs\fP"
+
+.PP
+Do not use for timeSlicing a thread, use the \fBtimeSliceTicks\fP enum\&. 
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BI____DONT_USE_DEFAULT_TIMESLICE_MS \fP
+.TP
+\f(BI____DONT_USE_LOW_TIMESLICE_MS \fP
+.TP
+\f(BI____DONT_USE_HIGH_TIMESLICE_MS \fP
+.PP
+Definition at line \fB88\fP of file \fBcpu_types\&.h\fP\&.
+.SS "enum \fB_timeSliceTicks\fP"
+
+.PP
+Used to determine how much time in ms a thread should have before being involuntarily relinquished\&. 
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BILOW_TIMESLICE_TICKS \fP
+.TP
+\f(BIDEFAULT_TIMESLICE_TICKS \fP
+.TP
+\f(BIHIGH_TIMESLICE_TICKS \fP
+.PP
+Definition at line \fB97\fP of file \fBcpu_types\&.h\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

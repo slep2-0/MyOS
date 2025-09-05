@@ -1,0 +1,456 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/interrupts/idt.h File Reference}
+\hypertarget{idt_8h}{}\label{idt_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include "{}../cpu/cpu.\+h"{}}\newline
+{\ttfamily \#include "{}../trace.\+h"{}}\newline
+{\ttfamily \#include "{}handlers/handlers.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}}
+\item 
+struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{idt_8h_a03c0db7a4cafd35e99b7c78605419d3e}{PIC1\+\_\+\+COMMAND\+\_\+\+MASTER}}~0x20
+\item 
+\#define \mbox{\hyperlink{idt_8h_a20c9b9531f3bd09c5ae5327fe29bec69}{PIC1\+\_\+\+DATA\+\_\+\+MASTER}}~0x21
+\item 
+\#define \mbox{\hyperlink{idt_8h_a219552e186c48addf9752e17045ab0d0}{PIC2\+\_\+\+COMMAND\+\_\+\+SLAVE}}~0x\+A0
+\item 
+\#define \mbox{\hyperlink{idt_8h_aa3494fa5e915f7d1a51ef047365799a8}{PIC2\+\_\+\+DATA\+\_\+\+SLAVE}}~0x\+A1
+\item 
+\#define \mbox{\hyperlink{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\+\_\+\+EOI}}~0x20
+\item 
+\#define \mbox{\hyperlink{idt_8h_a2a59a505aa55f15c152f30f811fbd310}{IDT\+\_\+\+ENTRIES}}~256
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef enum \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \mbox{\hyperlink{idt_8h_a0dbafbab3ffb90922f14b0459e58d436}{CPU\+\_\+\+EXCEPTIONS}}
+\item 
+typedef enum \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \mbox{\hyperlink{idt_8h_a76b7711ec17f4936d64721895ff03c3e}{INTERRUPT\+\_\+\+LIST}}
+\item 
+typedef enum \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bb}{\+\_\+\+PIC\+\_\+\+IRQ\+\_\+\+LINE}} \mbox{\hyperlink{idt_8h_a4370a6af272fe49bf2ad060269d1e6ae}{PIC\+\_\+\+IRQ\+\_\+\+LINE}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}} \mbox{\hyperlink{idt_8h_a0ccfaed6d3c9f76c4914c0174260953c}{IDT\+\_\+\+PTR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}} \mbox{\hyperlink{idt_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}{IDT\+\_\+\+ENTRY64}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \{ \newline
+\mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824}{EXCEPTION\+\_\+\+DIVIDE\+\_\+\+BY\+\_\+\+ZERO}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2}{EXCEPTION\+\_\+\+SINGLE\+\_\+\+STEP}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629}{EXCEPTION\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77}{EXCEPTION\+\_\+\+BREAKPOINT}}
+, \newline
+\mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081}{EXCEPTION\+\_\+\+OVERFLOW}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3}{EXCEPTION\+\_\+\+BOUNDS\+\_\+\+CHECK}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91}{EXCEPTION\+\_\+\+INVALID\+\_\+\+OPCODE}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7}{EXCEPTION\+\_\+\+NO\+\_\+\+COPROCESSOR}}
+, \newline
+\mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12}{EXCEPTION\+\_\+\+DOUBLE\+\_\+\+FAULT}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56}{EXCEPTION\+\_\+\+COPROCESSOR\+\_\+\+SEGMENT\+\_\+\+OVERRUN}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791}{EXCEPTION\+\_\+\+INVALID\+\_\+\+TSS}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b}{EXCEPTION\+\_\+\+SEGMENT\+\_\+\+SELECTOR\+\_\+\+NOTPRESENT}}
+, \newline
+\mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb}{EXCEPTION\+\_\+\+STACK\+\_\+\+SEGMENT\+\_\+\+OVERRUN}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f}{EXCEPTION\+\_\+\+GENERAL\+\_\+\+PROTECTION\+\_\+\+FAULT}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81}{EXCEPTION\+\_\+\+PAGE\+\_\+\+FAULT}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99}{EXCEPTION\+\_\+\+RESERVED}}
+, \newline
+\mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a}{EXCEPTION\+\_\+\+FLOATING\+\_\+\+POINT\+\_\+\+ERROR}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723}{EXCEPTION\+\_\+\+ALIGNMENT\+\_\+\+CHECK}}
+, \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730}{EXCEPTION\+\_\+\+SEVERE\+\_\+\+MACHINE\+\_\+\+CHECK}}
+ \}
+\item 
+enum \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \{ \newline
+\mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa}{TIMER\+\_\+\+INTERRUPT}} = 32
+, \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff}{KEYBOARD\+\_\+\+INTERRUPT}} = 33
+, \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121}{ATA\+\_\+\+INTERRUPT}} = 46
+, \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf}{LAPIC\+\_\+\+INTERRUPT}} = 0x\+EF
+, \newline
+\mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41}{LAPIC\+\_\+\+SIV\+\_\+\+INTERRUPT}} = 0x\+FF
+ \}
+\item 
+enum \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bb}{\+\_\+\+PIC\+\_\+\+IRQ\+\_\+\+LINE}} \{ \newline
+\mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bbaae92bc240c11f68a5abf03610f869173}{IRQ0\+\_\+\+TIMER}} = 0
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba215c31f632b06e8857569b8e56a3a17e}{IRQ1\+\_\+\+KEYBOARD}} = 1
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba1ca3b54b9d125eebf114f415909b65d0}{IRQ2\+\_\+\+CASCADE}} = 2
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba303b313b61f80f7b535efaca8f0e0780}{IRQ3\+\_\+\+SERIAL2}} = 3
+, \newline
+\mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba2899c379b5eeb7bb7331b32e1ac94b26}{IRQ4\+\_\+\+SERIAL1}} = 4
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba856e6252e24a669475b93c94240232e4}{IRQ5\+\_\+\+LPT2}} = 5
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba884db7fa466d0bc67cded3a3315abdea}{IRQ6\+\_\+\+FLOPPY}} = 6
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba2b5d4b0148091ee46eaec517511b3cb7}{IRQ7\+\_\+\+LPT1}} = 7
+, \newline
+\mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba0f0781c1bccfde144505eb52d650e0d5}{IRQ8\+\_\+\+CMOS}} = 8
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba945893051825b7a5494b26224aac0cf5}{IRQ9\+\_\+\+FREE}} = 9
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba718ea9efb882df90f71a89eb0016ab47}{IRQ10\+\_\+\+FREE}} = 10
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba5682589c6536744e7fbbaebe910eac83}{IRQ11\+\_\+\+FREE}} = 11
+, \newline
+\mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba3883ceb7e0ae4cdc2e9eaa147b198f71}{IRQ12\+\_\+\+MOUSE}} = 12
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bba3ca65cf0e5fb3b21be3a481539cb6019}{IRQ13\+\_\+\+FPU}} = 13
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bbae75fbd480c2c648a1275510b7dc69e0d}{IRQ14\+\_\+\+PRIMARY\+\_\+\+ATA}} = 14
+, \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bbab07f46bf91c8ec606adec6af195c374d}{IRQ15\+\_\+\+SECONDARY\+\_\+\+ATA}} = 15
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{idt_8h_ac7278dd3d3ff45260343a73acacf6f40}{set\+\_\+idt\+\_\+gate}} (int n, unsigned long int handler)
+\item 
+void \mbox{\hyperlink{idt_8h_a38547209a989c35ae86fcd6f4aa72580}{install\+\_\+idt}} (void)
+\item 
+void \mbox{\hyperlink{idt_8h_a657e2cb18189e638d49a59d6472f91e1}{init\+\_\+interrupts}} (void)
+\item 
+void \mbox{\hyperlink{idt_8h_a934d9d6387cf9d0ad2ec6f94289204ba}{isr\+\_\+handler64}} (int vec\+\_\+num, \mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{idt_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{idt_8h_a2a59a505aa55f15c152f30f811fbd310}\index{idt.h@{idt.h}!IDT\_ENTRIES@{IDT\_ENTRIES}}
+\index{IDT\_ENTRIES@{IDT\_ENTRIES}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_ENTRIES}{IDT\_ENTRIES}}
+{\footnotesize\ttfamily \label{idt_8h_a2a59a505aa55f15c152f30f811fbd310} 
+\#define IDT\+\_\+\+ENTRIES~256}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00023}{23}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_a03c0db7a4cafd35e99b7c78605419d3e}\index{idt.h@{idt.h}!PIC1\_COMMAND\_MASTER@{PIC1\_COMMAND\_MASTER}}
+\index{PIC1\_COMMAND\_MASTER@{PIC1\_COMMAND\_MASTER}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC1\_COMMAND\_MASTER}{PIC1\_COMMAND\_MASTER}}
+{\footnotesize\ttfamily \label{idt_8h_a03c0db7a4cafd35e99b7c78605419d3e} 
+\#define PIC1\+\_\+\+COMMAND\+\_\+\+MASTER~0x20}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00017}{17}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_a20c9b9531f3bd09c5ae5327fe29bec69}\index{idt.h@{idt.h}!PIC1\_DATA\_MASTER@{PIC1\_DATA\_MASTER}}
+\index{PIC1\_DATA\_MASTER@{PIC1\_DATA\_MASTER}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC1\_DATA\_MASTER}{PIC1\_DATA\_MASTER}}
+{\footnotesize\ttfamily \label{idt_8h_a20c9b9531f3bd09c5ae5327fe29bec69} 
+\#define PIC1\+\_\+\+DATA\+\_\+\+MASTER~0x21}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00018}{18}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_a219552e186c48addf9752e17045ab0d0}\index{idt.h@{idt.h}!PIC2\_COMMAND\_SLAVE@{PIC2\_COMMAND\_SLAVE}}
+\index{PIC2\_COMMAND\_SLAVE@{PIC2\_COMMAND\_SLAVE}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC2\_COMMAND\_SLAVE}{PIC2\_COMMAND\_SLAVE}}
+{\footnotesize\ttfamily \label{idt_8h_a219552e186c48addf9752e17045ab0d0} 
+\#define PIC2\+\_\+\+COMMAND\+\_\+\+SLAVE~0x\+A0}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00019}{19}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_aa3494fa5e915f7d1a51ef047365799a8}\index{idt.h@{idt.h}!PIC2\_DATA\_SLAVE@{PIC2\_DATA\_SLAVE}}
+\index{PIC2\_DATA\_SLAVE@{PIC2\_DATA\_SLAVE}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC2\_DATA\_SLAVE}{PIC2\_DATA\_SLAVE}}
+{\footnotesize\ttfamily \label{idt_8h_aa3494fa5e915f7d1a51ef047365799a8} 
+\#define PIC2\+\_\+\+DATA\+\_\+\+SLAVE~0x\+A1}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00020}{20}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2}\index{idt.h@{idt.h}!PIC\_EOI@{PIC\_EOI}}
+\index{PIC\_EOI@{PIC\_EOI}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC\_EOI}{PIC\_EOI}}
+{\footnotesize\ttfamily \label{idt_8h_a170d8eebdb48c16cfcd60cbd46760cb2} 
+\#define PIC\+\_\+\+EOI~0x20}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00022}{22}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{idt_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{idt_8h_a0dbafbab3ffb90922f14b0459e58d436}\index{idt.h@{idt.h}!CPU\_EXCEPTIONS@{CPU\_EXCEPTIONS}}
+\index{CPU\_EXCEPTIONS@{CPU\_EXCEPTIONS}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{CPU\_EXCEPTIONS}{CPU\_EXCEPTIONS}}
+{\footnotesize\ttfamily \label{idt_8h_a0dbafbab3ffb90922f14b0459e58d436} 
+typedef enum \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \mbox{\hyperlink{idt_8h_a0dbafbab3ffb90922f14b0459e58d436}{CPU\+\_\+\+EXCEPTIONS}}}
+
+Exception Definitions \Hypertarget{idt_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}\index{idt.h@{idt.h}!IDT\_ENTRY64@{IDT\_ENTRY64}}
+\index{IDT\_ENTRY64@{IDT\_ENTRY64}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_ENTRY64}{IDT\_ENTRY64}}
+{\footnotesize\ttfamily \label{idt_8h_a11bac0c5bfc9929ec61fd9d1cf982f83} 
+typedef struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}} \mbox{\hyperlink{idt_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}{IDT\+\_\+\+ENTRY64}}}
+
+\Hypertarget{idt_8h_a0ccfaed6d3c9f76c4914c0174260953c}\index{idt.h@{idt.h}!IDT\_PTR@{IDT\_PTR}}
+\index{IDT\_PTR@{IDT\_PTR}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_PTR}{IDT\_PTR}}
+{\footnotesize\ttfamily \label{idt_8h_a0ccfaed6d3c9f76c4914c0174260953c} 
+typedef struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}} \mbox{\hyperlink{idt_8h_a0ccfaed6d3c9f76c4914c0174260953c}{IDT\+\_\+\+PTR}}}
+
+\Hypertarget{idt_8h_a76b7711ec17f4936d64721895ff03c3e}\index{idt.h@{idt.h}!INTERRUPT\_LIST@{INTERRUPT\_LIST}}
+\index{INTERRUPT\_LIST@{INTERRUPT\_LIST}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{INTERRUPT\_LIST}{INTERRUPT\_LIST}}
+{\footnotesize\ttfamily \label{idt_8h_a76b7711ec17f4936d64721895ff03c3e} 
+typedef enum \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \mbox{\hyperlink{idt_8h_a76b7711ec17f4936d64721895ff03c3e}{INTERRUPT\+\_\+\+LIST}}}
+
+Interrupt Definitions \Hypertarget{idt_8h_a4370a6af272fe49bf2ad060269d1e6ae}\index{idt.h@{idt.h}!PIC\_IRQ\_LINE@{PIC\_IRQ\_LINE}}
+\index{PIC\_IRQ\_LINE@{PIC\_IRQ\_LINE}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{PIC\_IRQ\_LINE}{PIC\_IRQ\_LINE}}
+{\footnotesize\ttfamily \label{idt_8h_a4370a6af272fe49bf2ad060269d1e6ae} 
+typedef enum \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bb}{\+\_\+\+PIC\+\_\+\+IRQ\+\_\+\+LINE}} \mbox{\hyperlink{idt_8h_a4370a6af272fe49bf2ad060269d1e6ae}{PIC\+\_\+\+IRQ\+\_\+\+LINE}}}
+
+PIC IRQ Lines 
+
+\label{doc-enum-members}
+\Hypertarget{idt_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214}\index{idt.h@{idt.h}!\_CPU\_EXCEPTIONS@{\_CPU\_EXCEPTIONS}}
+\index{\_CPU\_EXCEPTIONS@{\_CPU\_EXCEPTIONS}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{\_CPU\_EXCEPTIONS}{\_CPU\_EXCEPTIONS}}
+{\footnotesize\ttfamily \label{idt_8h_a4852689eeafee74c009c94108fce7214} 
+enum \mbox{\hyperlink{idt_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}}}
+
+Exception Definitions \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_DIVIDE\_BY\_ZERO@{EXCEPTION\_DIVIDE\_BY\_ZERO}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_DIVIDE\_BY\_ZERO@{EXCEPTION\_DIVIDE\_BY\_ZERO}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824}\label{idt_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824} 
+EXCEPTION\+\_\+\+DIVIDE\+\_\+\+BY\+\_\+\+ZERO&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SINGLE\_STEP@{EXCEPTION\_SINGLE\_STEP}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_SINGLE\_STEP@{EXCEPTION\_SINGLE\_STEP}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2}\label{idt_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2} 
+EXCEPTION\+\_\+\+SINGLE\+\_\+\+STEP&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_NON\_MASKABLE\_INTERRUPT@{EXCEPTION\_NON\_MASKABLE\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_NON\_MASKABLE\_INTERRUPT@{EXCEPTION\_NON\_MASKABLE\_INTERRUPT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629}\label{idt_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629} 
+EXCEPTION\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_BREAKPOINT@{EXCEPTION\_BREAKPOINT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_BREAKPOINT@{EXCEPTION\_BREAKPOINT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77}\label{idt_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77} 
+EXCEPTION\+\_\+\+BREAKPOINT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_OVERFLOW@{EXCEPTION\_OVERFLOW}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_OVERFLOW@{EXCEPTION\_OVERFLOW}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081}\label{idt_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081} 
+EXCEPTION\+\_\+\+OVERFLOW&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_BOUNDS\_CHECK@{EXCEPTION\_BOUNDS\_CHECK}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_BOUNDS\_CHECK@{EXCEPTION\_BOUNDS\_CHECK}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3}\label{idt_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3} 
+EXCEPTION\+\_\+\+BOUNDS\+\_\+\+CHECK&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_INVALID\_OPCODE@{EXCEPTION\_INVALID\_OPCODE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_INVALID\_OPCODE@{EXCEPTION\_INVALID\_OPCODE}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91}\label{idt_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91} 
+EXCEPTION\+\_\+\+INVALID\+\_\+\+OPCODE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_NO\_COPROCESSOR@{EXCEPTION\_NO\_COPROCESSOR}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_NO\_COPROCESSOR@{EXCEPTION\_NO\_COPROCESSOR}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7}\label{idt_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7} 
+EXCEPTION\+\_\+\+NO\+\_\+\+COPROCESSOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_DOUBLE\_FAULT@{EXCEPTION\_DOUBLE\_FAULT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_DOUBLE\_FAULT@{EXCEPTION\_DOUBLE\_FAULT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12}\label{idt_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12} 
+EXCEPTION\+\_\+\+DOUBLE\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN@{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN@{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56}\label{idt_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56} 
+EXCEPTION\+\_\+\+COPROCESSOR\+\_\+\+SEGMENT\+\_\+\+OVERRUN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_INVALID\_TSS@{EXCEPTION\_INVALID\_TSS}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_INVALID\_TSS@{EXCEPTION\_INVALID\_TSS}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791}\label{idt_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791} 
+EXCEPTION\+\_\+\+INVALID\+\_\+\+TSS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT@{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT@{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b}\label{idt_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b} 
+EXCEPTION\+\_\+\+SEGMENT\+\_\+\+SELECTOR\+\_\+\+NOTPRESENT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_STACK\_SEGMENT\_OVERRUN@{EXCEPTION\_STACK\_SEGMENT\_OVERRUN}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_STACK\_SEGMENT\_OVERRUN@{EXCEPTION\_STACK\_SEGMENT\_OVERRUN}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb}\label{idt_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb} 
+EXCEPTION\+\_\+\+STACK\+\_\+\+SEGMENT\+\_\+\+OVERRUN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_GENERAL\_PROTECTION\_FAULT@{EXCEPTION\_GENERAL\_PROTECTION\_FAULT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_GENERAL\_PROTECTION\_FAULT@{EXCEPTION\_GENERAL\_PROTECTION\_FAULT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f}\label{idt_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f} 
+EXCEPTION\+\_\+\+GENERAL\+\_\+\+PROTECTION\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_PAGE\_FAULT@{EXCEPTION\_PAGE\_FAULT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_PAGE\_FAULT@{EXCEPTION\_PAGE\_FAULT}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81}\label{idt_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81} 
+EXCEPTION\+\_\+\+PAGE\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_RESERVED@{EXCEPTION\_RESERVED}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_RESERVED@{EXCEPTION\_RESERVED}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99}\label{idt_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99} 
+EXCEPTION\+\_\+\+RESERVED&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_FLOATING\_POINT\_ERROR@{EXCEPTION\_FLOATING\_POINT\_ERROR}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_FLOATING\_POINT\_ERROR@{EXCEPTION\_FLOATING\_POINT\_ERROR}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a}\label{idt_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a} 
+EXCEPTION\+\_\+\+FLOATING\+\_\+\+POINT\+\_\+\+ERROR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_ALIGNMENT\_CHECK@{EXCEPTION\_ALIGNMENT\_CHECK}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_ALIGNMENT\_CHECK@{EXCEPTION\_ALIGNMENT\_CHECK}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723}\label{idt_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723} 
+EXCEPTION\+\_\+\+ALIGNMENT\+\_\+\+CHECK&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SEVERE\_MACHINE\_CHECK@{EXCEPTION\_SEVERE\_MACHINE\_CHECK}!idt.h@{idt.h}}\index{idt.h@{idt.h}!EXCEPTION\_SEVERE\_MACHINE\_CHECK@{EXCEPTION\_SEVERE\_MACHINE\_CHECK}}}\Hypertarget{idt_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730}\label{idt_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730} 
+EXCEPTION\+\_\+\+SEVERE\+\_\+\+MACHINE\+\_\+\+CHECK&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00026}{26}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705f}\index{idt.h@{idt.h}!\_INTERRUPT\_LIST@{\_INTERRUPT\_LIST}}
+\index{\_INTERRUPT\_LIST@{\_INTERRUPT\_LIST}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{\_INTERRUPT\_LIST}{\_INTERRUPT\_LIST}}
+{\footnotesize\ttfamily \label{idt_8h_ab824659c51a6e5646465e02d7e50705f} 
+enum \mbox{\hyperlink{idt_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}}}
+
+Interrupt Definitions \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TIMER\_INTERRUPT@{TIMER\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!TIMER\_INTERRUPT@{TIMER\_INTERRUPT}}}\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa}\label{idt_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa} 
+TIMER\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{KEYBOARD\_INTERRUPT@{KEYBOARD\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!KEYBOARD\_INTERRUPT@{KEYBOARD\_INTERRUPT}}}\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff}\label{idt_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff} 
+KEYBOARD\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATA\_INTERRUPT@{ATA\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!ATA\_INTERRUPT@{ATA\_INTERRUPT}}}\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121}\label{idt_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121} 
+ATA\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LAPIC\_INTERRUPT@{LAPIC\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!LAPIC\_INTERRUPT@{LAPIC\_INTERRUPT}}}\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf}\label{idt_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf} 
+LAPIC\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LAPIC\_SIV\_INTERRUPT@{LAPIC\_SIV\_INTERRUPT}!idt.h@{idt.h}}\index{idt.h@{idt.h}!LAPIC\_SIV\_INTERRUPT@{LAPIC\_SIV\_INTERRUPT}}}\Hypertarget{idt_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41}\label{idt_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41} 
+LAPIC\+\_\+\+SIV\+\_\+\+INTERRUPT&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00049}{49}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bb}\index{idt.h@{idt.h}!\_PIC\_IRQ\_LINE@{\_PIC\_IRQ\_LINE}}
+\index{\_PIC\_IRQ\_LINE@{\_PIC\_IRQ\_LINE}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{\_PIC\_IRQ\_LINE}{\_PIC\_IRQ\_LINE}}
+{\footnotesize\ttfamily \label{idt_8h_a33464294453ab294b39a569922d233bb} 
+enum \mbox{\hyperlink{idt_8h_a33464294453ab294b39a569922d233bb}{\+\_\+\+PIC\+\_\+\+IRQ\+\_\+\+LINE}}}
+
+PIC IRQ Lines \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ0\_TIMER@{IRQ0\_TIMER}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ0\_TIMER@{IRQ0\_TIMER}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bbaae92bc240c11f68a5abf03610f869173}\label{idt_8h_a33464294453ab294b39a569922d233bbaae92bc240c11f68a5abf03610f869173} 
+IRQ0\+\_\+\+TIMER&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ1\_KEYBOARD@{IRQ1\_KEYBOARD}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ1\_KEYBOARD@{IRQ1\_KEYBOARD}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba215c31f632b06e8857569b8e56a3a17e}\label{idt_8h_a33464294453ab294b39a569922d233bba215c31f632b06e8857569b8e56a3a17e} 
+IRQ1\+\_\+\+KEYBOARD&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ2\_CASCADE@{IRQ2\_CASCADE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ2\_CASCADE@{IRQ2\_CASCADE}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba1ca3b54b9d125eebf114f415909b65d0}\label{idt_8h_a33464294453ab294b39a569922d233bba1ca3b54b9d125eebf114f415909b65d0} 
+IRQ2\+\_\+\+CASCADE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ3\_SERIAL2@{IRQ3\_SERIAL2}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ3\_SERIAL2@{IRQ3\_SERIAL2}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba303b313b61f80f7b535efaca8f0e0780}\label{idt_8h_a33464294453ab294b39a569922d233bba303b313b61f80f7b535efaca8f0e0780} 
+IRQ3\+\_\+\+SERIAL2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ4\_SERIAL1@{IRQ4\_SERIAL1}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ4\_SERIAL1@{IRQ4\_SERIAL1}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba2899c379b5eeb7bb7331b32e1ac94b26}\label{idt_8h_a33464294453ab294b39a569922d233bba2899c379b5eeb7bb7331b32e1ac94b26} 
+IRQ4\+\_\+\+SERIAL1&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ5\_LPT2@{IRQ5\_LPT2}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ5\_LPT2@{IRQ5\_LPT2}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba856e6252e24a669475b93c94240232e4}\label{idt_8h_a33464294453ab294b39a569922d233bba856e6252e24a669475b93c94240232e4} 
+IRQ5\+\_\+\+LPT2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ6\_FLOPPY@{IRQ6\_FLOPPY}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ6\_FLOPPY@{IRQ6\_FLOPPY}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba884db7fa466d0bc67cded3a3315abdea}\label{idt_8h_a33464294453ab294b39a569922d233bba884db7fa466d0bc67cded3a3315abdea} 
+IRQ6\+\_\+\+FLOPPY&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ7\_LPT1@{IRQ7\_LPT1}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ7\_LPT1@{IRQ7\_LPT1}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba2b5d4b0148091ee46eaec517511b3cb7}\label{idt_8h_a33464294453ab294b39a569922d233bba2b5d4b0148091ee46eaec517511b3cb7} 
+IRQ7\+\_\+\+LPT1&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ8\_CMOS@{IRQ8\_CMOS}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ8\_CMOS@{IRQ8\_CMOS}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba0f0781c1bccfde144505eb52d650e0d5}\label{idt_8h_a33464294453ab294b39a569922d233bba0f0781c1bccfde144505eb52d650e0d5} 
+IRQ8\+\_\+\+CMOS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ9\_FREE@{IRQ9\_FREE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ9\_FREE@{IRQ9\_FREE}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba945893051825b7a5494b26224aac0cf5}\label{idt_8h_a33464294453ab294b39a569922d233bba945893051825b7a5494b26224aac0cf5} 
+IRQ9\+\_\+\+FREE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ10\_FREE@{IRQ10\_FREE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ10\_FREE@{IRQ10\_FREE}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba718ea9efb882df90f71a89eb0016ab47}\label{idt_8h_a33464294453ab294b39a569922d233bba718ea9efb882df90f71a89eb0016ab47} 
+IRQ10\+\_\+\+FREE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ11\_FREE@{IRQ11\_FREE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ11\_FREE@{IRQ11\_FREE}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba5682589c6536744e7fbbaebe910eac83}\label{idt_8h_a33464294453ab294b39a569922d233bba5682589c6536744e7fbbaebe910eac83} 
+IRQ11\+\_\+\+FREE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ12\_MOUSE@{IRQ12\_MOUSE}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ12\_MOUSE@{IRQ12\_MOUSE}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba3883ceb7e0ae4cdc2e9eaa147b198f71}\label{idt_8h_a33464294453ab294b39a569922d233bba3883ceb7e0ae4cdc2e9eaa147b198f71} 
+IRQ12\+\_\+\+MOUSE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ13\_FPU@{IRQ13\_FPU}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ13\_FPU@{IRQ13\_FPU}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bba3ca65cf0e5fb3b21be3a481539cb6019}\label{idt_8h_a33464294453ab294b39a569922d233bba3ca65cf0e5fb3b21be3a481539cb6019} 
+IRQ13\+\_\+\+FPU&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ14\_PRIMARY\_ATA@{IRQ14\_PRIMARY\_ATA}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ14\_PRIMARY\_ATA@{IRQ14\_PRIMARY\_ATA}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bbae75fbd480c2c648a1275510b7dc69e0d}\label{idt_8h_a33464294453ab294b39a569922d233bbae75fbd480c2c648a1275510b7dc69e0d} 
+IRQ14\+\_\+\+PRIMARY\+\_\+\+ATA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IRQ15\_SECONDARY\_ATA@{IRQ15\_SECONDARY\_ATA}!idt.h@{idt.h}}\index{idt.h@{idt.h}!IRQ15\_SECONDARY\_ATA@{IRQ15\_SECONDARY\_ATA}}}\Hypertarget{idt_8h_a33464294453ab294b39a569922d233bbab07f46bf91c8ec606adec6af195c374d}\label{idt_8h_a33464294453ab294b39a569922d233bbab07f46bf91c8ec606adec6af195c374d} 
+IRQ15\+\_\+\+SECONDARY\+\_\+\+ATA&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{idt_8h_source_l00058}{58}} of file \mbox{\hyperlink{idt_8h_source}{idt.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{idt_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{idt_8h_a657e2cb18189e638d49a59d6472f91e1}\index{idt.h@{idt.h}!init\_interrupts@{init\_interrupts}}
+\index{init\_interrupts@{init\_interrupts}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{init\_interrupts()}{init\_interrupts()}}
+{\footnotesize\ttfamily \label{idt_8h_a657e2cb18189e638d49a59d6472f91e1} 
+void init\+\_\+interrupts (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00115}{115}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+
+\Hypertarget{idt_8h_a38547209a989c35ae86fcd6f4aa72580}\index{idt.h@{idt.h}!install\_idt@{install\_idt}}
+\index{install\_idt@{install\_idt}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{install\_idt()}{install\_idt()}}
+{\footnotesize\ttfamily \label{idt_8h_a38547209a989c35ae86fcd6f4aa72580} 
+void install\+\_\+idt (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8c_source_l00024}{24}} of file \mbox{\hyperlink{idt_8c_source}{idt.\+c}}.
+
+\Hypertarget{idt_8h_a934d9d6387cf9d0ad2ec6f94289204ba}\index{idt.h@{idt.h}!isr\_handler64@{isr\_handler64}}
+\index{isr\_handler64@{isr\_handler64}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{isr\_handler64()}{isr\_handler64()}}
+{\footnotesize\ttfamily \label{idt_8h_a934d9d6387cf9d0ad2ec6f94289204ba} 
+void isr\+\_\+handler64 (\begin{DoxyParamCaption}\item[{int}]{vec\+\_\+num}{, }\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+\Hypertarget{idt_8h_ac7278dd3d3ff45260343a73acacf6f40}\index{idt.h@{idt.h}!set\_idt\_gate@{set\_idt\_gate}}
+\index{set\_idt\_gate@{set\_idt\_gate}!idt.h@{idt.h}}
+\doxysubsubsection{\texorpdfstring{set\_idt\_gate()}{set\_idt\_gate()}}
+{\footnotesize\ttfamily \label{idt_8h_ac7278dd3d3ff45260343a73acacf6f40} 
+void set\+\_\+idt\+\_\+gate (\begin{DoxyParamCaption}\item[{int}]{n}{, }\item[{unsigned long int}]{handler}{}\end{DoxyParamCaption})}
+
+Functions 
+
+Definition at line \mbox{\hyperlink{idt_8c_source_l00012}{12}} of file \mbox{\hyperlink{idt_8c_source}{idt.\+c}}.
+

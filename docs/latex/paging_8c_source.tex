@@ -1,0 +1,353 @@
+\doxysection{paging.\+c}
+\hypertarget{paging_8c_source}{}\label{paging_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/paging/paging.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/paging/paging.c}}
+\mbox{\hyperlink{paging_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ 64-\/bit\ Memory\ Paging\ Implementation\ (4-\/level\ paging)}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{paging_8h}{paging.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{idt_8h}{../../interrupts/idt.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{memory_8h}{../memory.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ahci_8h}{../../drivers/ahci/ahci.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00012}00012\ \ \textcolor{comment}{//\ Constants\ for\ x86\_64\ paging}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00013}\mbox{\hyperlink{paging_8c_a04d95f827e85da8915a4eebff582a7be}{00013}}\ \textcolor{preprocessor}{\#define\ PAGE\_ENTRIES\ \ \ \ \ \ \ \ 512}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00014}\mbox{\hyperlink{paging_8c_ae8f4eec8c194962159f36f934954d2a3}{00014}}\ \textcolor{preprocessor}{\#define\ PAGE\_SIZE\_4K\ \ \ \ \ \ \ \ 0x1000}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00015}00015\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00016}00016\ \textcolor{comment}{//\ Constants\ for\ aligning\ paging\ for\ AHCI}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00017}\mbox{\hyperlink{paging_8c_ae4aa620ce57c7c3171b916de2c5f09f2}{00017}}\ \textcolor{preprocessor}{\#define\ PAGE\_MASK\ \ \ \ \ \ \ \ 0xFFFULL}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00018}\mbox{\hyperlink{paging_8c_add9fd0c9693ecc63a358073a5578ef23}{00018}}\ \textcolor{preprocessor}{\#define\ PAGE\_ALIGN\_DOWN(x)\ \ ((x)\ \&\ \string~PAGE\_MASK)}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00019}\mbox{\hyperlink{paging_8c_a4cbb7f0db5ee5430437a2617c2a0f410}{00019}}\ \textcolor{preprocessor}{\#define\ PAGE\_ALIGN\_UP(x)\ \ \ \ (((x)\ +\ PAGE\_MASK)\ \&\ \string~PAGE\_MASK)}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00020}\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{00020}}\ \textcolor{preprocessor}{\#define\ RECURSIVE\_INDEX\ 0x1FF}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00022}00022\ \textcolor{comment}{//\ From\ now\ on,\ physical\ addresses\ are\ uintptr\_t,\ and\ virtual\ addresses\ are\ void\ pointers.}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00024}00024\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t\ canonical\_high(uint64\_t\ addr)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00025}00025\ \ \ \ \ \textcolor{comment}{//\ If\ bit\ 47\ is\ set,\ set\ all\ higher\ bits}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{if}\ (addr\ \&\ (1ULL\ <<\ 47))\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00027}00027\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ addr\ |\ 0xFFFF000000000000ULL;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00028}00028\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00029}00029\ \ \ \ \ \textcolor{keywordflow}{return}\ addr;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00030}00030\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00032}00032\ \textcolor{comment}{//\ Build\ recursive\ virtual\ pointer\ for\ different\ table\ levels:}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00033}00033\ \textcolor{comment}{//\ To\ get\ PML4\ pointer:}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00034}00034\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t*\ pml4\_from\_recursive(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00035}00035\ \ \ \ \ uint64\_t\ va\ =\ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 39)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00036}00036\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 30)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00037}00037\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 21)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 12);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00039}00039\ \ \ \ \ va\ =\ canonical\_high(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{return}\ (uint64\_t*)(uintptr\_t)va;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00041}00041\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00043}00043\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t*\ pdpt\_from\_recursive(\textcolor{keywordtype}{size\_t}\ pml4\_i)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00044}00044\ \ \ \ \ uint64\_t\ va\ =\ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 39)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 30)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 21)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ ((uint64\_t)pml4\_i\ <<\ 12);\ \textcolor{comment}{//\ <-\/-\/\ CORRECTED}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00048}00048\ \ \ \ \ va\ =\ canonical\_high(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00049}00049\ \ \ \ \ \textcolor{keywordflow}{return}\ (uint64\_t*)(uintptr\_t)va;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00050}00050\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00052}00052\ \textcolor{comment}{//\ To\ get\ PD\ page\ for\ pml4\_i,\ pdpt\_i}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00053}00053\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t*\ pd\_from\_recursive(\textcolor{keywordtype}{size\_t}\ pml4\_i,\ \textcolor{keywordtype}{size\_t}\ pdpt\_i)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00054}00054\ \ \ \ \ uint64\_t\ va\ =\ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 39)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 30)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ ((uint64\_t)pml4\_i\ <<\ 21)\ |\ \ \ \ \ \ \ \ \textcolor{comment}{//\ <-\/-\/\ CORRECTED}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ ((uint64\_t)pdpt\_i\ <<\ 12);\ \ \ \ \ \ \ \textcolor{comment}{//\ <-\/-\/\ CORRECTED}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00058}00058\ \ \ \ \ va\ =\ canonical\_high(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00059}00059\ \ \ \ \ \textcolor{keywordflow}{return}\ (uint64\_t*)(uintptr\_t)va;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00060}00060\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00062}00062\ \textcolor{comment}{//\ To\ get\ PT\ page\ for\ pml4\_i,\ pdpt\_i,\ pd\_i}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00063}00063\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t*\ pt\_from\_recursive(\textcolor{keywordtype}{size\_t}\ pml4\_i,\ \textcolor{keywordtype}{size\_t}\ pdpt\_i,\ \textcolor{keywordtype}{size\_t}\ pd\_i)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00064}00064\ \ \ \ \ uint64\_t\ va\ =\ ((uint64\_t)\mbox{\hyperlink{paging_8c_a4a6ba206104f470a098a0f5c161c2ce7}{RECURSIVE\_INDEX}}\ <<\ 39)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ ((uint64\_t)pml4\_i\ <<\ 30)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00066}00066\ \ \ \ \ \ \ \ \ ((uint64\_t)pdpt\_i\ <<\ 21)\ |}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ ((uint64\_t)pd\_i\ <<\ 12);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00068}00068\ \ \ \ \ va\ =\ canonical\_high(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00069}00069\ \ \ \ \ \textcolor{keywordflow}{return}\ (uint64\_t*)(uintptr\_t)va;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00070}00070\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00072}00072\ \textcolor{comment}{//\ Extract\ indices\ from\ virtual\ address}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00073}00073\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ get\_pml4\_index(uint64\_t\ va)\ \{\ \textcolor{keywordflow}{return}\ (va\ >>\ 39)\ \&\ 0x1FF;\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00074}00074\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ get\_pdpt\_index(uint64\_t\ va)\ \{\ \textcolor{keywordflow}{return}\ (va\ >>\ 30)\ \&\ 0x1FF;\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00075}00075\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ get\_pd\_index(uint64\_t\ va)\ \{\ \textcolor{keywordflow}{return}\ (va\ >>\ 21)\ \&\ 0x1FF;\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00076}00076\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ get\_pt\_index(uint64\_t\ va)\ \{\ \textcolor{keywordflow}{return}\ (va\ >>\ 12)\ \&\ 0x1FF;\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00077}00077\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00078}00078\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ get\_offset(uint64\_t\ va)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00079}00079\ \ \ \ \ \textcolor{keywordflow}{return}\ va\ \&\ 0xFFF;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00080}00080\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00082}00082\ \textcolor{comment}{//\ Input\ pt[pt\_i]\ into\ the\ function}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00083}00083\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uintptr\_t\ get\_frame\_base(uint64\_t\ pt\_pti)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00084}00084\ \ \ \ \ \textcolor{keywordflow}{return}\ pt\_pti\ \&\ 0xFFFFFFFFF000;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00085}00085\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00087}00087\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ map\_range\_higher(uintptr\_t\ phys\_start,\ uintptr\_t\ phys\_end,\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{stdarg__myos_8h_ade24ac546ea93fde2353ed2db8e89c66}{va\_start}},\ uint64\_t\ flags)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00088}00088\ \ \ \ \ uintptr\_t\ p\ =\ phys\_start;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00089}00089\ \ \ \ \ uintptr\_t\ v\ =\ (uintptr\_t)\mbox{\hyperlink{stdarg__myos_8h_ade24ac546ea93fde2353ed2db8e89c66}{va\_start}};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00090}00090\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00091}00091\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ p\ <\ phys\_end;\ p\ +=\ \mbox{\hyperlink{paging_8c_ae8f4eec8c194962159f36f934954d2a3}{PAGE\_SIZE\_4K}},\ v\ +=\ \mbox{\hyperlink{paging_8c_ae8f4eec8c194962159f36f934954d2a3}{PAGE\_SIZE\_4K}})\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00092}00092\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{paging_8c_a8a5e657a727356ab419f20fa707576d5}{map\_page}}((\textcolor{keywordtype}{void}*)v,\ p,\ flags);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00093}00093\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00094}00094\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00095}00095\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00096}00096\ \textcolor{comment}{//\ Corrected\ map\_page\ function}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00097}\mbox{\hyperlink{paging_8c_a8a5e657a727356ab419f20fa707576d5}{00097}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{paging_8c_a8a5e657a727356ab419f20fa707576d5}{map\_page}}(\textcolor{keywordtype}{void}*\ virtualaddress,\ uintptr\_t\ physicaladdress,\ uint64\_t\ flags)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00098}00098\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}map\_page"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00099}00099\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00100}00100\ \ \ \ \ uintptr\_t\ pa\ =\ physicaladdress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00101}00101\ \ \ \ \ \mbox{\hyperlink{bugcheck_8h_a0ea5d5717f65abd50f45d343b6a251c9}{BUGCHECK\_ADDITIONALS}}\ addt\ =\ \{\ 0\ \};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00102}00102\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00103}00103\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00104}00104\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00105}00105\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00106}00106\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00107}00107\ \ \ \ \ uint64\_t*\ pml4\_va\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00108}00108\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00109}00109\ \ \ \ \ \textcolor{comment}{//\ 2.\ Ensure\ PDPT\ exists}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00110}00110\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4\_va[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a4c58494b90fd7bfbc33a84178e327b88}{ksnprintf}}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}},\ \textcolor{keyword}{sizeof}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}}),\ \textcolor{stringliteral}{"{}In\ PML4,\ VA:\ \%p,\ PA:\ \%p,\ FLAGS:\ \%d"{}},\ virtualaddress,\ physicaladdress,\ flags);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a882a1431cb6ee4d732b3aaf8a3cfda97}{MtBugcheckEx}}(NULL,\ NULL,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a71ed9198969276e82b45d9d99cba1d01}{BAD\_PAGING}},\ \&addt,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00113}00113\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00114}00114\ \ \ \ \ uint64\_t*\ pdpt\_va\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00115}00115\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00116}00116\ \ \ \ \ \textcolor{comment}{//\ 3.\ Ensure\ PD\ exists}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00117}00117\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt\_va[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a4c58494b90fd7bfbc33a84178e327b88}{ksnprintf}}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}},\ \textcolor{keyword}{sizeof}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}}),\ \textcolor{stringliteral}{"{}In\ PDPT,\ VA:\ \%p,\ PA:\ \%p,\ FLAGS:\ \%d"{}},\ virtualaddress,\ physicaladdress,\ flags);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a882a1431cb6ee4d732b3aaf8a3cfda97}{MtBugcheckEx}}(NULL,\ NULL,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a71ed9198969276e82b45d9d99cba1d01}{BAD\_PAGING}},\ \&addt,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00120}00120\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00121}00121\ \ \ \ \ uint64\_t*\ pd\_va\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00122}00122\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00123}00123\ \ \ \ \ \textcolor{comment}{//\ 4.\ Ensure\ PT\ exists}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00124}00124\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd\_va[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a4c58494b90fd7bfbc33a84178e327b88}{ksnprintf}}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}},\ \textcolor{keyword}{sizeof}(addt.\mbox{\hyperlink{struct___b_u_g_c_h_e_c_k___a_d_d_i_t_i_o_n_a_l_s_a22666d1dd2bf2e039ee004bcf8650c97}{str}}),\ \textcolor{stringliteral}{"{}In\ PD,\ VA:\ \%p,\ PA:\ \%p,\ FLAGS:\ \%d"{}},\ virtualaddress,\ physicaladdress,\ flags);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a882a1431cb6ee4d732b3aaf8a3cfda97}{MtBugcheckEx}}(NULL,\ NULL,\ \mbox{\hyperlink{bugcheck_8h_a3dd6c077b2422dcc0d05246537da5c82a71ed9198969276e82b45d9d99cba1d01}{BAD\_PAGING}},\ \&addt,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00127}00127\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00128}00128\ \ \ \ \ uint64\_t*\ pt\_va\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00129}00129\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00130}00130\ \ \ \ \ \textcolor{comment}{//\ 5.\ Map\ the\ page}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00131}00131\ \ \ \ \ pt\_va[pt\_i]\ =\ (pa\ \&\ \string~0xFFFULL)\ |\ flags;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00132}00132\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00133}00133\ \ \ \ \ \textcolor{comment}{//\ 6.\ Flush\ the\ TLB\ for\ the\ target\ virtual\ address}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00134}00134\ \ \ \ \ invlpg(virtualaddress);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00135}00135\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00136}00136\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00137}00137\ \textcolor{comment}{//\ Unmap\ a\ page\ (remove\ mapping\ and\ free\ frame)}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00138}\mbox{\hyperlink{paging_8c_aa3ee992da567c2b694b9c148175ba07b}{00138}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{paging_8c_aa3ee992da567c2b694b9c148175ba07b}{unmap\_page}}(\textcolor{keywordtype}{void}*\ virtualaddress)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00139}00139\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}unmap\_page"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00140}00140\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00141}00141\ \ \ \ \ \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\_RIP}}(rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00142}00142\ \ \ \ \ \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\_max\_irql}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ (\textcolor{keywordtype}{void}*)rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00143}00143\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00144}00144\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00145}00145\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00146}00146\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00147}00147\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00148}00148\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00149}00149\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00150}00150\ \ \ \ \ \textcolor{comment}{//\ FIX:\ Use\ recursive\ helpers\ to\ get\ VIRTUAL\ addresses\ of\ tables}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00151}00151\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00152}00152\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00154}00154\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00155}00155\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00156}00156\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00157}00157\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00158}00158\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00159}00159\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00160}00160\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00161}00161\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pt[pt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00162}00162\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00163}00163\ \ \ \ \ uintptr\_t\ phys\_addr\ =\ (uintptr\_t)(pt[pt\_i]\ \&\ \string~0xFFFULL);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00164}00164\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00165}00165\ \ \ \ \ \mbox{\hyperlink{allocator_8c_a000852beb10aa667f95a9ac94ebe847c}{free\_frame}}(phys\_addr);\ \textcolor{comment}{//\ Free\ the\ underlying\ physical\ frame}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00166}00166\ \ \ \ \ pt[pt\_i]\ =\ 0;\ \textcolor{comment}{//\ Clear\ the\ entry}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00167}00167\ \ \ \ \ invlpg(virtualaddress);\ \textcolor{comment}{//\ Invalidate\ the\ address}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00168}00168\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00169}00169\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00170}00170\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00171}00171\ \textcolor{comment}{//\ Set\ writable\ flag\ on\ a\ page}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00172}\mbox{\hyperlink{paging_8c_abbe37894b5dfd8416ec7d52d49b4b2cb}{00172}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{paging_8c_abbe37894b5dfd8416ec7d52d49b4b2cb}{set\_page\_writable}}(\textcolor{keywordtype}{void}*\ virtualaddress,\ \textcolor{keywordtype}{bool}\ writable)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00173}00173\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}set\_page\_writable"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00174}00174\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00175}00175\ \ \ \ \ \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\_RIP}}(rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00176}00176\ \ \ \ \ \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\_max\_irql}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ (\textcolor{keywordtype}{void}*)rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00177}00177\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00178}00178\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00179}00179\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00180}00180\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00181}00181\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00182}00182\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00183}00183\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00184}00184\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00185}00185\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00186}00186\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00187}00187\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00188}00188\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00189}00189\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00190}00190\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00191}00191\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00192}00192\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00193}00193\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00194}00194\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00195}00195\ \ \ \ \ uint64\_t\ entry\ =\ pt[pt\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00196}00196\ \ \ \ \ \textcolor{keywordflow}{if}\ (writable)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00197}00197\ \ \ \ \ \ \ \ \ entry\ |=\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00198}00198\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00199}00199\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00200}00200\ \ \ \ \ \ \ \ \ entry\ \&=\ \string~((uint64\_t)\mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00201}00201\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00202}00202\ \ \ \ \ pt[pt\_i]\ =\ entry;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00203}00203\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00204}00204\ \ \ \ \ \textcolor{comment}{//\ only\ flush\ if\ paging\ is\ already\ on:}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00205}00205\ \ \ \ \ uint64\_t\ cr0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00206}00206\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr0,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(cr0));}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00207}00207\ \ \ \ \ \textcolor{keywordflow}{if}\ (cr0\ \&\ 0x80000000)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00208}00208\ \ \ \ \ \ \ \ \ invlpg((\textcolor{keywordtype}{void}*)va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00209}00209\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00210}00210\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00212}\mbox{\hyperlink{paging_8c_a4eef2c9157893448c93129145533f449}{00212}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{paging_8c_a4eef2c9157893448c93129145533f449}{set\_page\_user\_access}}(\textcolor{keywordtype}{void}*\ virtualaddress,\ \textcolor{keywordtype}{bool}\ user\_accessible)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00213}00213\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}set\_page\_user\_access"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00214}00214\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00215}00215\ \ \ \ \ \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\_RIP}}(rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00216}00216\ \ \ \ \ \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\_max\_irql}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ (\textcolor{keywordtype}{void}*)rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00217}00217\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00218}00218\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00219}00219\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00220}00220\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00221}00221\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00222}00222\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00223}00223\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00224}00224\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00225}00225\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00226}00226\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00227}00227\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00228}00228\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00229}00229\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00230}00230\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00231}00231\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00232}00232\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pt[pt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00233}00233\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00234}00234\ \ \ \ \ uint64\_t\ entry\ =\ pt[pt\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00235}00235\ \ \ \ \ \textcolor{keywordflow}{if}\ (user\_accessible)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00236}00236\ \ \ \ \ \ \ \ \ entry\ |=\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca95fc312a8636805454c8ff4f8b872042}{PAGE\_USER}};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00237}00237\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00238}00238\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00239}00239\ \ \ \ \ \ \ \ \ entry\ \&=\ \string~((uint64\_t)\mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca95fc312a8636805454c8ff4f8b872042}{PAGE\_USER}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00240}00240\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00241}00241\ \ \ \ \ pt[pt\_i]\ =\ entry;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00242}00242\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00243}00243\ \ \ \ \ \textcolor{comment}{//\ only\ flush\ if\ paging\ is\ already\ on:}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00244}00244\ \ \ \ \ uint64\_t\ cr0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00245}00245\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr0,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(cr0));}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00246}00246\ \ \ \ \ \textcolor{keywordflow}{if}\ (cr0\ \&\ 0x80000000)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00247}00247\ \ \ \ \ \ \ \ \ invlpg((\textcolor{keywordtype}{void}*)va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00248}00248\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00249}00249\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00250}00250\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00251}\mbox{\hyperlink{paging_8c_ad2e187bf95efccc510942190ab675a03}{00251}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{paging_8c_ad2e187bf95efccc510942190ab675a03}{MtAddPageFlags}}(\textcolor{keywordtype}{void}*\ virtualaddress,\ uint64\_t\ flags)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00252}00252\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}set\_page\_flags"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00253}00253\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00254}00254\ \ \ \ \ \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\_RIP}}(rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00255}00255\ \ \ \ \ \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\_max\_irql}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ (\textcolor{keywordtype}{void}*)rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00256}00256\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00257}00257\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00258}00258\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00259}00259\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00260}00260\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00261}00261\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00262}00262\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00263}00263\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00264}00264\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00265}00265\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00266}00266\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00267}00267\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00268}00268\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00269}00269\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00270}00270\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00271}00271\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pt[pt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00272}00272\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00273}00273\ \ \ \ \ uint64\_t\ entry\ =\ pt[pt\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00274}00274\ \ \ \ \ entry\ |=\ flags;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00275}00275\ \ \ \ \ pt[pt\_i]\ =\ entry;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00276}00276\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00277}00277\ \ \ \ \ \textcolor{comment}{//\ only\ flush\ if\ paging\ is\ already\ on:}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00278}00278\ \ \ \ \ uint64\_t\ cr0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00279}00279\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr0,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(cr0));}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00280}00280\ \ \ \ \ \textcolor{keywordflow}{if}\ (cr0\ \&\ 0x80000000)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00281}00281\ \ \ \ \ \ \ \ \ invlpg((\textcolor{keywordtype}{void}*)va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00282}00282\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00283}00283\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00284}00284\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00285}\mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{00285}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}(\textcolor{keywordtype}{void}*\ virtualAddr)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00286}00286\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}MtIsAddressValid"{}});}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00287}00287\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00288}00288\ \ \ \ \ \mbox{\hyperlink{cpu_8h_ad14712b6bd2c4d4acc67a0178f481a01}{GET\_RIP}}(rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00289}00289\ \ \ \ \ \mbox{\hyperlink{irql_8c_a18058aa8b45e4b81a66efa2f2d708215}{enforce\_max\_irql}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ (\textcolor{keywordtype}{void}*)rip);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00290}00290\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00291}00291\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualAddr;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00292}00292\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00293}00293\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00294}00294\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00295}00295\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00296}00296\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00297}00297\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00298}00298\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00299}00299\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00300}00300\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00301}00301\ \ \ \ \ \textcolor{comment}{//\ advance}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00302}00302\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00303}00303\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt[pdpt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00304}00304\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00305}00305\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00306}00306\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd[pd\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00307}00307\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00308}00308\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00309}00309\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pt[pt\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00310}00310\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00311}00311\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00312}00312\ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00313}00313\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00314}\mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{00314}}\ uintptr\_t\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}(\textcolor{keywordtype}{void}*\ virtualaddress)\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00315}00315\ \ \ \ \ uint64\_t\ va\ =\ (uint64\_t)virtualaddress;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00316}00316\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pml4\_i\ =\ get\_pml4\_index(va),\ pdpt\_i\ =\ get\_pdpt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00317}00317\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pd\_i\ =\ get\_pd\_index(va),\ pt\_i\ =\ get\_pt\_index(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00318}00318\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ offset\ =\ get\_offset(va);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00319}00319\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00320}00320\ \ \ \ \ uint64\_t*\ pml4\ =\ pml4\_from\_recursive();}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00321}00321\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pml4[pml4\_i]\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00322}00322\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00323}00323\ \ \ \ \ uint64\_t*\ pdpt\ =\ pdpt\_from\_recursive(pml4\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00324}00324\ \ \ \ \ uint64\_t\ pdpt\_entry\ =\ pdpt[pdpt\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00325}00325\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pdpt\_entry\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00326}00326\ \ \ \ \ \textcolor{comment}{//\ 1GiB\ page?}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00327}00327\ \ \ \ \ \textcolor{keywordflow}{if}\ (pdpt\_entry\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacafa88e1b2c2ba24dfb5fdcb8b95a25c95}{PAGE\_PS}})\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00328}00328\ \ \ \ \ \ \ \ \ uintptr\_t\ base\ =\ (pdpt\_entry\ \&\ \string~((1ULL\ <<\ 30)\ -\/\ 1));\ \textcolor{comment}{//\ mask\ lower\ 30\ bits}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00329}00329\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ base\ +\ (va\ \&\ ((1ULL\ <<\ 30)\ -\/\ 1));}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00330}00330\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00331}00331\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00332}00332\ \ \ \ \ uint64\_t*\ pd\ =\ pd\_from\_recursive(pml4\_i,\ pdpt\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00333}00333\ \ \ \ \ uint64\_t\ pd\_entry\ =\ pd[pd\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00334}00334\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pd\_entry\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00335}00335\ \ \ \ \ \textcolor{comment}{//\ 2MiB\ page?}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00336}00336\ \ \ \ \ \textcolor{keywordflow}{if}\ (pd\_entry\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacafa88e1b2c2ba24dfb5fdcb8b95a25c95}{PAGE\_PS}})\ \{}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00337}00337\ \ \ \ \ \ \ \ \ uintptr\_t\ base\ =\ pd\_entry\ \&\ \string~((1ULL\ <<\ 21)\ -\/\ 1);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00338}00338\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ base\ +\ (va\ \&\ ((1ULL\ <<\ 21)\ -\/\ 1));}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00339}00339\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00340}00340\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00341}00341\ \ \ \ \ uint64\_t*\ pt\ =\ pt\_from\_recursive(pml4\_i,\ pdpt\_i,\ pd\_i);}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00342}00342\ \ \ \ \ uint64\_t\ pt\_entry\ =\ pt[pt\_i];}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00343}00343\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(pt\_entry\ \&\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}))\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00344}00344\ }
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00345}00345\ \ \ \ \ uintptr\_t\ base\ =\ pt\_entry\ \&\ \string~0xFFFULL;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00346}00346\ \ \ \ \ \textcolor{keywordflow}{return}\ base\ +\ offset;}
+\DoxyCodeLine{\Hypertarget{paging_8c_source_l00347}00347\ \}}
+
+\end{DoxyCode}

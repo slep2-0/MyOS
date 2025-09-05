@@ -1,0 +1,637 @@
+\doxysection{ahci.\+c}
+\hypertarget{ahci_8c_source}{}\label{ahci_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c}}
+\mbox{\hyperlink{ahci_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ AHCI\ Driver\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ahci_8h}{ahci.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{trace_8h}{../../trace.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00011}00011\ \textcolor{preprocessor}{\#ifdef\ REMINDER}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00012}00012\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{false},\ \textcolor{stringliteral}{"{}Reminder:\ AHCI,\ and\ other\ DMA\ stuff\ DEAL\ WITH\ PHYSICAL\ ADDRESSES\ ONLY!\ not\ virtual,\ so\ supply\ to\ them\ the\ translated\ addresses."{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00013}00013\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00014}00014\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00015}00015\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ decode\_serr(uint32\_t\ serr)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00016}00016\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00017}00017\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}SERR:\ No\ errors\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00018}00018\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00019}00019\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00021}00021\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}SERR:\ 0x\%08x\ -\/\ Errors\ detected:\(\backslash\)n"{}},\ serr);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00023}00023\ \ \ \ \ \textcolor{comment}{//\ ERR\ bits\ (0-\/15)\ -\/\ Recoverable\ and\ non-\/recoverable\ errors}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00024}00024\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 0))\ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [0]\ ERR.I\ -\/\ Recovered\ Data\ Integrity\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00025}00025\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 1))\ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [1]\ ERR.M\ -\/\ Recovered\ Communications\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 8))\ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [8]\ ERR.T\ -\/\ Transient\ Data\ Integrity\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00027}00027\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 9))\ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [9]\ ERR.C\ -\/\ Persistent\ Communication/Data\ Integrity\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00028}00028\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 10))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [10]\ ERR.P\ -\/\ Protocol\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00029}00029\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 11))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [11]\ ERR.E\ -\/\ Internal\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00031}00031\ \ \ \ \ \textcolor{comment}{//\ DIAG\ bits\ (16-\/31)\ -\/\ Diagnostic\ errors}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00032}00032\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 16))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [16]\ DIAG.N\ -\/\ PhyRdy\ Change\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00033}00033\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 17))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [17]\ DIAG.I\ -\/\ Phy\ Internal\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00034}00034\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 18))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [18]\ DIAG.W\ -\/\ Comm\ Wake\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00035}00035\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 19))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [19]\ DIAG.B\ -\/\ 10B\ to\ 8B\ Decode\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 20))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [20]\ DIAG.D\ -\/\ Disparity\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00037}00037\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 21))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [21]\ DIAG.C\ -\/\ CRC\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00038}00038\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 22))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [22]\ DIAG.H\ -\/\ Handshake\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00039}00039\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 23))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [23]\ DIAG.S\ -\/\ Link\ Sequence\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 24))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [24]\ DIAG.T\ -\/\ Transport\ State\ Transition\ Error\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00041}00041\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 25))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [25]\ DIAG.F\ -\/\ Unknown\ FIS\ Type\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00042}00042\ \ \ \ \ \textcolor{keywordflow}{if}\ (serr\ \&\ (1\ <<\ 26))\ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ [26]\ DIAG.X\ -\/\ Exchanged\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00043}00043\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00044}00044\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00045}00045\ \textcolor{comment}{//\ Context\ per\ initialized\ port}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00046}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x}{00046}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x}{\_AHCI\_PORT\_CTX}}\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00047}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a9c4e1ebd6b9f043649c6f18c6029f065}{00047}}\ \ \ \ \ \mbox{\hyperlink{ahci_8h_ac8d5245a93b3d91b9fa746c801c74a28}{HBA\_PORT}}*\ \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a9c4e1ebd6b9f043649c6f18c6029f065}{port}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MMIO\ base\ for\ this\ port}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00048}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{00048}}\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a5fd38edf79dcde4ab4b729353f99b837}{HBA\_CMD\_TBL}}*\ \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}};\ \ \ \ \ \ \ \textcolor{comment}{//\ Command\ table\ memory}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00049}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{00049}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Cmd\ list\ buffer}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00050}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_af8f8d0924a3a186e27d8f9b1499ebe76}{00050}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_af8f8d0924a3a186e27d8f9b1499ebe76}{fis}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ FIS\ receive\ buffer}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00051}\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a15eac7f722555054361c0c089ceb07f9}{00051}}\ \ \ \ \ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}\ \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a15eac7f722555054361c0c089ceb07f9}{bdev}};\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Associated\ BLOCK\_DEVICE\ interface}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00052}\mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{00052}}\ \}\ \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00053}00053\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00054}00054\ \textcolor{keyword}{static}\ \mbox{\hyperlink{ahci_8h_ae5f2dfa1afa0c14d4de2cb55400b1f37}{HBA\_MEM}}*\ hba\_mem;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00055}00055\ \textcolor{keyword}{static}\ \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}\ ports[\mbox{\hyperlink{ahci_8h_a21dfe7d03e0027f3c2e4a1bc81e8d85a}{AHCI\_MAX\_PORTS}}];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00056}00056\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ port\_count;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00058}00058\ \textcolor{comment}{//\ Invalidate\ cache\ ranges\ of\ the\ CPU\ to\ ensure\ newest\ data\ is\ fetched\ from\ RAM.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00059}00059\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ cache\_flush\_invalidate\_range(\textcolor{keywordtype}{void}*\ addr,\ \textcolor{keywordtype}{size\_t}\ len)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00060}00060\ \ \ \ \ uintptr\_t\ p\ =\ (uintptr\_t)addr\ \&\ \string~(uintptr\_t)63;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00061}00061\ \ \ \ \ uintptr\_t\ end\ =\ (uintptr\_t)addr\ +\ len;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00062}00062\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ p\ <\ end;\ p\ +=\ 64)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}clflush\ (\%0)"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}((\textcolor{keywordtype}{void}*)p)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00064}00064\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00065}00065\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00066}00066\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00067}00067\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00068}00068\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ outl\_port(uint16\_t\ port,\ uint32\_t\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00069}00069\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}outl\ \%0,\ \%1"{}}\ ::\ \textcolor{stringliteral}{"{}a"{}}(val),\ \textcolor{stringliteral}{"{}d"{}}(port));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00070}00070\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00071}00071\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint32\_t\ inl\_port(uint16\_t\ port)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00072}00072\ \ \ \ \ uint32\_t\ val;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00073}00073\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}inl\ \%1,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(val)\ :\ \textcolor{stringliteral}{"{}d"{}}(port));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00074}00074\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00075}00075\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00076}00076\ \textcolor{keyword}{static}\ uint32\_t\ pci\_cfg\_read32(uint8\_t\ bus,\ uint8\_t\ slot,\ uint8\_t\ func,\ uint8\_t\ offset)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00077}00077\ \ \ \ \ uint32\_t\ addr\ =\ (1u\ <<\ 31)\ |\ ((uint32\_t)bus\ <<\ 16)\ |\ ((uint32\_t)slot\ <<\ 11)\ |}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ ((uint32\_t)func\ <<\ 8)\ |\ (offset\ \&\ 0xFC);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00079}00079\ \ \ \ \ outl\_port(0xCF8,\ addr);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00080}00080\ \ \ \ \ \textcolor{keywordflow}{return}\ inl\_port(0xCFC);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00081}00081\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00082}00082\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ pci\_cfg\_write32(uint8\_t\ bus,\ uint8\_t\ slot,\ uint8\_t\ func,\ uint8\_t\ offset,\ uint32\_t\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00083}00083\ \ \ \ \ uint32\_t\ addr\ =\ (1u\ <<\ 31)\ |\ ((uint32\_t)bus\ <<\ 16)\ |\ ((uint32\_t)slot\ <<\ 11)\ |}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00084}00084\ \ \ \ \ \ \ \ \ ((uint32\_t)func\ <<\ 8)\ |\ (offset\ \&\ 0xFC);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00085}00085\ \ \ \ \ outl\_port(0xCF8,\ addr);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00086}00086\ \ \ \ \ outl\_port(0xCFC,\ val);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00087}00087\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00089}00089\ \textcolor{comment}{//\ Scans\ PCI\ buses\ and\ enables\ Bus\ Master\ bit\ for\ first\ AHCI\ class\ device\ found.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00090}00090\ \textcolor{comment}{//\ Call\ this\ at\ start\ of\ ahci\_init()\ before\ enable\_controller().}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00091}00091\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ ensure\_ahci\_busmaster\_enabled(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00092}00092\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint8\_t\ bus\ =\ 0;\ bus\ <\ 8;\ ++bus)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (uint8\_t\ slot\ =\ 0;\ slot\ <\ 32;\ ++slot)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (uint8\_t\ func\ =\ 0;\ func\ <\ 8;\ ++func)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ d0\ =\ pci\_cfg\_read32(bus,\ slot,\ func,\ 0x00);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((d0\ \&\ 0xFFFF)\ ==\ 0xFFFF)\ \textcolor{keywordflow}{continue};\ \textcolor{comment}{//\ no\ device}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ cl\ =\ pci\_cfg\_read32(bus,\ slot,\ func,\ 0x08);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00098}00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint8\_t\ base\_class\ =\ (cl\ >>\ 24)\ \&\ 0xFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint8\_t\ sub\_class\ =\ (cl\ >>\ 16)\ \&\ 0xFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint8\_t\ prog\_if\ =\ (cl\ >>\ 8)\ \&\ 0xFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00101}00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (base\_class\ ==\ 0x01\ \&\&\ sub\_class\ ==\ 0x06\ \&\&\ prog\_if\ ==\ 0x01)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00102}00102\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ hdr\ =\ pci\_cfg\_read32(bus,\ slot,\ func,\ 0x00);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00104}00104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ vendor\ =\ hdr\ \&\ 0xFFFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ device\ =\ (hdr\ >>\ 16)\ \&\ 0xFFFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00106}00106\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ cmd32\ =\ pci\_cfg\_read32(bus,\ slot,\ func,\ 0x04);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ cmd\ =\ cmd32\ \&\ 0xFFFF;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00109}00109\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}AHCI\ PCI\ at\ \%p:\%p\ vendor=\%p\ device=\%p\(\backslash\)n"{}},\ bus,\ slot,\ func,\ vendor,\ device);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}PCI\ CMD\ before:\ \%p\(\backslash\)n"{}},\ cmd);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00112}00112\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00113}00113\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!(cmd\ \&\ (1\ <<\ 2)))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cmd\ |=\ (1\ <<\ 2);\ \textcolor{comment}{//\ set\ Bus\ Master}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00115}00115\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ pci\_cfg\_write32(bus,\ slot,\ func,\ 0x04,\ (cmd32\ \&\ 0xFFFF0000)\ |\ (uint32\_t)cmd);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00116}00116\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Enabled\ PCI\ Bus\ Master\ bit\ for\ AHCI\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00118}00118\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00121}00121\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}PCI\ Bus\ Master\ already\ enabled\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00123}00123\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00129}00129\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00130}00130\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00131}00131\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}AHCI\ PCI\ device\ not\ found\ while\ scanning\ PCI\ bus\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00132}00132\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00133}00133\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00134}00134\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00140}00140\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ find\_free\_slot(uint32\_t\ mask)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00141}00141\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}find\_free\_slot"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00142}00142\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ 32;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00143}00143\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!(mask\ \&\ (1u\ <<\ i)))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ i;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00146}00146\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00147}00147\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00148}00148\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00149}00149\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00153}00153\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ enable\_controller(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00154}00154\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}enable\_controller"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00155}00155\ \ \ \ \ hba\_mem-\/>ghc\ |=\ (1u\ <<\ 31);\ \textcolor{comment}{//\ AHCI\ Enable.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00156}00156\ \ \ \ \ hba\_mem-\/>ghc\ |=\ (1u\ <<\ 0);\ \textcolor{comment}{//\ Global\ Reset.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00158}00158\ \ \ \ \ \textcolor{keywordflow}{while}\ (hba\_mem-\/>ghc\ \&\ (1u\ <<\ 0));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00159}00159\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00160}00160\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00166}00166\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ init\_one\_port(\textcolor{keywordtype}{int}\ idx)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00167}00167\ \ \ \ \ \mbox{\hyperlink{ahci_8h_ac8d5245a93b3d91b9fa746c801c74a28}{HBA\_PORT}}*\ p\ =\ (\mbox{\hyperlink{ahci_8h_ac8d5245a93b3d91b9fa746c801c74a28}{HBA\_PORT}}*)((uint8\_t*)hba\_mem\ +\ 0x100\ +\ idx\ *\ 0x80);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00168}00168\ \ \ \ \ uint32\_t\ status\ =\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a20e79ef71adff15c5481b97a2b8fb546}{ssts}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00169}00169\ \ \ \ \ \textcolor{keywordflow}{if}\ ((status\ \&\ 0x0F)\ !=\ 3)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};\ \textcolor{comment}{//\ no\ device\ present}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00170}00170\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00171}00171\ \ \ \ \ \textcolor{comment}{//\ Stop\ the\ port\ before\ configuration}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00172}00172\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ \&=\ \string~(1u\ <<\ 0);\ \textcolor{comment}{//\ Clear\ ST\ (START)}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00173}00173\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ \&=\ \string~(1u\ <<\ 4);\ \textcolor{comment}{//\ Clear\ PRE\ (FIS\ Receive\ Enable)}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00174}00174\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00175}00175\ \ \ \ \ \textcolor{comment}{//\ Wait\ until\ port\ is\ idle}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00176}00176\ \ \ \ \ \textcolor{keywordflow}{while}\ ((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ \&\ (1u\ <<\ 15))\ ||\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ \&\ (1u\ <<\ 14)))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00177}00177\ \ \ \ \ \ \ \ \ \_\_pause();}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00178}00178\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00179}00179\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00180}00180\ \ \ \ \ \textcolor{comment}{//\ Allocate\ and\ zero\ CLB\ (1\ KiB)}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00181}00181\ \ \ \ \ \textcolor{keywordtype}{void}*\ clb\ =\ \mbox{\hyperlink{memory_8c_a112be63200d2c946ececbc78eeaed3dc}{MtAllocateVirtualMemoryEx}}(1024,\ 1024,\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca3164e8641959ffef255418f9e97a464f}{PAGE\_PWT}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00182}00182\ \ \ \ \ \textcolor{keywordflow}{if}\ (!clb)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00183}00183\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(clb,\ 0,\ 1024);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00184}00184\ \ \ \ \ \textcolor{comment}{//\ pass\ the\ PHYSICAL\ address.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00185}00185\ \ \ \ \ uintptr\_t\ clb\_phys\ =\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}(clb);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00186}00186\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)clb\_phys\ \&\ 0x3FF)\ ==\ 0,\ \textcolor{stringliteral}{"{}CLB\ must\ be\ 1KiB-\/aligned\ (1024\ byte\ multiple)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00187}00187\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00188}00188\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_a23c70d699a5a775bc2e1ebeb8603f630}{COLOR\_BLUE}},\ \textcolor{stringliteral}{"{}In\ INIT\_ONE\_PORT,\ clb\_phys:\ \%p\ |\ virt:\ \%p\(\backslash\)n"{}},\ clb\_phys,\ clb);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00189}00189\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00190}00190\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a2fd95d5d04d61114c60b2c16fc908e41}{clb}}\ =\ (uint32\_t)(uintptr\_t)clb\_phys;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00191}00191\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a846391766b0bde62d390c6514ee575d2}{clbu}}\ =\ (uint32\_t)((uintptr\_t)clb\_phys\ >>\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00192}00192\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00193}00193\ \ \ \ \ \textcolor{comment}{//\ Allocate\ and\ zero\ FIS\ receive\ buffer\ (256\ B)}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00194}00194\ \ \ \ \ \textcolor{keywordtype}{void}*\ fis\_buf\ =\ \mbox{\hyperlink{memory_8c_a112be63200d2c946ececbc78eeaed3dc}{MtAllocateVirtualMemoryEx}}(256,\ 256,\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca3164e8641959ffef255418f9e97a464f}{PAGE\_PWT}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00195}00195\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fis\_buf)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00196}00196\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(fis\_buf,\ 0,\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00197}00197\ \ \ \ \ \textcolor{comment}{//\ Again,\ pass\ the\ PHYSICAL.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00198}00198\ \ \ \ \ uintptr\_t\ fis\_buf\_phys\ =\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}(fis\_buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00199}00199\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00200}00200\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_a23c70d699a5a775bc2e1ebeb8603f630}{COLOR\_BLUE}},\ \textcolor{stringliteral}{"{}In\ INIT\_ONE\_PORT,\ fis\_buf\_phys:\ \%p\ |\ virt:\ \%p\(\backslash\)n"{}},\ fis\_buf\_phys,\ fis\_buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00201}00201\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00202}00202\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a38a54fe370e6c01108abfb4fdaf693e6}{fb}}\ =\ (uint32\_t)(uintptr\_t)fis\_buf\_phys;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00203}00203\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a496af14f1d8470a17f862aa1e43cd3b2}{fbu}}\ =\ (uint32\_t)((uintptr\_t)fis\_buf\_phys\ >>\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00204}00204\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00205}00205\ \ \ \ \ \textcolor{comment}{//\ Allocate\ and\ zero\ Command\ Table\ buffers:\ 256\ B\ × 32\ slots}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00206}00206\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ tbl\_size\ =\ 256\ *\ 32;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00207}00207\ \ \ \ \ \textcolor{keywordtype}{void}*\ cmd\_tbl\ =\ \mbox{\hyperlink{memory_8c_a112be63200d2c946ececbc78eeaed3dc}{MtAllocateVirtualMemoryEx}}(tbl\_size,\ 256,\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca3164e8641959ffef255418f9e97a464f}{PAGE\_PWT}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00208}00208\ \ \ \ \ \textcolor{keywordflow}{if}\ (!cmd\_tbl)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00209}00209\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(cmd\_tbl,\ 0,\ tbl\_size);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00210}00210\ \ \ \ \ uintptr\_t\ cmd\_tbl\_phys\ =\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}(cmd\_tbl);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00211}00211\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)cmd\_tbl\_phys\ \&\ 0xFF)\ ==\ 0,\ \textcolor{stringliteral}{"{}Command\ table\ block\ must\ be\ 256-\/byte\ aligned"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00212}00212\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00213}00213\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_a23c70d699a5a775bc2e1ebeb8603f630}{COLOR\_BLUE}},\ \textcolor{stringliteral}{"{}In\ INIT\_ONE\_PORT,\ cmd\_tbl\_phys:\ \%p\ |\ virt:\ \%p\(\backslash\)n"{}},\ cmd\_tbl\_phys,\ cmd\_tbl);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00214}00214\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00215}00215\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00216}00216\ \ \ \ \ \textcolor{comment}{//\ Point\ each\ command\ header\ to\ its\ table}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00217}00217\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ slot\ =\ 0;\ slot\ <\ 32;\ slot++)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00218}00218\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Header\ at\ clb\ +\ slot*32\ bytes}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00219}00219\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*\ hdr\ =\ (\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*)((uint8\_t*)clb\ +\ slot\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00220}00220\ \ \ \ \ \ \ \ \ uintptr\_t\ tbl\_pa\_phys\ =\ (uintptr\_t)cmd\_tbl\_phys\ +\ slot\ *\ 256;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00221}00221\ \ \ \ \ \ \ \ \ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a7b9e83f2a21a5acc68d70b04b012d6d2}{ctba}}\ =\ (uint32\_t)(tbl\_pa\_phys\ \&\ 0xFFFFFFFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00222}00222\ \ \ \ \ \ \ \ \ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a0fb060abb54a57da672c1fd9603e0c12}{ctbau}}\ =\ (uint32\_t)(tbl\_pa\_phys\ >>\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00223}00223\ \ \ \ \ \ \ \ \ hba\_cmd\_hdr\_set\_prdtl(hdr,\ 1);\ \textcolor{comment}{//\ one\ PRDT\ entry}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00224}00224\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00225}00225\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00226}00226\ \ \ \ \ \textcolor{comment}{//\ Clear\ any\ old\ errors\ and\ start\ the\ port}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00227}00227\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_aac086c44fba913e33d5d4480166f486f}{serr}}\ =\ \string~0U;\ \textcolor{comment}{//\ Clear\ all\ SERROR\ bits\ by\ writing\ 1\ to\ them.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00228}00228\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ |=\ (1u\ <<\ 4);\ \textcolor{comment}{//\ Set\ FRE}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00229}00229\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ |=\ (1u\ <<\ 0);\ \textcolor{comment}{//\ Set\ ST}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00230}00230\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00231}00231\ \ \ \ \ \textcolor{comment}{//\ Add\ this\ assertion\ to\ ensure\ the\ port\ actually\ starts}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00232}00232\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5e9712b08d7cbf6091f9e5334ff97b5d}{cmd}}\ \&\ 1)\ !=\ 0,\ \textcolor{stringliteral}{"{}Port\ ST\ bit\ failed\ to\ set!"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00233}00233\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00234}00234\ \ \ \ \ \textcolor{comment}{//\ Save\ context}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00235}00235\ \ \ \ \ \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}*\ ctx\ =\ \&ports[port\_count];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00236}00236\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a9c4e1ebd6b9f043649c6f18c6029f065}{port}}\ =\ p;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00237}00237\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}}\ =\ clb;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00238}00238\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_af8f8d0924a3a186e27d8f9b1499ebe76}{fis}}\ =\ fis\_buf;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00239}00239\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}}\ =\ cmd\_tbl;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00240}00240\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a15eac7f722555054361c0c089ceb07f9}{bdev}}.\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a0a1853b611072b9cd9a00fa91be0a354}{read\_sector}}\ =\ \mbox{\hyperlink{ahci_8c_a8c4536f1fe0f76b16376d2904ff7921c}{ahci\_read\_sector}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00241}00241\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a15eac7f722555054361c0c089ceb07f9}{bdev}}.\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_ad2155a20d146d76c39af84a1b532bac3}{write\_sector}}\ =\ \mbox{\hyperlink{ahci_8c_ace9e04a0b0d471caa8b1948f058cfa68}{ahci\_write\_sector}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00242}00242\ \ \ \ \ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a15eac7f722555054361c0c089ceb07f9}{bdev}}.\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a640bb2cf7d104dc9f801e9820d5526f8}{dev\_data}}\ =\ ctx;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00243}00243\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00244}00244\ \ \ \ \ \textcolor{comment}{/*\ CAP\ and\ slot\ counts\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00245}00245\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00246}00246\ \ \ \ \ uint32\_t\ cap\ =\ (uint32\_t)hba\_mem-\/>cap;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00247}00247\ \ \ \ \ uint32\_t\ ncs\ =\ (cap\ >>\ 8)\ \&\ 0x1Fu;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00248}00248\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((ncs\ +\ 1)\ >=\ 1)\ \&\&\ ((ncs\ +\ 1)\ <=\ 32),\ \textcolor{stringliteral}{"{}CAP.NCS\ invalid\ (command\ slots\ out\ of\ range)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00249}00249\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00250}00250\ \ \ \ \ \textcolor{keywordtype}{bool}\ s64a\ =\ !!((cap\ >>\ 31)\ \&\ 1u);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00251}00251\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00252}00252\ \ \ \ \ \textcolor{comment}{/*\ Alignment\ checks\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00253}00253\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)clb\_phys\ \&\ 0x3FF)\ ==\ 0,\ \textcolor{stringliteral}{"{}PxCLB\ must\ be\ 1KiB-\/aligned\ (1024\ bytes)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00254}00254\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)fis\_buf\_phys\ \&\ 0xFF)\ ==\ 0,\ \textcolor{stringliteral}{"{}PxFB\ (FIS)\ must\ be\ 256-\/byte\ aligned"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00255}00255\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)cmd\_tbl\_phys\ \&\ 0xFF)\ ==\ 0,\ \textcolor{stringliteral}{"{}Command\ table\ region\ must\ start\ at\ 256-\/byte\ boundary"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00256}00256\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00257}00257\ \ \ \ \ \textcolor{comment}{/*\ 64-\/bit\ addressing:\ if\ device\ doesn't\ advertise\ S64A,\ upper\ bits\ must\ be\ zero\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00258}00258\ \ \ \ \ \textcolor{keywordflow}{if}\ (!s64a)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00259}00259\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)clb\_phys\ >>\ 32)\ ==\ 0,\ \textcolor{stringliteral}{"{}CLB\ high\ dword\ must\ be\ zero\ when\ CAP.S64A==0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00260}00260\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)cmd\_tbl\_phys\ >>\ 32)\ ==\ 0,\ \textcolor{stringliteral}{"{}CMD\_TBL\ high\ dword\ must\ be\ zero\ when\ CAP.S64A==0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00261}00261\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)fis\_buf\_phys\ >>\ 32)\ ==\ 0,\ \textcolor{stringliteral}{"{}FIS\ high\ dword\ must\ be\ zero\ when\ CAP.S64A==0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00262}00262\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00263}00263\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00264}00264\ \ \ \ \ \textcolor{comment}{/*\ Per-\/header\ CTBA\ programmed\ correctly\ (for\ the\ number\ of\ slots\ the\ HBA\ advertises)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00265}00265\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00266}00266\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{unsigned}\ sl\ =\ 0;\ sl\ <=\ ncs;\ ++sl)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00267}00267\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*\ hdr\ =\ (\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*)((uint8\_t*)clb\ +\ sl\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00268}00268\ \ \ \ \ \ \ \ \ uintptr\_t\ expected\ =\ (uintptr\_t)cmd\_tbl\_phys\ +\ sl\ *\ 256;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00269}00269\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a7b9e83f2a21a5acc68d70b04b012d6d2}{ctba}}\ ==\ (uint32\_t)(expected\ \&\ 0xFFFFFFFFu),\ \textcolor{stringliteral}{"{}Header\ CTBA\ low\ doesn't\ match\ expected\ CTBA"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00270}00270\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (s64a)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00271}00271\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a0fb060abb54a57da672c1fd9603e0c12}{ctbau}}\ ==\ (uint32\_t)(expected\ >>\ 32),\ \textcolor{stringliteral}{"{}Header\ CTBAU\ mismatch\ (S64A\ advertised)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00272}00272\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00273}00273\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00274}00274\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a0fb060abb54a57da672c1fd9603e0c12}{ctbau}}\ ==\ 0,\ \textcolor{stringliteral}{"{}Header\ CTBAU\ must\ be\ zero\ when\ S64A==0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00275}00275\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00276}00276\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00277}00277\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00278}00278\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00279}00279\ \ \ \ \ port\_count++;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00280}00280\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00281}00281\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00282}00282\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00283}00283\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}\ \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00284}00284\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00285}00285\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00286}\mbox{\hyperlink{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}{00286}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}{ahci\_initialized}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00287}00287\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00288}\mbox{\hyperlink{ahci_8c_a237a75df76bac12d7652004b7f579692}{00288}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{ahci_8c_a237a75df76bac12d7652004b7f579692}{ahci\_init}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00289}00289\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}{ahci\_initialized}})\ \{\ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}AHCI\ Initialization\ got\ called\ again\ when\ alreaedy\ init.\(\backslash\)n"{}});\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00290}00290\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}ahci\_init"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00291}00291\ \ \ \ \ \textcolor{comment}{//\ Use\ BootInfo\ PCI\ BARs.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00292}00292\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciCount;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00293}00293\ \ \ \ \ \ \ \ \ uint64\_t\ base\ =\ \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciBarBases[i];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00294}00294\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ virt\ =\ (\textcolor{keywordtype}{void}*)(base\ +\ \mbox{\hyperlink{allocator_8h_aa884a3bb19dee79e8e3ca8a529726372}{PHYS\_MEM\_OFFSET}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00295}00295\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{paging_8c_a8a5e657a727356ab419f20fa707576d5}{map\_page}}(virt,\ base,\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aacad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}}\ |\ \mbox{\hyperlink{paging_8h_aa3546a49e097b0054378f9ab4fe86aaca3164e8641959ffef255418f9e97a464f}{PAGE\_PWT}});\ \textcolor{comment}{//\ MMIO\ flags}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00296}00296\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00297}00297\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_aef75f616b9a3fdb10d38395dfb996873}{COLOR\_ORANGE}},\ \textcolor{stringliteral}{"{}Address\ of\ AHCI\ BAR\ \%u\ (\%p)\ is:\ \%s\(\backslash\)n"{}},\ i,\ virt,\ \mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}(virt)\ ?\ \textcolor{stringliteral}{"{}Valid"{}}\ :\ \textcolor{stringliteral}{"{}Invalid"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00298}00298\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00299}00299\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ change\ the\ values\ in\ the\ struct}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00300}00300\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciBarBases[i]\ =\ (uint64\_t)virt;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00301}00301\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00302}00302\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00303}00303\ \ \ \ \ uint64\_t\ bar\ =\ \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciBarBases[0];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00304}00304\ \ \ \ \ hba\_mem\ =\ (\mbox{\hyperlink{ahci_8h_ae5f2dfa1afa0c14d4de2cb55400b1f37}{HBA\_MEM}}*)(uintptr\_t)bar;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00305}00305\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00306}00306\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(0xFF00FFFF,\ \textcolor{stringliteral}{"{}About\ to\ touch\ AHCI\ \%u\ at\ \%p\ |\ It's\ \%s\(\backslash\)n"{}},0,\ hba\_mem,\ \mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}((\textcolor{keywordtype}{void}*)bar)\ ?\ \textcolor{stringliteral}{"{}Valid"{}}\ :\ \textcolor{stringliteral}{"{}Invalid"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00307}00307\ \ \ \ \ \textcolor{comment}{//\_cli();\ \_\_hlt();}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00308}00308\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00309}00309\ \ \ \ \ ensure\_ahci\_busmaster\_enabled();}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00310}00310\ \ \ \ \ enable\_controller();}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00311}00311\ \ \ \ \ port\_count\ =\ 0;\ \textcolor{comment}{//\ Start\ from\ 0.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00312}00312\ \ \ \ \ uint32\_t\ pi\ =\ hba\_mem-\/>pi;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00313}00313\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00314}00314\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ idx\ =\ 0;\ idx\ <\ \mbox{\hyperlink{ahci_8h_a21dfe7d03e0027f3c2e4a1bc81e8d85a}{AHCI\_MAX\_PORTS}};\ idx++)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00315}00315\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pi\ \&\ (1u\ <<\ idx))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00316}00316\ \ \ \ \ \ \ \ \ \ \ \ \ init\_one\_port(idx);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00317}00317\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00318}00318\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00319}00319\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00320}00320\ \ \ \ \ \textcolor{comment}{//\ Register\ ALL\ block\ devices.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00321}00321\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ port\_count;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00322}00322\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{block_8c_a5907b72093bd3ea0bee7c7409d3a6090}{register\_block\_device}}(\&ports[i].bdev);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00323}00323\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00324}00324\ \ \ \ \ \mbox{\hyperlink{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}{ahci\_initialized}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00325}00325\ \ \ \ \ \textcolor{keywordflow}{return}\ port\_count\ >\ 0\ ?\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}}\ :\ \mbox{\hyperlink{mtstatus_8h_a46b1e8c59afc3ee9f187a07e41582eed}{MT\_AHCI\_PORT\_FAILURE}};\ \textcolor{comment}{//\ If\ it\ could\ register\ a\ port,\ it\ will\ return\ true,\ if\ it\ couldn't,\ it\ will\ return\ false\ (bugcheck)}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00326}00326\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00327}00327\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00328}\mbox{\hyperlink{ahci_8c_a8c4536f1fe0f76b16376d2904ff7921c}{00328}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{ahci_8c_a8c4536f1fe0f76b16376d2904ff7921c}{ahci\_read\_sector}}(\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ dev,\ uint32\_t\ lba,\ \textcolor{keywordtype}{void}*\ buf)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00329}00329\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}ahci\_read\_sector"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00330}00330\ \ \ \ \ \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}*\ ctx\ =\ (\mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}*)dev-\/>\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a640bb2cf7d104dc9f801e9820d5526f8}{dev\_data}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00331}00331\ \ \ \ \ \mbox{\hyperlink{ahci_8h_ac8d5245a93b3d91b9fa746c801c74a28}{HBA\_PORT}}*\ p\ =\ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a9c4e1ebd6b9f043649c6f18c6029f065}{port}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00332}00332\ \ \ \ \ \textcolor{comment}{//\ Clear\ pending\ interrupt\ bits.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00333}00333\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}}\ =\ (uint32\_t)-\/1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00334}00334\ \ \ \ \ \textcolor{keywordtype}{int}\ slot\ =\ find\_free\_slot(p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab2bfc30a5716fe626f8e44dab6fdf425}{sact}}\ |\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00335}00335\ \ \ \ \ \textcolor{keywordflow}{if}\ (slot\ <\ 0)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a46b1e8c59afc3ee9f187a07e41582eed}{MT\_AHCI\_PORT\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00336}00336\ \ \ \ \ uint32\_t\ spin\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00337}00337\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ TIMEOUT\ =\ 100000000;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00338}00338\ \ \ \ \ \textcolor{keywordflow}{while}\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ \&\ (1u\ <<\ slot))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00339}00339\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (++spin\ >=\ TIMEOUT)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00340}00340\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00341}00341\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00342}00342\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00343}00343\ \ \ \ \ \textcolor{comment}{/*\ Command\ table\ for\ this\ slot\ (256\ bytes\ per\ slot)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00344}00344\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a5fd38edf79dcde4ab4b729353f99b837}{HBA\_CMD\_TBL}}*\ cmd\ =\ (\mbox{\hyperlink{ahci_8h_a5fd38edf79dcde4ab4b729353f99b837}{HBA\_CMD\_TBL}}*)((uint8\_t*)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}}\ +\ slot\ *\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00345}00345\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(cmd,\ 0,\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00346}00346\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00347}00347\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00348}00348\ \ \ \ \ \textcolor{comment}{/*\ Command\ header\ in\ CLB\ for\ this\ slot\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00349}00349\ \ \ \ \ \mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*\ hdr\ =\ (\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*)((uint8\_t*)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}}\ +\ slot\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00350}00350\ \ \ \ \ hba\_cmd\_hdr\_set\_cfl(hdr,\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}})\ +\ 3)\ /\ 4);\ \textcolor{comment}{/*\ CFIS\ length\ in\ DWORDs\ (20\ bytes\ -\/>\ 5)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00351}00351\ \ \ \ \ hba\_cmd\_hdr\_set\_w(hdr,\ 0);\ \ \ \ \ \ \ \textcolor{comment}{/*\ read\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00352}00352\ \ \ \ \ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_ac8d39c461915c7810aba1d549a0309aa}{prdbc}}\ =\ 0;\ \ \ \textcolor{comment}{/*\ clear\ transferred\ byte\ count\ (DW1)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00353}00353\ \ \ \ \ hba\_cmd\_hdr\_set\_prdtl(hdr,\ 1);\ \ \ \textcolor{comment}{/*\ one\ PRDT\ entry\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00354}00354\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00355}00355\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00356}00356\ \ \ \ \ \textcolor{comment}{/*\ Build\ CFIS\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00357}00357\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}}*\ fis\ =\ (\mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}}*)(\&cmd-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___t_b_l_a9ca6c851fa9b7745bf24b2104d25ed88}{cfis}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00358}00358\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(fis,\ 0,\ \textcolor{keyword}{sizeof}(*fis));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00359}00359\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_aa682c9430d53cab300ee8940356ef8ec}{fis\_type}}\ =\ \mbox{\hyperlink{ahci_8h_a84b1dcd3aa23624d89f56832a5e3ae0ea6bf1b47f446739ef43faae8f336c3926}{FIS\_TYPE\_REG\_H2D}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00360}00360\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2e5a04327b5658199f0f7bda2acceee1}{c}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00361}00361\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a1a5aaa930940857f68f245eeb89506b5}{command}}\ =\ 0x25;\ \textcolor{comment}{/*\ READ\ DMA\ EXT\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00362}00362\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2376f17d1e7367401184b2a3978bcd3a}{device}}\ =\ 1\ <<\ 6;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00363}00363\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a4d37bb385b2335b413564d27fd70b540}{lba0}}\ =\ (uint8\_t)(lba\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00364}00364\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_ac304bc04b42911d40f4f2c72c9874a86}{lba1}}\ =\ (uint8\_t)((lba\ >>\ 8)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00365}00365\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2a83e1f9d697fda069699cac7ada6aa9}{lba2}}\ =\ (uint8\_t)((lba\ >>\ 16)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00366}00366\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a88941bc1671b5fe35dc2a56fab1b06c9}{lba3}}\ =\ (uint8\_t)((lba\ >>\ 24)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00367}00367\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a35586c129650892e7d4a6c9873f3d0b7}{lba4}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00368}00368\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a7fe42d2d7b97b74048b192a186ddd18a}{lba5}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00369}00369\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_aba2096703359318cdd1e89c73ca1ab41}{countl}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00370}00370\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a504a9fe5ed439d47db5fe53f2a749fd3}{counth}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00371}00371\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00372}00372\ \ \ \ \ \textcolor{comment}{/*\ PRDT\ (one\ entry)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00373}00373\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a8769db470fc28c8771fa46d2dfd5ad5e}{HBA\_PRDT\_ENTRY}}*\ prdt\ =\ \&cmd-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___t_b_l_ae306eace4b0328a382c88e13c1d2bbc3}{prdt\_entry}}[0];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00374}00374\ \ \ \ \ uintptr\_t\ buf\_phys\ =\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}(buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00375}00375\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00376}00376\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00377}00377\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_a23c70d699a5a775bc2e1ebeb8603f630}{COLOR\_BLUE}},\ \textcolor{stringliteral}{"{}In\ ahci\_read\_sector:\ buf\_phys:\ \%p\ |\ virt:\ \%p\(\backslash\)n"{}},\ (\textcolor{keywordtype}{void}*)buf\_phys,\ buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00378}00378\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00379}00379\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00380}00380\ \ \ \ \ uint32\_t\ bytes\ =\ 512;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00381}00381\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a3d44ae193b9ea434ad6a7487abc2f82e}{dba}}\ =\ (uint32\_t)(uintptr\_t)buf\_phys;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00382}00382\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a0e1f5c6f210d66855938dffc753d156b}{dbau}}\ =\ (uint32\_t)(((uintptr\_t)buf\_phys)\ >>\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00383}00383\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a017ed0d59352e94362de2a11c289a5ef}{dbc}}\ =\ bytes\ -\/\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00384}00384\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a752abcfe7ce5874cd9e8012a0346a37b}{i}}\ |=\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00385}00385\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00386}00386\ \ \ \ \ \textcolor{comment}{/*\ Ensure\ controller\ sees\ CLB/CMD/FIS\ and\ data\ buffer\ in\ memory\ in\ correct\ order.\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00387}00387\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00388}00388\ \ \ \ \ \textcolor{comment}{/*\ Flush/invalidate\ command\ structures\ first,\ then\ the\ data\ buffer,\ then\ strong\ fences.\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00389}00389\ \ \ \ \ cache\_flush\_invalidate\_range(ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}},\ 1024);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ CLB\ is\ 1\ KiB}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00390}00390\ \ \ \ \ cache\_flush\_invalidate\_range(cmd,\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00391}00391\ \ \ \ \ cache\_flush\_invalidate\_range(ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_af8f8d0924a3a186e27d8f9b1499ebe76}{fis}},\ 256);\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ FIS\ receive\ buffer}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00392}00392\ \ \ \ \ \textcolor{comment}{/*\ Buffer\ sanity\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00393}00393\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00394}00394\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(buf\ !=\ NULL,\ \textcolor{stringliteral}{"{}read\ buffer\ is\ NULL"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00395}00395\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}(buf),\ \textcolor{stringliteral}{"{}read\ buffer\ virtual\ address\ invalid"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00396}00396\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((buf\_phys\ \&\ 0x1)\ ==\ 0,\ \textcolor{stringliteral}{"{}Buffer\ not\ word-\/aligned."{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00397}00397\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(buf\_phys\ !=\ 0,\ \textcolor{stringliteral}{"{}read\ buffer\ physical\ translation\ returned\ 0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00398}00398\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((buf\_phys\ \&\ 0x1FF)\ ==\ 0,\ \textcolor{stringliteral}{"{}read\ buffer\ physical\ address\ must\ be\ 512-\/byte\ aligned"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00399}00399\ \ \ \ \ \textcolor{comment}{/*\ hdr\ /\ cmd\ table\ bounds\ sanity\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00400}00400\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)hdr\ >=\ (uintptr\_t)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}})\ \&\&\ ((uintptr\_t)hdr\ <\ ((uintptr\_t)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}}\ +\ 1024)),}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00401}00401\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}HBA\_CMD\_HEADER\ pointer\ not\ inside\ CLB\ region"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00402}00402\ \ \ \ \ uintptr\_t\ cmd\_tbl\_region\_start\ =\ (uintptr\_t)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00403}00403\ \ \ \ \ uintptr\_t\ cmd\_tbl\_region\_end\ =\ cmd\_tbl\_region\_start\ +\ (256\ *\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00404}00404\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((uintptr\_t)cmd\ >=\ cmd\_tbl\_region\_start)\ \&\&\ ((uintptr\_t)cmd\ <\ cmd\_tbl\_region\_end),}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00405}00405\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Command\ table\ pointer\ out\ of\ allocated\ command-\/table\ region"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00406}00406\ \ \ \ \ \textcolor{comment}{/*\ PRDT\ correctness:\ DBA/DBAU\ match\ the\ buffer\ physical\ address\ and\ dbc\ encodes\ bytes-\/1\ and\ IOC\ set\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00407}00407\ \ \ \ \ uintptr\_t\ prdt\_dba\_full\ =\ (((uintptr\_t)prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a0e1f5c6f210d66855938dffc753d156b}{dbau}})\ <<\ 32)\ |\ (uintptr\_t)prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a3d44ae193b9ea434ad6a7487abc2f82e}{dba}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00408}00408\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(prdt\_dba\_full\ ==\ buf\_phys,\ \textcolor{stringliteral}{"{}PRDT\ DBA\ !=\ buffer\ physical\ address"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00409}00409\ \ \ \ \ uint32\_t\ prdt\_bytes\ =\ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a017ed0d59352e94362de2a11c289a5ef}{dbc}}\ \&\ 0x003FFFFFu;\ \ \textcolor{comment}{//\ low\ 22\ bits\ =\ byte\_count\ -\/\ 1}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00410}00410\ \ \ \ \ uint32\_t\ prdt\_ioc\ =\ (prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a752abcfe7ce5874cd9e8012a0346a37b}{i}}\ \&\ 0x1);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00411}00411\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(prdt\_ioc\ ==\ 1,\ \textcolor{stringliteral}{"{}PRDT\ IOC\ (interrupt-\/on-\/completion)\ not\ set"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00412}00412\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(prdt\_bytes\ ==\ (uint32\_t)(bytes\ -\/\ 1),\ \textcolor{stringliteral}{"{}PRDT\ dbc\ byte\ count\ not\ equal\ to\ bytes-\/1"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00413}00413\ \ \ \ \ \textcolor{comment}{/*\ CFIS/header\ sanity\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00414}00414\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00415}00415\ \textcolor{preprocessor}{\#ifdef\ HBA\_CMD\_HDR\_CFL\_MASK}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00416}00416\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(hba\_cmd\_hdr\_get\_cfl(hdr)\ >=\ 2\ \&\&\ hba\_cmd\_hdr\_get\_cfl(hdr)\ <=\ 16,\ \textcolor{stringliteral}{"{}CFIS\ length\ out\ of\ range"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00417}00417\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00418}00418\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00419}00419\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00420}00420\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_af8bcd27b6688a18fe21bb86b2e8f9231}{dw0}}\ \&\ 0x1F)\ >=\ 2)\ \&\&\ ((hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_af8bcd27b6688a18fe21bb86b2e8f9231}{dw0}}\ \&\ 0x1F)\ <=\ 16),\ \textcolor{stringliteral}{"{}CFIS\ length\ out\ of\ range"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00421}00421\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00422}00422\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00423}00423\ \ \ \ \ \textcolor{comment}{/*\ Flush/invalidate\ the\ data\ buffer\ as\ well\ (prepare\ CPU\ cache\ for\ DMA\ result)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00424}00424\ \ \ \ \ cache\_flush\_invalidate\_range(buf,\ 512);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00425}00425\ \ \ \ \ \textcolor{comment}{/*\ Strong\ ordering\ so\ device\ definitely\ sees\ the\ command\ and\ PRDT\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00426}00426\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}sfence;\ mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00427}00427\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00428}00428\ \ \ \ \ \textcolor{comment}{/*\ Clear\ pending\ interrupts\ for\ the\ port\ (read/write\ to\ acknowledge)\ -\/\ explicit\ read/write\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00429}00429\ \ \ \ \ uint32\_t\ port\_is\_before\ =\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00430}00430\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}}\ =\ port\_is\_before;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00431}00431\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00432}00432\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00433}00433\ \ \ \ \ \textcolor{comment}{//\ Validate\ the\ Command\ FIS:}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00434}00434\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Command\ FIS\ Validation:\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00435}00435\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ FIS\ Type:\ \%p\ (should\ be\ 0x27)\(\backslash\)n"{}},\ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_aa682c9430d53cab300ee8940356ef8ec}{fis\_type}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00436}00436\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ C\ bit:\ \%u\ (should\ be\ 1)\(\backslash\)n"{}},\ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2e5a04327b5658199f0f7bda2acceee1}{c}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00437}00437\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ Command:\ \%p\ (READ\ DMA\ EXT)\(\backslash\)n"{}},\ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a1a5aaa930940857f68f245eeb89506b5}{command}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00438}00438\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ Device:\ \%p\ (should\ be\ 0x40)\(\backslash\)n"{}},\ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2376f17d1e7367401184b2a3978bcd3a}{device}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00439}00439\ \ \ \ \ \textcolor{comment}{//\ Verify\ the\ complete\ FIS\ is\ exactly\ 20\ bytes\ and\ properly\ terminated}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00440}00440\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00441}00441\ \ \ \ \ uint8\_t\ cfl\ =\ hba\_cmd\_hdr\_get\_cfl(hdr);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00442}00442\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}\ \ FIS\ size\ check:\ CFL=\%u\ DWORDs\ =\ \%u\ bytes\ (should\ be\ 20)\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00443}00443\ \ \ \ \ \ \ \ \ cfl,\ cfl\ *\ 4);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00444}00444\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00445}00445\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00446}00446\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00447}00447\ \ \ \ \ \textcolor{comment}{/*\ Issue\ command\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00448}00448\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ =\ (1u\ <<\ slot);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00449}00449\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00450}00450\ \ \ \ \ \textcolor{comment}{/*\ Wait\ for\ completion\ with\ timeout\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00451}00451\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00452}00452\ \ \ \ \ spin\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00453}00453\ \ \ \ \ \textcolor{keywordflow}{while}\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ \&\ (1u\ <<\ slot))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00454}00454\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (++spin\ >=\ TIMEOUT)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00455}00455\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00456}00456\ \ \ \ \ \textcolor{keywordflow}{if}\ (spin\ >=\ TIMEOUT)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00457}00457\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00458}00458\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00459}00459\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00460}00460\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}AHCI\ read\ timeout\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00461}00461\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00462}00462\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00463}00463\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00464}00464\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}tfd=\%p\ serr=\%p\ is=\%p\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00465}00465\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00466}00466\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00467}00467\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00468}00468\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_aac086c44fba913e33d5d4480166f486f}{serr}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00469}00469\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00470}00470\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00471}00471\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00472}00472\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00473}00473\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00474}00474\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}hdr.ctba=\%p\ hdr.prdtl=\%u\ hdr.prdbc=\%u\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00475}00475\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00476}00476\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_a7b9e83f2a21a5acc68d70b04b012d6d2}{ctba}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00477}00477\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00478}00478\ \ \ \ \ \ \ \ \ \ \ \ \ hba\_cmd\_hdr\_get\_prdtl(hdr),}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00479}00479\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00480}00480\ \ \ \ \ \ \ \ \ \ \ \ \ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_ac8d39c461915c7810aba1d549a0309aa}{prdbc}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00481}00481\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00482}00482\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00483}00483\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00484}00484\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}ctx=\%p\ ctx-\/>cmd\_tbl=\%p\ ctx-\/>clb=\%p\ port=\%p\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00485}00485\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00486}00486\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)ctx,}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00487}00487\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00488}00488\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}},}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00489}00489\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00490}00490\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)ctx-\/>clb,}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00491}00491\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00492}00492\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)p);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00493}00493\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00494}00494\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00495}00495\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad7bdb569867344cb70944a330aff1981}{MT\_AHCI\_TIMEOUT}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00496}00496\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00497}00497\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00498}00498\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00499}00499\ \ \ \ \ \textcolor{comment}{//\ IMPORTANT:\ Even\ if\ it\ didn't\ time\ out,\ check\ for\ errors\ from\ the\ device}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00500}00500\ \ \ \ \ \textcolor{comment}{//\ p-\/>tfd\ bit\ 7\ is\ BSY,\ bit\ 0\ is\ ERR}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00501}00501\ \ \ \ \ \textcolor{keywordflow}{if}\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}}\ \&\ ((1\ <<\ 7)\ |\ (1\ <<\ 0)))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00502}00502\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00503}00503\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00504}00504\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}AHCI\ read\ error!\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00505}00505\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00506}00506\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Port\ TFD:\ \%p,\ SERR:\ \%p\(\backslash\)n"{}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_aac086c44fba913e33d5d4480166f486f}{serr}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00507}00507\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00508}00508\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00509}00509\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ae4ae297fe7cbd0ae4f97289e6db6b3c4}{MT\_AHCI\_READ\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00510}00510\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00511}00511\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00512}00512\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00513}00513\ \ \ \ \ \textcolor{comment}{/*\ Command\ issue\ cleared\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00514}00514\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ \&\ (1u\ <<\ slot))\ ==\ 0),\ \textcolor{stringliteral}{"{}PxCI\ slot\ bit\ still\ set\ after\ completion"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00515}00515\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00516}00516\ \ \ \ \ \textcolor{comment}{/*\ Task\ file\ and\ error\ checks\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00517}00517\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}}\ \&\ (1u\ <<\ 0))\ ==\ 0),\ \textcolor{stringliteral}{"{}PxTFD\ ERR\ bit\ set\ after\ transfer\ (device\ reported\ error)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00518}00518\ \ \ \ \ \textcolor{comment}{/*\ optional:\ ensure\ not\ BSY\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00519}00519\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}}\ \&\ (1u\ <<\ 7))\ ==\ 0),\ \textcolor{stringliteral}{"{}PxTFD\ BSY\ still\ set\ after\ transfer"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00520}00520\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00521}00521\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_aac086c44fba913e33d5d4480166f486f}{serr}})\ ==\ 0,\ \textcolor{stringliteral}{"{}Serr\ isn't\ equal\ 0"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00522}00522\ \ \ \ \ uint8\_t\ status\ =\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}}\ >>\ 8)\ \&\ 0xFF;\ \ \textcolor{comment}{//\ ATA\ status\ register}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00523}00523\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((status\ \&\ 0x01)\ ==\ 0,\ \textcolor{stringliteral}{"{}ERR\ Bit\ in\ status\ set"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00524}00524\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00525}00525\ \ \ \ \ \textcolor{comment}{/*\ Byte\ count\ reported\ by\ header\ (DW1)\ matches\ requested\ bytes\ (512)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00526}00526\ \ \ \ \ \textcolor{comment}{/*\ Read\ prdbc\ after\ we\ ensure\ device\ completed\ and\ after\ an\ mfence\ to\ be\ safe\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00527}00527\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00528}00528\ \ \ \ \ cache\_flush\_invalidate\_range(hdr,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00529}00529\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00530}00530\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00531}00531\ \ \ \ \ \textcolor{comment}{//\ Now\ read\ prdbc}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00532}00532\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00533}00533\ \ \ \ \ uint32\_t\ actual\_bytes\ =\ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_ac8d39c461915c7810aba1d549a0309aa}{prdbc}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00534}00534\ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Expected:\ \%u,\ Actual\ prdbc:\ \%u\(\backslash\)n"{}},\ bytes,\ actual\_bytes);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00535}00535\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_ac8d39c461915c7810aba1d549a0309aa}{prdbc}}\ ==\ (uint32\_t)bytes,\ \textcolor{stringliteral}{"{}hdr.prdbc\ !=\ bytes\ transferred"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00536}00536\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00537}00537\ \ \ \ \ \textcolor{comment}{/*\ Make\ sure\ CPU\ cache\ invalidation\ can\ see\ device\ writes\ (simple\ check:\ buf\_phys\ non-\/zero\ and\ mapped)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00538}00538\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\mbox{\hyperlink{paging_8c_aeed6cb9923e09f06a5e24339fb3dd62e}{MtIsAddressValid}}(buf),\ \textcolor{stringliteral}{"{}buffer\ invalid\ after\ transfer\ (mapping\ vanished)"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00539}00539\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00540}00540\ \ \ \ \ \textcolor{comment}{//\ If\ we\ have\ gotten\ here,\ ahci\ read\ is\ successfull.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00541}00541\ \ \ \ \ cache\_flush\_invalidate\_range(buf,\ 512);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00542}00542\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00543}00543\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00544}00544\ \ \ \ \ \textcolor{comment}{/*\ Acknowledge/clear\ interrupts\ (read\ and\ write\ back)\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00545}00545\ \ \ \ \ uint32\_t\ port\_is\_after\ =\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00546}00546\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}}\ =\ port\_is\_after;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00547}00547\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00548}00548\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00549}00549\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00550}00550\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00551}\mbox{\hyperlink{ahci_8c_ace9e04a0b0d471caa8b1948f058cfa68}{00551}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{ahci_8c_ace9e04a0b0d471caa8b1948f058cfa68}{ahci\_write\_sector}}(\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ dev,\ uint32\_t\ lba,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buf)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00552}00552\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}ahci\_write\_sector"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00553}00553\ \ \ \ \ \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}*\ ctx\ =\ (\mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\_PORT\_CTX}}*)dev-\/>\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a640bb2cf7d104dc9f801e9820d5526f8}{dev\_data}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00554}00554\ \ \ \ \ \mbox{\hyperlink{ahci_8h_ac8d5245a93b3d91b9fa746c801c74a28}{HBA\_PORT}}*\ p\ =\ ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a9c4e1ebd6b9f043649c6f18c6029f065}{port}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00555}00555\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00556}00556\ \ \ \ \ \textcolor{keywordtype}{int}\ slot\ =\ find\_free\_slot(p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab2bfc30a5716fe626f8e44dab6fdf425}{sact}}\ |\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00557}00557\ \ \ \ \ \textcolor{keywordflow}{if}\ (slot\ <\ 0)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a46f73fb558e21e15b63353ddbaeb4219}{MT\_AHCI\_GENERAL\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00558}00558\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00559}00559\ \ \ \ \ \textcolor{comment}{/*\ Command\ table\ for\ this\ slot\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00560}00560\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a5fd38edf79dcde4ab4b729353f99b837}{HBA\_CMD\_TBL}}*\ cmd\ =\ (\mbox{\hyperlink{ahci_8h_a5fd38edf79dcde4ab4b729353f99b837}{HBA\_CMD\_TBL}}*)((uint8\_t*)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_acd12194f997e67fe450168cb8bfd29af}{cmd\_tbl}}\ +\ slot\ *\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00561}00561\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(cmd,\ 0,\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00562}00562\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00563}00563\ \ \ \ \ \textcolor{comment}{/*\ Command\ header\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00564}00564\ \ \ \ \ \mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*\ hdr\ =\ (\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}*)((uint8\_t*)ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}}\ +\ slot\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_aa42f2e54bb5ba9a97507d17ac6203e06}{HBA\_CMD\_HEADER}}));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00565}00565\ \ \ \ \ hba\_cmd\_hdr\_set\_cfl(hdr,\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}})\ +\ 3)\ /\ 4);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00566}00566\ \ \ \ \ hba\_cmd\_hdr\_set\_w(hdr,\ 1);\ \ \ \ \ \ \ \textcolor{comment}{/*\ write\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00567}00567\ \ \ \ \ hdr-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___h_e_a_d_e_r_ac8d39c461915c7810aba1d549a0309aa}{prdbc}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00568}00568\ \ \ \ \ hba\_cmd\_hdr\_set\_prdtl(hdr,\ 1);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00569}00569\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00570}00570\ \ \ \ \ \textcolor{comment}{/*\ Build\ CFIS\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00571}00571\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}}*\ fis\ =\ (\mbox{\hyperlink{ahci_8h_a0f1c04900c6ce6d9e1bd2487672f1dd5}{FIS\_REG\_H2D}}*)(\&cmd-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___t_b_l_a9ca6c851fa9b7745bf24b2104d25ed88}{cfis}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00572}00572\ \ \ \ \ \mbox{\hyperlink{memory_8c_aa3e72f75500f5ac381dd21e9510e75c4}{kmemset}}(fis,\ 0,\ \textcolor{keyword}{sizeof}(*fis));}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00573}00573\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_aa682c9430d53cab300ee8940356ef8ec}{fis\_type}}\ =\ \mbox{\hyperlink{ahci_8h_a84b1dcd3aa23624d89f56832a5e3ae0ea6bf1b47f446739ef43faae8f336c3926}{FIS\_TYPE\_REG\_H2D}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00574}00574\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2e5a04327b5658199f0f7bda2acceee1}{c}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00575}00575\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a1a5aaa930940857f68f245eeb89506b5}{command}}\ =\ 0x35;\ \textcolor{comment}{/*\ WRITE\ DMA\ EXT\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00576}00576\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2376f17d1e7367401184b2a3978bcd3a}{device}}\ =\ 1\ <<\ 6;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00577}00577\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a4d37bb385b2335b413564d27fd70b540}{lba0}}\ =\ (uint8\_t)(lba\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00578}00578\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_ac304bc04b42911d40f4f2c72c9874a86}{lba1}}\ =\ (uint8\_t)((lba\ >>\ 8)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00579}00579\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a2a83e1f9d697fda069699cac7ada6aa9}{lba2}}\ =\ (uint8\_t)((lba\ >>\ 16)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00580}00580\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a88941bc1671b5fe35dc2a56fab1b06c9}{lba3}}\ =\ (uint8\_t)((lba\ >>\ 24)\ \&\ 0xFF);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00581}00581\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a35586c129650892e7d4a6c9873f3d0b7}{lba4}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00582}00582\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a7fe42d2d7b97b74048b192a186ddd18a}{lba5}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00583}00583\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_aba2096703359318cdd1e89c73ca1ab41}{countl}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00584}00584\ \ \ \ \ fis-\/>\mbox{\hyperlink{struct___f_i_s___r_e_g___h2_d_a504a9fe5ed439d47db5fe53f2a749fd3}{counth}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00585}00585\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00586}00586\ \ \ \ \ \textcolor{comment}{/*\ PRDT\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00587}00587\ \ \ \ \ \mbox{\hyperlink{ahci_8h_a8769db470fc28c8771fa46d2dfd5ad5e}{HBA\_PRDT\_ENTRY}}*\ prdt\ =\ \&cmd-\/>\mbox{\hyperlink{struct___h_b_a___c_m_d___t_b_l_ae306eace4b0328a382c88e13c1d2bbc3}{prdt\_entry}}[0];}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00588}00588\ \ \ \ \ \textcolor{comment}{//\ this\ removes\ constness\ from\ buf,\ but\ it's\ fine\ since\ the\ translation\ DOES\ NOT\ write\ to\ the\ buffer,\ only\ makes\ translations.}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00589}00589\ \ \ \ \ uintptr\_t\ buf\_phys\ =\ \mbox{\hyperlink{paging_8c_a7359fbe284826fefffe68a4b13305e4f}{MtTranslateVirtualToPhysical}}((\textcolor{keywordtype}{void}*)buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00590}00590\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00591}00591\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_a23c70d699a5a775bc2e1ebeb8603f630}{COLOR\_BLUE}},\ \textcolor{stringliteral}{"{}In\ AHCI\_WRITE\_SECTOR,\ buf\_phys:\ \%p\ |\ buf:\ \%p\(\backslash\)n"{}},\ buf\_phys,\ buf);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00592}00592\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00593}00593\ \ \ \ \ uint32\_t\ bytes\ =\ 512;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00594}00594\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a3d44ae193b9ea434ad6a7487abc2f82e}{dba}}\ =\ (uint32\_t)(uintptr\_t)buf\_phys;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00595}00595\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a0e1f5c6f210d66855938dffc753d156b}{dbau}}\ =\ (uint32\_t)(((uintptr\_t)buf\_phys)\ >>\ 32);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00596}00596\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a017ed0d59352e94362de2a11c289a5ef}{dbc}}\ =\ bytes\ -\/\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00597}00597\ \ \ \ \ prdt-\/>\mbox{\hyperlink{struct___h_b_a___p_r_d_t___e_n_t_r_y_a752abcfe7ce5874cd9e8012a0346a37b}{i}}\ |=\ 1;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00598}00598\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00599}00599\ \ \ \ \ cache\_flush\_invalidate\_range((\textcolor{keywordtype}{void}*)buf,\ 512);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00600}00600\ \ \ \ \ cache\_flush\_invalidate\_range((\textcolor{keywordtype}{void}*)buf,\ 512);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00601}00601\ \ \ \ \ cache\_flush\_invalidate\_range(ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_a8a076d565ce925f96c3a4b39dd83fc21}{clb}},\ 1024);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ CLB\ is\ 1\ KiB}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00602}00602\ \ \ \ \ cache\_flush\_invalidate\_range(cmd,\ 256);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00603}00603\ \ \ \ \ cache\_flush\_invalidate\_range(ctx-\/>\mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x_af8f8d0924a3a186e27d8f9b1499ebe76}{fis}},\ 256);\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ FIS\ receive\ buffer}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00604}00604\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mfence"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00605}00605\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00606}00606\ \ \ \ \ \textcolor{comment}{/*\ Clear\ pending\ interrupts\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00607}00607\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}}\ =\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00608}00608\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00609}00609\ \ \ \ \ \textcolor{comment}{/*\ Issue\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00610}00610\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ =\ (1u\ <<\ slot);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00611}00611\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00612}00612\ \ \ \ \ \textcolor{comment}{/*\ Wait\ */}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00613}00613\ \ \ \ \ uint32\_t\ spin\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00614}00614\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ TIMEOUT\ =\ 100000000;}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00615}00615\ \ \ \ \ \textcolor{keywordflow}{while}\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a5a98143e0639fd7e110a78a7d77231e0}{ci}}\ \&\ (1u\ <<\ slot))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00616}00616\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (++spin\ >=\ TIMEOUT)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00617}00617\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00618}00618\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00619}00619\ \ \ \ \ \textcolor{keywordflow}{if}\ (spin\ >=\ TIMEOUT)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00620}00620\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00621}00621\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{gop_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}AHCI\ TIMEOUT\ ahci\_read\_sector\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00622}00622\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00623}00623\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad7bdb569867344cb70944a330aff1981}{MT\_AHCI\_TIMEOUT}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00624}00624\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00625}00625\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00626}00626\ \ \ \ \ \textcolor{comment}{//\ IMPORTANT:\ Check\ for\ errors\ from\ the\ device}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00627}00627\ \ \ \ \ \textcolor{keywordflow}{if}\ (p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}}\ \&\ ((1\ <<\ 7)\ |\ (1\ <<\ 0)))\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00628}00628\ \textcolor{preprocessor}{\#ifdef\ AHCI\_DEBUG\_PRINT}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00629}00629\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}AHCI\ write\ error!\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00630}00630\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Port\ TFD:\ \%p,\ SERR:\ \%p\(\backslash\)n"{}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_a357b46f1c8107383ad47b9b65b532f5f}{tfd}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_aac086c44fba913e33d5d4480166f486f}{serr}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00631}00631\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00632}00632\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a05d02534d3e3ddfe49edd80da1d89836}{MT\_AHCI\_WRITE\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00633}00633\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00634}00634\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00635}00635\ \ \ \ \ \textcolor{comment}{//\ clear\ int}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00636}00636\ \ \ \ \ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}}\ =\ p-\/>\mbox{\hyperlink{struct___h_b_a___p_o_r_t_ab21fab504791fdabfb4441c735452afb}{is}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00637}00637\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00638}00638\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00639}00639\ \}}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00640}00640\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00641}00641\ }
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00642}\mbox{\hyperlink{ahci_8c_a155325b891cfe68e3e74735a8f304702}{00642}}\ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ \mbox{\hyperlink{ahci_8c_a155325b891cfe68e3e74735a8f304702}{ahci\_get\_block\_device}}(\textcolor{keywordtype}{int}\ index)\ \{}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00643}00643\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}ahci\_get\_block\_device"{}});}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00644}00644\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{block_8c_ac7446440486f68f8b12119a25eb9740b}{get\_block\_device}}(index);}
+\DoxyCodeLine{\Hypertarget{ahci_8c_source_l00645}00645\ \}}
+
+\end{DoxyCode}

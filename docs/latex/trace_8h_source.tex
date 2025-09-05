@@ -1,0 +1,56 @@
+\doxysection{trace.\+h}
+\hypertarget{trace_8h_source}{}\label{trace_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/trace.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/trace.h}}
+\mbox{\hyperlink{trace_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00001}00001\ \textcolor{comment}{//\ trace.h}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00002}00002\ \textcolor{preprocessor}{\#ifndef\ TRACE\_H}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00003}00003\ \textcolor{preprocessor}{\#define\ TRACE\_H}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00004}00004\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00005}00005\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00006}00006\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00007}00007\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{intrin_8h}{intrin/intrin.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00009}00009\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00010}\mbox{\hyperlink{trace_8h_a1058858396753f9017e43578043a9de9}{00010}}\ \textcolor{preprocessor}{\#define\ LASTFUNC\_BUFFER\_SIZE\ 128}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00011}\mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{00011}}\ \textcolor{preprocessor}{\#define\ LASTFUNC\_HISTORY\_SIZE\ 10}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00013}\mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{00013}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00014}\mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_ade49e81be26c6ae61a2bbe26e4b85bdb}{00014}}\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_ade49e81be26c6ae61a2bbe26e4b85bdb}{names}}[\mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{LASTFUNC\_HISTORY\_SIZE}}][\mbox{\hyperlink{trace_8h_a1058858396753f9017e43578043a9de9}{LASTFUNC\_BUFFER\_SIZE}}];}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00015}\mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_aa109b69c74e781d1c99d60b2861cbf5d}{00015}}\ \ \ \ \ \textcolor{keywordtype}{int}\ \ \ \ \ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_aa109b69c74e781d1c99d60b2861cbf5d}{current\_index}};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00016}00016\ \}\ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\_HISTORY}};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00018}00018\ \textcolor{comment}{//\ this\ stays\ \`{}static\ inline`\ so\ every\ .c\ gets\ its\ own\ copy}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00019}00019\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ tracelast\_func(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ function\_name)\ \{}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00020}00020\ \textcolor{preprocessor}{\#ifdef\ GDB}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00021}00021\ \ \ \ \ \textcolor{comment}{//\ if\ GDB\ is\ defined,\ we\ wont\ trace\ last\ functions,\ as\ it\ is\ VERY\ hard\ to\ debug\ with\ having\ to\ step\ 128\ times.}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00022}00022\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(function\_name);}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00023}00023\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00024}00024\ \textcolor{preprocessor}{\#elif\ defined(DEBUG)}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00025}00025\ \ \ \ \ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00026}00026\ \ \ \ \ \textcolor{keyword}{extern}\ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\_HISTORY}}\ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00027}00027\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00028}00028\ \ \ \ \ \textcolor{keywordflow}{if}\ (!function\_name\ ||\ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00030}00030\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index\ =}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00031}00031\ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index\ +\ 1)\ \%\ \mbox{\hyperlink{trace_8h_ae8a5c5e8b2736c49f4d949c5a3510c11}{LASTFUNC\_HISTORY\_SIZE}};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00033}00033\ \ \ \ \ \textcolor{comment}{//\ Clear\ entire\ buffer\ slot\ to\ 0\ to\ avoid\ leftover\ garbage}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00034}00034\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ j\ =\ 0;\ j\ <\ \mbox{\hyperlink{trace_8h_a1058858396753f9017e43578043a9de9}{LASTFUNC\_BUFFER\_SIZE}};\ j++)\ \{}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00035}00035\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.names[\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index][j]\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00036}00036\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00037}00037\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00038}00038\ \ \ \ \ \textcolor{comment}{//\ Copy\ function\_name\ safely}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00039}00039\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ \mbox{\hyperlink{trace_8h_a1058858396753f9017e43578043a9de9}{LASTFUNC\_BUFFER\_SIZE}}\ -\/\ 1\ \&\&\ function\_name[i];\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00040}00040\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.names[\mbox{\hyperlink{bugcheck_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}.current\_index][i]\ =}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00041}00041\ \ \ \ \ \ \ \ \ \ \ \ \ (uint8\_t)function\_name[i];}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00042}00042\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00043}00043\ \ \ \ \ \textcolor{comment}{//\ Explicit\ null\ terminator\ already\ guaranteed\ by\ zero\ clear}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00044}00044\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00045}00045\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(function\_name);}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00046}00046\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00047}00047\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00048}00048\ \}}
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00049}00049\ }
+\DoxyCodeLine{\Hypertarget{trace_8h_source_l00050}00050\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ TRACE\_H}}
+
+\end{DoxyCode}

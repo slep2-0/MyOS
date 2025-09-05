@@ -1,0 +1,66 @@
+\doxysection{scancodes.\+h}
+\hypertarget{scancodes_8h_source}{}\label{scancodes_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/scancodes.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/scancodes.h}}
+\mbox{\hyperlink{scancodes_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Keyboard\ Scancodes\ Definitions.}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00006}00006\ \textcolor{preprocessor}{\#ifndef\ X86\_KEYBOARD\_SCANCODES}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00007}00007\ \textcolor{preprocessor}{\#define\ X86\_KEYBOARD\_SCANCODES}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00009}00009\ \textcolor{comment}{//\ taken\ from\ here\ -\/\ https://wiki.osdev.org/PS/2\_Keyboard}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00011}00011\ \textcolor{comment}{//\ press}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00012}\mbox{\hyperlink{scancodes_8h_a5be83b9307f37d65b522af9471962b68}{00012}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_3\ 0x04}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00013}\mbox{\hyperlink{scancodes_8h_a84e7b4fed820efc68713458229e65af3}{00013}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_7\ 0x08}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00014}\mbox{\hyperlink{scancodes_8h_a2ce39d5c466df785f8ae0f9020961f3b}{00014}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_MINUS\ 0x0C}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00015}\mbox{\hyperlink{scancodes_8h_aa9b2e0f59a51a36b1217f57d5402b5d8}{00015}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_Q\ 0x10}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00016}\mbox{\hyperlink{scancodes_8h_a7e40065e1c63ad32026117ebf7ada450}{00016}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_T\ 0x14}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00017}\mbox{\hyperlink{scancodes_8h_aa09bcad06b83c5325b5fae7f694c6e9c}{00017}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_O\ 0x18}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00018}\mbox{\hyperlink{scancodes_8h_a7cd4e9dcec127f3c6d4123d8a75e17da}{00018}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_ENTER\ 0x1C}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00019}\mbox{\hyperlink{scancodes_8h_a35f16bc007e88733a50be75cbc24df9f}{00019}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_D\ 0x20}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00020}\mbox{\hyperlink{scancodes_8h_a3a2be36ca3b67cd87cf94641d4a3681b}{00020}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_J\ 0x24}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00021}\mbox{\hyperlink{scancodes_8h_a1ac6bfcf77a029891c58d84df43ccce0}{00021}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_SINGLEQUOTE\ 0x28}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00022}\mbox{\hyperlink{scancodes_8h_a557166082a78e2bbb613ae89afb8f06a}{00022}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_Z\ 0x2C}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00023}\mbox{\hyperlink{scancodes_8h_af6618932281ff9478a434faf801f4a6e}{00023}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_B\ 0x30}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00024}\mbox{\hyperlink{scancodes_8h_a02f6fdc117edff5bfcdc66ee3d62398f}{00024}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_LEFT\_SHIFT\ 0x2A}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00025}\mbox{\hyperlink{scancodes_8h_a09eb6e206f6959d712034e7e960d38ac}{00025}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_DOT\ 0x34}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00026}\mbox{\hyperlink{scancodes_8h_a7b3c52973f16876047e75b642b0fc004}{00026}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_LEFT\_ALT\ 0x38}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00027}\mbox{\hyperlink{scancodes_8h_a2887b1afa9bcff3cd91716ee7f3b7b94}{00027}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_LEFT\_CONTROL\ 0x1D}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00028}\mbox{\hyperlink{scancodes_8h_a838e608083862972f20f923742dad707}{00028}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_PRESSED\_CAPS\_LOCK\ 0x3A}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00030}00030\ \textcolor{comment}{//\ extended\ press}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00031}\mbox{\hyperlink{scancodes_8h_aa768204f007f39e026b44a9c749a01f2}{00031}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_UP\ 0x48}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00032}\mbox{\hyperlink{scancodes_8h_aef133551f8fb1e1fd7a6107dde5466e6}{00032}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_LEFT\ 0x4B}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00033}\mbox{\hyperlink{scancodes_8h_a093a7a1d5631e4b6d418b68d84c061f3}{00033}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_DOWN\ 0x50}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00034}\mbox{\hyperlink{scancodes_8h_a8f68d454a58c300470d4b9aff84942ce}{00034}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_EXTENDED\_PRESSED\_CURSOR\_RIGHT\ 0x4D}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00035}00035\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00036}00036\ \textcolor{comment}{//\ release}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00037}\mbox{\hyperlink{scancodes_8h_a5652624f35f53f8c61f52286151d69a6}{00037}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_RELEASE\_LEFT\_CONTROL\ 0x9D}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00038}\mbox{\hyperlink{scancodes_8h_a4d0a3c995b55a478cb45183d5862839d}{00038}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_RELEASE\_LEFT\_SHIFT\ 0xAA}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00039}\mbox{\hyperlink{scancodes_8h_a7e8fdbd11995c7dc87e7835f402e08a6}{00039}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_SCANCODE\_RELEASE\_CAPS\_LOCK\ 0xBB}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00041}\mbox{\hyperlink{scancodes_8h_a8bd92ab3be854bc4caa930a5df66594b}{00041}}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{scancodes_8h_a8bd92ab3be854bc4caa930a5df66594b}{scancode\_to\_ascii}}[]\ =\ \{}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00042}00042\ \ \ \ \ 0,\ \ 27,\ \textcolor{charliteral}{'1'},\ \textcolor{charliteral}{'2'},\ \textcolor{charliteral}{'3'},\ \textcolor{charliteral}{'4'},\ \textcolor{charliteral}{'5'},\ \textcolor{charliteral}{'6'},\ \textcolor{charliteral}{'7'},\ \textcolor{charliteral}{'8'},\ \textcolor{charliteral}{'9'},\ \textcolor{charliteral}{'0'},\ \textcolor{charliteral}{'-\/'},\ \textcolor{charliteral}{'='},\ \textcolor{charliteral}{'\(\backslash\)b'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00043}00043\ \ \ \ \ \textcolor{charliteral}{'\(\backslash\)t'},\ \textcolor{charliteral}{'q'},\ \textcolor{charliteral}{'w'},\ \textcolor{charliteral}{'e'},\ \textcolor{charliteral}{'r'},\ \textcolor{charliteral}{'t'},\ \textcolor{charliteral}{'y'},\ \textcolor{charliteral}{'u'},\ \textcolor{charliteral}{'i'},\ \textcolor{charliteral}{'o'},\ \textcolor{charliteral}{'p'},\ \textcolor{charliteral}{'['},\ \textcolor{charliteral}{']'},\ \textcolor{charliteral}{'\(\backslash\)n'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00044}00044\ \ \ \ \ 0,\ \textcolor{charliteral}{'a'},\ \textcolor{charliteral}{'s'},\ \textcolor{charliteral}{'d'},\ \textcolor{charliteral}{'f'},\ \textcolor{charliteral}{'g'},\ \textcolor{charliteral}{'h'},\ \textcolor{charliteral}{'j'},\ \textcolor{charliteral}{'k'},\ \textcolor{charliteral}{'l'},\ \textcolor{charliteral}{';'},\ \textcolor{charliteral}{'\(\backslash\)''},\ \textcolor{charliteral}{'`'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00045}00045\ \ \ \ \ 0,\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'},\ \textcolor{charliteral}{'z'},\ \textcolor{charliteral}{'x'},\ \textcolor{charliteral}{'c'},\ \textcolor{charliteral}{'v'},\ \textcolor{charliteral}{'b'},\ \textcolor{charliteral}{'n'},\ \textcolor{charliteral}{'m'},\ \textcolor{charliteral}{','},\ \textcolor{charliteral}{'.'},\ \textcolor{charliteral}{'/'},\ 0,}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00046}00046\ \ \ \ \ \textcolor{charliteral}{'*'},\ 0,\ \textcolor{charliteral}{'\ '}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00047}00047\ \};}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00049}\mbox{\hyperlink{scancodes_8h_a1541347c599f4bf15b5f4e3f24fa30e3}{00049}}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{scancodes_8h_a1541347c599f4bf15b5f4e3f24fa30e3}{scancode\_to\_ascii\_shift}}[]\ =\ \{}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00050}00050\ \ \ \ \ 0,\ \ 27,\ \textcolor{charliteral}{'!'},\ \textcolor{charliteral}{'@'},\ \textcolor{charliteral}{'\#'},\ \textcolor{charliteral}{'\$'},\ \textcolor{charliteral}{'\%'},\ \textcolor{charliteral}{'\string^'},\ \textcolor{charliteral}{'\&'},\ \textcolor{charliteral}{'*'},\ \textcolor{charliteral}{'('},\ \textcolor{charliteral}{')'},\ \textcolor{charliteral}{'\_'},\ \textcolor{charliteral}{'+'},\ \textcolor{charliteral}{'\(\backslash\)b'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00051}00051\ \ \ \ \ \textcolor{charliteral}{'\(\backslash\)t'},\ \textcolor{charliteral}{'Q'},\ \textcolor{charliteral}{'W'},\ \textcolor{charliteral}{'E'},\ \textcolor{charliteral}{'R'},\ \textcolor{charliteral}{'T'},\ \textcolor{charliteral}{'Y'},\ \textcolor{charliteral}{'U'},\ \textcolor{charliteral}{'I'},\ \textcolor{charliteral}{'O'},\ \textcolor{charliteral}{'P'},\ \textcolor{charliteral}{'\{'},\ \textcolor{charliteral}{'\}'},\ \textcolor{charliteral}{'\(\backslash\)n'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00052}00052\ \ \ \ \ 0,\ \textcolor{charliteral}{'A'},\ \textcolor{charliteral}{'S'},\ \textcolor{charliteral}{'D'},\ \textcolor{charliteral}{'F'},\ \textcolor{charliteral}{'G'},\ \textcolor{charliteral}{'H'},\ \textcolor{charliteral}{'J'},\ \textcolor{charliteral}{'K'},\ \textcolor{charliteral}{'L'},\ \textcolor{charliteral}{':'},\ \textcolor{charliteral}{'"{}'},\ \textcolor{charliteral}{'\string~'},}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00053}00053\ \ \ \ \ 0,\ \textcolor{charliteral}{'|'},\ \textcolor{charliteral}{'Z'},\ \textcolor{charliteral}{'X'},\ \textcolor{charliteral}{'C'},\ \textcolor{charliteral}{'V'},\ \textcolor{charliteral}{'B'},\ \textcolor{charliteral}{'N'},\ \textcolor{charliteral}{'M'},\ \textcolor{charliteral}{'<'},\ \textcolor{charliteral}{'>'},\ \textcolor{charliteral}{'?'},\ 0,}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00054}00054\ \ \ \ \ \textcolor{charliteral}{'*'},\ 0,\ \textcolor{charliteral}{'\ '}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00055}00055\ \};}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00058}00058\ \textcolor{comment}{//\ yeah\ im\ tired,\ this\ is\ enough\ for\ now.}}
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{scancodes_8h_source_l00060}00060\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

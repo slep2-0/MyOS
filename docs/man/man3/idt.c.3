@@ -1,0 +1,70 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.c" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/idt.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'idt\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBLAPIC_TIMER_VECTOR\fP   0xEF"
+.br
+.ti -1c
+.RI "#define \fBLAPIC_SPURIOUS_VECTOR\fP   0xFF"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBset_idt_gate\fP (int n, unsigned long int handler)"
+.br
+.ti -1c
+.RI "void \fBinstall_idt\fP ()"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBIDT_ENTRY64\fP \fBIDT\fP [\fBIDT_ENTRIES\fP]"
+.br
+.ti -1c
+.RI "\fBIDT_PTR\fP \fBPIDT\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define LAPIC_SPURIOUS_VECTOR   0xFF"
+
+.SS "#define LAPIC_TIMER_VECTOR   0xEF"
+
+.SH "Function Documentation"
+.PP 
+.SS "void install_idt (void )"
+
+.PP
+Definition at line \fB24\fP of file \fBidt\&.c\fP\&.
+.SS "void set_idt_gate (int n, unsigned long int handler)"
+Functions 
+.PP
+Definition at line \fB12\fP of file \fBidt\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "\fBIDT_ENTRY64\fP IDT[\fBIDT_ENTRIES\fP]"
+
+.PP
+Definition at line \fB8\fP of file \fBidt\&.c\fP\&.
+.SS "\fBIDT_PTR\fP PIDT"
+
+.PP
+Definition at line \fB9\fP of file \fBidt\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

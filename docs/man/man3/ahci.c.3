@@ -1,0 +1,161 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c
+.SH SYNOPSIS
+.br
+.PP
+\fR#include 'ahci\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./trace\&.h'\fP
+.br
+\fR#include '\&.\&./\&.\&./assert\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_AHCI_PORT_CTX\fP"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct \fB_AHCI_PORT_CTX\fP \fBAHCI_PORT_CTX\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_init\fP (void)"
+.br
+.RI "#define AHCI_DEBUG_PRINT "
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_read_sector\fP (\fBBLOCK_DEVICE\fP *dev, uint32_t lba, void *buf)"
+.br
+.RI "Read a single 512-byte sector from the given LBA on a specific \fBBLOCK_DEVICE\fP\&. "
+.ti -1c
+.RI "\fBMTSTATUS\fP \fBahci_write_sector\fP (\fBBLOCK_DEVICE\fP *dev, uint32_t lba, const void *buf)"
+.br
+.RI "Write a single 512-byte sector to given LBA on a specific \fBBLOCK_DEVICE\fP\&. "
+.ti -1c
+.RI "\fBBLOCK_DEVICE\fP * \fBahci_get_block_device\fP (int index)"
+.br
+.RI "Retrieve a pointer to the AHCI driver's \fBBLOCK_DEVICE\fP instance\&. "
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "\fBBOOT_INFO\fP \fBboot_info_local\fP"
+.br
+.ti -1c
+.RI "\fBGOP_PARAMS\fP \fBgop_local\fP"
+.br
+.ti -1c
+.RI "bool \fBahci_initialized\fP = false"
+.br
+.in -1c
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_AHCI_PORT_CTX\fP \fBAHCI_PORT_CTX\fP"
+
+.SH "Function Documentation"
+.PP 
+.SS "\fBBLOCK_DEVICE\fP * ahci_get_block_device (int index)"
+
+.PP
+Retrieve a pointer to the AHCI driver's \fBBLOCK_DEVICE\fP instance\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIindex\fP Index of the \fBBLOCK_DEVICE\fP registration\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+A \fBBLOCK_DEVICE\fP struct pointer\&.
+.RE
+.PP
+
+.PP
+Definition at line \fB642\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_init (void )"
+
+.PP
+#define AHCI_DEBUG_PRINT Initialize the AHCI Driver\&.
+
+.PP
+\fBReturns\fP
+.RS 4
+True or False based if it initialized correctly or not\&. (if failure = bugcheck)
+.RE
+.PP
+
+.PP
+Definition at line \fB288\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_read_sector (\fBBLOCK_DEVICE\fP * dev, uint32_t lba, void * buf)"
+
+.PP
+Read a single 512-byte sector from the given LBA on a specific \fBBLOCK_DEVICE\fP\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIdev\fP Takes the \fBBLOCK_DEVICE\fP device pointer (on register_block_device)
+.br
+\fIlba\fP LBA to read from\&.
+.br
+\fIbuf\fP Return buffer to place the data read\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+True or False based on succession | buf pointer changes\&.
+.RE
+.PP
+
+.PP
+Definition at line \fB328\fP of file \fBahci\&.c\fP\&.
+.SS "\fBMTSTATUS\fP ahci_write_sector (\fBBLOCK_DEVICE\fP * dev, uint32_t lba, const void * buf)"
+
+.PP
+Write a single 512-byte sector to given LBA on a specific \fBBLOCK_DEVICE\fP\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIdev\fP Takes the \fBBLOCK_DEVICE\fP device pointer (on register_block_device)
+.br
+\fIlba\fP LBA to read from\&.
+.br
+\fIbuf\fP The buffer to write to the specified LBA\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+True or False based on succession
+.RE
+.PP
+
+.PP
+Definition at line \fB551\fP of file \fBahci\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "bool ahci_initialized = false"
+
+.PP
+Definition at line \fB286\fP of file \fBahci\&.c\fP\&.
+.SS "\fBBOOT_INFO\fP boot_info_local\fR [extern]\fP"
+
+.PP
+Definition at line \fB16\fP of file \fBkernel\&.c\fP\&.
+.SS "\fBGOP_PARAMS\fP gop_local\fR [extern]\fP"
+
+.PP
+Definition at line \fB15\fP of file \fBkernel\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

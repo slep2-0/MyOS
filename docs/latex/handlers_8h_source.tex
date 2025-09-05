@@ -1,0 +1,82 @@
+\doxysection{handlers.\+h}
+\hypertarget{handlers_8h_source}{}\label{handlers_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.h}}
+\mbox{\hyperlink{handlers_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ ISR\ Handlers\ -\/\ Handle\ Interrupts\ based\ on\ number\ and\ do\ something.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00006}00006\ \textcolor{preprocessor}{\#ifndef\ X86\_HANDLER\_FUNCTIONS\_H}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00007}00007\ \textcolor{preprocessor}{\#define\ X86\_HANDLER\_FUNCTIONS\_H}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00008}00008\ \ \textcolor{comment}{//\ Standard\ headers,\ required.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00009}00009\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00010}00010\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00011}00011\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00012}00012\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{cpu_8h}{../../cpu/cpu.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00013}00013\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{trace_8h}{../../trace.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00014}00014\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{bugcheck_8h}{../../bugcheck/bugcheck.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00015}00015\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00016}00016\ \textcolor{comment}{//\ Obtained\ from\ https://wiki.osdev.org/Interrupts}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00017}\mbox{\hyperlink{handlers_8h_a49e0a04e81098085d2948c1e9f8c99cb}{00017}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_DATA\_PORT\ 0x60}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00018}\mbox{\hyperlink{handlers_8h_ab79ca089665bc7f5cc151883d1bc69ed}{00018}}\ \textcolor{preprocessor}{\#define\ KEYBOARD\_STATUS\_PORT\ 0x64}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00019}00019\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00020}00020\ \textcolor{comment}{//\ IRQs}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00022}00022\ \textcolor{comment}{//\ Initialize\ keyboard\ left\ shift\ and\ left\ control\ to\ 0.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00023}00023\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a9e4d501adc191769969256faa2eece3d}{init\_keyboard}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00024}00024\ \textcolor{comment}{//\ Handle\ keyboard\ interruptions.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00025}00025\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_af801b5d36a2b9e968c6b98eaf8a3be54}{keyboard\_handler}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00026}00026\ \textcolor{comment}{//\ Initiate\ timer\ with\ a\ specified\ frequency.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00027}00027\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a60d47ef3d9ff7566f06b13180b08bb29}{init\_timer}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ frequency);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00028}00028\ \textcolor{comment}{//\ Handle\ Timer\ Interruptions.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00029}00029\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_aa46aba6dee28449ae90f1e5bae00d8be}{timer\_handler}}(\textcolor{keywordtype}{bool}\ schedulerEnabled);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00031}00031\ \textcolor{comment}{//\ Exceptions:}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00033}00033\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00034}00034\ \textcolor{comment}{//\ Handle\ Page\ Faults.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00035}00035\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_ac6967370e83425329246124a56e29b57}{pagefault\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00036}00036\ \textcolor{comment}{//\ Handle\ Double\ Fault\ -\/\ Bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00037}00037\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_acfe0741651b4edf7d92791e0656a5a48}{doublefault\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00038}00038\ \textcolor{comment}{//\ Handle\ Division\ By\ Zero.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00039}00039\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_afdff5d9ebe56cdc7b4e405c5082f7016}{dividebyzero\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00041}00041\ \textcolor{comment}{//\ New\ added.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00043}00043\ \textcolor{comment}{//\ Handle\ debugger\ single\ step\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00044}00044\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a4c7a9e8b64a2217f1db9849da60f4c39}{debugsinglestep\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00045}00045\ \textcolor{comment}{//\ Handle\ Non\ Maskable\ Interrupt\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00046}00046\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_ae0aa5bdafbe39e536fe71b3cab07d767}{nmi\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00047}00047\ \textcolor{comment}{//\ Handle\ breakpoint\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00048}00048\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a609ea769c187f7a0f997758b14ac3f73}{breakpoint\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00049}00049\ \textcolor{comment}{//\ Handle\ overflow\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00050}00050\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_adac02289d8e565aee7c9effa80747f93}{overflow\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00051}00051\ \textcolor{comment}{//\ Handle\ bounds\ check\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00052}00052\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a0ea5fd9348cbe6ab00ff2f3a872e664a}{boundscheck\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00053}00053\ \textcolor{comment}{//\ Handle\ invalid\ opcode\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00054}00054\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_aff8a45b5d56042eacac1147077281fb3}{invalidopcode\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00055}00055\ \textcolor{comment}{//\ Handle\ no\ coprocessor\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00056}00056\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a6b703ce7de6f493f66cee51eb8e59a33}{nocoprocessor\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00057}00057\ \textcolor{comment}{//\ Handle\ coprocessor\ segment\ overrun\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00058}00058\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a26e585eb170d255d03c6323349df7e83}{coprocessor\_segment\_overrun\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00059}00059\ \textcolor{comment}{//\ Handle\ Invalid\ TSS\ Exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00060}00060\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a0f81c6470be5e4bbb9f8b5e4997bbc5a}{invalidtss\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00061}00061\ \textcolor{comment}{//\ Handle\ segment\ selector\ not\ present\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00062}00062\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a8fec482647c6fb6fbbabdf55e602eef4}{segment\_selector\_not\_present\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00063}00063\ \textcolor{comment}{//\ Handle\ stack\ segment\ overrun\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00064}00064\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a5d7427a65db4d25785ff5eb89fc07a53}{stack\_segment\_overrun\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00065}00065\ \textcolor{comment}{//\ Handle\ GPF\ Exception.\ -\/-\/\ important\ exception,\ we\ use\ the\ registers\ and\ error\ code\ for\ it.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00066}00066\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_a1005cf7e59cf67342709473d87edf5bf}{gpf\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00067}00067\ \textcolor{comment}{//\ Handle\ floating\ point\ error\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00068}00068\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_af0c0283a079f47d9979e594f76e7c5ed}{fpu\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00069}00069\ \textcolor{comment}{//\ Handle\ alignment\ check\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00070}00070\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_ae2c429574b397c858bb4b59c670e1ce4}{alignment\_check\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00071}00071\ \textcolor{comment}{//\ Handle\ severe\ machine\ check\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00072}00072\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_abf78eebebdfe77d4d5cb902171c44173}{severe\_machine\_check\_handler}}(\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}*\ ctx,\ \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\_FRAME}}*\ intfr);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00073}00073\ }
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00074}00074\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8h_ab748b00a3956d2d68d64e85374210e5a}{lapic\_handler}}(\textcolor{keywordtype}{bool}\ schedulerEnabled);}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00075}00075\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{handlers_8h_source_l00076}00076\ }
+
+\end{DoxyCode}

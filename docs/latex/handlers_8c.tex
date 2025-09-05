@@ -1,0 +1,405 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/interrupts/handlers/handlers.c File Reference}
+\hypertarget{handlers_8c}{}\label{handlers_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/interrupts/handlers/handlers.c}}
+{\ttfamily \#include "{}handlers.\+h"{}}\newline
+{\ttfamily \#include "{}scancodes.\+h"{}}\newline
+{\ttfamily \#include "{}../idt.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{handlers_8c_ac3a72156d4bbba013e4d62801992794d}{init\+\_\+keyboard}} ()
+\item 
+void \mbox{\hyperlink{handlers_8c_a2f4098fc71cbd39422c1001d66970bf5}{keyboard\+\_\+handler}} ()
+\item 
+void \mbox{\hyperlink{handlers_8c_a60d47ef3d9ff7566f06b13180b08bb29}{init\+\_\+timer}} (unsigned long int frequency)
+\item 
+void \mbox{\hyperlink{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be}{timer\+\_\+handler}} (bool scheduler\+Enabled)
+\item 
+void \mbox{\hyperlink{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\+\_\+eoi}} (void)
+\item 
+void \mbox{\hyperlink{handlers_8c_ab748b00a3956d2d68d64e85374210e5a}{lapic\+\_\+handler}} (bool scheduler\+Enabled)
+\item 
+void \mbox{\hyperlink{handlers_8c_ac6967370e83425329246124a56e29b57}{pagefault\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_acfe0741651b4edf7d92791e0656a5a48}{doublefault\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_afdff5d9ebe56cdc7b4e405c5082f7016}{dividebyzero\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a4c7a9e8b64a2217f1db9849da60f4c39}{debugsinglestep\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_ae0aa5bdafbe39e536fe71b3cab07d767}{nmi\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a609ea769c187f7a0f997758b14ac3f73}{breakpoint\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_adac02289d8e565aee7c9effa80747f93}{overflow\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a0ea5fd9348cbe6ab00ff2f3a872e664a}{boundscheck\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_aff8a45b5d56042eacac1147077281fb3}{invalidopcode\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a6b703ce7de6f493f66cee51eb8e59a33}{nocoprocessor\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a26e585eb170d255d03c6323349df7e83}{coprocessor\+\_\+segment\+\_\+overrun\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a0f81c6470be5e4bbb9f8b5e4997bbc5a}{invalidtss\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a8fec482647c6fb6fbbabdf55e602eef4}{segment\+\_\+selector\+\_\+not\+\_\+present\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a5d7427a65db4d25785ff5eb89fc07a53}{stack\+\_\+segment\+\_\+overrun\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_a1005cf7e59cf67342709473d87edf5bf}{gpf\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_af0c0283a079f47d9979e594f76e7c5ed}{fpu\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_ae2c429574b397c858bb4b59c670e1ce4}{alignment\+\_\+check\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\item 
+void \mbox{\hyperlink{handlers_8c_abf78eebebdfe77d4d5cb902171c44173}{severe\+\_\+machine\+\_\+check\+\_\+handler}} (\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}ctx, \mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}intfr)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{handlers_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\+\_\+x}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{handlers_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\+\_\+y}}
+\item 
+bool \mbox{\hyperlink{handlers_8c_a03355b09418c2d88081c29484c82eccb}{shift\+\_\+pressed}} = false
+\item 
+bool \mbox{\hyperlink{handlers_8c_aec4e866abc16cc8217d33dfae87d5877}{ctrl\+\_\+pressed}} = false
+\item 
+bool \mbox{\hyperlink{handlers_8c_aca50450c34efc412517edefbb05ea87a}{caps\+\_\+lock\+\_\+on}} = false
+\item 
+bool \mbox{\hyperlink{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}{extended\+\_\+scancode}} = false
+\item 
+\mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{handlers_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\+\_\+local}}
+\item 
+volatile bool \mbox{\hyperlink{handlers_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\+\_\+pending}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{handlers_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{handlers_8c_ae2c429574b397c858bb4b59c670e1ce4}\index{handlers.c@{handlers.c}!alignment\_check\_handler@{alignment\_check\_handler}}
+\index{alignment\_check\_handler@{alignment\_check\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{alignment\_check\_handler()}{alignment\_check\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_ae2c429574b397c858bb4b59c670e1ce4} 
+void alignment\+\_\+check\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00279}{279}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a0ea5fd9348cbe6ab00ff2f3a872e664a}\index{handlers.c@{handlers.c}!boundscheck\_handler@{boundscheck\_handler}}
+\index{boundscheck\_handler@{boundscheck\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{boundscheck\_handler()}{boundscheck\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a0ea5fd9348cbe6ab00ff2f3a872e664a} 
+void boundscheck\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00230}{230}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a609ea769c187f7a0f997758b14ac3f73}\index{handlers.c@{handlers.c}!breakpoint\_handler@{breakpoint\_handler}}
+\index{breakpoint\_handler@{breakpoint\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{breakpoint\_handler()}{breakpoint\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a609ea769c187f7a0f997758b14ac3f73} 
+void breakpoint\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00217}{217}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a26e585eb170d255d03c6323349df7e83}\index{handlers.c@{handlers.c}!coprocessor\_segment\_overrun\_handler@{coprocessor\_segment\_overrun\_handler}}
+\index{coprocessor\_segment\_overrun\_handler@{coprocessor\_segment\_overrun\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{coprocessor\_segment\_overrun\_handler()}{coprocessor\_segment\_overrun\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a26e585eb170d255d03c6323349df7e83} 
+void coprocessor\+\_\+segment\+\_\+overrun\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00244}{244}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a4c7a9e8b64a2217f1db9849da60f4c39}\index{handlers.c@{handlers.c}!debugsinglestep\_handler@{debugsinglestep\_handler}}
+\index{debugsinglestep\_handler@{debugsinglestep\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{debugsinglestep\_handler()}{debugsinglestep\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a4c7a9e8b64a2217f1db9849da60f4c39} 
+void debugsinglestep\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00205}{205}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_afdff5d9ebe56cdc7b4e405c5082f7016}\index{handlers.c@{handlers.c}!dividebyzero\_handler@{dividebyzero\_handler}}
+\index{dividebyzero\_handler@{dividebyzero\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{dividebyzero\_handler()}{dividebyzero\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_afdff5d9ebe56cdc7b4e405c5082f7016} 
+void dividebyzero\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00200}{200}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_acfe0741651b4edf7d92791e0656a5a48}\index{handlers.c@{handlers.c}!doublefault\_handler@{doublefault\_handler}}
+\index{doublefault\_handler@{doublefault\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{doublefault\_handler()}{doublefault\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_acfe0741651b4edf7d92791e0656a5a48} 
+void doublefault\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00194}{194}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_af0c0283a079f47d9979e594f76e7c5ed}\index{handlers.c@{handlers.c}!fpu\_handler@{fpu\_handler}}
+\index{fpu\_handler@{fpu\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{fpu\_handler()}{fpu\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_af0c0283a079f47d9979e594f76e7c5ed} 
+void fpu\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00272}{272}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a1005cf7e59cf67342709473d87edf5bf}\index{handlers.c@{handlers.c}!gpf\_handler@{gpf\_handler}}
+\index{gpf\_handler@{gpf\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{gpf\_handler()}{gpf\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a1005cf7e59cf67342709473d87edf5bf} 
+void gpf\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00267}{267}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_ac3a72156d4bbba013e4d62801992794d}\index{handlers.c@{handlers.c}!init\_keyboard@{init\_keyboard}}
+\index{init\_keyboard@{init\_keyboard}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{init\_keyboard()}{init\_keyboard()}}
+{\footnotesize\ttfamily \label{handlers_8c_ac3a72156d4bbba013e4d62801992794d} 
+void init\+\_\+keyboard (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00022}{22}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a60d47ef3d9ff7566f06b13180b08bb29}\index{handlers.c@{handlers.c}!init\_timer@{init\_timer}}
+\index{init\_timer@{init\_timer}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{init\_timer()}{init\_timer()}}
+{\footnotesize\ttfamily \label{handlers_8c_a60d47ef3d9ff7566f06b13180b08bb29} 
+void init\+\_\+timer (\begin{DoxyParamCaption}\item[{unsigned long int}]{frequency}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00119}{119}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_aff8a45b5d56042eacac1147077281fb3}\index{handlers.c@{handlers.c}!invalidopcode\_handler@{invalidopcode\_handler}}
+\index{invalidopcode\_handler@{invalidopcode\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{invalidopcode\_handler()}{invalidopcode\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_aff8a45b5d56042eacac1147077281fb3} 
+void invalidopcode\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00235}{235}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a0f81c6470be5e4bbb9f8b5e4997bbc5a}\index{handlers.c@{handlers.c}!invalidtss\_handler@{invalidtss\_handler}}
+\index{invalidtss\_handler@{invalidtss\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{invalidtss\_handler()}{invalidtss\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a0f81c6470be5e4bbb9f8b5e4997bbc5a} 
+void invalidtss\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00249}{249}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a2f4098fc71cbd39422c1001d66970bf5}\index{handlers.c@{handlers.c}!keyboard\_handler@{keyboard\_handler}}
+\index{keyboard\_handler@{keyboard\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{keyboard\_handler()}{keyboard\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a2f4098fc71cbd39422c1001d66970bf5} 
+void keyboard\+\_\+handler (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00031}{31}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}\index{handlers.c@{handlers.c}!lapic\_eoi@{lapic\_eoi}}
+\index{lapic\_eoi@{lapic\_eoi}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{lapic\_eoi()}{lapic\_eoi()}}
+{\footnotesize\ttfamily \label{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc} 
+void lapic\+\_\+eoi (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00127}{127}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{handlers_8c_ab748b00a3956d2d68d64e85374210e5a}\index{handlers.c@{handlers.c}!lapic\_handler@{lapic\_handler}}
+\index{lapic\_handler@{lapic\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{lapic\_handler()}{lapic\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_ab748b00a3956d2d68d64e85374210e5a} 
+void lapic\+\_\+handler (\begin{DoxyParamCaption}\item[{bool}]{scheduler\+Enabled}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00174}{174}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_ae0aa5bdafbe39e536fe71b3cab07d767}\index{handlers.c@{handlers.c}!nmi\_handler@{nmi\_handler}}
+\index{nmi\_handler@{nmi\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{nmi\_handler()}{nmi\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_ae0aa5bdafbe39e536fe71b3cab07d767} 
+void nmi\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00212}{212}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a6b703ce7de6f493f66cee51eb8e59a33}\index{handlers.c@{handlers.c}!nocoprocessor\_handler@{nocoprocessor\_handler}}
+\index{nocoprocessor\_handler@{nocoprocessor\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{nocoprocessor\_handler()}{nocoprocessor\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a6b703ce7de6f493f66cee51eb8e59a33} 
+void nocoprocessor\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00239}{239}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_adac02289d8e565aee7c9effa80747f93}\index{handlers.c@{handlers.c}!overflow\_handler@{overflow\_handler}}
+\index{overflow\_handler@{overflow\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{overflow\_handler()}{overflow\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_adac02289d8e565aee7c9effa80747f93} 
+void overflow\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00224}{224}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_ac6967370e83425329246124a56e29b57}\index{handlers.c@{handlers.c}!pagefault\_handler@{pagefault\_handler}}
+\index{pagefault\_handler@{pagefault\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{pagefault\_handler()}{pagefault\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_ac6967370e83425329246124a56e29b57} 
+void pagefault\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00179}{179}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a8fec482647c6fb6fbbabdf55e602eef4}\index{handlers.c@{handlers.c}!segment\_selector\_not\_present\_handler@{segment\_selector\_not\_present\_handler}}
+\index{segment\_selector\_not\_present\_handler@{segment\_selector\_not\_present\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{segment\_selector\_not\_present\_handler()}{segment\_selector\_not\_present\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a8fec482647c6fb6fbbabdf55e602eef4} 
+void segment\+\_\+selector\+\_\+not\+\_\+present\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00255}{255}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_abf78eebebdfe77d4d5cb902171c44173}\index{handlers.c@{handlers.c}!severe\_machine\_check\_handler@{severe\_machine\_check\_handler}}
+\index{severe\_machine\_check\_handler@{severe\_machine\_check\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{severe\_machine\_check\_handler()}{severe\_machine\_check\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_abf78eebebdfe77d4d5cb902171c44173} 
+void severe\+\_\+machine\+\_\+check\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00289}{289}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_a5d7427a65db4d25785ff5eb89fc07a53}\index{handlers.c@{handlers.c}!stack\_segment\_overrun\_handler@{stack\_segment\_overrun\_handler}}
+\index{stack\_segment\_overrun\_handler@{stack\_segment\_overrun\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{stack\_segment\_overrun\_handler()}{stack\_segment\_overrun\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_a5d7427a65db4d25785ff5eb89fc07a53} 
+void stack\+\_\+segment\+\_\+overrun\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{cpu__types_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{ctx}{, }\item[{\mbox{\hyperlink{cpu__types_8h_a1aa24edc1ea7270821fa045a386390f3}{INT\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{intfr}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00261}{261}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be}\index{handlers.c@{handlers.c}!timer\_handler@{timer\_handler}}
+\index{timer\_handler@{timer\_handler}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{timer\_handler()}{timer\_handler()}}
+{\footnotesize\ttfamily \label{handlers_8c_aa46aba6dee28449ae90f1e5bae00d8be} 
+void timer\+\_\+handler (\begin{DoxyParamCaption}\item[{bool}]{scheduler\+Enabled}{}\end{DoxyParamCaption})}
+
+DO NOT SET schedule\+\_\+needed TO TRUE HERE, IT WILL BE SET IN Schedule\+DPC!!
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00145}{145}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{handlers_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{handlers_8c_aca50450c34efc412517edefbb05ea87a}\index{handlers.c@{handlers.c}!caps\_lock\_on@{caps\_lock\_on}}
+\index{caps\_lock\_on@{caps\_lock\_on}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{caps\_lock\_on}{caps\_lock\_on}}
+{\footnotesize\ttfamily \label{handlers_8c_aca50450c34efc412517edefbb05ea87a} 
+bool caps\+\_\+lock\+\_\+on = false}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00019}{19}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_aec4e866abc16cc8217d33dfae87d5877}\index{handlers.c@{handlers.c}!ctrl\_pressed@{ctrl\_pressed}}
+\index{ctrl\_pressed@{ctrl\_pressed}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{ctrl\_pressed}{ctrl\_pressed}}
+{\footnotesize\ttfamily \label{handlers_8c_aec4e866abc16cc8217d33dfae87d5877} 
+bool ctrl\+\_\+pressed = false}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00018}{18}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_aed43839a3c8b74504a97930edbe8b735}\index{handlers.c@{handlers.c}!cursor\_x@{cursor\_x}}
+\index{cursor\_x@{cursor\_x}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{cursor\_x}{cursor\_x}}
+{\footnotesize\ttfamily \label{handlers_8c_aed43839a3c8b74504a97930edbe8b735} 
+uint32\+\_\+t cursor\+\_\+x\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{gop_8c_source_l00012}{12}} of file \mbox{\hyperlink{gop_8c_source}{gop.\+c}}.
+
+\Hypertarget{handlers_8c_ad3e70ba50f805f295792f5dc66599d51}\index{handlers.c@{handlers.c}!cursor\_y@{cursor\_y}}
+\index{cursor\_y@{cursor\_y}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{cursor\_y}{cursor\_y}}
+{\footnotesize\ttfamily \label{handlers_8c_ad3e70ba50f805f295792f5dc66599d51} 
+uint32\+\_\+t cursor\+\_\+y\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{gop_8c_source_l00012}{12}} of file \mbox{\hyperlink{gop_8c_source}{gop.\+c}}.
+
+\Hypertarget{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8}\index{handlers.c@{handlers.c}!extended\_scancode@{extended\_scancode}}
+\index{extended\_scancode@{extended\_scancode}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{extended\_scancode}{extended\_scancode}}
+{\footnotesize\ttfamily \label{handlers_8c_ae9f12d42ef17c61f3520b3122fda59b8} 
+bool extended\+\_\+scancode = false}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00020}{20}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{handlers_8c_ad8ca0be32b831aec9de80bcf0e22107e}\index{handlers.c@{handlers.c}!gop\_local@{gop\_local}}
+\index{gop\_local@{gop\_local}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{gop\_local}{gop\_local}}
+{\footnotesize\ttfamily \label{handlers_8c_ad8ca0be32b831aec9de80bcf0e22107e} 
+\mbox{\hyperlink{uefi__memory_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} gop\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00015}{15}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{handlers_8c_a4c2cfad020fec829877b17fb6ae3ee2d}\index{handlers.c@{handlers.c}!schedule\_pending@{schedule\_pending}}
+\index{schedule\_pending@{schedule\_pending}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{schedule\_pending}{schedule\_pending}}
+{\footnotesize\ttfamily \label{handlers_8c_a4c2cfad020fec829877b17fb6ae3ee2d} 
+volatile bool schedule\+\_\+pending\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00013}{13}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{handlers_8c_a03355b09418c2d88081c29484c82eccb}\index{handlers.c@{handlers.c}!shift\_pressed@{shift\_pressed}}
+\index{shift\_pressed@{shift\_pressed}!handlers.c@{handlers.c}}
+\doxysubsubsection{\texorpdfstring{shift\_pressed}{shift\_pressed}}
+{\footnotesize\ttfamily \label{handlers_8c_a03355b09418c2d88081c29484c82eccb} 
+bool shift\+\_\+pressed = false}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00017}{17}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+

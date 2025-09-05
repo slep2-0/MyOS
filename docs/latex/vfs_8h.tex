@@ -1,0 +1,289 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/filesystem/vfs/vfs.h File Reference}
+\hypertarget{vfs_8h}{}\label{vfs_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.h}}
+{\ttfamily \#include "{}../fat32/fat32.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\+\_\+\+DRIVER}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef enum \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8}{\+\_\+\+FS\+\_\+\+WRITE\+\_\+\+MODES}} \mbox{\hyperlink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES}}
+\item 
+typedef struct FS\+\_\+\+DRIVER \mbox{\hyperlink{vfs_8h_aa3f31248b089b7eb1ae82810b9867f6b}{FS\+\_\+\+DRIVER}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8}{\+\_\+\+FS\+\_\+\+WRITE\+\_\+\+MODES}} \{ \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a0d4d87cc4f9df105f557bb554a2c8871}{WRITE\+\_\+\+MODE\+\_\+\+APPEND\+\_\+\+EXISTING}}
+, \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a8593a412aa473bf2d4a2134cebfe633d}{WRITE\+\_\+\+MODE\+\_\+\+CREATE\+\_\+\+OR\+\_\+\+REPLACE}}
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a90195d6c95683c2134cca9f87446be38}{vfs\+\_\+init}} (void)
+\begin{DoxyCompactList}\small\item\em Initialize the Virtual File System (initializes other filesystem needed services as well) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a13a1411001190b9817c7fbe0ea690719}{vfs\+\_\+read}} (const char \texorpdfstring{$\ast$}{*}filename, uint32\+\_\+t \texorpdfstring{$\ast$}{*}file\+\_\+size\+\_\+out, void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}buffer\+\_\+out)
+\begin{DoxyCompactList}\small\item\em Reads the file into a buffer. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_af028169605cce963cafbe02ee9af1ed1}{vfs\+\_\+write}} (const char \texorpdfstring{$\ast$}{*}path, const void \texorpdfstring{$\ast$}{*}data, uint32\+\_\+t size, \mbox{\hyperlink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES}} write\+\_\+mode)
+\begin{DoxyCompactList}\small\item\em Creates a new file (or opens existing) and writes data to it. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a6dec3ac9fd37a26dd07559f4fba44683}{vfs\+\_\+delete}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function deletes the file given to the function from the system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a49377ba7575cbad9c52cf142099215ce}{vfs\+\_\+listdir}} (const char \texorpdfstring{$\ast$}{*}path, char \texorpdfstring{$\ast$}{*}listings, size\+\_\+t max\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Lists the directory given. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a503c4216a5757ddda6ddbbadbbba540c}{vfs\+\_\+mkdir}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em Creates a new directory. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8h_a29fb95dd560efdb62e2a9760c3f41a97}{vfs\+\_\+rmdir}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function deletes the directory given to the function from the system. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{vfs_8h_a617bde009f0493ff340ab914aafc5b27}{vfs\+\_\+is\+\_\+dir\+\_\+empty}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function returns if the directory given to the function is empty (e.\+g, has only \textquotesingle{}.\textquotesingle{} and \textquotesingle{}..\textquotesingle{} entries) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{vfs_8h_a47b59810da81f9a8d47a70d137a70ada}{vfs\+\_\+listrootdir}} (void)
+\begin{DoxyCompactList}\small\item\em This function will list the root directory of the main mount device. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-typedef-members}
+\Hypertarget{vfs_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{vfs_8h_aa3f31248b089b7eb1ae82810b9867f6b}\index{vfs.h@{vfs.h}!FS\_DRIVER@{FS\_DRIVER}}
+\index{FS\_DRIVER@{FS\_DRIVER}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{FS\_DRIVER}{FS\_DRIVER}}
+{\footnotesize\ttfamily \label{vfs_8h_aa3f31248b089b7eb1ae82810b9867f6b} 
+typedef struct FS\+\_\+\+DRIVER FS\+\_\+\+DRIVER}
+
+\Hypertarget{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}\index{vfs.h@{vfs.h}!FS\_WRITE\_MODES@{FS\_WRITE\_MODES}}
+\index{FS\_WRITE\_MODES@{FS\_WRITE\_MODES}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{FS\_WRITE\_MODES}{FS\_WRITE\_MODES}}
+{\footnotesize\ttfamily \label{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6} 
+typedef enum \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8}{\+\_\+\+FS\+\_\+\+WRITE\+\_\+\+MODES}} \mbox{\hyperlink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES}}}
+
+
+
+\label{doc-enum-members}
+\Hypertarget{vfs_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8}\index{vfs.h@{vfs.h}!\_FS\_WRITE\_MODES@{\_FS\_WRITE\_MODES}}
+\index{\_FS\_WRITE\_MODES@{\_FS\_WRITE\_MODES}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{\_FS\_WRITE\_MODES}{\_FS\_WRITE\_MODES}}
+{\footnotesize\ttfamily \label{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8} 
+enum \mbox{\hyperlink{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8}{\+\_\+\+FS\+\_\+\+WRITE\+\_\+\+MODES}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WRITE\_MODE\_APPEND\_EXISTING@{WRITE\_MODE\_APPEND\_EXISTING}!vfs.h@{vfs.h}}\index{vfs.h@{vfs.h}!WRITE\_MODE\_APPEND\_EXISTING@{WRITE\_MODE\_APPEND\_EXISTING}}}\Hypertarget{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a0d4d87cc4f9df105f557bb554a2c8871}\label{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a0d4d87cc4f9df105f557bb554a2c8871} 
+WRITE\+\_\+\+MODE\+\_\+\+APPEND\+\_\+\+EXISTING&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WRITE\_MODE\_CREATE\_OR\_REPLACE@{WRITE\_MODE\_CREATE\_OR\_REPLACE}!vfs.h@{vfs.h}}\index{vfs.h@{vfs.h}!WRITE\_MODE\_CREATE\_OR\_REPLACE@{WRITE\_MODE\_CREATE\_OR\_REPLACE}}}\Hypertarget{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a8593a412aa473bf2d4a2134cebfe633d}\label{vfs_8h_a6e94b6447cb5cd6dc04183d1764e3ea8a8593a412aa473bf2d4a2134cebfe633d} 
+WRITE\+\_\+\+MODE\+\_\+\+CREATE\+\_\+\+OR\+\_\+\+REPLACE&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{vfs_8h_source_l00013}{13}} of file \mbox{\hyperlink{vfs_8h_source}{vfs.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{vfs_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{vfs_8h_a6dec3ac9fd37a26dd07559f4fba44683}\index{vfs.h@{vfs.h}!vfs\_delete@{vfs\_delete}}
+\index{vfs\_delete@{vfs\_delete}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_delete()}{vfs\_delete()}}
+{\footnotesize\ttfamily \label{vfs_8h_a6dec3ac9fd37a26dd07559f4fba44683} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+delete (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function deletes the file given to the function from the system. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to delete file.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00094}{94}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a90195d6c95683c2134cca9f87446be38}\index{vfs.h@{vfs.h}!vfs\_init@{vfs\_init}}
+\index{vfs\_init@{vfs\_init}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_init()}{vfs\_init()}}
+{\footnotesize\ttfamily \label{vfs_8h_a90195d6c95683c2134cca9f87446be38} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Initialize the Virtual File System (initializes other filesystem needed services as well) 
+
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status Code
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00041}{41}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a617bde009f0493ff340ab914aafc5b27}\index{vfs.h@{vfs.h}!vfs\_is\_dir\_empty@{vfs\_is\_dir\_empty}}
+\index{vfs\_is\_dir\_empty@{vfs\_is\_dir\_empty}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_is\_dir\_empty()}{vfs\_is\_dir\_empty()}}
+{\footnotesize\ttfamily \label{vfs_8h_a617bde009f0493ff340ab914aafc5b27} 
+bool vfs\+\_\+is\+\_\+dir\+\_\+empty (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function returns if the directory given to the function is empty (e.\+g, has only \textquotesingle{}.\textquotesingle{} and \textquotesingle{}..\textquotesingle{} entries) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to dir\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True or false based if empty or not.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00122}{122}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a49377ba7575cbad9c52cf142099215ce}\index{vfs.h@{vfs.h}!vfs\_listdir@{vfs\_listdir}}
+\index{vfs\_listdir@{vfs\_listdir}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_listdir()}{vfs\_listdir()}}
+{\footnotesize\ttfamily \label{vfs_8h_a49377ba7575cbad9c52cf142099215ce} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+listdir (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{char \texorpdfstring{$\ast$}{*}}]{listings}{, }\item[{size\+\_\+t}]{max\+\_\+len}{}\end{DoxyParamCaption})}
+
+
+
+Lists the directory given. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Path to directory, e.\+g "{}mydir/"{} \\
+\hline
+{\em listings} & \mbox{[}OUT\mbox{]} Pointer to directory listing. (each seperated with a newline character)\\
+\hline
+{\em max\+\_\+len} & \mbox{[}IN\mbox{]} Max size of listings buffer.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00101}{101}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a47b59810da81f9a8d47a70d137a70ada}\index{vfs.h@{vfs.h}!vfs\_listrootdir@{vfs\_listrootdir}}
+\index{vfs\_listrootdir@{vfs\_listrootdir}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_listrootdir()}{vfs\_listrootdir()}}
+{\footnotesize\ttfamily \label{vfs_8h_a47b59810da81f9a8d47a70d137a70ada} 
+void vfs\+\_\+listrootdir (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+This function will list the root directory of the main mount device. 
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00129}{129}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a503c4216a5757ddda6ddbbadbbba540c}\index{vfs.h@{vfs.h}!vfs\_mkdir@{vfs\_mkdir}}
+\index{vfs\_mkdir@{vfs\_mkdir}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_mkdir()}{vfs\_mkdir()}}
+{\footnotesize\ttfamily \label{vfs_8h_a503c4216a5757ddda6ddbbadbbba540c} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+mkdir (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+Creates a new directory. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & The full path to the new directory\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00108}{108}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a13a1411001190b9817c7fbe0ea690719}\index{vfs.h@{vfs.h}!vfs\_read@{vfs\_read}}
+\index{vfs\_read@{vfs\_read}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_read()}{vfs\_read()}}
+{\footnotesize\ttfamily \label{vfs_8h_a13a1411001190b9817c7fbe0ea690719} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+read (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{filename}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{file\+\_\+size\+\_\+out}{, }\item[{void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{buffer\+\_\+out}{}\end{DoxyParamCaption})}
+
+
+
+Reads the file into a buffer. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & The Filename to read, e.\+g "{}file.\+txt"{} or "{}tmp/folder/myfile.\+txt"{}\\
+\hline
+{\em file\+\_\+size\+\_\+out} & A pointer to put the file size in bytes\\
+\hline
+{\em buffer\+Out} & A pointer to put the file buffer in (doesn\textquotesingle{}t need to be dynamically allocated)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status Code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00080}{80}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_a29fb95dd560efdb62e2a9760c3f41a97}\index{vfs.h@{vfs.h}!vfs\_rmdir@{vfs\_rmdir}}
+\index{vfs\_rmdir@{vfs\_rmdir}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_rmdir()}{vfs\_rmdir()}}
+{\footnotesize\ttfamily \label{vfs_8h_a29fb95dd560efdb62e2a9760c3f41a97} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+rmdir (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function deletes the directory given to the function from the system. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to delete directory.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00115}{115}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8h_af028169605cce963cafbe02ee9af1ed1}\index{vfs.h@{vfs.h}!vfs\_write@{vfs\_write}}
+\index{vfs\_write@{vfs\_write}!vfs.h@{vfs.h}}
+\doxysubsubsection{\texorpdfstring{vfs\_write()}{vfs\_write()}}
+{\footnotesize\ttfamily \label{vfs_8h_af028169605cce963cafbe02ee9af1ed1} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} vfs\+\_\+write (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{const void \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint32\+\_\+t}]{size}{, }\item[{\mbox{\hyperlink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES}}}]{write\+\_\+mode}{}\end{DoxyParamCaption})}
+
+
+
+Creates a new file (or opens existing) and writes data to it. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & The full path of the file to create\\
+\hline
+{\em data} & A pointer to the data to write.\\
+\hline
+{\em size} & The number of bytes to write\\
+\hline
+{\em write\+\_\+mode} & Whether to APPEND or CREATE/\+REPLACE the file. (in \doxylink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES} enum)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status Code
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00087}{87}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+

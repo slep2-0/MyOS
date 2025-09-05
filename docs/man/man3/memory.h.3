@@ -1,0 +1,257 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/memory.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/memory/memory.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include '\&.\&./cpu/cpu\&.h'\fP
+.br
+\fR#include '\&.\&./memory/allocator/allocator\&.h'\fP
+.br
+\fR#include '\&.\&./memory/paging/paging\&.h'\fP
+.br
+\fR#include '\&.\&./trace\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fB_BLOCK_HEADER\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBHEAP_START\fP   ((uintptr_t)(&\fBkernel_end\fP))"
+.br
+.ti -1c
+.RI "#define \fBHEAP_END\fP   (PHYS_MEM_BASE + PHYS_MEM_SIZE)"
+.br
+.ti -1c
+.RI "#define \fBHEAP_SIZE\fP   (\fBHEAP_END\fP \- \fBHEAP_START\fP)"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct \fB_BLOCK_HEADER\fP \fBBLOCK_HEADER\fP"
+.br
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum { \fBBLK_NORMAL\fP = 0, \fBBLK_EX\fP = 1 }"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBzero_bss\fP (void)"
+.br
+.RI "Zeroes out the BSS section (garbage data that might have left there) "
+.ti -1c
+.RI "bool \fBcheck_bss_zeroed\fP (void)"
+.br
+.ti -1c
+.RI "void \fBinit_heap\fP (void)"
+.br
+.RI "Initializes the Kernel's HEAP for dynamic memory allocation\&. "
+.ti -1c
+.RI "void * \fBkmemset\fP (void *dest, int64_t val, uint64_t len)"
+.br
+.ti -1c
+.RI "void * \fBkmemcpy\fP (void *dest, const void *src, uint32_t len)"
+.br
+.ti -1c
+.RI "void * \fBMtAllocateVirtualMemory\fP (size_t size, size_t align)"
+.br
+.RI "Allocates a block of memory from the kernel’s memory manager\&. "
+.ti -1c
+.RI "void * \fBMtAllocateVirtualMemoryEx\fP (size_t size, size_t align, uint64_t flags)"
+.br
+.RI "\fBTHE USE OF THIS FUNCTION IS NOT RECOMMENDED -- TO ADD \fBFLAGS\fP TO AN ALLOCATED MEMORY BUFFER USE MtAddPageFlags TO ITS POINTER!!!\fP ** FREEING THE MEMORY OF THIS BUFFER WILL RESULT IN A PAGE FAULT ** Allocates a block of memory from the kernel's memory manager, and sets the paging flags according to the user\&. "
+.ti -1c
+.RI "void \fBMtFreeVirtualMemory\fP (void *ptr)"
+.br
+.RI "Releases (frees) a previously allocated block of memory back to the kernel’s memory manager\&. (DOES NOT UNMAP IF FUNCTION USED IS MtAllocateVirtualMemory !) "
+.ti -1c
+.RI "bool \fBMtIsHeapAddressAllocated\fP (void *ptr)"
+.br
+.RI "Returns if the heap pointer given has been allocated by MtAllocateVirtualMemory or not\&. "
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBkernel_end\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBkernel_start\fP"
+.br
+.ti -1c
+.RI "const size_t \fBkernel_length\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBbss_start\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBbss_end\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define HEAP_END   (PHYS_MEM_BASE + PHYS_MEM_SIZE)"
+
+.PP
+Definition at line \fB33\fP of file \fBmemory\&.h\fP\&.
+.SS "#define HEAP_SIZE   (\fBHEAP_END\fP \- \fBHEAP_START\fP)"
+
+.PP
+Definition at line \fB35\fP of file \fBmemory\&.h\fP\&.
+.SS "#define HEAP_START   ((uintptr_t)(&\fBkernel_end\fP))"
+
+.PP
+Definition at line \fB32\fP of file \fBmemory\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_BLOCK_HEADER\fP \fBBLOCK_HEADER\fP"
+
+.SH "Enumeration Type Documentation"
+.PP 
+.SS "anonymous enum"
+
+.PP
+\fBEnumerator\fP
+.in +1c
+.TP
+\f(BIBLK_NORMAL \fP
+.TP
+\f(BIBLK_EX \fP
+.PP
+Definition at line \fB45\fP of file \fBmemory\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "bool check_bss_zeroed (void )"
+
+.SS "void init_heap (void )"
+
+.PP
+Initializes the Kernel's HEAP for dynamic memory allocation\&. The function declares the globals for the heap current end, as well as setting up the free_list pointer\&. It first creates 1 initial 4KiB frame, maps it to be paged in virtual memory, and increases the heap current end by the frame size (4KiB), so that 1 starting page is allocated\&. 
+.PP
+Definition at line \fB36\fP of file \fBmemory\&.c\fP\&.
+.SS "void * kmemcpy (void * dest, const void * src, uint32_t len)"
+
+.PP
+Definition at line \fB138\fP of file \fBmemory\&.c\fP\&.
+.SS "void * kmemset (void * dest, int64_t val, uint64_t len)"
+
+.PP
+Definition at line \fB125\fP of file \fBmemory\&.c\fP\&.
+.SS "void * MtAllocateVirtualMemory (size_t wanted_size, size_t align)"
+
+.PP
+Allocates a block of memory from the kernel’s memory manager\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIsize\fP Size in bytes to allocate
+.br
+\fIalign\fP Alignment for each byte block (use internal structs for process \\ other - use _Alignof)
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+Pointer to start of allocated memory
+.RE
+.PP
+
+.PP
+Allocates a block of memory from the kernel’s memory manager\&. Zero the new memory block out\&.
+.PP
+Definition at line \fB154\fP of file \fBmemory\&.c\fP\&.
+.SS "void * MtAllocateVirtualMemoryEx (size_t size, size_t align, uint64_t flags)"
+
+.PP
+\fBTHE USE OF THIS FUNCTION IS NOT RECOMMENDED -- TO ADD \fBFLAGS\fP TO AN ALLOCATED MEMORY BUFFER USE MtAddPageFlags TO ITS POINTER!!!\fP ** FREEING THE MEMORY OF THIS BUFFER WILL RESULT IN A PAGE FAULT ** Allocates a block of memory from the kernel's memory manager, and sets the paging flags according to the user\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIsize\fP Size in bytes to allocate
+.br
+\fIalign\fP Alignment for each byteblock (use internal structs for process \\ other - use _Alignof)
+.br
+\fIflags\fP PAGE_FLAGS flags\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+Pointer to start of allocated memory
+.RE
+.PP
+
+.PP
+Definition at line \fB227\fP of file \fBmemory\&.c\fP\&.
+.SS "void MtFreeVirtualMemory (void * ptr)"
+
+.PP
+Releases (frees) a previously allocated block of memory back to the kernel’s memory manager\&. (DOES NOT UNMAP IF FUNCTION USED IS MtAllocateVirtualMemory !) 
+.PP
+\fBParameters\fP
+.RS 4
+\fIptr\fP Pointer to the allocated memory block to free
+.RE
+.PP
+
+.PP
+Definition at line \fB276\fP of file \fBmemory\&.c\fP\&.
+.SS "bool MtIsHeapAddressAllocated (void * ptr)"
+
+.PP
+Returns if the heap pointer given has been allocated by MtAllocateVirtualMemory or not\&. 
+.PP
+\fBParameters\fP
+.RS 4
+\fIptr\fP Address of what is given from MtAllocateVirtualMemory\&.
+.RE
+.PP
+\fBReturns\fP
+.RS 4
+.RE
+.PP
+
+.PP
+Definition at line \fB220\fP of file \fBmemory\&.c\fP\&.
+.SS "void zero_bss (void )"
+
+.PP
+Zeroes out the BSS section (garbage data that might have left there) The function takes the start and end address of the \fR\&.bss\fP section (provided by the linker script), and iterates over each byte from the start address up to (but not including) the end address, writing zero to each location\&. This ensures all global/static variables without initializers are zeroed\&. 
+.PP
+Definition at line \fB23\fP of file \fBmemory\&.c\fP\&.
+.SH "Variable Documentation"
+.PP 
+.SS "uint8_t bss_end\fR [extern]\fP"
+
+.SS "uint8_t bss_start\fR [extern]\fP"
+
+.SS "uint8_t kernel_end\fR [extern]\fP"
+
+.SS "const size_t kernel_length\fR [extern]\fP"
+
+.SS "uint8_t kernel_start\fR [extern]\fP"
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

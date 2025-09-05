@@ -1,0 +1,205 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stddef\&.h>\fP
+.br
+\fR#include <stdbool\&.h>\fP
+.br
+\fR#include <stdint\&.h>\fP
+.br
+\fR#include <stdatomic\&.h>\fP
+.br
+\fR#include 'trace\&.h'\fP
+.br
+\fR#include 'assert\&.h'\fP
+.br
+\fR#include 'intrin/intrin\&.h'\fP
+.br
+\fR#include 'cpu/cpu\&.h'\fP
+.br
+\fR#include 'filesystem/fat32/fat32\&.h'\fP
+.br
+\fR#include 'memory/allocator/uefi_memory\&.h'\fP
+.br
+\fR#include 'memory/memory\&.h'\fP
+.br
+\fR#include 'memory/paging/paging\&.h'\fP
+.br
+\fR#include 'defs/stdarg_myos\&.h'\fP
+.br
+\fR#include 'interrupts/idt\&.h'\fP
+.br
+\fR#include 'interrupts/handlers/handlers\&.h'\fP
+.br
+\fR#include 'bugcheck/bugcheck\&.h'\fP
+.br
+\fR#include 'memory/allocator/allocator\&.h'\fP
+.br
+\fR#include 'drivers/blk/block\&.h'\fP
+.br
+\fR#include 'drivers/ahci/ahci\&.h'\fP
+.br
+\fR#include 'drivers/gop/gop\&.h'\fP
+.br
+\fR#include 'cpu/cpuid/cpuid\&.h'\fP
+.br
+\fR#include 'time\&.h'\fP
+.br
+\fR#include 'filesystem/vfs/vfs\&.h'\fP
+.br
+\fR#include 'cpu/apic/apic\&.h'\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBUNREFERENCED_PARAMETER\fP(x)"
+.br
+.RI "#define CAUSE_BUGCHECK "
+.ti -1c
+.RI "#define \fBgop_printf_forced\fP(color,  fmt, \&.\&.\&.)"
+.br
+.ti -1c
+.RI "#define \fBALLOCATIONS\fP   1000"
+.br
+.ti -1c
+.RI "#define \fBBLOCK_SIZE\fP   128"
+.br
+.ti -1c
+.RI "#define \fBALIGNMENT\fP   16"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct \fB_BOOT_INFO\fP \fBBOOT_INFO\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBkernel_idle_checks\fP (void)"
+.br
+.ti -1c
+.RI "void \fBkernel_main\fP (\fBBOOT_INFO\fP *boot_info)"
+.br
+.ti -1c
+.RI "void \fBcopy_memory_map\fP (\fBBOOT_INFO\fP *boot_info)"
+.br
+.ti -1c
+.RI "void \fBcopy_gop\fP (\fBBOOT_INFO\fP *boot_info)"
+.br
+.ti -1c
+.RI "void \fBinit_boot_info\fP (\fBBOOT_INFO\fP *boot_info)"
+.br
+.ti -1c
+.RI "void \fBInitCPU\fP (void)"
+.br
+.ti -1c
+.RI "void \fBread_context_frame\fP (\fBCTX_FRAME\fP *registers)"
+.br
+.ti -1c
+.RI "void \fBread_interrupt_frame\fP (\fBINT_FRAME\fP *intfr)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "bool \fBisBugChecking\fP"
+.br
+.ti -1c
+.RI "\fBLASTFUNC_HISTORY\fP \fBlastfunc_history\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define ALIGNMENT   16"
+
+.PP
+Definition at line \fB74\fP of file \fBkernel\&.h\fP\&.
+.SS "#define ALLOCATIONS   1000"
+
+.PP
+Definition at line \fB72\fP of file \fBkernel\&.h\fP\&.
+.SS "#define BLOCK_SIZE   128"
+
+.PP
+Definition at line \fB73\fP of file \fBkernel\&.h\fP\&.
+.SS "#define gop_printf_forced( color,  fmt,  \&.\&.\&.)"
+\fBValue:\fP
+.nf
+gop_printf(color, fmt, ##__VA_ARGS__)
+.PP
+.fi
+
+.PP
+Definition at line \fB70\fP of file \fBkernel\&.h\fP\&.
+.SS "#define UNREFERENCED_PARAMETER( x)"
+\fBValue:\fP
+.nf
+(void)(x)
+.PP
+.fi
+
+.PP
+#define CAUSE_BUGCHECK #define REMINDER 
+.PP
+Definition at line \fB36\fP of file \fBkernel\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef struct \fB_BOOT_INFO\fP \fBBOOT_INFO\fP"
+
+.PP
+Definition at line \fB20\fP of file \fBkernel\&.h\fP\&.
+.SH "Function Documentation"
+.PP 
+.SS "void copy_gop (\fBBOOT_INFO\fP * boot_info)"
+
+.PP
+Definition at line \fB49\fP of file \fBkernel\&.c\fP\&.
+.SS "void copy_memory_map (\fBBOOT_INFO\fP * boot_info)"
+
+.PP
+Definition at line \fB33\fP of file \fBkernel\&.c\fP\&.
+.SS "void init_boot_info (\fBBOOT_INFO\fP * boot_info)"
+
+.PP
+Definition at line \fB61\fP of file \fBkernel\&.c\fP\&.
+.SS "void InitCPU (void )"
+
+.PP
+Definition at line \fB94\fP of file \fBkernel\&.c\fP\&.
+.SS "void kernel_idle_checks (void )"
+
+.PP
+Definition at line \fB107\fP of file \fBkernel\&.c\fP\&.
+.SS "void kernel_main (\fBBOOT_INFO\fP * boot_info)"
+Remember that paging is on when this is called, as UEFI turned it on\&. 
+.PP
+Definition at line \fB153\fP of file \fBkernel\&.c\fP\&.
+.SS "void read_context_frame (\fBCTX_FRAME\fP * registers)\fR [extern]\fP"
+
+.SS "void read_interrupt_frame (\fBINT_FRAME\fP * intfr)\fR [extern]\fP"
+
+.SH "Variable Documentation"
+.PP 
+.SS "bool isBugChecking\fR [extern]\fP"
+
+.PP
+Definition at line \fB21\fP of file \fBkernel\&.c\fP\&.
+.SS "\fBLASTFUNC_HISTORY\fP lastfunc_history\fR [extern]\fP"
+
+.PP
+Definition at line \fB22\fP of file \fBkernel\&.c\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

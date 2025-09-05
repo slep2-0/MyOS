@@ -1,0 +1,94 @@
+\doxysection{dpc.\+c}
+\hypertarget{dpc_8c_source}{}\label{dpc_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc.c}}
+\mbox{\hyperlink{dpc_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ DPC\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{dpc_8h}{dpc.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{bugcheck_8h}{../../bugcheck/bugcheck.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00009}00009\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00010}\mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{00010}}\ \textcolor{keyword}{volatile}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}*\ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00011}\mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{00011}}\ \textcolor{keyword}{volatile}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}*\ \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpcQueueTail}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00013}\mbox{\hyperlink{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{00013}}\ \textcolor{keyword}{volatile}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\_pending}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00014}00014\ \textcolor{keyword}{static}\ \mbox{\hyperlink{cpu__types_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}}\ dpc\_lock;\ \textcolor{comment}{//\ SPINLOCK\ for\ the\ dpc,\ only\ 1\ thread\ is\ allowed\ to\ use\ it\ at\ a\ time.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00015}00015\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00016}\mbox{\hyperlink{dpc_8c_a2d28c37bcaae170ce51557a6a7355e78}{00016}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dpc_8c_a2d28c37bcaae170ce51557a6a7355e78}{init\_dpc\_system}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00017}00017\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}init\_dpc\_system"{}});}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00018}00018\ \ \ \ \ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}\ =\ \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpcQueueTail}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00019}00019\ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00021}\mbox{\hyperlink{dpc_8c_a4a16fe16032924d21717e02d4447dbb8}{00021}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dpc_8c_a4a16fe16032924d21717e02d4447dbb8}{MtQueueDPC}}(\textcolor{keyword}{volatile}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}*\ dpc)\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00022}00022\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}queue\_dpc"{}});}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00023}00023\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dpc)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00024}00024\ \ \ \ \ dpc-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00026}00026\ \ \ \ \ \textcolor{comment}{//\ Sorted\ insertion\ mechanism\ by\ priority\ (higher\ priority\ -\/>\ inserted\ to\ the\ head)}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00027}00027\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00028}00028\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Starting\ with\ empty\ queue.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}\ =\ \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpcQueueTail}}\ =\ dpc;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00031}00031\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00032}00032\ \ \ \ \ \textcolor{comment}{//\ not\ an\ empty\ queue\ -\/>\ check\ priority.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00033}00033\ \ \ \ \ \textcolor{comment}{//\ check\ if\ the\ priority\ is\ highest.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00034}00034\ \ \ \ \ \textcolor{keywordflow}{if}\ (dpc-\/>\mbox{\hyperlink{struct___d_p_c_a5499f2b63f7af1c0e21c8d357dc2bf82}{priority}}\ >\ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}-\/>priority)\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00035}00035\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Insert\ at\ the\ front\ (head)}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00036}00036\ \ \ \ \ \ \ \ \ dpc-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}\ =\ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00037}00037\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}\ =\ dpc;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00039}00039\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00040}00040\ \ \ \ \ \textcolor{comment}{//\ else,\ find\ our\ insertion\ point.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00041}00041\ \ \ \ \ \textcolor{keyword}{volatile}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}*\ cur\ =\ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00042}00042\ \ \ \ \ \textcolor{comment}{//\ Check\ each\ DPC\ entry\ for\ it's\ priority,\ and\ insert\ the\ DPC\ requested\ accordingly.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00043}00043\ \ \ \ \ \textcolor{keywordflow}{while}\ (cur-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}\ \&\&\ cur-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}-\/>\mbox{\hyperlink{struct___d_p_c_a5499f2b63f7af1c0e21c8d357dc2bf82}{priority}}\ >=\ dpc-\/>\mbox{\hyperlink{struct___d_p_c_a5499f2b63f7af1c0e21c8d357dc2bf82}{priority}})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00044}00044\ \ \ \ \ \ \ \ \ cur\ =\ cur-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00045}00045\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00046}00046\ \ \ \ \ \textcolor{comment}{//\ Singular\ linked\ list.}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00047}00047\ \ \ \ \ dpc-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}\ =\ cur-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00048}00048\ \ \ \ \ cur-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}}\ =\ dpc;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00049}00049\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dpc-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpcQueueTail}}\ =\ dpc;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00051}00051\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00052}00052\ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00053}00053\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00054}\mbox{\hyperlink{dpc_8c_aa083cd3c0dc38c20ed94cae4cde456bd}{00054}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dpc_8c_aa083cd3c0dc38c20ed94cae4cde456bd}{RetireDPCs}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00055}00055\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}RetireDPCs"{}});}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00056}00056\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00058}00058\ \ \ \ \ \mbox{\hyperlink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00059}00059\ \ \ \ \ uint64\_t\ flags;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00060}00060\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00061}00061\ \ \ \ \ \textcolor{comment}{//\ 1)\ Raise\ once}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00062}00062\ \ \ \ \ \mbox{\hyperlink{irql_8c_a7b283751f37f08c240ae3ec69c88036c}{MtRaiseIRQL}}(\mbox{\hyperlink{cpu__types_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ \&oldIrql);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00063}00063\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00064}00064\ \ \ \ \ \textcolor{comment}{//\ 2)\ Acquire\ lock\ for\ the\ whole\ drain}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00065}00065\ \ \ \ \ MtAcquireSpinlock(\&dpc\_lock,\ \&flags);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00067}00067\ \ \ \ \ \textcolor{comment}{//\ 3)\ Drain\ the\ queue}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00068}00068\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \textcolor{keyword}{volatile}\ \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}*\ d\ =\ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00070}00070\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}}\ =\ d-\/>\mbox{\hyperlink{struct___d_p_c_a0850494b37bcc8dcb42d748caaab0447}{Next}};}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpcQueueHead}})\ \{}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpcQueueTail}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00073}00073\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00074}00074\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ release\ lock\ so\ callback\ can\ queue\ new\ DPCs\ if\ needed}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ MtReleaseSpinlock(\&dpc\_lock,\ flags);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00076}00076\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00077}00077\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ STILL\ at\ DISPATCH\_LEVEL}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (d-\/>\mbox{\hyperlink{struct___d_p_c_a4a2cf0a47072433a02cb6f869d9a1622}{hasCtx}})\ \ \ \ \ \ d-\/>\mbox{\hyperlink{struct___d_p_c_a854b1b18e30ea4ffcafcde1b83eabdad}{callbackWithCtx}}(d-\/>\mbox{\hyperlink{struct___d_p_c_a06038abc2a409c61d812d8b8bfb5c660}{ctx}});}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00079}00079\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (d-\/>\mbox{\hyperlink{struct___d_p_c_a11f084a69a85b6e1da79695b6a3d07c3}{callback}})\ d-\/>\mbox{\hyperlink{struct___d_p_c_a11f084a69a85b6e1da79695b6a3d07c3}{callback}}();}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00080}00080\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ re-\/acquire\ for\ next\ pop}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ MtAcquireSpinlock(\&dpc\_lock,\ \&flags);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00083}00083\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00084}00084\ }
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00085}00085\ \ \ \ \ \textcolor{comment}{//\ 4)\ Release\ lock\ and\ lower\ once}}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00086}00086\ \ \ \ \ MtReleaseSpinlock(\&dpc\_lock,\ flags);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00087}00087\ \ \ \ \ \mbox{\hyperlink{irql_8c_a173035246a571f36d2066be8fa9eef11}{MtLowerIRQL}}(oldIrql);}
+\DoxyCodeLine{\Hypertarget{dpc_8c_source_l00088}00088\ \}}
+
+\end{DoxyCode}

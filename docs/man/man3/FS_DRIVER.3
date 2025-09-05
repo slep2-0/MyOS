@@ -1,0 +1,86 @@
+.TH "FS_DRIVER" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+FS_DRIVER
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fR#include <vfs\&.h>\fP
+.SS "Data Fields"
+
+.in +1c
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBinit\fP )(uint8_t device_id)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBread\fP )(const char *filename, uint32_t *file_size_out, void **buffer_out)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBwrite\fP )(const char *path, const void *data, uint32_t size, uint32_t mode)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBdelete\fP )(const char *path)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBmkdir\fP )(const char *path)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBrmdir\fP )(const char *path)"
+.br
+.ti -1c
+.RI "bool(* \fBis_dir_empty\fP )(const char *path)"
+.br
+.ti -1c
+.RI "\fBMTSTATUS\fP(* \fBlistdir\fP )(const char *path, char *listings, size_t max_len)"
+.br
+.ti -1c
+.RI "void(* \fBlistrootdir\fP )(void)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line \fB18\fP of file \fBvfs\&.h\fP\&.
+.SH "Field Documentation"
+.PP 
+.SS "\fBMTSTATUS\fP(* delete) (const char *path)"
+
+.PP
+Definition at line \fB22\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* init) (uint8_t device_id)"
+
+.PP
+Definition at line \fB19\fP of file \fBvfs\&.h\fP\&.
+.SS "bool(* is_dir_empty) (const char *path)"
+
+.PP
+Definition at line \fB25\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* listdir) (const char *path, char *listings, size_t max_len)"
+
+.PP
+Definition at line \fB26\fP of file \fBvfs\&.h\fP\&.
+.SS "void(* listrootdir) (void)"
+
+.PP
+Definition at line \fB27\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* mkdir) (const char *path)"
+
+.PP
+Definition at line \fB23\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* read) (const char *filename, uint32_t *file_size_out, void **buffer_out)"
+
+.PP
+Definition at line \fB20\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* rmdir) (const char *path)"
+
+.PP
+Definition at line \fB24\fP of file \fBvfs\&.h\fP\&.
+.SS "\fBMTSTATUS\fP(* write) (const char *path, const void *data, uint32_t size, uint32_t mode)"
+
+.PP
+Definition at line \fB21\fP of file \fBvfs\&.h\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

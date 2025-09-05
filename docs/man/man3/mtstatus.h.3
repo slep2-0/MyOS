@@ -1,0 +1,410 @@
+.TH "C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/mtstatus.h" 3 "MatanelOS" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/mtstatus.h
+.SH SYNOPSIS
+.br
+.PP
+\fR#include <stdint\&.h>\fP
+.br
+
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBMT_SUCCEEDED\fP(Status)"
+.br
+.RI "Macros to test status\&. "
+.ti -1c
+.RI "#define \fBMT_FAILURE\fP(Status)"
+.br
+.ti -1c
+.RI "#define \fBMT_SUCCESS\fP   ((\fBMTSTATUS\fP)0x00000000L)"
+.br
+.ti -1c
+.RI "#define \fBMT_NOT_IMPLEMENTED\fP   ((\fBMTSTATUS\fP)0xC0000001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_INVALID_PARAM\fP   ((\fBMTSTATUS\fP)0xC0000002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_INVALID_STATE\fP   ((\fBMTSTATUS\fP)0xC0000003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_ACCESS_DENIED\fP   ((\fBMTSTATUS\fP)0xC0000004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_TIMEOUT\fP   ((\fBMTSTATUS\fP)0xC0000005L)"
+.br
+.ti -1c
+.RI "#define \fBMT_UNSUPPORTED_OP\fP   ((\fBMTSTATUS\fP)0xC0000006L)"
+.br
+.ti -1c
+.RI "#define \fBMT_ALREADY_EXISTS\fP   ((\fBMTSTATUS\fP)0xC0000007L)"
+.br
+.ti -1c
+.RI "#define \fBMT_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC0000008L)"
+.br
+.ti -1c
+.RI "#define \fBMT_GENERAL_FAILURE\fP   ((\fBMTSTATUS\fP)0xC0000009L)"
+.br
+.ti -1c
+.RI "#define \fBMT_NO_MEMORY\fP   ((\fBMTSTATUS\fP)0xC1000001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_MEMORY_LIMIT\fP   ((\fBMTSTATUS\fP)0xC1000002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_PAGE_FAULT_ERROR\fP   ((\fBMTSTATUS\fP)0xC1000003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_HEAP_CORRUPTION\fP   ((\fBMTSTATUS\fP)0xC1000004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_INVALID_ADDRESS\fP   ((\fBMTSTATUS\fP)0xC1000005L)"
+.br
+.ti -1c
+.RI "#define \fBMT_IO_ERROR\fP   ((\fBMTSTATUS\fP)0xC2000001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_CORRUPTED\fP   ((\fBMTSTATUS\fP)0xC2000002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_READ_ONLY\fP   ((\fBMTSTATUS\fP)0xC2000003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_NO_SPACE\fP   ((\fBMTSTATUS\fP)0xC2000004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_PERMISSION_DENIED\fP   ((\fBMTSTATUS\fP)0xC2000005L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_INITIALIZATION_FAILURE\fP   ((\fBMTSTATUS\fP)0xC2000006L)"
+.br
+.ti -1c
+.RI "#define \fBMT_VFS_GENERAL_FAILURE\fP   ((\fBMTSTATUS\fP)0xC2000007L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_CLUSTERS_FULL\fP   ((\fBMTSTATUS\fP)0xC2010001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_INVALID_CLUSTER\fP   ((\fBMTSTATUS\fP)0xC2010002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_DIR_FULL\fP   ((\fBMTSTATUS\fP)0xC2010003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_FILE_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC2010004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_PATH_TOO_LONG\fP   ((\fBMTSTATUS\fP)0xC2010005L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_INVALID_FILENAME\fP   ((\fBMTSTATUS\fP)0xC2010006L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_EOF\fP   ((\fBMTSTATUS\fP)0xC2010007L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_DIRECTORY_ALREADY_EXISTS\fP   ((\fBMTSTATUS\fP)0xC2010008L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_PARENT_PATH_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC2010009L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_PARENT_PATH_NOT_DIR\fP   ((\fBMTSTATUS\fP)0xC2010010L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_INVALID_WRITE_MODE\fP   ((\fBMTSTATUS\fP)0xC2010011L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_CLUSTER_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC2010012L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_CLUSTER_GENERAL_FAILURE\fP   ((\fBMTSTATUS\fP)0xC2010013L)"
+.br
+.ti -1c
+.RI "#define \fBMT_FAT32_DIRECTORY_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC2010014L)"
+.br
+.ti -1c
+.RI "#define \fBMT_DEVICE_NOT_READY\fP   ((\fBMTSTATUS\fP)0xC3000001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_DEVICE_ERROR\fP   ((\fBMTSTATUS\fP)0xC3000002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_DEVICE_TIMEOUT\fP   ((\fBMTSTATUS\fP)0xC3000003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_DEVICE_UNSUPPORTED\fP   ((\fBMTSTATUS\fP)0xC3000004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_INIT_FAILED\fP   ((\fBMTSTATUS\fP)0xC3010001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_PORT_FAILURE\fP   ((\fBMTSTATUS\fP)0xC3010002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_READ_FAILURE\fP   ((\fBMTSTATUS\fP)0xC3010003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_WRITE_FAILURE\fP   ((\fBMTSTATUS\fP)0xC3010004L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_TIMEOUT\fP   ((\fBMTSTATUS\fP)0xC3010005L)"
+.br
+.ti -1c
+.RI "#define \fBMT_AHCI_GENERAL_FAILURE\fP   ((\fBMTSTATUS\fP)0xC3010006L)"
+.br
+.ti -1c
+.RI "#define \fBMT_THREAD_NOT_FOUND\fP   ((\fBMTSTATUS\fP)0xC4000001L)"
+.br
+.ti -1c
+.RI "#define \fBMT_THREAD_CREATION_FAIL\fP   ((\fBMTSTATUS\fP)0xC4000002L)"
+.br
+.ti -1c
+.RI "#define \fBMT_SCHEDULER_ERROR\fP   ((\fBMTSTATUS\fP)0xC4000003L)"
+.br
+.ti -1c
+.RI "#define \fBMT_INVALID_IRQL\fP   ((\fBMTSTATUS\fP)0xC4000004L)"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef int32_t \fBMTSTATUS\fP"
+.br
+.in -1c
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define MT_ACCESS_DENIED   ((\fBMTSTATUS\fP)0xC0000004L)"
+
+.PP
+Definition at line \fB26\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_GENERAL_FAILURE   ((\fBMTSTATUS\fP)0xC3010006L)"
+
+.PP
+Definition at line \fB86\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_INIT_FAILED   ((\fBMTSTATUS\fP)0xC3010001L)"
+
+.PP
+Definition at line \fB81\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_PORT_FAILURE   ((\fBMTSTATUS\fP)0xC3010002L)"
+
+.PP
+Definition at line \fB82\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_READ_FAILURE   ((\fBMTSTATUS\fP)0xC3010003L)"
+
+.PP
+Definition at line \fB83\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_TIMEOUT   ((\fBMTSTATUS\fP)0xC3010005L)"
+
+.PP
+Definition at line \fB85\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_AHCI_WRITE_FAILURE   ((\fBMTSTATUS\fP)0xC3010004L)"
+
+.PP
+Definition at line \fB84\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_ALREADY_EXISTS   ((\fBMTSTATUS\fP)0xC0000007L)"
+
+.PP
+Definition at line \fB29\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_DEVICE_ERROR   ((\fBMTSTATUS\fP)0xC3000002L)"
+
+.PP
+Definition at line \fB78\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_DEVICE_NOT_READY   ((\fBMTSTATUS\fP)0xC3000001L)"
+
+.PP
+Definition at line \fB77\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_DEVICE_TIMEOUT   ((\fBMTSTATUS\fP)0xC3000003L)"
+
+.PP
+Definition at line \fB79\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_DEVICE_UNSUPPORTED   ((\fBMTSTATUS\fP)0xC3000004L)"
+
+.PP
+Definition at line \fB80\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAILURE( Status)"
+\fBValue:\fP
+.nf
+((Status) < 0)
+.PP
+.fi
+
+.PP
+Definition at line \fB16\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_CLUSTER_GENERAL_FAILURE   ((\fBMTSTATUS\fP)0xC2010013L)"
+
+.PP
+Definition at line \fB70\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_CLUSTER_NOT_FOUND   ((\fBMTSTATUS\fP)0xC2010012L)"
+
+.PP
+Definition at line \fB69\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_CLUSTERS_FULL   ((\fBMTSTATUS\fP)0xC2010001L)"
+
+.PP
+Definition at line \fB58\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_DIR_FULL   ((\fBMTSTATUS\fP)0xC2010003L)"
+
+.PP
+Definition at line \fB60\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_DIRECTORY_ALREADY_EXISTS   ((\fBMTSTATUS\fP)0xC2010008L)"
+
+.PP
+Definition at line \fB65\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_DIRECTORY_NOT_FOUND   ((\fBMTSTATUS\fP)0xC2010014L)"
+
+.PP
+Definition at line \fB71\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_EOF   ((\fBMTSTATUS\fP)0xC2010007L)"
+
+.PP
+Definition at line \fB64\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_FILE_NOT_FOUND   ((\fBMTSTATUS\fP)0xC2010004L)"
+
+.PP
+Definition at line \fB61\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_INVALID_CLUSTER   ((\fBMTSTATUS\fP)0xC2010002L)"
+
+.PP
+Definition at line \fB59\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_INVALID_FILENAME   ((\fBMTSTATUS\fP)0xC2010006L)"
+
+.PP
+Definition at line \fB63\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_INVALID_WRITE_MODE   ((\fBMTSTATUS\fP)0xC2010011L)"
+
+.PP
+Definition at line \fB68\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_PARENT_PATH_NOT_DIR   ((\fBMTSTATUS\fP)0xC2010010L)"
+
+.PP
+Definition at line \fB67\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_PARENT_PATH_NOT_FOUND   ((\fBMTSTATUS\fP)0xC2010009L)"
+
+.PP
+Definition at line \fB66\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_FAT32_PATH_TOO_LONG   ((\fBMTSTATUS\fP)0xC2010005L)"
+
+.PP
+Definition at line \fB62\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_GENERAL_FAILURE   ((\fBMTSTATUS\fP)0xC0000009L)"
+
+.PP
+Definition at line \fB31\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_HEAP_CORRUPTION   ((\fBMTSTATUS\fP)0xC1000004L)"
+
+.PP
+Definition at line \fB40\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_INVALID_ADDRESS   ((\fBMTSTATUS\fP)0xC1000005L)"
+
+.PP
+Definition at line \fB41\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_INVALID_IRQL   ((\fBMTSTATUS\fP)0xC4000004L)"
+
+.PP
+Definition at line \fB95\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_INVALID_PARAM   ((\fBMTSTATUS\fP)0xC0000002L)"
+
+.PP
+Definition at line \fB24\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_INVALID_STATE   ((\fBMTSTATUS\fP)0xC0000003L)"
+
+.PP
+Definition at line \fB25\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_IO_ERROR   ((\fBMTSTATUS\fP)0xC2000001L)"
+
+.PP
+Definition at line \fB47\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_MEMORY_LIMIT   ((\fBMTSTATUS\fP)0xC1000002L)"
+
+.PP
+Definition at line \fB38\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_NO_MEMORY   ((\fBMTSTATUS\fP)0xC1000001L)"
+
+.PP
+Definition at line \fB37\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_NOT_FOUND   ((\fBMTSTATUS\fP)0xC0000008L)"
+
+.PP
+Definition at line \fB30\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_NOT_IMPLEMENTED   ((\fBMTSTATUS\fP)0xC0000001L)"
+
+.PP
+Definition at line \fB23\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_PAGE_FAULT_ERROR   ((\fBMTSTATUS\fP)0xC1000003L)"
+
+.PP
+Definition at line \fB39\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_SCHEDULER_ERROR   ((\fBMTSTATUS\fP)0xC4000003L)"
+
+.PP
+Definition at line \fB94\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_SUCCEEDED( Status)"
+\fBValue:\fP
+.nf
+((Status) >= 0)
+.PP
+.fi
+
+.PP
+Macros to test status\&. 
+.PP
+Definition at line \fB15\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_SUCCESS   ((\fBMTSTATUS\fP)0x00000000L)"
+
+.PP
+Definition at line \fB22\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_THREAD_CREATION_FAIL   ((\fBMTSTATUS\fP)0xC4000002L)"
+
+.PP
+Definition at line \fB93\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_THREAD_NOT_FOUND   ((\fBMTSTATUS\fP)0xC4000001L)"
+
+.PP
+Definition at line \fB92\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_TIMEOUT   ((\fBMTSTATUS\fP)0xC0000005L)"
+
+.PP
+Definition at line \fB27\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_UNSUPPORTED_OP   ((\fBMTSTATUS\fP)0xC0000006L)"
+
+.PP
+Definition at line \fB28\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_CORRUPTED   ((\fBMTSTATUS\fP)0xC2000002L)"
+
+.PP
+Definition at line \fB48\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_GENERAL_FAILURE   ((\fBMTSTATUS\fP)0xC2000007L)"
+
+.PP
+Definition at line \fB53\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_INITIALIZATION_FAILURE   ((\fBMTSTATUS\fP)0xC2000006L)"
+
+.PP
+Definition at line \fB52\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_NO_SPACE   ((\fBMTSTATUS\fP)0xC2000004L)"
+
+.PP
+Definition at line \fB50\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_PERMISSION_DENIED   ((\fBMTSTATUS\fP)0xC2000005L)"
+
+.PP
+Definition at line \fB51\fP of file \fBmtstatus\&.h\fP\&.
+.SS "#define MT_VFS_READ_ONLY   ((\fBMTSTATUS\fP)0xC2000003L)"
+
+.PP
+Definition at line \fB49\fP of file \fBmtstatus\&.h\fP\&.
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef int32_t \fBMTSTATUS\fP"
+
+.PP
+Definition at line \fB12\fP of file \fBmtstatus\&.h\fP\&.
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for MatanelOS from the source code\&.

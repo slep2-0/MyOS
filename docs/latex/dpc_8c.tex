@@ -1,0 +1,92 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/cpu/dpc/dpc.c File Reference}
+\hypertarget{dpc_8c}{}\label{dpc_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/cpu/dpc/dpc.c}}
+{\ttfamily \#include "{}dpc.\+h"{}}\newline
+{\ttfamily \#include "{}../../bugcheck/bugcheck.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{dpc_8c_a2d28c37bcaae170ce51557a6a7355e78}{init\+\_\+dpc\+\_\+system}} (void)
+\item 
+void \mbox{\hyperlink{dpc_8c_a4a16fe16032924d21717e02d4447dbb8}{Mt\+Queue\+DPC}} (volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*}dpc)
+\item 
+void \mbox{\hyperlink{dpc_8c_aa083cd3c0dc38c20ed94cae4cde456bd}{Retire\+DPCs}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}{dpc\+Queue\+Head}} = NULL
+\item 
+volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}{dpc\+Queue\+Tail}} = NULL
+\item 
+volatile bool \mbox{\hyperlink{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}{schedule\+\_\+pending}} = false
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{dpc_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{dpc_8c_a2d28c37bcaae170ce51557a6a7355e78}\index{dpc.c@{dpc.c}!init\_dpc\_system@{init\_dpc\_system}}
+\index{init\_dpc\_system@{init\_dpc\_system}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{init\_dpc\_system()}{init\_dpc\_system()}}
+{\footnotesize\ttfamily \label{dpc_8c_a2d28c37bcaae170ce51557a6a7355e78} 
+void init\+\_\+dpc\+\_\+system (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+Deferred procedure calls (Like in Windows -\/ \href{https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/introduction-to-dpcs}{\texttt{https\+://learn.\+microsoft.\+com/en-\/us/windows-\/hardware/drivers/kernel/introduction-\/to-\/dpcs}}) Basically, they are function calls that happen in the interrupt service routine, in order to lower \doxylink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL} instead of staying in such a high \doxylink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}. And to manage things that happen inside of the service routine effictively. 
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00016}{16}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a4a16fe16032924d21717e02d4447dbb8}\index{dpc.c@{dpc.c}!MtQueueDPC@{MtQueueDPC}}
+\index{MtQueueDPC@{MtQueueDPC}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MtQueueDPC()}{MtQueueDPC()}}
+{\footnotesize\ttfamily \label{dpc_8c_a4a16fe16032924d21717e02d4447dbb8} 
+void Mt\+Queue\+DPC (\begin{DoxyParamCaption}\item[{volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*}}]{dpc}{}\end{DoxyParamCaption})}
+
+Enqueue \doxylink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC} for deferred exceution Safe to at ANY \doxylink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}. 
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00021}{21}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_aa083cd3c0dc38c20ed94cae4cde456bd}\index{dpc.c@{dpc.c}!RetireDPCs@{RetireDPCs}}
+\index{RetireDPCs@{RetireDPCs}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{RetireDPCs()}{RetireDPCs()}}
+{\footnotesize\ttfamily \label{dpc_8c_aa083cd3c0dc38c20ed94cae4cde456bd} 
+void Retire\+DPCs (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+Walk through the \doxylink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC} queue, raising the \doxylink{cpu__types_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL} to DISPATCH\+\_\+\+LEVEL in the process. This gets called in a kernel idle (main) function thread. 
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00054}{54}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{dpc_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a}\index{dpc.c@{dpc.c}!dpcQueueHead@{dpcQueueHead}}
+\index{dpcQueueHead@{dpcQueueHead}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{dpcQueueHead}{dpcQueueHead}}
+{\footnotesize\ttfamily \label{dpc_8c_a3c7b920d6559946a9ef26fe6cbd2d33a} 
+volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}\texorpdfstring{$\ast$}{*} dpc\+Queue\+Head = NULL}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00010}{10}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a62e0035cedd9cccd978c508c8f527b41}\index{dpc.c@{dpc.c}!dpcQueueTail@{dpcQueueTail}}
+\index{dpcQueueTail@{dpcQueueTail}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{dpcQueueTail}{dpcQueueTail}}
+{\footnotesize\ttfamily \label{dpc_8c_a62e0035cedd9cccd978c508c8f527b41} 
+volatile \mbox{\hyperlink{cpu__types_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}}\texorpdfstring{$\ast$}{*} dpc\+Queue\+Tail = NULL}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00011}{11}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d}\index{dpc.c@{dpc.c}!schedule\_pending@{schedule\_pending}}
+\index{schedule\_pending@{schedule\_pending}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{schedule\_pending}{schedule\_pending}}
+{\footnotesize\ttfamily \label{dpc_8c_a4c2cfad020fec829877b17fb6ae3ee2d} 
+volatile bool schedule\+\_\+pending = false}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00013}{13}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
