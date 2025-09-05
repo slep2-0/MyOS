@@ -74,20 +74,8 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
         return MT_SUCCESS;
     }
 
-    // Mutex is owned -> enqueue on event waiting queue.
-    // FOLLOW LOCK ORDER: acquire mut->lock (we already have it) -> event->lock
-    uint64_t eflags;
-    MtAcquireSpinlock(mut->SynchEvent->lock, &eflags);
-
-    MtEnqueueThread(mut->SynchEvent->waitingQueue, currThread); // must be called under event->lock
-    currThread->threadState = BLOCKED;
-
-    MtReleaseSpinlock(mut->SynchEvent->lock, eflags);
-
-    // Now release mut->lock and block.
-    MtReleaseSpinlock(mut->lock, mflags);
-
-    MtSleepCurrentThread();
+    // Mutex is owned -> wait for event.
+    MtWaitForEvent(mut->SynchEvent);
 
     // When woken, the releaser has transferred ownership while holding locks.
     return MT_SUCCESS;
@@ -128,16 +116,12 @@ MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
     mut->ownerTid = next->TID;
     mut->locked = true; // stays locked but now owned by 'next'
 
-    // For synchronization event semantics: event remains non-signaled (auto-reset)
-    mut->SynchEvent->signaled = false;
-
     // We've removed 'next' from the waiting queue already
     MtReleaseSpinlock(mut->SynchEvent->lock, eflags);
     MtReleaseSpinlock(mut->lock, mflags);
 
-    // Wake the selected thread by putting it on the ready queue (do this after releasing locks)
-    next->threadState = READY;
-    MtEnqueueThreadWithLock(&cpu.readyQueue, next);
+    // Wake the selected thread by setting an event.
+    MtSetEvent(mut->SynchEvent);
 
     return MT_SUCCESS;
 }

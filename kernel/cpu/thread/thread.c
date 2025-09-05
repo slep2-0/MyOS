@@ -153,5 +153,5 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 extern CPU cpu;
 
 Thread* MtGetCurrentThread(void) {
-    return cpu.currentThread;
+    return (Thread*)__readmsr(IA32_GS_BASE);
 }

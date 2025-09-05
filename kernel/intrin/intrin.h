@@ -15,6 +15,11 @@
 // End of Interrupt command code
 #define PIC_EOI 0x20
 
+// MSRs
+#define IA32_KERNEL_GS_BASE 0xC0000102
+#define IA32_GS_BASE 0xC0000100 /* used both in kernel mode and user mode */
+#define IA32_FS_BASE 0xC0000101
+
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif

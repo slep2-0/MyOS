@@ -66,7 +66,7 @@ void Schedule(void) {
     Thread* prev = cpu.currentThread;
 
     if (prev && prev != &idleThread && prev->threadState == RUNNING) {
-        // The current thread's registers were already saved in isr_stub. (look after the pushes)
+        // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)
         enqueue_runnable(prev);
     }
 
@@ -79,6 +79,7 @@ void Schedule(void) {
     next->threadState = RUNNING;
     next->timeSlice = next->origTimeSlice;
     cpu.currentThread = next;
+    __writemsr(IA32_GS_BASE, (uint64_t)next);
 
     MtLowerIRQL(PASSIVE_LEVEL);
     tracelast_func("Entering restore_context.");
