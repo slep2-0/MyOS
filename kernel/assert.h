@@ -7,11 +7,11 @@
 #ifndef X86_ASSERT_H
 #define X86_ASSERT_H
 
+#ifdef DEBUG
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "bugcheck/bugcheck.h"
-#ifdef DEBUG
 __attribute__((noreturn))
 static void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line) {
     // Getting here means a runtime assertion has failed (assert())

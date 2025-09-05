@@ -43,4 +43,9 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 /// <returns>Pointer to current Thread (struct)</returns>
 Thread* MtGetCurrentThread(void);
 
+/// <summary>
+/// Acquired from mutex.asm --- Will save current thread's registers, and schedule it. (its RIP would be after this function call, so you are good)
+/// </summary>
+extern void MtSleepCurrentThread(void);
+
 #endif

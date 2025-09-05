@@ -92,6 +92,7 @@
 #include "dpc/dpc_list.h"
 #include "scheduler/scheduler.h"
 #include "thread/thread.h"
+#include "../mtstatus.h"
 
 /// <summary>
 /// Read the current interrupt frame.
@@ -103,8 +104,6 @@ void read_interrupt_frame(INT_FRAME* frame);
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
 
-extern SPINLOCK queueLock;
-
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
 /// CTX_FRAME* ctxframeptr = 0x1234; // Hypothetical address of the pointer.
@@ -114,21 +113,23 @@ extern SPINLOCK queueLock;
     ((type *)((char *)(ptr) - offsetof(type, member)))
 #endif
 
-static inline void enqueue(Queue* queue, Thread* thread) {
-	tracelast_func("enqueue");
+// Enqueues the thread given to the queue. (acquires spinlock)
+static inline void MtEnqueueThreadWithLock(Queue* queue, Thread* thread) {
+	tracelast_func("MtEnqueueThreadWithLock");
     uint64_t flags;
-    MtAcquireSpinlock(&queueLock, &flags);
+    MtAcquireSpinlock(&queue->lock, &flags);
 	thread->nextThread = NULL;
 	if (!queue->head) queue->head = thread;
 	else queue->tail->nextThread = thread;
 	queue->tail = thread;
-    MtReleaseSpinlock(&queueLock, flags);
+    MtReleaseSpinlock(&queue->lock, flags);
 }
 
-static inline Thread* dequeue(Queue* q) {
-    tracelast_func("dequeue");
+// Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
+static inline Thread* MtDequeueThreadWithLock(Queue* q) {
+    tracelast_func("MtDequeueThreadWithLock");
     uint64_t flags;
-    MtAcquireSpinlock(&queueLock, &flags);
+    MtAcquireSpinlock(&q->lock, &flags);
     if (!q->head) {
         return NULL;
     }
@@ -139,7 +140,32 @@ static inline Thread* dequeue(Queue* q) {
         q->tail = NULL;
     }
     t->nextThread = NULL;
-    MtReleaseSpinlock(&queueLock, flags);
+    MtReleaseSpinlock(&q->lock, flags);
+    return t;
+}
+
+// Enqueues the thread given to the queue.
+static inline void MtEnqueueThread(Queue* queue, Thread* thread) {
+    tracelast_func("MtEnqueueThread");
+    thread->nextThread = NULL;
+    if (!queue->head) queue->head = thread;
+    else queue->tail->nextThread = thread;
+    queue->tail = thread;
+}
+
+// Dequeues the current thread from the queue, returns null if none.
+static inline Thread* MtDequeueThread(Queue* q) {
+    tracelast_func("MtDequeueThread");
+    if (!q->head) {
+        return NULL;
+    }
+
+    Thread* t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
     return t;
 }
 

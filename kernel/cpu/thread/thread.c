@@ -145,8 +145,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     thread->threadState = READY;
     thread->nextThread = NULL;
     thread->TID = tid;
-
-    enqueue(&cpu.readyQueue, thread);
+    MtEnqueueThreadWithLock(&cpu.readyQueue, thread);
     // Lower IRQL.
     MtLowerIRQL(oldIrql);
 }

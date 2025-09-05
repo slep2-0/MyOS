@@ -6,6 +6,7 @@
  */
 
 #include "idt.h"
+#include "../cpu/apic/apic.h"
 
 extern GOP_PARAMS gop_local;
 
@@ -99,6 +100,10 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
         lapic_handler(schedulerEnabled);
         MtLowerIRQL(oldIrql);
+        break;
+    case LAPIC_SIV_INTERRUPT:
+        // just send EOI
+        lapic_eoi();
         break;
     default:
         gop_printf(0xFFFF0000, "Interrupt Exception: ");

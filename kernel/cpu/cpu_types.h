@@ -16,6 +16,7 @@ typedef struct _Thread Thread;
 typedef struct _DPC DPC;
 typedef struct _Queue Queue;
 typedef struct _CPU CPU;
+typedef struct _MUTEX MUTEX;
 
 // Scheduling disabling is by flipping a global flag, I should make a CPU structure that is the current CPU states and data.
 // Interrupts are disabled based on the IRQL <=, so even at the IRQL level they are in they are disabled.
@@ -78,6 +79,7 @@ typedef struct _CTX_FRAME {
 typedef struct _Queue {
 	Thread* head;
 	Thread* tail;
+    SPINLOCK lock;
 } Queue;
 
 #define TICK_MS 4
@@ -99,6 +101,18 @@ typedef enum _timeSliceTicks {
     DEFAULT_TIMESLICE_TICKS = ____DONT_USE_DEFAULT_TIMESLICE_MS / TICK_MS,   // 10 MS
     HIGH_TIMESLICE_TICKS = ____DONT_USE_HIGH_TIMESLICE_MS / TICK_MS,   // 25 MS
 } timeSliceTicks;
+
+typedef enum _EVENT_TYPE {
+    NotificationEvent,   // Wake all waiting threads
+    SynchronizationEvent // Wake one thread at a time
+} EVENT_TYPE;
+
+typedef struct _EVENT {
+    EVENT_TYPE type;          // Type of event
+    bool signaled;            // Current state: signaled or not
+    SPINLOCK* lock;           // Protects the event
+    Queue* waitingQueue;      // Threads waiting on this event
+} EVENT;
 
 typedef struct _Thread {
 	// CPU Registers for context switching
@@ -151,6 +165,14 @@ typedef struct _CPU {
 	Thread* currentThread; // Pointer to the current thread struct.
 	Queue readyQueue; // Queue for the next scheduling.
 } CPU;
+
+/* MUTEX Struct */
+typedef struct _MUTEX {
+    uint32_t ownerTid;
+    EVENT* SynchEvent;
+    bool locked;
+    SPINLOCK* lock;
+} MUTEX;
 
 #ifndef _MSC_VER
 _Static_assert(sizeof(CTX_FRAME) == 0x88, "CTX_FRAME must be 0x88 bytes");

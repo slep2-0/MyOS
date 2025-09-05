@@ -80,7 +80,7 @@ static void InitialiseControlRegisters(void) {
     /* CR0 */
     unsigned long cr0 = __read_cr0();
     cr0 |= (1UL << 16); // Set bit 16 (WRITE PROTECT), so when the kernel touches read only memory it would #PF.
-#ifdef DEBUG
+#ifdef DISABLE_CACHE
     cr0 |= (1UL << 30); // Set bit 30 (CACHE DISABLE).
 #endif
     __write_cr0(cr0);
