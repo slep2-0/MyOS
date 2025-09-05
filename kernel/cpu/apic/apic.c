@@ -8,7 +8,6 @@
 #define APIC_BASE_RESERVED     0xFFF0000000000000ULL
 
 #define LAPIC_PAGE_SIZE    0x1000
-// page flags - adapt names to your kernel constants:
 #define LAPIC_MAP_FLAGS (PAGE_PRESENT | PAGE_RW | PAGE_PCD)
 
 // LAPIC register offsets (32-bit registers)
@@ -51,7 +50,20 @@ static inline void lapic_mmio_write(uint32_t off, uint32_t val) {
 static void lapic_wait_icr(void) {
     while (lapic_mmio_read(LAPIC_ICR_LOW) & (1 << 12)) {
         /* spin */
+        __pause();
     }
+}
+
+void lapic_write(uint32_t reg, uint32_t value) {
+    *((volatile uint32_t*)(lapic + reg)) = value;
+}
+
+// Initialize the Spurious Interrupt Vector
+void lapic_init_siv(void) {
+    uint32_t svr = *((volatile uint32_t*)(lapic + LAPIC_SVR));
+    uint32_t vector = 0xFF; // IDT Entry
+    svr = (svr & 0xFFFFFF00) | vector; // preserve enable bit, update vector
+    lapic_write(LAPIC_SVR, svr);
 }
 
 static void map_lapic(void) {
@@ -90,7 +102,6 @@ void lapic_enable(void) {
 // Initialize BSP's LAPIC (call early from kernel init on BSP)
 void lapic_init_bsp(void) {
     tracelast_func("lapic_init_bsp");
-    // If your bootloader set APIC base adjust lapic_phys by reading MSR:
     uint64_t apic_msr = __readmsr(IA32_APIC_BASE_MSR);
     uint64_t base = (apic_msr & 0xFFFFF000ULL);
     if (base) lapic_phys = base;
@@ -126,7 +137,6 @@ void lapic_eoi(void) {
 //  5. ticks_per_period(10ms) = ticks_in_100ms / 10
 //  6. Program LVT timer to periodic and initial count = ticks_per_period
 //
-// Replace pit_sleep_ms() with your accurate sleep.
 #define APIC_LVT_TIMER_PERIODIC (1U << 17)
 #define APIC_TIMER_MASKED        (1U << 16)
 

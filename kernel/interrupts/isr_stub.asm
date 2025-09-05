@@ -182,6 +182,9 @@ extern Schedule
     ; clear it, so we don't re-enter.
     mov byte [rel schedule_pending], 0
 
+    ; Enable Interrupts
+    sti
+
     ; Schedule now.
     call Schedule
 
@@ -248,7 +251,10 @@ DEFINE_ISR 28
 DEFINE_ISR 29
 DEFINE_ISR 30
 DEFINE_ISR 31
+
+; Custom ISR's
 DEFINE_ISR 239 ; LAPIC
+DEFINE_ISR 256 ; LAPIC Spurious Interrupt Vector
 
 ;---------------------------------------------------------------------------
 ; Instantiate IRQs 0-15 (Hardware Interrupts)

@@ -2,7 +2,6 @@
 ; LICENSE:      GPLv3
 ; PURPOSE:      Corrected context switching routine.
 section .text
-
 ; void restore_context(CTX_FRAME* src);
 ; System V ABI: src in RDI
 global restore_context

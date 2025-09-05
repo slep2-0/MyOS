@@ -25,11 +25,16 @@ typedef struct _CTX_FRAME CTX_FRAME;
 extern bool isBugChecking;
 extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
+/* Definitions that change kernel behaviour below */
+
 /* Uncomment to trigger a bugcheck on entry */
 ///#define CAUSE_BUGCHECK
 
 /* Uncomment to show all reminders in a static assertion */
 ///#define REMINDER
+
+/* Uncomment to disable CPU Caching */
+///#define DISABLE_CACHE
 
 /* To define DEBUG globally, use a compiler flag. I removed this since I now transitioned each header to iself and others instead of relying on kernel.h that caused circular includes. */
 

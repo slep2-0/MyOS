@@ -10,8 +10,6 @@
 // assembly stubs to save and restore register contexts.
 extern void restore_context(CTX_FRAME* regs);
 
-SPINLOCK queueLock = { .LOCKED = ATOMIC_FLAG_INIT };
-
 // Idle thread, runs when no other is ready.
 Thread idleThread;
 // Stack for idle thread
@@ -56,7 +54,7 @@ static void enqueue_runnable(Thread* t) {
     }
     if (t->threadState == RUNNING) {
         t->threadState = READY;
-        enqueue(&cpu.readyQueue, t); // Insert into CPU ready queue
+        MtEnqueueThreadWithLock(&cpu.readyQueue, t); // Insert into CPU ready queue
     }
 }
 
@@ -72,7 +70,7 @@ void Schedule(void) {
         enqueue_runnable(prev);
     }
 
-    Thread* next = dequeue(&cpu.readyQueue);
+    Thread* next = MtDequeueThreadWithLock(&cpu.readyQueue);
 
     if (!next) {
         next = &idleThread;

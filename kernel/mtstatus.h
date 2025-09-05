@@ -29,6 +29,7 @@ typedef int32_t MTSTATUS;
 #define MT_ALREADY_EXISTS       ((MTSTATUS)0xC0000007L)
 #define MT_NOT_FOUND            ((MTSTATUS)0xC0000008L)
 #define MT_GENERAL_FAILURE		((MTSTATUS)0xC0000009L)
+#define MT_INVALID_LOCK			((MTSTATUS)0xC0000010L)
 
 //
 // ==========================
@@ -93,5 +94,18 @@ typedef int32_t MTSTATUS;
 #define MT_THREAD_CREATION_FAIL ((MTSTATUS)0xC4000002L)
 #define MT_SCHEDULER_ERROR      ((MTSTATUS)0xC4000003L)
 #define MT_INVALID_IRQL         ((MTSTATUS)0xC4000004L)
+
+//
+// ==========================
+// MUTEX MTSTATUS
+// ==========================
+#define MT_MUTEX_ALREADY_OWNED ((MTSTATUS)0xC5000001L)
+#define MT_MUTEX_NOT_OWNED	   ((MTSTATUS)0xC5000002L)
+
+//
+// ==========================
+// EVENT MTSTATUS
+// ==========================
+#define MT_EVENT_ALREADY_SIGNALED ((MTSTATUS)0xC6000001L)
 
 #endif // MTSTATUS_H
