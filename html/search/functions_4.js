@@ -1,8 +1,0 @@
-var searchData=
-[
-  ['debugsinglestep_5fhandler_0',['debugsinglestep_handler',['../handlers_8c.html#a4c7a9e8b64a2217f1db9849da60f4c39',1,'debugsinglestep_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c'],['../handlers_8h.html#a4c7a9e8b64a2217f1db9849da60f4c39',1,'debugsinglestep_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c']]],
-  ['dividebyzero_5fhandler_1',['dividebyzero_handler',['../handlers_8c.html#afdff5d9ebe56cdc7b4e405c5082f7016',1,'dividebyzero_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c'],['../handlers_8h.html#afdff5d9ebe56cdc7b4e405c5082f7016',1,'dividebyzero_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c']]],
-  ['doublefault_5fhandler_2',['doublefault_handler',['../handlers_8c.html#acfe0741651b4edf7d92791e0656a5a48',1,'doublefault_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c'],['../handlers_8h.html#acfe0741651b4edf7d92791e0656a5a48',1,'doublefault_handler(CTX_FRAME *ctx, INT_FRAME *intfr):&#160;handlers.c']]],
-  ['draw_5fchar_3',['draw_char',['../gop_8c.html#adb470bc658b9038f97a6451acdd592ae',1,'draw_char(GOP_PARAMS *gop, char c_, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#ac25b38930cb651982843fb9ff481f571',1,'draw_char(GOP_PARAMS *gop, char c, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]],
-  ['draw_5fstring_4',['draw_string',['../gop_8c.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c'],['../gop_8h.html#a150242aadfe8ffa5b383e68885ec04cb',1,'draw_string(GOP_PARAMS *gop, const char *s, uint32_t x, uint32_t y, uint32_t color):&#160;gop.c']]]
-];
