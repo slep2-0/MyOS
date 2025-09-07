@@ -21,6 +21,7 @@ void init_dpc_system(void) {
 void MtQueueDPC(volatile DPC* dpc) {
 	tracelast_func("queue_dpc");
 	if (!dpc) return;
+
 	dpc->Next = NULL;
 
 	// Sorted insertion mechanism by priority (higher priority -> inserted to the head)
@@ -56,7 +57,7 @@ void RetireDPCs(void) {
 	if (!dpcQueueHead) return;
 
 	IRQL oldIrql;
-	uint64_t flags;
+	IRQL flags;
 
 	// 1) Raise once
 	MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);

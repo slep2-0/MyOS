@@ -16,17 +16,16 @@
 /// <returns>MTSTATUS Status Code.</returns>
 static MTSTATUS MtSetEvent(EVENT* event) {
     if (!event) return MT_INVALID_ADDRESS;
-    if (!event->lock) return MT_INVALID_LOCK;
 
-    uint64_t flags;
-    MtAcquireSpinlock(event->lock, &flags);
+    IRQL flags;
+    MtAcquireSpinlock(&event->lock, &flags);
 
     if (event->type == SynchronizationEvent) {
         // Wake exactly one waiter (auto-reset)
-        Thread* waiter = MtDequeueThread(event->waitingQueue); // safe under event->lock
+        Thread* waiter = MtDequeueThread(&event->waitingQueue); // safe under event->lock
         if (waiter) {
             event->signaled = false; // consumed by waking one waiter
-            MtReleaseSpinlock(event->lock, flags);
+            MtReleaseSpinlock(&event->lock, flags);
 
             waiter->threadState = READY;
             MtEnqueueThreadWithLock(&cpu.readyQueue, waiter);
@@ -35,7 +34,7 @@ static MTSTATUS MtSetEvent(EVENT* event) {
         else {
             // No waiter -> mark event signaled so next waiter won't block
             event->signaled = true;
-            MtReleaseSpinlock(event->lock, flags);
+            MtReleaseSpinlock(&event->lock, flags);
             return MT_SUCCESS;
         }
     }
@@ -44,7 +43,7 @@ static MTSTATUS MtSetEvent(EVENT* event) {
     Thread* head = NULL;
     Thread* tail = NULL;
     Thread* t;
-    while ((t = MtDequeueThread(event->waitingQueue)) != NULL) {
+    while ((t = MtDequeueThread(&event->waitingQueue)) != NULL) {
         t->nextThread = NULL;
         if (tail) tail->nextThread = t;
         else head = t;
@@ -53,7 +52,7 @@ static MTSTATUS MtSetEvent(EVENT* event) {
 
     // Notification persists until reset
     event->signaled = true;
-    MtReleaseSpinlock(event->lock, flags);
+    MtReleaseSpinlock(&event->lock, flags);
 
     // Enqueue drained threads to scheduler (after releasing event lock)
     t = head;
@@ -69,13 +68,12 @@ static MTSTATUS MtSetEvent(EVENT* event) {
 
 static MTSTATUS MtWaitForEvent(EVENT* event) {
     if (!event) return MT_INVALID_ADDRESS;
-    if (!event->lock) return MT_INVALID_LOCK;
 
-    uint64_t flags;
+    IRQL flags;
     Thread* curr = MtGetCurrentThread();
 
     // Acquire event lock to check signaled state atomically with enqueue.
-    MtAcquireSpinlock(event->lock, &flags);
+    MtAcquireSpinlock(&event->lock, &flags);
 
     // If already signaled, consume or accept depending on type:
     if (event->signaled) {
@@ -84,23 +82,22 @@ static MTSTATUS MtWaitForEvent(EVENT* event) {
             event->signaled = false;
         }
         // For NotificationEvent, leave event->signaled = true (notification persists)
-        MtReleaseSpinlock(event->lock, flags);
+        MtReleaseSpinlock(&event->lock, flags);
         return MT_SUCCESS;
     }
 
     // Not signaled -> enqueue this thread into the event waiting queue (under event lock)
-    MtEnqueueThread(event->waitingQueue, curr);
+    MtEnqueueThread(&event->waitingQueue, curr);
     // Keep event lock held only for enqueue; after this we release and block.
-    MtReleaseSpinlock(event->lock, flags);
+    MtReleaseSpinlock(&event->lock, flags);
 
     // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
     curr->threadState = BLOCKED;
+    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p", MtGetCurrentThread());
     MtSleepCurrentThread();
 
     // When we resume here, the waker has already moved us to the ready queue.
     return MT_SUCCESS;
 }
-
-
 
 #endif

@@ -8,7 +8,7 @@
 #include "intrin/intrin.h"
 
 #define LASTFUNC_BUFFER_SIZE 128
-#define LASTFUNC_HISTORY_SIZE 10
+#define LASTFUNC_HISTORY_SIZE 25
 
 typedef struct {
     uint8_t names[LASTFUNC_HISTORY_SIZE][LASTFUNC_BUFFER_SIZE];

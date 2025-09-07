@@ -60,6 +60,7 @@ static void enqueue_runnable(Thread* t) {
 
 void Schedule(void) {
     tracelast_func("Schedule");
+    //gop_printf(COLOR_PURPLE, "In scheduler\n");
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
@@ -77,11 +78,10 @@ void Schedule(void) {
     }
     //gop_printf(COLOR_RED, "The thread's timeslice before change is: %d", next->timeSlice);
     next->threadState = RUNNING;
-    next->timeSlice = next->origTimeSlice;
     cpu.currentThread = next;
     __writemsr(IA32_GS_BASE, (uint64_t)next);
 
-    MtLowerIRQL(PASSIVE_LEVEL);
+    MtLowerIRQL(oldIrql);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);
 }

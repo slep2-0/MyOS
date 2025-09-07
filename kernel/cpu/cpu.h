@@ -113,10 +113,14 @@ void read_interrupt_frame(INT_FRAME* frame);
     ((type *)((char *)(ptr) - offsetof(type, member)))
 #endif
 
+static inline CPU* MtGetCurrentCPU(void) {
+    return (CPU*)__readmsr(IA32_KERNEL_GS_BASE);
+}
+
 // Enqueues the thread given to the queue. (acquires spinlock)
 static inline void MtEnqueueThreadWithLock(Queue* queue, Thread* thread) {
 	tracelast_func("MtEnqueueThreadWithLock");
-    uint64_t flags;
+    IRQL flags;
     MtAcquireSpinlock(&queue->lock, &flags);
 	thread->nextThread = NULL;
 	if (!queue->head) queue->head = thread;
@@ -128,7 +132,7 @@ static inline void MtEnqueueThreadWithLock(Queue* queue, Thread* thread) {
 // Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
 static inline Thread* MtDequeueThreadWithLock(Queue* q) {
     tracelast_func("MtDequeueThreadWithLock");
-    uint64_t flags;
+    IRQL flags;
     MtAcquireSpinlock(&q->lock, &flags);
     if (!q->head) {
         return NULL;

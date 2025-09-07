@@ -37,7 +37,7 @@ typedef enum _BUGCHECK_CODES {
     /// Custom ones
     MEMORY_MAP_SIZE_OVERRUN = 0xBEEF, // The memory map has grown beyond the limit (unused).
     MANUALLY_INITIATED_CRASH = 0xBABE, // A function has manually initiated a bugcheck for testing/unknown reasons with this specific code.
-    BAD_PAGING = 0xBAD, // Unused...
+    BAD_PAGING = 0xBAD, // A paging function that fails when it shouldn't.
     BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.
     NULL_POINTER_DEREFERENCE = 0xDEAD, // Attempted dereference of a null pointer.
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
@@ -57,6 +57,9 @@ typedef enum _BUGCHECK_CODES {
     FRAME_ALLOCATION_FAILED, // Allocating a physical frame from the frame bitmap has failed.
     FRAME_BITMAP_CREATION_FAILURE, // Creating the frame bitmap resulted in a failure.
     ASSERTION_FAILURE, // Runtime Assertion Failure (assert())
+    MEMORY_INVALID_FREE,
+    MEMORY_CORRUPT_HEADER,
+    MEMORY_DOUBLE_FREE,
 } BUGCHECK_CODES;
 
 typedef struct _BUGCHECK_ADDITIONALS {

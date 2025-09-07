@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include <stdatomic.h>
 
+#ifdef REMINDER
+_Static_assert(false, "Remember that SPINLOCKS inside of a struct shouldn't be pointers, but embedded within. (so SPINLOCK and not SPINLOCK*) (also on any really, like Queue*, or pointers that don't have initialization function. (caused a page fault)")
+#endif
+
 // Global - Per CPU.
 
 typedef enum _THREAD_STATE { RUNNING, READY, BLOCKED, TERMINATING, TERMINATED } THREAD_STATE;
@@ -50,7 +54,7 @@ typedef enum _IRQL {
 } IRQL;
 
 typedef struct _SPINLOCK {
-    atomic_flag LOCKED;
+    volatile uint32_t locked;
 } SPINLOCK;
 
 #pragma pack(push, 1)
@@ -110,8 +114,8 @@ typedef enum _EVENT_TYPE {
 typedef struct _EVENT {
     EVENT_TYPE type;          // Type of event
     bool signaled;            // Current state: signaled or not
-    SPINLOCK* lock;           // Protects the event
-    Queue* waitingQueue;      // Threads waiting on this event
+    SPINLOCK lock;           // Protects the event
+    Queue waitingQueue;      // Threads waiting on this event
 } EVENT;
 
 typedef struct _Thread {
@@ -169,9 +173,9 @@ typedef struct _CPU {
 /* MUTEX Struct */
 typedef struct _MUTEX {
     uint32_t ownerTid;
-    EVENT* SynchEvent;
+    EVENT SynchEvent;
     bool locked;
-    SPINLOCK* lock;
+    SPINLOCK lock;
 } MUTEX;
 
 #ifndef _MSC_VER
@@ -184,6 +188,8 @@ _Static_assert(offsetof(Thread, threadState) == 0x88, "Thread.threadState offset
 _Static_assert(offsetof(Thread, timeSlice) == 0x8C, "Thread.timeSlice offset must be 0x8C");
 _Static_assert(offsetof(Thread, origTimeSlice) == 0x90, "Thread.origTimeSlice offset must be 0x90");
 _Static_assert(offsetof(Thread, nextThread) == 0x98, "Thread.nextThread offset must be 0x98");
+_Static_assert(sizeof(SPINLOCK) == 4, "SPINLOCK must be 4 bytes");
+_Static_assert(_Alignof(SPINLOCK) >= 4, "SPINLOCK alignment must be >= 4");
 #endif
 
 #endif

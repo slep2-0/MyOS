@@ -19,6 +19,9 @@ extern uint8_t kernel_end;
 extern uint8_t kernel_start;
 extern const size_t kernel_length;
 
+#define HEADER_MAGIC 0x4D544842 // "MTHB"
+#define FOOTER_MAGIC 0x4D544642 // "MTFB"
+
 /* Zero Out BSS */
 extern uint8_t bss_start;
 extern uint8_t bss_end;
@@ -34,10 +37,17 @@ bool check_bss_zeroed(void);
 
 #define HEAP_SIZE  (HEAP_END - HEAP_START)
 
+typedef struct _BLOCK_FOOTER {
+    uint32_t magic;
+} BLOCK_FOOTER;
+
+
 /* Block header placed immediately before each allocated chunk */
 typedef struct _BLOCK_HEADER {
-    size_t size;               /* total size of this block (including header) */
-    struct _BLOCK_HEADER* next; /* next free block in the free list */
+    uint32_t magic;
+    size_t block_size;              /* Total size of this block (header + padding + data + footer) */
+    size_t requested_size;          /* The original size the user requested, used to find the footer */
+    struct _BLOCK_HEADER* next;     /* Next free block in the free list */
     bool in_use;
     uint32_t kind;
 } BLOCK_HEADER;
@@ -51,7 +61,7 @@ void init_heap(void);
 void* kmemset(void* dest, int64_t val, uint64_t len);
 
 /* Added Memcpy */
-void* kmemcpy(void* dest, const void* src, uint32_t len);
+void* kmemcpy(void* dest, const void* src, size_t len);
 
 /// <summary>
 /// Allocates a block of memory from the kernel’s memory manager.

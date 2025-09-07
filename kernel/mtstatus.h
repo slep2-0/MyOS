@@ -54,8 +54,9 @@ typedef int32_t MTSTATUS;
 #define MT_VFS_GENERAL_FAILURE			((MTSTATUS)0xC2000007L)
 
 //
+// ==========================
 // FAT32-specific MTSTATUS
-//
+// ==========================
 #define MT_FAT32_CLUSTERS_FULL      ((MTSTATUS)0xC2010001L) // No free clusters left
 #define MT_FAT32_INVALID_CLUSTER    ((MTSTATUS)0xC2010002L) // Invalid cluster reference
 #define MT_FAT32_DIR_FULL           ((MTSTATUS)0xC2010003L) // Directory has no free entries

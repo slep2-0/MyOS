@@ -162,9 +162,11 @@ bool unmap_page(void* virtualaddress) {
 
     uintptr_t phys_addr = (uintptr_t)(pt[pt_i] & ~0xFFFULL);
 
-    free_frame(phys_addr); // Free the underlying physical frame
-    pt[pt_i] = 0; // Clear the entry
-    invlpg(virtualaddress); // Invalidate the address
+    pt[pt_i] = 0;                  /* clear PTE */
+    invlpg(virtualaddress);        /* flush mapping */
+
+    /* now safe to free the frame */
+    free_frame(phys_addr);
     return true;
 }
 
