@@ -204,8 +204,7 @@ static inline uintptr_t align_up_uintptr(uintptr_t v, size_t a) {
 }
 
 /// <summary>
-/// Allocates a robust, verified block of memory from the kernel's memory manager.
-/// This new implementation uses a header/footer canary system to detect buffer overflows.
+/// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that.
 /// </summary>
 void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     tracelast_func("MtAllocateVirtualMemory");
@@ -483,8 +482,6 @@ void MtFreeVirtualMemory(void* ptr) {
     // All checks passed. The block metadata is considered valid.
 
     if (blk->kind == BLK_EX) {
-        // ... (The BLK_EX logic remains largely the same as it doesn't use the normal heap) ...
-        // (ensure you are using blk->block_size here instead of a local 'region_size')
         size_t pages_to_unmap = blk->block_size / FRAME_SIZE;
         uintptr_t region_start = (uintptr_t)blk;
         for (size_t i = 0; i < pages_to_unmap; i++) {
