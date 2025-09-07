@@ -237,9 +237,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_MAGENTA, "BUF7 (VIRT): %p | (PHYS): %p\n", buf7, MtTranslateVirtualToPhysical(buf7));
     
 #ifdef CAUSE_BUGCHECK
-    CTX_FRAME regs;
-    SAVE_CTX_FRAME(&regs);
-    MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+    MtBugcheck(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
     
     if (checkcpuid()) {

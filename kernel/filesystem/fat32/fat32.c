@@ -890,7 +890,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 #endif
 		return MT_FAT32_DIRECTORY_ALREADY_EXISTS;
 	}
-	MTSTATUS status;
+	MTSTATUS status = MT_GENERAL_FAILURE;
 	// 2. Separate parent path and new directory name
 	char path_copy[260];
 	kstrcpy(path_copy, path);
