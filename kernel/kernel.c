@@ -15,6 +15,9 @@ uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
 GOP_PARAMS gop_local;
 BOOT_INFO boot_info_local;
 
+//static MUTEX mutx;
+//MUTEX* sharedMutex = &mutx;
+
 /*
 Global variables initialization
 */
@@ -22,7 +25,6 @@ bool isBugChecking = false;
 LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
 CPU cpu;
 
-//DECLARE_THREAD(workerThread, 4096)
 /*
 Ended
 */
@@ -96,11 +98,16 @@ void InitCPU(void) {
     cpu.schedulerEnabled = NULL; // since NULL is 0, it would be false.
     cpu.currentThread = NULL;
     cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t) & cpu);
+    spinlock_init(&cpu.readyQueue.lock);
 }
 
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
-    __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
+    __asm__ __volatile__("pushfq; popq %0"
+        : "=r"(flags)
+        :
+        : "memory", "cc");
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
@@ -117,33 +124,41 @@ void kernel_idle_checks(void) {
 
         gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
-    /*
     assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
-    */
     while (1) {
         __hlt();
+        //Schedule();
     }
 }
 
-static void test(void) {
+static void test(MUTEX* mut) {
     tracelast_func("test - Thread");
-    gop_printf_forced(0xFF00FF00, "Hit Test!\n");
+    Thread* currentThread = MtGetCurrentThread();
+    gop_printf_forced(0xFF00FF00, "Hit Test! test thread ptr: %p\n", currentThread);
+    gop_printf(COLOR_GREEN, "(test) Acquiring Mutex Object: %p\n", mut);
+    MTSTATUS status = MtAcquireMutexObject(mut);
+    gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
         z++;
     }
-    Thread* currentThread = MtGetCurrentThread();
-    gop_printf(COLOR_OLIVE, "Current thread in test: %p\n", currentThread);
+    gop_printf(COLOR_GREEN, "(test) Releasing Mutex Object: %p\n", mut);
+    MtReleaseMutexObject(mut);
     gop_printf_forced(0xFFA020F0, "**Ended Test.**\n");
 }
 
-static void funcWithParam(int* integer) {
+static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
-    gop_printf_forced(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
+    //gop_printf_forced(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
+    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p\n", MtGetCurrentThread());
+    gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
+    MtAcquireMutexObject(mut);
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
         z++;
     }
+    gop_printf(COLOR_OLIVE, "(funcWithParam) Releasing Mutex Object: %p\n", mut);
+    MtReleaseMutexObject(mut);
     Thread* currentThread = MtGetCurrentThread();
     gop_printf(COLOR_OLIVE, "Current thread in funcWithParam: %p\n", currentThread);
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
@@ -173,7 +188,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     InitScheduler();
     init_dpc_system();
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
-    //MemoryTest();
+    
+    //MemoryTestStable();
     //__cli();
     //__hlt();
     extern uint32_t cursor_x, cursor_y;
@@ -215,12 +231,13 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_ORANGE, "Address: %p is %s\n", addr, MtIsAddressValid(addr) ? "Valid" : "Invalid");
     gop_printf(COLOR_ORANGE, "Address %p (buf7) is %s\n", buf7, MtIsAddressValid(buf7) ? "Valid" : "Invalid");
     gop_printf(COLOR_MAGENTA, "BUF7 (VIRT): %p | (PHYS): %p\n", buf7, MtTranslateVirtualToPhysical(buf7));
+    
 #ifdef CAUSE_BUGCHECK
     CTX_FRAME regs;
     SAVE_CTX_FRAME(&regs);
     MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
-
+    
     if (checkcpuid()) {
         char str[256];
         getCpuName(str);
@@ -237,7 +254,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
 
     TIME_ENTRY currTime = get_time();
-
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
 
@@ -246,14 +262,17 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
     gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
     gop_printf(COLOR_CYAN, "%s", listings);
-
-    MtCreateThread((ThreadEntry)test, NULL, DEFAULT_TIMESLICE_TICKS, true);
-    int integer = 1234;
-    MtCreateThread((ThreadEntry)funcWithParam, &integer, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
+    MUTEX* sharedMutex = MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
+    if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
+    status = MtInitializeMutexObject(sharedMutex);
+    gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
+    MtCreateThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, true);
+    //int integer = 1234;
+    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
     /* Enable LAPIC Now. */
     lapic_init_bsp();
     lapic_enable();
-    init_lapic_timer(100); // 10ms.
+    init_lapic_timer(100); // 10ms
     __sti();
     Schedule();
 }

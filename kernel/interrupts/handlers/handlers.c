@@ -146,7 +146,7 @@ void timer_handler(bool schedulerEnabled) {
     if (!schedule_pending) {
         if (schedulerEnabled) {
             if (cpu.currentThread) {
-                if (cpu.currentThread->timeSlice-- <= 0) {
+                if (__sync_sub_and_fetch(&cpu.currentThread->timeSlice, 1) <= 0) {
                     cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
                     tracelast_func("Queuing DPC in timer_handler");
                     MtQueueDPC(&scheduleDpc);

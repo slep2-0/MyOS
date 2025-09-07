@@ -58,6 +58,8 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "time.h"
 #include "filesystem/vfs/vfs.h"
 #include "cpu/apic/apic.h"
+#include "cpu/mutex/mutex.h"
+#include "cpu/events/events.h"
 
 // Entry point in C
 void kernel_idle_checks(void);
@@ -79,42 +81,163 @@ extern void read_interrupt_frame(INT_FRAME* intfr);
 #define ALIGNMENT   16
 
 /// Memory test to run to check for memory issues - identified a problem.
-static int MemoryTest(void) {
-    void* blocks[ALLOCATIONS];
+// Stable memory test for MatanelOS allocator
+static uint32_t xorshift32(uint32_t* s) {
+    uint32_t x = *s;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *s = x;
+    return x;
+}
 
-    // Allocation + write test
-    for (int i = 0; i < ALLOCATIONS; i++) {
-        blocks[i] = MtAllocateVirtualMemory(BLOCK_SIZE, ALIGNMENT);
+static int MemoryTestStable(void) {
+    enum {
+        TEST_ALLOCATIONS = 64,
+        MAX_BLOCK = 1024,        // maximum random block size
+        MIN_BLOCK = 16,         // minimum block size
+        ALIGN_OPTIONS = 4
+    };
+
+    void* blocks[TEST_ALLOCATIONS];
+    size_t sizes[TEST_ALLOCATIONS];
+    size_t aligns[TEST_ALLOCATIONS];
+    uint32_t patterns[TEST_ALLOCATIONS];
+
+    uint32_t rng = 0xdeadbeef; // deterministic seed
+
+    // Phase 1: allocate with varied sizes & alignments, fill with pattern
+    for (int i = 0; i < TEST_ALLOCATIONS; ++i) {
+        uint32_t r = xorshift32(&rng);
+        sizes[i] = MIN_BLOCK + (r % (MAX_BLOCK - MIN_BLOCK + 1));
+        // pick alignment from {8,16,32,64}
+        size_t align_choice = (size_t)(8 << (r & (ALIGN_OPTIONS - 1)));
+        aligns[i] = align_choice;
+        patterns[i] = r ^ (uint32_t)i;
+
+        blocks[i] = MtAllocateVirtualMemory(sizes[i], aligns[i]);
         if (!blocks[i]) {
-            gop_printf_forced(0xFFFF0000, "Allocation failed at index %d\n", i);
+            gop_printf_forced(0xFFFF0000, "Alloc fail idx=%d sz=%u align=%u\n", i, (unsigned)sizes[i], (unsigned)aligns[i]);
             return -1;
         }
 
-        // Alignment test
-        if ((uintptr_t)blocks[i] % ALIGNMENT != 0) {
-            gop_printf_forced(0xFFFF8000, "Misaligned block at index %d: %p\n", i, blocks[i]);
+        // Quick alignment check
+        if (((uintptr_t)blocks[i] & (aligns[i] - 1)) != 0) {
+            gop_printf_forced(0xFFFF8000, "Misaligned idx=%d ptr=%p align=%u\n", i, blocks[i], (unsigned)aligns[i]);
             return -2;
         }
 
-        // Fill memory
-        for (int j = 0; j < BLOCK_SIZE; j++) {
-            ((uint8_t*)blocks[i])[j] = (uint8_t)(i + j);
+        // Mark memory with pattern: repeating 4-byte pattern to detect shuffles
+        uint32_t pat = patterns[i];
+        uint8_t* bp = (uint8_t*)blocks[i];
+        for (size_t b = 0; b + 4 <= sizes[i]; b += 4) {
+            ((uint32_t*)(bp + b))[0] = pat;
+        }
+        // tail bytes
+        for (size_t b = (sizes[i] / 4) * 4; b < sizes[i]; ++b) {
+            bp[b] = (uint8_t)(pat & 0xFF);
+        }
+
+        // Confirm MtIsHeapAddressAllocated reports true
+        if (!MtIsHeapAddressAllocated(blocks[i])) {
+            gop_printf_forced(0xFFFF8000, "MtIsHeapAddressAllocated false after alloc idx=%d\n", i);
+            return -3;
         }
     }
 
-    // Verify and free
-    for (int i = 0; i < ALLOCATIONS; i++) {
-        for (int j = 0; j < BLOCK_SIZE; j++) {
-            if (((uint8_t*)blocks[i])[j] != (uint8_t)(i + j)) {
-                gop_printf_forced(0xFF0000FF, "Memory corruption at block %d, byte %d\n", i, j);
-                return -3;
+    // Phase 2: verify contents
+    for (int i = 0; i < TEST_ALLOCATIONS; ++i) {
+        uint32_t pat = patterns[i];
+        uint8_t* bp = (uint8_t*)blocks[i];
+        for (size_t b = 0; b + 4 <= sizes[i]; b += 4) {
+            uint32_t v = ((uint32_t*)(bp + b))[0];
+            if (v != pat) {
+                gop_printf_forced(0xFF0000FF, "Corrupt idx=%d offset=%u expected=0x%08x got=0x%08x\n",
+                    i, (unsigned)b, pat, v);
+                return -4;
             }
         }
-
-        MtFreeVirtualMemory(blocks[i]);
+        for (size_t b = (sizes[i] / 4) * 4; b < sizes[i]; ++b) {
+            uint8_t v = bp[b];
+            if (v != (uint8_t)(pat & 0xFF)) {
+                gop_printf_forced(0xFF0000FF, "Corrupt tail idx=%d offset=%u\n", i, (unsigned)b);
+                return -5;
+            }
+        }
     }
 
-    gop_printf_forced(0xFF00FF00, "Memory test completed successfully.\n");
+    // Phase 3: create fragmentation - free every second block
+    for (int i = 0; i < TEST_ALLOCATIONS; i += 2) {
+        MtFreeVirtualMemory(blocks[i]);
+        // After free, MtIsHeapAddressAllocated should be false
+        if (MtIsHeapAddressAllocated(blocks[i])) {
+            gop_printf_forced(0xFFFF8000, "Still allocated after free idx=%d ptr=%p\n", i, blocks[i]);
+            return -6;
+        }
+        // header-store slot should be cleared (if MtFreeVirtualMemory clears it)
+        BLOCK_HEADER* hdr = ((BLOCK_HEADER**)blocks[i])[-1];
+        if (hdr != NULL) {
+            gop_printf_forced(0xFFFF8000, "Header-store not cleared idx=%d hdr=%p\n", i, hdr);
+            return -7;
+        }
+        blocks[i] = NULL; // avoid accidental reuse
+    }
+
+    // Phase 4: attempt to allocate a larger block that should fit into coalesced space
+    size_t big_request = MAX_BLOCK * 4; // make it large enough to require coalesce or growth
+    void* big_block = MtAllocateVirtualMemory(big_request, 16);
+    if (!big_block) {
+        gop_printf_forced(0xFFFF0000, "Big allocation failed (coalesce test)\n");
+        // not necessarily a failure in all implementations; treat as warning
+    }
+    else {
+        // write and verify a quick pattern
+        kmemset(big_block, 0xAB, big_request < 4096 ? big_request : 4096);
+        MtFreeVirtualMemory(big_block);
+    }
+
+    // Phase 5: free remaining blocks in reverse order to stress coalescing
+    for (int i = TEST_ALLOCATIONS - 1; i >= 0; --i) {
+        if (blocks[i]) {
+            // verify before free
+            if (!MtIsHeapAddressAllocated(blocks[i])) {
+                gop_printf_forced(0xFFFF8000, "Was not allocated before free idx=%d\n", i);
+                return -8;
+            }
+            MtFreeVirtualMemory(blocks[i]);
+            if (MtIsHeapAddressAllocated(blocks[i])) {
+                gop_printf_forced(0xFFFF8000, "Still allocated after free idx=%d\n", i);
+                return -9;
+            }
+            // ensure header-store slot cleared
+            BLOCK_HEADER* hdr = ((BLOCK_HEADER**)blocks[i])[-1];
+            if (hdr != NULL) {
+                gop_printf_forced(0xFFFF8000, "Header-store not cleared after free idx=%d hdr=%p\n", i, hdr);
+                return -10;
+            }
+            blocks[i] = NULL;
+        }
+    }
+    /*
+    // Phase 6: Test MtAllocateVirtualMemoryEx (page-backed allocation)
+    size_t ex_size = FRAME_SIZE * 2; // two pages
+    void* exptr = MtAllocateVirtualMemoryEx(ex_size - sizeof(BLOCK_HEADER), FRAME_SIZE, PAGE_PRESENT | PAGE_RW);
+    if (!exptr) {
+        gop_printf_forced(0xFFFF8000, "MtAllocateVirtualMemoryEx failed\n");
+        // warn but continue
+    }
+    else {
+        // write/read small pattern
+        kmemset(exptr, 0x5A, 256);
+        // free and ensure pages unmapped (MtIsHeapAddressAllocated should be false)
+        MtFreeVirtualMemory(exptr);
+        if (MtIsHeapAddressAllocated(exptr)) {
+            gop_printf_forced(0xFFFF8000, "EX allocation still reported allocated after free\n");
+            return -11;
+        }
+    }
+    */
+    gop_printf_forced(0xFF00FF00, "MemoryTestStable: PASSED\n");
     return 0;
 }
 

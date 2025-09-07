@@ -32,9 +32,11 @@ void InitScheduler(void) {
     // Assign the clean context to the idle thread
     idleThread.registers = cfm;
     idleThread.threadState = READY;
+    idleThread.timeSlice = LOW_TIMESLICE_TICKS;
+    idleThread.origTimeSlice = LOW_TIMESLICE_TICKS;
     idleThread.nextThread = NULL;
     idleThread.TID = 0; // Scheduler thread, TID is 0.
-
+    idleThread.startStackPtr = (void*)cfm.rsp;
     cpu.currentThread = NULL;
 
     // The ready queue starts empty
@@ -60,13 +62,15 @@ static void enqueue_runnable(Thread* t) {
 
 void Schedule(void) {
     tracelast_func("Schedule");
+    //gop_printf(COLOR_PURPLE, "In scheduler\n");
+    __sti();
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
     Thread* prev = cpu.currentThread;
 
     if (prev && prev != &idleThread && prev->threadState == RUNNING) {
-        // The current thread's registers were already saved in isr_stub. (look after the pushes)
+        // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)
         enqueue_runnable(prev);
     }
 
@@ -77,10 +81,10 @@ void Schedule(void) {
     }
     //gop_printf(COLOR_RED, "The thread's timeslice before change is: %d", next->timeSlice);
     next->threadState = RUNNING;
-    next->timeSlice = next->origTimeSlice;
     cpu.currentThread = next;
+    __writemsr(IA32_GS_BASE, (uint64_t)next);
 
-    MtLowerIRQL(PASSIVE_LEVEL);
+    MtLowerIRQL(oldIrql);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);
 }

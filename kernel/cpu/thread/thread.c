@@ -7,6 +7,9 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
+#define THREAD_STACK_SIZE 4096
+#define THREAD_ALIGNMENT 16
+
 ///
 // Call with freedTid == 0 ? allocate a new TID (returns 0 on failure)
 // Call with freedTid  > 0 ? release that TID back into the pool (always returns 0)
@@ -99,20 +102,26 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
 
-    // Allocate a stackTop for the thread.
-    void* stackTop = MtAllocateVirtualMemory(4096, 16);
-    if (!stackTop) {
+    void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
+    if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
-    thread->startStackPtr = stackTop;
-    /// For when we context switch (this is why cfm is in stackTop), set the registers to all 0. (since the stack for the thread holds the registers when we context switch)
-    uint8_t* sp = (uint8_t*)stackTop;
-    sp -= sizeof(CTX_FRAME);
-    sp -= 64; // Extra space so we don't overwrite stuff while context switching.
 
-    CTX_FRAME* cfm = (CTX_FRAME*)(sp);
+    thread->startStackPtr = stackStart;
+    // initial stack pointer should be at the *high* end of the allocated region
+    uint8_t* sp = (uint8_t*)stackStart + THREAD_STACK_SIZE;
+
+    // Align stack to 16 bytes for System V ABI.
+    sp = (uint8_t*)((uintptr_t)sp & ~(uintptr_t)0xF);
+
+    // Reserve space for the context frame and red zone
+    sp -= sizeof(CTX_FRAME);
+    sp -= 64; // red zone / extra safety
+
+    CTX_FRAME* cfm = (CTX_FRAME*)sp;
+    kmemset(cfm, 0, sizeof * cfm);
 
     kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
 
@@ -150,8 +159,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     MtLowerIRQL(oldIrql);
 }
 
-extern CPU cpu;
-
 Thread* MtGetCurrentThread(void) {
-    return cpu.currentThread;
+    return (Thread*)__readmsr(IA32_GS_BASE);
 }

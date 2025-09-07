@@ -37,13 +37,14 @@ typedef enum _BUGCHECK_CODES {
     /// Custom ones
     MEMORY_MAP_SIZE_OVERRUN = 0xBEEF, // The memory map has grown beyond the limit (unused).
     MANUALLY_INITIATED_CRASH = 0xBABE, // A function has manually initiated a bugcheck for testing/unknown reasons with this specific code.
-    BAD_PAGING = 0xBAD, // Unused...
+    BAD_PAGING = 0xBAD, // A paging function that fails when it shouldn't.
     BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.
     NULL_POINTER_DEREFERENCE = 0xDEAD, // Attempted dereference of a null pointer.
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
     UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main
     FRAME_LIMIT_REACHED = 0xBADA55, // frame limit reached when trying to allocate a physical frame.
-    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // Access to functions while going over the max IRQL set for them. Or raising to lower \ lowering to higher IRQL than current IRQL.
+    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // Access to functions while going over the max IRQL set for them. Or lowering to higher IRQL than current IRQL.
+    IRQL_NOT_GREATER_OR_EQUAL = 0x1338, // Raising IRQL to an IRQL level that is lower than the current one.
     INVALID_IRQL_SUPPLIED = 0x69420, // Invalid IRQL supplied to raising / lowering IRQL.
     NULL_CTX_RECEIVED = 0xF1FA, // A null context frame has been received to a function.
     THREAD_EXIT_FAILURE = 0x123123FF, // A thread exitted but did not schedule (somehow).
@@ -57,6 +58,9 @@ typedef enum _BUGCHECK_CODES {
     FRAME_ALLOCATION_FAILED, // Allocating a physical frame from the frame bitmap has failed.
     FRAME_BITMAP_CREATION_FAILURE, // Creating the frame bitmap resulted in a failure.
     ASSERTION_FAILURE, // Runtime Assertion Failure (assert())
+    MEMORY_INVALID_FREE,
+    MEMORY_CORRUPT_HEADER,
+    MEMORY_DOUBLE_FREE,
 } BUGCHECK_CODES;
 
 typedef struct _BUGCHECK_ADDITIONALS {
