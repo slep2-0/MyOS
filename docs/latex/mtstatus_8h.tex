@@ -1,0 +1,717 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/mtstatus.h File Reference}
+\hypertarget{mtstatus_8h}{}\label{mtstatus_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/mtstatus.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/mtstatus.h}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ab1c4c30274cca0fd5c0920b0df2ad26c}{MT\+\_\+\+SUCCEEDED}}(Status)
+\begin{DoxyCompactList}\small\item\em Macros to test status. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\+\_\+\+FAILURE}}(Status)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\+\_\+\+SUCCESS}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x00000000L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\+\_\+\+NOT\+\_\+\+IMPLEMENTED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a55458e0861f6a58c2bc62538f93609ce}{MT\+\_\+\+INVALID\+\_\+\+PARAM}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3e547767de23697da8708b501dbbc36e}{MT\+\_\+\+INVALID\+\_\+\+STATE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a26f01ccb752ead3aa3dd4c44fbc552b7}{MT\+\_\+\+ACCESS\+\_\+\+DENIED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_add1cf98cc82cc30be1153f4e2670dcd0}{MT\+\_\+\+TIMEOUT}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000005L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_accf2a00fc1d875f76933038aead04564}{MT\+\_\+\+UNSUPPORTED\+\_\+\+OP}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000006L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a39f92f7bbd2549e6111129ee1848d89c}{MT\+\_\+\+ALREADY\+\_\+\+EXISTS}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000007L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd}{MT\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000008L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a1c3bb6736a4567dcb59b8bbaa5837a6e}{MT\+\_\+\+GENERAL\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000009L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_af5e52c057dfd8918f4ba859320a05191}{MT\+\_\+\+INVALID\+\_\+\+LOCK}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000010L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a04d00d9b51e2f25c23b87d750df59dc4}{MT\+\_\+\+NO\+\_\+\+MEMORY}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a1baa45747333639f095a93b270e134ac}{MT\+\_\+\+MEMORY\+\_\+\+LIMIT}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a9433f72e5a351861cb4796f015437408}{MT\+\_\+\+PAGE\+\_\+\+FAULT\+\_\+\+ERROR}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a2757f8e1a517527bed05dc45fdadee20}{MT\+\_\+\+HEAP\+\_\+\+CORRUPTION}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\+\_\+\+INVALID\+\_\+\+ADDRESS}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000005L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a86172689e9c6d9f35bbc681c7162ffc0}{MT\+\_\+\+IO\+\_\+\+ERROR}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a1771bfcc92fc931e672d7e8874d06666}{MT\+\_\+\+VFS\+\_\+\+CORRUPTED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a2603651a13a98ffd1b349bf22193b9a2}{MT\+\_\+\+VFS\+\_\+\+READ\+\_\+\+ONLY}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_af09605d7d3ab6ad86d62177b7254c108}{MT\+\_\+\+VFS\+\_\+\+NO\+\_\+\+SPACE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a1236f0d31bb71b448f3ed0223d136246}{MT\+\_\+\+VFS\+\_\+\+PERMISSION\+\_\+\+DENIED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000005L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a498fe964da1b9b75389b3b4115129fa7}{MT\+\_\+\+VFS\+\_\+\+INITIALIZATION\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000006L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ae989ab55e76398d6856cf6d782e02ac3}{MT\+\_\+\+VFS\+\_\+\+GENERAL\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000007L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3670cb6d0a81a71ccea87f35bc0d8afc}{MT\+\_\+\+FAT32\+\_\+\+CLUSTERS\+\_\+\+FULL}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_aa77bdccf06eca7e43d2fa3ae7b5dcf2f}{MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+CLUSTER}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ae88ec345a131313bce8b73339d4ba1b7}{MT\+\_\+\+FAT32\+\_\+\+DIR\+\_\+\+FULL}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a9b042449c0c059c8962a868327197760}{MT\+\_\+\+FAT32\+\_\+\+FILE\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3dfe9fad9faa00f9d8fcf917462a0457}{MT\+\_\+\+FAT32\+\_\+\+PATH\+\_\+\+TOO\+\_\+\+LONG}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010005L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a7286696ec63dc76a75509b73376bb9b6}{MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+FILENAME}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010006L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a9eefdd8d42f934543aa228ac19a58dea}{MT\+\_\+\+FAT32\+\_\+\+EOF}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010007L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a505206654ba3ac6e651f6b6f2212ab10}{MT\+\_\+\+FAT32\+\_\+\+DIRECTORY\+\_\+\+ALREADY\+\_\+\+EXISTS}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010008L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a30adf65016df915ea778bd4867d13249}{MT\+\_\+\+FAT32\+\_\+\+PARENT\+\_\+\+PATH\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010009L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a9e4ad211a12d6f19a7ccd3ff8f6ef7ca}{MT\+\_\+\+FAT32\+\_\+\+PARENT\+\_\+\+PATH\+\_\+\+NOT\+\_\+\+DIR}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010010L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a6d5fbcabd98dd3b993870c73592c8318}{MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+WRITE\+\_\+\+MODE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010011L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a8bc18bc70f5b5ff68142fbcd98482241}{MT\+\_\+\+FAT32\+\_\+\+CLUSTER\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010012L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_acfb922cb9776aa2352c01323c0a69a11}{MT\+\_\+\+FAT32\+\_\+\+CLUSTER\+\_\+\+GENERAL\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010013L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a1a64aee0420d59aec3bc820c2fc7cce7}{MT\+\_\+\+FAT32\+\_\+\+DIRECTORY\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010014L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ab0cd8320b3fec11a396206910004c1b8}{MT\+\_\+\+DEVICE\+\_\+\+NOT\+\_\+\+READY}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ae171918eee671842ce6ae602ba496f6a}{MT\+\_\+\+DEVICE\+\_\+\+ERROR}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3ec23aa2d40e4d5c20f561d04bad9ae6}{MT\+\_\+\+DEVICE\+\_\+\+TIMEOUT}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ae1e8ae5afcfebddfe2dca3c64444b798}{MT\+\_\+\+DEVICE\+\_\+\+UNSUPPORTED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a5524d368eb2e6c3bb98376aea17f18c3}{MT\+\_\+\+AHCI\+\_\+\+INIT\+\_\+\+FAILED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a46b1e8c59afc3ee9f187a07e41582eed}{MT\+\_\+\+AHCI\+\_\+\+PORT\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ae4ae297fe7cbd0ae4f97289e6db6b3c4}{MT\+\_\+\+AHCI\+\_\+\+READ\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a05d02534d3e3ddfe49edd80da1d89836}{MT\+\_\+\+AHCI\+\_\+\+WRITE\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ad7bdb569867344cb70944a330aff1981}{MT\+\_\+\+AHCI\+\_\+\+TIMEOUT}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010005L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a46f73fb558e21e15b63353ddbaeb4219}{MT\+\_\+\+AHCI\+\_\+\+GENERAL\+\_\+\+FAILURE}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010006L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_ac34f92b9ea69a5222535037c1e5228ee}{MT\+\_\+\+THREAD\+\_\+\+NOT\+\_\+\+FOUND}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_aebfb1065dd52951819fe1f68c1a6ef70}{MT\+\_\+\+THREAD\+\_\+\+CREATION\+\_\+\+FAIL}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a128ddc985ecf69dd50fd7fc017f8a7a0}{MT\+\_\+\+SCHEDULER\+\_\+\+ERROR}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000003L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_aa7eb98b551039066e99dd859f9e6b2c1}{MT\+\_\+\+INVALID\+\_\+\+IRQL}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000004L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a3df925a7b46542f58c8ea285919feb0c}{MT\+\_\+\+MUTEX\+\_\+\+ALREADY\+\_\+\+OWNED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C5000001L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a5016c4db772945f5edac9d50784d7153}{MT\+\_\+\+MUTEX\+\_\+\+NOT\+\_\+\+OWNED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C5000002L)
+\item 
+\#define \mbox{\hyperlink{mtstatus_8h_a5a19d5a6f45e53b38219eb92ea647b9e}{MT\+\_\+\+EVENT\+\_\+\+ALREADY\+\_\+\+SIGNALED}}~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C6000001L)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef int32\+\_\+t \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{mtstatus_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{mtstatus_8h_a26f01ccb752ead3aa3dd4c44fbc552b7}\index{mtstatus.h@{mtstatus.h}!MT\_ACCESS\_DENIED@{MT\_ACCESS\_DENIED}}
+\index{MT\_ACCESS\_DENIED@{MT\_ACCESS\_DENIED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_ACCESS\_DENIED}{MT\_ACCESS\_DENIED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a26f01ccb752ead3aa3dd4c44fbc552b7} 
+\#define MT\+\_\+\+ACCESS\+\_\+\+DENIED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00026}{26}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a46f73fb558e21e15b63353ddbaeb4219}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_GENERAL\_FAILURE@{MT\_AHCI\_GENERAL\_FAILURE}}
+\index{MT\_AHCI\_GENERAL\_FAILURE@{MT\_AHCI\_GENERAL\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_GENERAL\_FAILURE}{MT\_AHCI\_GENERAL\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a46f73fb558e21e15b63353ddbaeb4219} 
+\#define MT\+\_\+\+AHCI\+\_\+\+GENERAL\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010006L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00088}{88}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a5524d368eb2e6c3bb98376aea17f18c3}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_INIT\_FAILED@{MT\_AHCI\_INIT\_FAILED}}
+\index{MT\_AHCI\_INIT\_FAILED@{MT\_AHCI\_INIT\_FAILED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_INIT\_FAILED}{MT\_AHCI\_INIT\_FAILED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a5524d368eb2e6c3bb98376aea17f18c3} 
+\#define MT\+\_\+\+AHCI\+\_\+\+INIT\+\_\+\+FAILED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00083}{83}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a46b1e8c59afc3ee9f187a07e41582eed}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_PORT\_FAILURE@{MT\_AHCI\_PORT\_FAILURE}}
+\index{MT\_AHCI\_PORT\_FAILURE@{MT\_AHCI\_PORT\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_PORT\_FAILURE}{MT\_AHCI\_PORT\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a46b1e8c59afc3ee9f187a07e41582eed} 
+\#define MT\+\_\+\+AHCI\+\_\+\+PORT\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00084}{84}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ae4ae297fe7cbd0ae4f97289e6db6b3c4}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_READ\_FAILURE@{MT\_AHCI\_READ\_FAILURE}}
+\index{MT\_AHCI\_READ\_FAILURE@{MT\_AHCI\_READ\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_READ\_FAILURE}{MT\_AHCI\_READ\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ae4ae297fe7cbd0ae4f97289e6db6b3c4} 
+\#define MT\+\_\+\+AHCI\+\_\+\+READ\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00085}{85}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ad7bdb569867344cb70944a330aff1981}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_TIMEOUT@{MT\_AHCI\_TIMEOUT}}
+\index{MT\_AHCI\_TIMEOUT@{MT\_AHCI\_TIMEOUT}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_TIMEOUT}{MT\_AHCI\_TIMEOUT}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ad7bdb569867344cb70944a330aff1981} 
+\#define MT\+\_\+\+AHCI\+\_\+\+TIMEOUT~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010005L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00087}{87}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a05d02534d3e3ddfe49edd80da1d89836}\index{mtstatus.h@{mtstatus.h}!MT\_AHCI\_WRITE\_FAILURE@{MT\_AHCI\_WRITE\_FAILURE}}
+\index{MT\_AHCI\_WRITE\_FAILURE@{MT\_AHCI\_WRITE\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_AHCI\_WRITE\_FAILURE}{MT\_AHCI\_WRITE\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a05d02534d3e3ddfe49edd80da1d89836} 
+\#define MT\+\_\+\+AHCI\+\_\+\+WRITE\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3010004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00086}{86}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a39f92f7bbd2549e6111129ee1848d89c}\index{mtstatus.h@{mtstatus.h}!MT\_ALREADY\_EXISTS@{MT\_ALREADY\_EXISTS}}
+\index{MT\_ALREADY\_EXISTS@{MT\_ALREADY\_EXISTS}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_ALREADY\_EXISTS}{MT\_ALREADY\_EXISTS}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a39f92f7bbd2549e6111129ee1848d89c} 
+\#define MT\+\_\+\+ALREADY\+\_\+\+EXISTS~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000007L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00029}{29}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ae171918eee671842ce6ae602ba496f6a}\index{mtstatus.h@{mtstatus.h}!MT\_DEVICE\_ERROR@{MT\_DEVICE\_ERROR}}
+\index{MT\_DEVICE\_ERROR@{MT\_DEVICE\_ERROR}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_DEVICE\_ERROR}{MT\_DEVICE\_ERROR}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ae171918eee671842ce6ae602ba496f6a} 
+\#define MT\+\_\+\+DEVICE\+\_\+\+ERROR~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00080}{80}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ab0cd8320b3fec11a396206910004c1b8}\index{mtstatus.h@{mtstatus.h}!MT\_DEVICE\_NOT\_READY@{MT\_DEVICE\_NOT\_READY}}
+\index{MT\_DEVICE\_NOT\_READY@{MT\_DEVICE\_NOT\_READY}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_DEVICE\_NOT\_READY}{MT\_DEVICE\_NOT\_READY}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ab0cd8320b3fec11a396206910004c1b8} 
+\#define MT\+\_\+\+DEVICE\+\_\+\+NOT\+\_\+\+READY~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00079}{79}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3ec23aa2d40e4d5c20f561d04bad9ae6}\index{mtstatus.h@{mtstatus.h}!MT\_DEVICE\_TIMEOUT@{MT\_DEVICE\_TIMEOUT}}
+\index{MT\_DEVICE\_TIMEOUT@{MT\_DEVICE\_TIMEOUT}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_DEVICE\_TIMEOUT}{MT\_DEVICE\_TIMEOUT}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3ec23aa2d40e4d5c20f561d04bad9ae6} 
+\#define MT\+\_\+\+DEVICE\+\_\+\+TIMEOUT~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00081}{81}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ae1e8ae5afcfebddfe2dca3c64444b798}\index{mtstatus.h@{mtstatus.h}!MT\_DEVICE\_UNSUPPORTED@{MT\_DEVICE\_UNSUPPORTED}}
+\index{MT\_DEVICE\_UNSUPPORTED@{MT\_DEVICE\_UNSUPPORTED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_DEVICE\_UNSUPPORTED}{MT\_DEVICE\_UNSUPPORTED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ae1e8ae5afcfebddfe2dca3c64444b798} 
+\#define MT\+\_\+\+DEVICE\+\_\+\+UNSUPPORTED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C3000004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00082}{82}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a5a19d5a6f45e53b38219eb92ea647b9e}\index{mtstatus.h@{mtstatus.h}!MT\_EVENT\_ALREADY\_SIGNALED@{MT\_EVENT\_ALREADY\_SIGNALED}}
+\index{MT\_EVENT\_ALREADY\_SIGNALED@{MT\_EVENT\_ALREADY\_SIGNALED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_EVENT\_ALREADY\_SIGNALED}{MT\_EVENT\_ALREADY\_SIGNALED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a5a19d5a6f45e53b38219eb92ea647b9e} 
+\#define MT\+\_\+\+EVENT\+\_\+\+ALREADY\+\_\+\+SIGNALED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C6000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00110}{110}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}\index{mtstatus.h@{mtstatus.h}!MT\_FAILURE@{MT\_FAILURE}}
+\index{MT\_FAILURE@{MT\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAILURE}{MT\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7} 
+\#define MT\+\_\+\+FAILURE(\begin{DoxyParamCaption}\item[{}]{Status}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{((Status)\ <\ 0)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00016}{16}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_acfb922cb9776aa2352c01323c0a69a11}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE@{MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE}}
+\index{MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE@{MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE}{MT\_FAT32\_CLUSTER\_GENERAL\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_acfb922cb9776aa2352c01323c0a69a11} 
+\#define MT\+\_\+\+FAT32\+\_\+\+CLUSTER\+\_\+\+GENERAL\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010013L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00072}{72}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a8bc18bc70f5b5ff68142fbcd98482241}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_CLUSTER\_NOT\_FOUND@{MT\_FAT32\_CLUSTER\_NOT\_FOUND}}
+\index{MT\_FAT32\_CLUSTER\_NOT\_FOUND@{MT\_FAT32\_CLUSTER\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_CLUSTER\_NOT\_FOUND}{MT\_FAT32\_CLUSTER\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a8bc18bc70f5b5ff68142fbcd98482241} 
+\#define MT\+\_\+\+FAT32\+\_\+\+CLUSTER\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010012L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00071}{71}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3670cb6d0a81a71ccea87f35bc0d8afc}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_CLUSTERS\_FULL@{MT\_FAT32\_CLUSTERS\_FULL}}
+\index{MT\_FAT32\_CLUSTERS\_FULL@{MT\_FAT32\_CLUSTERS\_FULL}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_CLUSTERS\_FULL}{MT\_FAT32\_CLUSTERS\_FULL}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3670cb6d0a81a71ccea87f35bc0d8afc} 
+\#define MT\+\_\+\+FAT32\+\_\+\+CLUSTERS\+\_\+\+FULL~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00060}{60}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ae88ec345a131313bce8b73339d4ba1b7}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_DIR\_FULL@{MT\_FAT32\_DIR\_FULL}}
+\index{MT\_FAT32\_DIR\_FULL@{MT\_FAT32\_DIR\_FULL}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_DIR\_FULL}{MT\_FAT32\_DIR\_FULL}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ae88ec345a131313bce8b73339d4ba1b7} 
+\#define MT\+\_\+\+FAT32\+\_\+\+DIR\+\_\+\+FULL~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00062}{62}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a505206654ba3ac6e651f6b6f2212ab10}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS@{MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS}}
+\index{MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS@{MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS}{MT\_FAT32\_DIRECTORY\_ALREADY\_EXISTS}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a505206654ba3ac6e651f6b6f2212ab10} 
+\#define MT\+\_\+\+FAT32\+\_\+\+DIRECTORY\+\_\+\+ALREADY\+\_\+\+EXISTS~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010008L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00067}{67}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a1a64aee0420d59aec3bc820c2fc7cce7}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_DIRECTORY\_NOT\_FOUND@{MT\_FAT32\_DIRECTORY\_NOT\_FOUND}}
+\index{MT\_FAT32\_DIRECTORY\_NOT\_FOUND@{MT\_FAT32\_DIRECTORY\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_DIRECTORY\_NOT\_FOUND}{MT\_FAT32\_DIRECTORY\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a1a64aee0420d59aec3bc820c2fc7cce7} 
+\#define MT\+\_\+\+FAT32\+\_\+\+DIRECTORY\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010014L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00073}{73}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a9eefdd8d42f934543aa228ac19a58dea}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_EOF@{MT\_FAT32\_EOF}}
+\index{MT\_FAT32\_EOF@{MT\_FAT32\_EOF}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_EOF}{MT\_FAT32\_EOF}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a9eefdd8d42f934543aa228ac19a58dea} 
+\#define MT\+\_\+\+FAT32\+\_\+\+EOF~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010007L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00066}{66}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a9b042449c0c059c8962a868327197760}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_FILE\_NOT\_FOUND@{MT\_FAT32\_FILE\_NOT\_FOUND}}
+\index{MT\_FAT32\_FILE\_NOT\_FOUND@{MT\_FAT32\_FILE\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_FILE\_NOT\_FOUND}{MT\_FAT32\_FILE\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a9b042449c0c059c8962a868327197760} 
+\#define MT\+\_\+\+FAT32\+\_\+\+FILE\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00063}{63}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_aa77bdccf06eca7e43d2fa3ae7b5dcf2f}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_INVALID\_CLUSTER@{MT\_FAT32\_INVALID\_CLUSTER}}
+\index{MT\_FAT32\_INVALID\_CLUSTER@{MT\_FAT32\_INVALID\_CLUSTER}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_INVALID\_CLUSTER}{MT\_FAT32\_INVALID\_CLUSTER}}
+{\footnotesize\ttfamily \label{mtstatus_8h_aa77bdccf06eca7e43d2fa3ae7b5dcf2f} 
+\#define MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+CLUSTER~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00061}{61}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a7286696ec63dc76a75509b73376bb9b6}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_INVALID\_FILENAME@{MT\_FAT32\_INVALID\_FILENAME}}
+\index{MT\_FAT32\_INVALID\_FILENAME@{MT\_FAT32\_INVALID\_FILENAME}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_INVALID\_FILENAME}{MT\_FAT32\_INVALID\_FILENAME}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a7286696ec63dc76a75509b73376bb9b6} 
+\#define MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+FILENAME~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010006L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00065}{65}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a6d5fbcabd98dd3b993870c73592c8318}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_INVALID\_WRITE\_MODE@{MT\_FAT32\_INVALID\_WRITE\_MODE}}
+\index{MT\_FAT32\_INVALID\_WRITE\_MODE@{MT\_FAT32\_INVALID\_WRITE\_MODE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_INVALID\_WRITE\_MODE}{MT\_FAT32\_INVALID\_WRITE\_MODE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a6d5fbcabd98dd3b993870c73592c8318} 
+\#define MT\+\_\+\+FAT32\+\_\+\+INVALID\+\_\+\+WRITE\+\_\+\+MODE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010011L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00070}{70}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a9e4ad211a12d6f19a7ccd3ff8f6ef7ca}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_PARENT\_PATH\_NOT\_DIR@{MT\_FAT32\_PARENT\_PATH\_NOT\_DIR}}
+\index{MT\_FAT32\_PARENT\_PATH\_NOT\_DIR@{MT\_FAT32\_PARENT\_PATH\_NOT\_DIR}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_PARENT\_PATH\_NOT\_DIR}{MT\_FAT32\_PARENT\_PATH\_NOT\_DIR}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a9e4ad211a12d6f19a7ccd3ff8f6ef7ca} 
+\#define MT\+\_\+\+FAT32\+\_\+\+PARENT\+\_\+\+PATH\+\_\+\+NOT\+\_\+\+DIR~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010010L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00069}{69}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a30adf65016df915ea778bd4867d13249}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND@{MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND}}
+\index{MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND@{MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND}{MT\_FAT32\_PARENT\_PATH\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a30adf65016df915ea778bd4867d13249} 
+\#define MT\+\_\+\+FAT32\+\_\+\+PARENT\+\_\+\+PATH\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010009L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00068}{68}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3dfe9fad9faa00f9d8fcf917462a0457}\index{mtstatus.h@{mtstatus.h}!MT\_FAT32\_PATH\_TOO\_LONG@{MT\_FAT32\_PATH\_TOO\_LONG}}
+\index{MT\_FAT32\_PATH\_TOO\_LONG@{MT\_FAT32\_PATH\_TOO\_LONG}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_FAT32\_PATH\_TOO\_LONG}{MT\_FAT32\_PATH\_TOO\_LONG}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3dfe9fad9faa00f9d8fcf917462a0457} 
+\#define MT\+\_\+\+FAT32\+\_\+\+PATH\+\_\+\+TOO\+\_\+\+LONG~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2010005L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00064}{64}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a1c3bb6736a4567dcb59b8bbaa5837a6e}\index{mtstatus.h@{mtstatus.h}!MT\_GENERAL\_FAILURE@{MT\_GENERAL\_FAILURE}}
+\index{MT\_GENERAL\_FAILURE@{MT\_GENERAL\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_GENERAL\_FAILURE}{MT\_GENERAL\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a1c3bb6736a4567dcb59b8bbaa5837a6e} 
+\#define MT\+\_\+\+GENERAL\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000009L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00031}{31}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a2757f8e1a517527bed05dc45fdadee20}\index{mtstatus.h@{mtstatus.h}!MT\_HEAP\_CORRUPTION@{MT\_HEAP\_CORRUPTION}}
+\index{MT\_HEAP\_CORRUPTION@{MT\_HEAP\_CORRUPTION}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_HEAP\_CORRUPTION}{MT\_HEAP\_CORRUPTION}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a2757f8e1a517527bed05dc45fdadee20} 
+\#define MT\+\_\+\+HEAP\+\_\+\+CORRUPTION~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00041}{41}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}\index{mtstatus.h@{mtstatus.h}!MT\_INVALID\_ADDRESS@{MT\_INVALID\_ADDRESS}}
+\index{MT\_INVALID\_ADDRESS@{MT\_INVALID\_ADDRESS}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_INVALID\_ADDRESS}{MT\_INVALID\_ADDRESS}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373} 
+\#define MT\+\_\+\+INVALID\+\_\+\+ADDRESS~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000005L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00042}{42}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_aa7eb98b551039066e99dd859f9e6b2c1}\index{mtstatus.h@{mtstatus.h}!MT\_INVALID\_IRQL@{MT\_INVALID\_IRQL}}
+\index{MT\_INVALID\_IRQL@{MT\_INVALID\_IRQL}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_INVALID\_IRQL}{MT\_INVALID\_IRQL}}
+{\footnotesize\ttfamily \label{mtstatus_8h_aa7eb98b551039066e99dd859f9e6b2c1} 
+\#define MT\+\_\+\+INVALID\+\_\+\+IRQL~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00097}{97}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_af5e52c057dfd8918f4ba859320a05191}\index{mtstatus.h@{mtstatus.h}!MT\_INVALID\_LOCK@{MT\_INVALID\_LOCK}}
+\index{MT\_INVALID\_LOCK@{MT\_INVALID\_LOCK}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_INVALID\_LOCK}{MT\_INVALID\_LOCK}}
+{\footnotesize\ttfamily \label{mtstatus_8h_af5e52c057dfd8918f4ba859320a05191} 
+\#define MT\+\_\+\+INVALID\+\_\+\+LOCK~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000010L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00032}{32}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a55458e0861f6a58c2bc62538f93609ce}\index{mtstatus.h@{mtstatus.h}!MT\_INVALID\_PARAM@{MT\_INVALID\_PARAM}}
+\index{MT\_INVALID\_PARAM@{MT\_INVALID\_PARAM}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_INVALID\_PARAM}{MT\_INVALID\_PARAM}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a55458e0861f6a58c2bc62538f93609ce} 
+\#define MT\+\_\+\+INVALID\+\_\+\+PARAM~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00024}{24}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3e547767de23697da8708b501dbbc36e}\index{mtstatus.h@{mtstatus.h}!MT\_INVALID\_STATE@{MT\_INVALID\_STATE}}
+\index{MT\_INVALID\_STATE@{MT\_INVALID\_STATE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_INVALID\_STATE}{MT\_INVALID\_STATE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3e547767de23697da8708b501dbbc36e} 
+\#define MT\+\_\+\+INVALID\+\_\+\+STATE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00025}{25}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a86172689e9c6d9f35bbc681c7162ffc0}\index{mtstatus.h@{mtstatus.h}!MT\_IO\_ERROR@{MT\_IO\_ERROR}}
+\index{MT\_IO\_ERROR@{MT\_IO\_ERROR}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_IO\_ERROR}{MT\_IO\_ERROR}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a86172689e9c6d9f35bbc681c7162ffc0} 
+\#define MT\+\_\+\+IO\+\_\+\+ERROR~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00048}{48}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a1baa45747333639f095a93b270e134ac}\index{mtstatus.h@{mtstatus.h}!MT\_MEMORY\_LIMIT@{MT\_MEMORY\_LIMIT}}
+\index{MT\_MEMORY\_LIMIT@{MT\_MEMORY\_LIMIT}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_MEMORY\_LIMIT}{MT\_MEMORY\_LIMIT}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a1baa45747333639f095a93b270e134ac} 
+\#define MT\+\_\+\+MEMORY\+\_\+\+LIMIT~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00039}{39}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3df925a7b46542f58c8ea285919feb0c}\index{mtstatus.h@{mtstatus.h}!MT\_MUTEX\_ALREADY\_OWNED@{MT\_MUTEX\_ALREADY\_OWNED}}
+\index{MT\_MUTEX\_ALREADY\_OWNED@{MT\_MUTEX\_ALREADY\_OWNED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_MUTEX\_ALREADY\_OWNED}{MT\_MUTEX\_ALREADY\_OWNED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3df925a7b46542f58c8ea285919feb0c} 
+\#define MT\+\_\+\+MUTEX\+\_\+\+ALREADY\+\_\+\+OWNED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C5000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00103}{103}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a5016c4db772945f5edac9d50784d7153}\index{mtstatus.h@{mtstatus.h}!MT\_MUTEX\_NOT\_OWNED@{MT\_MUTEX\_NOT\_OWNED}}
+\index{MT\_MUTEX\_NOT\_OWNED@{MT\_MUTEX\_NOT\_OWNED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_MUTEX\_NOT\_OWNED}{MT\_MUTEX\_NOT\_OWNED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a5016c4db772945f5edac9d50784d7153} 
+\#define MT\+\_\+\+MUTEX\+\_\+\+NOT\+\_\+\+OWNED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C5000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00104}{104}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a04d00d9b51e2f25c23b87d750df59dc4}\index{mtstatus.h@{mtstatus.h}!MT\_NO\_MEMORY@{MT\_NO\_MEMORY}}
+\index{MT\_NO\_MEMORY@{MT\_NO\_MEMORY}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_NO\_MEMORY}{MT\_NO\_MEMORY}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a04d00d9b51e2f25c23b87d750df59dc4} 
+\#define MT\+\_\+\+NO\+\_\+\+MEMORY~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00038}{38}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd}\index{mtstatus.h@{mtstatus.h}!MT\_NOT\_FOUND@{MT\_NOT\_FOUND}}
+\index{MT\_NOT\_FOUND@{MT\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_NOT\_FOUND}{MT\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd} 
+\#define MT\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000008L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00030}{30}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}\index{mtstatus.h@{mtstatus.h}!MT\_NOT\_IMPLEMENTED@{MT\_NOT\_IMPLEMENTED}}
+\index{MT\_NOT\_IMPLEMENTED@{MT\_NOT\_IMPLEMENTED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_NOT\_IMPLEMENTED}{MT\_NOT\_IMPLEMENTED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127} 
+\#define MT\+\_\+\+NOT\+\_\+\+IMPLEMENTED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00023}{23}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a9433f72e5a351861cb4796f015437408}\index{mtstatus.h@{mtstatus.h}!MT\_PAGE\_FAULT\_ERROR@{MT\_PAGE\_FAULT\_ERROR}}
+\index{MT\_PAGE\_FAULT\_ERROR@{MT\_PAGE\_FAULT\_ERROR}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_PAGE\_FAULT\_ERROR}{MT\_PAGE\_FAULT\_ERROR}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a9433f72e5a351861cb4796f015437408} 
+\#define MT\+\_\+\+PAGE\+\_\+\+FAULT\+\_\+\+ERROR~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C1000003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00040}{40}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a128ddc985ecf69dd50fd7fc017f8a7a0}\index{mtstatus.h@{mtstatus.h}!MT\_SCHEDULER\_ERROR@{MT\_SCHEDULER\_ERROR}}
+\index{MT\_SCHEDULER\_ERROR@{MT\_SCHEDULER\_ERROR}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_SCHEDULER\_ERROR}{MT\_SCHEDULER\_ERROR}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a128ddc985ecf69dd50fd7fc017f8a7a0} 
+\#define MT\+\_\+\+SCHEDULER\+\_\+\+ERROR~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00096}{96}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ab1c4c30274cca0fd5c0920b0df2ad26c}\index{mtstatus.h@{mtstatus.h}!MT\_SUCCEEDED@{MT\_SUCCEEDED}}
+\index{MT\_SUCCEEDED@{MT\_SUCCEEDED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_SUCCEEDED}{MT\_SUCCEEDED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ab1c4c30274cca0fd5c0920b0df2ad26c} 
+\#define MT\+\_\+\+SUCCEEDED(\begin{DoxyParamCaption}\item[{}]{Status}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{((Status)\ >=\ 0)}
+
+\end{DoxyCode}
+
+
+Macros to test status. 
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00015}{15}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}\index{mtstatus.h@{mtstatus.h}!MT\_SUCCESS@{MT\_SUCCESS}}
+\index{MT\_SUCCESS@{MT\_SUCCESS}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_SUCCESS}{MT\_SUCCESS}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86} 
+\#define MT\+\_\+\+SUCCESS~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x00000000L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00022}{22}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_aebfb1065dd52951819fe1f68c1a6ef70}\index{mtstatus.h@{mtstatus.h}!MT\_THREAD\_CREATION\_FAIL@{MT\_THREAD\_CREATION\_FAIL}}
+\index{MT\_THREAD\_CREATION\_FAIL@{MT\_THREAD\_CREATION\_FAIL}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_THREAD\_CREATION\_FAIL}{MT\_THREAD\_CREATION\_FAIL}}
+{\footnotesize\ttfamily \label{mtstatus_8h_aebfb1065dd52951819fe1f68c1a6ef70} 
+\#define MT\+\_\+\+THREAD\+\_\+\+CREATION\+\_\+\+FAIL~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00095}{95}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ac34f92b9ea69a5222535037c1e5228ee}\index{mtstatus.h@{mtstatus.h}!MT\_THREAD\_NOT\_FOUND@{MT\_THREAD\_NOT\_FOUND}}
+\index{MT\_THREAD\_NOT\_FOUND@{MT\_THREAD\_NOT\_FOUND}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_THREAD\_NOT\_FOUND}{MT\_THREAD\_NOT\_FOUND}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ac34f92b9ea69a5222535037c1e5228ee} 
+\#define MT\+\_\+\+THREAD\+\_\+\+NOT\+\_\+\+FOUND~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C4000001L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00094}{94}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_add1cf98cc82cc30be1153f4e2670dcd0}\index{mtstatus.h@{mtstatus.h}!MT\_TIMEOUT@{MT\_TIMEOUT}}
+\index{MT\_TIMEOUT@{MT\_TIMEOUT}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_TIMEOUT}{MT\_TIMEOUT}}
+{\footnotesize\ttfamily \label{mtstatus_8h_add1cf98cc82cc30be1153f4e2670dcd0} 
+\#define MT\+\_\+\+TIMEOUT~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000005L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00027}{27}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_accf2a00fc1d875f76933038aead04564}\index{mtstatus.h@{mtstatus.h}!MT\_UNSUPPORTED\_OP@{MT\_UNSUPPORTED\_OP}}
+\index{MT\_UNSUPPORTED\_OP@{MT\_UNSUPPORTED\_OP}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_UNSUPPORTED\_OP}{MT\_UNSUPPORTED\_OP}}
+{\footnotesize\ttfamily \label{mtstatus_8h_accf2a00fc1d875f76933038aead04564} 
+\#define MT\+\_\+\+UNSUPPORTED\+\_\+\+OP~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C0000006L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00028}{28}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a1771bfcc92fc931e672d7e8874d06666}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_CORRUPTED@{MT\_VFS\_CORRUPTED}}
+\index{MT\_VFS\_CORRUPTED@{MT\_VFS\_CORRUPTED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_CORRUPTED}{MT\_VFS\_CORRUPTED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a1771bfcc92fc931e672d7e8874d06666} 
+\#define MT\+\_\+\+VFS\+\_\+\+CORRUPTED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000002L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00049}{49}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_ae989ab55e76398d6856cf6d782e02ac3}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_GENERAL\_FAILURE@{MT\_VFS\_GENERAL\_FAILURE}}
+\index{MT\_VFS\_GENERAL\_FAILURE@{MT\_VFS\_GENERAL\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_GENERAL\_FAILURE}{MT\_VFS\_GENERAL\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_ae989ab55e76398d6856cf6d782e02ac3} 
+\#define MT\+\_\+\+VFS\+\_\+\+GENERAL\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000007L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00054}{54}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a498fe964da1b9b75389b3b4115129fa7}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_INITIALIZATION\_FAILURE@{MT\_VFS\_INITIALIZATION\_FAILURE}}
+\index{MT\_VFS\_INITIALIZATION\_FAILURE@{MT\_VFS\_INITIALIZATION\_FAILURE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_INITIALIZATION\_FAILURE}{MT\_VFS\_INITIALIZATION\_FAILURE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a498fe964da1b9b75389b3b4115129fa7} 
+\#define MT\+\_\+\+VFS\+\_\+\+INITIALIZATION\+\_\+\+FAILURE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000006L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00053}{53}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_af09605d7d3ab6ad86d62177b7254c108}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_NO\_SPACE@{MT\_VFS\_NO\_SPACE}}
+\index{MT\_VFS\_NO\_SPACE@{MT\_VFS\_NO\_SPACE}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_NO\_SPACE}{MT\_VFS\_NO\_SPACE}}
+{\footnotesize\ttfamily \label{mtstatus_8h_af09605d7d3ab6ad86d62177b7254c108} 
+\#define MT\+\_\+\+VFS\+\_\+\+NO\+\_\+\+SPACE~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000004L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00051}{51}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a1236f0d31bb71b448f3ed0223d136246}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_PERMISSION\_DENIED@{MT\_VFS\_PERMISSION\_DENIED}}
+\index{MT\_VFS\_PERMISSION\_DENIED@{MT\_VFS\_PERMISSION\_DENIED}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_PERMISSION\_DENIED}{MT\_VFS\_PERMISSION\_DENIED}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a1236f0d31bb71b448f3ed0223d136246} 
+\#define MT\+\_\+\+VFS\+\_\+\+PERMISSION\+\_\+\+DENIED~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000005L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00052}{52}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+\Hypertarget{mtstatus_8h_a2603651a13a98ffd1b349bf22193b9a2}\index{mtstatus.h@{mtstatus.h}!MT\_VFS\_READ\_ONLY@{MT\_VFS\_READ\_ONLY}}
+\index{MT\_VFS\_READ\_ONLY@{MT\_VFS\_READ\_ONLY}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MT\_VFS\_READ\_ONLY}{MT\_VFS\_READ\_ONLY}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a2603651a13a98ffd1b349bf22193b9a2} 
+\#define MT\+\_\+\+VFS\+\_\+\+READ\+\_\+\+ONLY~((\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0x\+C2000003L)}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00050}{50}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{mtstatus_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}\index{mtstatus.h@{mtstatus.h}!MTSTATUS@{MTSTATUS}}
+\index{MTSTATUS@{MTSTATUS}!mtstatus.h@{mtstatus.h}}
+\doxysubsubsection{\texorpdfstring{MTSTATUS}{MTSTATUS}}
+{\footnotesize\ttfamily \label{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a} 
+typedef int32\+\_\+t \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+
+
+
+Definition at line \mbox{\hyperlink{mtstatus_8h_source_l00012}{12}} of file \mbox{\hyperlink{mtstatus_8h_source}{mtstatus.\+h}}.
+

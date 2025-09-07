@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.14.0" xml:lang="en-US">
+  <compound refid="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y" kind="struct"><name>LASTFUNC_HISTORY</name>
+    <member refid="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_1ade49e81be26c6ae61a2bbe26e4b85bdb" kind="variable"><name>names</name></member>
+    <member refid="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y_1aa109b69c74e781d1c99d60b2861cbf5d" kind="variable"><name>current_index</name></member>
+  </compound>
+  <compound refid="struct_t_i_m_e___e_n_t_r_y" kind="struct"><name>TIME_ENTRY</name>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1a8459fc4e94de7eefc74991e41779c8fc" kind="variable"><name>second</name></member>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1a8ff981ec55c945940f4a0da7d8709b3c" kind="variable"><name>minute</name></member>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1ae5af4ff48939d13d480f87e56a9385d6" kind="variable"><name>hour</name></member>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1a72369a1087b2aeffe374bb054cb97c12" kind="variable"><name>day</name></member>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1a3e00faf7fbf9805e9ec4d2edd6339050" kind="variable"><name>month</name></member>
+    <member refid="struct_t_i_m_e___e_n_t_r_y_1a57ca98d8f6d4baf0fe41c583c7dcb0d5" kind="variable"><name>year</name></member>
+  </compound>
+  <compound refid="assert_8h" kind="file"><name>assert.h</name>
+    <member refid="assert_8h_1a3d4ae9c092e117c836f52dc7d7cee574" kind="define"><name>assert</name></member>
+  </compound>
+  <compound refid="kernel_8c" kind="file"><name>kernel.c</name>
+    <member refid="kernel_8c_1a9fed467298b3e70426485013c0caf964" kind="define"><name>MAX_AHCI_CONTROLLERS</name></member>
+    <member refid="kernel_8c_1ad6664187bc75188329b950c21f5f380a" kind="define"><name>MAX_MEMORY_MAP_SIZE</name></member>
+    <member refid="kernel_8c_1a2d000697316631e744359a19471179c9" kind="define"><name>ISRAEL_UTC_OFFSET</name></member>
+    <member refid="kernel_8c_1a3764ef588283aaa224d9dd8d89a35c52" kind="variable"><name>ahci_bases_local</name></member>
+    <member refid="kernel_8c_1ad8ca0be32b831aec9de80bcf0e22107e" kind="variable"><name>gop_local</name></member>
+    <member refid="kernel_8c_1a5f06053b8248ece91f68e4ae8da74ee4" kind="variable"><name>boot_info_local</name></member>
+    <member refid="kernel_8c_1a3e4cb7a3337aa00fccafe03c7b5a59fc" kind="variable"><name>isBugChecking</name></member>
+    <member refid="kernel_8c_1a84fdaa754c58bd3a02ef7e0c36cfff33" kind="variable"><name>lastfunc_history</name></member>
+    <member refid="kernel_8c_1a0b2a3530e9a5998456be351b4251b878" kind="variable"><name>cpu</name></member>
+    <member refid="kernel_8c_1a98451f3246f4a4f2b0d59a19a7e2b0be" kind="variable"><name>memory_map_copy</name></member>
+    <member refid="kernel_8c_1a26b7a33ce7ac27191c39745d6852acd1" kind="function"><name>copy_memory_map</name></member>
+    <member refid="kernel_8c_1a8bf2519b1a607ce677d092c706b92f00" kind="function"><name>copy_gop</name></member>
+    <member refid="kernel_8c_1a1aeed12b2d6dcc95b0e4457dab2e891c" kind="function"><name>init_boot_info</name></member>
+    <member refid="kernel_8c_1a49961a69205678918149e52a5a7c2497" kind="function"><name>InitialiseControlRegisters</name></member>
+    <member refid="kernel_8c_1a4aa078dcf96e9f06ce620519a93593c1" kind="function"><name>InitCPU</name></member>
+    <member refid="kernel_8c_1a28a9a0febefcfa2822eda18e50ab6648" kind="function"><name>interrupts_enabled</name></member>
+    <member refid="kernel_8c_1a9ce2606c20ea524922906d7816228c26" kind="function"><name>kernel_idle_checks</name></member>
+    <member refid="kernel_8c_1a536ce602cba46097d044ec144974ce6e" kind="function"><name>test</name></member>
+    <member refid="kernel_8c_1aa575cf86f69a0bdbb2e80962421ea573" kind="function"><name>funcWithParam</name></member>
+    <member refid="kernel_8c_1a290306ce314d46bd369c185b7b95db40" kind="function"><name>kernel_main</name></member>
+  </compound>
+  <compound refid="kernel_8h" kind="file"><name>kernel.h</name>
+    <member refid="kernel_8h_1a7b1a47a94be3cc9455621cecad58b168" kind="define"><name>UNREFERENCED_PARAMETER</name></member>
+    <member refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kind="define"><name>gop_printf_forced</name></member>
+    <member refid="kernel_8h_1a1036d27854ce5d0dbb80b72848e4d03a" kind="define"><name>ALLOCATIONS</name></member>
+    <member refid="kernel_8h_1ad51ded0bbd705f02f73fc60c0b721ced" kind="define"><name>BLOCK_SIZE</name></member>
+    <member refid="kernel_8h_1a450f9d8af07bfe2f313dbe3a78738a5e" kind="define"><name>ALIGNMENT</name></member>
+    <member refid="kernel_8h_1a1e03bdef1501e96036b676dc18e71787" kind="typedef"><name>BLOCK_DEVICE</name></member>
+    <member refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kind="typedef"><name>BOOT_INFO</name></member>
+    <member refid="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" kind="typedef"><name>CTX_FRAME</name></member>
+    <member refid="kernel_8h_1a3e4cb7a3337aa00fccafe03c7b5a59fc" kind="variable"><name>isBugChecking</name></member>
+    <member refid="kernel_8h_1a84fdaa754c58bd3a02ef7e0c36cfff33" kind="variable"><name>lastfunc_history</name></member>
+    <member refid="kernel_8h_1a9ce2606c20ea524922906d7816228c26" kind="function"><name>kernel_idle_checks</name></member>
+    <member refid="kernel_8h_1a290306ce314d46bd369c185b7b95db40" kind="function"><name>kernel_main</name></member>
+    <member refid="kernel_8h_1a26b7a33ce7ac27191c39745d6852acd1" kind="function"><name>copy_memory_map</name></member>
+    <member refid="kernel_8h_1a8bf2519b1a607ce677d092c706b92f00" kind="function"><name>copy_gop</name></member>
+    <member refid="kernel_8h_1a1aeed12b2d6dcc95b0e4457dab2e891c" kind="function"><name>init_boot_info</name></member>
+    <member refid="kernel_8h_1a4aa078dcf96e9f06ce620519a93593c1" kind="function"><name>InitCPU</name></member>
+    <member refid="kernel_8h_1a7614d4a9e62a3f55e776c1230bb27627" kind="function"><name>read_context_frame</name></member>
+    <member refid="kernel_8h_1a29b0957b94e2cdc2783958bd0a2d43ff" kind="function"><name>read_interrupt_frame</name></member>
+    <member refid="kernel_8h_1a8123ae7f822e5ac9e30cab8b0f6c526c" kind="function"><name>xorshift32</name></member>
+    <member refid="kernel_8h_1ae7a3c59d00dc98a8939aa938d87fd25c" kind="function"><name>MemoryTestStable</name></member>
+  </compound>
+  <compound refid="mtstatus_8h" kind="file"><name>mtstatus.h</name>
+    <member refid="mtstatus_8h_1ab1c4c30274cca0fd5c0920b0df2ad26c" kind="define"><name>MT_SUCCEEDED</name></member>
+    <member refid="mtstatus_8h_1a51b65f92cdedadf23a01dff0f9f4fac7" kind="define"><name>MT_FAILURE</name></member>
+    <member refid="mtstatus_8h_1a147849337a41d8be9ccb4ef599b84a86" kind="define"><name>MT_SUCCESS</name></member>
+    <member refid="mtstatus_8h_1a3f63df5b525aeed240a0798a736a0127" kind="define"><name>MT_NOT_IMPLEMENTED</name></member>
+    <member refid="mtstatus_8h_1a55458e0861f6a58c2bc62538f93609ce" kind="define"><name>MT_INVALID_PARAM</name></member>
+    <member refid="mtstatus_8h_1a3e547767de23697da8708b501dbbc36e" kind="define"><name>MT_INVALID_STATE</name></member>
+    <member refid="mtstatus_8h_1a26f01ccb752ead3aa3dd4c44fbc552b7" kind="define"><name>MT_ACCESS_DENIED</name></member>
+    <member refid="mtstatus_8h_1add1cf98cc82cc30be1153f4e2670dcd0" kind="define"><name>MT_TIMEOUT</name></member>
+    <member refid="mtstatus_8h_1accf2a00fc1d875f76933038aead04564" kind="define"><name>MT_UNSUPPORTED_OP</name></member>
+    <member refid="mtstatus_8h_1a39f92f7bbd2549e6111129ee1848d89c" kind="define"><name>MT_ALREADY_EXISTS</name></member>
+    <member refid="mtstatus_8h_1aafd803b321d036759d81fd68163ea0fd" kind="define"><name>MT_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1a1c3bb6736a4567dcb59b8bbaa5837a6e" kind="define"><name>MT_GENERAL_FAILURE</name></member>
+    <member refid="mtstatus_8h_1af5e52c057dfd8918f4ba859320a05191" kind="define"><name>MT_INVALID_LOCK</name></member>
+    <member refid="mtstatus_8h_1a04d00d9b51e2f25c23b87d750df59dc4" kind="define"><name>MT_NO_MEMORY</name></member>
+    <member refid="mtstatus_8h_1a1baa45747333639f095a93b270e134ac" kind="define"><name>MT_MEMORY_LIMIT</name></member>
+    <member refid="mtstatus_8h_1a9433f72e5a351861cb4796f015437408" kind="define"><name>MT_PAGE_FAULT_ERROR</name></member>
+    <member refid="mtstatus_8h_1a2757f8e1a517527bed05dc45fdadee20" kind="define"><name>MT_HEAP_CORRUPTION</name></member>
+    <member refid="mtstatus_8h_1a4bba88197d1ce048dc3d8755222b7373" kind="define"><name>MT_INVALID_ADDRESS</name></member>
+    <member refid="mtstatus_8h_1a86172689e9c6d9f35bbc681c7162ffc0" kind="define"><name>MT_IO_ERROR</name></member>
+    <member refid="mtstatus_8h_1a1771bfcc92fc931e672d7e8874d06666" kind="define"><name>MT_VFS_CORRUPTED</name></member>
+    <member refid="mtstatus_8h_1a2603651a13a98ffd1b349bf22193b9a2" kind="define"><name>MT_VFS_READ_ONLY</name></member>
+    <member refid="mtstatus_8h_1af09605d7d3ab6ad86d62177b7254c108" kind="define"><name>MT_VFS_NO_SPACE</name></member>
+    <member refid="mtstatus_8h_1a1236f0d31bb71b448f3ed0223d136246" kind="define"><name>MT_VFS_PERMISSION_DENIED</name></member>
+    <member refid="mtstatus_8h_1a498fe964da1b9b75389b3b4115129fa7" kind="define"><name>MT_VFS_INITIALIZATION_FAILURE</name></member>
+    <member refid="mtstatus_8h_1ae989ab55e76398d6856cf6d782e02ac3" kind="define"><name>MT_VFS_GENERAL_FAILURE</name></member>
+    <member refid="mtstatus_8h_1a3670cb6d0a81a71ccea87f35bc0d8afc" kind="define"><name>MT_FAT32_CLUSTERS_FULL</name></member>
+    <member refid="mtstatus_8h_1aa77bdccf06eca7e43d2fa3ae7b5dcf2f" kind="define"><name>MT_FAT32_INVALID_CLUSTER</name></member>
+    <member refid="mtstatus_8h_1ae88ec345a131313bce8b73339d4ba1b7" kind="define"><name>MT_FAT32_DIR_FULL</name></member>
+    <member refid="mtstatus_8h_1a9b042449c0c059c8962a868327197760" kind="define"><name>MT_FAT32_FILE_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1a3dfe9fad9faa00f9d8fcf917462a0457" kind="define"><name>MT_FAT32_PATH_TOO_LONG</name></member>
+    <member refid="mtstatus_8h_1a7286696ec63dc76a75509b73376bb9b6" kind="define"><name>MT_FAT32_INVALID_FILENAME</name></member>
+    <member refid="mtstatus_8h_1a9eefdd8d42f934543aa228ac19a58dea" kind="define"><name>MT_FAT32_EOF</name></member>
+    <member refid="mtstatus_8h_1a505206654ba3ac6e651f6b6f2212ab10" kind="define"><name>MT_FAT32_DIRECTORY_ALREADY_EXISTS</name></member>
+    <member refid="mtstatus_8h_1a30adf65016df915ea778bd4867d13249" kind="define"><name>MT_FAT32_PARENT_PATH_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1a9e4ad211a12d6f19a7ccd3ff8f6ef7ca" kind="define"><name>MT_FAT32_PARENT_PATH_NOT_DIR</name></member>
+    <member refid="mtstatus_8h_1a6d5fbcabd98dd3b993870c73592c8318" kind="define"><name>MT_FAT32_INVALID_WRITE_MODE</name></member>
+    <member refid="mtstatus_8h_1a8bc18bc70f5b5ff68142fbcd98482241" kind="define"><name>MT_FAT32_CLUSTER_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1acfb922cb9776aa2352c01323c0a69a11" kind="define"><name>MT_FAT32_CLUSTER_GENERAL_FAILURE</name></member>
+    <member refid="mtstatus_8h_1a1a64aee0420d59aec3bc820c2fc7cce7" kind="define"><name>MT_FAT32_DIRECTORY_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1ab0cd8320b3fec11a396206910004c1b8" kind="define"><name>MT_DEVICE_NOT_READY</name></member>
+    <member refid="mtstatus_8h_1ae171918eee671842ce6ae602ba496f6a" kind="define"><name>MT_DEVICE_ERROR</name></member>
+    <member refid="mtstatus_8h_1a3ec23aa2d40e4d5c20f561d04bad9ae6" kind="define"><name>MT_DEVICE_TIMEOUT</name></member>
+    <member refid="mtstatus_8h_1ae1e8ae5afcfebddfe2dca3c64444b798" kind="define"><name>MT_DEVICE_UNSUPPORTED</name></member>
+    <member refid="mtstatus_8h_1a5524d368eb2e6c3bb98376aea17f18c3" kind="define"><name>MT_AHCI_INIT_FAILED</name></member>
+    <member refid="mtstatus_8h_1a46b1e8c59afc3ee9f187a07e41582eed" kind="define"><name>MT_AHCI_PORT_FAILURE</name></member>
+    <member refid="mtstatus_8h_1ae4ae297fe7cbd0ae4f97289e6db6b3c4" kind="define"><name>MT_AHCI_READ_FAILURE</name></member>
+    <member refid="mtstatus_8h_1a05d02534d3e3ddfe49edd80da1d89836" kind="define"><name>MT_AHCI_WRITE_FAILURE</name></member>
+    <member refid="mtstatus_8h_1ad7bdb569867344cb70944a330aff1981" kind="define"><name>MT_AHCI_TIMEOUT</name></member>
+    <member refid="mtstatus_8h_1a46f73fb558e21e15b63353ddbaeb4219" kind="define"><name>MT_AHCI_GENERAL_FAILURE</name></member>
+    <member refid="mtstatus_8h_1ac34f92b9ea69a5222535037c1e5228ee" kind="define"><name>MT_THREAD_NOT_FOUND</name></member>
+    <member refid="mtstatus_8h_1aebfb1065dd52951819fe1f68c1a6ef70" kind="define"><name>MT_THREAD_CREATION_FAIL</name></member>
+    <member refid="mtstatus_8h_1a128ddc985ecf69dd50fd7fc017f8a7a0" kind="define"><name>MT_SCHEDULER_ERROR</name></member>
+    <member refid="mtstatus_8h_1aa7eb98b551039066e99dd859f9e6b2c1" kind="define"><name>MT_INVALID_IRQL</name></member>
+    <member refid="mtstatus_8h_1a3df925a7b46542f58c8ea285919feb0c" kind="define"><name>MT_MUTEX_ALREADY_OWNED</name></member>
+    <member refid="mtstatus_8h_1a5016c4db772945f5edac9d50784d7153" kind="define"><name>MT_MUTEX_NOT_OWNED</name></member>
+    <member refid="mtstatus_8h_1a5a19d5a6f45e53b38219eb92ea647b9e" kind="define"><name>MT_EVENT_ALREADY_SIGNALED</name></member>
+    <member refid="mtstatus_8h_1a7c794b38d203a5b842f27b12fb55495a" kind="typedef"><name>MTSTATUS</name></member>
+  </compound>
+  <compound refid="time_8h" kind="file"><name>time.h</name>
+    <member refid="time_8h_1aacb8fc8b7efa32c2381ebd467a2ad7d3" kind="define"><name>CMOS_ADDRESS</name></member>
+    <member refid="time_8h_1a5554a9134430636bc1044eb72126fe32" kind="define"><name>CMOS_DATA</name></member>
+    <member refid="time_8h_1af1a1e5c54dbff7de336450e0912fd193" kind="function"><name>cmos_read</name></member>
+    <member refid="time_8h_1ae0dba2bf44fe9b7525df6887094e7f4b" kind="function"><name>rtc_updating</name></member>
+    <member refid="time_8h_1a51581170d5b894353564f8538861e865" kind="function"><name>bcd_to_bin</name></member>
+    <member refid="time_8h_1a604cd044fa7f8bfff7fcd21dba25478e" kind="function"><name>get_time</name></member>
+  </compound>
+  <compound refid="trace_8h" kind="file"><name>trace.h</name>
+    <member refid="trace_8h_1a1058858396753f9017e43578043a9de9" kind="define"><name>LASTFUNC_BUFFER_SIZE</name></member>
+    <member refid="trace_8h_1ae8a5c5e8b2736c49f4d949c5a3510c11" kind="define"><name>LASTFUNC_HISTORY_SIZE</name></member>
+    <member refid="trace_8h_1a3be11524a4ade7d83533944830432d63" kind="function"><name>tracelast_func</name></member>
+  </compound>
+  <compound refid="dir_4e60904b950616c42c0f817452614c20" kind="dir"><name>C:/Users/matanel/Desktop</name>
+  </compound>
+  <compound refid="dir_65de698274afa69a99ce1d85982b80cd" kind="dir"><name>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel</name>
+  </compound>
+  <compound refid="dir_b3e2b2d55acba24480631368833d62ed" kind="dir"><name>C:/Users/matanel/Desktop/Projects/KernelDevelopment</name>
+  </compound>
+  <compound refid="dir_e4108698badaaf36ae0e3b14b6bcf359" kind="dir"><name>C:/Users/matanel</name>
+  </compound>
+  <compound refid="dir_99fc1fd6614120fc91b3fe1bddd34da0" kind="dir"><name>C:/Users/matanel/Desktop/Projects</name>
+  </compound>
+  <compound refid="dir_d522931ffa1371640980b621734a4381" kind="dir"><name>C:/Users</name>
+  </compound>
+</doxygenindex>

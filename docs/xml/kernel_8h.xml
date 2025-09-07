@@ -1,0 +1,748 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.14.0" xml:lang="en-US">
+  <compounddef id="kernel_8h" kind="file" language="C++">
+    <compoundname>kernel.h</compoundname>
+    <includes local="no">stddef.h</includes>
+    <includes local="no">stdbool.h</includes>
+    <includes local="no">stdint.h</includes>
+    <includes local="no">stdatomic.h</includes>
+    <includes refid="trace_8h" local="yes">trace.h</includes>
+    <includes refid="assert_8h" local="yes">assert.h</includes>
+    <includes local="yes">intrin/intrin.h</includes>
+    <includes local="yes">cpu/cpu.h</includes>
+    <includes local="yes">filesystem/fat32/fat32.h</includes>
+    <includes local="yes">memory/allocator/uefi_memory.h</includes>
+    <includes local="yes">memory/memory.h</includes>
+    <includes local="yes">memory/paging/paging.h</includes>
+    <includes local="yes">defs/stdarg_myos.h</includes>
+    <includes local="yes">interrupts/idt.h</includes>
+    <includes local="yes">interrupts/handlers/handlers.h</includes>
+    <includes local="yes">bugcheck/bugcheck.h</includes>
+    <includes local="yes">memory/allocator/allocator.h</includes>
+    <includes local="yes">drivers/blk/block.h</includes>
+    <includes local="yes">drivers/ahci/ahci.h</includes>
+    <includes local="yes">drivers/gop/gop.h</includes>
+    <includes local="yes">cpu/cpuid/cpuid.h</includes>
+    <includes refid="time_8h" local="yes">time.h</includes>
+    <includes local="yes">filesystem/vfs/vfs.h</includes>
+    <includes local="yes">cpu/apic/apic.h</includes>
+    <includes local="yes">cpu/mutex/mutex.h</includes>
+    <includes local="yes">cpu/events/events.h</includes>
+    <includedby refid="kernel_8c" local="yes">C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>assert.h</label>
+        <link refid="assert_8h"/>
+      </node>
+      <node id="1">
+        <label>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h</label>
+        <link refid="kernel_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>time.h</label>
+        <link refid="time_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>trace.h</label>
+        <link refid="trace_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>bugcheck/bugcheck.h</label>
+      </node>
+      <node id="25">
+        <label>cpu/apic/apic.h</label>
+      </node>
+      <node id="9">
+        <label>cpu/cpu.h</label>
+      </node>
+      <node id="22">
+        <label>cpu/cpuid/cpuid.h</label>
+      </node>
+      <node id="27">
+        <label>cpu/events/events.h</label>
+      </node>
+      <node id="26">
+        <label>cpu/mutex/mutex.h</label>
+      </node>
+      <node id="14">
+        <label>defs/stdarg_myos.h</label>
+      </node>
+      <node id="20">
+        <label>drivers/ahci/ahci.h</label>
+      </node>
+      <node id="19">
+        <label>drivers/blk/block.h</label>
+      </node>
+      <node id="21">
+        <label>drivers/gop/gop.h</label>
+      </node>
+      <node id="10">
+        <label>filesystem/fat32/fat32.h</label>
+      </node>
+      <node id="24">
+        <label>filesystem/vfs/vfs.h</label>
+      </node>
+      <node id="16">
+        <label>interrupts/handlers/handlers.h</label>
+      </node>
+      <node id="15">
+        <label>interrupts/idt.h</label>
+      </node>
+      <node id="7">
+        <label>intrin/intrin.h</label>
+      </node>
+      <node id="18">
+        <label>memory/allocator/allocator.h</label>
+      </node>
+      <node id="11">
+        <label>memory/allocator/uefi_memory.h</label>
+      </node>
+      <node id="12">
+        <label>memory/memory.h</label>
+      </node>
+      <node id="13">
+        <label>memory/paging/paging.h</label>
+      </node>
+      <node id="5">
+        <label>stdatomic.h</label>
+      </node>
+      <node id="3">
+        <label>stdbool.h</label>
+      </node>
+      <node id="2">
+        <label>stddef.h</label>
+      </node>
+      <node id="4">
+        <label>stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c</label>
+        <link refid="kernel_8c"/>
+      </node>
+      <node id="1">
+        <label>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h</label>
+        <link refid="kernel_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <sectiondef kind="define">
+      <memberdef kind="define" id="kernel_8h_1a7b1a47a94be3cc9455621cecad58b168" prot="public" static="no">
+        <name>UNREFERENCED_PARAMETER</name>
+        <param><defname>x</defname></param>
+        <initializer>(void)(x)</initializer>
+        <briefdescription>
+<para>#define CAUSE_BUGCHECK </para>
+        </briefdescription>
+        <detaileddescription>
+<para>#define REMINDER #define DISABLE_CACHE </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="41" column="9" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" prot="public" static="no">
+        <name>gop_printf_forced</name>
+        <param><defname>color</defname></param>
+        <param><defname>fmt</defname></param>
+        <param><defname>...</defname></param>
+        <initializer>gop_printf(color, fmt, ##__VA_ARGS__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="77" column="9" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="kernel_8h_1a1036d27854ce5d0dbb80b72848e4d03a" prot="public" static="no">
+        <name>ALLOCATIONS</name>
+        <initializer>1000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="79" column="9" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="kernel_8h_1ad51ded0bbd705f02f73fc60c0b721ced" prot="public" static="no">
+        <name>BLOCK_SIZE</name>
+        <initializer>128</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="80" column="9" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="kernel_8h_1a450f9d8af07bfe2f313dbe3a78738a5e" prot="public" static="no">
+        <name>ALIGNMENT</name>
+        <initializer>16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="81" column="9" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+    </sectiondef>
+    <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="kernel_8h_1a1e03bdef1501e96036b676dc18e71787" prot="public" static="no">
+        <type>struct _BLOCK_DEVICE</type>
+        <definition>typedef struct _BLOCK_DEVICE BLOCK_DEVICE</definition>
+        <argsstring></argsstring>
+        <name>BLOCK_DEVICE</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="19" column="28" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" prot="public" static="no">
+        <type>struct _BOOT_INFO</type>
+        <definition>typedef struct _BOOT_INFO BOOT_INFO</definition>
+        <argsstring></argsstring>
+        <name>BOOT_INFO</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="20" column="25" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" prot="public" static="no">
+        <type>struct _CTX_FRAME</type>
+        <definition>typedef struct _CTX_FRAME CTX_FRAME</definition>
+        <argsstring></argsstring>
+        <name>CTX_FRAME</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="21" column="25" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+    </sectiondef>
+    <sectiondef kind="var">
+      <memberdef kind="variable" id="kernel_8h_1a3e4cb7a3337aa00fccafe03c7b5a59fc" prot="public" static="no" extern="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool isBugChecking</definition>
+        <argsstring></argsstring>
+        <name>isBugChecking</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="25" column="13" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="24" bodyend="-1" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="25" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="kernel_8h_1a84fdaa754c58bd3a02ef7e0c36cfff33" prot="public" static="no" extern="yes" mutable="no">
+        <type><ref refid="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y" kindref="compound">LASTFUNC_HISTORY</ref></type>
+        <definition>LASTFUNC_HISTORY lastfunc_history</definition>
+        <argsstring></argsstring>
+        <name>lastfunc_history</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="26" column="25" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="25" bodyend="25" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="26" declcolumn="25"/>
+      </memberdef>
+    </sectiondef>
+    <sectiondef kind="func">
+      <memberdef kind="function" id="kernel_8h_1a9ce2606c20ea524922906d7816228c26" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void kernel_idle_checks</definition>
+        <argsstring>(void)</argsstring>
+        <name>kernel_idle_checks</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="65" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="114" bodyend="132" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a290306ce314d46bd369c185b7b95db40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void kernel_main</definition>
+        <argsstring>(BOOT_INFO *boot_info)</argsstring>
+        <name>kernel_main</name>
+        <param>
+          <type><ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref> *</type>
+          <declname>boot_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Remember that paging is on when this is called, as UEFI turned it on. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="66" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="171" bodyend="281" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="66" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a26b7a33ce7ac27191c39745d6852acd1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void copy_memory_map</definition>
+        <argsstring>(BOOT_INFO *boot_info)</argsstring>
+        <name>copy_memory_map</name>
+        <param>
+          <type><ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref> *</type>
+          <declname>boot_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="68" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="35" bodyend="49" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a8bf2519b1a607ce677d092c706b92f00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void copy_gop</definition>
+        <argsstring>(BOOT_INFO *boot_info)</argsstring>
+        <name>copy_gop</name>
+        <param>
+          <type><ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref> *</type>
+          <declname>boot_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="69" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="51" bodyend="60" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="69" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a1aeed12b2d6dcc95b0e4457dab2e891c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_boot_info</definition>
+        <argsstring>(BOOT_INFO *boot_info)</argsstring>
+        <name>init_boot_info</name>
+        <param>
+          <type><ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref> *</type>
+          <declname>boot_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="70" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="63" bodyend="78" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="70" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a4aa078dcf96e9f06ce620519a93593c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void InitCPU</definition>
+        <argsstring>(void)</argsstring>
+        <name>InitCPU</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="71" column="6" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.c" bodystart="96" bodyend="103" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="71" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a7614d4a9e62a3f55e776c1230bb27627" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void read_context_frame</definition>
+        <argsstring>(CTX_FRAME *registers)</argsstring>
+        <name>read_context_frame</name>
+        <param>
+          <type><ref refid="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" kindref="member">CTX_FRAME</ref> *</type>
+          <declname>registers</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="74" column="13" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="74" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a29b0957b94e2cdc2783958bd0a2d43ff" prot="public" static="no" extern="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void read_interrupt_frame</definition>
+        <argsstring>(INT_FRAME *intfr)</argsstring>
+        <name>read_interrupt_frame</name>
+        <param>
+          <type>INT_FRAME *</type>
+          <declname>intfr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="75" column="13" declfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" declline="75" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1a8123ae7f822e5ac9e30cab8b0f6c526c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t xorshift32</definition>
+        <argsstring>(uint32_t *s)</argsstring>
+        <name>xorshift32</name>
+        <param>
+          <type>uint32_t *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Memory test to run to check for memory issues - identified a problem. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="85" column="17" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="85" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="kernel_8h_1ae7a3c59d00dc98a8939aa938d87fd25c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int MemoryTestStable</definition>
+        <argsstring>(void)</argsstring>
+        <name>MemoryTestStable</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" line="94" column="12" bodyfile="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h" bodystart="94" bodyend="242"/>
+      </memberdef>
+    </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>PROJECT:<sp/><sp/><sp/><sp/><sp/>MatanelOS<sp/>Kernel</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*<sp/>LICENSE:<sp/><sp/><sp/><sp/><sp/>NONE</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>PURPOSE:<sp/><sp/><sp/><sp/><sp/>Core<sp/>Kernel<sp/>Includes,<sp/>includes<sp/>all<sp/>core<sp/>and<sp/>necessary<sp/>header<sp/>files.</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>X86_KERNEL_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>X86_KERNEL_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Standard<sp/>headers,<sp/>required.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdatomic.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="trace_8h" kindref="compound">trace.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations,<sp/>i<sp/>don&apos;t<sp/>think<sp/>i<sp/>need<sp/>them.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="kernel_8h_1a1e03bdef1501e96036b676dc18e71787" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">_BLOCK_DEVICE<sp/><ref refid="kernel_8h_1a1e03bdef1501e96036b676dc18e71787" kindref="member">BLOCK_DEVICE</ref>;</highlight></codeline>
+<codeline lineno="20" refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">_BOOT_INFO<sp/><ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref>;</highlight></codeline>
+<codeline lineno="21" refid="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">_CTX_FRAME<sp/><ref refid="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" kindref="member">CTX_FRAME</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Standard<sp/>globals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="kernel_8c_1a3e4cb7a3337aa00fccafe03c7b5a59fc" kindref="member">isBugChecking</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y" kindref="compound">LASTFUNC_HISTORY</ref><sp/><ref refid="kernel_8c_1a84fdaa754c58bd3a02ef7e0c36cfff33" kindref="member">lastfunc_history</ref>;<sp/></highlight><highlight class="comment">//<sp/>grab<sp/>lastfunc<sp/>from<sp/>kernel.c</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Definitions<sp/>that<sp/>change<sp/>kernel<sp/>behaviour<sp/>below<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Uncomment<sp/>to<sp/>trigger<sp/>a<sp/>bugcheck<sp/>on<sp/>entry<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Uncomment<sp/>to<sp/>show<sp/>all<sp/>reminders<sp/>in<sp/>a<sp/>static<sp/>assertion<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Uncomment<sp/>to<sp/>disable<sp/>CPU<sp/>Caching<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>To<sp/>define<sp/>DEBUG<sp/>globally,<sp/>use<sp/>a<sp/>compiler<sp/>flag.<sp/>I<sp/>removed<sp/>this<sp/>since<sp/>I<sp/>now<sp/>transitioned<sp/>each<sp/>header<sp/>to<sp/>iself<sp/>and<sp/>others<sp/>instead<sp/>of<sp/>relying<sp/>on<sp/>kernel.h<sp/>that<sp/>caused<sp/>circular<sp/>includes.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="kernel_8h_1a7b1a47a94be3cc9455621cecad58b168" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UNREFERENCED_PARAMETER(x)<sp/>(void)(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="assert_8h" kindref="compound">assert.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;intrin/intrin.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpu/cpu.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;filesystem/fat32/fat32.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;memory/allocator/uefi_memory.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;memory/memory.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;memory/paging/paging.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;defs/stdarg_myos.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;interrupts/idt.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;interrupts/handlers/handlers.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;bugcheck/bugcheck.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;memory/allocator/allocator.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;drivers/blk/block.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;drivers/ahci/ahci.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;drivers/gop/gop.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpu/cpuid/cpuid.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="time_8h" kindref="compound">time.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;filesystem/vfs/vfs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpu/apic/apic.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpu/mutex/mutex.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpu/events/events.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Entry<sp/>point<sp/>in<sp/>C</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a9ce2606c20ea524922906d7816228c26" kindref="member">kernel_idle_checks</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a290306ce314d46bd369c185b7b95db40" kindref="member">kernel_main</ref>(<ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref>*<sp/>boot_info);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Function<sp/>declarations.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a26b7a33ce7ac27191c39745d6852acd1" kindref="member">copy_memory_map</ref>(<ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref>*<sp/>boot_info);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a8bf2519b1a607ce677d092c706b92f00" kindref="member">copy_gop</ref>(<ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref>*<sp/>boot_info);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a1aeed12b2d6dcc95b0e4457dab2e891c" kindref="member">init_boot_info</ref>(<ref refid="kernel_8h_1aa7f93145770b2b55fa44fc8b9a2cf58d" kindref="member">BOOT_INFO</ref>*<sp/>boot_info);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a4aa078dcf96e9f06ce620519a93593c1" kindref="member">InitCPU</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Custom<sp/>assembly<sp/>functions<sp/>externals.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="kernel_8h_1a7614d4a9e62a3f55e776c1230bb27627" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a7614d4a9e62a3f55e776c1230bb27627" kindref="member">read_context_frame</ref>(<ref refid="kernel_8h_1ac240bdf341c5e0ae333252cd5ecf0261" kindref="member">CTX_FRAME</ref>*<sp/>registers);</highlight></codeline>
+<codeline lineno="75" refid="kernel_8h_1a29b0957b94e2cdc2783958bd0a2d43ff" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="kernel_8h_1a29b0957b94e2cdc2783958bd0a2d43ff" kindref="member">read_interrupt_frame</ref>(INT_FRAME*<sp/>intfr);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>gop_printf_forced(color,<sp/>fmt,<sp/>...)<sp/>gop_printf(color,<sp/>fmt,<sp/>##__VA_ARGS__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="kernel_8h_1a1036d27854ce5d0dbb80b72848e4d03a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ALLOCATIONS<sp/>1000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="kernel_8h_1ad51ded0bbd705f02f73fc60c0b721ced" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BLOCK_SIZE<sp/><sp/>128</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="kernel_8h_1a450f9d8af07bfe2f313dbe3a78738a5e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ALIGNMENT<sp/><sp/><sp/>16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Stable<sp/>memory<sp/>test<sp/>for<sp/>MatanelOS<sp/>allocator</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/>xorshift32(uint32_t*<sp/>s)<sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>x<sp/>=<sp/>*s;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>x<sp/>^=<sp/>x<sp/>&lt;&lt;<sp/>13;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>x<sp/>^=<sp/>x<sp/>&gt;&gt;<sp/>17;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>x<sp/>^=<sp/>x<sp/>&lt;&lt;<sp/>5;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>*s<sp/>=<sp/>x;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>x;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MemoryTestStable(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">)<sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TEST_ALLOCATIONS<sp/>=<sp/>64,</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MAX_BLOCK<sp/>=<sp/>1024,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>maximum<sp/>random<sp/>block<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MIN_BLOCK<sp/>=<sp/>16,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>minimum<sp/>block<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ALIGN_OPTIONS<sp/>=<sp/>4</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal">*<sp/>blocks[TEST_ALLOCATIONS];</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sizes[TEST_ALLOCATIONS];</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>aligns[TEST_ALLOCATIONS];</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>patterns[TEST_ALLOCATIONS];</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>rng<sp/>=<sp/>0xdeadbeef;<sp/></highlight><highlight class="comment">//<sp/>deterministic<sp/>seed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Phase<sp/>1:<sp/>allocate<sp/>with<sp/>varied<sp/>sizes<sp/>&amp;<sp/>alignments,<sp/>fill<sp/>with<sp/>pattern</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>TEST_ALLOCATIONS;<sp/>++i)<sp/>{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>r<sp/>=<sp/>xorshift32(&amp;rng);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sizes[i]<sp/>=<sp/>MIN_BLOCK<sp/>+<sp/>(r<sp/>%<sp/>(MAX_BLOCK<sp/>-<sp/>MIN_BLOCK<sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>pick<sp/>alignment<sp/>from<sp/>{8,16,32,64}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>align_choice<sp/>=<sp/>(size_t)(8<sp/>&lt;&lt;<sp/>(r<sp/>&amp;<sp/>(ALIGN_OPTIONS<sp/>-<sp/>1)));</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>aligns[i]<sp/>=<sp/>align_choice;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>patterns[i]<sp/>=<sp/>r<sp/>^<sp/>(uint32_t)i;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>blocks[i]<sp/>=<sp/>MtAllocateVirtualMemory(sizes[i],<sp/>aligns[i]);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!blocks[i])<sp/>{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF0000,<sp/></highlight><highlight class="stringliteral">&quot;Alloc<sp/>fail<sp/>idx=%d<sp/>sz=%u<sp/>align=%u\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)sizes[i],<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)aligns[i]);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Quick<sp/>alignment<sp/>check</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(((uintptr_t)blocks[i]<sp/>&amp;<sp/>(aligns[i]<sp/>-<sp/>1))<sp/>!=<sp/>0)<sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Misaligned<sp/>idx=%d<sp/>ptr=%p<sp/>align=%u\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>blocks[i],<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)aligns[i]);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-2;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Mark<sp/>memory<sp/>with<sp/>pattern:<sp/>repeating<sp/>4-byte<sp/>pattern<sp/>to<sp/>detect<sp/>shuffles</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>pat<sp/>=<sp/>patterns[i];</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t*<sp/>bp<sp/>=<sp/>(uint8_t*)blocks[i];</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>0;<sp/>b<sp/>+<sp/>4<sp/>&lt;=<sp/>sizes[i];<sp/>b<sp/>+=<sp/>4)<sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>((uint32_t*)(bp<sp/>+<sp/>b))[0]<sp/>=<sp/>pat;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>tail<sp/>bytes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>(sizes[i]<sp/>/<sp/>4)<sp/>*<sp/>4;<sp/>b<sp/>&lt;<sp/>sizes[i];<sp/>++b)<sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>bp[b]<sp/>=<sp/>(uint8_t)(pat<sp/>&amp;<sp/>0xFF);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Confirm<sp/>MtIsHeapAddressAllocated<sp/>reports<sp/>true</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!MtIsHeapAddressAllocated(blocks[i]))<sp/>{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;MtIsHeapAddressAllocated<sp/>false<sp/>after<sp/>alloc<sp/>idx=%d\n&quot;</highlight><highlight class="normal">,<sp/>i);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-3;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Phase<sp/>2:<sp/>verify<sp/>contents</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>TEST_ALLOCATIONS;<sp/>++i)<sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>pat<sp/>=<sp/>patterns[i];</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t*<sp/>bp<sp/>=<sp/>(uint8_t*)blocks[i];</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>0;<sp/>b<sp/>+<sp/>4<sp/>&lt;=<sp/>sizes[i];<sp/>b<sp/>+=<sp/>4)<sp/>{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>v<sp/>=<sp/>((uint32_t*)(bp<sp/>+<sp/>b))[0];</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>!=<sp/>pat)<sp/>{</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFF0000FF,<sp/></highlight><highlight class="stringliteral">&quot;Corrupt<sp/>idx=%d<sp/>offset=%u<sp/>expected=0x%08x<sp/>got=0x%08x\n&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i,<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)b,<sp/>pat,<sp/>v);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-4;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>(sizes[i]<sp/>/<sp/>4)<sp/>*<sp/>4;<sp/>b<sp/>&lt;<sp/>sizes[i];<sp/>++b)<sp/>{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/>v<sp/>=<sp/>bp[b];</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>!=<sp/>(uint8_t)(pat<sp/>&amp;<sp/>0xFF))<sp/>{</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFF0000FF,<sp/></highlight><highlight class="stringliteral">&quot;Corrupt<sp/>tail<sp/>idx=%d<sp/>offset=%u\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)b);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-5;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Phase<sp/>3:<sp/>create<sp/>fragmentation<sp/>-<sp/>free<sp/>every<sp/>second<sp/>block</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>TEST_ALLOCATIONS;<sp/>i<sp/>+=<sp/>2)<sp/>{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MtFreeVirtualMemory(blocks[i]);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>After<sp/>free,<sp/>MtIsHeapAddressAllocated<sp/>should<sp/>be<sp/>false</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(MtIsHeapAddressAllocated(blocks[i]))<sp/>{</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Still<sp/>allocated<sp/>after<sp/>free<sp/>idx=%d<sp/>ptr=%p\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>blocks[i]);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-6;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>header-store<sp/>slot<sp/>should<sp/>be<sp/>cleared<sp/>(if<sp/>MtFreeVirtualMemory<sp/>clears<sp/>it)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BLOCK_HEADER*<sp/>hdr<sp/>=<sp/>((BLOCK_HEADER**)blocks[i])[-1];</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hdr<sp/>!=<sp/>NULL)<sp/>{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Header-store<sp/>not<sp/>cleared<sp/>idx=%d<sp/>hdr=%p\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>hdr);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-7;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>blocks[i]<sp/>=<sp/>NULL;<sp/></highlight><highlight class="comment">//<sp/>avoid<sp/>accidental<sp/>reuse</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Phase<sp/>4:<sp/>attempt<sp/>to<sp/>allocate<sp/>a<sp/>larger<sp/>block<sp/>that<sp/>should<sp/>fit<sp/>into<sp/>coalesced<sp/>space</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>big_request<sp/>=<sp/>MAX_BLOCK<sp/>*<sp/>4;<sp/></highlight><highlight class="comment">//<sp/>make<sp/>it<sp/>large<sp/>enough<sp/>to<sp/>require<sp/>coalesce<sp/>or<sp/>growth</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal">*<sp/>big_block<sp/>=<sp/>MtAllocateVirtualMemory(big_request,<sp/>16);</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!big_block)<sp/>{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF0000,<sp/></highlight><highlight class="stringliteral">&quot;Big<sp/>allocation<sp/>failed<sp/>(coalesce<sp/>test)\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>not<sp/>necessarily<sp/>a<sp/>failure<sp/>in<sp/>all<sp/>implementations;<sp/>treat<sp/>as<sp/>warning</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>write<sp/>and<sp/>verify<sp/>a<sp/>quick<sp/>pattern</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>kmemset(big_block,<sp/>0xAB,<sp/>big_request<sp/>&lt;<sp/>4096<sp/>?<sp/>big_request<sp/>:<sp/>4096);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MtFreeVirtualMemory(big_block);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Phase<sp/>5:<sp/>free<sp/>remaining<sp/>blocks<sp/>in<sp/>reverse<sp/>order<sp/>to<sp/>stress<sp/>coalescing</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>TEST_ALLOCATIONS<sp/>-<sp/>1;<sp/>i<sp/>&gt;=<sp/>0;<sp/>--i)<sp/>{</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(blocks[i])<sp/>{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>verify<sp/>before<sp/>free</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!MtIsHeapAddressAllocated(blocks[i]))<sp/>{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Was<sp/>not<sp/>allocated<sp/>before<sp/>free<sp/>idx=%d\n&quot;</highlight><highlight class="normal">,<sp/>i);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-8;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MtFreeVirtualMemory(blocks[i]);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(MtIsHeapAddressAllocated(blocks[i]))<sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Still<sp/>allocated<sp/>after<sp/>free<sp/>idx=%d\n&quot;</highlight><highlight class="normal">,<sp/>i);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-9;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ensure<sp/>header-store<sp/>slot<sp/>cleared</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BLOCK_HEADER*<sp/>hdr<sp/>=<sp/>((BLOCK_HEADER**)blocks[i])[-1];</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hdr<sp/>!=<sp/>NULL)<sp/>{</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFFFF8000,<sp/></highlight><highlight class="stringliteral">&quot;Header-store<sp/>not<sp/>cleared<sp/>after<sp/>free<sp/>idx=%d<sp/>hdr=%p\n&quot;</highlight><highlight class="normal">,<sp/>i,<sp/>hdr);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-10;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>blocks[i]<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="222"><highlight class="comment"><sp/><sp/><sp/><sp/>//<sp/>Phase<sp/>6:<sp/>Test<sp/>MtAllocateVirtualMemoryEx<sp/>(page-backed<sp/>allocation)</highlight></codeline>
+<codeline lineno="223"><highlight class="comment"><sp/><sp/><sp/><sp/>size_t<sp/>ex_size<sp/>=<sp/>FRAME_SIZE<sp/>*<sp/>2;<sp/>//<sp/>two<sp/>pages</highlight></codeline>
+<codeline lineno="224"><highlight class="comment"><sp/><sp/><sp/><sp/>void*<sp/>exptr<sp/>=<sp/>MtAllocateVirtualMemoryEx(ex_size<sp/>-<sp/>sizeof(BLOCK_HEADER),<sp/>FRAME_SIZE,<sp/>PAGE_PRESENT<sp/>|<sp/>PAGE_RW);</highlight></codeline>
+<codeline lineno="225"><highlight class="comment"><sp/><sp/><sp/><sp/>if<sp/>(!exptr)<sp/>{</highlight></codeline>
+<codeline lineno="226"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>gop_printf_forced(0xFFFF8000,<sp/>&quot;MtAllocateVirtualMemoryEx<sp/>failed\n&quot;);</highlight></codeline>
+<codeline lineno="227"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>warn<sp/>but<sp/>continue</highlight></codeline>
+<codeline lineno="228"><highlight class="comment"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="229"><highlight class="comment"><sp/><sp/><sp/><sp/>else<sp/>{</highlight></codeline>
+<codeline lineno="230"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>write/read<sp/>small<sp/>pattern</highlight></codeline>
+<codeline lineno="231"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>kmemset(exptr,<sp/>0x5A,<sp/>256);</highlight></codeline>
+<codeline lineno="232"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>free<sp/>and<sp/>ensure<sp/>pages<sp/>unmapped<sp/>(MtIsHeapAddressAllocated<sp/>should<sp/>be<sp/>false)</highlight></codeline>
+<codeline lineno="233"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MtFreeVirtualMemory(exptr);</highlight></codeline>
+<codeline lineno="234"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(MtIsHeapAddressAllocated(exptr))<sp/>{</highlight></codeline>
+<codeline lineno="235"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>gop_printf_forced(0xFFFF8000,<sp/>&quot;EX<sp/>allocation<sp/>still<sp/>reported<sp/>allocated<sp/>after<sp/>free\n&quot;);</highlight></codeline>
+<codeline lineno="236"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>return<sp/>-11;</highlight></codeline>
+<codeline lineno="237"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="comment"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="239"><highlight class="comment"><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="kernel_8h_1a29f75e67ea1a76410256bf17f8226e05" kindref="member">gop_printf_forced</ref>(0xFF00FF00,<sp/></highlight><highlight class="stringliteral">&quot;MemoryTestStable:<sp/>PASSED\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//<sp/>X86_KERNEL_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h"/>
+  </compounddef>
+</doxygen>
