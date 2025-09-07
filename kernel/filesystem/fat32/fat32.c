@@ -322,6 +322,54 @@ static inline bool ci_equal(const char* a, const char* b) {
 	return true;
 }
 
+// Returns the number of LFN entries created.
+static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const char* long_name, uint8_t sfn_checksum) {
+	uint32_t len = kstrlen(long_name);
+	uint32_t num_lfn_entries = (len + 12) / 13;
+
+	// Fill LFN entries backwards
+	for (uint32_t i = 0; i < num_lfn_entries; i++) {
+		FAT32_DIR_ENTRY* lfn = &entry_buffer[i];
+		uint32_t lfn_seq = (num_lfn_entries - i);
+		if (i == 0) lfn_seq |= 0x40; // Last LFN entry marker
+
+		lfn->attr = ATTR_LONG_NAME;
+		lfn->nt_res = 0;
+		lfn->crt_time_tenth = sfn_checksum; // This field holds the checksum
+		lfn->fst_clus_lo = 0;
+
+		// This is the sequence and type field in disguise
+		*(uint8_t*)(&lfn->name[0]) = lfn_seq;
+
+		// Character positions for LFN entry
+		// pointers into the entry (UTF-16 wide chars)
+		uint8_t* ebytes = (uint8_t*)lfn;
+		uint16_t* name1_map = (uint16_t*)(ebytes + 1);   // 5 chars
+		uint16_t* name2_map = (uint16_t*)(ebytes + 14);  // 6 chars
+		uint16_t* name3_map = (uint16_t*)(ebytes + 28);  // 2 chars
+
+		// Populate with UTF-16 characters
+		uint32_t char_idx = (num_lfn_entries - 1 - i) * 13;
+		for (int k = 0; k < 13; k++) {
+			uint16_t uchar = 0xFFFF; // Fill with 0xFFFF
+			if (char_idx < len) {
+				uchar = long_name[char_idx];
+			}
+			else if (char_idx == len) {
+				uchar = 0x0000; // Null terminator
+			}
+
+			if (k < 5)       ((uint16_t*)name1_map)[k] = uchar;
+			else if (k < 11) ((uint16_t*)name2_map)[k - 5] = uchar;
+			else             ((uint16_t*)name3_map)[k - 11] = uchar;
+
+			char_idx++;
+		}
+	}
+	return num_lfn_entries;
+}
+
+
 /// <summary>
 /// Finds a directory entry for a given path
 /// </summary>
@@ -846,22 +894,37 @@ MTSTATUS fat32_create_directory(const char* path) {
 	// 2. Separate parent path and new directory name
 	char path_copy[260];
 	kstrcpy(path_copy, path);
+
 	char* new_dir_name = NULL;
 	char* parent_path = "/";
+
+	// 1. Remove trailing slashes (except if path is just "/")
+	int len = kstrlen(path_copy);
+	while (len > 1 && path_copy[len - 1] == '/') {
+		path_copy[len - 1] = '\0';
+		len--;
+	}
+
+	// 2. Find last slash
 	int last_slash = -1;
 	for (int i = 0; path_copy[i] != '\0'; i++) {
 		if (path_copy[i] == '/') last_slash = i;
 	}
+
+	// 3. Split parent path and new directory name
 	if (last_slash != -1) {
-		new_dir_name = &path_copy[last_slash + 1];
+		new_dir_name = &path_copy[last_slash + 1];   // name after last slash
 		if (last_slash > 0) {
-			path_copy[last_slash] = '\0';
+			path_copy[last_slash] = '\0';           // terminate parent path
 			parent_path = path_copy;
 		}
+		// If last_slash == 0, parent_path stays "/"
 	}
 	else {
+		// No slashes at all: directory is in root
 		new_dir_name = path_copy;
 	}
+
 
 	// 3. Find the parent directory cluster
 	FAT32_DIR_ENTRY parent_entry;
@@ -910,76 +973,125 @@ MTSTATUS fat32_create_directory(const char* path) {
 	char sfn[11];
 	format_short_name(new_dir_name, sfn); // Using your existing simple formatter
 
-	uint32_t entry_sector, entry_index;
-	if (!fat32_find_free_dir_slots(parent_cluster, 1, &entry_sector, &entry_index)) {
-		// free sector_buf, free cluster...
-		MtFreeVirtualMemory(sector_buf);
-		fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
-		return MT_FAT32_DIR_FULL;
-	}
-
-	// Read the target sector, modify it, write it back
-	status = read_sector(entry_sector, sector_buf);
-	if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
-
-	FAT32_DIR_ENTRY* new_entry = &((FAT32_DIR_ENTRY*)sector_buf)[entry_index];
-	kmemset(new_entry, 0, sizeof(FAT32_DIR_ENTRY));
-	kmemcpy(new_entry->name, sfn, 11);
-	new_entry->attr = ATTR_DIRECTORY;
-	new_entry->fst_clus_lo = (uint16_t)new_cluster;
-	new_entry->fst_clus_hi = (uint16_t)(new_cluster >> 16);
-
-	status = write_sector(entry_sector, sector_buf);
-
-	// free sector_buf
-	MtFreeVirtualMemory(sector_buf);
-	return status;
-}
-
-static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const char* long_name, uint8_t sfn_checksum) {
-	uint32_t len = kstrlen(long_name);
-	uint32_t num_lfn_entries = (len + 12) / 13;
-
-	// Fill LFN entries backwards
-	for (uint32_t i = 0; i < num_lfn_entries; i++) {
-		FAT32_DIR_ENTRY* lfn = &entry_buffer[i];
-		uint32_t lfn_seq = (num_lfn_entries - i);
-		if (i == 0) lfn_seq |= 0x40; // Last LFN entry marker
-
-		lfn->attr = ATTR_LONG_NAME;
-		lfn->nt_res = 0;
-		lfn->crt_time_tenth = sfn_checksum; // This field holds the checksum
-		lfn->fst_clus_lo = 0;
-
-		// This is the sequence and type field in disguise
-		*(uint8_t*)(&lfn->name[0]) = lfn_seq;
-
-		// Character positions for LFN entry
-		// pointers into the entry (UTF-16 wide chars)
-		uint8_t* ebytes = (uint8_t*)lfn;
-		uint16_t* name1_map = (uint16_t*)(ebytes + 1);   // 5 chars
-		uint16_t* name2_map = (uint16_t*)(ebytes + 14);  // 6 chars
-		uint16_t* name3_map = (uint16_t*)(ebytes + 28);  // 2 chars
-
-		// Populate with UTF-16 characters
-		uint32_t char_idx = (num_lfn_entries - 1 - i) * 13;
-		for (int k = 0; k < 13; k++) {
-			uint16_t uchar = 0xFFFF; // Fill with 0xFFFF
-			if (char_idx < len) {
-				uchar = long_name[char_idx];
-			}
-			else if (char_idx == len) {
-				uchar = 0x0000; // Null terminator
-			}
-
-			if (k < 5)       ((uint16_t*)name1_map)[k] = uchar;
-			else if (k < 11) ((uint16_t*)name2_map)[k - 5] = uchar;
-			else             ((uint16_t*)name3_map)[k - 11] = uchar;
-
-			char_idx++;
+	// Decide whether we need LFN entries:
+	int name_len = kstrlen(new_dir_name);
+	int need_lfn = 0;
+	if (name_len > 11) need_lfn = 1;
+	else {
+		for (int i = 0; i < name_len; i++) {
+			char c = new_dir_name[i];
+			if (c >= 'a' && c <= 'z') { need_lfn = 1; break; }
+			/* optionally: detect characters not representable in SFN and set need_lfn = 1 */
 		}
 	}
-	return num_lfn_entries;
+
+	uint32_t entry_sector = 0, entry_index = 0;
+
+	if (need_lfn) {
+		// Create LFN + SFN (allocate contiguous slots)
+		uint8_t checksum = lfn_checksum((uint8_t*)sfn);
+		uint32_t num_lfn_entries = (name_len + 12) / 13;
+		uint32_t total_slots = num_lfn_entries + 1; // LFN entries + SFN
+
+		if (!fat32_find_free_dir_slots(parent_cluster, total_slots, &entry_sector, &entry_index)) {
+			// free sector_buf, free cluster...
+			MtFreeVirtualMemory(sector_buf);
+			fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
+			return MT_FAT32_DIR_FULL;
+		}
+
+		// Prepare temporary buffer with LFN entries followed by SFN
+		FAT32_DIR_ENTRY* temp_entries = (FAT32_DIR_ENTRY*)MtAllocateVirtualMemory(total_slots * sizeof(FAT32_DIR_ENTRY), 512);
+		if (!temp_entries) {
+			MtFreeVirtualMemory(sector_buf);
+			fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
+			return MT_MEMORY_LIMIT;
+		}
+		kmemset(temp_entries, 0, total_slots * sizeof(FAT32_DIR_ENTRY));
+
+		// Fill LFN entries into temp_entries[0 .. num_lfn_entries-1]
+		fat32_create_lfn_entries(temp_entries, new_dir_name, checksum);
+
+		// Fill SFN at the end
+		FAT32_DIR_ENTRY* sfn_entry = &temp_entries[num_lfn_entries];
+		kmemset(sfn_entry, 0, sizeof(FAT32_DIR_ENTRY));
+		kmemcpy(sfn_entry->name, sfn, 11);
+		sfn_entry->attr = ATTR_DIRECTORY;
+		sfn_entry->fst_clus_lo = (uint16_t)new_cluster;
+		sfn_entry->fst_clus_hi = (uint16_t)(new_cluster >> 16);
+
+		// Write temp_entries sequentially into parent directory slots (may span sectors)
+		const int entries_per_sector = 512 / sizeof(FAT32_DIR_ENTRY);
+		uint32_t cur_sector = entry_sector;
+		int cur_index = (int)entry_index;
+		uint32_t remaining = total_slots;
+		uint32_t temp_idx = 0;
+
+		while (remaining > 0) {
+			status = read_sector(cur_sector, sector_buf);
+			if (MT_FAILURE(status)) {
+				// cleanup: free temp, free sector_buf, free cluster
+				MtFreeVirtualMemory(temp_entries);
+				MtFreeVirtualMemory(sector_buf);
+				fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
+				return status;
+			}
+
+			int can = entries_per_sector - cur_index;
+			int to_write = (remaining < (uint32_t)can) ? remaining : (uint32_t)can;
+
+			for (int j = 0; j < to_write; j++) {
+				FAT32_DIR_ENTRY* dst = &((FAT32_DIR_ENTRY*)sector_buf)[cur_index + j];
+				FAT32_DIR_ENTRY* src = &temp_entries[temp_idx + j];
+				kmemcpy(dst, src, sizeof(FAT32_DIR_ENTRY));
+			}
+
+			status = write_sector(cur_sector, sector_buf);
+			if (MT_FAILURE(status)) {
+				MtFreeVirtualMemory(temp_entries);
+				MtFreeVirtualMemory(sector_buf);
+				fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
+				return status;
+			}
+
+			remaining -= to_write;
+			temp_idx += to_write;
+			cur_sector++;
+			cur_index = 0;
+		}
+
+		// cleanup temp buffer
+		MtFreeVirtualMemory(temp_entries);
+		// free sector_buf and return last write status
+		MtFreeVirtualMemory(sector_buf);
+		return status;
+	}
+	else {
+		// No LFN needed: simple single-slot SFN write (original behaviour)
+		if (!fat32_find_free_dir_slots(parent_cluster, 1, &entry_sector, &entry_index)) {
+			// free sector_buf, free cluster...
+			MtFreeVirtualMemory(sector_buf);
+			fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
+			return MT_FAT32_DIR_FULL;
+		}
+
+		// Read the target sector, modify it, write it back
+		status = read_sector(entry_sector, sector_buf);
+		if (MT_FAILURE(status)) { MtFreeVirtualMemory(sector_buf); return status; }
+
+		FAT32_DIR_ENTRY* new_entry = &((FAT32_DIR_ENTRY*)sector_buf)[entry_index];
+		kmemset(new_entry, 0, sizeof(FAT32_DIR_ENTRY));
+		kmemcpy(new_entry->name, sfn, 11);
+		new_entry->attr = ATTR_DIRECTORY;
+		new_entry->fst_clus_lo = (uint16_t)new_cluster;
+		new_entry->fst_clus_hi = (uint16_t)(new_cluster >> 16);
+
+		status = write_sector(entry_sector, sector_buf);
+
+		// free sector_buf
+		MtFreeVirtualMemory(sector_buf);
+		return status;
+	}
 }
 
 static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date) {

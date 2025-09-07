@@ -7,8 +7,18 @@
 #include "mutex.h"
 #include "../../assert.h"
 #include "../events/events.h"
+#include "../../bugcheck/bugcheck.h"
 
 MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
+    tracelast_func("MtInitializeMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
     IRQL oldirql;
@@ -46,6 +56,15 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
 }
 
 MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
+    tracelast_func("MtAcquireMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 #ifdef DEBUG
     gop_printf(COLOR_PURPLE, "MtAcquireMutex hit - thread: %p | mut: %p\n", MtGetCurrentThread(), mut);
@@ -82,7 +101,18 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
     return MT_SUCCESS;
 }
 
+
+
 MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
+    tracelast_func("MtReleaseMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
     // FOLLOW LOCK ORDER: acquire mut->lock then event->lock

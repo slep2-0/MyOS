@@ -149,8 +149,12 @@ static void test(MUTEX* mut) {
 
 static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
-    //gop_printf_forced(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
     gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p\n", MtGetCurrentThread());
+    char buf[256];
+    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p", MtGetCurrentThread(), mut);
+    MTSTATUS status = vfs_mkdir("/testdir/");
+    status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    gop_printf(COLOR_RED, "[MTSTATUS] vfs_write returned: %p\n", status);
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
     volatile uint64_t z = 0;

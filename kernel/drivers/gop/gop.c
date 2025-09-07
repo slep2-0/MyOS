@@ -173,12 +173,21 @@ static void buf_puts(char* buf, size_t size, size_t* written, const char* s) {
     }
 }
 
-static void buf_print_dec(char* buf, size_t size, size_t* written, int value) {
-    char tmp[12]; // enough for -2^31 and NUL
+static void buf_print_dec64(char* buf, size_t size, size_t* written, int64_t value) {
+    char tmp[32]; // enough for -2^63 and NUL
     char* t = tmp + sizeof(tmp) - 1;
     bool neg = (value < 0);
-    unsigned u = neg ? -(unsigned)value : (unsigned)value;
+    uint64_t u;
     *t = '\0';
+
+    if (!neg) {
+        u = (uint64_t)value;
+    }
+    else {
+        // compute absolute value safely (avoid UB on INT64_MIN)
+        u = (uint64_t)(-(value + 1)) + 1;
+    }
+
     if (u == 0) {
         *--t = '0';
     }
@@ -188,14 +197,28 @@ static void buf_print_dec(char* buf, size_t size, size_t* written, int value) {
             u /= 10;
         }
     }
-    if (neg) {
-        *--t = '-';
+    if (neg) *--t = '-';
+    buf_puts(buf, size, written, t);
+}
+
+static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t value) {
+    char tmp[32];
+    char* t = tmp + sizeof(tmp) - 1;
+    *t = '\0';
+    if (value == 0) {
+        *--t = '0';
+    }
+    else {
+        while (value) {
+            *--t = '0' + (value % 10);
+            value /= 10;
+        }
     }
     buf_puts(buf, size, written, t);
 }
 
-static void buf_print_hex(char* buf, size_t size, size_t* written, unsigned value) {
-    char tmp[9]; // 8 digits + NUL
+static void buf_print_hex64(char* buf, size_t size, size_t* written, uint64_t value) {
+    char tmp[17];
     char* t = tmp + sizeof(tmp) - 1;
     const char* hex = "0123456789abcdef";
     *t = '\0';
@@ -206,6 +229,22 @@ static void buf_print_hex(char* buf, size_t size, size_t* written, unsigned valu
         while (value) {
             *--t = hex[value & 0xF];
             value >>= 4;
+        }
+    }
+    buf_puts(buf, size, written, t);
+}
+
+static void buf_print_binary64(char* buf, size_t size, size_t* written, uint64_t value) {
+    char tmp[65];
+    char* t = tmp + sizeof(tmp) - 1;
+    *t = '\0';
+    if (value == 0) {
+        *--t = '0';
+    }
+    else {
+        while (value) {
+            *--t = (value & 1) ? '1' : '0';
+            value >>= 1;
         }
     }
     buf_puts(buf, size, written, t);
@@ -320,6 +359,7 @@ char* kstrtok(char* str, const char* delim) {
     return token_start;
 }
 
+
 int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     size_t written = 0;
     va_list ap;
@@ -330,19 +370,23 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
             p++;
             switch (*p) {
             case 'd':
-                buf_print_dec(buf, bufsize, &written, va_arg(ap, int32_t));
-                break;      
-            case 'u':       
-                buf_print_dec(buf, bufsize, &written, va_arg(ap, uint32_t));
-                break;   
-            case 'x':    
-                buf_print_hex(buf, bufsize, &written, va_arg(ap, uint32_t));
-                break;      
-            case 'p':       
-                buf_print_hex(buf, bufsize, &written, (unsigned)(uintptr_t)va_arg(ap, void*));
+                buf_print_dec64(buf, bufsize, &written, va_arg(ap, int64_t));
+                break;
+            case 'u':
+                buf_print_udec64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                break;
+            case 'x':
+                buf_print_hex64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                break;
+            case 'p':
+                buf_puts(buf, bufsize, &written, "0x");
+                buf_print_hex64(buf, bufsize, &written, (uint64_t)(uintptr_t)va_arg(ap, void*));
                 break;
             case 'c':
-                buf_put_char(buf, bufsize, &written, (char)va_arg(ap, int));
+                buf_put_char(buf, bufsize, &written, (char)va_arg(ap, int)); /* chars promoted to int */
+                break;
+            case 'b':
+                buf_print_binary64(buf, bufsize, &written, va_arg(ap, uint64_t));
                 break;
             case 's': {
                 const char* s = va_arg(ap, const char*);

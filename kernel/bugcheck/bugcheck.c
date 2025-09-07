@@ -203,6 +203,21 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case ASSERTION_FAILURE:
         *s = "ASSERTION_FAILURE";
         break;
+    case FRAME_ALLOCATION_FAILED:
+        *s = "FRAME_ALLOCATION_FAILED";
+        break;
+    case FRAME_BITMAP_CREATION_FAILURE:
+        *s = "FRAME_BITMAP_CREATION_FAILURE";
+        break;
+    case MEMORY_INVALID_FREE:
+        *s = "MEMORY_INVALID_FREE";
+        break;
+    case MEMORY_CORRUPT_HEADER:
+        *s = "MEMORY_CORRUPT_HEADER";
+        break;
+    case MEMORY_DOUBLE_FREE:
+        *s = "MEMORY_DOUBLE_FREE";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
