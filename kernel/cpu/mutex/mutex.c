@@ -47,7 +47,9 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
 
 MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
     if (!mut) return MT_INVALID_ADDRESS;
+#ifdef DEBUG
     gop_printf(COLOR_PURPLE, "MtAcquireMutex hit - thread: %p | mut: %p\n", MtGetCurrentThread(), mut);
+#endif
     IRQL mflags;
     MtAcquireSpinlock(&mut->lock, &mflags);
     bool isValid = MtIsAddressValid((void*)mut);
@@ -62,15 +64,20 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
         mut->locked = true;
         mut->ownerTid = currThread->TID;
         MtReleaseSpinlock(&mut->lock, mflags);
+#ifdef DEBUG
         gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex successfully acquired by: %p. MUT: %p\n", currThread, mut);
+#endif
         return MT_SUCCESS;
     }
-    gop_printf(COLOR_PURPLE, "e");
+#ifdef DEBUG
     gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex was attempted to be acquired when it is already locked. MUT: %p\n", mut);
+#endif
     // Mutex is owned -> wait for event.
     MtReleaseSpinlock(&mut->lock, mflags);
     MtWaitForEvent(&mut->SynchEvent);
+#ifdef DEBUG
     gop_printf(COLOR_GREEN, "[MUTEX-DEBUG] Mutex re-acquired by %p | MUT: %p\n", currThread, mut);
+#endif
     // When woken, the releaser has transferred ownership while holding locks.
     return MT_SUCCESS;
 }
@@ -88,27 +95,6 @@ MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
         return MT_MUTEX_NOT_OWNED;
     }
 
-    IRQL eflags;
-    MtAcquireSpinlock(&mut->SynchEvent.lock, &eflags);
-
-    // Dequeue a waiter while holding event->lock (and still holding mut->lock)
-    Thread* next = MtDequeueThread(&mut->SynchEvent.waitingQueue);
-
-    if (!next) {
-        // No waiter: release mutex
-        mut->locked = false;
-        mut->ownerTid = 0;
-        MtReleaseSpinlock(&mut->SynchEvent.lock, eflags);
-        MtReleaseSpinlock(&mut->lock, mflags);
-        return MT_SUCCESS;
-    }
-
-    // There is a waiter: transfer ownership atomically while holding both locks
-    mut->ownerTid = next->TID;
-    mut->locked = true; // stays locked but now owned by 'next'
-
-    // We've removed 'next' from the waiting queue already
-    MtReleaseSpinlock(&mut->SynchEvent.lock, eflags);
     MtReleaseSpinlock(&mut->lock, mflags);
 
     // Wake the selected thread by setting an event.

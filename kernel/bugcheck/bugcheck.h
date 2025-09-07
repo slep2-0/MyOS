@@ -43,7 +43,8 @@ typedef enum _BUGCHECK_CODES {
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
     UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main
     FRAME_LIMIT_REACHED = 0xBADA55, // frame limit reached when trying to allocate a physical frame.
-    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // Access to functions while going over the max IRQL set for them. Or raising to lower \ lowering to higher IRQL than current IRQL.
+    IRQL_NOT_LESS_OR_EQUAL = 0x1337, // Access to functions while going over the max IRQL set for them. Or lowering to higher IRQL than current IRQL.
+    IRQL_NOT_GREATER_OR_EQUAL = 0x1338, // Raising IRQL to an IRQL level that is lower than the current one.
     INVALID_IRQL_SUPPLIED = 0x69420, // Invalid IRQL supplied to raising / lowering IRQL.
     NULL_CTX_RECEIVED = 0xF1FA, // A null context frame has been received to a function.
     THREAD_EXIT_FAILURE = 0x123123FF, // A thread exitted but did not schedule (somehow).

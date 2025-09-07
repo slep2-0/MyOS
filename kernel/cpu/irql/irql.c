@@ -67,7 +67,7 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         SAVE_CTX_FRAME(&ctx);
         BUGCHECK_ADDITIONALS addt = { 0 };
         ksnprintf(addt.str, sizeof(addt.str), "Attempted to raise IRQL to a lower level than current IRQL.");
-        MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
+        MtBugcheckEx(&ctx, NULL, IRQL_NOT_GREATER_OR_EQUAL, &addt, true);
     }
 
     cpu.currentIrql = new_irql;

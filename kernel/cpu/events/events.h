@@ -93,7 +93,9 @@ static MTSTATUS MtWaitForEvent(EVENT* event) {
 
     // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
     curr->threadState = BLOCKED;
-    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p", MtGetCurrentThread());
+#ifdef DEBUG
+    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p\n", MtGetCurrentThread());
+#endif
     MtSleepCurrentThread();
 
     // When we resume here, the waker has already moved us to the ready queue.

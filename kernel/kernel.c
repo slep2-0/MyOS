@@ -104,7 +104,10 @@ void InitCPU(void) {
 
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
-    __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
+    __asm__ __volatile__("pushfq; popq %0"
+        : "=r"(flags)
+        :
+        : "memory", "cc");
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
@@ -121,11 +124,10 @@ void kernel_idle_checks(void) {
 
         gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
     }
-    /*
     assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
-    */
     while (1) {
         __hlt();
+        //Schedule();
     }
 }
 
@@ -135,7 +137,7 @@ static void test(MUTEX* mut) {
     gop_printf_forced(0xFF00FF00, "Hit Test! test thread ptr: %p\n", currentThread);
     gop_printf(COLOR_GREEN, "(test) Acquiring Mutex Object: %p\n", mut);
     MTSTATUS status = MtAcquireMutexObject(mut);
-    gop_printf(COLOR_GREEN, "(test) status returned: %p", status);
+    gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
     volatile uint64_t z = 0;
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
         z++;

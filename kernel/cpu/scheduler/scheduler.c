@@ -32,9 +32,11 @@ void InitScheduler(void) {
     // Assign the clean context to the idle thread
     idleThread.registers = cfm;
     idleThread.threadState = READY;
+    idleThread.timeSlice = LOW_TIMESLICE_TICKS;
+    idleThread.origTimeSlice = LOW_TIMESLICE_TICKS;
     idleThread.nextThread = NULL;
     idleThread.TID = 0; // Scheduler thread, TID is 0.
-
+    idleThread.startStackPtr = (void*)cfm.rsp;
     cpu.currentThread = NULL;
 
     // The ready queue starts empty
@@ -61,6 +63,7 @@ static void enqueue_runnable(Thread* t) {
 void Schedule(void) {
     tracelast_func("Schedule");
     //gop_printf(COLOR_PURPLE, "In scheduler\n");
+    __sti();
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
