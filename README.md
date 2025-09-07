@@ -36,7 +36,7 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 |---------|--------|
 | AHCI Driver | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Dynamic Heap Memory Allocation | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
-| MTSTATUS Integration | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| MTSTATUS Integration | ![✔️](https://img.shields.io/badge/status-PARTIAL_INTEGRATION-lightgreen) |
 
 ### Filesystem & VFS
 | Feature | Status |
@@ -83,6 +83,7 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 MatanelOS is a preemptive, 64-bit kernel with Windows-inspired architecture. It’s designed for learning, low-level OS experimentation, and controlled testing in virtual environments.
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
