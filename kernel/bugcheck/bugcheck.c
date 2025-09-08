@@ -16,6 +16,7 @@ extern GOP_PARAMS gop_local;
 extern LASTFUNC_HISTORY lastfunc_history;
 extern bool isBugChecking;
 extern CPU cpu;
+extern GUARD_PAGE_DB* guard_db_head;
 
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
@@ -221,14 +222,45 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case MEMORY_DOUBLE_FREE:
         *s = "MEMORY_DOUBLE_FREE";
         break;
+    case MEMORY_CORRUPT_FOOTER:
+        *s = "MEMORY_CORRUPT_FOOTER";
+        break;
+    case GUARD_PAGE_DEREFERENCE:
+        *s = "GUARD_PAGE_DEREFERENCE";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
     }
 }
 
+/// <summary>
+/// Checks if a given virtual address falls within any registered guard page.
+/// </summary>
+/// <param name="address">The virtual address to check.</param>
+/// <returns>True if the address is within a guard page, otherwise false.</returns>
+static bool isInGuardDB(void* address) {
+    // A NULL address can't be in a guard page.
+    if (!address) {
+        return false;
+    }
+    uintptr_t check_addr = (uintptr_t)address;
+
+    // Traverse the linked list from the head.
+    for (GUARD_PAGE_DB* current = guard_db_head; current != NULL; current = current->next) {
+        uintptr_t guard_start = (uintptr_t)current->address;
+        uintptr_t guard_end = guard_start + current->pageSize;
+        // Check if the address is within the half-open interval [start, end).
+        if (check_addr >= guard_start && check_addr < guard_end) {
+            return true;
+        }
+    }
+
+    // If we finish the loop, no match was found.
+    return false;
+}
 __attribute__((noreturn))
-void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals) {
+void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint64_t additional, bool isAdditionals) {
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
@@ -244,9 +276,16 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 
 	// Clear the screen to blue (bsod windows style)
 	gop_clear_screen(&gop_local, 0xFF0035b8);
-    // check if nullptr deref.
-    if (err_code == PAGE_FAULT && isAdditionals && additional == 0) {
-        err_code = NULL_POINTER_DEREFERENCE;
+    if (err_code == PAGE_FAULT && isAdditionals) {
+        // check if nullptr deref.
+        if (additional == 0) {
+            err_code = NULL_POINTER_DEREFERENCE;
+        }
+        // check if guard page
+        if (isInGuardDB((void*)additional)) {
+            // The PAGE FAULT is because a guard page was touched.
+            err_code = GUARD_PAGE_DEREFERENCE;
+        }
     }
 	// Write some debugging and an error message
 	gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");

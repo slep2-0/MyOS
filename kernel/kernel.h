@@ -28,7 +28,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 /* Definitions that change kernel behaviour below */
 
 /* Uncomment to trigger a bugcheck on entry */
-#define CAUSE_BUGCHECK
+///#define CAUSE_BUGCHECK
 
 /* Uncomment to show all reminders in a static assertion */
 ///#define REMINDER
