@@ -1,6 +1,6 @@
 /*
  * PROJECT:     MatanelOS Kernel
- * LICENSE:     NONE
+ * LICENSE:     GPLv
  * PURPOSE:		Bugcheck functions implementation.
  */
 

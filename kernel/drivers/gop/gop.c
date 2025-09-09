@@ -318,6 +318,23 @@ char* kstrcpy(char* dst, const char* src) {
 }
 
 //-----------------------------------------------------------------------------
+// kstrncpy: Copy up to n characters from src to dst.
+//           Assumes dst is large enough.
+//-----------------------------------------------------------------------------
+char* kstrncpy(char* dst, const char* src, size_t n) {
+    char* ret = dst;
+    // Copy n bytes or until null terminator is found in src
+    while (n > 0 && (*dst++ = *src++)) {
+        n--;
+    }
+    // Pad the rest of dst with null terminators if n > 0
+    while (n-- > 0) {
+        *dst++ = '\0';
+    }
+    return ret;
+}
+
+//-----------------------------------------------------------------------------
 // kstrtok: Tokenize string with delimiters.
 // Works like strtok, but without libc.
 // Keeps static state across calls unless str != NULL.

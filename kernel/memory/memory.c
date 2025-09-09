@@ -13,6 +13,82 @@ static BLOCK_HEADER* free_list = NULL;
 extern GOP_PARAMS gop_local;
 uintptr_t heap_current_end;
 
+#define MAX_GUARD_NODES 128
+static GUARD_PAGE_DB guard_pool[MAX_GUARD_NODES];
+static GUARD_PAGE_DB* guard_pool_free = NULL;
+static SPINLOCK guard_pool_lock = { 0 };
+// Head of the guard page database linked list
+GUARD_PAGE_DB* guard_db_head = NULL;
+// Spinlock to protect access to the database
+SPINLOCK guard_db_lock = { 0 };
+
+static void guard_pool_init(void) {
+    for (int i = 0; i < MAX_GUARD_NODES - 1; ++i) guard_pool[i].next = &guard_pool[i + 1];
+    guard_pool[MAX_GUARD_NODES - 1].next = NULL;
+    guard_pool_free = &guard_pool[0];
+}
+
+static void guard_pool_free_node(GUARD_PAGE_DB* n) {
+    IRQL old;
+    MtAcquireSpinlock(&guard_pool_lock, &old);
+    n->next = guard_pool_free;
+    guard_pool_free = n;
+    MtReleaseSpinlock(&guard_pool_lock, old);
+}
+
+static GUARD_PAGE_DB* guard_pool_alloc(void) {
+    IRQL old;
+    MtAcquireSpinlock(&guard_pool_lock, &old);
+    GUARD_PAGE_DB* n = guard_pool_free;
+    if (n) guard_pool_free = n->next;
+    MtReleaseSpinlock(&guard_pool_lock, old);
+    return n;
+}
+
+static void remove_from_guard_page_db(void* guard_address) {
+    tracelast_func("remove_from_guard_page_db");
+
+    IRQL oldIrql;
+    MtAcquireSpinlock(&guard_db_lock, &oldIrql);
+
+    GUARD_PAGE_DB* current = guard_db_head;
+    GUARD_PAGE_DB* prev = NULL;
+
+    while (current != NULL && current->address != guard_address) {
+        prev = current;
+        current = current->next;
+    }
+
+    if (current != NULL) {
+        if (prev == NULL) {
+            guard_db_head = current->next;
+        }
+        else {
+            prev->next = current->next;
+        }
+
+        // unlink done; release lock before returning node to pool (pool uses its own lock)
+        MtReleaseSpinlock(&guard_db_lock, oldIrql);
+
+        // sanity: ensure 'current' points inside our static pool (optional, helpful for debugging)
+        uintptr_t pool_start = (uintptr_t)&guard_pool[0];
+        uintptr_t pool_end = (uintptr_t)&guard_pool[MAX_GUARD_NODES - 1] + sizeof(GUARD_PAGE_DB);
+        if ((uintptr_t)current < pool_start || (uintptr_t)current >= pool_end) {
+            // unexpected: we didn't allocate this node from pool
+            MtBugcheck(NULL, NULL, MEMORY_CORRUPT_HEADER, 0, true);
+            return;
+        }
+
+        guard_pool_free_node(current);
+    }
+    else {
+        // Not found: release lock and optionally log / bugcheck if this indicates a logic error.
+        MtReleaseSpinlock(&guard_db_lock, oldIrql);
+        // Optionally assert/log here: guard page missing
+    }
+}
+
+
 static SPINLOCK heap_lock = { 0 };
 
 /// <summary>
@@ -61,6 +137,7 @@ void init_heap(void) {
     free_list->kind = 0;
 
     heap_current_end += FRAME_SIZE;
+    guard_pool_init();
 }
 
 /// <summary>
@@ -117,7 +194,6 @@ static void coalesce_free_list(void) {
             BLOCK_HEADER* consumed_block = b->next;
             b->block_size += consumed_block->block_size;
             b->next = consumed_block->next;
-
             // **FIX:** Scrub the header of the consumed block to prevent misuse of stale data.
             kmemset(consumed_block, 0, sizeof(BLOCK_HEADER));
 
@@ -201,11 +277,6 @@ static inline uintptr_t align_up_uintptr(uintptr_t v, size_t a) {
     return v + (a - rem);
 }
 
-// Head of the guard page database linked list
-GUARD_PAGE_DB* guard_db_head = NULL;
-// Spinlock to protect access to the database
-SPINLOCK guard_db_lock = { 0 };
-
 static void add_to_guard_page_db(void* guard_address, size_t guard_page_size) {
     tracelast_func("add_to_guard_page_db");
 
@@ -234,47 +305,18 @@ static void add_to_guard_page_db(void* guard_address, size_t guard_page_size) {
     MtReleaseSpinlock(&guard_db_lock, oldIrql);
 }
 
-static void remove_from_guard_page_db(void* guard_address) {
-    tracelast_func("remove_from_guard_page_db");
-
-    IRQL oldIrql;
-    MtAcquireSpinlock(&guard_db_lock, &oldIrql);
-
-    GUARD_PAGE_DB* current = guard_db_head;
-    GUARD_PAGE_DB* prev = NULL;
-
-    // Traverse the list to find the node to remove.
-    while (current != NULL && current->address != guard_address) {
-        prev = current;
-        current = current->next;
-    }
-
-    // If we found the node (current is not NULL)...
-    if (current != NULL) {
-        if (prev == NULL) {
-            // Case 1: The node to remove is the head of the list.
-            guard_db_head = current->next;
-        }
-        else {
-            // Case 2: The node is in the middle or at the end.
-            prev->next = current->next;
-        }
-
-        // The node is now unlinked. We must free its memory.
-        // Release the lock BEFORE calling the allocator to avoid deadlocks.
-        MtReleaseSpinlock(&guard_db_lock, oldIrql);
-        MtFreeVirtualMemory(current);
-    }
-    else {
-        // Entry not found, which could indicate a bug. For now, just release the lock.
-        MtReleaseSpinlock(&guard_db_lock, oldIrql);
-    }
-}
-
+// Note to self: Watch out for deadlocks.
 void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
     tracelast_func("MtAllocateGuardedVirtualMemory");
     assert(wanted_size > 0, "wanted_size > 0");
     assert(align != 0 && (align & (align - 1)) == 0, "align must be power-of-two");
+
+    // --- PREALLOCATE DB NODE BEFORE ANY LOCKS ---
+    GUARD_PAGE_DB* new_node = guard_pool_alloc();
+    if (!new_node) {
+        MtBugcheck(NULL, NULL, MEMORY_LIMIT_REACHED, 8, false);
+        return NULL; // unreachable
+    }
 
     IRQL oldIrql;
     MtAcquireSpinlock(&heap_lock, &oldIrql);
@@ -284,68 +326,76 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
         align = sizeof(void*);
     }
 
-    // 1. Calculate the total space needed for metadata, alignment padding, and user data.
+    // 1. Calculate the total space needed...
     size_t required_space = sizeof(BLOCK_HEADER) + sizeof(void*) + align + wanted_size;
-
-    // 2. Determine how many pages are needed for the data region.
     size_t pages_for_data = (required_space + FRAME_SIZE - 1) / FRAME_SIZE;
     size_t data_region_size = pages_for_data * FRAME_SIZE;
-
-    // 3. The total region includes the data pages plus one unmapped guard page.
     size_t total_region_size = data_region_size + FRAME_SIZE;
     void* region_start_virt = (void*)heap_current_end;
-
-    // Immediately claim the virtual address space for the entire region.
     heap_current_end += total_region_size;
 
     // 4. Map the physical frames for the DATA region only.
     for (size_t i = 0; i < pages_for_data; i++) {
         uintptr_t phys = alloc_frame();
         if (!phys) {
-            // Roll back the heap expansion before bugchecking.
+            // roll back heap expansion and free the preallocated node
             heap_current_end -= total_region_size;
             MtReleaseSpinlock(&heap_lock, oldIrql);
+            
+            // free preallocated node
+            guard_pool_free_node(new_node);
             MtBugcheck(NULL, NULL, MEMORY_LIMIT_REACHED, 7, false);
-            return NULL; // Unreachable
+            return NULL;
         }
         void* va = (uint8_t*)region_start_virt + (i * FRAME_SIZE);
         map_page(va, phys, PAGE_PRESENT | PAGE_RW);
     }
 
     // The page at (region_start_virt + data_region_size) is intentionally left unmapped.
-    // This is our guard page.
     void* guard_page_address = (uint8_t*)region_start_virt + data_region_size;
     size_t guard_page_size = FRAME_SIZE;
-    // Add it to the database
-    add_to_guard_page_db(guard_page_address, guard_page_size);
-    
+
+    // --- INSERT PREALLOCATED NODE (NO ALLOCATIONS UNDER heap_lock) ---
+    IRQL oldIrqlNewSpin;
+    MtAcquireSpinlock(&guard_db_lock, &oldIrqlNewSpin); // use separate IRQL var if needed
+    new_node->address = guard_page_address;
+    new_node->pageSize = guard_page_size;
+    new_node->next = guard_db_head;
+    guard_db_head = new_node;
+    MtReleaseSpinlock(&guard_db_lock, oldIrqlNewSpin);
+
     // 5. Set up the block header at the start of the region.
     BLOCK_HEADER* blk = (BLOCK_HEADER*)region_start_virt;
     blk->magic = HEADER_MAGIC;
-    blk->block_size = total_region_size; // The block "owns" the guard page's VA space.
+    blk->block_size = total_region_size;
     blk->in_use = true;
     blk->kind = BLK_GUARDED;
     blk->requested_size = wanted_size;
     blk->next = NULL;
 
-    // 6. Calculate the final aligned user pointer and store the back-pointer.
+    // 6. Alignment, back-pointer store, zeroing, etc...
     uintptr_t data_start = (uintptr_t)(blk + 1);
     uintptr_t user_ptr_potential = align_up_uintptr(data_start + sizeof(void*), align);
-
-    // Store the back-pointer to the header for freeing.
     kmemcpy((void*)(user_ptr_potential - sizeof(void*)), &blk, sizeof(blk));
-
     void* user_ptr = (void*)user_ptr_potential;
-    kmemset(user_ptr, 0, wanted_size);
-
     MtReleaseSpinlock(&heap_lock, oldIrql);
     return user_ptr;
 }
+
+static void bp_handler(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    gop_printf(COLOR_BROWN, "Hardware Breakpoint touched on BLK. IP: %p | BreakIdx: %d | HEAP_START: %p | HEAP_END: %p |\n", info->Address, info->BreakIdx, HEAP_START, heap_current_end);
+    __hlt();
+}
+
+
 
 /// <summary>
 /// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that.
 /// </summary>
 void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
+    void* ret = __builtin_return_address(0);
+    gop_printf(COLOR_BLUE, "MtAllocateVirtualMemory Called. Return Address: %p\n", ret);
     tracelast_func("MtAllocateVirtualMemory");
     assert(align != 0 && (align & (align - 1)) == 0, "align must be power-of-two");
     assert(wanted_size > 0 && wanted_size <= (SIZE_MAX / 2), "wanted_size sane");
@@ -422,7 +472,12 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
 
             // Zero the user area
             kmemset(user_ptr, 0, wanted_size);
-
+#ifdef DEBUG
+            //static int db = 0;
+            //MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_handler, &blk, DEBUG_ACCESS_WRITE, DEBUG_LEN_8);
+            //if (MT_FAILURE(status)) { gop_printf(COLOR_RED, "Status failure: %p\n", status); __hlt(); }
+            //gop_printf(COLOR_BROWN, "Hardware BP %d set on BLK: %p\n", db, blk);
+#endif
             MtReleaseSpinlock(&heap_lock, oldIrql);
             return user_ptr;
         }
@@ -582,21 +637,27 @@ void MtFreeVirtualMemory(void* ptr) {
 
     if (!blk || (uintptr_t)blk < HEAP_START || (uintptr_t)blk >= heap_current_end) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
-        MtBugcheck(NULL, NULL, MEMORY_CORRUPT_HEADER, 2, true);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "(check 1) blk: %p | heap start: %p | heap_current_end: %p", blk, HEAP_START, heap_current_end);
+        MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
         return;
     }
     if (blk->magic != HEADER_MAGIC) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
-        MtBugcheck(NULL, NULL, MEMORY_CORRUPT_HEADER, 3, true);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p", blk->magic, HEADER_MAGIC);
+        MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
         return;
     }
     if (!blk->in_use) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "(check 3) blk->in_use: %d | expected: %d", blk->in_use, true);
         MtBugcheck(NULL, NULL, MEMORY_DOUBLE_FREE, 4, true);
         return;
     }
 
-    // --- Stage 3: Validate Footer Canary (for normal blocks) ---
+    // --- Stage 3: Validate Footer Canary (for normal blocks) ---w
     if (blk->kind == BLK_NORMAL) {
         uintptr_t footer_addr = p + blk->requested_size;
         BLOCK_FOOTER* footer = (BLOCK_FOOTER*)footer_addr;
@@ -627,6 +688,7 @@ void MtFreeVirtualMemory(void* ptr) {
         if (blk->kind == BLK_GUARDED) {
             size_t data_region_size = blk->block_size - FRAME_SIZE;
             void* guard_page_address = (uint8_t*)region_start + data_region_size;
+            //remove_from_guard_page_db(guard_page_address);
             remove_from_guard_page_db(guard_page_address);
         }
 

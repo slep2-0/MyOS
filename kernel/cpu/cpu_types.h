@@ -121,19 +121,15 @@ typedef struct _EVENT {
 typedef struct _Thread {
 	// CPU Registers for context switching
 	CTX_FRAME registers;
-
 	// Scheduling metadata
 	THREAD_STATE threadState;
-
     // Remaining ticks until switch.
     uint32_t timeSlice;
     uint32_t origTimeSlice;
-
-	Thread* nextThread; // For queue linking.
-
+    // The next thread in the link.
+	Thread* nextThread;
     // Thread ID.
     uint32_t TID;
-
     // Original Stack Pointer (to free)
     void* startStackPtr;
 	// TODO later: priority, affinity, wait list pointer, etc.

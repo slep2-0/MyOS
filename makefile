@@ -141,6 +141,10 @@ build/mutex.o: kernel/cpu/mutex/mutex.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+build/debugfunctions.o: kernel/cpu/debugger/debugfunctions.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
 	mkdir -p build
@@ -170,7 +174,7 @@ build/mutex_asm.o: kernel/cpu/mutex/mutex.asm
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
                       build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/vfs.o build/pit.o build/apic.o build/mutex.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/thread.o build/vfs.o build/pit.o build/apic.o build/mutex.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       build/mutex_asm.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

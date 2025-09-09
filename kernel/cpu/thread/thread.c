@@ -28,7 +28,7 @@ static uint32_t ManageTID(uint32_t freedTid)
         }
         // else drop silently
     }
-    else {
+    else { 
         // Allocate path:
         if (freeCount > 0) {
             // Reuse most-recently freed
@@ -61,15 +61,16 @@ static void ThreadExit(Thread* thread) {
     thread->timeSlice = 0;
     ManageTID(thread->TID);
 
-    // 2) Delete stack
-    MtFreeVirtualMemory(thread->startStackPtr);
+    // Call scheduler (don't delete the stack)
+    Schedule();
+    
     
     /* assertions */
 #ifdef DEBUG
     bool valid = MtIsHeapAddressAllocated(thread->startStackPtr);
     assert((valid) == false, "Thread's stack hasn't been freed correctly!");
 #endif
-    Schedule();
+    // When the stack got freed, the scheduler was called here, and since it's freed and it atttempted to PUSH the return address to the stack, we faulted.
 
     // should never get here
     CTX_FRAME ctx;
@@ -103,7 +104,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     kmemset((void*)thread, 0, sizeof(Thread));
 
     void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
-    //void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -122,16 +122,14 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     sp -= 64; // red zone / extra safety
 
     CTX_FRAME* cfm = (CTX_FRAME*)sp;
-    kmemset(cfm, 0, sizeof * cfm);
 
     kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
 
-    // Set our sig and timeslice.
+    // Set our timeslice.
     thread->timeSlice = TIMESLICE;
     thread->origTimeSlice = TIMESLICE;
 
-    /// Here comes the actual part that separates between the normal and Ex version of creating the thread. - Remmber to use System V ABI as this is GCC.
-    cfm->rsp = (uint64_t)sp;
+    cfm->rsp = (uint64_t)sp - 8;
     cfm->rip = (uint64_t)ThreadWrapperEx;
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)

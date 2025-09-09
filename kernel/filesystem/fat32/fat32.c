@@ -8,6 +8,7 @@
 #include "../../drivers/blk/block.h"
 #include "../../assert.h"
 #include "../../time.h"
+#include "../../intrin/atomic.h"
 
 #define WRITE_MODE_APPEND_EXISTING 0
 #define WRITE_MODE_CREATE_OR_REPLACE 1
@@ -17,10 +18,17 @@ static FAT32_FSINFO fs;
 static BLOCK_DEVICE* disk;
 extern GOP_PARAMS gop_local;
 
+static SPINLOCK fat32_read_fat_lock = { 0 };
+static void* fat_cache_buf = NULL;
+static uint32_t fat_cache_sector = UINT32_MAX;
 
 #define MAX_LFN_ENTRIES 20       // Allows up to 260 chars (20*13)
 #define MAX_LFN_LEN 260
 
+volatile int32_t fat32_called_from_scanner = 0;
+
+// Internal Error Constants
+#define FAT32_READ_ERROR   0xFFFFFFFFu
 typedef struct {
 	uint16_t name_chars[13];     // UTF-16 characters from one LFN entry
 } LFN_ENTRY_BUFFER;
@@ -194,26 +202,69 @@ done:
 	return short_entry;
 }
 
+static inline uint32_t fat32_total_clusters(void) {
+	return (bpb.total_sectors_32 - fs.first_data_sector) / fs.sectors_per_cluster;
+}
+
 // Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
 static uint32_t fat32_read_fat(uint32_t cluster) {
-	tracelast_func("fat32_read_fat");
-	MTSTATUS status;
+	bool isScanner = InterlockedCompareExchange32(&fat32_called_from_scanner, 0, 0);
+	tracelast_func("fat32_read_fat (cached)");
+	if (cluster < 2) return FAT32_FREE_CLUSTER; // sanity
+	IRQL oldIrql;
+	MtAcquireSpinlock(&fat32_read_fat_lock, &oldIrql);
+	// allocate cache buffer once
+	if (!fat_cache_buf) {
+		fat_cache_buf = MtAllocateVirtualMemory(512, 512);
+		if (!fat_cache_buf) {
+			gop_printf(0xFFFF0000, "fat32_read_fat: couldn't alloc cache buf\n");
+			MtReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+			if (isScanner) {
+				return FAT32_READ_ERROR;
+			}
+			return FAT32_EOC_MIN; // Function will bail or stop loop when this return value is set.
+		}
+	}
+
 	uint32_t fat_offset = cluster * 4;
 	uint32_t fat_sector = fs.fat_start + (fat_offset / fs.bytes_per_sector);
 	uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
-	if (!buf) return 0x0FFFFFFF; // treat as EOF on allocation failure
-	status = read_sector(fat_sector, buf);
-	if (MT_FAILURE(status)) {
-		tracelast_func("Couldn't read sector.");
-		MtFreeVirtualMemory(buf);
-		return 0x0FFFFFFF;
+	// read sector only if different from cached one
+	if (fat_cache_sector != fat_sector) {
+		MTSTATUS st = read_sector(fat_sector, fat_cache_buf);
+		if (MT_FAILURE(st)) {
+			gop_printf(0xFFFF0000, "fat32_read_fat: read_sector fail for sector %u\n", fat_sector);
+			MtReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+			if (isScanner) {
+				return FAT32_READ_ERROR;
+			}
+			return FAT32_EOC_MIN;
+		}
+		fat_cache_sector = fat_sector;
 	}
 
-	uint32_t val = *(uint32_t*)((uint8_t*)buf + ent_offset);
+	uint32_t val = *(uint32_t*)((uint8_t*)fat_cache_buf + ent_offset);
 	val &= 0x0FFFFFFF;
-	MtFreeVirtualMemory(buf);
+
+	// Basic diagnostics logging (low-volume unless suspicious)
+	if (val == 0 || val == cluster) {
+		uint8_t* entry_ptr = (uint8_t*)fat_cache_buf + ent_offset;
+		uint32_t raw;
+		kmemcpy(&raw, entry_ptr, sizeof(raw));   // safe even if unaligned
+		raw &= 0x0FFFFFFF;
+		if (raw == 0) {
+			gop_printf(0xFFFF0000, "FAT suspicious: cluster=%u -> val=%p (ent_off=%u, fat_sector=%u, total=%u)\n",
+				cluster, raw, ent_offset, fat_sector, fat32_total_clusters());
+			if (isScanner) {
+				gop_printf(COLOR_LIME, "Returning to fat32_find_free_cluster\n");
+				return FAT32_READ_ERROR;
+			}
+			gop_printf(COLOR_LIME, "Returning normally..\n");
+			return FAT32_EOC_MIN;
+		}
+	}
+	MtReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
 	return val;
 }
 
@@ -261,6 +312,10 @@ static bool fat32_free_cluster_chain(uint32_t start_cluster) {
 	uint32_t cur = start_cluster;
 	while (cur < FAT32_EOC_MIN) {
 		uint32_t next = fat32_read_fat(cur);
+		if (next == cur || next == 0) {
+			gop_printf(0xFFFF0000, "Detected FAT self-loop/zero at %u -> %u | %s\n", cur, next, __func__);
+			break; // fail gracefully
+		}
 		// mark current as free
 		if (!fat32_write_fat(cur, FAT32_FREE_CLUSTER)) return false;
 		// protect against pathological loops
@@ -273,14 +328,19 @@ static bool fat32_free_cluster_chain(uint32_t start_cluster) {
 
 static uint32_t fat32_find_free_cluster(void) {
 	tracelast_func("fat32_find_free_cluster");
+	// Atomically update.
+	InterlockedExchange32(&fat32_called_from_scanner, 1);
 	// Start searching from cluster 2 (the first usable cluster)
 	// In a more advanced implementation, we would use the FSInfo sector to find a hint. But even then that hint can be misleading (read osdev on FAT)
 	uint32_t total_clusters = (bpb.total_sectors_32 - fs.first_data_sector) / fs.sectors_per_cluster;
 	for (uint32_t i = 2; i < total_clusters; i++) {
-		if (fat32_read_fat(i) == FAT32_FREE_CLUSTER) {
+		uint32_t retval = fat32_read_fat(i);
+		if (retval == FAT32_FREE_CLUSTER) {
 			return i;
 		}
+		else if (retval == FAT32_READ_ERROR) return 0;
 	}
+	InterlockedExchange32(&fat32_called_from_scanner, 0);
 	return 0; // no free clusters found..
 }
 
@@ -379,7 +439,7 @@ static uint32_t fat32_create_lfn_entries(FAT32_DIR_ENTRY* entry_buffer, const ch
 /// <returns>True if the entry was found, false otherwise.</returns>
 static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint32_t* out_parent_cluster) {
 	char path_copy[260];
-	kstrcpy(path_copy, path); // Use a mutable copy
+	kstrncpy(path_copy, path, sizeof(path_copy));
 	MTSTATUS status;
 	uint32_t current_cluster = fs.root_cluster;
 	uint32_t parent_cluster_of_last_found = fs.root_cluster;
@@ -688,7 +748,7 @@ void fat32_list_root(void) {
 		} // for each sector in cluster
 
 		cluster = fat32_read_fat(cluster);
-	} while (cluster < 0x0FFFFFF8);
+	} while (cluster < FAT32_EOC_MIN);
 }
 
 // Helper to detect if a filename has a slash in it (/), and so the filename is in a directory
@@ -710,7 +770,7 @@ static uint32_t extract_dir_cluster(const char* filename) {
 
 	// Make a mutable copy
 	char path_copy[260];
-	kstrcpy(path_copy, filename);
+	kstrncpy(path_copy, filename, sizeof(path_copy));
 
 	// Remove trailing slashes (keep a single leading '/' if path is "/")
 	int len = (int)kstrlen(path_copy);
@@ -893,7 +953,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 	MTSTATUS status = MT_GENERAL_FAILURE;
 	// 2. Separate parent path and new directory name
 	char path_copy[260];
-	kstrcpy(path_copy, path);
+	kstrncpy(path_copy, path, sizeof(path_copy));
 
 	char* new_dir_name = NULL;
 	char* parent_path = "/";
@@ -1120,7 +1180,7 @@ MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uin
 	uint32_t first_cluster = 0;
 	// parse parent + filename.
 	char path_copy[260];
-	kstrcpy(path_copy, path);
+	kstrncpy(path_copy, path, sizeof(path_copy));
 	char* filename = NULL;
 	char* parent_path = "/";
 	int last_slash = -1;
@@ -1239,6 +1299,10 @@ locate_done:
 				// reach last cluster
 				while (cur < FAT32_EOC_MIN) {
 					next = fat32_read_fat(cur);
+					if (next == cur || next == 0) {
+						gop_printf(0xFFFF0000, "Detected FAT self-loop/zero at %u -> %u | %s\n", cur, next, __func__);
+						break; // fail gracefully
+					}
 					if (next >= FAT32_EOC_MIN) { last_cluster = cur; break; }
 					cur = next;
 				}
@@ -1432,14 +1496,14 @@ locate_done:
 	sfn_entry->file_size = final_size;
 	sfn_entry->fst_clus_lo = (uint16_t)first_cluster;
 	sfn_entry->fst_clus_hi = (uint16_t)(first_cluster >> 16);
-	TIME_ENTRY currTime = get_time();
-	uint16_t fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
-	uint16_t fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
-	sfn_entry->wrt_date = fat32date;
-	sfn_entry->wrt_time = fat32time;
-	sfn_entry->crt_date = fat32date;
-	sfn_entry->crt_time = fat32time;
-	sfn_entry->lst_acc_date = fat32date;
+	//TIME_ENTRY currTime = get_time();
+	//uint16_t fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
+	//uint16_t fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
+	//sfn_entry->wrt_date = fat32date;
+	//sfn_entry->wrt_time = fat32time;
+	//sfn_entry->crt_date = fat32date;
+	//sfn_entry->crt_time = fat32time;
+	//sfn_entry->lst_acc_date = fat32date;
 
 	if (exists && located) {
 		// Update existing on-disk SFN+LFN in-place: overwrite SFN fields + file_size + fst_clus (but preserve other fields).
@@ -1456,13 +1520,13 @@ locate_done:
 		entries[sfn_pos].fst_clus_lo = (uint16_t)first_cluster;
 		entries[sfn_pos].fst_clus_hi = (uint16_t)(first_cluster >> 16);
 		entries[sfn_pos].file_size = final_size;
-		fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
-		fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
-		entries[sfn_pos].wrt_date = fat32date;
-		entries[sfn_pos].wrt_time = fat32time;
-		entries[sfn_pos].crt_date = fat32date;
-		entries[sfn_pos].crt_time = fat32time;
-		entries[sfn_pos].lst_acc_date = fat32date;
+		//fat32date = fat32_encode_date(currTime.year, currTime.month, currTime.day);
+		//fat32time = fat32_encode_time(currTime.hour, currTime.minute, currTime.second);
+		//entries[sfn_pos].wrt_date = fat32date;
+		//entries[sfn_pos].wrt_time = fat32time;
+		//entries[sfn_pos].crt_date = fat32date;
+		//entries[sfn_pos].crt_time = fat32time;
+		//entries[sfn_pos].lst_acc_date = fat32date;
 
 		// If original file had no LFN and we're writing a long-name (lfn_count>0), we cannot expand in-place safely.
 		// In that case we fallback to find free slots and write a new LFN+SFN pair and mark old entries deleted.
@@ -1669,7 +1733,7 @@ static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluste
 	tracelast_func("mark_entry_and_lfns_deleted");
 	// extract filename (last component)
 	char path_copy[260];
-	kstrcpy(path_copy, path);
+	kstrncpy(path_copy, path, sizeof(path_copy));
 	int len = (int)kstrlen(path_copy);
 	// strip trailing slashes
 	while (len > 1 && path_copy[len - 1] == '/') { path_copy[--len] = '\0'; }

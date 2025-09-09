@@ -30,6 +30,7 @@ typedef int32_t MTSTATUS;
 #define MT_NOT_FOUND            ((MTSTATUS)0xC0000008L)
 #define MT_GENERAL_FAILURE		((MTSTATUS)0xC0000009L)
 #define MT_INVALID_LOCK			((MTSTATUS)0xC0000010L)
+#define MT_NO_RESOURCES			((MTSTATUS)0xC0000011L)
 
 //
 // ==========================

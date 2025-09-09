@@ -19,7 +19,7 @@ void init_dpc_system(void) {
 }
 
 void MtQueueDPC(volatile DPC* dpc) {
-	tracelast_func("queue_dpc");
+	tracelast_func("MtQueueDPC");
 	if (!dpc) return;
 
 	dpc->Next = NULL;

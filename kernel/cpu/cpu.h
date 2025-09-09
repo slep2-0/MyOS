@@ -89,6 +89,7 @@
 #include "scheduler/scheduler.h"
 #include "thread/thread.h"
 #include "../mtstatus.h"
+#include "debugger/debugfunctions.h"
 
 /// <summary>
 /// Read the current interrupt frame.

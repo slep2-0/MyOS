@@ -60,6 +60,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "cpu/apic/apic.h"
 #include "cpu/mutex/mutex.h"
 #include "cpu/events/events.h"
+#include "cpu/debugger/debugfunctions.h"
 
 // Entry point in C
 void kernel_idle_checks(void);
