@@ -46,4 +46,4 @@ MtSleepCurrentThread:
     add rsp, 8 ; I mean, it shouldn't return, but do it anyways.
 
     ; never returns here
-    ud2                        ; trap if schedule returns unexpectedly
+    int 18 ; Machine Check Exception.

@@ -91,6 +91,12 @@ static void InitialiseControlRegisters(void) {
     unsigned long cr4 = __read_cr4();
     cr4 |= (1UL << 11); // Set bit 11 - User Mode Instruction Prevention. This'll be useful against user mode attacks to locate IDT/GDT/LDT...
     __write_cr4(cr4);
+
+    /* Debug Registers */
+    for (int i = 0; i < 7; i++) {
+        // reset all
+        __write_dr(i, 0);
+    }
 }
 
 void InitCPU(void) {
@@ -113,17 +119,7 @@ static inline bool interrupts_enabled(void) {
 
 void kernel_idle_checks(void) {
     tracelast_func("kernel_idle_checks - Thread");
-    static volatile bool first_time = true;
-
-    if (first_time) {
-        first_time = false;
-        gop_printf_forced(0xFF000FF0, "Reached the scheduler!\n");
-        for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
-            /* delay loop */
-        }
-
-        gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
-    }
+    gop_printf(0xFF000FF0, "Reached the scheduler!\n");
     assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
     while (1) {
         __hlt();
@@ -139,7 +135,11 @@ static void test(MUTEX* mut) {
     MTSTATUS status = MtAcquireMutexObject(mut);
     gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
     volatile uint64_t z = 0;
+#ifdef GDB
+    for (uint64_t i = 0; i < 0xA; i++) {
+#else
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
+#endif
         z++;
     }
     gop_printf(COLOR_GREEN, "(test) Releasing Mutex Object: %p\n", mut);
@@ -148,13 +148,23 @@ static void test(MUTEX* mut) {
 }
 
 static void funcWithParam(MUTEX* mut) {
+    funcWithParam(mut);
     tracelast_func("funcWithParam - Thread");
-    //gop_printf_forced(COLOR_OLIVE, "Hit funcWithParam, Integer: %d\n", *integer);
-    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p\n", MtGetCurrentThread());
+    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
+    char buf[256];
+    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p\n", MtGetCurrentThread(), mut);
+    MTSTATUS status = vfs_mkdir("/testdir/");
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); __hlt(); }
+    status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
     volatile uint64_t z = 0;
+#ifdef GDB
+    for (uint64_t i = 0; i < 0xA; i++) {
+#else
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
+#endif
         z++;
     }
     gop_printf(COLOR_OLIVE, "(funcWithParam) Releasing Mutex Object: %p\n", mut);
@@ -162,6 +172,16 @@ static void funcWithParam(MUTEX* mut) {
     Thread* currentThread = MtGetCurrentThread();
     gop_printf(COLOR_OLIVE, "Current thread in funcWithParam: %p\n", currentThread);
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
+}
+
+static void bp_test(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    if (!info) return;
+
+    gop_printf_forced(0xFFFFFF00, "HWBP: idx=%d addr=%p DR6=%p\n",
+        info->BreakIdx, info->Address, (unsigned long long)info->Dr6);
+
+    MtClearHardwareBreakpointByIndex(info->BreakIdx);
 }
 
 /** Remember that paging is on when this is called, as UEFI turned it on. */
@@ -233,9 +253,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_MAGENTA, "BUF7 (VIRT): %p | (PHYS): %p\n", buf7, MtTranslateVirtualToPhysical(buf7));
     
 #ifdef CAUSE_BUGCHECK
-    CTX_FRAME regs;
-    SAVE_CTX_FRAME(&regs);
-    MtBugcheck(&regs, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
+    MtBugcheck(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
     
     if (checkcpuid()) {
@@ -243,8 +261,10 @@ void kernel_main(BOOT_INFO* boot_info) {
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
-
-    MTSTATUS status;
+    volatile int x = 1;
+    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_test, (void*)&x, DEBUG_ACCESS_WRITE, DEBUG_LEN_4);
+    gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
+    x = 2;
     status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
@@ -262,7 +282,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
     gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
     gop_printf(COLOR_CYAN, "%s", listings);
-    MUTEX* sharedMutex = MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
+    
+    MUTEX* sharedMutex =  MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MtInitializeMutexObject(sharedMutex);
     gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);

@@ -27,7 +27,6 @@ extern uint8_t bss_start;
 extern uint8_t bss_end;
 
 void zero_bss(void);
-bool check_bss_zeroed(void);
 
 /* Heap Size */
 
@@ -52,7 +51,7 @@ typedef struct _BLOCK_HEADER {
     uint32_t kind;
 } BLOCK_HEADER;
 
-enum { BLK_NORMAL = 0, BLK_EX = 1 };
+enum { BLK_NORMAL = 0, BLK_EX = 1, BLK_GUARDED = 2, };
 
 /* Initialize the free list to cover the whole heap */
 void init_heap(void);
@@ -70,6 +69,21 @@ void* kmemcpy(void* dest, const void* src, size_t len);
 /// <param name="align">Alignment for each byte block (use internal structs for process \ other - use _Alignof)</param>
 /// <returns>Pointer to start of allocated memory</returns>
 void* MtAllocateVirtualMemory(size_t size, size_t align);
+
+/// <summary>
+/// Allocates a region of virtual memory with a specific size and alignment,
+/// placing an unmapped guard page immediately after the allocation to catch
+/// buffer overflows.
+/// </summary>
+/// <remarks>
+/// This allocator is page-based and should be used for larger allocations
+/// where overflow detection is critical (e.g., stacks, large buffers).
+/// The allocated region will be at least one page in size.
+/// </remarks>
+/// <param name="wanted_size">The size of the memory to allocate.</param>
+/// <param name="align">The required alignment, must be a power of two.</param>
+/// <returns>A pointer to the beginning of the allocated and aligned memory block.</returns>
+void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align);
 
 /// <summary>
 /// **THE USE OF THIS FUNCTION IS NOT RECOMMENDED -- TO ADD FLAGS TO AN ALLOCATED MEMORY BUFFER USE MtAddPageFlags TO ITS POINTER!!!**

@@ -7,8 +7,18 @@
 #include "mutex.h"
 #include "../../assert.h"
 #include "../events/events.h"
+#include "../../bugcheck/bugcheck.h"
 
 MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
+    tracelast_func("MtInitializeMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
     IRQL oldirql;
@@ -21,7 +31,12 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
         return MT_INVALID_ADDRESS;
     }
 
-    assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
+    //assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
+    if (mut->ownerTid != 0) {
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "Mutex is already owned in initialization, ownerTID: %u", mut->ownerTid);
+        MtBugcheckEx(NULL, NULL, ASSERTION_FAILURE, &addt, true);
+    }
     if (mut->ownerTid) {
         MtReleaseSpinlock(&mut->lock, oldirql);
         return MT_MUTEX_ALREADY_OWNED;
@@ -46,6 +61,15 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
 }
 
 MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
+    tracelast_func("MtAcquireMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 #ifdef DEBUG
     gop_printf(COLOR_PURPLE, "MtAcquireMutex hit - thread: %p | mut: %p\n", MtGetCurrentThread(), mut);
@@ -82,7 +106,18 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
     return MT_SUCCESS;
 }
 
+
+
 MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
+    tracelast_func("MtReleaseMutexObject");
+    {
+        // IRQL Constraints.
+        uint64_t rip;
+        GET_RIP(rip);
+        enforce_max_irql(DISPATCH_LEVEL, &rip);
+    }
+
+    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
     // FOLLOW LOCK ORDER: acquire mut->lock then event->lock

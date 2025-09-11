@@ -13,6 +13,12 @@
 #include "../../trace.h"
 #include "../cpu_types.h"
 
+#ifdef __GNUC__
+#define _IRQL_requires_max_(level)
+#else
+#define _IRQL_requires_max_(level) __attribute__((annotate("IRQL_max_" #level)))
+#endif
+
 extern CPU cpu;
 
 // Functions

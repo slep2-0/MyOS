@@ -132,8 +132,7 @@ void init_timer(unsigned long int frequency) {
 
 static DPC scheduleDpc = {
     .Next = NULL,
-    .callback = ScheduleDPC,
-    .callbackWithCtx = NULL,
+    .callback.withoutCtx = ScheduleDPC,
     .ctx = NULL,
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
@@ -172,8 +171,8 @@ void timer_handler(bool schedulerEnabled) {
 extern void lapic_eoi(void);
 
 void lapic_handler(bool schedulerEnabled) {
-    lapic_eoi();
     timer_handler(schedulerEnabled);
+    lapic_eoi();
 }
 
 void pagefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
@@ -203,10 +202,12 @@ void dividebyzero_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 }
 
 void debugsinglestep_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
+#ifndef GDB
+    breakpoint_handler(ctx, intfr);
+#else
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);
-    gop_printf_forced(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
-    __hlt();
+#endif
 }
 
 void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
@@ -214,11 +215,54 @@ void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     MtBugcheck(ctx, intfr, NON_MASKABLE_INTERRUPT,0, false);
 }
 
+#include "../../cpu/debugger/debugfunctions.h"
+extern DEBUG_ENTRY entries[4];
+
 void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
+#ifndef GDB
+    /* read debug status */
+    uint64_t dr6 = __read_dr(6);
+
+    /* If nothing flagged, still clear DR6 and return (defensive) */
+    if (dr6 == 0) {
+        __write_dr(6, 0);
+        return;
+    }
+
+    /* For each possible debug register 0..3 check B0..B3 */
+    for (int i = 0; i < 4; ++i) {
+        if (dr6 & (1ULL << i)) {
+            /* If a callback is registered, call it. Provide both address and context. */
+            if (entries[i].Callback) {
+                DBG_CALLBACK_INFO info = {
+                    .Address = entries[i].Address,
+                    .CpuCtx = ctx,
+                    .IntFrame = intfr,
+                    .BreakIdx = i,
+                    .Dr6 = dr6
+                };
+
+                /* Call the user-registered callback. It receives &info (void*). */
+                entries[i].Callback(&info);
+            }
+            else {
+                /* no callback registered for this DRx: print for debug and continue */
+                gop_printf_forced(0xFFFFFF00, "DEBUG: DR%d fired at addr %p but no callback\n", i, (void*)__read_dr(i));
+            }
+        }
+    }
+
+    /* Clear the status bits in DR6 so INT1 won't fire again for the same event.
+       Writing zero clears B0..B3 and other status bits per Intel spec. */
+    __write_dr(6, 0);
+
+    /* Return from interrupt: ctx / intfr contain registers; if a callback modified
+       ctx->rip (or similar), those changes will be used when execution resumes. */
+#else
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(intfr);
-    gop_printf_forced(0xFFFF0000, "\nERROR: Debugging is not currently supported, halting.\n");
-    __hlt();
+#endif
+    return;
 }
 
 void overflow_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {

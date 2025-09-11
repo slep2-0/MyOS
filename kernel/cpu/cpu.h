@@ -7,10 +7,6 @@
 #ifndef X86_CPU_H
 #define X86_CPU_H
 
-#ifdef __INTELLISENSE__
-#define __asm__ __asm
-#endif
-
 #ifndef __INTELLISENSE__
 #define SAVE_CTX_FRAME(ctx_ptr)                            \
     do {                                                   \
@@ -93,6 +89,7 @@
 #include "scheduler/scheduler.h"
 #include "thread/thread.h"
 #include "../mtstatus.h"
+#include "debugger/debugfunctions.h"
 
 /// <summary>
 /// Read the current interrupt frame.

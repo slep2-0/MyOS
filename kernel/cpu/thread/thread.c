@@ -7,7 +7,7 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
-#define THREAD_STACK_SIZE 4096
+#define THREAD_STACK_SIZE (4096) // 16 KiB
 #define THREAD_ALIGNMENT 16
 
 ///
@@ -28,7 +28,7 @@ static uint32_t ManageTID(uint32_t freedTid)
         }
         // else drop silently
     }
-    else {
+    else { 
         // Allocate path:
         if (freeCount > 0) {
             // Reuse most-recently freed
@@ -61,15 +61,16 @@ static void ThreadExit(Thread* thread) {
     thread->timeSlice = 0;
     ManageTID(thread->TID);
 
-    // 2) Delete stack
-    MtFreeVirtualMemory(thread->startStackPtr);
+    // Call scheduler (don't delete the stack)
+    Schedule();
+    
     
     /* assertions */
 #ifdef DEBUG
     bool valid = MtIsHeapAddressAllocated(thread->startStackPtr);
     assert((valid) == false, "Thread's stack hasn't been freed correctly!");
 #endif
-    Schedule();
+    // When the stack got freed, the scheduler was called here, and since it's freed and it atttempted to PUSH the return address to the stack, we faulted.
 
     // should never get here
     CTX_FRAME ctx;
@@ -84,11 +85,16 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
     ThreadExit(thread);
 }
 
+bool isFuncWithParam = false;
+
 void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTicks TIMESLICE, bool kernelThread) {
     if (!kernelThread) {
         /// TODO implement user mode.
         return;
     }
+
+    uint32_t tid = ManageTID(0);
+
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
     // First, allocate a new thread.
@@ -101,8 +107,8 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
-
-    void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
+    if (tid == 8) isFuncWithParam = true;
+    void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -121,22 +127,18 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     sp -= 64; // red zone / extra safety
 
     CTX_FRAME* cfm = (CTX_FRAME*)sp;
-    kmemset(cfm, 0, sizeof * cfm);
 
     kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
 
-    // Set our sig and timeslice.
+    // Set our timeslice.
     thread->timeSlice = TIMESLICE;
     thread->origTimeSlice = TIMESLICE;
 
-    /// Here comes the actual part that separates between the normal and Ex version of creating the thread. - Remmber to use System V ABI as this is GCC.
-    cfm->rsp = (uint64_t)sp;
+    cfm->rsp = (uint64_t)sp - 8;
     cfm->rip = (uint64_t)ThreadWrapperEx;
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
     cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
-    
-    uint32_t tid = ManageTID(0);
 
     if (!tid) {
         CTX_FRAME ctx;
@@ -148,7 +150,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         addt.ptr = (void*)(uintptr_t)RIP;
         MtBugcheckEx(&ctx, NULL, THREAD_ID_CREATION_FAILURE, &addt, true);
     }
-    
     // Set it's registers and others.
     thread->registers = *cfm;
     thread->threadState = READY;
@@ -159,6 +160,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     MtLowerIRQL(oldIrql);
 }
 
-Thread* MtGetCurrentThread(void) {
+inline Thread* MtGetCurrentThread(void) {
     return (Thread*)__readmsr(IA32_GS_BASE);
 }

@@ -4,7 +4,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#ifndef __INTELLISENSE__
 #include <cpuid.h>
+#endif
 #include "../../memory/memory.h"
 
 #include "../../trace.h"

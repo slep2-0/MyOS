@@ -19,7 +19,7 @@ void init_dpc_system(void) {
 }
 
 void MtQueueDPC(volatile DPC* dpc) {
-	tracelast_func("queue_dpc");
+	tracelast_func("MtQueueDPC");
 	if (!dpc) return;
 
 	dpc->Next = NULL;
@@ -76,8 +76,8 @@ void RetireDPCs(void) {
 		MtReleaseSpinlock(&dpc_lock, flags);
 
 		// STILL at DISPATCH_LEVEL
-		if (d->hasCtx)      d->callbackWithCtx(d->ctx);
-		else if (d->callback) d->callback();
+		if (d->hasCtx)      d->callback.withCtx(d->ctx);
+		else if (d->callback.withoutCtx) d->callback.withoutCtx();
 
 		// re-acquire for next pop
 		MtAcquireSpinlock(&dpc_lock, &flags);

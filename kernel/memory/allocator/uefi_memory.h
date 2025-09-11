@@ -39,9 +39,11 @@ typedef struct _BOOT_INFO {
     uint64_t*                 AhciBarBases;
     uint64_t KernelStackTop;
     uintptr_t Pml4Phys;
+    uint16_t TssSelector;
 } BOOT_INFO;
 #ifndef _MSC_VER 
-_Static_assert(sizeof(BOOT_INFO) == 72, "Size of BOOT_INFO doesn't equal 72 bytes. Update the struct.");
+_Static_assert(sizeof(BOOT_INFO) == 80, "Size of BOOT_INFO doesn't equal 72 bytes. Update the struct.");
+_Static_assert(offsetof(BOOT_INFO, TssSelector) == 0x48, "TssSelector offset is not 0x48");
 #endif
 
 // Memory types (we only need ConventionalMemory here)

@@ -6,6 +6,7 @@
 
 #include "scheduler.h"
 #include "../../bugcheck/bugcheck.h"
+#include "../../assert.h"
 
 // assembly stubs to save and restore register contexts.
 extern void restore_context(CTX_FRAME* regs);
@@ -32,8 +33,8 @@ void InitScheduler(void) {
     // Assign the clean context to the idle thread
     idleThread.registers = cfm;
     idleThread.threadState = READY;
-    idleThread.timeSlice = LOW_TIMESLICE_TICKS;
-    idleThread.origTimeSlice = LOW_TIMESLICE_TICKS;
+    idleThread.timeSlice = 1; // 1ms
+    idleThread.origTimeSlice = 1;
     idleThread.nextThread = NULL;
     idleThread.TID = 0; // Scheduler thread, TID is 0.
     idleThread.startStackPtr = (void*)cfm.rsp;
@@ -68,6 +69,16 @@ void Schedule(void) {
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
     Thread* prev = cpu.currentThread;
+
+    // always check if exists, didn't check and got faulted.
+    if (prev && prev->threadState == TERMINATED) {
+        // Clean it's stack
+        extern bool isFuncWithParam;
+        if (prev->TID == 8) isFuncWithParam = true;
+        MtFreeVirtualMemory(prev->startStackPtr);
+        MtFreeVirtualMemory(prev);
+        prev = NULL;
+    }
 
     if (prev && prev != &idleThread && prev->threadState == RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)

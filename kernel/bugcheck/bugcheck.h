@@ -61,7 +61,15 @@ typedef enum _BUGCHECK_CODES {
     MEMORY_INVALID_FREE,
     MEMORY_CORRUPT_HEADER,
     MEMORY_DOUBLE_FREE,
+    MEMORY_CORRUPT_FOOTER,
+    GUARD_PAGE_DEREFERENCE, // A guard page has been dereferenced.
 } BUGCHECK_CODES;
+
+typedef struct _GUARD_PAGE_DB {
+    void* address;
+    size_t pageSize;
+    struct _GUARD_PAGE_DB* next;
+} GUARD_PAGE_DB;
 
 typedef struct _BUGCHECK_ADDITIONALS {
     // A String (NO NEED FOR NEWLINE CHAR)
@@ -78,10 +86,12 @@ typedef struct _BUGCHECK_ADDITIONALS {
 
 // Function to initiate bugcheck.
 __attribute__((noreturn))
-void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint32_t additional, bool isAdditionals);
+void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint64_t additional, bool isAdditionals);
 
 // Function to initiate bugcheck + Revised additionals
 __attribute__((noreturn))
 void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, BUGCHECK_ADDITIONALS* additional, bool isAdditionals);
+
+void MtPrintStackTrace(int depth);
 
 #endif

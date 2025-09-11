@@ -89,21 +89,12 @@ typedef struct _Queue {
 #define TICK_MS 4
 
 /// <summary>
-/// Do not use for timeSlicing a thread, use the timeSliceTicks enum.
-/// </summary>
-typedef enum _timeSliceMs {
-    ____DONT_USE_DEFAULT_TIMESLICE_MS = 40, // Default.
-    ____DONT_USE_LOW_TIMESLICE_MS = 16, // Low timeslice, for threads/processes with low-none impact on the system.
-    ____DONT_USE_HIGH_TIMESLICE_MS = 100, // Most time to schedule, used for performance critical tasks.
-} timeSliceMs;
-
-/// <summary>
 /// Used to determine how much time in ms a thread should have before being involuntarily relinquished.
 /// </summary>
 typedef enum _timeSliceTicks {
-    LOW_TIMESLICE_TICKS = ____DONT_USE_LOW_TIMESLICE_MS / TICK_MS,   // 4 MS
-    DEFAULT_TIMESLICE_TICKS = ____DONT_USE_DEFAULT_TIMESLICE_MS / TICK_MS,   // 10 MS
-    HIGH_TIMESLICE_TICKS = ____DONT_USE_HIGH_TIMESLICE_MS / TICK_MS,   // 25 MS
+    LOW_TIMESLICE_TICKS = 16 / TICK_MS,   // 4 MS
+    DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,   // 10 MS
+    HIGH_TIMESLICE_TICKS = 100 / TICK_MS,   // 25 MS
 } timeSliceTicks;
 
 typedef enum _EVENT_TYPE {
@@ -121,19 +112,15 @@ typedef struct _EVENT {
 typedef struct _Thread {
 	// CPU Registers for context switching
 	CTX_FRAME registers;
-
 	// Scheduling metadata
 	THREAD_STATE threadState;
-
-    // Remaining ticks until switch.
+    // Remaining ticks until switch. (use enum timeSliceTicks)
     uint32_t timeSlice;
     uint32_t origTimeSlice;
-
-	Thread* nextThread; // For queue linking.
-
+    // The next thread in the link.
+	Thread* nextThread;
     // Thread ID.
     uint32_t TID;
-
     // Original Stack Pointer (to free)
     void* startStackPtr;
 	// TODO later: priority, affinity, wait list pointer, etc.
@@ -153,10 +140,14 @@ typedef enum _DPC_KIND {
     /// TODO more dpcs..
 } DPC_KIND;
 
+typedef union _DPC_CALLBACK {
+    void (*withoutCtx)(void); /// Callback without any CONTEXT (no registers), used to invoke DPC's like scheduler.
+    void (*withCtx)(void* ctx); // Callback entry for this DPC, along with context register info.
+} DPC_CALLBACK; 
+
 typedef struct _DPC {
     volatile DPC* Next; // Next DPC in the pending queue.
-    void (*callbackWithCtx)(void* ctx); // Callback entry for this DPC, along with context register info.
-    void (*callback)(void); /// Callback without any CONTEXT (no registers), used to invoke DPC's like scheduler.
+    DPC_CALLBACK callback;
     CTX_FRAME* ctx; // Caller supplied context pointer (registers)
     DPC_KIND Kind;
     bool hasCtx;

@@ -286,10 +286,11 @@ void MtAddPageFlags(void* virtualaddress, uint64_t flags) {
 
 bool MtIsAddressValid(void* virtualAddr) {
     tracelast_func("MtIsAddressValid");
+    /* TODO Uncomment when a PFN database (struct) is available, so that it would not be accessed when on a DISPATCH_LEVEL irql. (also when it gets paged out to disk)
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
-
+    */
     uint64_t va = (uint64_t)virtualAddr;
 
     size_t pml4_i = get_pml4_index(va);
