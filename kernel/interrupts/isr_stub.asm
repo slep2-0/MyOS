@@ -170,6 +170,12 @@ extern Schedule
 .dpc:
     ; Dispatch ALL DPCs. -- Side Note: DPCs that WILL NOT RETURN, do not get executed, instead they place a global flag.
     ; DPCs that don't return are very much - not common, I think the Scheduler DPC is the only one that does this.
+    mov rax, [rel cpu + 4] ; cpu.schedulerEnabled -- (will also tell if IRQL >= DISPATCH_LEVEL if set.)
+    test rax, rax ; Test if SET.
+    jz .check_for_schedule ; If it is NOT set (which means we were already at >= DISPATCH_LEVEL), skip the retiring of DPCs
+    jmp .retire ; Else, we were below DISPATCH_LEVEL so we are allowed to retire DPCs.
+
+.retire:
     mov rax, [dpcQueueHead]
     test rax, rax
     jz .done

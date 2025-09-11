@@ -20,4 +20,15 @@ void keyboard_dpc(void* ctxfr);
 /// <param name=""></param>
 void ScheduleDPC(void);
 
+typedef struct _CleanArgs {
+	void* Thread;
+	void* stackPtr;
+} CleanArgs;
+
+/// <summary>
+/// CleanStacks, cleans the stack for the thread stack given.
+/// </summary>
+/// <param name=""></param>
+void CleanStacks(void* CleanArgsStruct);
+
 #endif

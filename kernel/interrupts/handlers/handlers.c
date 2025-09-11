@@ -133,7 +133,7 @@ void init_timer(unsigned long int frequency) {
 static DPC scheduleDpc = {
     .Next = NULL,
     .callback.withoutCtx = ScheduleDPC,
-    .ctx = NULL,
+    .ctx = {0},
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
     .priority = HIGH_PRIORITY

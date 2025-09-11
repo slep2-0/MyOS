@@ -106,8 +106,6 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
     return MT_SUCCESS;
 }
 
-
-
 MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
     tracelast_func("MtReleaseMutexObject");
     {

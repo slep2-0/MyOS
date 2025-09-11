@@ -13,7 +13,7 @@ _Static_assert(false, "Remember that SPINLOCKS inside of a struct shouldn't be p
 
 // Global - Per CPU.
 
-typedef enum _THREAD_STATE { RUNNING, READY, BLOCKED, TERMINATING, TERMINATED } THREAD_STATE;
+typedef enum _THREAD_STATE { RUNNING, READY, BLOCKED, TERMINATING, TERMINATED, ZOMBIE } THREAD_STATE;
 
 // Forwards
 typedef struct _Thread Thread;
@@ -146,9 +146,9 @@ typedef union _DPC_CALLBACK {
 } DPC_CALLBACK; 
 
 typedef struct _DPC {
-    volatile DPC* Next; // Next DPC in the pending queue.
+    DPC* Next; // Next DPC in the pending queue.
     DPC_CALLBACK callback;
-    CTX_FRAME* ctx; // Caller supplied context pointer (registers)
+    CTX_FRAME ctx; // Caller supplied context pointer (registers) (changed to embedded)
     DPC_KIND Kind;
     bool hasCtx;
     DPC_PRIORITY priority; // A higher value will run earlier than the lower value
