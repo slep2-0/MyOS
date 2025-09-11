@@ -31,7 +31,7 @@ static bool isInTextSegment(uint64_t* addr) {
     return addr < (uint64_t*) & kernel_end && addr > (uint64_t*) & kernel_start;
 }
 
-static void print_stack_trace(int depth) {
+void MtPrintStackTrace(int depth) {
     //return;
     uint64_t* rbp = (uint64_t*)__read_rbp();
     for (int i = 0; rbp != NULL && i < depth; ++i) {
@@ -68,6 +68,7 @@ static void print_stack_trace(int depth) {
     }
 }
 
+#define print_stack_trace MtPrintStackTrace
 
 static void print_lastfunc_chain(uint32_t color) {
     // Start at the oldest entry: that's the slot `index` points to (next write).

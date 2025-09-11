@@ -80,6 +80,19 @@ typedef struct __attribute__((packed)) _FAT32_DIR_ENTRY {
 #pragma pack(pop)
 #endif
 
+#pragma pack(push,1)
+typedef struct {
+	uint8_t  LDIR_Ord;
+	uint16_t LDIR_Name1[5];
+	uint8_t  LDIR_Attr;   // always 0x0F
+	uint8_t  LDIR_Type;
+	uint8_t  LDIR_Chksum;
+	uint16_t LDIR_Name2[6];
+	uint16_t LDIR_FstClusLO;
+	uint16_t LDIR_Name3[2];
+} FAT32_LFN_ENTRY;
+#pragma pack(pop)
+
 typedef struct _FAT32_FSINFO {
 	uint32_t first_data_sector;
 	uint32_t root_cluster;

@@ -92,4 +92,6 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 __attribute__((noreturn))
 void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, BUGCHECK_ADDITIONALS* additional, bool isAdditionals);
 
+void MtPrintStackTrace(int depth);
+
 #endif

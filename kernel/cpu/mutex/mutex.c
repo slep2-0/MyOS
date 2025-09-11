@@ -31,7 +31,12 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
         return MT_INVALID_ADDRESS;
     }
 
-    assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
+    //assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
+    if (mut->ownerTid != 0) {
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "Mutex is already owned in initialization, ownerTID: %u", mut->ownerTid);
+        MtBugcheckEx(NULL, NULL, ASSERTION_FAILURE, &addt, true);
+    }
     if (mut->ownerTid) {
         MtReleaseSpinlock(&mut->lock, oldirql);
         return MT_MUTEX_ALREADY_OWNED;

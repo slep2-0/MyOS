@@ -132,8 +132,7 @@ void init_timer(unsigned long int frequency) {
 
 static DPC scheduleDpc = {
     .Next = NULL,
-    .callback = ScheduleDPC,
-    .callbackWithCtx = NULL,
+    .callback.withoutCtx = ScheduleDPC,
     .ctx = NULL,
     .Kind = DPC_SCHEDULE,
     .hasCtx = false,
@@ -203,7 +202,12 @@ void dividebyzero_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 }
 
 void debugsinglestep_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
+#ifndef GDB
     breakpoint_handler(ctx, intfr);
+#else
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(intfr);
+#endif
 }
 
 void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
@@ -215,6 +219,7 @@ void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 extern DEBUG_ENTRY entries[4];
 
 void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
+#ifndef GDB
     /* read debug status */
     uint64_t dr6 = __read_dr(6);
 
@@ -253,7 +258,10 @@ void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 
     /* Return from interrupt: ctx / intfr contain registers; if a callback modified
        ctx->rip (or similar), those changes will be used when execution resumes. */
-
+#else
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(intfr);
+#endif
     return;
 }
 

@@ -322,16 +322,14 @@ char* kstrcpy(char* dst, const char* src) {
 //           Assumes dst is large enough.
 //-----------------------------------------------------------------------------
 char* kstrncpy(char* dst, const char* src, size_t n) {
-    char* ret = dst;
-    // Copy n bytes or until null terminator is found in src
-    while (n > 0 && (*dst++ = *src++)) {
-        n--;
+    if (n == 0) return dst;
+    size_t i = 0;
+    while (i + 1 < n && src[i]) {
+        dst[i] = src[i];
+        i++;
     }
-    // Pad the rest of dst with null terminators if n > 0
-    while (n-- > 0) {
-        *dst++ = '\0';
-    }
-    return ret;
+    dst[i] = '\0';
+    return dst;
 }
 
 //-----------------------------------------------------------------------------

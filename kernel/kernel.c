@@ -119,17 +119,7 @@ static inline bool interrupts_enabled(void) {
 
 void kernel_idle_checks(void) {
     tracelast_func("kernel_idle_checks - Thread");
-    static volatile bool first_time = true;
-
-    if (first_time) {
-        first_time = false;
-        gop_printf_forced(0xFF000FF0, "Reached the scheduler!\n");
-        for (volatile uint64_t i = 0; i < 100000000ULL; ++i) {
-            /* delay loop */
-        }
-
-        gop_printf_forced(0xFF000FF0, "**Ended Testing Thread Execution**\n");
-    }
+    gop_printf(0xFF000FF0, "Reached the scheduler!\n");
     assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
     while (1) {
         __hlt();
@@ -145,7 +135,11 @@ static void test(MUTEX* mut) {
     MTSTATUS status = MtAcquireMutexObject(mut);
     gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
     volatile uint64_t z = 0;
+#ifdef GDB
+    for (uint64_t i = 0; i < 0xA; i++) {
+#else
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
+#endif
         z++;
     }
     gop_printf(COLOR_GREEN, "(test) Releasing Mutex Object: %p\n", mut);
@@ -155,20 +149,21 @@ static void test(MUTEX* mut) {
 
 static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
-    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p\n", MtGetCurrentThread());
+    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
     char buf[256];
-    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p", MtGetCurrentThread(), mut);
+    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p\n", MtGetCurrentThread(), mut);
     MTSTATUS status = vfs_mkdir("/testdir/");
-    if (MT_FAILURE(status)) { gop_printf(COLOR_LIME, "[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p", status); }
-    else {
-        status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-        if (MT_FAILURE(status)) { gop_printf(COLOR_LIME, "[MTSTATUS-FAILURE] Failure on vfs_write: %p", status); }
-    }
-    gop_printf(COLOR_RED, "[MTSTATUS] vfs_write returned: %p\n", status);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); __hlt(); }
+    status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
     volatile uint64_t z = 0;
+#ifdef GDB
+    for (uint64_t i = 0; i < 0xA; i++) {
+#else
     for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
+#endif
         z++;
     }
     gop_printf(COLOR_OLIVE, "(funcWithParam) Releasing Mutex Object: %p\n", mut);
@@ -234,7 +229,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-    
+
     void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateVirtualMemory(128, 16);

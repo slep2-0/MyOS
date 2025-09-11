@@ -376,22 +376,24 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
     // 6. Alignment, back-pointer store, zeroing, etc...
     uintptr_t data_start = (uintptr_t)(blk + 1);
     uintptr_t user_ptr_potential = align_up_uintptr(data_start + sizeof(void*), align);
-    kmemcpy((void*)(user_ptr_potential - sizeof(void*)), &blk, sizeof(blk));
+    uintptr_t tmp_hdr = (uintptr_t)blk;
+    kmemcpy((void*)(user_ptr_potential - sizeof(void*)), &tmp_hdr, sizeof(tmp_hdr));
     void* user_ptr = (void*)user_ptr_potential;
     MtReleaseSpinlock(&heap_lock, oldIrql);
     return user_ptr;
 }
 
+extern bool isFuncWithParam;
+BLOCK_HEADER* funcWithParamBLK = NULL;
+
 static void bp_handler(void* vinfo) {
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
-    gop_printf(COLOR_BROWN, "Hardware Breakpoint touched on BLK. IP: %p | BreakIdx: %d | HEAP_START: %p | HEAP_END: %p |\n", info->Address, info->BreakIdx, HEAP_START, heap_current_end);
+    gop_printf(COLOR_ORANGE, "**Debug Breakpoint Hit | Variable Address: %p | IP: %p | BLK: %p |**", info->Address, info->IntFrame->rip, funcWithParamBLK);
     __hlt();
 }
 
-
-
 /// <summary>
-/// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that.
+/// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that. (it was fat32 the last time)
 /// </summary>
 void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     void* ret = __builtin_return_address(0);
@@ -461,23 +463,22 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
             blk->kind = BLK_NORMAL;
             blk->next = NULL;
             blk->requested_size = wanted_size;
-
+            if (isFuncWithParam) {
+                //MtSetHardwareBreakpoint((DebugCallback)bp_handler, blk, DEBUG_ACCESS_WRITE, DEBUG_LEN_8);
+                gop_printf(COLOR_GRAY, "[dbg] blk %p\n", blk);
+                isFuncWithParam = false;
+            }
             // Get the final user pointer and footer pointer
             void* user_ptr = (void*)user_ptr_potential;
             BLOCK_FOOTER* footer = (BLOCK_FOOTER*)footer_ptr_potential;
             footer->magic = FOOTER_MAGIC;
 
             // Store the back-pointer to the header for freeing.
-            kmemcpy((void*)(user_ptr_potential - sizeof(void*)), &blk, sizeof(blk));
+            uintptr_t tmp_hdr = (uintptr_t)blk;
+            kmemcpy((void*)(user_ptr_potential - sizeof(void*)), &tmp_hdr, sizeof(tmp_hdr));
 
             // Zero the user area
             kmemset(user_ptr, 0, wanted_size);
-#ifdef DEBUG
-            //static int db = 0;
-            //MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_handler, &blk, DEBUG_ACCESS_WRITE, DEBUG_LEN_8);
-            //if (MT_FAILURE(status)) { gop_printf(COLOR_RED, "Status failure: %p\n", status); __hlt(); }
-            //gop_printf(COLOR_BROWN, "Hardware BP %d set on BLK: %p\n", db, blk);
-#endif
             MtReleaseSpinlock(&heap_lock, oldIrql);
             return user_ptr;
         }
@@ -622,7 +623,6 @@ void MtFreeVirtualMemory(void* ptr) {
     tracelast_func("MtFreeVirtualMemory");
 
     uintptr_t p = (uintptr_t)ptr;
-
     // --- Stage 1: Basic Pointer Validation ---
     if (p < HEAP_START || p >= heap_current_end) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
@@ -632,31 +632,57 @@ void MtFreeVirtualMemory(void* ptr) {
 
     // --- Stage 2: Retrieve and Validate Header ---
     uintptr_t header_store_addr = p - sizeof(void*);
-    BLOCK_HEADER* blk = NULL;
-    kmemcpy(&blk, (void*)header_store_addr, sizeof(blk));
 
-    if (!blk || (uintptr_t)blk < HEAP_START || (uintptr_t)blk >= heap_current_end) {
+    /* Basic header_store bounds check */
+    if (header_store_addr < HEAP_START || (header_store_addr + sizeof(uintptr_t)) > heap_current_end) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
         BUGCHECK_ADDITIONALS addt = { 0 };
-        ksnprintf(addt.str, sizeof(addt.str), "(check 1) blk: %p | heap start: %p | heap_current_end: %p", blk, HEAP_START, heap_current_end);
+        ksnprintf(addt.str, sizeof(addt.str),
+            "bad header_store: ptr=%p header_store=%p heap=[%p,%p)",
+            ptr, (void*)header_store_addr, (void*)HEAP_START, (void*)heap_current_end);
         MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
         return;
     }
+
+    /* Read stored pointer as integer width to avoid TU/size mismatches */
+    uintptr_t stored_hdr = 0;
+    kmemcpy(&stored_hdr, (void*)header_store_addr, sizeof(stored_hdr));
+
+    /* Validate the stored header pointer numerically */
+    if (stored_hdr < HEAP_START || stored_hdr >= heap_current_end) {
+        MtReleaseSpinlock(&heap_lock, oldIrql);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str),
+            "stored header ptr out-of-range: stored=%p ptr=%p heap=[%p,%p)",
+            (void*)stored_hdr, ptr, (void*)HEAP_START, (void*)heap_current_end);
+        MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
+        return;
+    }
+
+    /* Reconstruct typed pointer and validate basic header invariants */
+    BLOCK_HEADER* blk = (BLOCK_HEADER*)stored_hdr;
+    
     if (blk->magic != HEADER_MAGIC) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
         BUGCHECK_ADDITIONALS addt = { 0 };
-        ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p", blk->magic, HEADER_MAGIC);
+        if (isFuncWithParam) {
+            ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p | blk: %p (FUNCWITHPARAM THREADEXIT)", blk->magic, HEADER_MAGIC, blk);
+            isFuncWithParam = false;
+        }
+        else {
+            ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p | blk: %p", blk->magic, HEADER_MAGIC, blk);
+        }
         MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
         return;
     }
     if (!blk->in_use) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
         BUGCHECK_ADDITIONALS addt = { 0 };
-        ksnprintf(addt.str, sizeof(addt.str), "(check 3) blk->in_use: %d | expected: %d", blk->in_use, true);
+        ksnprintf(addt.str, sizeof(addt.str), "(check 3) blk->in_use: %d | expected: %d | blk: %p", blk->in_use, true, blk);
         MtBugcheck(NULL, NULL, MEMORY_DOUBLE_FREE, 4, true);
         return;
     }
-
+    
     // --- Stage 3: Validate Footer Canary (for normal blocks) ---w
     if (blk->kind == BLK_NORMAL) {
         uintptr_t footer_addr = p + blk->requested_size;

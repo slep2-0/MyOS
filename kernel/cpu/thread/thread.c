@@ -7,7 +7,7 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
-#define THREAD_STACK_SIZE 4096
+#define THREAD_STACK_SIZE (16*1024) // 16 KiB
 #define THREAD_ALIGNMENT 16
 
 ///
@@ -85,11 +85,16 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
     ThreadExit(thread);
 }
 
+bool isFuncWithParam = false;
+
 void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTicks TIMESLICE, bool kernelThread) {
     if (!kernelThread) {
         /// TODO implement user mode.
         return;
     }
+
+    uint32_t tid = ManageTID(0);
+
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
     // First, allocate a new thread.
@@ -102,7 +107,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
-
+    if (tid == 8) isFuncWithParam = true;
     void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
@@ -134,8 +139,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
     cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
-    
-    uint32_t tid = ManageTID(0);
 
     if (!tid) {
         CTX_FRAME ctx;
@@ -147,7 +150,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         addt.ptr = (void*)(uintptr_t)RIP;
         MtBugcheckEx(&ctx, NULL, THREAD_ID_CREATION_FAILURE, &addt, true);
     }
-    
     // Set it's registers and others.
     thread->registers = *cfm;
     thread->threadState = READY;
@@ -158,6 +160,6 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     MtLowerIRQL(oldIrql);
 }
 
-Thread* MtGetCurrentThread(void) {
+inline Thread* MtGetCurrentThread(void) {
     return (Thread*)__readmsr(IA32_GS_BASE);
 }

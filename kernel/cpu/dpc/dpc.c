@@ -76,8 +76,8 @@ void RetireDPCs(void) {
 		MtReleaseSpinlock(&dpc_lock, flags);
 
 		// STILL at DISPATCH_LEVEL
-		if (d->hasCtx)      d->callbackWithCtx(d->ctx);
-		else if (d->callback) d->callback();
+		if (d->hasCtx)      d->callback.withCtx(d->ctx);
+		else if (d->callback.withoutCtx) d->callback.withoutCtx();
 
 		// re-acquire for next pop
 		MtAcquireSpinlock(&dpc_lock, &flags);
