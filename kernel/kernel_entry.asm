@@ -13,6 +13,9 @@ gdt_start:
     dq 0x00CF92000000FFFF  ; kernel data
     dq 0x00AFFA000000FFFF  ; user code
     dq 0x00CFF2000000FFFF  ; user data
+gdt_tss_desc:
+    dq 0x0000000000000000  ; TSS descriptor low quadword
+    dq 0x0000000000000000  ; TSS descriptor high quadword
 gdt_end:
 
 gdt_descriptor:
@@ -42,6 +45,10 @@ _start:
     mov  fs, ax
     mov  gs, ax
     mov  ss, ax
+
+    ; Read the TSS from the BOOT_INFO struct.
+    mov ax, [rdi + 0x48] ; TssSelector offset
+    ltr ax               ; Load the TSS into the TR register.
 
     mov rsp, [rdi + 0x38]
     mov rbp, rsp

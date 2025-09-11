@@ -98,6 +98,10 @@ void install_idt() {
     extern void isr256(void); // SIV ISR
     set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr256);
 
+    /* Enable IST for Page Fault and Double Fault */
+    IDT[14].ist = 1;  // uses gTss.ist[0] (page fault)
+    IDT[8].ist = 2;  // uses gTss.ist[1] (double fault)
+
     /* Finally, Load IDT. */
     PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)
     PIDT.base = (unsigned long)&IDT;

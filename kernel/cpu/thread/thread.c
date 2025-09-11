@@ -7,7 +7,7 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
-#define THREAD_STACK_SIZE (16*1024) // 16 KiB
+#define THREAD_STACK_SIZE (4096) // 16 KiB
 #define THREAD_ALIGNMENT 16
 
 ///
@@ -108,7 +108,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
     if (tid == 8) isFuncWithParam = true;
-    void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
+    void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);

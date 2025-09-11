@@ -148,6 +148,7 @@ static void test(MUTEX* mut) {
 }
 
 static void funcWithParam(MUTEX* mut) {
+    funcWithParam(mut);
     tracelast_func("funcWithParam - Thread");
     gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
     char buf[256];

@@ -12,6 +12,8 @@
 #include <IndustryStandard/Pci.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
+
 
 #define PCI_CLASS_MASS_STORAGE 0x01
 #define PCI_SUBCLASS_MASS_STORAGE_SATA 0x06 // SATA controller
@@ -23,6 +25,30 @@
 
 // Recursive Mapping Definitions
 #define SELF_REF_IDX 0x1FF // Reserved Recursive Slot
+
+static void* kmemcpy(void* dest, const void* src, size_t len) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    for (size_t i = 0; i < len; i++) d[i] = s[i];
+    return dest;
+}
+
+// TSS For Kernel Stack when faulting so guard pages work correctly.
+typedef struct {
+    uint32_t reserved0;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved1;
+    uint64_t ist[7]; // This is the Interrupt Stack Table
+    uint32_t reserved2;
+    uint16_t reserved3;
+    uint16_t io_map_base;
+} __attribute__((packed)) TSS;
+
+TSS gTss;
+EFI_PHYSICAL_ADDRESS DoubleFaultStackPhys;
+EFI_PHYSICAL_ADDRESS PageFaultStackPhys;
 
 // Frame buffer parameters passed to kernel
 typedef struct {
@@ -44,6 +70,7 @@ typedef struct {
     UINT64* AhciBarBases;
     UINT64 KernelStackTop;
     uintptr_t Pml4Phys;
+    uint16_t TssSelector;
 } BOOT_INFO;
 
 // minimal ELF64 defs
@@ -322,6 +349,56 @@ STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
     return EFI_SUCCESS;
 }
 
+static EFI_STATUS patch_kernel_image_with_tss(void* kernel_buf, UINTN kernel_size,
+                                              uint64_t tss_base, uint32_t tss_limit,
+                                              uint16_t *out_selector) {
+    if (!kernel_buf || kernel_size < 8) return EFI_INVALID_PARAMETER;
+
+    const uint64_t pattern[5] = {
+        0x0000000000000000ULL,
+        0x00AF9A000000FFFFULL,   // kernel code
+        0x00CF92000000FFFFULL,   // kernel data
+        0x00AFFA000000FFFFULL,   // user code
+        0x00CFF2000000FFFFULL    // user data
+    };
+
+    // Build TSS descriptor QWORDs (64-bit-safe)
+    uint64_t low = ((uint64_t)(tss_limit & 0xFFFFULL))
+                 | ((uint64_t)(tss_base & 0xFFFFFFULL) << 16)
+                 | (0x0089ULL << 40)   /* type=0x9 + P=1 -> 0x89 */
+                 | ((uint64_t)(tss_limit & 0xF0000ULL) << 32)
+                 | ((uint64_t)(tss_base & 0xFF000000ULL) << 32);
+    uint64_t high = (uint64_t)(tss_base >> 32);
+
+    uint8_t *scan = (uint8_t*)kernel_buf;
+    uint8_t *scan_end = scan + kernel_size;
+    const size_t pat_bytes = sizeof(pattern); // 5 * 8 = 40
+
+    for (uint8_t *p = scan; p + pat_bytes <= scan_end; p += 8) {
+        bool match = true;
+        for (int i = 0; i < 5; ++i) {
+            uint64_t val;
+            // safe unaligned read from file bytes
+            kmemcpy(&val, p + i * 8, sizeof(uint64_t));
+            if (val != pattern[i]) { match = false; break; }
+        }
+        if (!match) continue;
+
+        // Found gdt_start in the file image at offset (p - scan).
+        uint8_t *gdt_tss_addr_in_file = p + 5 * 8;
+        // Overwrite the two qwords inside the ELF file image (so later mapping copies them)
+        kmemcpy(gdt_tss_addr_in_file, &low, sizeof(uint64_t));
+        kmemcpy(gdt_tss_addr_in_file + 8, &high, sizeof(uint64_t));
+
+        // The kernel's selector index is 5 (0..4 were the five entries), so selector = index * 8
+        uint16_t selector = (uint16_t)(5 * 8); // 0x28
+        *out_selector = selector;
+        return EFI_SUCCESS;
+    }
+
+    return EFI_NOT_FOUND;
+}
+
 EFI_STATUS EFIAPI UefiMain(
     IN EFI_HANDLE ImageHandle,
     IN EFI_SYSTEM_TABLE* SystemTable
@@ -467,6 +544,43 @@ EFI_STATUS EFIAPI UefiMain(
     Status = map_range((UINTN)StackPhysBase, (UINTN)(StackPhysBase + StackPages * PAGE_SIZE_4K), (UINTN)(StackVirtTop - StackPages * PAGE_SIZE_4K), PTE_PRESENT | PTE_RW);
     if (EFI_ERROR(Status)) { Print(L"Failed to map kernel stack: %r\n", Status); return Status; }
 
+        // 7.5) Create the TSS for the kernel handlers (PF and DF)
+    Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &DoubleFaultStackPhys);
+    if (EFI_ERROR(Status)) {
+        Print(L"Failed to allocate double fault stack: %r\n", Status);
+        return Status;
+    }
+
+    // Allocate a page for the Page Fault stack
+    Status = gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &PageFaultStackPhys);
+    if (EFI_ERROR(Status)) {
+        Print(L"Failed to allocate page fault stack: %r\n", Status);
+        return Status;
+    }
+
+    // Map the TSS and IST stacks for the kernel
+    Status = map_range_identity((UINTN)&gTss, (UINTN)&gTss + sizeof(TSS), PTE_PRESENT | PTE_RW);
+    if (EFI_ERROR(Status)) { Print(L"Failed to map TSS: %r\n", Status); return Status; }
+
+    Status = map_range_identity((UINTN)DoubleFaultStackPhys, (UINTN)DoubleFaultStackPhys + 4096, PTE_PRESENT | PTE_RW);
+    if (EFI_ERROR(Status)) { Print(L"Failed to map DF stack: %r\n", Status); return Status; }
+
+    Status = map_range_identity((UINTN)PageFaultStackPhys, (UINTN)PageFaultStackPhys + 4096, PTE_PRESENT | PTE_RW);
+    if (EFI_ERROR(Status)) { Print(L"Failed to map PF stack: %r\n", Status); return Status; }
+
+    // Populate the TSS. Stacks grow down, so the pointer is at the top of the allocated page.
+    ZeroMem(&gTss, sizeof(TSS));
+    gTss.ist[0] = (uint64_t)PageFaultStackPhys + 4096; // IST1 for page faults
+    gTss.ist[1] = (uint64_t)DoubleFaultStackPhys + 4096; // IST2 for double faults
+
+    // Set the TSS Selector
+    uint16_t selector = 0;
+    Status = patch_kernel_image_with_tss(KernelBuffer, FileSize, (uint64_t)(uintptr_t)&gTss, sizeof(TSS), &selector);
+    if (EFI_ERROR(Status)) {
+        Print(L"Failed to patch kernel GDT with TSS descriptor: %r\n", Status);
+        return Status;
+    }
+
     // 6) Build the page tables in memory, but DO NOT activate them yet.
     Status = map_elf_segments(KernelBuffer, FileSize);
     if (EFI_ERROR(Status)) { Print(L"map_elf_segments failed: %r\n", Status); return Status; }
@@ -553,6 +667,7 @@ EFI_STATUS EFIAPI UefiMain(
         BootInfo->DescriptorVersion = FinalDescriptorVersion;
         BootInfo->KernelStackTop = StackVirtTop;
         BootInfo->Pml4Phys = phys;
+        BootInfo->TssSelector = selector;
 
         Status = gBS->ExitBootServices(ImageHandle, FinalMapKey);
     }
