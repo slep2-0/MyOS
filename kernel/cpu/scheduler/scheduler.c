@@ -76,13 +76,11 @@ void Schedule(void) {
         // just queue a DPC for cleaning both (in order)
         // (it will not pre-empt the scheduler as we are in DISPATCH_LEVEL, scheduling is disabled)
         {
-            CleanArgs* args = MtAllocateVirtualMemory(sizeof(CleanArgs), _Alignof(CleanArgs));
             DPC* allocatedDPC = MtAllocateVirtualMemory(sizeof(DPC), _Alignof(DPC));
-            args->Thread = prev;
-            args->stackPtr = prev->startStackPtr;
-            allocatedDPC->callback.withCtx = CleanStacks;
-            allocatedDPC->hasCtx = true;
-            allocatedDPC->ctx.rdi = (uint64_t)args;
+            allocatedDPC->CallbackRoutine = CleanStacks;
+            allocatedDPC->Arg1 = prev;
+            allocatedDPC->Arg2 = NULL;
+            allocatedDPC->Arg3 = NULL;
             allocatedDPC->Kind = NO_KIND;
             allocatedDPC->Next = NULL; 
             allocatedDPC->priority = MEDIUM_PRIORITY;

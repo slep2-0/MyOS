@@ -18,7 +18,7 @@ void keyboard_dpc(void* ctxfr);
 /// ScheduleDPC, used to enable the Scheduling_needed flag to TRUE.
 /// </summary>
 /// <param name=""></param>
-void ScheduleDPC(void);
+void ScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4);
 
 typedef struct _CleanArgs {
 	void* Thread;
@@ -29,6 +29,6 @@ typedef struct _CleanArgs {
 /// CleanStacks, cleans the stack for the thread stack given.
 /// </summary>
 /// <param name=""></param>
-void CleanStacks(void* CleanArgsStruct);
+void CleanStacks(DPC* dpc, void* thread, void* arg3, void* arg4);
 
 #endif

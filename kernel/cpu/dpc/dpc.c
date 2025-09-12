@@ -76,13 +76,7 @@ void RetireDPCs(void) {
 		MtReleaseSpinlock(&dpc_lock, flags);
 
 		// STILL at DISPATCH_LEVEL
-		if (d->hasCtx) {
-			void* arg = (void*)(uintptr_t)d->ctx.rdi;   // use the saved register value
-			d->callback.withCtx(arg);
-		}
-		else if (d->callback.withoutCtx) {
-			d->callback.withoutCtx();
-		}
+		if (d->CallbackRoutine) d->CallbackRoutine(d, d->Arg1, d->Arg2, d->Arg3);
 
 		// re-acquire for next pop
 		MtAcquireSpinlock(&dpc_lock, &flags);
