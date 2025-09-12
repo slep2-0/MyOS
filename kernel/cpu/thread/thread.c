@@ -103,7 +103,7 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
-    void* stackStart = MtAllocateVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
+    void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);

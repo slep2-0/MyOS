@@ -688,29 +688,35 @@ void MtFreeVirtualMemory(void* ptr) {
         // For BLK_EX and our new BLK_GUARDED, we unmap the entire region.
         // The block_size correctly represents the full virtual address space claimed,
         // including the guard page for guarded blocks.
-        size_t pages_to_unmap = blk->block_size / FRAME_SIZE;
+        size_t pages_to_unmap = 0;
+        if (blk->kind == BLK_GUARDED) {
+            pages_to_unmap = (blk->block_size / FRAME_SIZE) - 1; // Subtract 1 for the guard page
+        }
+        else { // BLK_EX
+            pages_to_unmap = blk->block_size / FRAME_SIZE;
+        }
+
         uintptr_t region_start = (uintptr_t)blk;
 
         if (blk->kind == BLK_GUARDED) {
             size_t data_region_size = blk->block_size - FRAME_SIZE;
             void* guard_page_address = (uint8_t*)region_start + data_region_size;
-            //remove_from_guard_page_db(guard_page_address);
             remove_from_guard_page_db(guard_page_address);
-        }
-
-        for (size_t i = 0; i < pages_to_unmap; i++) {
-            // This will free the physical frame if one is mapped,
-            // and do nothing for the unmapped guard page.
-            unmap_page((void*)(region_start + (i * FRAME_SIZE)));
         }
 
         // If this block was at the very end of the heap, we can shrink the heap.
         if ((region_start + blk->block_size) == heap_current_end) {
             heap_current_end -= blk->block_size;
         }
-        
+
         // Poison the header of the now-freed block to catch use-after-free
         kmemset(blk, 0, sizeof(BLOCK_HEADER));
+
+        // Begin unmapping the pages.
+        for (size_t i = 0; i < pages_to_unmap; i++) {
+            unmap_page((void*)(region_start + (i * FRAME_SIZE)));
+        }
+        // DO NOT TOUCH BLK NOW, IT IS UNMAPPED.
     }
     else { // BLK_NORMAL
         // For normal blocks, poison the memory and add to free list. 
