@@ -6,9 +6,14 @@
 
 #include "bugcheck.h"
 #include "../trace.h"
+#include "../intrin/intrin.h"
 
 #ifndef NOTHING
 #define NOTHING
+#endif
+
+#ifndef DEBUG
+#define DEBUG
 #endif
 
 // We require GOP, so we extern it.
@@ -32,7 +37,9 @@ static bool isInTextSegment(uint64_t* addr) {
 }
 
 void MtPrintStackTrace(int depth) {
-    //return;
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     uint64_t* rbp = (uint64_t*)__read_rbp();
     for (int i = 0; rbp != NULL && i < depth; ++i) {
         if (!MtIsAddressValid((void*)rbp)) break;
@@ -68,7 +75,39 @@ void MtPrintStackTrace(int depth) {
     }
 }
 
-#define print_stack_trace MtPrintStackTrace
+static void print_stack_trace(int depth) {
+    uint64_t* rbp = (uint64_t*)__read_rbp();
+    for (int i = 0; rbp != NULL && i < depth; ++i) {
+        if (!isInTextSegment(rbp)) break;
+        if (!isInTextSegment((rbp + 1))) break;
+
+        uint64_t saved_ret = *(rbp + 1);
+
+        /* Validate saved_ret before any symbolization/dereference */
+        if (!is_canonical_ptr(saved_ret)) break;
+        /* if (!address_in_kernel_text(saved_ret)) break; */
+
+        /* Print raw hex — avoid any logger symbolization that may dereference */
+        gop_printf(COLOR_ORANGE, "%p\n",
+            (unsigned long long)saved_ret);
+
+        uint64_t next_rbp_val = *rbp;
+        if (next_rbp_val == 0) break;
+        if (!is_canonical_ptr(next_rbp_val)) break;
+
+        /* SANITY: next RBP should be at a *higher* address (older frame)
+           and not unreasonably far away. Enforce both direction and delta. */
+        uintptr_t cur = (uintptr_t)rbp;
+        uintptr_t next = (uintptr_t)next_rbp_val;
+        if (next <= cur) break;
+        if (next - cur > (16 * 1024 * 1024)) break; /* 16MB cap */
+
+        /* optional: require alignment */
+        if (next & 0xF) break;
+
+        rbp = (uint64_t*)(uintptr_t)next_rbp_val;
+    }
+}
 
 static void print_lastfunc_chain(uint32_t color) {
     // Start at the oldest entry: that's the slot `index` points to (next write).
@@ -229,6 +268,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case GUARD_PAGE_DEREFERENCE:
         *s = "GUARD_PAGE_DEREFERENCE";
         break;
+    case IRQL_NOT_GREATER_OR_EQUAL:
+        *s = "IRQL_NOT_GREATER_OR_EQUAL";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -306,7 +348,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
             "R8 : %p R9 : %p R10: %p R11: %p \n\n"
-            "R12: %p R13: %p R14: %p R15: %p\n\n\n",
+            "R12: %p R13: %p R14: %p R15: %p RSP_GOTTEN: %p\n\n\n",
             context->rax,
             context->rbx,
             context->rcx,
@@ -322,7 +364,8 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             context->r12,
             context->r13,
             context->r14,
-            context->r15
+            context->r15,
+            __read_rsp()
         );
     }
 	else {

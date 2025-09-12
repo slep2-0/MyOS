@@ -33,7 +33,7 @@ else
 endif
 
 ifeq ($(GDB),1)
-    CFLAGS += -DGDB
+    CFLAGS += -DGDB -g
 endif
 
 # $(SCHED_CFLAGS) means no optimizations will be applied on the C file.

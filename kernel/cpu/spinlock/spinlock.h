@@ -12,7 +12,7 @@ extern void gop_printf(uint32_t color, const char* fmt, ...);
 /// Use before acquiring a spinlock
 /// </summary>
 /// <param name="lock">SPINLOCK Object pointer.</param>
-static inline void spinlock_init(SPINLOCK* lock) {
+static void spinlock_init(SPINLOCK* lock) {
 	if (!lock) return;
 	lock->locked = 0;
 }
@@ -21,7 +21,7 @@ static inline void spinlock_init(SPINLOCK* lock) {
 /// Acquire a spinlock on a SPINLOCK object. This Disables the Scheduler (pre-emption) (use spinlock_init before acquiring the lock)
 /// </summary>
 /// <param name="lock">Pointer to SPINLOCK object.</param>
-static inline void MtAcquireSpinlock(SPINLOCK* lock, IRQL* old_irql) {
+static void MtAcquireSpinlock(SPINLOCK* lock, IRQL* old_irql) {
 	tracelast_func("MtAcquireSpinlock");
 	if (!lock) return;
 	// spin until we grab the lock.
@@ -37,7 +37,7 @@ static inline void MtAcquireSpinlock(SPINLOCK* lock, IRQL* old_irql) {
 /// Release the spinlock on a SPINLOCK object. This Enables the Scheduler (pre-emption)
 /// </summary>
 /// <param name="lock">Pointer to SPINLOCK object.</param>
-static inline void MtReleaseSpinlock(SPINLOCK* lock, IRQL old_irql) {
+static void MtReleaseSpinlock(SPINLOCK* lock, IRQL old_irql) {
 	tracelast_func("MtReleaseSpinlock");
 	if (!lock) return;
 	// Memory barrier before release

@@ -7,7 +7,7 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
-#define THREAD_STACK_SIZE (4096) // 16 KiB
+#define THREAD_STACK_SIZE (1024*16) // 16 KiB
 #define THREAD_ALIGNMENT 16
 
 ///
@@ -58,13 +58,11 @@ static void ThreadExit(Thread* thread) {
 #endif
     // 1) mark as dead
     thread->threadState = TERMINATED;
-    thread->timeSlice = 0;
+    thread->timeSlice = 1;
     ManageTID(thread->TID);
 
     // Call scheduler (don't delete the stack)
     Schedule();
-    
-    
     /* assertions */
 #ifdef DEBUG
     bool valid = MtIsHeapAddressAllocated(thread->startStackPtr);
@@ -84,8 +82,6 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
     /// When the thread finishes execution, it will go to ThreadExit to manage cleanup.
     ThreadExit(thread);
 }
-
-bool isFuncWithParam = false;
 
 void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTicks TIMESLICE, bool kernelThread) {
     if (!kernelThread) {
@@ -107,14 +103,12 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(Thread));
-    if (tid == 8) isFuncWithParam = true;
     void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
     if (!stackStart) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
-
     thread->startStackPtr = stackStart;
     // initial stack pointer should be at the *high* end of the allocated region
     uint8_t* sp = (uint8_t*)stackStart + THREAD_STACK_SIZE;

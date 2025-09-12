@@ -13,7 +13,7 @@ _Static_assert(false, "Remember that SPINLOCKS inside of a struct shouldn't be p
 
 // Global - Per CPU.
 
-typedef enum _THREAD_STATE { RUNNING, READY, BLOCKED, TERMINATING, TERMINATED } THREAD_STATE;
+typedef enum _THREAD_STATE { RUNNING, READY, BLOCKED, TERMINATING, TERMINATED, ZOMBIE } THREAD_STATE;
 
 // Forwards
 typedef struct _Thread Thread;
@@ -140,17 +140,13 @@ typedef enum _DPC_KIND {
     /// TODO more dpcs..
 } DPC_KIND;
 
-typedef union _DPC_CALLBACK {
-    void (*withoutCtx)(void); /// Callback without any CONTEXT (no registers), used to invoke DPC's like scheduler.
-    void (*withCtx)(void* ctx); // Callback entry for this DPC, along with context register info.
-} DPC_CALLBACK; 
-
 typedef struct _DPC {
-    volatile DPC* Next; // Next DPC in the pending queue.
-    DPC_CALLBACK callback;
-    CTX_FRAME* ctx; // Caller supplied context pointer (registers)
+    DPC* Next; // Next DPC in the pending queue.
+    void (*CallbackRoutine)(DPC* arg1, void* arg2, void* arg3, void* arg4); // Function prototype MUST take 4 parameters, to match compiler expectations, but they may be ignored with UNREFERENCED_PARAMETER.
+    void* Arg1; // You may supply null.
+    void* Arg2; // You may supply null.
+    void* Arg3; // You may supply null.
     DPC_KIND Kind;
-    bool hasCtx;
     DPC_PRIORITY priority; // A higher value will run earlier than the lower value
 } DPC;
 

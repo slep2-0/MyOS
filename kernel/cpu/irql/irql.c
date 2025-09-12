@@ -108,7 +108,7 @@ void _MtSetIRQL(IRQL new_irql) {
     if (prev_if) __sti();
 }
 
-void enforce_max_irql(IRQL max_allowed, void* RIP) {
+inline void enforce_max_irql(IRQL max_allowed, void* RIP) {
     bool prev_if = interrupts_enabled();
     __cli();
     IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);

@@ -63,7 +63,6 @@ static uint8_t lfn_checksum(const uint8_t short_name[11]) {
 
 // Convert to uppercase.
 static inline int toupper(int c) {
-	tracelast_func("toupper - fat32");
 	if (c >= 'a' && c <= 'z') {
 		return c - ('a' - 'A'); // Convert lowercase to uppercase
 	}
@@ -72,7 +71,6 @@ static inline int toupper(int c) {
 
 // Compare short name
 static bool cmp_name(const char* str_1, const char* str_2) {
-	tracelast_func("cmp_name - fat32");
 	char t[12] = { 0 };
 	for (int i = 0; i < 11; i++) { t[i] = str_1[i]; }
 	for (int i = 0; i < 11; i++) {
@@ -1238,15 +1236,13 @@ static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date)
 	return time;
 }
 
-extern BLOCK_HEADER* funcWithParamBLK;
-
 MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
 	tracelast_func("fat32_write_file");
 	// Safety check.
 	if (mode != WRITE_MODE_CREATE_OR_REPLACE && mode != WRITE_MODE_APPEND_EXISTING) {
 		return MT_FAT32_INVALID_WRITE_MODE;
 	}
-	MTSTATUS status;
+	MTSTATUS status = MT_GENERAL_FAILURE;
 	uint32_t first_cluster = 0;
 
 	// --- Step 1: Safely parse parent path and filename ---

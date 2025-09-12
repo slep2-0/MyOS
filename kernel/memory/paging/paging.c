@@ -134,41 +134,77 @@ void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
     invlpg(virtualaddress);
 }
 
-// Unmap a page (remove mapping and free frame)
 bool unmap_page(void* virtualaddress) {
     tracelast_func("unmap_page");
     uint64_t rip;
     GET_RIP(rip);
     enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
+
+    /* 1) canonicalize VA immediately (avoids invlpg #GP on non-canonical) */
     uint64_t va = (uint64_t)virtualaddress;
+    va = canonical_high(va);
 
     size_t pml4_i = get_pml4_index(va);
     size_t pdpt_i = get_pdpt_index(va);
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
-    // FIX: Use recursive helpers to get VIRTUAL addresses of tables
     uint64_t* pml4 = pml4_from_recursive();
-    if (!(pml4[pml4_i] & PAGE_PRESENT)) return false;
+    if (!(pml4[pml4_i] & PAGE_PRESENT)) {
+        /* not mapped at this level */
+        return false;
+    }
 
     uint64_t* pdpt = pdpt_from_recursive(pml4_i);
-    if (!(pdpt[pdpt_i] & PAGE_PRESENT)) return false;
+    uint64_t pdpt_entry = pdpt[pdpt_i];
+
+    /* 1GiB page? handle and return */
+    if (pdpt_entry & PAGE_PS) {
+        uintptr_t base = (uintptr_t)(pdpt_entry & ~((1ULL << 30) - 1));
+        pdpt[pdpt_i] = 0;               /* clear PDPT entry */
+        invlpg((void*)va);              /* flush TLB for VA */
+        free_frame(base);               /* free phys base */
+        return true;
+    }
+
+    if (!(pdpt_entry & PAGE_PRESENT)) {
+        return false;
+    }
 
     uint64_t* pd = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd[pd_i] & PAGE_PRESENT)) return false;
+    uint64_t pd_entry = pd[pd_i];
 
+    /* 2MiB page? handle and return */
+    if (pd_entry & PAGE_PS) {
+        uintptr_t base = (uintptr_t)(pd_entry & ~((1ULL << 21) - 1));
+        pd[pd_i] = 0;                    /* clear PD entry */
+        invlpg((void*)va);
+        free_frame(base);
+        return true;
+    }
+
+    if (!(pd_entry & PAGE_PRESENT)) {
+        return false;
+    }
+
+    /* Now it's safe to get PT pointer and examine PTE */
     uint64_t* pt = pt_from_recursive(pml4_i, pdpt_i, pd_i);
-    if (!(pt[pt_i] & PAGE_PRESENT)) return false;
 
-    uintptr_t phys_addr = (uintptr_t)(pt[pt_i] & ~0xFFFULL);
+    /* If PTE not present, nothing to unmap */
+    uint64_t pte = pt[pt_i];
+    if (!(pte & PAGE_PRESENT)) {
+        return false;
+    }
 
-    pt[pt_i] = 0;                  /* clear PTE */
-    invlpg(virtualaddress);        /* flush mapping */
+    /* Extract phys and clear the PTE BEFORE freeing the frame. */
+    uintptr_t phys_addr = (uintptr_t)(pte & ~0xFFFULL);
+    pt[pt_i] = 0;               /* clear mapping */
+    invlpg((void*)va);         /* flush TLB for VA */
+    free_frame(phys_addr);     /* free physical frame */
 
-    /* now safe to free the frame */
-    free_frame(phys_addr);
     return true;
 }
+
 
 // Set writable flag on a page
 void set_page_writable(void* virtualaddress, bool writable) {

@@ -72,11 +72,21 @@ void Schedule(void) {
 
     // always check if exists, didn't check and got faulted.
     if (prev && prev->threadState == TERMINATED) {
-        // Clean it's stack
-        extern bool isFuncWithParam;
-        if (prev->TID == 8) isFuncWithParam = true;
-        MtFreeVirtualMemory(prev->startStackPtr);
-        MtFreeVirtualMemory(prev);
+        // there was a critical memory issue here where we freed the stack and then pushed an address immediately (to an unmapped stack).
+        // just queue a DPC for cleaning both (in order)
+        // (it will not pre-empt the scheduler as we are in DISPATCH_LEVEL, scheduling is disabled)
+        {
+            DPC* allocatedDPC = MtAllocateVirtualMemory(sizeof(DPC), _Alignof(DPC));
+            allocatedDPC->CallbackRoutine = CleanStacks;
+            allocatedDPC->Arg1 = prev;
+            allocatedDPC->Arg2 = NULL;
+            allocatedDPC->Arg3 = NULL;
+            allocatedDPC->Kind = NO_KIND;
+            allocatedDPC->Next = NULL; 
+            allocatedDPC->priority = MEDIUM_PRIORITY;
+            MtQueueDPC(allocatedDPC);
+            prev->threadState = ZOMBIE;
+        }
         prev = NULL;
     }
 
@@ -94,7 +104,6 @@ void Schedule(void) {
     next->threadState = RUNNING;
     cpu.currentThread = next;
     __writemsr(IA32_GS_BASE, (uint64_t)next);
-
     MtLowerIRQL(oldIrql);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);

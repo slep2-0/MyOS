@@ -16,7 +16,7 @@ typedef struct {
 } LASTFUNC_HISTORY;
 
 // this stays `static inline` so every .c gets its own copy
-static inline void tracelast_func(const char* function_name) {
+static void tracelast_func(const char* function_name) {
 #ifdef GDB
     // if GDB is defined, we wont trace last functions, as it is VERY hard to debug with having to step 128 times.
     UNREFERENCED_PARAMETER(function_name);

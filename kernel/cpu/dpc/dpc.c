@@ -7,8 +7,8 @@
 #include "dpc.h"
 #include "../../bugcheck/bugcheck.h"
 
-volatile DPC* dpcQueueHead = NULL;
-volatile DPC* dpcQueueTail = NULL;
+DPC* dpcQueueHead = NULL;
+DPC* dpcQueueTail = NULL;
 
 volatile bool schedule_pending = false;
 static SPINLOCK dpc_lock; // SPINLOCK for the dpc, only 1 thread is allowed to use it at a time.
@@ -18,7 +18,7 @@ void init_dpc_system(void) {
 	dpcQueueHead = dpcQueueTail = NULL;
 }
 
-void MtQueueDPC(volatile DPC* dpc) {
+void MtQueueDPC(DPC* dpc) {
 	tracelast_func("MtQueueDPC");
 	if (!dpc) return;
 
@@ -39,7 +39,7 @@ void MtQueueDPC(volatile DPC* dpc) {
 		return;
 	}
 	// else, find our insertion point.
-	volatile DPC* cur = dpcQueueHead;
+	DPC* cur = dpcQueueHead;
 	// Check each DPC entry for it's priority, and insert the DPC requested accordingly.
 	while (cur->Next && cur->Next->priority >= dpc->priority) {
 		cur = cur->Next;
@@ -67,7 +67,7 @@ void RetireDPCs(void) {
 
 	// 3) Drain the queue
 	while (dpcQueueHead) {
-		volatile DPC* d = dpcQueueHead;
+		DPC* d = dpcQueueHead;
 		dpcQueueHead = d->Next;
 		if (!dpcQueueHead) {
 			dpcQueueTail = NULL;
@@ -76,8 +76,7 @@ void RetireDPCs(void) {
 		MtReleaseSpinlock(&dpc_lock, flags);
 
 		// STILL at DISPATCH_LEVEL
-		if (d->hasCtx)      d->callback.withCtx(d->ctx);
-		else if (d->callback.withoutCtx) d->callback.withoutCtx();
+		if (d->CallbackRoutine) d->CallbackRoutine(d, d->Arg1, d->Arg2, d->Arg3);
 
 		// re-acquire for next pop
 		MtAcquireSpinlock(&dpc_lock, &flags);

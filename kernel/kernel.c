@@ -281,7 +281,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
     gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
     gop_printf(COLOR_CYAN, "%s", listings);
-    
     MUTEX* sharedMutex =  MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MtInitializeMutexObject(sharedMutex);

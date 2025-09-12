@@ -7,6 +7,17 @@
 #include "../cpu.h"
 extern volatile bool schedule_pending;
 
-void ScheduleDPC(void) {
+void ScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
+    UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg2); UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
     schedule_pending = true;
+}
+
+void CleanStacks(DPC* dpc, void* thread, void* arg3, void* arg4) {
+    UNREFERENCED_PARAMETER(dpc);  UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
+    tracelast_func("CleanStacks");
+    Thread* t = (Thread*)thread;
+    // We must clean in order, first the stack THEN the thread.
+    MtFreeVirtualMemory(t->startStackPtr);
+    MtFreeVirtualMemory(t);
+    return;
 }

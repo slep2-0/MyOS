@@ -19,7 +19,7 @@ void init_dpc_system(void);
 
 /// Enqueue DPC for deferred exceution
 /// Safe to at ANY IRQL.
-void MtQueueDPC(volatile DPC* dpc);
+void MtQueueDPC(DPC* dpc);
 
 /// Walk through the DPC queue, raising the IRQL to DISPATCH_LEVEL in the process.
 /// This gets called in a kernel idle (main) function thread.

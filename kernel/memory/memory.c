@@ -383,15 +383,6 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
     return user_ptr;
 }
 
-extern bool isFuncWithParam;
-BLOCK_HEADER* funcWithParamBLK = NULL;
-
-static void bp_handler(void* vinfo) {
-    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
-    gop_printf(COLOR_ORANGE, "**Debug Breakpoint Hit | Variable Address: %p | IP: %p | BLK: %p |**", info->Address, info->IntFrame->rip, funcWithParamBLK);
-    __hlt();
-}
-
 /// <summary>
 /// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that. (it was fat32 the last time)
 /// </summary>
@@ -463,11 +454,6 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
             blk->kind = BLK_NORMAL;
             blk->next = NULL;
             blk->requested_size = wanted_size;
-            if (isFuncWithParam) {
-                //MtSetHardwareBreakpoint((DebugCallback)bp_handler, blk, DEBUG_ACCESS_WRITE, DEBUG_LEN_8);
-                gop_printf(COLOR_GRAY, "[dbg] blk %p\n", blk);
-                isFuncWithParam = false;
-            }
             // Get the final user pointer and footer pointer
             void* user_ptr = (void*)user_ptr_potential;
             BLOCK_FOOTER* footer = (BLOCK_FOOTER*)footer_ptr_potential;
@@ -665,13 +651,7 @@ void MtFreeVirtualMemory(void* ptr) {
     if (blk->magic != HEADER_MAGIC) {
         MtReleaseSpinlock(&heap_lock, oldIrql);
         BUGCHECK_ADDITIONALS addt = { 0 };
-        if (isFuncWithParam) {
-            ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p | blk: %p (FUNCWITHPARAM THREADEXIT)", blk->magic, HEADER_MAGIC, blk);
-            isFuncWithParam = false;
-        }
-        else {
-            ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p | blk: %p", blk->magic, HEADER_MAGIC, blk);
-        }
+        ksnprintf(addt.str, sizeof(addt.str), "(check 2) blk->magic: %p | HEADER_MAGIC: %p | blk: %p", blk->magic, HEADER_MAGIC, blk);
         MtBugcheckEx(NULL, NULL, MEMORY_CORRUPT_HEADER, &addt, true);
         return;
     }
@@ -708,29 +688,35 @@ void MtFreeVirtualMemory(void* ptr) {
         // For BLK_EX and our new BLK_GUARDED, we unmap the entire region.
         // The block_size correctly represents the full virtual address space claimed,
         // including the guard page for guarded blocks.
-        size_t pages_to_unmap = blk->block_size / FRAME_SIZE;
+        size_t pages_to_unmap = 0;
+        if (blk->kind == BLK_GUARDED) {
+            pages_to_unmap = (blk->block_size / FRAME_SIZE) - 1; // Subtract 1 for the guard page
+        }
+        else { // BLK_EX
+            pages_to_unmap = blk->block_size / FRAME_SIZE;
+        }
+
         uintptr_t region_start = (uintptr_t)blk;
 
         if (blk->kind == BLK_GUARDED) {
             size_t data_region_size = blk->block_size - FRAME_SIZE;
             void* guard_page_address = (uint8_t*)region_start + data_region_size;
-            //remove_from_guard_page_db(guard_page_address);
             remove_from_guard_page_db(guard_page_address);
-        }
-
-        for (size_t i = 0; i < pages_to_unmap; i++) {
-            // This will free the physical frame if one is mapped,
-            // and do nothing for the unmapped guard page.
-            unmap_page((void*)(region_start + (i * FRAME_SIZE)));
         }
 
         // If this block was at the very end of the heap, we can shrink the heap.
         if ((region_start + blk->block_size) == heap_current_end) {
             heap_current_end -= blk->block_size;
         }
-        
+
         // Poison the header of the now-freed block to catch use-after-free
         kmemset(blk, 0, sizeof(BLOCK_HEADER));
+
+        // Begin unmapping the pages.
+        for (size_t i = 0; i < pages_to_unmap; i++) {
+            unmap_page((void*)(region_start + (i * FRAME_SIZE)));
+        }
+        // DO NOT TOUCH BLK NOW, IT IS UNMAPPED.
     }
     else { // BLK_NORMAL
         // For normal blocks, poison the memory and add to free list. 
