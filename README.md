@@ -80,9 +80,10 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 
 ## Important Notes
 
-MatanelOS is a preemptive, 64-bit kernel with Windows-inspired architecture. It’s designed for learning, low-level OS experimentation, and controlled testing in virtual environments.
+I take PR's, recommendations, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
