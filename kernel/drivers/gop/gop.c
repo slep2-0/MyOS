@@ -55,6 +55,17 @@ void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_
     }
 }
 
+static void fb_memmove32(uint32_t* dest, uint32_t* src, size_t count) {
+    if (dest < src) {
+        // forward copy
+        for (size_t i = 0; i < count; i++) dest[i] = src[i];
+    }
+    else if (dest > src) {
+        // backward copy
+        for (size_t i = count; i-- > 0; ) dest[i] = src[i];
+    }
+}
+
 void gop_scroll(GOP_PARAMS* gop) {
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
     uint32_t  stride = gop->PixelsPerScanLine;
@@ -62,10 +73,9 @@ void gop_scroll(GOP_PARAMS* gop) {
     uint32_t  w = gop->Width;
     uint32_t  lines = line_height();
 
-    // scroll up
-    kmemcpy(&fb[0],
-        &fb[lines * stride],
-        (h - lines) * stride * sizeof * fb);
+    // scroll up - removed kmemcpy as the gop is also used in the bugcheck, and kmemcpy has Max IRQL of DISPATCH_LEVEL, while a bugcheck is HIGH_LEVEL.
+    size_t count = (h - lines) * (size_t)stride;
+    fb_memmove32(&fb[0], &fb[lines * stride], count);
 
     // clear bottom
     for (uint32_t yy = h - lines; yy < h; yy++)
@@ -76,6 +86,7 @@ void gop_scroll(GOP_PARAMS* gop) {
 }
 
 void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+    if (!gop_params_valid(gop)) return; // defensive
     if (c == '\b') {
         // move cursor back one character (and clear it)
         if (cursor_x >= char_width()) {
@@ -151,6 +162,32 @@ void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     buf[18] = '\0'; // null terminator
     gop_puts(gop, buf, color);
 }
+
+static void gop_print_hex_minimal(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+    if (val == 0) {
+        gop_puts(gop, "0x0", color);
+        return;
+    }
+
+    char buf[19]; // "0x" + up to 16 hex digits + null
+    buf[0] = '0';
+    buf[1] = 'x';
+
+    int pos = 2;
+    bool started = false;
+
+    for (int i = 0; i < 16; i++) {
+        unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
+        if (nib != 0 || started) {
+            started = true;
+            buf[pos++] = (nib < 10 ? '0' + nib : 'a' + nib - 10);
+        }
+    }
+
+    buf[pos] = '\0';
+    gop_puts(gop, buf, color);
+}
+
 
 extern GOP_PARAMS gop_local;
 
@@ -374,6 +411,23 @@ char* kstrtok(char* str, const char* delim) {
     return token_start;
 }
 
+static void buf_print_hex64_minimal(char* buf, size_t size, size_t* written, uint64_t value) {
+    char tmp[17];
+    char* t = tmp + sizeof(tmp) - 1;
+    const char* hex = "0123456789abcdef";
+    *t = '\0';
+    if (value == 0) {
+        *--t = '0';
+    }
+    else {
+        while (value) {
+            *--t = hex[value & 0xF];
+            value >>= 4;
+        }
+    }
+    buf_puts(buf, size, written, "0x");
+    buf_puts(buf, size, written, t);
+}
 
 int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     size_t written = 0;
@@ -391,7 +445,7 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
                 buf_print_udec64(buf, bufsize, &written, va_arg(ap, uint64_t));
                 break;
             case 'x':
-                buf_print_hex64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                buf_print_hex64_minimal(buf, bufsize, &written, va_arg(ap, uint64_t));
                 break;
             case 'p':
                 buf_puts(buf, bufsize, &written, "0x");
@@ -471,7 +525,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
             switch (*++p) {
             case 'd': gop_print_dec(gop, va_arg(ap, int64_t), color); break;
             case 'u': gop_print_dec(gop, va_arg(ap, uint64_t), color); break;
-            case 'x': gop_print_hex(gop, va_arg(ap, uint64_t), color); break;
+            case 'x': gop_print_hex_minimal(gop, va_arg(ap, uint64_t), color); break;
             case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
             case 'c': gop_put_char(gop, (char)va_arg(ap, uint64_t), color); break;
             case 'b': gop_print_binary(gop, (char)va_arg(ap, uint64_t), color); break;

@@ -286,7 +286,7 @@ extern GOP_PARAMS gop_local;
 bool ahci_initialized = false;
 
 MTSTATUS ahci_init(void) {
-    if (ahci_initialized) { gop_printf(COLOR_RED, "AHCI Initialization got called again when alreaedy init.\n"); return MT_SUCCESS; }
+    if (ahci_initialized) { gop_printf(COLOR_RED, "AHCI Initialization got called again when already init.\n"); return MT_SUCCESS; }
     tracelast_func("ahci_init");
     // Use BootInfo PCI BARs.
     for (size_t i = 0; i < boot_info_local.AhciCount; i++) {

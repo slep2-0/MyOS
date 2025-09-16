@@ -6,9 +6,10 @@
 #include "../../intrin/intrin.h"
 #include "pit.h"
 
-void lapic_init_bsp(void);                    // call once on BSP early
+void lapic_init_cpu(void);                    // call once on BSP early
 void lapic_enable(void);
-uint32_t lapic_read(uint32_t reg);
+uint32_t lapic_mmio_read(uint32_t off);
+void lapic_mmio_write(uint32_t off, uint32_t val);
 void lapic_write(uint32_t reg, uint32_t value);
 void lapic_eoi(void);
 // lapic spurious interrupt vector, protects against faulty interrupts.

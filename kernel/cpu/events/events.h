@@ -28,7 +28,7 @@ static MTSTATUS MtSetEvent(EVENT* event) {
             MtReleaseSpinlock(&event->lock, flags);
 
             waiter->threadState = READY;
-            MtEnqueueThreadWithLock(&cpu.readyQueue, waiter);
+            MtEnqueueThreadWithLock(&thisCPU()->readyQueue, waiter);
             return MT_SUCCESS;
         }
         else {
@@ -59,7 +59,7 @@ static MTSTATUS MtSetEvent(EVENT* event) {
     while (t) {
         Thread* nxt = t->nextThread;
         t->threadState = READY;
-        MtEnqueueThreadWithLock(&cpu.readyQueue, t);
+        MtEnqueueThreadWithLock(&thisCPU()->readyQueue, t);
         t = nxt;
     }
 

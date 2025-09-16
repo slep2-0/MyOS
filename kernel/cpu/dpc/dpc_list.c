@@ -5,11 +5,10 @@
  */
 
 #include "../cpu.h"
-extern volatile bool schedule_pending;
 
 void ScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
     UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg2); UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
-    schedule_pending = true;
+    thisCPU()->schedulePending = true;
 }
 
 void CleanStacks(DPC* dpc, void* thread, void* arg3, void* arg4) {

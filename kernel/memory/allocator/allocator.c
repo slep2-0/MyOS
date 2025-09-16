@@ -58,67 +58,102 @@ static uint64_t get_total_memory_size(const BOOT_INFO* boot_info) {
     return highest_addr;
 }
 
+static inline uintptr_t align_up(uintptr_t addr, size_t align) {
+    // This is a standard and fast way to perform alignment.
+    return (addr + align - 1) & ~(align - 1);
+}
+
 void frame_bitmap_init(void) {
     tracelast_func("frame_bitmap_init");
-    uint64_t rip;
-    GET_RIP(rip);
-    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
 
-    // 1. Calculate the total memory size and required bitmap size
+    // --- 1. Calculate total memory and the required size for our bitmap ---
     uint64_t total_memory = get_total_memory_size(&boot_info_local);
-    total_frames = (total_memory + FRAME_SIZE - 1) / FRAME_SIZE; // round up
-    size_t bitmap_size = (total_frames + 7) / 8;
+    total_frames = (total_memory + FRAME_SIZE - 1) / FRAME_SIZE;
+    size_t bitmap_size = (total_frames + 7) / 8; // 1 bit per frame
 
-    // 2. Find a place in physical memory for our bitmap
+    // --- 2. Find the physical end of the kernel image ---
+    // The linker gives us the VIRTUAL address of kernel_end. We must subtract
+    // the higher-half offset to get the corresponding PHYSICAL address.
+    uintptr_t kernel_end_phys = (uintptr_t)&kernel_end - PHYS_MEM_OFFSET;
+
+    // The first safe place to put the bitmap is after the kernel, aligned up.
+    uintptr_t potential_bitmap_start = align_up(kernel_end_phys, FRAME_SIZE);
+
+    // --- 3. Find a suitable physical memory region for the bitmap ---
+    uintptr_t bitmap_phys_addr = 0;
     size_t entry_count = boot_info_local.MapSize / boot_info_local.DescriptorSize;
     EFI_MEMORY_DESCRIPTOR* desc = boot_info_local.MemoryMap;
-    uintptr_t bitmap_phys = 0;
+
     for (size_t i = 0; i < entry_count; ++i) {
-        // Look for a usable region that's big enough
-        if (classify(desc->Type) && (desc->NumberOfPages * FRAME_SIZE) >= bitmap_size) {
-            // We found a spot! Use its physical start address.
-            bitmap_phys = desc->PhysicalStart;
-            frame_bitmap = (uint8_t*)(bitmap_phys + PHYS_MEM_OFFSET);
-            break;
+        uintptr_t region_start = desc->PhysicalStart;
+        uint64_t region_pages = desc->NumberOfPages;
+        uintptr_t region_end = region_start + (region_pages * FRAME_SIZE);
+
+        // STRATEGY: First, check the region our kernel is in. This is the best place.
+        if (desc->Type == EfiLoaderData) {
+            // Check if this region actually contains our kernel and has space after it.
+            if (potential_bitmap_start >= region_start && region_end > potential_bitmap_start) {
+                uint64_t available_space = region_end - potential_bitmap_start;
+                if (available_space >= bitmap_size) {
+                    // Perfect! We found space right after the kernel.
+                    bitmap_phys_addr = potential_bitmap_start;
+                    break; // Stop searching, this is the ideal location.
+                }
+            }
         }
+
+        // If we haven't found a spot yet, look for any other large enough conventional region.
+        if (bitmap_phys_addr == 0 && desc->Type == EfiConventionalMemory) {
+            if ((region_pages * FRAME_SIZE) >= bitmap_size) {
+                // Ensure this region doesn't conflict with the kernel itself.
+                if (region_end <= kernel_end_phys || region_start >= kernel_end_phys) {
+                    bitmap_phys_addr = region_start;
+                    // We don't break here, because finding space in EfiLoaderData is still preferred.
+                    // This just becomes our backup option.
+                }
+            }
+        }
+
         desc = (EFI_MEMORY_DESCRIPTOR*)((uint8_t*)desc + boot_info_local.DescriptorSize);
     }
 
-    if (!bitmap_phys) {
-        MtBugcheck(NULL, NULL, STACK_SEGMENT_OVERRUN, 0, false);
-        return;
-    }
-
-    if (frame_bitmap == NULL) {
-        // This is a catastrophic failure. We couldn't find anywhere to put the bitmap.
+    // If after checking all memory regions we still have no place, bugcheck.
+    if (bitmap_phys_addr == 0) {
         MtBugcheck(NULL, NULL, FRAME_BITMAP_CREATION_FAILURE, 0, false);
-        return;
+        return; // Unreachable
     }
 
+    // --- 4. Map the physical address to its virtual address and initialize ---
+    frame_bitmap = (uint8_t*)(bitmap_phys_addr + PHYS_MEM_OFFSET);
 
-    // 3. Initialize the bitmap
-    // Mark all frames as used/reserved initially
+    // Mark all frames as used (1s) initially.
     kmemset(frame_bitmap, 0xFF, bitmap_size);
 
-    // 4. Mark the bitmap's OWN frames as used! (Crucial!)
+    // --- 5. Mark the bitmap's own frames as used in the bitmap ---
+    // This prevents the allocator from handing out the memory that the bitmap itself uses.
     size_t bitmap_pages = (bitmap_size + FRAME_SIZE - 1) / FRAME_SIZE;
-    size_t bitmap_base_frame = bitmap_phys / FRAME_SIZE; // physical here
+    size_t bitmap_base_frame = bitmap_phys_addr / FRAME_SIZE;
     for (size_t i = 0; i < bitmap_pages; i++) {
         set_frame(bitmap_base_frame + i);
     }
 
-    // 5. Clear usable frames based on the rest of the memory map
+    // --- 6. Now, clear the bits for all conventional (usable) memory regions ---
     desc = boot_info_local.MemoryMap;
     for (size_t i = 0; i < entry_count; ++i) {
         if (desc->Type == EfiConventionalMemory) {
             uintptr_t base = desc->PhysicalStart;
             uint64_t pages = desc->NumberOfPages;
+
             for (uint64_t p = 0; p < pages; ++p) {
                 size_t frame_idx = (base / FRAME_SIZE) + p;
 
-                // Don't free the frames we are using for the bitmap itself!
-                if (frame_idx >= ((uintptr_t)bitmap_phys / FRAME_SIZE) &&
-                    frame_idx < (((uintptr_t)bitmap_phys / FRAME_SIZE) + bitmap_pages)) {
+                // CRITICAL: Do not free the frames used by the bitmap itself!
+                if (frame_idx >= bitmap_base_frame && frame_idx < (bitmap_base_frame + bitmap_pages)) {
+                    continue;
+                }
+
+                // Also, as a safeguard, don't free the first 1MiB. It's often used by BIOS/legacy hardware.
+                if (frame_idx * FRAME_SIZE < 0x100000) {
                     continue;
                 }
 

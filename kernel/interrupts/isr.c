@@ -26,8 +26,8 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
     tracelast_func(buf);
     IRQL oldIrql;
     
-    // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level the scheduler gets disabled to disable pre-emption)
-    bool schedulerEnabled = cpu.schedulerEnabled;
+    // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)
+    bool schedulerEnabled = thisCPU()->schedulerEnabled;
 
     ctx->rip = intfr->rip;
     ctx->rsp = intfr->rsp;

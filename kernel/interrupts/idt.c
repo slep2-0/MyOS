@@ -1,6 +1,6 @@
 /*
  * PROJECT:     MatanelOS Kernel
- * LICENSE:     NONE
+ * LICENSE:     GPLv3
  * PURPOSE:		IMPLEMENTATION To SETUP IDT Entries.
  */
 #include "idt.h"
@@ -13,7 +13,7 @@ void set_idt_gate(int n, unsigned long int handler) {
     tracelast_func("set_idt_gate");
     IDT[n].offset_low = handler & 0xFFFF;
     IDT[n].selector = 0x08;   // code segment selector
-    IDT[n].ist = 0;           // right now it's zero, I don't use IST.
+    IDT[n].ist = 0;         
     IDT[n].type_attr = 0x8E;  // interrupt gate, present, ring 0
     IDT[n].offset_mid = (handler >> 16) & 0xFFFF;
     IDT[n].offset_high = (handler >> 32) & 0xFFFFFFFF;
@@ -93,10 +93,10 @@ void install_idt() {
     /* For LAPIC */
     extern void isr239(void); // LAPIC ISR.
     set_idt_gate(LAPIC_TIMER_VECTOR, (unsigned long)isr239);
-#define LAPIC_SPURIOUS_VECTOR 0xFF
+#define LAPIC_SPURIOUS_VECTOR 254
     /* For SIV LAPIC */
-    extern void isr256(void); // SIV ISR
-    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr256);
+    extern void isr254(void); // SIV ISR
+    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr254);
 
     /* Enable IST for Page Fault and Double Fault */
     IDT[14].ist = 1;  // uses gTss.ist[0] (page fault)

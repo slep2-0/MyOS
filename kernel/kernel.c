@@ -23,7 +23,7 @@ Global variables initialization
 */
 bool isBugChecking = false;
 LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
-CPU cpu;
+CPU cpu0;
 
 /*
 Ended
@@ -31,6 +31,13 @@ Ended
 #define MAX_MEMORY_MAP_SIZE 0x4000  // 16 KB, enough for ~256 descriptors
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
+
+static void* tmpcpy(void* dest, const void* src, size_t len) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    for (size_t i = 0; i < len; i++) d[i] = s[i];
+    return dest;
+}
 
 void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
@@ -40,7 +47,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     }
 
     // Copy the entire memory map into the static buffer
-    kmemcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
+    tmpcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
 
     boot_info_local.MemoryMap = memory_map_copy;
     boot_info_local.MapSize = boot_info->MapSize;
@@ -99,13 +106,13 @@ static void InitialiseControlRegisters(void) {
     }
 }
 
-void InitCPU(void) {
-    cpu.currentIrql = PASSIVE_LEVEL;
-    cpu.schedulerEnabled = NULL; // since NULL is 0, it would be false.
-    cpu.currentThread = NULL;
-    cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
-    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t) & cpu);
-    spinlock_init(&cpu.readyQueue.lock);
+static void InitCPU(void) {
+    cpu0.self = &cpu0;
+    cpu0.currentIrql = PASSIVE_LEVEL;
+    cpu0.schedulerEnabled = NULL; // since NULL is 0, it would be false.
+    cpu0.currentThread = NULL;
+    cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
+    spinlock_init(&cpu0.readyQueue.lock);
 }
 
 static inline bool interrupts_enabled(void) {
@@ -177,16 +184,33 @@ static void bp_test(void* vinfo) {
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
     if (!info) return;
 
-    gop_printf_forced(0xFFFFFF00, "HWBP: idx=%d addr=%p DR6=%p\n",
-        info->BreakIdx, info->Address, (unsigned long long)info->Dr6);
+    gop_printf_forced(0xFFFFFF00, "HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
+        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
 
     MtClearHardwareBreakpointByIndex(info->BreakIdx);
 }
+
+static void bp_handler(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    if (!info) { gop_printf(COLOR_RED, "**No Info.**\n"); return; }
+
+    gop_printf_forced(COLOR_RED, "**HWBP: idx=%d variable addr=%p rip: %p DR6=%p**\n",
+        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
+
+    MtClearHardwareBreakpointByIndex(info->BreakIdx);
+    __hlt();
+}
+
+// All CPUs
+uint8_t apic_list[MAX_CPUS];
+uint32_t cpu_count = 0;
 
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 void kernel_main(BOOT_INFO* boot_info) {
     //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpu0);
+    __swapgs();
     __cli();
     // Initialize the CR (Control Registers) registers to our settings.
     InitialiseControlRegisters();
@@ -207,14 +231,27 @@ void kernel_main(BOOT_INFO* boot_info) {
     InitScheduler();
     init_dpc_system();
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
-    
-    //MemoryTestStable();
-    //__cli();
-    //__hlt();
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
-
     uint64_t rip;
+    //gop_printf(COLOR_ORANGE, "(offsets 16/9/2025)\nself: %x\ncurrentIrql: %x\nschedulerEnabled: %x\ncurrentThread: %x\nreadyQueue: %x\nID: %x\nlapic_ID: %x\nVirtStackTop: %x\ntss: %x\nIstPFStackTop: %x\nIstDFStackTop: %x\nflags: %x\nschedulePending: %x\ngdt: %x\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueHead: %p\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueTail: %p\n",
+    //    offsetof(CPU, self),
+    //    offsetof(CPU, currentIrql),
+    //    offsetof(CPU, schedulerEnabled),
+    //    offsetof(CPU, currentThread),
+    //    offsetof(CPU, readyQueue),
+    //    offsetof(CPU, ID),
+    //    offsetof(CPU, lapic_ID),
+    //    offsetof(CPU, VirtStackTop),
+    //    offsetof(CPU, tss),
+    //    offsetof(CPU, IstPFStackTop),
+    //    offsetof(CPU, IstDFStackTop),
+    //    offsetof(CPU, flags),
+    //    offsetof(CPU, schedulePending),
+    //    offsetof(CPU, gdt),
+    //    offsetof(CPU, DeferredRoutineQueue.dpcQueueHead),
+    //    offsetof(CPU, DeferredRoutineQueue.dpcQueueTail)
+    //); __hlt();
     __asm__ volatile (
         "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
         "1:"                     // The label whose address we want
@@ -229,7 +266,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-
     void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateVirtualMemory(128, 16);
@@ -271,11 +307,10 @@ void kernel_main(BOOT_INFO* boot_info) {
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, FILESYSTEM_PANIC, 0, false);
     }
-
     TIME_ENTRY currTime = get_time();
+    MtSetHardwareBreakpoint(bp_handler, (void*)0x10, DEBUG_ACCESS_READWRITE, DEBUG_LEN_8);
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
-
     char listings[256];
     status = vfs_listdir("/", listings, sizeof(listings));
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
@@ -288,9 +323,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     MtCreateThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, true);
     //int integer = 1234;
     MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
-    /* Enable LAPIC Now. */
-    lapic_init_bsp();
-    lapic_enable();
+    /* Enable LAPIC & SMP Now. */
+    lapic_init_cpu();
+    lapic_enable(); // call again.
+    /* Enable SMP */
+    //for (int i = 0; i < 4; i++) {
+    //    apic_list[i] = i;
+    //}
+    //smp_start(apic_list, 4);
     init_lapic_timer(100); // 10ms
     __sti();
     Schedule();

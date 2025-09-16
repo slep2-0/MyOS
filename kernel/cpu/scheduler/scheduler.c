@@ -21,7 +21,7 @@ extern void kernel_idle_checks(void);
 // In Scheduler.c
 void InitScheduler(void) {
     tracelast_func("InitScheduler");
-    cpu.schedulerEnabled = true;
+    thisCPU()->schedulerEnabled = true;
 
     CTX_FRAME cfm;
     kmemset(&cfm, 0, sizeof(cfm)); // Start with a clean, all-zero context
@@ -38,10 +38,10 @@ void InitScheduler(void) {
     idleThread.nextThread = NULL;
     idleThread.TID = 0; // Scheduler thread, TID is 0.
     idleThread.startStackPtr = (void*)cfm.rsp;
-    cpu.currentThread = NULL;
+    thisCPU()->currentThread = NULL;
 
     // The ready queue starts empty
-    cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
+    thisCPU()->readyQueue.head = thisCPU()->readyQueue.tail = NULL;
 }
 
 // Enqueue the thread if it's still RUNNABLE.
@@ -57,18 +57,17 @@ static void enqueue_runnable(Thread* t) {
     }
     if (t->threadState == RUNNING) {
         t->threadState = READY;
-        MtEnqueueThreadWithLock(&cpu.readyQueue, t); // Insert into CPU ready queue
+        MtEnqueueThreadWithLock(&thisCPU()->readyQueue, t); // Insert into CPU ready queue
     }
 }
 
 void Schedule(void) {
     tracelast_func("Schedule");
     //gop_printf(COLOR_PURPLE, "In scheduler\n");
-    __sti();
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
-    Thread* prev = cpu.currentThread;
+    Thread* prev = thisCPU()->currentThread;
 
     // always check if exists, didn't check and got faulted.
     if (prev && prev->threadState == TERMINATED) {
@@ -95,15 +94,14 @@ void Schedule(void) {
         enqueue_runnable(prev);
     }
 
-    Thread* next = MtDequeueThreadWithLock(&cpu.readyQueue);
+    Thread* next = MtDequeueThreadWithLock(&thisCPU()->readyQueue);
 
     if (!next) {
         next = &idleThread;
     }
     //gop_printf(COLOR_RED, "The thread's timeslice before change is: %d", next->timeSlice);
     next->threadState = RUNNING;
-    cpu.currentThread = next;
-    __writemsr(IA32_GS_BASE, (uint64_t)next);
+    thisCPU()->currentThread = next;
     MtLowerIRQL(oldIrql);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);

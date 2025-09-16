@@ -19,7 +19,7 @@
 #define _IRQL_requires_max_(level) __attribute__((annotate("IRQL_max_" #level)))
 #endif
 
-extern CPU cpu;
+extern CPU cpu0;
 
 // Functions
 void update_pic_mask_for_current_irql(void);

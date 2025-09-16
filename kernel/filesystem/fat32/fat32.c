@@ -1096,7 +1096,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 	// 6. Create the entry in the parent directory
 	// For simplicity, we'll use a simple SFN. A full implementation needs `fat32_generate_sfn`.
 	char sfn[11];
-	format_short_name(new_dir_name, sfn); // Using your existing simple formatter
+	format_short_name(new_dir_name, sfn);
 
 	// Decide whether we need LFN entries:
 	int name_len = kstrlen(new_dir_name);
@@ -1354,8 +1354,6 @@ locate_done:
 
 	// --- Step 4: Allocate clusters and write file data ---
 	if (size > 0) {
-		// [ Your existing correct code for writing data to clusters goes here... ]
-		// This logic from your original file is preserved as it appeared correct.
 		uint32_t cluster_size = fs.sectors_per_cluster * fs.bytes_per_sector;
 		uint32_t clusters_needed = 0;
 		uint32_t last_cluster = 0;

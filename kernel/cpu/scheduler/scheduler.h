@@ -9,7 +9,7 @@
 #include "../cpu.h"
 #include "../../memory/memory.h"
 
-extern CPU cpu;
+extern CPU cpu0;
 
 // Default timeslice for a new thread.
 #define DEFAULT_TIMESLICE 1

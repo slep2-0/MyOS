@@ -20,7 +20,7 @@
 extern GOP_PARAMS gop_local;
 extern LASTFUNC_HISTORY lastfunc_history;
 extern bool isBugChecking;
-extern CPU cpu;
+extern CPU cpu0;
 extern GUARD_PAGE_DB* guard_db_head;
 
 extern uint32_t cursor_x;
@@ -310,7 +310,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     isBugChecking = true;
     bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
-    IRQL recordedIrql = cpu.currentIrql;
+    IRQL recordedIrql = thisCPU()->currentIrql;
 #endif
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
@@ -348,7 +348,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
             "R8 : %p R9 : %p R10: %p R11: %p \n\n"
-            "R12: %p R13: %p R14: %p R15: %p RSP_GOTTEN: %p\n\n\n",
+            "R12: %p R13: %p R14: %p R15: %p ISR RSP: %p\n\n\n",
             context->rax,
             context->rbx,
             context->rcx,
@@ -396,7 +396,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 		}
 	}
 #ifdef DEBUG
-    uint32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : (uint32_t)-1;
+    uint32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #endif
 #ifdef DEBUG
@@ -413,7 +413,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 	//test
     update_pic_mask_for_current_irql();
     __cli();
-    // spin the CPU.
+    // spin the thisCPU()->
     while (1) {
         NOTHING;
     }
@@ -427,7 +427,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     isBugChecking = true;
     bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
-    IRQL recordedIrql = cpu.currentIrql;
+    IRQL recordedIrql = thisCPU()->currentIrql;
 #endif
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
@@ -493,7 +493,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
 #endif
 #ifdef DEBUG
-    int32_t currTid = (cpu.currentThread) ? cpu.currentThread->TID : (uint32_t)-1;
+    int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #endif
     if (isAdditionals) {
@@ -529,7 +529,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     //test
     update_pic_mask_for_current_irql();
     __cli();
-    // spin the CPU.
+    // spin the thisCPU()->
     while (1) {
         NOTHING;
     }

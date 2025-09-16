@@ -7,39 +7,32 @@
 #include "dpc.h"
 #include "../../bugcheck/bugcheck.h"
 
-DPC* dpcQueueHead = NULL;
-DPC* dpcQueueTail = NULL;
-
-volatile bool schedule_pending = false;
-static SPINLOCK dpc_lock; // SPINLOCK for the dpc, only 1 thread is allowed to use it at a time.
-
 void init_dpc_system(void) {
 	tracelast_func("init_dpc_system");
-	dpcQueueHead = dpcQueueTail = NULL;
+	thisCPU()->DeferredRoutineQueue.dpcQueueHead = thisCPU()->DeferredRoutineQueue.dpcQueueTail = NULL;
 }
 
 void MtQueueDPC(DPC* dpc) {
-	tracelast_func("MtQueueDPC");
+	tracelast_func("MtQueueDPC"); // NOTE TO SELF: Do not put ANY spinlocks here, we are at high IRQL (definitive bugcheck, if not, deadlock.).
 	if (!dpc) return;
-
 	dpc->Next = NULL;
-
+	struct _DPC_QUEUE* queue = &thisCPU()->DeferredRoutineQueue;
 	// Sorted insertion mechanism by priority (higher priority -> inserted to the head)
-	if (!dpcQueueHead) {
+	if (!queue->dpcQueueHead) {
 		// Starting with empty queue.
-		dpcQueueHead = dpcQueueTail = dpc;
+		queue->dpcQueueHead = queue->dpcQueueTail = dpc;
 		return;
 	}
 	// not an empty queue -> check priority.
 	// check if the priority is highest.
-	if (dpc->priority > dpcQueueHead->priority) {
+	if (dpc->priority > queue->dpcQueueHead->priority) {
 		// Insert at the front (head)
-		dpc->Next = dpcQueueHead;
-		dpcQueueHead = dpc;
+		dpc->Next = queue->dpcQueueHead;
+		queue->dpcQueueHead = dpc;
 		return;
 	}
 	// else, find our insertion point.
-	DPC* cur = dpcQueueHead;
+	DPC* cur = queue->dpcQueueHead;
 	// Check each DPC entry for it's priority, and insert the DPC requested accordingly.
 	while (cur->Next && cur->Next->priority >= dpc->priority) {
 		cur = cur->Next;
@@ -48,13 +41,14 @@ void MtQueueDPC(DPC* dpc) {
 	dpc->Next = cur->Next;
 	cur->Next = dpc;
 	if (!dpc->Next) {
-		dpcQueueTail = dpc;
+		queue->dpcQueueTail = dpc;
 	}
 }
 
 void RetireDPCs(void) {
 	tracelast_func("RetireDPCs");
-	if (!dpcQueueHead) return;
+	struct _DPC_QUEUE* queue = &thisCPU()->DeferredRoutineQueue;
+	if (!queue->dpcQueueHead) return;
 
 	IRQL oldIrql;
 	IRQL flags;
@@ -63,26 +57,26 @@ void RetireDPCs(void) {
 	MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
 
 	// 2) Acquire lock for the whole drain
-	MtAcquireSpinlock(&dpc_lock, &flags);
+	MtAcquireSpinlock(&queue->lock, &flags);
 
 	// 3) Drain the queue
-	while (dpcQueueHead) {
-		DPC* d = dpcQueueHead;
-		dpcQueueHead = d->Next;
-		if (!dpcQueueHead) {
-			dpcQueueTail = NULL;
+	while (queue->dpcQueueHead) {
+		DPC* d = queue->dpcQueueHead;
+		queue->dpcQueueHead = d->Next;
+		if (!queue->dpcQueueHead) {
+			queue->dpcQueueTail = NULL;
 		}
 		// release lock so callback can queue new DPCs if needed
-		MtReleaseSpinlock(&dpc_lock, flags);
+		MtReleaseSpinlock(&queue->lock, flags);
 
 		// STILL at DISPATCH_LEVEL
 		if (d->CallbackRoutine) d->CallbackRoutine(d, d->Arg1, d->Arg2, d->Arg3);
 
 		// re-acquire for next pop
-		MtAcquireSpinlock(&dpc_lock, &flags);
+		MtAcquireSpinlock(&queue->lock, &flags);
 	}
 
 	// 4) Release lock and lower once
-	MtReleaseSpinlock(&dpc_lock, flags);
+	MtReleaseSpinlock(&queue->lock, flags);
 	MtLowerIRQL(oldIrql);
 }

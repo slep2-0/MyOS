@@ -4,7 +4,6 @@
 section .text
 BITS 64
 DEFAULT REL
-extern cpu
 extern Schedule
 
 ; void MtSleepCurrentThread(void);
@@ -13,7 +12,8 @@ MtSleepCurrentThread:
     push rax ; save to stack
     
     ; rax := pointer to currentThread
-    mov     rax, [rel cpu + 8]
+    mov rax, gs:[0]
+    mov rax, [rax + 0x10]
 
     ; save general-purpose registers into thread ctx
     mov     [rax + 0x00], r15

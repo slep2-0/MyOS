@@ -61,6 +61,7 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "cpu/mutex/mutex.h"
 #include "cpu/events/events.h"
 #include "cpu/debugger/debugfunctions.h"
+#include "cpu/smp/smp.h"
 
 // Entry point in C
 void kernel_idle_checks(void);
@@ -69,7 +70,6 @@ void kernel_main(BOOT_INFO* boot_info);
 void copy_memory_map(BOOT_INFO* boot_info);
 void copy_gop(BOOT_INFO* boot_info);
 void init_boot_info(BOOT_INFO* boot_info);
-void InitCPU(void);
 
 // Custom assembly functions externals.
 extern void read_context_frame(CTX_FRAME* registers);
@@ -95,8 +95,8 @@ static uint32_t xorshift32(uint32_t* s) {
 static int MemoryTestStable(void) {
     enum {
         TEST_ALLOCATIONS = 64,
-        MAX_BLOCK = 1024,        // maximum random block size
-        MIN_BLOCK = 16,         // minimum block size
+        MAX_BLOCK = 10024,        // maximum random block size
+        MIN_BLOCK = 256,         // minimum block size
         ALIGN_OPTIONS = 4
     };
 

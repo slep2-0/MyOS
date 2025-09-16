@@ -17,8 +17,8 @@
 
 // MSRs
 #define IA32_KERNEL_GS_BASE 0xC0000102
-#define IA32_GS_BASE 0xC0000100 /* used both in kernel mode and user mode */
-#define IA32_FS_BASE 0xC0000101
+#define IA32_GS_BASE 0xC0000101 /* used both in kernel mode and user mode */
+#define IA32_FS_BASE 0xC0000100
 
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)
@@ -239,6 +239,10 @@ static inline uint64_t __readfsqword(uint64_t offset) {
         : "memory"
         );
     return value;
+}
+
+static inline void __swapgs(void) {
+    __asm__ volatile ("swapgs" ::: "memory");
 }
 
 

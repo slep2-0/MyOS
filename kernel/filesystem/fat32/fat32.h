@@ -192,7 +192,7 @@ MTSTATUS fat32_delete_directory(const char* path);
 MTSTATUS fat32_delete_file(const char* path);
 
 /// <summary>
-/// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries)
+/// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries / deleted / nonexistent)
 /// </summary>
 /// <param name="path">Full path to dir</param>
 /// <returns>True or false based if empty or not.</returns>

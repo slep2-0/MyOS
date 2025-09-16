@@ -110,25 +110,24 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
         MtBugcheck(&ctx, NULL, HEAP_ALLOCATION_FAILED, 0, false);
     }
     thread->startStackPtr = stackStart;
-    // initial stack pointer should be at the *high* end of the allocated region
-    uint8_t* sp = (uint8_t*)stackStart + THREAD_STACK_SIZE;
+    // initial stack pointer should be at the high end of the allocated region
+    uint8_t* top = (uint8_t*)stackStart + THREAD_STACK_SIZE;
+    top = (uint8_t*)((uintptr_t)top & ~(uintptr_t)(THREAD_ALIGNMENT - 1)); // 16-byte aligned
 
-    // Align stack to 16 bytes for System V ABI.
-    sp = (uint8_t*)((uintptr_t)sp & ~(uintptr_t)0xF);
-
-    // Reserve space for the context frame and red zone
-    sp -= sizeof(CTX_FRAME);
-    sp -= 64; // red zone / extra safety
-
+    // reserve red zone, then place CTX_FRAME below it
+    uint8_t* sp = top;
+    sp -= 64;                     // red zone (leave caller-safety area)
+    sp -= sizeof(CTX_FRAME);      // space for CTX_FRAME
     CTX_FRAME* cfm = (CTX_FRAME*)sp;
 
-    kmemset(cfm, 0, sizeof * cfm); // Start with 0 in all regs.
+    kmemset(cfm, 0, sizeof * cfm);
 
     // Set our timeslice.
     thread->timeSlice = TIMESLICE;
     thread->origTimeSlice = TIMESLICE;
 
-    cfm->rsp = (uint64_t)sp - 8;
+    // saved rsp must point to the top (aligned), not sp-8
+    cfm->rsp = (uint64_t)top; 
     cfm->rip = (uint64_t)ThreadWrapperEx;
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
@@ -149,11 +148,11 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     thread->threadState = READY;
     thread->nextThread = NULL;
     thread->TID = tid;
-    MtEnqueueThreadWithLock(&cpu.readyQueue, thread);
+    MtEnqueueThreadWithLock(&thisCPU()->readyQueue, thread);
     // Lower IRQL.
     MtLowerIRQL(oldIrql);
 }
 
 inline Thread* MtGetCurrentThread(void) {
-    return (Thread*)__readmsr(IA32_GS_BASE);
+    return thisCPU()->currentThread;
 }

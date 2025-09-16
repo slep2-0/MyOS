@@ -24,9 +24,6 @@ gdt_descriptor:
 
 section .text
 _start:
-    mov  al, 0xFF
-    out  0x80, al
-
     ; Signify that we have reached the entrypoint for debugging. 
     mov rax, 0xFFFFFFFACCE55
     mov dr2, rax

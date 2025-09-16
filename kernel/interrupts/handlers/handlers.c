@@ -140,14 +140,12 @@ static DPC scheduleDpc = {
     .priority = HIGH_PRIORITY
 };
 
-extern volatile bool schedule_pending;
-
 void timer_handler(bool schedulerEnabled) {
-    if (!schedule_pending) {
+    if (!thisCPU()->schedulePending) {
         if (schedulerEnabled) {
-            if (cpu.currentThread) {
-                if (__sync_sub_and_fetch(&cpu.currentThread->timeSlice, 1) <= 0) {
-                    cpu.currentThread->timeSlice = cpu.currentThread->origTimeSlice;
+            if (thisCPU()->currentThread) {
+                if (__sync_sub_and_fetch(&thisCPU()->currentThread->timeSlice, 1) <= 0) {
+                    thisCPU()->currentThread->timeSlice = thisCPU()->currentThread->origTimeSlice;
                     tracelast_func("Queuing DPC in timer_handler");
                     MtQueueDPC(&scheduleDpc);
                     /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!

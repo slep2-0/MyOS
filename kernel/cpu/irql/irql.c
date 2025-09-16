@@ -27,7 +27,7 @@ static inline bool interrupts_enabled(void) {
 void update_pic_mask_for_current_irql(void) {
     bool prev_if = interrupts_enabled();
     __cli();
-    IRQL level = cpu.currentIrql;
+    IRQL level = thisCPU()->currentIrql;
 
     // Mask any IRQ whose assigned IRQL is <= the current CPU IRQL.
     // Unmask any IRQ whose assigned IRQL is > the current CPU IRQL.
@@ -44,12 +44,12 @@ void update_pic_mask_for_current_irql(void) {
 
 static inline void toggle_scheduler(void) {
     // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL
-    cpu.schedulerEnabled = (cpu.currentIrql < DISPATCH_LEVEL);
+    thisCPU()->schedulerEnabled = (thisCPU()->currentIrql < DISPATCH_LEVEL);
 }
 
 void MtGetCurrentIRQL(IRQL* out) {
     tracelast_func("GetCurrentIRQL");
-    *out = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    *out = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
 }
 
 void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
@@ -58,10 +58,10 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     tracelast_func("RaiseIRQL");
 
     if (old_irql) {
-        *old_irql = cpu.currentIrql;
+        *old_irql = thisCPU()->currentIrql;
     }
 
-    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    IRQL curr = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
     if (new_irql < curr) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -70,7 +70,7 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_GREATER_OR_EQUAL, &addt, true);
     }
 
-    cpu.currentIrql = new_irql;
+    thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
     update_pic_mask_for_current_irql();
     if (prev_if) __sti();
@@ -81,7 +81,7 @@ void MtLowerIRQL(IRQL new_irql) {
     __cli();
     tracelast_func("LowerIRQL");
 
-    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    IRQL curr = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
     if (new_irql > curr) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);
@@ -90,7 +90,7 @@ void MtLowerIRQL(IRQL new_irql) {
         MtBugcheckEx(&ctx, NULL, IRQL_NOT_LESS_OR_EQUAL, &addt, true);
     }
 
-    cpu.currentIrql = new_irql;
+    thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
     update_pic_mask_for_current_irql();
     if (prev_if) __sti();
@@ -102,7 +102,7 @@ void _MtSetIRQL(IRQL new_irql) {
     __cli();
     tracelast_func("_SetIRQL");
 
-    cpu.currentIrql = new_irql;
+    thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
     update_pic_mask_for_current_irql();
     if (prev_if) __sti();
@@ -111,7 +111,7 @@ void _MtSetIRQL(IRQL new_irql) {
 inline void enforce_max_irql(IRQL max_allowed, void* RIP) {
     bool prev_if = interrupts_enabled();
     __cli();
-    IRQL curr = atomic_load_explicit(&cpu.currentIrql, memory_order_acquire);
+    IRQL curr = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
     if (curr > max_allowed) {
         CTX_FRAME ctx;
         SAVE_CTX_FRAME(&ctx);

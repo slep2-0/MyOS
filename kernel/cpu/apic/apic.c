@@ -33,15 +33,15 @@ enum {
 
 
 #define LAPIC_DEFAULT_PADDR    0xFEE00000ULL
-static volatile uint32_t* lapic = NULL;
-static uint64_t lapic_phys = LAPIC_DEFAULT_PADDR;
+volatile uint32_t* lapic = NULL;
+uint64_t lapic_phys = LAPIC_DEFAULT_PADDR;
 
 // --- low-level mmio helpers (assumes lapic mapped to virtual memory) ---
-static inline uint32_t lapic_mmio_read(uint32_t off) {
+uint32_t lapic_mmio_read(uint32_t off) {
     return lapic[off / 4];
 }
-static inline void lapic_mmio_write(uint32_t off, uint32_t val) {
-    tracelast_func("lapic_mmio_write");
+
+void lapic_mmio_write(uint32_t off, uint32_t val) {
     lapic[off / 4] = val;
     (void)lapic_mmio_read(LAPIC_ID); // serializing read to ensure write completes
 }
@@ -87,21 +87,18 @@ void lapic_enable(void) {
     if (!(apic_msr & (1ULL << 11))) {
         // set APIC global enable
         apic_msr |= (1ULL << 11);
-        // optionally set a custom base in apic_msr bits [35:12] if not default
-        // wrmsr(IA32_APIC_BASE_MSR, apic_msr);
         __writemsr(IA32_APIC_BASE_MSR, apic_msr);
     }
     map_lapic();
 
     // Set Spurious Vector Register and enable (bit 8 = APIC enable)
-    // choose an interrupt vector for spurious (e.g., 0xFF). Keep vector values consistent with your IDT.
     uint32_t svr = (0xFF) | (1 << 8);
     lapic_mmio_write(LAPIC_SVR, svr);
 }
 
-// Initialize BSP's LAPIC (call early from kernel init on BSP)
-void lapic_init_bsp(void) {
-    tracelast_func("lapic_init_bsp");
+// Initialize CPU's LAPIC (call early from kernel init on BSP, and from each ap)
+void lapic_init_cpu(void) {
+    tracelast_func("lapic_init_cpu");
     uint64_t apic_msr = __readmsr(IA32_APIC_BASE_MSR);
     uint64_t base = (apic_msr & 0xFFFFF000ULL);
     if (base) lapic_phys = base;

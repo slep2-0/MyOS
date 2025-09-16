@@ -170,8 +170,11 @@ static inline Thread* MtDequeueThread(Queue* q) {
     return t;
 }
 
-void InitCPU(void); // defined in kernel.c
+__attribute__((always_inline)) inline
+static CPU* thisCPU(void) {
+    return (CPU*)__readgsqword(0);
+}
 
-extern CPU cpu; // Grab from KERNEL.C
+extern CPU cpu0; // Grab from KERNEL.C
 
 #endif

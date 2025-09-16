@@ -144,6 +144,14 @@ build/mutex.o: kernel/cpu/mutex/mutex.c
 build/debugfunctions.o: kernel/cpu/debugger/debugfunctions.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/smp.o: kernel/cpu/smp/smp.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/ap_main.o: kernel/cpu/smp/ap_main.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
@@ -169,12 +177,21 @@ build/cpuid.o: kernel/cpu/cpuid/cpuid.asm
 build/mutex_asm.o: kernel/cpu/mutex/mutex.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
+	
+build/ap_trampoline.bin: kernel/cpu/smp/ap_trampoline.asm
+	mkdir -p build
+	$(ASM) $(ASMFLAGS_BIN) $< -o $@	
+
+build/ap_trampoline.o: build/ap_trampoline.bin
+	$(OBJCOPY) -I binary -O elf64-x86-64 -B i386:x86-64 \
+		--rename-section .data=.aptrampoline \
+		$< $@
 
 # Link kernel
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
                       build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/vfs.o build/pit.o build/apic.o build/mutex.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/thread.o build/vfs.o build/pit.o build/apic.o build/mutex.o build/smp.o build/ap_main.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       build/mutex_asm.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
