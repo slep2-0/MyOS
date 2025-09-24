@@ -157,6 +157,7 @@ extern "C" {
         uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
         uint64_t rsp;
         uint64_t rip;
+        uint64_t rflags;
     } CTX_FRAME;
 #pragma pack(pop)
 
@@ -209,10 +210,10 @@ extern "C" {
      * - Embedded SPINLOCK and Queue for waiting threads.
      */
     typedef struct _EVENT {
-        EVENT_TYPE type;     /* Notification vs Synchronization */
-        bool signaled;       /* current state */
-        SPINLOCK lock;       /* protects signaled + waitingQueue */
-        Queue waitingQueue;  /* threads waiting on this event */
+        EVENT_TYPE type;              /* Notification vs Synchronization */
+        volatile bool signaled;       /* current state */
+        SPINLOCK lock;                /* protects signaled + waitingQueue */
+        Queue waitingQueue;           /* threads waiting on this event */
     } EVENT;
 
     /* --------------------------------------------------------------------------
@@ -256,6 +257,7 @@ extern "C" {
     typedef enum _DPC_KIND {
         NO_KIND = 0,
         DPC_SCHEDULE,
+        DPC_CPU_ALLOCATED,
         /* TODO: more kinds */
     } DPC_KIND;
 
@@ -321,6 +323,7 @@ extern "C" {
         bool schedulePending;
         uint64_t* gdt;
         struct _DPC_QUEUE DeferredRoutineQueue;
+        struct _DPC CurrentDeferredRoutine;
     } CPU;
 
     /* --------------------------------------------------------------------------
@@ -339,17 +342,14 @@ extern "C" {
      * -------------------------------------------------------------------------- */
 
 #ifndef _MSC_VER
-    _Static_assert(sizeof(CTX_FRAME) == 0x88, "CTX_FRAME must be 0x88 bytes");
-    _Static_assert(offsetof(CTX_FRAME, rsp) == 0x78, "CTX_FRAME.rsp offset must be 0x78");
-    _Static_assert(offsetof(CTX_FRAME, rip) == 0x80, "CTX_FRAME.rip offset must be 0x80");
-
-    _Static_assert(sizeof(Thread) >= 0xA0, "Thread must be at least 0xA0 bytes");
-    _Static_assert(offsetof(Thread, threadState) == 0x88, "Thread.threadState offset must be 0x88");
-    _Static_assert(offsetof(Thread, timeSlice) == 0x8C, "Thread.timeSlice offset must be 0x8C");
-    _Static_assert(offsetof(Thread, origTimeSlice) == 0x90, "Thread.origTimeSlice offset must be 0x90");
-    _Static_assert(offsetof(Thread, nextThread) == 0x98, "Thread.nextThread offset must be 0x98");
-    _Static_assert(sizeof(SPINLOCK) == 4, "SPINLOCK must be 4 bytes");
-    _Static_assert(_Alignof(SPINLOCK) >= 4, "SPINLOCK alignment must be >= 4");
+_Static_assert(sizeof(CTX_FRAME) == 0x90, "CTX_FRAME must be 0x90 bytes");
+_Static_assert(sizeof(Thread) >= 0xA0, "Thread must be at least 0xA0 bytes");
+_Static_assert(offsetof(Thread, threadState) == 0x90, "Thread.threadState offset must be 0x90");
+_Static_assert(offsetof(Thread, timeSlice) == 0x94, "Thread.timeSlice offset must be 0x94");
+_Static_assert(offsetof(Thread, origTimeSlice) == 0x98, "Thread.origTimeSlice offset must be 0x98");
+_Static_assert(offsetof(Thread, nextThread) == 0xa0, "Thread.nextThread offset must be 0xa0");
+_Static_assert(sizeof(SPINLOCK) == 4, "SPINLOCK must be 4 bytes");
+_Static_assert(_Alignof(SPINLOCK) >= 4, "SPINLOCK alignment must be >= 4");
 #endif
 
 #ifdef __cplusplus

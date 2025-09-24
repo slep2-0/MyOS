@@ -4,6 +4,7 @@
 
 global read_interrupt_frame
 section .text
+;unused.
 read_interrupt_frame:
     ; RDI = pointer to INT_FRAME struct
     ; Save special registers into struct at RDI (regs) + offset.

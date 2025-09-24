@@ -19,7 +19,7 @@ extern RetireDPCs
 isr%1:
     cli
 %if (%1 == 8) || (%1 == 10) || (%1 == 11) || (%1 == 12) || (%1 == 13) || (%1 == 14) || (%1 == 17)
-    ; cpu0 pushes error code
+    ; cpu pushes error code
 %else
     push    0
 %endif
@@ -44,12 +44,12 @@ irq%1:
 ; Common stub for all ISRs and IRQs in 64-bit long mode
 ; Stack layout after entry:
 ; [rsp + 0]   = vector number (last pushed by macro)
-; [rsp + 8]   = error code (pushed by cpu0 or dummy 0)
-; [rsp + 16]  = RIP (pushed by cpu0)
-; [rsp + 24]  = CS (pushed by cpu0)
-; [rsp + 32]  = RFLAGS (pushed by cpu0)
-; [rsp + 40]  = RSP (pushed by cpu0 if privilege change)
-; [rsp + 48]  = SS (pushed by cpu0 if privilege change)
+; [rsp + 8]   = error code (pushed by cpu or dummy 0)
+; [rsp + 16]  = RIP (pushed by cpu)
+; [rsp + 24]  = CS (pushed by cpu)
+; [rsp + 32]  = RFLAGS (pushed by cpu)
+; [rsp + 40]  = RSP (pushed by cpu if privilege change)
+; [rsp + 48]  = SS (pushed by cpu if privilege change)
 ;---------------------------------------------------------------------------
 global isr_common_stub64
 
@@ -72,108 +72,30 @@ isr_common_stub64:
     push    r14
     push    r15
     
-    ; THEN - Save the current frame into the CTX_FRAME of the thread.
-.first_check
-    mov rax, gs:[0]
-    movzx eax, byte [rax + 0xC] ; cpu.schedulerEnabled
-    test eax, eax
-    jz .no_thread ; If schedulerEnabled false, jump to ISR setup.
-    jmp .save_thread_ctx ; ELSE (schedulerEnabled TRUE), jump to saving the thread's context.
-
-.save_thread_ctx
-    mov     r11, gs:[0]          ; Use r11 as a safe temporary register
-    mov     r11, [r11 + 16]      ; r11 -> currentThread
-    test    r11, r11
-    je      .no_thread
-
-    ; Save all GPRs from the stack to the context frame
-    ; This is safer than 'mov [rax+offset], register' because it saves the original values
-    mov     rdi, r11             ; Destination: &thread->registers
-    mov     rsi, rsp             ; Source: Stack top
-    mov     rcx, 15              ; 15 QWORDs to copy (r15 -> rax)
-    rep movsq
-
-    ; --- Save RIP and RSP ---
-
-    ; Always save RIP (it's at the same offset in both cases)
-    mov     rax, [rsp + 136]     ; Get saved RIP from the stack
-    mov     [r11 + 0x80], rax    ; Save to thread->registers.rip
-
-    ; Check if the interrupt was from user mode (CS low bits are 3)
-    movzx   eax, word [rsp + 144] ; Read saved CS
-    and     eax, 3
-    cmp     eax, 3
-    je      .save_user_rsp
-
-.save_kernel_rsp:
-    ; KERNEL MODE: RSP was not pushed. We must CALCULATE it.
-    ; Original RSP = current RSP + (15 GPRs) + (vec+err) + (rip+cs+rflags)
-    ; Original RSP = RSP + 120 + 16 + 24 = RSP + 160
-    lea     rax, [rsp + 160]
-    mov     [r11 + 0x78], rax    ; Save calculated RSP to thread->registers.rsp
-    jmp     .sleepingAwake
-
-.save_user_rsp:
-    ; USER MODE: RSP was pushed by hardware. We READ it from the stack.
-    ; its at rsp + 0xA0, the same as kernel rsp.
-    ; why am I doing this function then? because its for robustness
-    ; as a developer, this extra 1 cycle wont change anything, and helps a lot to understand the offsets and whats going on in code.
-    mov     rax, [rsp + 160]
-    mov     [r11 + 0x78], rax    ; Save user RSP to thread->registers.rsp
-    ; no need to jump, it falls through.
-    
-    ; We are done saving the thread's registers into it's intended CTX_FRAME struct, continue normal execution.
-
-    ; Stack layout after register pushes (15 registers * 8 bytes = 120 bytes):
-    ; [rsp + 0]   = r15 (last pushed)
-    ; [rsp + 8]   = r14
-    ; ...
-    ; [rsp + 112] = rax (first pushed)
-    ; [rsp + 120] = vector number
-    ; [rsp + 128] = error code
-    ; [rsp + 136] = RIP
-    ; [rsp + 144] = CS
-    ; [rsp + 152] = RFLAGS
-    ; [rsp + 160] = RSP (if privilege change)
-    ; [rsp + 168] = SS (if privilege change)
-    
-    ; Set up parameters for C function call
-.sleepingAwake:
-.no_thread:
-
-    movzx eax, word [rsp + 0x90]   ; read saved CS
-    and   eax, 3
-    cmp   eax, 3
-    je .gustavofring_ascendz_ofirs_mcdonalds_4life
-    jmp .welcome_to_los_santos_2
-
+; Set up parameters for C function call
 .gustavofring_ascendz_ofirs_mcdonalds_4life:
 
     ; First parameter (vector number) in RDI
     mov     rdi, [rsp + 120]        ; vector number
 
-    ; Second parameter (pointer to REGS struct) in RSI
-    mov     rsi, rsp                ; pointer to start of pushed registers
-
-    ; Third paramter (pointer to interrupt frame), in RDX.
-    ; We use LEA because we want the address, not it's dereference. (we want the ptr, not dereferencing it basically)
-    lea rdx, [rsp + 120]
-    jmp .begin_call
-
 .welcome_to_los_santos_2
-    
-    ; No priv change, mov at different offsets.
-    ; (they are the same, FIXME)
-    mov rdi, [rsp + 120]
-    mov rsi, rsp
-    lea rdx, [rsp + 120]
+    ; RSI is the second parameter in the System V ABI calling convention. It is our CTX_FRAME, its the start of the stack basically. (first is r15, so like in the struct)
+    mov     rsi, rsp
+
+    ; RDX is the THIRD parameter in the System V ABI calling convention. It is our INT_FRAME, it is the start of where the CPU pushed interrupted context plus our vec_num and error codes.
+    ; Now in x86-64 (64bit), the CPU ALWAYS pushes SS:RSP, RFLAGS, CS and RIP. (where in 32bit x86 it did not)
+    ; Reference (i also provided the #id) - https://wiki.osdev.org/Interrupt_Service_Routines#x86-64, look at the top of your browser :)
+    ; It is acccessed like this (since it accesses the stack downward): vec_num -> error code -> rip -> cs -> rflags -> rsp -> ss (all present, some may be dummy, look in macros)
+    lea     rdx, [rsp + 120]
 
 .begin_call
     ; Save vector number for EOI logic (function call may clobber RDI)
     mov     r10, rdi
     
     ; Call C interrupt handler
+    sub     rsp, 8
     call    isr_handler64
+    add     rsp, 8
     
     ; Send EOI (End of Interrupt) if this was an IRQ (vector >= 32)
     cmp     r10, 32
@@ -192,108 +114,86 @@ isr_common_stub64:
 extern Schedule
 
 .dpc:
+    ; Enable Interrupts.
+    sti
 
-    ; Dispatch ALL DPCs. -- Side Note: DPCs that WILL NOT RETURN, do not get executed, instead they place a global flag.
-    ; DPCs that don't return are very much - not common, I think the Scheduler DPC is the only one that does this.
-    mov rax, gs:[0] ; currentCpu.schedulerEnabled -- (will also tell if IRQL >= DISPATCH_LEVEL if set.)
-    movzx eax, byte [rax + 0xC]
-    test eax, eax ; Test if SET.
-    jz .check_for_schedule ; If it is NOT set (which means we were already at >= DISPATCH_LEVEL), skip the retiring of DPCs
-    jmp .retire ; Else, we were below DISPATCH_LEVEL so we are allowed to retire DPCs.
+    ; Retire all DPCs (this will not be done in the scheduler, as we will need to know if a schedule will happen, because it will not return)
+    mov r15, gs:[0] ; &thisCPU
+    mov r15, [r15 + 0x70] ; *(&thisCPU.DeferredRoutineQueue.dpcQueueHead)
+    jz .exit ; No DPCs.
 
-.retire:
-    mov rax, gs:[0] ; CPU ptr
-    mov rax, [rax + 0x70] ; DeferredRoutineQueue.dpcQueueHead
-    test rax, rax
-    jz .check_for_schedule
+    ; Check if we are allowed to retire even. the flag will tell us if we were at DISPATCH_LEVEL or not.
+    mov r15, gs:[0] ; &thisCPU
+    mov r15, [r15 + 0xC] ; *(&thisCPU.schedulerEnabled)
+    test r15, r15
+    jz .exit ; We are not allowed to schedule or retire DPCs (since we are at DISPATCH_LEVEL or above.)
+
+    ; Finally, retire the DPCs. (all DPCs must return, if not - bugcheck)
     call RetireDPCs
 
-.check_for_schedule
-    
-    ; dev note: there is no need to compare atomically, as this is the current CPU (and this is no longer a global variable, obviously as every CPU has different timeslice.)
-    ; which is why I changed to atomic operations, then reverted.
+    ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
+    mov r15, gs:[0] ; &thisCPU
+    cmp byte [r15 + 0x60], 0 ; *(&thisCPU.schedulePending)
+    jz .exit ; No schedule pending...
 
-    mov rax, gs:[0]
-    cmp byte [rax + 0x60], 0
-    jz .done
+    ; All DPCs retired, and a schedule is pending, Schedule. (and clear the pending flag, so we dont always re-enter)
+    mov byte [r15 + 0x60], 0
 
-    ; clear it, so we don't re-enter.
-    mov byte [rax + 0x60], 0
-    
-    ; cleanup the IST stack (in older versions, it didnt and it could have overflown overtime, and probably would have with continious thread use.)
-    
-    ; first pop all gprs
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-    pop     rbp
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rcx
-    pop     rbx
-    pop     rax
+; scheduler routine
+.linkinpark:
+    ; Schedule now. - pop all gprs, remove vector and err code, and pop 5 qwords that the CPU pushed since we will 100% not return.
+    pop    r15
+    pop    r14
+    pop    r13
+    pop    r12
+    pop    r11
+    pop    r10
+    pop    r9
+    pop    r8
+    pop    rbp
+    pop    rdi
+    pop    rsi
+    pop    rdx
+    pop    rcx
+    pop    rbx
+    pop    rax
 
     ; remove vector and err code from the stack
     add rsp, 16
 
-    ; check if it was a privilege change (when user mode comes, this is very important)
-    movzx eax, word [rsp + 8]   ; read saved CS
-    and   eax, 3
-    cmp   eax, 3 ; compare with user
-    jne .kernelm
-    jmp .userm
+    ; pop the 5 qwords the CPU pushed.
+    add rsp, 40
 
-.kernelm:
-    add rsp, 24 ; kernel mode, 3 qwords pushed.
-    jmp .linkinpark
-
-.userm:
-    add rsp, 40 ; user mode, 5 qwords pushed.
-
-.linkinpark:
-
-    ; Enable Interrupts
-    sti
-
-    ; Schedule now.
     call Schedule
+    int 8 ; Double Fault if we reached here, which we should never.
 
-    ; If Schedule was called, it would never return here, (and in restore_context, we switch RSPs so those pops and stack cleanup will happen anyway.)
+.exit:
+    ; cleanup the IST stack (in older versions, it didnt and it could have overflown overtime, and probably would have with continuous thread use.)
+    ; first pop all gprs
+    pop    r15
+    pop    r14
+    pop    r13
+    pop    r12
+    pop    r11
+    pop    r10
+    pop    r9
+    pop    r8
+    pop    rbp
+    pop    rdi
+    pop    rsi
+    pop    rdx
+    pop    rcx
+    pop    rbx
+    pop    rax
 
-.done:
+    ; remove vector and err code from the stack
+    add rsp, 16
 
-    ; Restore all general purpose registers in reverse order
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-    pop     rbp
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rcx
-    pop     rbx
-    pop     rax
-    
-    ; Clean up vector and error code from stack
-    add     rsp, 16
-    
-    ; Re-enable interrupts and return
-    sti
+    ; Return from interrupt. pops all CPU pushed regs from the stack back (5 qwords.)
     iretq
 
 ;---------------------------------------------------------------------------
-; Instantiate ISRs 0-31 (cpu0 Exceptions)
+; Instantiate ISRs 0-31 (cpu Exceptions)
 ;---------------------------------------------------------------------------
 DEFINE_ISR 0
 DEFINE_ISR 1

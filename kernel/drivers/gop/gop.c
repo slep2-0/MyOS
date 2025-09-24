@@ -527,8 +527,12 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
             case 'u': gop_print_dec(gop, va_arg(ap, uint64_t), color); break;
             case 'x': gop_print_hex_minimal(gop, va_arg(ap, uint64_t), color); break;
             case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
-            case 'c': gop_put_char(gop, (char)va_arg(ap, uint64_t), color); break;
-            case 'b': gop_print_binary(gop, (char)va_arg(ap, uint64_t), color); break;
+            case 'c':
+                gop_put_char(gop, (char)va_arg(ap, int), color);    // chars promoted to int
+                break;
+            case 'b':
+                gop_print_binary(gop, va_arg(ap, uint64_t), color); // if 'b' means 64-bit binary
+                break;
             case 's': {
                 const char* str = va_arg(ap, const char*);
                 if (str) gop_puts(gop, str, color);

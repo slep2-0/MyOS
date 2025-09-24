@@ -63,6 +63,7 @@ typedef enum _BUGCHECK_CODES {
     MEMORY_DOUBLE_FREE,
     MEMORY_CORRUPT_FOOTER,
     GUARD_PAGE_DEREFERENCE, // A guard page has been dereferenced.
+    KERNEL_STACK_OVERFLOWN // A kernel stack has been overflown (and didnt hit the guard page) (detected by canary)
 } BUGCHECK_CODES;
 
 typedef struct _GUARD_PAGE_DB {

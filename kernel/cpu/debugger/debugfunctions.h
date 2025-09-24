@@ -13,6 +13,16 @@
 #include "../../intrin/intrin.h"
 #include "../../cpu/cpu_types.h"
 
+#ifndef FORCEINLINE
+#if defined(__clang__) || defined(__GNUC__)
+#define FORCEINLINE static inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define FORCEINLINE static __forceinline
+#else
+#define FORCEINLINE static inline
+#endif
+#endif
+
 typedef void (*DebugCallback)(void*);
 
 typedef enum _DEBUG_ACCESS_MODE {
@@ -45,5 +55,14 @@ typedef struct _DBG_CALLBACK_INFO {
 MTSTATUS MtSetHardwareBreakpoint(DebugCallback CallbackFunction, void* BreakpointAddress, DEBUG_ACCESS_MODE AccessMode, DEBUG_LENGTH Length);
 MTSTATUS MtClearHardwareBreakpointByIndex(int index);
 MTSTATUS MtClearHardwareBreakpointByAddress(void* BreakpointAddress);
-
+/// <summary>
+/// Returns the current function return address pointer (for monitoring)
+/// Usage: MtSetHardwareBreakpoint(callback, MtGetFunctionRipAddress(), accessMode, length)
+/// This function is inline, which means it will not return 'this' function ret addr, but the function this inline function is being executed on.
+/// </summary>
+/// <returns>Pointer to the slot of the ret addr in the stack ([rbp+1])</returns>
+FORCEINLINE void* MtGetFunctionRipAddress(void) {
+    void** frame = (void**)__builtin_frame_address(0); // returns RBP
+    return (void*)(frame + 1);  // address of saved RIP slot
+}
 #endif

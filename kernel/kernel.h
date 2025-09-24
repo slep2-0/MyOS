@@ -18,8 +18,9 @@
 
 typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
 typedef struct _BOOT_INFO BOOT_INFO;
-typedef struct _CTX_FRAME CTX_FRAME;
 
+__attribute__((noreturn))
+void __stack_chk_fail(void);
 
 // Standard globals
 extern bool isBugChecking;

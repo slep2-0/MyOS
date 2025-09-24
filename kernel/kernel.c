@@ -62,7 +62,6 @@ void copy_gop(BOOT_INFO* boot_info) {
     gop_local = *(boot_info->Gop);
 
     // Update all relevant pointers to point to the local copy
-    boot_info->Gop = &gop_local;
     boot_info_local.Gop = &gop_local;
 }
 
@@ -127,8 +126,12 @@ static inline bool interrupts_enabled(void) {
 void kernel_idle_checks(void) {
     tracelast_func("kernel_idle_checks - Thread");
     gop_printf(0xFF000FF0, "Reached the scheduler!\n");
-    assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
     while (1) {
+        // Reaching the idle thread with interrupts off means something DID NOT sti.
+        if (!interrupts_enabled()) {
+            gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
+            MtPrintStackTrace(15);
+        }
         __hlt();
         //Schedule();
     }
@@ -158,13 +161,13 @@ static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
     gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
     char buf[256];
-    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p\n", MtGetCurrentThread(), mut);
-    MTSTATUS status = vfs_mkdir("/testdir/");
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); __hlt(); }
-    status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
+    MTSTATUS status = vfs_mkdir("/testdir/");
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
+    status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {
@@ -180,32 +183,39 @@ static void funcWithParam(MUTEX* mut) {
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
 
-static void bp_test(void* vinfo) {
+static void bp_exec(void* vinfo) {
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
     if (!info) return;
 
-    gop_printf_forced(0xFFFFFF00, "HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
+    gop_printf_forced(0xFFFFFF00, "(EXECUTE) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
         info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
-
-    MtClearHardwareBreakpointByIndex(info->BreakIdx);
-}
-
-static void bp_handler(void* vinfo) {
-    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
-    if (!info) { gop_printf(COLOR_RED, "**No Info.**\n"); return; }
-
-    gop_printf_forced(COLOR_RED, "**HWBP: idx=%d variable addr=%p rip: %p DR6=%p**\n",
-        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
-
-    MtClearHardwareBreakpointByIndex(info->BreakIdx);
+    gop_printf(COLOR_RED, "Stack Trace:\n");
+    MtPrintStackTrace(10);
     __hlt();
 }
 
 // All CPUs
 uint8_t apic_list[MAX_CPUS];
-uint32_t cpu_count = 0;
+volatile uint32_t cpu_count = 0;
+
+/// The Stack Overflow check only checks for minor overflows, that don't completetly smash the stack, yet do change the canaries (since it only checks in function epilogue)
+#ifdef DEBUG
+// Stack Canary GCC
+volatile uintptr_t __stack_chk_guard;
+
+__attribute__((noreturn))
+void __stack_chk_fail(void) {
+    __cli();
+    BUGCHECK_ADDITIONALS addt = { 0 };
+    ksnprintf(addt.str, sizeof(addt.str), "Kernel Has Encountered a buffer overflow, return address: %p (will signify the stack check guard, it only shows which function this was triggered)", __builtin_return_address(0));
+    CTX_FRAME ctx;
+    SAVE_CTX_FRAME(&ctx);
+    MtBugcheckEx(&ctx, NULL, KERNEL_STACK_OVERFLOWN, &addt, true);
+}
+#endif
 
 /** Remember that paging is on when this is called, as UEFI turned it on. */
+__attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
     //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
@@ -227,14 +237,38 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
     _MtSetIRQL(PASSIVE_LEVEL);
+#ifdef DEBUG
+    {
+        uint64_t temp_canary = 0;
+        bool rdrand_ok = false;
+        for (int n = 0; n < 64; n++) {
+            if (__rdrand64(&temp_canary)) {
+                rdrand_ok = true;
+                break;
+            }
+        }
+
+        if (rdrand_ok) {
+            __stack_chk_guard = temp_canary;
+        }
+        else {
+            // rdrand didnt give a value, use timestamp of CPU cycles.
+            __stack_chk_guard = __rdtsc();
+        }
+
+        // The canary should never be zero.
+        if (__stack_chk_guard == 0) {
+            __stack_chk_guard = 0xDEADC0DEDEADC0DE; // fallback
+        }
+    }
+#endif
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     init_dpc_system();
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     extern uint32_t cursor_x, cursor_y;
     cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
-    uint64_t rip;
-    //gop_printf(COLOR_ORANGE, "(offsets 16/9/2025)\nself: %x\ncurrentIrql: %x\nschedulerEnabled: %x\ncurrentThread: %x\nreadyQueue: %x\nID: %x\nlapic_ID: %x\nVirtStackTop: %x\ntss: %x\nIstPFStackTop: %x\nIstDFStackTop: %x\nflags: %x\nschedulePending: %x\ngdt: %x\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueHead: %p\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueTail: %p\n",
+    //gop_printf(COLOR_ORANGE, "(offsets 20/9/2025) (CPU OFFSETS)\nself: %x\ncurrentIrql: %x\nschedulerEnabled: %x\ncurrentThread: %x\nreadyQueue: %x\nID: %x\nlapic_ID: %x\nVirtStackTop: %x\ntss: %x\nIstPFStackTop: %x\nIstDFStackTop: %x\nflags: %x\nschedulePending: %x\ngdt: %x\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueHead: %p\nstruct _DPC_QUEUE DeferredRoutineQueue.dpcQueueTail: %p\n",
     //    offsetof(CPU, self),
     //    offsetof(CPU, currentIrql),
     //    offsetof(CPU, schedulerEnabled),
@@ -251,7 +285,39 @@ void kernel_main(BOOT_INFO* boot_info) {
     //    offsetof(CPU, gdt),
     //    offsetof(CPU, DeferredRoutineQueue.dpcQueueHead),
     //    offsetof(CPU, DeferredRoutineQueue.dpcQueueTail)
-    //); __hlt();
+    //);
+    //gop_printf(COLOR_CYAN, "(THREAD OFFSETS)\nregisters: %x\nthreadState: %x\ntimeSlice: %x\norigTimeSlice: %x\nnextThread: %x\nTID: %x\nstartStackPtr: %x\nregisters themselves (offs:\n RAX: %x | RBX: %x | RCX: %x | RDX: %x | RSI: %x | RDI: %x | RBP: %x |\n R8: %x | R9: %x | R10: %x | R11: %x | R12: %x | R13: %x |\n R14: %x | R15: %x | RSP: %x | RIP: %x | ",
+    //    offsetof(Thread, registers),
+    //    offsetof(Thread, threadState),
+    //    offsetof(Thread, timeSlice),
+    //    offsetof(Thread, origTimeSlice),
+    //    offsetof(Thread, nextThread),
+    //    offsetof(Thread, TID),
+    //    offsetof(Thread, startStackPtr),
+    //    offsetof(CTX_FRAME, rax),
+    //    offsetof(CTX_FRAME, rbx),
+    //    offsetof(CTX_FRAME, rcx),
+    //    offsetof(CTX_FRAME, rdx),
+    //    offsetof(CTX_FRAME, rsi),
+    //    offsetof(CTX_FRAME, rdi),
+    //    offsetof(CTX_FRAME, rbp),
+    //    offsetof(CTX_FRAME, r8),
+    //    offsetof(CTX_FRAME, r9),
+    //    offsetof(CTX_FRAME, r10),
+    //    offsetof(CTX_FRAME, r11),
+    //    offsetof(CTX_FRAME, r12),
+    //    offsetof(CTX_FRAME, r13),
+    //    offsetof(CTX_FRAME, r14),
+    //    offsetof(CTX_FRAME, r15),
+    //    offsetof(CTX_FRAME, rsp),
+    //    offsetof(CTX_FRAME, rip)
+    //    // LIMIT OF VARARGS
+    //);  
+    //gop_printf(COLOR_CYAN, "RFLAGS: %x |\n",
+    //    offsetof(CTX_FRAME, rflags)
+    //    );
+    //__hlt();
+    uint64_t rip;
     __asm__ volatile (
         "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
         "1:"                     // The label whose address we want
@@ -296,10 +362,8 @@ void kernel_main(BOOT_INFO* boot_info) {
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
-    volatile int x = 1;
-    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_test, (void*)&x, DEBUG_ACCESS_WRITE, DEBUG_LEN_4);
+    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
     gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
-    x = 2;
     status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
@@ -308,14 +372,13 @@ void kernel_main(BOOT_INFO* boot_info) {
         MtBugcheck(&ctx, NULL, FILESYSTEM_PANIC, 0, false);
     }
     TIME_ENTRY currTime = get_time();
-    MtSetHardwareBreakpoint(bp_handler, (void*)0x10, DEBUG_ACCESS_READWRITE, DEBUG_LEN_8);
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
-    char listings[256];
-    status = vfs_listdir("/", listings, sizeof(listings));
-    gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
-    gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
-    gop_printf(COLOR_CYAN, "%s", listings);
+    //char listings[256];
+    //status = vfs_listdir("/", listings, sizeof(listings));
+    //gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
+    //gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
+    //gop_printf(COLOR_CYAN, "%s", listings);
     MUTEX* sharedMutex =  MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MtInitializeMutexObject(sharedMutex);
@@ -334,4 +397,5 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_lapic_timer(100); // 10ms
     __sti();
     Schedule();
+    __builtin_unreachable();
 }

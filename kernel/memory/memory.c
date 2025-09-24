@@ -147,6 +147,8 @@ void init_heap(void) {
 /// </summary>
 /// <param name="newblock">The pointer to the new block to insert in ascending order e.g: (A -> A[A + 0x1000] -> NULL (or A[A + 0x2000])</param>
 static void insert_block_sorted(BLOCK_HEADER* newblock) {
+    assert((uintptr_t)newblock >= HEAP_START && (uintptr_t)newblock + sizeof(BLOCK_HEADER) <= heap_current_end,
+        "newblock in heap range");
     tracelast_func("insert_block_sorted");
     assert(newblock != NULL, "newblock != NULL");
     assert(newblock->magic == HEADER_MAGIC, "newblock magic");
@@ -275,34 +277,6 @@ static inline uintptr_t align_up_uintptr(uintptr_t v, size_t a) {
     uintptr_t rem = v % a;
     if (rem == 0) return v;
     return v + (a - rem);
-}
-
-static void add_to_guard_page_db(void* guard_address, size_t guard_page_size) {
-    tracelast_func("add_to_guard_page_db");
-
-    // 1. Allocate memory for the new database node.
-    GUARD_PAGE_DB* new_node = (GUARD_PAGE_DB*)MtAllocateVirtualMemory(sizeof(GUARD_PAGE_DB), sizeof(void*));
-
-    if (!new_node) {
-        // If we can't even allocate a tiny node for the DB, the system is in trouble.
-        MtBugcheck(NULL, NULL, MEMORY_LIMIT_REACHED, 8, false);
-        return; // Unreachable
-    }
-
-    // 2. Populate the new node's data.
-    new_node->address = guard_address;
-    new_node->pageSize = guard_page_size;
-
-    // 3. Acquire a lock to safely modify the list.
-    IRQL oldIrql;
-    MtAcquireSpinlock(&guard_db_lock, &oldIrql);
-
-    // 4. Link the new node to the front of the list.
-    new_node->next = guard_db_head; // The new node points to the old head.
-    guard_db_head = new_node;      // The head now points to our new node.
-
-    // 5. Release the lock.
-    MtReleaseSpinlock(&guard_db_lock, oldIrql);
 }
 
 // Note to self: Watch out for deadlocks.
@@ -466,6 +440,11 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
             // Zero the user area
             kmemset(user_ptr, 0, wanted_size);
             MtReleaseSpinlock(&heap_lock, oldIrql);
+            /*gop_printf(COLOR_CYAN, "Allocated range %p - %p (%u bytes) for caller at %p\n",
+                user_ptr,
+                (void*)((uintptr_t)user_ptr + wanted_size),
+                wanted_size,
+                __builtin_return_address(0));*/
             return user_ptr;
         }
 
@@ -714,6 +693,7 @@ void MtFreeVirtualMemory(void* ptr) {
 
         // Begin unmapping the pages.
         for (size_t i = 0; i < pages_to_unmap; i++) {
+            if (!MtIsAddressValid((void*)(region_start + (i * FRAME_SIZE)))) break;
             unmap_page((void*)(region_start + (i * FRAME_SIZE)));
         }
         // DO NOT TOUCH BLK NOW, IT IS UNMAPPED.

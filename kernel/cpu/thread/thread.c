@@ -7,15 +7,17 @@
 #define ALIGN_DELTA       4u
 #define MAX_FREE_POOL     1024u
 
-#define THREAD_STACK_SIZE (1024*16) // 16 KiB
+#define THREAD_STACK_SIZE (1024*24) // 24 KiB
 #define THREAD_ALIGNMENT 16
-
+static SPINLOCK g_tid_lock = { 0 };
 ///
 // Call with freedTid == 0 ? allocate a new TID (returns 0 on failure)
 // Call with freedTid  > 0 ? release that TID back into the pool (always returns 0)
 ///
 static uint32_t ManageTID(uint32_t freedTid)
 {
+    IRQL oldIrql;
+    MtAcquireSpinlock(&g_tid_lock, &oldIrql);
     static uint32_t nextTID = MIN_TID;
     static uint32_t freePool[MAX_FREE_POOL];
     static uint32_t freeCount = 0;
@@ -26,7 +28,6 @@ static uint32_t ManageTID(uint32_t freedTid)
         if ((freedTid % ALIGN_DELTA) == 0 && freeCount < MAX_FREE_POOL) {
             freePool[freeCount++] = freedTid;
         }
-        // else drop silently
     }
     else { 
         // Allocate path:
@@ -46,6 +47,7 @@ static uint32_t ManageTID(uint32_t freedTid)
             }
         }
     }
+    MtReleaseSpinlock(&g_tid_lock, oldIrql);
     return result;
 }
 
@@ -83,6 +85,14 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
     ThreadExit(thread);
 }
 
+static void bp_test(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    if (!info) return;
+
+    gop_printf_forced(0xFFFFFF00, "(READ) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
+        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
+}
+
 void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTicks TIMESLICE, bool kernelThread) {
     if (!kernelThread) {
         /// TODO implement user mode.
@@ -90,6 +100,17 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     }
 
     uint32_t tid = ManageTID(0);
+
+    if (!tid) {
+        CTX_FRAME ctx;
+        SAVE_CTX_FRAME(&ctx);
+        uint32_t RIP;
+        GET_RIP(RIP);
+        BUGCHECK_ADDITIONALS addt = { 0 };
+        ksnprintf(addt.str, sizeof(addt.str), "Creation of new TID resulted in an error <--> MtCreateThread");
+        addt.ptr = (void*)(uintptr_t)RIP;
+        MtBugcheckEx(&ctx, NULL, THREAD_ID_CREATION_FAILURE, &addt, true);
+    }
 
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
@@ -133,22 +154,16 @@ void MtCreateThread(ThreadEntry entry, THREAD_PARAMETER parameter, timeSliceTick
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
     cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
 
-    if (!tid) {
-        CTX_FRAME ctx;
-        SAVE_CTX_FRAME(&ctx);
-        uint32_t RIP;
-        GET_RIP(RIP);
-        BUGCHECK_ADDITIONALS addt = { 0 };
-        ksnprintf(addt.str, sizeof(addt.str), "Creation of new TID resulted in an error <--> MtCreateThread");
-        addt.ptr = (void*)(uintptr_t)RIP;
-        MtBugcheckEx(&ctx, NULL, THREAD_ID_CREATION_FAILURE, &addt, true);
-    }
+    // Create it's RFLAGS with IF bit set to 1.
+    cfm->rflags |= (1 << 9ULL);
+
     // Set it's registers and others.
     thread->registers = *cfm;
     thread->threadState = READY;
     thread->nextThread = NULL;
     thread->TID = tid;
     MtEnqueueThreadWithLock(&thisCPU()->readyQueue, thread);
+    //MtSetHardwareBreakpoint((DebugCallback)bp_test, &thread->registers.rip, DEBUG_ACCESS_WRITE, DEBUG_LEN_8);
     // Lower IRQL.
     MtLowerIRQL(oldIrql);
 }

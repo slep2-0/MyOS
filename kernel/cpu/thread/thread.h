@@ -46,6 +46,6 @@ Thread* MtGetCurrentThread(void);
 /// <summary>
 /// Acquired from mutex.asm --- Will save current thread's registers, and schedule it. (its RIP would be after this function call, so you are good)
 /// </summary>
-extern void MtSleepCurrentThread(void);
+extern void MtSleepCurrentThread(CTX_FRAME* threadRegisters);
 
 #endif

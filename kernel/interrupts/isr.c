@@ -98,7 +98,7 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         break;
     case LAPIC_INTERRUPT:
         MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
-        lapic_handler(schedulerEnabled);
+        lapic_handler(schedulerEnabled, ctx, intfr);
         MtLowerIRQL(oldIrql);
         break;
     case LAPIC_SIV_INTERRUPT:

@@ -8,6 +8,22 @@
 #include "scancodes.h"
 #include "../idt.h"
 
+#define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
+    do {                                                             \
+        gop_printf(COLOR_RED,                                         \
+            "RAX=%p RBX=%p RCX=%p RDX=%p\n"           \
+            "RSI=%p RDI=%p RBP=%p RSP=%p\n"           \
+            "R8 =%p R9 =%p R10=%p R11=%p\n"           \
+            "R12=%p R13=%p R14=%p R15=%p\n"           \
+            "RIP=%p RFLAGS=%p\n",                               \
+            (ctxptr)->rax, (ctxptr)->rbx, (ctxptr)->rcx, (ctxptr)->rdx, \
+            (ctxptr)->rsi, (ctxptr)->rdi, (ctxptr)->rbp, (intfrptr)->rsp, \
+            (ctxptr)->r8, (ctxptr)->r9, (ctxptr)->r10, (ctxptr)->r11,    \
+            (ctxptr)->r12, (ctxptr)->r13, (ctxptr)->r14, (ctxptr)->r15, \
+            (intfrptr)->rip, (intfrptr)->rflags);                       \
+        __hlt();                                                      \
+    } while (0)
+
 // NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
 
 
@@ -140,13 +156,44 @@ static DPC scheduleDpc = {
     .priority = HIGH_PRIORITY
 };
 
-void timer_handler(bool schedulerEnabled) {
+void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
+    // revamp this stupid coding flow
     if (!thisCPU()->schedulePending) {
         if (schedulerEnabled) {
             if (thisCPU()->currentThread) {
                 if (__sync_sub_and_fetch(&thisCPU()->currentThread->timeSlice, 1) <= 0) {
                     thisCPU()->currentThread->timeSlice = thisCPU()->currentThread->origTimeSlice;
-                    tracelast_func("Queuing DPC in timer_handler");
+                    tracelast_func("Queuing DPC in timer_handler, and saving regs.");
+                    /* Setup of DPC */
+                    Thread* thread_to_save = thisCPU()->currentThread;
+                    CTX_FRAME* saved_regs = &thread_to_save->registers;
+
+                    // Values taken from the interrupt frame
+                    saved_regs->rip = intfr->rip;
+                    saved_regs->rsp = intfr->rsp;
+                    saved_regs->rflags = intfr->rflags;
+
+                    // General-purpose registers from the context frame
+                    saved_regs->r15 = ctx->r15;
+                    saved_regs->r14 = ctx->r14;
+                    saved_regs->r13 = ctx->r13;
+                    saved_regs->r12 = ctx->r12;
+
+                    saved_regs->r11 = ctx->r11;
+                    saved_regs->r10 = ctx->r10;
+                    saved_regs->r9 = ctx->r9;
+                    saved_regs->r8 = ctx->r8;
+
+                    saved_regs->rbp = ctx->rbp;
+                    saved_regs->rdi = ctx->rdi;
+                    saved_regs->rsi = ctx->rsi;
+
+                    saved_regs->rcx = ctx->rcx;
+                    saved_regs->rbx = ctx->rbx;
+                    saved_regs->rdx = ctx->rdx;
+                    saved_regs->rax = ctx->rax;
+                    //PRINT_ALL_REGS_AND_HALT(ctx, intfr);
+                    /* Ended */
                     MtQueueDPC(&scheduleDpc);
                     /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
                 }
@@ -169,8 +216,8 @@ void timer_handler(bool schedulerEnabled) {
 
 extern void lapic_eoi(void);
 
-void lapic_handler(bool schedulerEnabled) {
-    timer_handler(schedulerEnabled);
+void lapic_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
+    timer_handler(schedulerEnabled, ctx, intfr);
     lapic_eoi();
 }
 

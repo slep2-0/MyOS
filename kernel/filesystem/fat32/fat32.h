@@ -101,6 +101,8 @@ typedef struct _FAT32_FSINFO {
 	uint32_t sectors_per_cluster;
 	uint32_t fat_start;
 	uint16_t reserved_sector_count;
+	uint32_t total_sectors;
+	uint32_t total_clusters;
 } FAT32_FSINFO;
 
 // Initialize a FAT32 FileSystem on a given block device.
@@ -190,7 +192,6 @@ MTSTATUS fat32_delete_directory(const char* path);
 /// <param name="path">Full path to delete file.</param>
 /// <returns>MTSTATUS Status code.</returns>
 MTSTATUS fat32_delete_file(const char* path);
-
 /// <summary>
 /// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries / deleted / nonexistent)
 /// </summary>

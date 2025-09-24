@@ -30,6 +30,9 @@ void InitScheduler(void) {
     cfm.rsp = (uint64_t)(idleStack + IDLE_STACK_SIZE);
     cfm.rip = (uint64_t)kernel_idle_checks;
 
+    // Enable Interrupts on its RFLAGS.
+    cfm.rflags |= (1 << 9ULL);
+
     // Assign the clean context to the idle thread
     idleThread.registers = cfm;
     idleThread.threadState = READY;
@@ -61,12 +64,13 @@ static void enqueue_runnable(Thread* t) {
     }
 }
 
+__attribute__((noreturn))
 void Schedule(void) {
     tracelast_func("Schedule");
-    //gop_printf(COLOR_PURPLE, "In scheduler\n");
+    //gop_printf(COLOR_PURPLE, "**In scheduler**\n");
+
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
-
     Thread* prev = thisCPU()->currentThread;
 
     // always check if exists, didn't check and got faulted.
@@ -99,10 +103,10 @@ void Schedule(void) {
     if (!next) {
         next = &idleThread;
     }
-    //gop_printf(COLOR_RED, "The thread's timeslice before change is: %d", next->timeSlice);
     next->threadState = RUNNING;
     thisCPU()->currentThread = next;
     MtLowerIRQL(oldIrql);
     tracelast_func("Entering restore_context.");
     restore_context(&next->registers);
+    __builtin_unreachable();
 }

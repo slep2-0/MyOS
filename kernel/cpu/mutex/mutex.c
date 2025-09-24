@@ -21,15 +21,14 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
     // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
-    IRQL oldirql;
-    MtAcquireSpinlock(&mut->lock, &oldirql);
-
     bool isValid = MtIsAddressValid((void*)mut);
     assert((isValid) == 1, "MUTEX Pointer given to function isn't paged in.");
     if (!isValid) {
-        MtReleaseSpinlock(&mut->lock, oldirql);
         return MT_INVALID_ADDRESS;
     }
+
+    IRQL oldirql;
+    MtAcquireSpinlock(&mut->lock, &oldirql);
 
     //assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
     if (mut->ownerTid != 0) {
@@ -62,6 +61,8 @@ MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
 
 MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
     tracelast_func("MtAcquireMutexObject");
+    if (!mut) return MT_INVALID_ADDRESS;
+
     {
         // IRQL Constraints.
         uint64_t rip;
@@ -69,41 +70,39 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
         enforce_max_irql(DISPATCH_LEVEL, &rip);
     }
 
-    // Start of function
-    if (!mut) return MT_INVALID_ADDRESS;
+    for (;;) {
+        IRQL mflags;
+        MtAcquireSpinlock(&mut->lock, &mflags);
+
+        bool isValid = MtIsAddressValid((void*)mut);
+        if (!isValid) {
+            MtReleaseSpinlock(&mut->lock, mflags);
+            return MT_INVALID_ADDRESS;
+        }
+
+        Thread* currThread = MtGetCurrentThread();
+
+        if (!mut->locked) {
+            mut->locked = true;
+            mut->ownerTid = currThread->TID;
+            MtReleaseSpinlock(&mut->lock, mflags);
 #ifdef DEBUG
-    gop_printf(COLOR_PURPLE, "MtAcquireMutex hit - thread: %p | mut: %p\n", MtGetCurrentThread(), mut);
+            gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex successfully acquired by: %p. MUT: %p\n", currThread, mut);
 #endif
-    IRQL mflags;
-    MtAcquireSpinlock(&mut->lock, &mflags);
-    bool isValid = MtIsAddressValid((void*)mut);
-    assert((isValid) == true, "MUTEX Pointer given to function isn't paged in.");
-    if (!isValid) {
+            return MT_SUCCESS;
+        }
+
+        /* mutex is locked -> enqueue/wait */
+#ifdef DEBUG
+        gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex busy, enqueuing: MUT: %p\n", mut);
+#endif
+        /* Enqueue under the event lock inside MtWaitForEvent; release mut->lock first */
         MtReleaseSpinlock(&mut->lock, mflags);
-        return MT_INVALID_ADDRESS;
+
+        MtWaitForEvent(&mut->SynchEvent);
+
+        /* When MtWaitForEvent returns we loop and try again atomically */
     }
-    Thread* currThread = MtGetCurrentThread();
-    if (!mut->locked) {
-        // Acquire the mutex while holding mut->lock
-        mut->locked = true;
-        mut->ownerTid = currThread->TID;
-        MtReleaseSpinlock(&mut->lock, mflags);
-#ifdef DEBUG
-        gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex successfully acquired by: %p. MUT: %p\n", currThread, mut);
-#endif
-        return MT_SUCCESS;
-    }
-#ifdef DEBUG
-    gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex was attempted to be acquired when it is already locked. MUT: %p\n", mut);
-#endif
-    // Mutex is owned -> wait for event.
-    MtReleaseSpinlock(&mut->lock, mflags);
-    MtWaitForEvent(&mut->SynchEvent);
-#ifdef DEBUG
-    gop_printf(COLOR_GREEN, "[MUTEX-DEBUG] Mutex re-acquired by %p | MUT: %p\n", currThread, mut);
-#endif
-    // When woken, the releaser has transferred ownership while holding locks.
-    return MT_SUCCESS;
 }
 
 MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
@@ -128,8 +127,13 @@ MTSTATUS MtReleaseMutexObject(MUTEX* mut) {
         return MT_MUTEX_NOT_OWNED;
     }
 
-    MtReleaseSpinlock(&mut->lock, mflags);
+    // Clear ownership while still holding the spinlock
+    mut->ownerTid = 0;
+    mut->locked = false;
 
+
+    MtReleaseSpinlock(&mut->lock, mflags);
+    
     // Wake the selected thread by setting an event.
     MtSetEvent(&mut->SynchEvent);
 

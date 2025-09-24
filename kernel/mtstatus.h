@@ -29,8 +29,7 @@ typedef int32_t MTSTATUS;
 #define MT_ALREADY_EXISTS       ((MTSTATUS)0xC0000007L)
 #define MT_NOT_FOUND            ((MTSTATUS)0xC0000008L)
 #define MT_GENERAL_FAILURE		((MTSTATUS)0xC0000009L)
-#define MT_INVALID_LOCK			((MTSTATUS)0xC0000010L)
-#define MT_NO_RESOURCES			((MTSTATUS)0xC0000011L)
+#define MT_NO_RESOURCES			((MTSTATUS)0xC0000010L)
 
 //
 // ==========================
@@ -72,6 +71,7 @@ typedef int32_t MTSTATUS;
 #define MT_FAT32_CLUSTER_NOT_FOUND ((MTSTATUS)0xC2010012L) // The directory's / file cluster couldn't have been found.
 #define MT_FAT32_CLUSTER_GENERAL_FAILURE ((MTSTATUS)0xC2010013L) // General failure on a cluster operation.
 #define MT_FAT32_DIRECTORY_NOT_FOUND ((MTSTATUS)0xC2010014L) // FAT32 Directory not found.
+#define MT_FAT32_FILENAME_TOO_LONG	((MTSTATUS)0xC2010015L) // FAT32 Filename too long..
 
 //
 // ==========================
@@ -93,7 +93,7 @@ typedef int32_t MTSTATUS;
 // THREAD / SCHEDULER MTSTATUS
 // ==========================
 #define MT_THREAD_NOT_FOUND     ((MTSTATUS)0xC4000001L)
-#define MT_THREAD_CREATION_FAIL ((MTSTATUS)0xC4000002L)
+#define MT_THREAD_CREATION_FAILURE ((MTSTATUS)0xC4000002L)
 #define MT_SCHEDULER_ERROR      ((MTSTATUS)0xC4000003L)
 #define MT_INVALID_IRQL         ((MTSTATUS)0xC4000004L)
 
@@ -103,6 +103,7 @@ typedef int32_t MTSTATUS;
 // ==========================
 #define MT_MUTEX_ALREADY_OWNED ((MTSTATUS)0xC5000001L)
 #define MT_MUTEX_NOT_OWNED	   ((MTSTATUS)0xC5000002L)
+#define MT_INVALID_LOCK		   ((MTSTATUS)0xC500003L)
 
 //
 // ==========================

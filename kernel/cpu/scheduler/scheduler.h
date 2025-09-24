@@ -6,6 +6,9 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+// Voluntarily relinquish CPU, alias to Schedule.
+#define Yield() Schedule()
+
 #include "../cpu.h"
 #include "../../memory/memory.h"
 
@@ -28,8 +31,5 @@ void InitScheduler(void);
 
 // Core schedule function; performs a context switch
 void Schedule(void);
-
-// Voluntarily relinquish CPU -- Alias to Schedule()
-#define Yield() Schedule()
 
 #endif // SCHEDULER_H

@@ -30,6 +30,8 @@
 #endif
 #endif
 
+#include <stdbool.h>
+
 // Disable interrupts (cli)
 static inline void __cli(void) {
     __asm__ volatile ("cli");
@@ -245,5 +247,19 @@ static inline void __swapgs(void) {
     __asm__ volatile ("swapgs" ::: "memory");
 }
 
+static inline bool __rdrand64(uint64_t* out) {
+    unsigned char ok;
+    uint64_t val;
+    __asm__ volatile("rdrand %0; setc %1"
+        : "=r"(val), "=qm"(ok));
+    *out = val;
+    return ok; // 1=success, 0=failure
+}
+
+static inline uint64_t __rdtsc(void) {
+    uint32_t lo, hi;
+    __asm__ volatile ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ((uint64_t)hi << 32) | lo;
+}
 
 #endif // X86_INTRINSICS_H

@@ -25,6 +25,7 @@ extern GUARD_PAGE_DB* guard_db_head;
 
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
+extern void* threadAddr;
 
 static inline bool is_canonical_ptr(uint64_t x) {
     // x86_64 canonical: bits 63..48 must be sign-extension of bit 47
@@ -271,6 +272,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case IRQL_NOT_GREATER_OR_EQUAL:
         *s = "IRQL_NOT_GREATER_OR_EQUAL";
         break;
+    case KERNEL_STACK_OVERFLOWN:
+        *s = "KERNEL_STACK_OVERFLOWN";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -335,9 +339,14 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 	gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, err_code);
-    uint64_t rspIfExist;
+    uint64_t rspIfExist = (uint64_t)-1;
     if (context) {
-        rspIfExist = (context->rsp) ? context->rsp : (uint64_t)(-1);
+        if (isThereIntFrame) {
+            rspIfExist = int_frame->rsp;
+        }
+        else {
+            if (context->rsp) rspIfExist = context->rsp;
+        }
     }
 	gop_printf(0xFFFFFFFF, "**STOP CODE: ");
 	gop_printf(0xFF8B0000, "%s", stopCodeToStr);
@@ -348,7 +357,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             "RAX: %p RBX: %p RCX: %p RDX: %p\n\n"
             "RSI: %p RDI: %p RBP: %p RSP: %p\n\n"
             "R8 : %p R9 : %p R10: %p R11: %p \n\n"
-            "R12: %p R13: %p R14: %p R15: %p ISR RSP: %p\n\n\n",
+            "R12: %p R13: %p R14: %p R15: %p ISR RSP (current top): %p\n\n\n",
             context->rax,
             context->rbx,
             context->rcx,
@@ -384,21 +393,17 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             int_frame->rflags
         );
     }
-#ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
-#endif
 	if (isAdditionals) {
 		if (err_code == PAGE_FAULT) {
-            gop_printf(0xFFFFA500, "\n\n**FAULTY ADDRESS: %p**\n", additional);
+            gop_printf(0xFFFFA500, "\n\n**FAULTY ADDRESS: %p (tip, place a breakpoint on it)**\n", additional);
 		}
 		else {
             gop_printf(0xFFBF40BF, "\n\n**ADDITIONALS: %p**\n", additional);
 		}
 	}
-#ifdef DEBUG
-    uint32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
+    int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
-#endif
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
         gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest): ");
@@ -489,13 +494,9 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
             int_frame->rflags
         );
     }
-#ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
-#endif
-#ifdef DEBUG
     int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
-#endif
     if (isAdditionals) {
         if (additional->boolean) {
             gop_printf(COLOR_RED, "**BOOLEAN ADDITIONAL: %d**\n", additional->boolean);

@@ -26,7 +26,7 @@ void keyboard_handler(void);
 // Initiate timer with a specified frequency.
 void init_timer(unsigned long int frequency);
 // Handle Timer Interruptions.
-void timer_handler(bool schedulerEnabled);
+void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr);
 
 // Exceptions:
 
@@ -71,6 +71,6 @@ void alignment_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 // Handle severe machine check exception.
 void severe_machine_check_handler(CTX_FRAME* ctx, INT_FRAME* intfr);
 
-void lapic_handler(bool schedulerEnabled);
+void lapic_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr);
 #endif
 
