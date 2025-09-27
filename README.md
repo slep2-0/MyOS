@@ -80,9 +80,10 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 
 ## Important Notes
 
-I take PR's, recommendations, code safety & recommendations, anything basically :)
+I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
