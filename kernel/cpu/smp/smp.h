@@ -20,15 +20,19 @@
 
 #define LAPIC_ID 0x020
 #define SMP_MAGIC 0x4D4154414E454C00 // MATANEL\0
-#define SMP_A
+
+typedef enum _CPU_ACTION {
+    CPU_ACTION_STOP = 0,
+    CPU_ACTION_PRINT_ID = 1,
+    CPU_ACTION_PERFORM_TLB_SHOOTDOWN = 2
+} CPU_ACTION;
 
 typedef struct _SMP_BOOTINFO{
     uint64_t magic;
     uint64_t kernel_pml4_phys;  // from boot_info_local.Pml4Phys
     uint64_t ap_entry_virt;     // kernel virtual address of ap_main()
     uint32_t cpu_count;
-    uint32_t reserved;
-    uint64_t lapic_base;
+    uint32_t lapic_base;
 } SMP_BOOTINFO;
 
 typedef struct __attribute__((packed)) _GDTEntry64 {
@@ -74,7 +78,13 @@ _Static_assert(sizeof(GDTPtr) == 10, "GDTPtr must be 10 bytes (16-bit limit + 64
 #endif
 
 void ap_main(void);
-void smp_start(uint8_t* apic_list, uint32_t cpu_count);
+void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress);
+
+/// <summary>
+/// Send an IPI CPU_ACTION to CPUs.
+/// </summary>
+/// <param name="action">CPU_ACTION enumerator action.</param>
+void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter);
 
 #define IST_SIZE (16*1024) // 16 KiB
 #define IST_ALIGNMENT 16

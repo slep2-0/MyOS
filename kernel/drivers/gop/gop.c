@@ -508,11 +508,40 @@ int kstrcmp(const char* s1, const char* s2) {
     return (int)((unsigned char)*s1 - (unsigned char)*s2);
 }
 
+int kstrncmp(const char* s1, const char* s2, size_t length) {
+    if (!length) return length;
+    for (size_t i = 0; i < length; i++, s1++, s2++) {
+        if (*s1 != *s2) return (int)((unsigned char)*s1 - (unsigned char)*s2);
+        if (*s1 == '\0') return 0;
+    }
+    return 0;
+}
+
+SPINLOCK gop_lock = { 0 };
+
+static void acquire_tmp_lock(SPINLOCK* lock) {
+    if (!lock) return;
+    // spin until we grab the lock.
+    while (__sync_lock_test_and_set(&lock->locked, 1)) {
+        __asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+    }
+    // Memory barrier to prevent instruction reordering
+    __asm__ volatile("" ::: "memory");
+}
+
+static void release_tmp_lock(SPINLOCK* lock) {
+    if (!lock) return;
+    // Memory barrier before release
+    __asm__ volatile("" ::: "memory");
+    __sync_lock_release(&lock->locked);
+}
+
 void gop_printf(uint32_t color, const char* fmt, ...) {
+    tracelast_func("gop_printf");
+    acquire_tmp_lock(&gop_lock);
     bool prev_if = interrupts_enabled();
     __cli();
     GOP_PARAMS* gop = &gop_local;
-    tracelast_func("gop_printf");
     va_list ap;
     va_start(ap, fmt);
     for (const char* p = fmt; *p; p++) {
@@ -548,5 +577,6 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         }
     }
     va_end(ap);
+    release_tmp_lock(&gop_lock);
    if (prev_if) __sti();
 }

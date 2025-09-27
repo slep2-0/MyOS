@@ -32,10 +32,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "../../defs/stdarg_myos.h"
+#include "../../includes/stdarg_myos.h"
 #include "../../trace.h"
-#include "../../memory/memory.h"
-#include "../../memory/allocator/uefi_memory.h"
+#include "../../core/memory/memory.h"
+#include "../../core/uefi_memory.h"
 
  // integer font scale (1 = native 8×16, 2 = 16×32, etc)
 #define FONT_SCALE 1
@@ -85,6 +85,10 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...);
 // Compare two null-terminated strings.
 // Returns 0 if equal, <0 if s1 < s2, >0 if s1 > s2.
 int kstrcmp(const char* s1, const char* s2);
+
+// Compare two null-terminated strings with a maximum length to adhere.
+// Returns 0 if equal up to length, <0 if s1 < s2, >0 if s1 > s2.
+int kstrncmp(const char* s1, const char* s2, size_t length);
 
 size_t kstrlen(const char* str);
 char* kstrcpy(char* dst, const char* src);

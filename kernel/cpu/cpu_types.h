@@ -107,7 +107,7 @@ extern "C" {
 
         PROFILE_LEVEL = 27, /* alias */
         CLOCK_LEVEL = 28, /* secondary scheduler/timeouts   */
-        SYNCH_LEVEL = 29, /* internal SMP sync (unused now) */
+        SYNCH_LEVEL = 29, /* SMP ipi */
         POWER_LEVEL = 30, /* power-failure handling         */
         HIGH_LEVEL = 31  /* NMI / machine-check / bugcheck */
     } IRQL;
@@ -287,7 +287,7 @@ extern "C" {
     typedef enum _CPU_FLAGS {
         CPU_ONLINE = 1 << 0,  // 0b0001
         CPU_HALTED = 1 << 1,  // 0b0010
-        CPU_BUSY = 1 << 2,  // 0b0100
+        CPU_DOING_IPI = 1 << 2,  // 0b0100
         CPU_UNAVAILABLE = 1 << 3   // 0b1000
     } CPU_FLAGS;
 
@@ -313,17 +313,20 @@ extern "C" {
         bool schedulerEnabled;
         struct _Thread* currentThread;
         struct _Queue readyQueue;
-        uint32_t ID;
+        uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
         uint32_t lapic_ID;
         void* VirtStackTop; // CPU Stack
         void* tss;
         void* IstPFStackTop; // Page Fault IST Stack
         void* IstDFStackTop; // Double Fault IST Stack
-        uint64_t flags;
+        volatile uint64_t flags;
         bool schedulePending;
         uint64_t* gdt;
         struct _DPC_QUEUE DeferredRoutineQueue;
         struct _DPC CurrentDeferredRoutine;
+        Thread idleThread; // Idle thread for the current CPU.
+        uint32_t IpiAction; // IPI Action specified in the function.
+        uint64_t IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
     } CPU;
 
     /* --------------------------------------------------------------------------
@@ -335,6 +338,7 @@ extern "C" {
         EVENT SynchEvent;   /* event used for waking waiters */
         bool locked;        /* fast-check boolean (protected by lock) */
         SPINLOCK lock;      /* protects ownerTid/locked and wait list */
+        struct _Thread* ownerThread; /* pointer to current thread that holds the mutex */
     } MUTEX;
 
     /* --------------------------------------------------------------------------

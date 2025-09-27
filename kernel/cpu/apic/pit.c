@@ -1,6 +1,6 @@
 #include "pit.h"
 #include <stdint.h>
-#include "../../intrin/intrin.h"
+#include "../../intrinsics/intrin.h"
 
 /* cli/sti helpers */
 static inline void disable_interrupts(void) { __asm__ volatile ("cli" ::: "memory"); }

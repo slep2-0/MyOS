@@ -8,7 +8,7 @@
 #define X86_TIME_H
 #include <stdint.h>
 #include <stdbool.h>
-#include "intrin/intrin.h"
+#include "intrinsics/intrin.h"
 
 // RTC CMOS ports
 #define CMOS_ADDRESS 0x70

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "intrin/intrin.h"
+#include "intrinsics/intrin.h"
 
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25

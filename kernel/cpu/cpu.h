@@ -82,14 +82,14 @@
 #include <stdint.h>
 #include <stdatomic.h>
 #include "cpu_types.h"
-#include "irql/irql.h"
-#include "spinlock/spinlock.h"
-#include "dpc/dpc.h"
-#include "dpc/dpc_list.h"
-#include "scheduler/scheduler.h"
-#include "thread/thread.h"
+#include "../core/irql/irql.h"
+#include "../core/spinlock/spinlock.h"
+#include "../core/dpc/dpc.h"
+#include "../core/dpc/dpc_list.h"
+#include "../core/scheduler/scheduler.h"
+#include "../core/thread/thread.h"
 #include "../mtstatus.h"
-#include "debugger/debugfunctions.h"
+#include "../debug/debugfunctions.h"
 
 /// <summary>
 /// Read the current interrupt frame.
@@ -109,10 +109,6 @@ void read_interrupt_frame(INT_FRAME* frame);
 #define CONTAINING_RECORD(ptr, type, member) \
     ((type *)((char *)(ptr) - offsetof(type, member)))
 #endif
-
-static inline CPU* MtGetCurrentCPU(void) {
-    return (CPU*)__readmsr(IA32_KERNEL_GS_BASE);
-}
 
 // Enqueues the thread given to the queue. (acquires spinlock)
 static inline void MtEnqueueThreadWithLock(Queue* queue, Thread* thread) {
@@ -173,6 +169,10 @@ static inline Thread* MtDequeueThread(Queue* q) {
 __attribute__((always_inline)) inline
 static CPU* thisCPU(void) {
     return (CPU*)__readgsqword(0);
+}
+
+static inline CPU* MtGetCurrentCPU(void) {
+    return thisCPU();
 }
 
 extern CPU cpu0; // Grab from KERNEL.C

@@ -1,8 +1,8 @@
 #include "apic.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "../../memory/paging/paging.h"
-#include "../../memory/allocator/allocator.h"
+#include "../../core/memory/paging/paging.h"
+#include "../../core/memory/allocator/allocator.h"
 
 #define IA32_APIC_BASE_MSR     0x1BULL
 #define APIC_BASE_RESERVED     0xFFF0000000000000ULL
@@ -54,16 +54,17 @@ static void lapic_wait_icr(void) {
     }
 }
 
-void lapic_write(uint32_t reg, uint32_t value) {
-    *((volatile uint32_t*)(lapic + reg)) = value;
+void lapic_write(uint32_t off, uint32_t value) {
+    lapic[off / 4] = value;
+    (void)lapic[0];
 }
 
 // Initialize the Spurious Interrupt Vector
 void lapic_init_siv(void) {
-    uint32_t svr = *((volatile uint32_t*)(lapic + LAPIC_SVR));
+    uint32_t svr = lapic_mmio_read(LAPIC_SVR);
     uint32_t vector = 0xFF; // IDT Entry
-    svr = (svr & 0xFFFFFF00) | vector; // preserve enable bit, update vector
-    lapic_write(LAPIC_SVR, svr);
+    svr = (svr & 0xFFFFFF00) | vector; // preserve enable bit, update vector.
+    lapic_mmio_write(LAPIC_SVR, svr);
 }
 
 static void map_lapic(void) {
@@ -113,7 +114,10 @@ void lapic_init_cpu(void) {
     lapic_mmio_write(LAPIC_EOI, 0);
 }
 
-// send IPI to APIC id
+// send IPI to APIC id 
+// apic_id - APICId of the CPU.
+// vector - IDT Vector number
+// flags - specified cpu flags, 0 for none.
 void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags) {
     uint32_t high = ((uint32_t)apic_id) << 24;
     lapic_mmio_write(LAPIC_ICR_HIGH, high);

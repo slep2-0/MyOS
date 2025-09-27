@@ -8,7 +8,7 @@
 #include "../../drivers/blk/block.h"
 #include "../../assert.h"
 #include "../../time.h"
-#include "../../intrin/atomic.h"
+#include "../../intrinsics/atomic.h"
 
 #define WRITE_MODE_APPEND_EXISTING 0
 #define WRITE_MODE_CREATE_OR_REPLACE 1
@@ -1318,8 +1318,6 @@ static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date)
 	time.year = y;
 	return time;
 }
-
-extern BLOCK_HEADER* funcWithParamBLK;
 
 MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
 	tracelast_func("fat32_write_file");

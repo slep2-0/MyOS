@@ -7,7 +7,7 @@
 #ifndef __INTELLISENSE__
 #include <cpuid.h>
 #endif
-#include "../../memory/memory.h"
+#include "../../core/memory/memory.h"
 
 #include "../../trace.h"
 
