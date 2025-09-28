@@ -128,6 +128,7 @@ static inline Thread* MtDequeueThreadWithLock(Queue* q) {
     IRQL flags;
     MtAcquireSpinlock(&q->lock, &flags);
     if (!q->head) {
+        MtReleaseSpinlock(&q->lock, flags); // CRITICAL BUG, did not release the spinlock when returning, and here I am wondering why all my CPUs halted... :(
         return NULL;
     }
 

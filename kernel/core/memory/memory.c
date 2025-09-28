@@ -369,7 +369,7 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
 }
 
 /// <summary>
-/// IF ANY CORRUPTION HAPPENS. ITS PROBABLY BECAUSE THE STACK WAS OVERRUN BY A THREAD OR SOMETHING THAT OWNED IT. TODO GUARD PAGES!!!! - Do guard pages before testing for ANY alignment corruption, because it's probably not that. (it was fat32 the last time)
+/// Allocate 'wanted_size' bytes to 'align' alignment.
 /// </summary>
 void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     //void* ret = __builtin_return_address(0);

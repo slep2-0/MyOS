@@ -636,7 +636,8 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 	kmemset(&last_found_entry, 0, sizeof(FAT32_DIR_ENTRY));
 	bool any_token_found = false;
 
-	char* token = kstrtok(path_copy, "/");
+	char* save_ptr = NULL;
+	char* token = kstrtok_r(path_copy, "/", &save_ptr);
 
 	while (token != NULL) {
 		bool found_this_token = false;
@@ -682,13 +683,13 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 		} while (search_cluster < FAT32_EOC_MIN);
 
 	token_search_done:
-		MtFreeVirtualMemory(sector_buf); // <-- FIX: Free buffer for this token before processing next
+		MtFreeVirtualMemory(sector_buf); // free buffer.
 
 		if (!found_this_token) {
 			return false; // Path component not found
 		}
 		any_token_found = true;
-		token = kstrtok(NULL, "/");
+		token = kstrtok_r(NULL, "/", &save_ptr);
 
 		if (token != NULL && !(last_found_entry.attr & ATTR_DIRECTORY)) {
 			return false; // Trying to traverse into a file

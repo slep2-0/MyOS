@@ -30,7 +30,7 @@ static void setup_gdt_tss(void) {
     gdt[0] = 0;
     gdt[1] = 0x00AF9A000000FFFF;
     gdt[2] = 0x00CF92000000FFFF;
-    // tss descriptor is 2 quadwords
+    // user code & data
     gdt[3] = 0x00AFFA000000FFFF;
     gdt[4] = 0x00CFF2000000FFFF;
     uint64_t tss_base = (uint64_t)tss;
@@ -85,22 +85,33 @@ static void InitPerCPU(void) {
     spinlock_init(&thisCPU()->readyQueue.lock);
 }
 
+static inline uint8_t get_initial_apic_id(void) {
+    uint32_t eax, ebx, ecx, edx;
+
+    // When EAX=1, CPUID returns processor info.
+    // The initial APIC ID is in bits 31-24 of the EBX register.
+    __asm__ volatile("cpuid"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(1), "c"(0));
+
+    return (uint8_t)(ebx >> 24);
+}
+
 void ap_main(void) {
 	// First, setup the GDT&TSS, then IDT.
 	int idx = -1;
 	// early map lapic mmio (lapic_init_cpu maps it).
-	lapic_init_cpu();
-	uint32_t lapic_raw = lapic_mmio_read(LAPIC_ID);
-	uint8_t id = (lapic_raw >> 24) & 0xFF;
+    uint8_t id = get_initial_apic_id();
 
 	for (int i = 0; i < (int)bootInfo.cpu_count && i < MAX_CPUS; i++) {
 		if (cpus[i].lapic_ID == id) { idx = i; break; }
 	}
 
 	if (idx < 0) {
+        gop_printf(COLOR_RED, "Fatal error, AP Failed to initialize, index below 0.\n");
         __hlt();
 	}
-	__writemsr(IA32_KERNEL_GS_BASE, (uint64_t) & cpus[idx]);
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[idx]);
     __swapgs();
 	setup_gdt_tss();
 
@@ -117,6 +128,7 @@ void ap_main(void) {
 extern void InitialiseControlRegisters(void);
 
     // Initiate per cpu functions.
+    InitPerCPU();
     InitScheduler();
     init_dpc_system();
     InitialiseControlRegisters();
@@ -126,8 +138,10 @@ extern void InitialiseControlRegisters(void);
     InterlockedAndU64(&cpus[idx].flags, ~CPU_UNAVAILABLE);   // clear unavailable
     gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, stack_top, thisCPU());
 	// enable interupts, initiate timer and join scheduler queue
-	__sti();
+    lapic_init_cpu();
+    lapic_enable();
     init_lapic_timer(100);
+	__sti();
     Schedule();
 	for (;;) __hlt();
 }

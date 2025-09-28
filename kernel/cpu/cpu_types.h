@@ -327,6 +327,8 @@ extern "C" {
         Thread idleThread; // Idle thread for the current CPU.
         uint32_t IpiAction; // IPI Action specified in the function.
         uint64_t IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
+        volatile uint32_t* LapicAddressVirt;
+        uintptr_t LapicAddressPhys;
     } CPU;
 
     /* --------------------------------------------------------------------------

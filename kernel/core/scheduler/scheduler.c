@@ -45,7 +45,7 @@ void InitScheduler(void) {
     thisCPU()->readyQueue.head = thisCPU()->readyQueue.tail = NULL;
 }
 
-// Enqueue the thread if it's still RUNNABLE.
+// Enqueue the thread if it's still RUNNING.
 static void enqueue_runnable(Thread* t) {
     tracelast_func("enqueue_runnable");
     if (!t) {
@@ -58,8 +58,37 @@ static void enqueue_runnable(Thread* t) {
     }
     if (t->threadState == RUNNING) {
         t->threadState = READY;
+        t->timeSlice = t->origTimeSlice;
         MtEnqueueThreadWithLock(&thisCPU()->readyQueue, t); // Insert into CPU ready queue
     }
+}
+
+extern uint32_t g_cpuCount; // extern the global cpu count. (gotten from smp)
+extern CPU cpus[];
+
+// The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
+static Thread* MtAcquireNextScheduledThread(void) {
+    // First, lets try to get from our own queue.
+    Thread* chosenThread = MtDequeueThreadWithLock(&thisCPU()->readyQueue);
+
+    if (!chosenThread) {
+        // Our own CPU queue is empty, steal from others.
+        for (uint32_t i = 0; i < g_cpuCount; i++) {
+            if (cpus[i].lapic_ID == thisCPU()->lapic_ID) continue; // skip ourselves.
+
+            // The reason I used the self pointer here, is because the BSP in the cpus array, is empty except for 4 fields, as its main struct is cpu0, 
+            // which is defined at the kernel main, so we access it through self, view SMP.C prepare_percpu for more info.
+            Queue* victimQueue = &cpus[i].self->readyQueue;
+            if (!victimQueue->head) continue; // skip empty queues
+
+            chosenThread = MtDequeueThreadWithLock(victimQueue);
+            if (chosenThread) break;
+        }
+    }
+
+    // This returns NULL if no thread has been found, or a pointer to the scheduled thread.
+    //gop_printf(COLOR_RED, "Returning %p thread | AP: %d\n", chosenThread, thisCPU()->ID); - Spamming this will result in a stack overflow, causing the guard pages to hit on the AP cpus.
+    return chosenThread;
 }
 
 __attribute__((noreturn))
@@ -99,7 +128,7 @@ void Schedule(void) {
         enqueue_runnable(prev);
     }
 
-    Thread* next = MtDequeueThreadWithLock(&thisCPU()->readyQueue);
+    Thread* next = MtAcquireNextScheduledThread();
 
     if (!next) {
         next = &thisCPU()->idleThread;

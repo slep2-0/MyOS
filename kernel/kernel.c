@@ -446,6 +446,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
+    lapic_timer_calibrate();
+    //init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
     status = ParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
@@ -455,7 +457,6 @@ void kernel_main(BOOT_INFO* boot_info) {
         smp_start(apic_list, 4, lapicAddress);
     }
     MtSendActionToCpus(CPU_ACTION_PRINT_ID, 0);
-    //init_lapic_timer(100); // 10ms
     //__sti();
     //Schedule();
     for (;;) __hlt();

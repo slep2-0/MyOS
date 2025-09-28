@@ -31,19 +31,14 @@ enum {
     LAPIC_TIMER_DIV = 0x3E0
 };
 
-
-#define LAPIC_DEFAULT_PADDR    0xFEE00000ULL
-volatile uint32_t* lapic = NULL;
-uint64_t lapic_phys = LAPIC_DEFAULT_PADDR;
-
 // --- low-level mmio helpers (assumes lapic mapped to virtual memory) ---
 uint32_t lapic_mmio_read(uint32_t off) {
-    return lapic[off / 4];
+    return thisCPU()->LapicAddressVirt[off / 4];
 }
 
 void lapic_mmio_write(uint32_t off, uint32_t val) {
-    lapic[off / 4] = val;
-    (void)lapic_mmio_read(LAPIC_ID); // serializing read to ensure write completes
+    thisCPU()->LapicAddressVirt[off / 4] = val;
+    (void)thisCPU()->LapicAddressVirt[0]; // Serializing read
 }
 
 // Wait for ICR delivery to complete (ICR low: bit 12 = Delivery Status)
@@ -54,11 +49,6 @@ static void lapic_wait_icr(void) {
     }
 }
 
-void lapic_write(uint32_t off, uint32_t value) {
-    lapic[off / 4] = value;
-    (void)lapic[0];
-}
-
 // Initialize the Spurious Interrupt Vector
 void lapic_init_siv(void) {
     uint32_t svr = lapic_mmio_read(LAPIC_SVR);
@@ -67,19 +57,33 @@ void lapic_init_siv(void) {
     lapic_mmio_write(LAPIC_SVR, svr);
 }
 
-static void map_lapic(void) {
-    if (lapic) return;
+static void map_lapic(uint64_t lapicPhysicalAddr) {
+    if (thisCPU()->LapicAddressVirt) return;
     tracelast_func("map_lapic");
 
-    void* virt = (void*)(lapic_phys + PHYS_MEM_OFFSET);
+    void* virt = (void*)(lapicPhysicalAddr + PHYS_MEM_OFFSET);
 
     // Map the single LAPIC page (phys -> virt)
-    map_page(virt, lapic_phys, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+    map_page(virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 
     // store the mmio base pointer
-    lapic = (volatile uint32_t*)virt;
+    thisCPU()->LapicAddressVirt = (volatile uint32_t*)virt;
+    thisCPU()->LapicAddressPhys = lapicPhysicalAddr;
 }
 
+static inline uint64_t get_lapic_base_address(void) {
+    uint32_t eax, edx;
+
+    // The 'rdmsr' instruction reads a 64-bit MSR into the EDX:EAX registers.
+    __asm__ volatile("rdmsr" : "=a"(eax), "=d"(edx) : "c"(IA32_APIC_BASE_MSR));
+
+    // Combine the high (edx) and low (eax) parts into a 64-bit value.
+    uint64_t msr_value = ((uint64_t)edx << 32) | eax;
+
+    // The address is in bits 12 through the most significant bit.
+    // We must mask off the lower 12 bits which contain flags.
+    return msr_value & ~0xFFFULL;
+}
 
 // Enable local APIC via IA32_APIC_BASE MSR and set SVR
 void lapic_enable(void) {
@@ -90,7 +94,7 @@ void lapic_enable(void) {
         apic_msr |= (1ULL << 11);
         __writemsr(IA32_APIC_BASE_MSR, apic_msr);
     }
-    map_lapic();
+    map_lapic(get_lapic_base_address());
 
     // Set Spurious Vector Register and enable (bit 8 = APIC enable)
     uint32_t svr = (0xFF) | (1 << 8);
@@ -100,10 +104,7 @@ void lapic_enable(void) {
 // Initialize CPU's LAPIC (call early from kernel init on BSP, and from each ap)
 void lapic_init_cpu(void) {
     tracelast_func("lapic_init_cpu");
-    uint64_t apic_msr = __readmsr(IA32_APIC_BASE_MSR);
-    uint64_t base = (apic_msr & 0xFFFFF000ULL);
-    if (base) lapic_phys = base;
-    map_lapic();
+    map_lapic(get_lapic_base_address());
 
     lapic_enable();
 
@@ -156,24 +157,34 @@ static uint32_t calibrate_lapic_ticks_per_10ms(void) {
     return ticks / 10; // ticks per 10ms -> for 100Hz (10ms period)
 }
 
+// Make the global variable static to this file
+static uint32_t g_apic_ticks_per_10ms = 0;
+
+// BSP-only calibration function
+void lapic_timer_calibrate(void) {
+    // Only calibrate if it hasn't been done. This is the single entry point.
+    if (g_apic_ticks_per_10ms == 0) {
+        g_apic_ticks_per_10ms = calibrate_lapic_ticks_per_10ms();
+    }
+}
+
+// Renamed and simplified init function
 int init_lapic_timer(uint32_t hz) {
     if (hz == 0) return -1;
-    map_lapic();
 
-    // calibrate using 100ms window
-    uint32_t ticks_per_10ms = calibrate_lapic_ticks_per_10ms();
-    if (ticks_per_10ms == 0) return -2;
+    // This now assumes calibration is already done!
+    if (g_apic_ticks_per_10ms == 0) {
+        // Calibration failed or wasn't run, this is an error.
+        return -2;
+    }
 
-    // compute target initial count
-    // desired_period_ms = 1000 / hz
     uint32_t period_ms = 1000 / hz;
-    // ticks_per_10ms: ticks per 10ms, so ticks_per_ms = ticks_per_10ms / 10
-    // initial_count = ticks_per_ms * period_ms = ticks_per_10ms * period_ms / 10
-    uint64_t initial = ((uint64_t)ticks_per_10ms * (uint64_t)period_ms) / 10ULL;
+    uint64_t initial = ((uint64_t)g_apic_ticks_per_10ms * (uint64_t)period_ms) / 10ULL;
     if (initial == 0) initial = 1;
 
-    // mask the timer while programming
-    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | 0xEF /* IDT vector 0xEF */);
+    // Program THIS CPU's timer using the shared calibration value
+    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | 0xEF /* vector */);
     lapic_mmio_write(LAPIC_TIMER_INITCNT, (uint32_t)initial);
     return 0;
 }
+

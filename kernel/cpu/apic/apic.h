@@ -20,5 +20,5 @@ void lapic_init_siv(void);
 // flags - specified cpu flags, 0 for none.
 void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags);
 int init_lapic_timer(uint32_t hz);           // calibrate + start periodic timer at `hz` (returns 0 on success)
-
+void lapic_timer_calibrate(void);
 #endif

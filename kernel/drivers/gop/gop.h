@@ -59,19 +59,10 @@ static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t 
 static inline uint32_t char_width(void) { return  8 * FONT_SCALE; }
 static inline uint32_t line_height(void) { return 16 * FONT_SCALE; }
 
-void draw_char(GOP_PARAMS* gop, char c, uint32_t x, uint32_t y, uint32_t color);
-void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color);
-
 void gop_printf(uint32_t color, const char* fmt, ...);
 
 #define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
-
-void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color);
-void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color);
-void gop_scroll(GOP_PARAMS* gop);
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
-void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color);
-void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color);
 
 /// <summary>
 /// snprintf equivalent. -- Safe to run at ANY IRQL.
@@ -93,7 +84,7 @@ int kstrncmp(const char* s1, const char* s2, size_t length);
 size_t kstrlen(const char* str);
 char* kstrcpy(char* dst, const char* src);
 char* kstrncpy(char* dst, const char* src, size_t n);
-char* kstrtok(char* str, const char* delim);
+char* kstrtok_r(char* str, const char* delim, char** save_ptr);
 
 /// <summary>
 /// Concatenates src onto dest, up to max_len total bytes in dest.

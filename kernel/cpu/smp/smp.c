@@ -47,7 +47,7 @@ static void install_trampoline(void) {
 	__asm__ volatile("invlpg (%0)" :: "r"(virt) : "memory");
 }
 
-#define CPU_STACK_SIZE (32*1024) // 32 KiB stack, 4Kib Alignment.
+#define CPU_STACK_SIZE (32*1024) // 64 KiB stack, 16 Byte Alignment.
 
 // Allocate PER CPU stack and populare cpus[]
 static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
@@ -59,6 +59,7 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 
 		if (aid == my_id) {
 			// BSP slot, ensure basic mapping, aside from that, continue.
+			cpus[i].self = &cpu0;
 			cpus[i].ID = i;
 			cpus[i].lapic_ID = aid;
 			cpus[i].flags = CPU_ONLINE;
@@ -95,7 +96,6 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 #endif
 		uint64_t pftop = (uint64_t)istpf + IST_SIZE;
 		uint64_t dftop = (uint64_t)istdf + IST_SIZE;
-		gop_printf(COLOR_RED, "**istpf: %p | istdf: %p | top pf: %p | top df: %p**\n", istpf, istdf, pftop, dftop);
 		cpus[i].IstPFStackTop = (void*)pftop;
 		cpus[i].IstDFStackTop = (void*)dftop;
 
@@ -137,7 +137,6 @@ uint32_t g_lapicAddress;
 // BSP Entry: start all APs.
 void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
 	tracelast_func("smp_start");
-	gop_printf(COLOR_GRAY, "**Hit SMP_START**\n");
 	// populate cpus and per cpu stacks.
 	prepare_percpu(apic_list, cpu_count);
 	// copy trampoline
@@ -179,7 +178,6 @@ void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
 		if (aid == my_id) continue;
 		send_startup_ipis(aid);
 	}
-	gop_printf(COLOR_BLUE, "**returning**\n");
 	// over - Application Processors (the other CPUs) should execute trampoline and call ap_main();
 	// now, we wait until all are online.
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
@@ -208,7 +206,9 @@ void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter) {
 		if (action == CPU_ACTION_PERFORM_TLB_SHOOTDOWN) cpus[i].IpiParameter = parameter;
 		lapic_send_ipi(cpus[i].lapic_ID, LAPIC_ACTION_VECTOR, 0x0);
 
-		while (*(volatile uint64_t*)&cpus[i].flags & CPU_DOING_IPI) {
+		// loop until the AP stops doing the IPI (clears the bit), or until we have exhausted all loops.
+		uint64_t loops = 1000000; // TODO implement HPET so we dont rely on a stupid number
+		while ((*(volatile uint64_t*)&cpus[i].flags & CPU_DOING_IPI) && loops--) {
 			__pause();
 		}
 	}

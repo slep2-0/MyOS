@@ -1,12 +1,13 @@
 /*
  * PROJECT:     MatanelOS Kernel
- * LICENSE:     GPLv
+ * LICENSE:     GPLv3
  * PURPOSE:		Bugcheck functions implementation.
  */
 
 #include "bugcheck.h"
 #include "../../trace.h"
 #include "../../intrinsics/intrin.h"
+#include "../../cpu/smp/smp.h"
 
 #ifndef NOTHING
 #define NOTHING
@@ -20,6 +21,7 @@
 extern GOP_PARAMS gop_local;
 extern LASTFUNC_HISTORY lastfunc_history;
 extern bool isBugChecking;
+extern bool smpInitialized;
 extern CPU cpu0;
 extern GUARD_PAGE_DB* guard_db_head;
 
@@ -310,6 +312,10 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
+    if (smpInitialized) {
+        // If all other cores are online, we obviously want to stop them.
+        MtSendActionToCpus(CPU_ACTION_STOP, 0);
+    }
     isBugChecking = true;
     bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
@@ -401,6 +407,10 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
             gop_printf(0xFFBF40BF, "\n\n**ADDITIONALS: %p**\n", additional);
 		}
 	}
+    if (smpInitialized) {
+        gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
+        gop_printf(COLOR_LIME, "Current Executing CPU: %d", thisCPU()->lapic_ID);
+    }
     int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #ifdef DEBUG
@@ -513,7 +523,10 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
             gop_printf(COLOR_RED, "**STRING ADDITIONAL: %s**\n", additional->str);
         }
     }
-
+    if (smpInitialized) {
+        gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
+        gop_printf(COLOR_LIME, "Current Executing CPU: %d", thisCPU()->lapic_ID);
+    }
 #ifdef DEBUG
     if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
         gop_printf(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
