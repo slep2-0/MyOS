@@ -7,6 +7,7 @@
 #include "bugcheck.h"
 #include "../../trace.h"
 #include "../../intrinsics/intrin.h"
+#include "../../intrinsics/atomic.h"
 #include "../../cpu/smp/smp.h"
 
 #ifndef NOTHING
@@ -19,7 +20,6 @@
 
 // We require GOP, so we extern it.
 extern GOP_PARAMS gop_local;
-extern LASTFUNC_HISTORY lastfunc_history;
 extern bool isBugChecking;
 extern bool smpInitialized;
 extern CPU cpu0;
@@ -111,19 +111,20 @@ static void print_stack_trace(int depth) {
     }
 }
 
-static void print_lastfunc_chain(uint32_t color) {
-    // Start at the oldest entry: that's the slot `index` points to (next write).
-    int idx = lastfunc_history.current_index;
+static inline void print_lastfunc_chain(uint32_t color) {
+    LASTFUNC_HISTORY* lfh = thisCPU()->lastfuncBuffer;
+    if (!lfh) return;
 
+    int idx = lfh->current_index;
     int start = (idx + 1) % LASTFUNC_HISTORY_SIZE;
     bool first = true;
-    for (int i = 0; i < LASTFUNC_HISTORY_SIZE; i++) { // start from oldest to newest
+
+    for (int i = 0; i < LASTFUNC_HISTORY_SIZE; i++) {
         idx = (start + i) % LASTFUNC_HISTORY_SIZE;
-        char* name = (char*)lastfunc_history.names[idx];
+        char* name = (char*)lfh->names[idx];
         if (!*name) break;
-        if (!first) {
-            gop_printf(color, " -> ");
-        }
+
+        if (!first) gop_printf(color, " -> ");
         gop_printf(color, "%s", name);
         first = false;
     }
@@ -316,7 +317,8 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         // If all other cores are online, we obviously want to stop them.
         MtSendActionToCpus(CPU_ACTION_STOP, 0);
     }
-    isBugChecking = true;
+    // atomically set isBugChecking
+    InterlockedExchangeBool(&isBugChecking, 1);
     bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
     IRQL recordedIrql = thisCPU()->currentIrql;
@@ -324,7 +326,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
     cursor_y = 0;
-    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core.
+    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (previous comment was setting an IRQL to each CPU Core, instead, we send an IPI up top)
 
 	// Clear the screen to blue (bsod windows style)
 	gop_clear_screen(&gop_local, 0xFF0035b8);
@@ -414,12 +416,13 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
 #ifdef DEBUG
-    if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
-        gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest): ");
-        print_lastfunc_chain(0xFFBF40BF);
-        gop_printf(0xFFBF40BF, "**");
+    if (thisCPU()->lastfuncBuffer) {
+        if (thisCPU()->lastfuncBuffer->names[thisCPU()->lastfuncBuffer->current_index][0] != '\0') {
+            gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest, on this CPU): ");
+            print_lastfunc_chain(0xFFBF40BF);
+            gop_printf(0xFFBF40BF, "**");
+        }
     }
-
     // call stack trace
     gop_printf(COLOR_GREEN, "\n\nCall Stack Trace:\n");
     print_stack_trace(10); // 10 function calls;
@@ -438,7 +441,8 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
-    isBugChecking = true;
+    // atomically set isBugChecking
+    InterlockedExchangeBool(&isBugChecking, 1);
     bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
     IRQL recordedIrql = thisCPU()->currentIrql;
@@ -528,10 +532,12 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
         gop_printf(COLOR_LIME, "Current Executing CPU: %d", thisCPU()->lapic_ID);
     }
 #ifdef DEBUG
-    if (lastfunc_history.names[lastfunc_history.current_index][0] != '\0') {
-        gop_printf(0xFFBF40BF, "\n\n**FUNCTION TRACE (oldest to newest): ");
-        print_lastfunc_chain(0xFFBF40BF);
-        gop_printf(0xFFBF40BF, "**");
+    if (thisCPU()->lastfuncBuffer) {
+        if (thisCPU()->lastfuncBuffer->names[thisCPU()->lastfuncBuffer->current_index][0] != '\0') {
+            gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest, on this CPU): ");
+            print_lastfunc_chain(0xFFBF40BF);
+            gop_printf(0xFFBF40BF, "**");
+        }
     }
 
 

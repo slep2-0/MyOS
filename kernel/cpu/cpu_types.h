@@ -298,6 +298,14 @@ extern "C" {
         SPINLOCK lock;
     };
 
+#define LASTFUNC_BUFFER_SIZE 128
+#define LASTFUNC_HISTORY_SIZE 25
+
+    typedef struct {
+        uint8_t names[LASTFUNC_HISTORY_SIZE][LASTFUNC_BUFFER_SIZE];
+        int     current_index;
+    } LASTFUNC_HISTORY;
+
      /**
       * CPU - per-CPU runtime state (for single-core keep one global CPU instance).
       *
@@ -329,6 +337,7 @@ extern "C" {
         uint64_t IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
         volatile uint32_t* LapicAddressVirt;
         uintptr_t LapicAddressPhys;
+        LASTFUNC_HISTORY* lastfuncBuffer; // Per CPU Buffer for the latest functions trace, allocated dynamically. (ptr)
     } CPU;
 
     /* --------------------------------------------------------------------------

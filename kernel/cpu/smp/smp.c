@@ -110,6 +110,11 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		// DPCs & Queue
 		cpus[i].DeferredRoutineQueue.dpcQueueHead = cpus[i].DeferredRoutineQueue.dpcQueueTail = NULL;
 		kmemset(&cpus[i].CurrentDeferredRoutine, 0, sizeof(cpus[i].CurrentDeferredRoutine));
+
+		// Function Trace Buffer
+		LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
+		cpus[i].lastfuncBuffer = bfr;
+		cpus[i].lastfuncBuffer->current_index = -1; // init to -1
 	}
 	smp_cpu_count = cpu_count;
 }
@@ -205,7 +210,10 @@ void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter) {
 		cpus[i].IpiAction = action;
 		if (action == CPU_ACTION_PERFORM_TLB_SHOOTDOWN) cpus[i].IpiParameter = parameter;
 		lapic_send_ipi(cpus[i].lapic_ID, LAPIC_ACTION_VECTOR, 0x0);
+	}
 
+	// second loop to wait for each CPU to signal to stop doing the IPI
+	for (uint32_t i = 0; i < g_cpuCount; i++) {
 		// loop until the AP stops doing the IPI (clears the bit), or until we have exhausted all loops.
 		uint64_t loops = 1000000; // TODO implement HPET so we dont rely on a stupid number
 		while ((*(volatile uint64_t*)&cpus[i].flags & CPU_DOING_IPI) && loops--) {

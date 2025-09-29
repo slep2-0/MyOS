@@ -105,7 +105,6 @@ Global variables initialization
 Kernel Specific
 */
 bool isBugChecking = false;
-LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
 CPU cpu0;
 
 /*
@@ -210,6 +209,8 @@ static void InitCPU(void) {
     cpu0.schedulerEnabled = NULL; // since NULL is 0, it would be false.
     cpu0.currentThread = NULL;
     cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
+    cpu0.lastfuncBuffer = NULL;
+    // Function Trace Buffer
     spinlock_init(&cpu0.readyQueue.lock);
 }
 
@@ -263,10 +264,10 @@ static void funcWithParam(MUTEX* mut) {
     ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
-    MTSTATUS status = vfs_mkdir("/testdir/");
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
-    status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    //MTSTATUS status = vfs_mkdir("/testdir/");
+    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
+    //status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {
@@ -374,6 +375,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     init_dpc_system();
+    /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
+    LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
+    cpu0.lastfuncBuffer = bfr;
+    cpu0.lastfuncBuffer->current_index = -1; // init to -1
     ///PRINT_OFFSETS_AND_HALT();
     uint64_t rip;
     __asm__ volatile (

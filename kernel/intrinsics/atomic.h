@@ -154,6 +154,11 @@ extern "C" {
         return __atomic_fetch_or(target, value, ATOMIC_ORDER);
     }
 
+    // Boolean
+    static inline bool InterlockedExchangeBool(volatile bool* target, bool value) {
+        return __atomic_exchange_n(target, value, ATOMIC_ORDER);
+    }
+
     /* Pointer convenience wrappers */
     static inline void* InterlockedExchangePointer(volatile void* volatile* target, void* value) { return InterlockedExchangePtr(target, value); }
     static inline void* InterlockedCompareExchangePointer(volatile void* volatile* target, void* value, void* comparand) { return InterlockedCompareExchangePtr(target, value, comparand); }

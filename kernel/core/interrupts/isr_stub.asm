@@ -229,7 +229,7 @@ DEFINE_ISR 30
 DEFINE_ISR 31
 
 ; Custom ISR's
-DEFINE_ISR 222 ; LAPIC CPU Actions
+DEFINE_ISR 222 ; LAPIC CPU Actions - Must  be the lowest between the 3, to mask them on pending interrupts list.
 DEFINE_ISR 239 ; LAPIC
 DEFINE_ISR 254 ; LAPIC Spurious Interrupt Vector
 
