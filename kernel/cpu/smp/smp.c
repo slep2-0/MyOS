@@ -215,7 +215,7 @@ void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter) {
 	// second loop to wait for each CPU to signal to stop doing the IPI
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
 		// loop until the AP stops doing the IPI (clears the bit), or until we have exhausted all loops.
-		uint64_t loops = 1000000; // TODO implement HPET so we dont rely on a stupid number
+		uint64_t loops = 10000000; // TODO implement HPET so we dont rely on a stupid number
 		while ((*(volatile uint64_t*)&cpus[i].flags & CPU_DOING_IPI) && loops--) {
 			__pause();
 		}

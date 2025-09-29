@@ -264,10 +264,10 @@ static void funcWithParam(MUTEX* mut) {
     ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
-    //MTSTATUS status = vfs_mkdir("/testdir/");
-    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
-    //status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    MTSTATUS status = vfs_mkdir("/testdir/");
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
+    status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {

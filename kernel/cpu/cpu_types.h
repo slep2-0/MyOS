@@ -86,30 +86,11 @@ extern "C" {
     typedef enum _IRQL {
         PASSIVE_LEVEL = 0,
         DISPATCH_LEVEL = 2,
-
-        /* Device DIRQLs (mapped to legacy PIC IRQ numbers + offsets) */
-        DIRQL_SECONDARY_ATA = 12, /* IRQ15 – Secondary ATA Channel  */
-        DIRQL_PRIMARY_ATA = 13, /* IRQ14 – Primary ATA Channel    */
-        DIRQL_FPU = 14, /* IRQ13 – FPU / Coprocessor      */
-        DIRQL_MOUSE = 15, /* IRQ12 – Mouse                  */
-        DIRQL_PERIPHERAL11 = 16, /* IRQ11 – Free for peripherals   */
-        DIRQL_PERIPHERAL10 = 17, /* IRQ10 – Free for peripherals   */
-        DIRQL_PERIPHERAL9 = 18, /* IRQ9  – Free / redirected      */
-        DIRQL_RTC = 19, /* IRQ8  – RTC / CMOS alarm       */
-        DIRQL_LPT1 = 20, /* IRQ7  – LPT1 / Printer         */
-        DIRQL_FLOPPY = 21, /* IRQ6  – Floppy Disk            */
-        DIRQL_SOUND_LPT2 = 22, /* IRQ5  – Sound / LPT2           */
-        DIRQL_COM1 = 23, /* IRQ4  – Serial COM1            */
-        DIRQL_COM2 = 24, /* IRQ3  – Serial COM2            */
-        DIRQL_CASCADE = 25, /* IRQ2  – Cascade (8–15)         */
-        DIRQL_KEYBOARD = 26, /* IRQ1  – Keyboard               */
-        DIRQL_TIMER = 27, /* IRQ0  – System Timer           */
-
-        PROFILE_LEVEL = 27, /* alias */
-        CLOCK_LEVEL = 28, /* secondary scheduler/timeouts   */
-        SYNCH_LEVEL = 29, /* SMP ipi */
-        POWER_LEVEL = 30, /* power-failure handling         */
-        HIGH_LEVEL = 31  /* NMI / machine-check / bugcheck */
+        PROFILE_LEVEL = 27,
+        CLOCK_LEVEL = 28,
+        IPI_LEVEL = 29,
+        POWER_LEVEL = 30,
+        HIGH_LEVEL = 31
     } IRQL;
 
     /* --------------------------------------------------------------------------
@@ -309,6 +290,7 @@ extern "C" {
      /**
       * CPU - per-CPU runtime state (for single-core keep one global CPU instance).
       *
+      * - self: pointer to self CPU struct, used internally.
       * - currentIrql: mask/level of interrupts
       * - schedulerEnabled: global scheduling on/off
       * - currentThread: pointer to running thread
@@ -316,27 +298,28 @@ extern "C" {
       * ... more.
       */
     typedef struct _CPU {
-        struct _CPU* self;
-        enum _IRQL currentIrql;
-        bool schedulerEnabled;
-        struct _Thread* currentThread;
-        struct _Queue readyQueue;
+        struct _CPU* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c
+        enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which IOAPIC interrupts are masked
+        bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
+        struct _Thread* currentThread; // Current thread that is being executed in the CPU.
+        struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
         uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
-        uint32_t lapic_ID;
-        void* VirtStackTop; // CPU Stack
-        void* tss;
+        uint32_t lapic_ID; // Internal APIC id of the CPU.
+        void* VirtStackTop; // Pointer to top of CPU Stack.
+        void* tss; // Task State Segment top pointer
         void* IstPFStackTop; // Page Fault IST Stack
         void* IstDFStackTop; // Double Fault IST Stack
-        volatile uint64_t flags;
-        bool schedulePending;
-        uint64_t* gdt;
-        struct _DPC_QUEUE DeferredRoutineQueue;
-        struct _DPC CurrentDeferredRoutine;
+        volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU.
+        bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU.
+        uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
+        struct _DPC_QUEUE DeferredRoutineQueue; // Deferred Routine queue, used to RetireDPCs that exist after an interrupt
+        struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
+        struct _DPC AllocatedDPC; // CPU Allocated DPC routine to be used if memory allocation is unable to be used at the current context.
         Thread idleThread; // Idle thread for the current CPU.
         uint32_t IpiAction; // IPI Action specified in the function.
         uint64_t IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
-        volatile uint32_t* LapicAddressVirt;
-        uintptr_t LapicAddressPhys;
+        volatile uint32_t* LapicAddressVirt; // Virtual address of the Local APIC MMIO Address (mapped)
+        uintptr_t LapicAddressPhys; // Physical address of the Local APIC MMIO
         LASTFUNC_HISTORY* lastfuncBuffer; // Per CPU Buffer for the latest functions trace, allocated dynamically. (ptr)
     } CPU;
 

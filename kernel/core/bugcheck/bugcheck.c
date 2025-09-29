@@ -319,7 +319,6 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     }
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);
-    bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
     IRQL recordedIrql = thisCPU()->currentIrql;
 #endif
@@ -348,7 +347,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     resolveStopCode(&stopCodeToStr, err_code);
     uint64_t rspIfExist = (uint64_t)-1;
     if (context) {
-        if (isThereIntFrame) {
+        if (int_frame) {
             rspIfExist = int_frame->rsp;
         }
         else {
@@ -388,7 +387,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
         gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
 	}
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
-    if (isThereIntFrame) {
+    if (int_frame) {
         gop_printf((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %d\n\n"
@@ -411,7 +410,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
 	}
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
-        gop_printf(COLOR_LIME, "Current Executing CPU: %d", thisCPU()->lapic_ID);
+        gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", thisCPU()->lapic_ID);
     }
     int32_t currTid = (thisCPU()->currentThread) ? thisCPU()->currentThread->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
@@ -428,11 +427,11 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     print_stack_trace(10); // 10 function calls;
 #endif
 	//test
-    update_pic_mask_for_current_irql();
     __cli();
     // spin the thisCPU()->
     while (1) {
         NOTHING;
+        __pause();
     }
 }
 
@@ -443,14 +442,13 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     __cli();
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);
-    bool isThereIntFrame = (int_frame) ? true : false; // basic ternary
 #ifdef DEBUG
     IRQL recordedIrql = thisCPU()->currentIrql;
 #endif
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
     cursor_y = 0;
-    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (When I will integrate multi core functionality, this should SetIRQL to each cpu core. TODO
+    _MtSetIRQL(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster)
 
     // Clear the screen to blue (bsod windows style)
     gop_clear_screen(&gop_local, 0xFF0035b8);
@@ -495,7 +493,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
         gop_printf(0xFFFF0000, "\n\n\n**ERROR: NO REGISTERS.**\n");
     }
     // don't alert if there is no interrupt frame, the user shouldn't care and know. - i should do an IFDEF here for debug, but I could not remember that I didn't define, i'd rather keep it like this for now.
-    if (isThereIntFrame) {
+    if (int_frame) {
         gop_printf((uint32_t)-1,
             "Exceptions:\n\n"
             "Vector Number: %d Error Code: %p\n\n"
@@ -529,7 +527,7 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     }
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
-        gop_printf(COLOR_LIME, "Current Executing CPU: %d", thisCPU()->lapic_ID);
+        gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", thisCPU()->lapic_ID);
     }
 #ifdef DEBUG
     if (thisCPU()->lastfuncBuffer) {
@@ -546,10 +544,10 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     print_stack_trace(10); // 10 function calls;
 #endif
     //test
-    update_pic_mask_for_current_irql();
     __cli();
     // spin the thisCPU()->
     while (1) {
         NOTHING;
+        __pause();
     }
 }

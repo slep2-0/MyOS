@@ -70,8 +70,10 @@ void RetireDPCs(void) {
 		MtReleaseSpinlock(&queue->lock, flags);
 
 		// STILL at DISPATCH_LEVEL
-		if (d->CallbackRoutine) d->CallbackRoutine(d, d->Arg1, d->Arg2, d->Arg3);
-
+		if (d->CallbackRoutine) {
+			thisCPU()->CurrentDeferredRoutine = d;
+			d->CallbackRoutine(d, d->Arg1, d->Arg2, d->Arg3);
+		}
 		// re-acquire for next pop
 		MtAcquireSpinlock(&queue->lock, &flags);
 	}

@@ -92,17 +92,17 @@ void isr_handler64(int vec_num, CTX_FRAME* ctx, INT_FRAME* intfr) {
         severe_machine_check_handler(ctx, intfr);
         break;
     case KEYBOARD_INTERRUPT:
-        MtRaiseIRQL(DIRQL_KEYBOARD, &oldIrql);
+        MtRaiseIRQL(PROFILE_LEVEL, &oldIrql);
         keyboard_handler();
         MtLowerIRQL(oldIrql);
         break;
     case LAPIC_ACTION_VECTOR:
-        MtRaiseIRQL(SYNCH_LEVEL, &oldIrql);
+        MtRaiseIRQL(IPI_LEVEL, &oldIrql);
         ipi_action_handler();
         MtLowerIRQL(oldIrql);
         break;
     case LAPIC_INTERRUPT:
-        MtRaiseIRQL(DIRQL_TIMER, &oldIrql);
+        MtRaiseIRQL(CLOCK_LEVEL, &oldIrql);
         lapic_handler(schedulerEnabled, ctx, intfr);
         MtLowerIRQL(oldIrql);
         break;

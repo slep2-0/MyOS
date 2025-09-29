@@ -8,14 +8,16 @@
 #include "../bugcheck/bugcheck.h"
 #include "../interrupts/idt.h"
 
-IRQL irq_irql[16] = {
-    DIRQL_TIMER, DIRQL_KEYBOARD, DIRQL_CASCADE, DIRQL_COM2,
-    DIRQL_COM1, DIRQL_SOUND_LPT2, DIRQL_FLOPPY, DIRQL_LPT1,
-    DIRQL_RTC, DIRQL_PERIPHERAL9, DIRQL_PERIPHERAL10, DIRQL_PERIPHERAL11,
-    DIRQL_MOUSE, DIRQL_FPU, DIRQL_PRIMARY_ATA, DIRQL_SECONDARY_ATA
-};
+// Taken from ReactOS, supports up to 1 IOAPIC.
+// Instead of masking PICs, we now use the CR8 register (or in 32bit, the MMIO of LAPIC + 0x80), to use the TPR
+// The TPR (Task Priority Register), is a special register in the Local APIC that determines which interrupts are allowed to be delivered to the CPU.
+// We use IRQL, and that IRQL translates that to TPR Levels with the macros below.
+#define IRQ2VECTOR(irq)		((irq) + 0x0) // 0 is the starting point
 
-#define IRQ_LINES (sizeof(irq_irql) / sizeof(irq_irql[0]))
+#define IRQL2VECTOR(irql)   (IRQ2VECTOR(PROFILE_LEVEL - (irql)))
+
+// If its IPI_LEVEL, we use the IDT vector for the IPIs, same thing from PROFILE which is the LAPIC TIMER, and anything else (like DIRQLs), we use the IRQL2VECTOR
+#define IRQL2TPR(irql)	    ((irql) >= IPI_LEVEL ? LAPIC_ACTION_VECTOR : ((irql) >= PROFILE_LEVEL ? LAPIC_INTERRUPT : ((irql) > DISPATCH_LEVEL ? IRQL2VECTOR(irql) : 0)))
 
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
@@ -23,23 +25,8 @@ static inline bool interrupts_enabled(void) {
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
-// IMPORTANT: We disable interrupts around PIC updates to avoid races.
-void update_pic_mask_for_current_irql(void) {
-    bool prev_if = interrupts_enabled();
-    __cli();
-    IRQL level = thisCPU()->currentIrql;
-
-    // Mask any IRQ whose assigned IRQL is <= the current CPU IRQL.
-    // Unmask any IRQ whose assigned IRQL is > the current CPU IRQL.
-    for (uint8_t i = 0; i < IRQ_LINES; i++) {
-        if (irq_irql[i] <= level) {
-            mask_irq(i);
-        }
-        else {
-            unmask_irq(i);
-        }
-    }
-    if (prev_if) __sti();
+static void update_apic_irqs(IRQL newLevel) {
+    __write_cr8(IRQL2TPR(newLevel));
 }
 
 static inline void toggle_scheduler(void) {
@@ -48,14 +35,14 @@ static inline void toggle_scheduler(void) {
 }
 
 void MtGetCurrentIRQL(IRQL* out) {
-    tracelast_func("GetCurrentIRQL");
+    tracelast_func("MtGetCurrentIRQL");
     *out = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
 }
 
 void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
     bool prev_if = interrupts_enabled();
     __cli();
-    tracelast_func("RaiseIRQL");
+    tracelast_func("MtRaiseIRQL");
 
     if (old_irql) {
         *old_irql = thisCPU()->currentIrql;
@@ -72,14 +59,16 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    update_pic_mask_for_current_irql();
+    if (new_irql > DISPATCH_LEVEL) {
+        update_apic_irqs(new_irql);
+    }
     if (prev_if) __sti();
 }
 
 void MtLowerIRQL(IRQL new_irql) {
     bool prev_if = interrupts_enabled();
     __cli();
-    tracelast_func("LowerIRQL");
+    tracelast_func("MtLowerIRQL");
 
     IRQL curr = atomic_load_explicit(&thisCPU()->currentIrql, memory_order_acquire);
     if (new_irql > curr) {
@@ -92,7 +81,9 @@ void MtLowerIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    update_pic_mask_for_current_irql();
+    if (new_irql > DISPATCH_LEVEL) {
+        update_apic_irqs(new_irql);
+    }
     if (prev_if) __sti();
 }
 
@@ -104,7 +95,9 @@ void _MtSetIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    update_pic_mask_for_current_irql();
+    if (new_irql > DISPATCH_LEVEL)  {
+        update_apic_irqs(new_irql);
+    }
     if (prev_if) __sti();
 }
 
