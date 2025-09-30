@@ -22,6 +22,11 @@ SECTIONS
         *(.data.*)
     }
 
+    .aptrampoline : ALIGN(16) {
+        /* keep the section and all input .aptrampoline pieces produced by objcopy */
+        KEEP(*(.aptrampoline))
+    }
+
     PROVIDE(bss_start = .);
     .bss : {
         *(.bss)
@@ -30,7 +35,6 @@ SECTIONS
     }
     PROVIDE(bss_end = .);
 
-    
     /* — PML4 (4 KiB) — */
     . = ALIGN(0x1000);
     PROVIDE(__pml4_start = .);
@@ -57,4 +61,4 @@ SECTIONS
     /* — End of kernel image — */
     PROVIDE(kernel_end = .);
     PROVIDE(kernel_length = kernel_end - kernel_start);
-}   
+}

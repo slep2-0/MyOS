@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "../../trace.h"
-#include "../../bugcheck/bugcheck.h"
+#include "../../core/bugcheck/bugcheck.h"
 #include "../../cpu/cpu.h"
 #include "../../mtstatus.h"
 

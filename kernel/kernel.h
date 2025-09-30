@@ -18,8 +18,9 @@
 
 typedef struct _BLOCK_DEVICE BLOCK_DEVICE;
 typedef struct _BOOT_INFO BOOT_INFO;
-typedef struct _CTX_FRAME CTX_FRAME;
 
+__attribute__((noreturn))
+void __stack_chk_fail(void);
 
 // Standard globals
 extern bool isBugChecking;
@@ -40,17 +41,17 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #include "assert.h"
-#include "intrin/intrin.h"
+#include "intrinsics/intrin.h"
 #include "cpu/cpu.h"
 #include "filesystem/fat32/fat32.h"
-#include "memory/allocator/uefi_memory.h"
-#include "memory/memory.h"
-#include "memory/paging/paging.h"
-#include "defs/stdarg_myos.h"
-#include "interrupts/idt.h"
-#include "interrupts/handlers/handlers.h"
-#include "bugcheck/bugcheck.h"
-#include "memory/allocator/allocator.h"
+#include "core/uefi_memory.h"
+#include "core/memory/memory.h"
+#include "core/memory/paging/paging.h"
+#include "includes/stdarg_myos.h"
+#include "core/interrupts/idt.h"
+#include "core/interrupts/handlers/handlers.h"
+#include "core/bugcheck/bugcheck.h"
+#include "core/memory/allocator/allocator.h"
 #include "drivers/blk/block.h"
 #include "drivers/ahci/ahci.h"
 #include "drivers/gop/gop.h"
@@ -58,9 +59,11 @@ extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 #include "time.h"
 #include "filesystem/vfs/vfs.h"
 #include "cpu/apic/apic.h"
-#include "cpu/mutex/mutex.h"
-#include "cpu/events/events.h"
-#include "cpu/debugger/debugfunctions.h"
+#include "core/mutex/mutex.h"
+#include "core/events/events.h"
+#include "debug/debugfunctions.h"
+#include "cpu/smp/smp.h"
+#include "core/acpi/acpi.h"
 
 // Entry point in C
 void kernel_idle_checks(void);
@@ -69,11 +72,13 @@ void kernel_main(BOOT_INFO* boot_info);
 void copy_memory_map(BOOT_INFO* boot_info);
 void copy_gop(BOOT_INFO* boot_info);
 void init_boot_info(BOOT_INFO* boot_info);
-void InitCPU(void);
 
 // Custom assembly functions externals.
 extern void read_context_frame(CTX_FRAME* registers);
 extern void read_interrupt_frame(INT_FRAME* intfr);
+
+// Initialize per CPU control registers (CR)
+void InitialiseControlRegisters(void);
 
 #define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
 
@@ -95,8 +100,8 @@ static uint32_t xorshift32(uint32_t* s) {
 static int MemoryTestStable(void) {
     enum {
         TEST_ALLOCATIONS = 64,
-        MAX_BLOCK = 1024,        // maximum random block size
-        MIN_BLOCK = 16,         // minimum block size
+        MAX_BLOCK = 10024,        // maximum random block size
+        MIN_BLOCK = 256,         // minimum block size
         ALIGN_OPTIONS = 4
     };
 

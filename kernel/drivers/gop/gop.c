@@ -12,7 +12,7 @@ bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;
 
-void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
+static void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
     uint8_t c = (uint8_t)c_;
     if (c > 0x7F) return;
 
@@ -47,7 +47,7 @@ void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
     }
 }
 
-void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
+static void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
     while (*s) {
         draw_char(gop, *s, x, y, color);
         x += char_width();
@@ -55,17 +55,27 @@ void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_
     }
 }
 
-void gop_scroll(GOP_PARAMS* gop) {
+static void fb_memmove32(uint32_t* dest, uint32_t* src, size_t count) {
+    if (dest < src) {
+        // forward copy
+        for (size_t i = 0; i < count; i++) dest[i] = src[i];
+    }
+    else if (dest > src) {
+        // backward copy
+        for (size_t i = count; i-- > 0; ) dest[i] = src[i];
+    }
+}
+
+static void gop_scroll(GOP_PARAMS* gop) {
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
     uint32_t  stride = gop->PixelsPerScanLine;
     uint32_t  h = gop->Height;
     uint32_t  w = gop->Width;
     uint32_t  lines = line_height();
 
-    // scroll up
-    kmemcpy(&fb[0],
-        &fb[lines * stride],
-        (h - lines) * stride * sizeof * fb);
+    // scroll up - removed kmemcpy as the gop is also used in the bugcheck, and kmemcpy has Max IRQL of DISPATCH_LEVEL, while a bugcheck is HIGH_LEVEL.
+    size_t count = (h - lines) * (size_t)stride;
+    fb_memmove32(&fb[0], &fb[lines * stride], count);
 
     // clear bottom
     for (uint32_t yy = h - lines; yy < h; yy++)
@@ -75,7 +85,8 @@ void gop_scroll(GOP_PARAMS* gop) {
     cursor_y = (cursor_y >= lines) ? (cursor_y - lines) : 0;
 }
 
-void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+static void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+    if (!gop_params_valid(gop)) return; // defensive
     if (c == '\b') {
         // move cursor back one character (and clear it)
         if (cursor_x >= char_width()) {
@@ -116,7 +127,7 @@ void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
     }
 }
 
-void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
+static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
     while (*s) {
         gop_put_char(gop, *s++, color);
     }
@@ -136,13 +147,13 @@ static void sprint_dec(char* buf, unsigned v) {
     *p = '\0';
 }
 
-void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
+static void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
     char buf[16];
     sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }
 
-void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     char buf[19] = "0x0000000000000000"; // 64 bit addressing
     for (int i = 0; i < 16; i++) {
         unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
@@ -151,6 +162,32 @@ void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     buf[18] = '\0'; // null terminator
     gop_puts(gop, buf, color);
 }
+
+static void gop_print_hex_minimal(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+    if (val == 0) {
+        gop_puts(gop, "0x0", color);
+        return;
+    }
+
+    char buf[19]; // "0x" + up to 16 hex digits + null
+    buf[0] = '0';
+    buf[1] = 'x';
+
+    int pos = 2;
+    bool started = false;
+
+    for (int i = 0; i < 16; i++) {
+        unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
+        if (nib != 0 || started) {
+            started = true;
+            buf[pos++] = (nib < 10 ? '0' + nib : 'a' + nib - 10);
+        }
+    }
+
+    buf[pos] = '\0';
+    gop_puts(gop, buf, color);
+}
+
 
 extern GOP_PARAMS gop_local;
 
@@ -332,48 +369,124 @@ char* kstrncpy(char* dst, const char* src, size_t n) {
     return dst;
 }
 
+static inline size_t kstrlcpy(char* dst, const char* src, size_t dst_size)
+{
+    const char* s = src;
+    size_t n = dst_size;
+
+    if (n != 0) {
+        while (--n != 0) {
+            char c = *s++;
+            *dst++ = c;
+            if (c == '\0') {
+                return (size_t)(s - src - 1);
+            }
+        }
+        /* out of space; NUL-terminate if possible */
+        *dst = '\0';
+    }
+
+    /* continue walking src to compute its length */
+    while (*s++)
+        ;
+    return (size_t)(s - src - 1);
+}
+
+/* -------------------
+ * kstrspn - like strspn
+ * -------------------
+ * Returns length of the initial segment of s consisting only of characters in accept.
+ */
+static inline size_t kstrspn(const char* s, const char* accept)
+{
+    const char* p = s;
+    for (; *p != '\0'; ++p) {
+        const char* a;
+        for (a = accept; *a != '\0' && *a != *p; ++a)
+            ;
+        if (*a == '\0') /* char p is NOT in accept */
+            break;
+    }
+    return (size_t)(p - s);
+}
+
+/* --------------------
+ * kstrcspn - like strcspn
+ * --------------------
+ * Returns length of the initial segment of s consisting of characters NOT in reject.
+ */
+static inline size_t kstrcspn(const char* s, const char* reject)
+{
+    const char* p = s;
+    for (; *p != '\0'; ++p) {
+        const char* r;
+        for (r = reject; *r != '\0' && *r != *p; ++r)
+            ;
+        if (*r != '\0') /* p matched a reject char */
+            break;
+    }
+    return (size_t)(p - s);
+}
+
 //-----------------------------------------------------------------------------
 // kstrtok: Tokenize string with delimiters.
 // Works like strtok, but without libc.
 // Keeps static state across calls unless str != NULL.
 //-----------------------------------------------------------------------------
-char* kstrtok(char* str, const char* delim) {
-    static char* saved = NULL;
+char* kstrtok_r(char* str, const char* delim, char** save_ptr)
+{
+    char* token_start;
+
+    if (!save_ptr) return NULL; /* defensive */
 
     if (str != NULL) {
-        saved = str;
+        token_start = str;
     }
-    if (saved == NULL) {
-        return NULL;
-    }
-
-    // Skip leading delimiters
-    char* token_start = saved;
-    while (*token_start && strchr(delim, *token_start)) {
-        token_start++;
-    }
-    if (*token_start == '\0') {
-        saved = NULL;
-        return NULL;
-    }
-
-    // Find end of token
-    char* token_end = token_start;
-    while (*token_end && !strchr(delim, *token_end)) {
-        token_end++;
-    }
-
-    if (*token_end) {
-        *token_end = '\0';
-        saved = token_end + 1;
+    else if (*save_ptr != NULL) {
+        token_start = *save_ptr;
     }
     else {
-        saved = NULL;
+        return NULL;
+    }
+
+    /* skip leading delimiters */
+    token_start += kstrspn(token_start, delim);
+
+    if (*token_start == '\0') {
+        *save_ptr = NULL;
+        return NULL;
+    }
+
+    char* token_end = token_start + kstrcspn(token_start, delim);
+
+    if (*token_end == '\0') {
+        *save_ptr = NULL;
+    }
+    else {
+        *token_end = '\0';
+        *save_ptr = token_end + 1;
     }
 
     return token_start;
 }
 
+static void buf_print_hex64_minimal(char* buf, size_t size, size_t* written, uint64_t value) {
+    char tmp[17];
+    char* t = tmp + sizeof(tmp) - 1;
+    const char* hex = "0123456789abcdef";
+    *t = '\0';
+    if (value == 0) {
+        *--t = '0';
+    }
+    else {
+        while (value) {
+            *--t = hex[value & 0xF];
+            value >>= 4;
+        }
+    }
+    buf_puts(buf, size, written, "0x");
+    buf_puts(buf, size, written, t);
+}
 
 int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     size_t written = 0;
@@ -391,7 +504,7 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
                 buf_print_udec64(buf, bufsize, &written, va_arg(ap, uint64_t));
                 break;
             case 'x':
-                buf_print_hex64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                buf_print_hex64_minimal(buf, bufsize, &written, va_arg(ap, uint64_t));
                 break;
             case 'p':
                 buf_puts(buf, bufsize, &written, "0x");
@@ -454,11 +567,40 @@ int kstrcmp(const char* s1, const char* s2) {
     return (int)((unsigned char)*s1 - (unsigned char)*s2);
 }
 
+int kstrncmp(const char* s1, const char* s2, size_t length) {
+    if (!length) return length;
+    for (size_t i = 0; i < length; i++, s1++, s2++) {
+        if (*s1 != *s2) return (int)((unsigned char)*s1 - (unsigned char)*s2);
+        if (*s1 == '\0') return 0;
+    }
+    return 0;
+}
+
+SPINLOCK gop_lock = { 0 };
+
+static void acquire_tmp_lock(SPINLOCK* lock) {
+    if (!lock) return;
+    // spin until we grab the lock.
+    while (__sync_lock_test_and_set(&lock->locked, 1)) {
+        __asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+    }
+    // Memory barrier to prevent instruction reordering
+    __asm__ volatile("" ::: "memory");
+}
+
+static void release_tmp_lock(SPINLOCK* lock) {
+    if (!lock) return;
+    // Memory barrier before release
+    __asm__ volatile("" ::: "memory");
+    __sync_lock_release(&lock->locked);
+}
+
 void gop_printf(uint32_t color, const char* fmt, ...) {
+    tracelast_func("gop_printf");
     bool prev_if = interrupts_enabled();
     __cli();
+    acquire_tmp_lock(&gop_lock);
     GOP_PARAMS* gop = &gop_local;
-    tracelast_func("gop_printf");
     va_list ap;
     va_start(ap, fmt);
     for (const char* p = fmt; *p; p++) {
@@ -471,10 +613,14 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
             switch (*++p) {
             case 'd': gop_print_dec(gop, va_arg(ap, int64_t), color); break;
             case 'u': gop_print_dec(gop, va_arg(ap, uint64_t), color); break;
-            case 'x': gop_print_hex(gop, va_arg(ap, uint64_t), color); break;
+            case 'x': gop_print_hex_minimal(gop, va_arg(ap, uint64_t), color); break;
             case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
-            case 'c': gop_put_char(gop, (char)va_arg(ap, uint64_t), color); break;
-            case 'b': gop_print_binary(gop, (char)va_arg(ap, uint64_t), color); break;
+            case 'c':
+                gop_put_char(gop, (char)va_arg(ap, int), color);    // chars promoted to int
+                break;
+            case 'b':
+                gop_print_binary(gop, va_arg(ap, uint64_t), color); // if 'b' means 64-bit binary
+                break;
             case 's': {
                 const char* str = va_arg(ap, const char*);
                 if (str) gop_puts(gop, str, color);
@@ -490,5 +636,6 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         }
     }
     va_end(ap);
-   if (prev_if) __sti();
+    release_tmp_lock(&gop_lock);
+    if (prev_if) __sti();
 }

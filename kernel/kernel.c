@@ -9,28 +9,132 @@
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
 #endif
 
-#define MAX_AHCI_CONTROLLERS 32
-uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
 
+#define OFFSET_NESTED(st, member, inner_st, inner_member) \
+    (offsetof(st, member) + offsetof(inner_st, inner_member))
+
+#define PRINT_OFFSETS_AND_HALT()                                      \
+    do {                                                              \
+        gop_printf(COLOR_ORANGE,                                      \
+            "(offsets 24/9/2025) (CPU OFFSETS)\n"                     \
+            "self: %x\n"                                              \
+            "currentIrql: %x\n"                                       \
+            "schedulerEnabled: %x\n"                                  \
+            "currentThread: %x\n"                                     \
+            "readyQueue: %x\n"                                        \
+            "ID: %x\n"                                                \
+            "lapic_ID: %x\n"                                          \
+            "VirtStackTop: %x\n"                                      \
+            "tss: %x\n"                                               \
+            "IstPFStackTop: %x\n"                                     \
+            "IstDFStackTop: %x\n"                                     \
+            "flags: %x\n"                                             \
+            "schedulePending: %x\n"                                   \
+            "gdt: %x\n"                                               \
+            "DeferredRoutineQueue.dpcQueueHead: %x\n"                 \
+            "DeferredRoutineQueue.dpcQueueTail: %x\n",                \
+            offsetof(CPU, self),                        \
+            offsetof(CPU, currentIrql),                 \
+            offsetof(CPU, schedulerEnabled),            \
+            offsetof(CPU, currentThread),               \
+            offsetof(CPU, readyQueue),                  \
+            offsetof(CPU, ID),                          \
+            offsetof(CPU, lapic_ID),                    \
+            offsetof(CPU, VirtStackTop),                \
+            offsetof(CPU, tss),                         \
+            offsetof(CPU, IstPFStackTop),               \
+            offsetof(CPU, IstDFStackTop),               \
+            offsetof(CPU, flags),                       \
+            offsetof(CPU, schedulePending),             \
+            offsetof(CPU, gdt),                         \
+            OFFSET_NESTED(CPU, DeferredRoutineQueue, struct _DPC_QUEUE, dpcQueueHead), \
+            OFFSET_NESTED(CPU, DeferredRoutineQueue, struct _DPC_QUEUE, dpcQueueTail)  \
+        );                                                            \
+                                                                       \
+        gop_printf(COLOR_CYAN,                                        \
+            "(THREAD OFFSETS from - Thread)\n"                                       \
+            "registers: %x\n"                                         \
+            "threadState: %x\n"                                       \
+            "timeSlice: %x\n"                                         \
+            "origTimeSlice: %x\n"                                     \
+            "nextThread: %x\n"                                        \
+            "TID: %x\n"                                                \
+            "startStackPtr: %x\n"                                     \
+            "registers themselves (offsets from CTX_FRAME):\n"                           \
+            " RAX: %x | RBX: %x | RCX: %x | RDX: %x | RSI: %x | RDI: %x | RBP: %x |\n" \
+            " R8: %x | R9: %x | R10: %x | R11: %x | R12: %x | R13: %x |\n" \
+            " R14: %x | R15: %x | RSP: %x | RIP: %x | ",               \
+            offsetof(Thread, registers),                \
+            offsetof(Thread, threadState),              \
+            offsetof(Thread, timeSlice),                \
+            offsetof(Thread, origTimeSlice),            \
+            offsetof(Thread, nextThread),               \
+            offsetof(Thread, TID),                      \
+            offsetof(Thread, startStackPtr),           \
+            offsetof(CTX_FRAME, rax),                   \
+            offsetof(CTX_FRAME, rbx),                   \
+            offsetof(CTX_FRAME, rcx),                   \
+            offsetof(CTX_FRAME, rdx),                   \
+            offsetof(CTX_FRAME, rsi),                   \
+            offsetof(CTX_FRAME, rdi),                   \
+            offsetof(CTX_FRAME, rbp),                   \
+            offsetof(CTX_FRAME, r8),                    \
+            offsetof(CTX_FRAME, r9),                    \
+            offsetof(CTX_FRAME, r10),                   \
+            offsetof(CTX_FRAME, r11),                   \
+            offsetof(CTX_FRAME, r12),                   \
+            offsetof(CTX_FRAME, r13),                   \
+            offsetof(CTX_FRAME, r14),                   \
+            offsetof(CTX_FRAME, r15),                   \
+            offsetof(CTX_FRAME, rsp),                   \
+            offsetof(CTX_FRAME, rip)                    \
+        );                                                            \
+                                                                       \
+        gop_printf(COLOR_CYAN, "RFLAGS: %x |\n",                       \
+            offsetof(CTX_FRAME, rflags)                 \
+        );                                                            \
+                                                                       \
+        __hlt();                                                      \
+    } while (0)
+
+/**
+Global variables initialization
+**/
+
+/*
+Kernel Specific
+*/
+bool isBugChecking = false;
+CPU cpu0;
+
+/*
+Boot Parameters
+*/
 GOP_PARAMS gop_local;
 BOOT_INFO boot_info_local;
 
-//static MUTEX mutx;
-//MUTEX* sharedMutex = &mutx;
-
 /*
-Global variables initialization
+AHCI Specifications
 */
-bool isBugChecking = false;
-LASTFUNC_HISTORY lastfunc_history = { .current_index = -1 };
-CPU cpu;
+#define MAX_AHCI_CONTROLLERS 32
+uint64_t ahci_bases_local[MAX_AHCI_CONTROLLERS];
 
-/*
+
+/**
 Ended
-*/
+**/
+
+
 #define MAX_MEMORY_MAP_SIZE 0x4000  // 16 KB, enough for ~256 descriptors
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
+
+static void* tmpcpy(void* dest, const void* src, size_t len) {
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+    for (size_t i = 0; i < len; i++) d[i] = s[i];
+    return dest;
+}
 
 void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
@@ -40,7 +144,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     }
 
     // Copy the entire memory map into the static buffer
-    kmemcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
+    tmpcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
 
     boot_info_local.MemoryMap = memory_map_copy;
     boot_info_local.MapSize = boot_info->MapSize;
@@ -55,7 +159,6 @@ void copy_gop(BOOT_INFO* boot_info) {
     gop_local = *(boot_info->Gop);
 
     // Update all relevant pointers to point to the local copy
-    boot_info->Gop = &gop_local;
     boot_info_local.Gop = &gop_local;
 }
 
@@ -75,9 +178,10 @@ void init_boot_info(BOOT_INFO* boot_info) {
     boot_info_local.AhciCount = boot_info->AhciCount;
     boot_info_local.KernelStackTop = boot_info->KernelStackTop;
     boot_info_local.Pml4Phys = boot_info->Pml4Phys;
+    boot_info_local.AcpiRsdpPhys = boot_info->AcpiRsdpPhys;
 }
 
-static void InitialiseControlRegisters(void) {
+void InitialiseControlRegisters(void) {
 
     /* CR0 */
     unsigned long cr0 = __read_cr0();
@@ -99,13 +203,15 @@ static void InitialiseControlRegisters(void) {
     }
 }
 
-void InitCPU(void) {
-    cpu.currentIrql = PASSIVE_LEVEL;
-    cpu.schedulerEnabled = NULL; // since NULL is 0, it would be false.
-    cpu.currentThread = NULL;
-    cpu.readyQueue.head = cpu.readyQueue.tail = NULL;
-    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t) & cpu);
-    spinlock_init(&cpu.readyQueue.lock);
+static void InitCPU(void) {
+    cpu0.self = &cpu0;
+    cpu0.currentIrql = PASSIVE_LEVEL;
+    cpu0.schedulerEnabled = NULL; // since NULL is 0, it would be false.
+    cpu0.currentThread = NULL;
+    cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
+    cpu0.lastfuncBuffer = NULL;
+    // Function Trace Buffer
+    spinlock_init(&cpu0.readyQueue.lock);
 }
 
 static inline bool interrupts_enabled(void) {
@@ -120,8 +226,12 @@ static inline bool interrupts_enabled(void) {
 void kernel_idle_checks(void) {
     tracelast_func("kernel_idle_checks - Thread");
     gop_printf(0xFF000FF0, "Reached the scheduler!\n");
-    assert((interrupts_enabled()) == true, "Interrupts are not enabled...");
     while (1) {
+        // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
+        if (!interrupts_enabled()) {
+            gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
+            MtPrintStackTrace(15);
+        }
         __hlt();
         //Schedule();
     }
@@ -151,13 +261,13 @@ static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
     gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
     char buf[256];
-    ksnprintf(buf, sizeof(buf), "In funcwithParam! - thread ptr: %p, mutex ptr: %p\n", MtGetCurrentThread(), mut);
-    MTSTATUS status = vfs_mkdir("/testdir/");
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); __hlt(); }
-    status = vfs_write("/testdir/test.txt", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
     MtAcquireMutexObject(mut);
+    MTSTATUS status = vfs_mkdir("/testdir/");
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
+    status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {
@@ -173,20 +283,47 @@ static void funcWithParam(MUTEX* mut) {
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
 
-static void bp_test(void* vinfo) {
+static void bp_exec(void* vinfo) {
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
     if (!info) return;
 
-    gop_printf_forced(0xFFFFFF00, "HWBP: idx=%d addr=%p DR6=%p\n",
-        info->BreakIdx, info->Address, (unsigned long long)info->Dr6);
-
-    MtClearHardwareBreakpointByIndex(info->BreakIdx);
+    gop_printf_forced(0xFFFFFF00, "(EXECUTE) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
+        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
+    gop_printf(COLOR_RED, "Stack Trace:\n");
+    MtPrintStackTrace(10);
+    __hlt();
 }
 
+// All CPUs
+uint8_t apic_list[MAX_CPUS];
+uint32_t cpu_count = 0;
+uint32_t lapicAddress;
+bool smpInitialized;
+
+/// The Stack Overflow check only checks for minor overflows, that don't completetly smash the stack, yet do change the canaries (since it only checks in function epilogue)
+/// To check for complete stack smashing, use the MtAllocateGuardedVirtualMemory function.
+#ifdef DEBUG
+// Stack Canary GCC
+volatile uintptr_t __stack_chk_guard;
+
+__attribute__((noreturn))
+void __stack_chk_fail(void) {
+    __cli();
+    BUGCHECK_ADDITIONALS addt = { 0 };
+    ksnprintf(addt.str, sizeof(addt.str), "Kernel Has Encountered a buffer overflow, return address: %p (will signify the stack check guard, it only shows which function this was triggered)", __builtin_return_address(0));
+    CTX_FRAME ctx;
+    SAVE_CTX_FRAME(&ctx);
+    MtBugcheckEx(&ctx, NULL, KERNEL_STACK_OVERFLOWN, &addt, true);
+}
+#endif
+
 /** Remember that paging is on when this is called, as UEFI turned it on. */
+__attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
     //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpu0);
+    __swapgs();
     __cli();
     // Initialize the CR (Control Registers) registers to our settings.
     InitialiseControlRegisters();
@@ -194,26 +331,55 @@ void kernel_main(BOOT_INFO* boot_info) {
     zero_bss();
     // Create the local boot struct.
     init_boot_info(boot_info);
+    gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     // Initialize the global CPU struct.
     InitCPU();
     // Initialize interrupts & exceptions.
     init_interrupts();
+    // Initialize ACPI.
+    MTSTATUS st = InitializeACPI();
+    if (MT_FAILURE(st)) {
+        gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n");
+        __hlt();
+    }
     // Initialize the frame bitmaps for dynamic frame allocation.
     frame_bitmap_init();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
     _MtSetIRQL(PASSIVE_LEVEL);
+#ifdef DEBUG
+    {
+        uint64_t temp_canary = 0;
+        bool rdrand_ok = false;
+        for (int n = 0; n < 64; n++) {
+            if (__rdrand64(&temp_canary)) {
+                rdrand_ok = true;
+                break;
+            }
+        }
+
+        if (rdrand_ok) {
+            __stack_chk_guard = temp_canary;
+        }
+        else {
+            // rdrand didnt give a value, use timestamp of CPU cycles.
+            __stack_chk_guard = __rdtsc();
+        }
+
+        // The canary should never be zero.
+        if (__stack_chk_guard == 0) {
+            __stack_chk_guard = 0xDEADC0DEDEADC0DE; // fallback
+        }
+    }
+#endif
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     init_dpc_system();
-    gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
-    
-    //MemoryTestStable();
-    //__cli();
-    //__hlt();
-    extern uint32_t cursor_x, cursor_y;
-    cursor_x = cursor_y = 0; // set to 0, since it somehow decrements them.
-
+    /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
+    LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
+    cpu0.lastfuncBuffer = bfr;
+    cpu0.lastfuncBuffer->current_index = -1; // init to -1
+    ///PRINT_OFFSETS_AND_HALT();
     uint64_t rip;
     __asm__ volatile (
         "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
@@ -229,7 +395,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-
     void* buf = MtAllocateVirtualMemory(64, 16);
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MtAllocateVirtualMemory(128, 16);
@@ -250,7 +415,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_ORANGE, "Address: %p is %s\n", addr, MtIsAddressValid(addr) ? "Valid" : "Invalid");
     gop_printf(COLOR_ORANGE, "Address %p (buf7) is %s\n", buf7, MtIsAddressValid(buf7) ? "Valid" : "Invalid");
     gop_printf(COLOR_MAGENTA, "BUF7 (VIRT): %p | (PHYS): %p\n", buf7, MtTranslateVirtualToPhysical(buf7));
-    
 #ifdef CAUSE_BUGCHECK
     MtBugcheck(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
 #endif
@@ -260,10 +424,8 @@ void kernel_main(BOOT_INFO* boot_info) {
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
-    volatile int x = 1;
-    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_test, (void*)&x, DEBUG_ACCESS_WRITE, DEBUG_LEN_4);
+    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
     gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
-    x = 2;
     status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
@@ -271,11 +433,9 @@ void kernel_main(BOOT_INFO* boot_info) {
         SAVE_CTX_FRAME(&ctx);
         MtBugcheck(&ctx, NULL, FILESYSTEM_PANIC, 0, false);
     }
-
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
-
     char listings[256];
     status = vfs_listdir("/", listings, sizeof(listings));
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
@@ -287,12 +447,23 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
     MtCreateThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, true);
     //int integer = 1234;
-    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
-    /* Enable LAPIC Now. */
-    lapic_init_bsp();
-    lapic_enable();
-    init_lapic_timer(100); // 10ms
+    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    /* Enable LAPIC & SMP Now. */
+    lapic_init_cpu();
+    lapic_enable(); // call again.
+    lapic_timer_calibrate();
+    //init_lapic_timer(100); // 10ms, must be called before other APs
+    /* Enable SMP */
+    status = ParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
+    if (MT_FAILURE(status)) {
+        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
+    }
+    else {
+        smp_start(apic_list, 4, lapicAddress);
+    }
+    MtSendActionToCpus(CPU_ACTION_PRINT_ID, 0);
     __sti();
     Schedule();
-
+    for (;;) __hlt();
+    __builtin_unreachable();
 }

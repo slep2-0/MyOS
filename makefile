@@ -27,7 +27,7 @@ SCHED_EXTRA = -fno-optimize-sibling-calls
 
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
-    CFLAGS += -DDEBUG -O0 -g
+    CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection
 else
     CFLAGS += -O2
 endif
@@ -58,39 +58,39 @@ clean:
 # Compile C files with common CFLAGS
 build/kernel.o: kernel/kernel.c
 	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/idt.o: kernel/interrupts/idt.c
+build/idt.o: kernel/core/interrupts/idt.c
+	mkdir -p build
+	$(CC) $(CFLAGS)  $< -o $@ >> log.txt 2>&1
+
+build/isr.o: kernel/core/interrupts/isr.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/isr.o: kernel/interrupts/isr.c
+build/handlers.o: kernel/core/interrupts/handlers/handlers.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/handlers.o: kernel/interrupts/handlers/handlers.c
+build/memory.o: kernel/core/memory/memory.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/memory.o: kernel/memory/memory.c
+build/paging.o: kernel/core/memory/paging/paging.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/paging.o: kernel/memory/paging/paging.c
+build/bugcheck.o: kernel/core/bugcheck/bugcheck.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/bugcheck.o: kernel/bugcheck/bugcheck.c
-	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-
-build/allocator.o: kernel/memory/allocator/allocator.c
+build/allocator.o: kernel/core/memory/allocator/allocator.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 build/ahci.o: kernel/drivers/ahci/ahci.c
 	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
 build/block.o: kernel/drivers/blk/block.c
 	mkdir -p build
@@ -104,24 +104,24 @@ build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/irql.o: kernel/cpu/irql/irql.c
+build/irql.o: kernel/core/irql/irql.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/scheduler.o: kernel/cpu/scheduler/scheduler.c
+build/scheduler.o: kernel/core/scheduler/scheduler.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/dpc.o: kernel/cpu/dpc/dpc.c
+build/dpc.o: kernel/core/dpc/dpc.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/thread.o: kernel/cpu/thread/thread.c
+build/thread.o: kernel/core/thread/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # DPC list can use common CFLAGS
-build/dpc_list.o: kernel/cpu/dpc/dpc_list.c
+build/dpc_list.o: kernel/core/dpc/dpc_list.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
@@ -137,11 +137,27 @@ build/apic.o: kernel/cpu/apic/apic.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/mutex.o: kernel/cpu/mutex/mutex.c
+build/mutex.o: kernel/core/mutex/mutex.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/events.o: kernel/core/events/events.c
+	mkdir -p build
+	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/debugfunctions.o: kernel/cpu/debugger/debugfunctions.c
+build/debugfunctions.o: kernel/debug/debugfunctions.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/smp.o: kernel/cpu/smp/smp.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/ap_main.o: kernel/cpu/smp/ap_main.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/acpi.o: kernel/core/acpi/acpi.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
@@ -150,15 +166,15 @@ build/kernel_entry.o: kernel/kernel_entry.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/isr_stub.o: kernel/interrupts/isr_stub.asm
+build/isr_stub.o: kernel/core/interrupts/isr_stub.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/capture_registers.o: kernel/intrin/capture_registers.asm
+build/capture_registers.o: kernel/intrinsics/capture_registers.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/context.o: kernel/cpu/scheduler/context.asm
+build/context.o: kernel/core/scheduler/context.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
@@ -166,15 +182,24 @@ build/cpuid.o: kernel/cpu/cpuid/cpuid.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/mutex_asm.o: kernel/cpu/mutex/mutex.asm
+build/mutex_asm.o: kernel/core/mutex/mutex.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
+	
+build/ap_trampoline.bin: kernel/cpu/smp/ap_trampoline.asm
+	mkdir -p build
+	$(ASM) $(ASMFLAGS_BIN) $< -o $@	
+
+build/ap_trampoline.o: build/ap_trampoline.bin
+	$(OBJCOPY) -I binary -O elf64-x86-64 -B i386:x86-64 \
+		--rename-section .data=.aptrampoline \
+		$< $@
 
 # Link kernel
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
                       build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/vfs.o build/pit.o build/apic.o build/mutex.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       build/mutex_asm.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

@@ -76,14 +76,14 @@ MTSTATUS vfs_listdir(const char* path, char* listings, size_t max_len);
 MTSTATUS vfs_mkdir(const char* path);
 
 /// <summary>
-/// This function deletes the directory given to the function from the system.
+/// This function deletes the directory given to the function from the system along with its file (marks as deleted).
 /// </summary>
 /// <param name="path">Full path to delete directory.</param>
 /// <returns>MTSTATUS Status code.</returns>
 MTSTATUS vfs_rmdir(const char* path);
 
 /// <summary>
-/// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries)
+/// This function returns if the directory given to the function is empty (e.g, has only '.' and '..' entries / is nonexistent / is deleted)
 /// </summary>
 /// <param name="path">Full path to dir</param>
 /// <returns>True or false based if empty or not.</returns>
