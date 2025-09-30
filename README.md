@@ -51,7 +51,7 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 
 | Component | Status |
 |-----------|--------|
-| Userland Support | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
+| Userland Support | ![🕐](https://img.shields.io/badge/status-DEVELOPMENT-yellow) |
 | Enhanced VFS Features | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 | Minidumps | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 | Advanced Kernel Services | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
@@ -83,6 +83,7 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
