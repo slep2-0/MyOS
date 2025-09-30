@@ -2,7 +2,7 @@
 
 ![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,_STABLE-purple?style=for-the-badge)
 
-MatanelOS is a 64-bit operating system built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32). This project is for educational purposes and low-level OS experimentation.
+MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing! This project is for educational purposes and low-level OS experimentation.
 
 ---
 
@@ -23,6 +23,7 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 |---------|--------|
 | 64-bit Long Mode | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Preemptive Multitasking | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Symmetric Multiprocessing (SMP) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | IRQLs (Interrupt Request Levels) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Deferred Procedure Calls (DPC) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Bugcheck System | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
@@ -53,7 +54,6 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 | Userland Support | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 | Enhanced VFS Features | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 | Minidumps | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
-| SMP | ![🕐](https://img.shields.io/badge/status-DEVELOPMENT-yellow) |
 | Advanced Kernel Services | ![🕐](https://img.shields.io/badge/status-PLANNED-blue) |
 
 ---
@@ -83,6 +83,7 @@ MatanelOS is a 64-bit operating system built from scratch, inspired by Windows k
 I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
