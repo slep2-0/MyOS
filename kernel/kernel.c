@@ -447,7 +447,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
     MtCreateThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, true);
     //int integer = 1234;
-    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
+    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
@@ -462,8 +462,8 @@ void kernel_main(BOOT_INFO* boot_info) {
         smp_start(apic_list, 4, lapicAddress);
     }
     MtSendActionToCpus(CPU_ACTION_PRINT_ID, 0);
-    //__sti();
-    //Schedule();
+    __sti();
+    Schedule();
     for (;;) __hlt();
     __builtin_unreachable();
 }
