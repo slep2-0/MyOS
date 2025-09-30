@@ -2,7 +2,7 @@
 
 ![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,_STABLE-purple?style=for-the-badge)
 
-MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing! This project is for educational purposes and low-level OS experimentation.
+MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing. This project is for educational purposes and low-level OS experimentation.
 
 ---
 
@@ -83,6 +83,7 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
