@@ -7,6 +7,16 @@
 #ifndef X86_CPU_H
 #define X86_CPU_H
 
+#ifndef FORCEINLINE
+#if defined(__clang__) || defined(__GNUC__)
+#define FORCEINLINE static inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define FORCEINLINE static __forceinline
+#else
+#define FORCEINLINE static inline
+#endif
+#endif
+
 #ifndef __INTELLISENSE__
 #define SAVE_CTX_FRAME(ctx_ptr)                            \
     do {                                                   \

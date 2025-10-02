@@ -38,7 +38,7 @@ typedef enum _BUGCHECK_CODES {
     MEMORY_MAP_SIZE_OVERRUN = 0xBEEF, // The memory map has grown beyond the limit (unused).
     MANUALLY_INITIATED_CRASH = 0xBABE, // A function has manually initiated a bugcheck for testing/unknown reasons with this specific code.
     BAD_PAGING = 0xBAD, // A paging function that fails when it shouldn't.
-    BLOCK_DEVICE_LIMIT_REACHED = 0x420, // 1056 - Something tried to register a block device, but the limit has been reached, bugcheck system.
+    BLOCK_DEVICE_LIMIT_REACHED = 0x420, // Something tried to register a block device, but the limit has been reached, bugcheck system.
     NULL_POINTER_DEREFERENCE = 0xDEAD, // Attempted dereference of a null pointer.
     FILESYSTEM_PANIC = 0xFA11, // FileSystem PANIC, usually something wrong has happened
     UNABLE_TO_INIT_TRACELASTFUNC = 0xACE, // TraceLastFunc init failed in kernel_main

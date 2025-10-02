@@ -19,6 +19,7 @@ extern uint8_t _binary_build_ap_trampoline_bin_end[];
 CPU cpus[MAX_CPUS];
 int smp_cpu_count = 0;
 SMP_BOOTINFO bootInfo;
+extern bool smpInitialized;
 
 static inline uint8_t my_lapic_id(void) {
 	uint32_t x = lapic_mmio_read(LAPIC_ID);
@@ -190,12 +191,12 @@ void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
 			__pause();
 		}
 	}
-	extern bool smpInitialized;
 	smpInitialized = true;
 }
 
-void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter) {
+void MtSendActionToCpusAndWait(CPU_ACTION action, uint64_t parameter) {
 	if (!g_cpuCount) return;
+	if (!smpInitialized) return; // if we haven't even setup SMP yet, just return.
 	uint8_t myid = my_lapic_id();
 
 	__asm__ volatile("mfence" ::: "memory");

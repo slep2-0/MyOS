@@ -8,6 +8,7 @@
 #include "../../assert.h"
 #include "../events/events.h"
 #include "../bugcheck/bugcheck.h"
+#include "../../intrinsics/atomic.h"
 
 MTSTATUS MtInitializeMutexObject(MUTEX* mut) {
     tracelast_func("MtInitializeMutexObject");
@@ -84,7 +85,7 @@ MTSTATUS MtAcquireMutexObject(MUTEX* mut) {
         Thread* currThread = MtGetCurrentThread();
 
         if (!mut->locked) {
-            mut->locked = true;
+            mut->locked = true; // note to self: no need to make this an atomic, as we acquire a spinlock, always re-read code better
             mut->ownerTid = currThread->TID;
             mut->ownerThread = currThread;
             MtReleaseSpinlock(&mut->lock, mflags);

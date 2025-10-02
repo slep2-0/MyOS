@@ -317,6 +317,21 @@ void __stack_chk_fail(void) {
 }
 #endif
 
+// Todo allocate dynamically
+PROCESS SystemProcess;
+
+static void InitSystemProcess(void) {
+    SystemProcess.PID = 4; // Initial PID, reserved.
+    SystemProcess.ParentProcess = NULL; // No creator process
+    kstrncpy(SystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(SystemProcess.ImageName)); // Name for the process
+    SystemProcess.ProcessState |= PROCESS_RUNNING; // It's always running, even though we technically dont have anything for it yet.
+    SystemProcess.priority = 0; // TODO
+    SystemProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
+    SystemProcess.CreationTime = MtGetEpoch();
+    SystemProcess.MainThread = &thisCPU()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
+    MtEnqueueThreadWithLock(&SystemProcess.AllThreads, &thisCPU()->idleThread);
+}
+
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 __attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
@@ -346,6 +361,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     frame_bitmap_init();
     // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
     init_heap();
+    // And, initialize our system process.
+    InitSystemProcess();
     _MtSetIRQL(PASSIVE_LEVEL);
 #ifdef DEBUG
     {
@@ -445,14 +462,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MtInitializeMutexObject(sharedMutex);
     gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
-    MtCreateThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, true);
+    MtCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
     //int integer = 1234;
-    MtCreateThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS, true); // I have tested 5+ threads, works perfectly as it should.
+    MtCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
     lapic_timer_calibrate();
-    //init_lapic_timer(100); // 10ms, must be called before other APs
+    init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
     status = ParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
@@ -461,9 +478,15 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         smp_start(apic_list, 4, lapicAddress);
     }
-    MtSendActionToCpus(CPU_ACTION_PRINT_ID, 0);
-    //__sti();
-    //Schedule();
+    MtSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, 0);
+    __sti();
+    //status = MtCreateProcess("loop.mtexe", NULL, NULL);
+    //if (MT_FAILURE(status)) {
+      //  gop_printf(COLOR_RED, "STATUS FAILURE: %p", status);
+        //__cli();
+        //__hlt();
+    //}
+    Schedule();
     for (;;) __hlt();
     __builtin_unreachable();
 }

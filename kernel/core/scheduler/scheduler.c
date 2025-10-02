@@ -9,18 +9,22 @@
 #include "../../assert.h"
 
 // assembly stubs to save and restore register contexts.
-extern void restore_context(CTX_FRAME* regs);
+extern void restore_context(TRAP_FRAME* regs);
+extern void restore_user_context(Thread* regs);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
 extern void kernel_idle_checks(void);
 #define IDLE_STACK_SIZE 4096
+
+extern PROCESS SystemProcess;
+
 // In Scheduler.c
 void InitScheduler(void) {
     tracelast_func("InitScheduler");
     thisCPU()->schedulerEnabled = true;
     Thread* idleThread = &thisCPU()->idleThread;
-    CTX_FRAME cfm;
+    TRAP_FRAME cfm;
     kmemset(&cfm, 0, sizeof(cfm)); // Start with a clean, all-zero context
 
     // Set only the essential registers for starting the thread
@@ -39,7 +43,9 @@ void InitScheduler(void) {
     idleThread->nextThread = NULL;
     idleThread->TID = 0; // Scheduler thread, TID is 0.
     idleThread->startStackPtr = (void*)cfm.rsp;
-    thisCPU()->currentThread = NULL;
+    thisCPU()->currentThread = NULL; // The idle thread would be chosen
+    idleThread->CurrentEvent = NULL; // No event.
+    idleThread->ParentProcess = &SystemProcess;
 
     // The ready queue starts empty
     thisCPU()->readyQueue.head = thisCPU()->readyQueue.tail = NULL;
@@ -91,10 +97,16 @@ static Thread* MtAcquireNextScheduledThread(void) {
     return chosenThread;
 }
 
+FORCEINLINE bool IsUserThread(Thread* thread) {
+    //return (thread->ThreadType & THREAD_USER);
+    UNREFERENCED_PARAMETER(thread);
+    return false;
+}
+
 __attribute__((noreturn))
 void Schedule(void) {
     tracelast_func("Schedule");
-    //gop_printf(COLOR_PURPLE, "**In scheduler**\n");
+    //gop_printf(COLOR_PURPLE, "**In scheduler, IRQL: %d**\n", thisCPU()->currentIrql);
 
     IRQL oldIrql;
     MtRaiseIRQL(DISPATCH_LEVEL, &oldIrql);
@@ -136,7 +148,13 @@ void Schedule(void) {
     next->threadState = RUNNING;
     thisCPU()->currentThread = next;
     MtLowerIRQL(oldIrql);
-    tracelast_func("Entering restore_context.");
-    restore_context(&next->registers);
+    if (IsUserThread(next)) {
+        tracelast_func("Entering restore_user_context");
+        restore_user_context(next);
+    }
+    else {
+        tracelast_func("Entering restore_context");
+        restore_context(&next->registers);
+    }
     __builtin_unreachable();
 }

@@ -168,7 +168,7 @@ void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
                     tracelast_func("Queuing DPC in timer_handler, and saving regs.");
                     /* Setup of DPC */
                     Thread* thread_to_save = thisCPU()->currentThread;
-                    CTX_FRAME* saved_regs = &thread_to_save->registers;
+                    TRAP_FRAME* saved_regs = &thread_to_save->registers;
 
                     // Values taken from the interrupt frame
                     saved_regs->rip = intfr->rip;
@@ -194,6 +194,9 @@ void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
                     saved_regs->rbx = ctx->rbx;
                     saved_regs->rdx = ctx->rdx;
                     saved_regs->rax = ctx->rax;
+
+                    saved_regs->cs = intfr->cs;
+                    saved_regs->ss = intfr->ss;
                     //PRINT_ALL_REGS_AND_HALT(ctx, intfr);
                     /* Ended */
                     MtQueueDPC(&scheduleDpc);

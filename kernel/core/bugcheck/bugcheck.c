@@ -315,7 +315,7 @@ void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_cod
     __cli();
     if (smpInitialized) {
         // If all other cores are online, we obviously want to stop them.
-        MtSendActionToCpus(CPU_ACTION_STOP, 0);
+        MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
     }
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);
@@ -440,6 +440,10 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
+    if (smpInitialized) {
+        // If all other cores are online, we obviously want to stop them.
+        MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
+    }
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);
 #ifdef DEBUG

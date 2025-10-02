@@ -49,6 +49,7 @@ typedef struct _BLOCK_HEADER {
     struct _BLOCK_HEADER* next;     /* Next free block in the free list */
     bool in_use;
     uint32_t kind;
+    uint64_t pageFlags;
 } BLOCK_HEADER;
 
 enum { BLK_NORMAL = 0, BLK_EX = 1, BLK_GUARDED = 2, };

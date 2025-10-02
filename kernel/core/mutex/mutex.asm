@@ -8,7 +8,7 @@ extern Schedule
 
 ; void MtSleepCurrentThread(void);
 global MtSleepCurrentThread
-; void MtSleepCurrentThread(CTX_FRAME* threadRegisters)
+; void MtSleepCurrentThread(TRAP_FRAME* threadRegisters)
 MtSleepCurrentThread:
     ; rdi - threads registers
     ; save general-purpose registers into thread ctx

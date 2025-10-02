@@ -83,6 +83,7 @@ int kstrncmp(const char* s1, const char* s2, size_t length);
 
 size_t kstrlen(const char* str);
 char* kstrcpy(char* dst, const char* src);
+// Gurantees null termination.
 char* kstrncpy(char* dst, const char* src, size_t n);
 char* kstrtok_r(char* str, const char* delim, char** save_ptr);
 

@@ -81,10 +81,10 @@ void ap_main(void);
 void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress);
 
 /// <summary>
-/// Send an IPI CPU_ACTION to CPUs. (interrupt)
+/// Send an IPI CPU_ACTION to CPUs. (interrupt) (waits for a brief period or if the CPUs signal they are done)
 /// </summary>
 /// <param name="action">CPU_ACTION enumerator action.</param>
-void MtSendActionToCpus(CPU_ACTION action, uint64_t parameter);
+void MtSendActionToCpusAndWait(CPU_ACTION action, uint64_t parameter);
 
 #define IST_SIZE (16*1024) // 16 KiB
 #define IST_ALIGNMENT 16

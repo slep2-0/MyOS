@@ -25,8 +25,21 @@ static inline bool interrupts_enabled(void) {
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
+static inline uint8_t vector_to_tpr(unsigned int vector) {
+    return (uint8_t)(vector >> 4);
+}
+
+static inline unsigned int irql_to_vector(IRQL irql) {
+    if (irql >= IPI_LEVEL)       return LAPIC_ACTION_VECTOR;
+    else if (irql >= PROFILE_LEVEL) return LAPIC_INTERRUPT;
+    else if (irql > DISPATCH_LEVEL) return IRQ2VECTOR(irql);
+    else                          return 0; // no special masking
+}
+
 static void update_apic_irqs(IRQL newLevel) {
-    __write_cr8(IRQL2TPR(newLevel));
+    unsigned int vec = irql_to_vector(newLevel);
+    uint8_t tpr = vector_to_tpr(vec);
+    __write_cr8((unsigned long)tpr); // CR8 holds the priority threshold
 }
 
 static inline void toggle_scheduler(void) {
@@ -59,9 +72,7 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    if (new_irql > DISPATCH_LEVEL) {
-        update_apic_irqs(new_irql);
-    }
+    //update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 
@@ -81,9 +92,7 @@ void MtLowerIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    if (new_irql > DISPATCH_LEVEL) {
-        update_apic_irqs(new_irql);
-    }
+    //update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 
@@ -95,9 +104,7 @@ void _MtSetIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    if (new_irql > DISPATCH_LEVEL)  {
-        update_apic_irqs(new_irql);
-    }
+    //update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 

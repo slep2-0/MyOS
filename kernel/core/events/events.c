@@ -80,6 +80,7 @@ MTSTATUS MtWaitForEvent(EVENT* event) {
 
     // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
     curr->threadState = BLOCKED;
+    curr->CurrentEvent = event;
     // Not signaled -> enqueue this thread into the event waiting queue (under event lock)
     MtEnqueueThread(&event->waitingQueue, curr);
     // Keep event lock held only for enqueue; after this we release and block.

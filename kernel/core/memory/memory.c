@@ -217,9 +217,8 @@ static bool grow_heap_by_one_page(void) {
     uintptr_t phys = alloc_frame();
     assert(phys != 0, "alloc_frame returned 0");
     if (!phys) { return false; }
-
-    map_page((void*)heap_current_end, phys, PAGE_PRESENT | PAGE_RW);
-
+    uint64_t basePageFlags = PAGE_PRESENT | PAGE_RW;
+    map_page((void*)heap_current_end, phys, basePageFlags);
     kmemset((void*)heap_current_end, 0, FRAME_SIZE);
     assert(((uintptr_t)heap_current_end & (FRAME_SIZE - 1)) == 0, "heap_current_end page-aligned");
 
@@ -232,6 +231,7 @@ static bool grow_heap_by_one_page(void) {
     block->next = NULL;
     block->in_use = false;
     block->kind = 0;
+    block->pageFlags = basePageFlags;
     assert(block->magic == HEADER_MAGIC, "new block magic");
     assert(block->block_size == FRAME_SIZE, "new block size == FRAME_SIZE");
 
@@ -318,7 +318,7 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
     size_t total_region_size = data_region_size + FRAME_SIZE;
     void* region_start_virt = (void*)heap_current_end;
     heap_current_end += total_region_size;
-
+    uint64_t basePageFlags = PAGE_PRESENT | PAGE_RW;
     // 4. Map the physical frames for the DATA region only.
     for (size_t i = 0; i < pages_for_data; i++) {
         uintptr_t phys = alloc_frame();
@@ -333,7 +333,8 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
             return NULL;
         }
         void* va = (uint8_t*)region_start_virt + (i * FRAME_SIZE);
-        map_page(va, phys, PAGE_PRESENT | PAGE_RW);
+
+        map_page(va, phys, basePageFlags);
     }
 
     // The page at (region_start_virt + data_region_size) is intentionally left unmapped.
@@ -357,6 +358,7 @@ void* MtAllocateGuardedVirtualMemory(size_t wanted_size, size_t align) {
     blk->kind = BLK_GUARDED;
     blk->requested_size = wanted_size;
     blk->next = NULL;
+    blk->pageFlags = basePageFlags;
 
     // 6. Alignment, back-pointer store, zeroing, etc...
     uintptr_t data_start = (uintptr_t)(blk + 1);
@@ -420,7 +422,7 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
                 new_free_blk->block_size = remaining_size;
                 new_free_blk->kind = 0;
                 new_free_blk->requested_size = 0;
-
+                new_free_blk->pageFlags = blk->pageFlags;  // preserve mapping properties
                 // The new free block takes the old one's place in the list.
                 new_free_blk->next = blk->next;
                 *cur = new_free_blk;
@@ -439,6 +441,7 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
             blk->kind = BLK_NORMAL;
             blk->next = NULL;
             blk->requested_size = wanted_size;
+            blk->pageFlags = PAGE_PRESENT | PAGE_RW; // base flags.
             // Get the final user pointer and footer pointer
             void* user_ptr = (void*)user_ptr_potential;
             BLOCK_FOOTER* footer = (BLOCK_FOOTER*)footer_ptr_potential;

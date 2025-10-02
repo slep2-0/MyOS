@@ -37,6 +37,7 @@ extern "C" {
      * Forward declarations
      * -------------------------------------------------------------------------- */
     typedef struct _Thread   Thread;
+    typedef struct _PROCESS  PROCESS;
     typedef struct _DPC      DPC;
     typedef struct _Queue    Queue;
     typedef struct _CPU      CPU;
@@ -142,6 +143,18 @@ extern "C" {
     } CTX_FRAME;
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+    typedef struct _TRAP_FRAME {
+        uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+        uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+        uint64_t rsp;
+        uint64_t rip;
+        uint64_t rflags;
+        uint64_t ss;
+        uint64_t cs;
+    } TRAP_FRAME;
+#pragma pack(pop)
+
     /* --------------------------------------------------------------------------
      * Generic queue used for ready/wait lists
      * -------------------------------------------------------------------------- */
@@ -155,7 +168,7 @@ extern "C" {
     typedef struct _Queue {
         Thread* head;
         Thread* tail;
-        SPINLOCK lock; /* embedded spinlock (do not use SPINLOCK*) */
+        SPINLOCK lock; /* embedded spinlock (do not change from embedded) */
     } Queue;
 
     /* --------------------------------------------------------------------------
@@ -201,6 +214,11 @@ extern "C" {
      * Thread structure
      * -------------------------------------------------------------------------- */
 
+    enum _THREAD_TYPE {
+        THREAD_USER = 1 << 0,
+        THREAD_KERNEL = 1 << 1
+    };
+
      /**
       * Thread - thread control block (TCB)
       *
@@ -209,19 +227,66 @@ extern "C" {
       *  - offsets are validated by _Static_asserts at bottom
       */
     typedef struct _Thread {
-        CTX_FRAME registers;    /* saved register/context frame */
+        TRAP_FRAME registers;    /* saved register/context frame */
         THREAD_STATE threadState; /* at offset 0x88 (asserted later) */
-
-        /* remaining scheduling fields */
         uint32_t timeSlice;     /* remaining ticks until preemption */
         uint32_t origTimeSlice; /* original allocated slice for bookkeeping */
-
         Thread* nextThread;     /* singly-linked list pointer for queues */
         uint32_t TID;           /* thread id */
-
         void* startStackPtr;    /* original/allocated stack start to free */
+        uint64_t userStackVa; /* top of user stack va */
+        EVENT* CurrentEvent; /* ptr to current EVENT if any. */
+        struct _PROCESS* ParentProcess; /* pointer to the parent process of the thread */
+        //uint64_t ThreadType; /* type of thread, user mode?, kernel mode? */
         /* TODO: priority, affinity, wait list, etc. */
     } Thread;
+
+
+    /* --------------------------------------------------------------------------
+    * Process structure
+    * -------------------------------------------------------------------------- */
+
+    enum PROCESS_STATE {
+        PROCESS_RUNNING = 1 << 0, // A thread in the process is currently running
+        PROCESS_READY = 1 << 1,  // The process is ready to run. (essentially its threads)
+        PROCESS_WAITING = 1 << 2,  // Waiting on a mutual exclusion or just sleeping.
+        PROCESS_TERMINATING = 1 << 3,   // A process is ongoing termination in the kernel.
+        PROCESS_TERMINATED = 1 << 4,  // Process is terminated, yet the memory stays.
+        PROCESS_SUSPENDED = 1 << 5  // The process has been suspended by the kernel, either by choice or forcefully, mm.
+    };
+
+        /**
+         * Process - Represents an executing program.
+         *
+         * Encapsulates the program's execution context, including
+         * threads, virtual memory space, handles, and system resources.
+         */
+
+#define PROCESS_STACK_SIZE (32*1024) // 32 KiB
+#define PROCESS_STACK_ALIGNMENT 16 // Alignment of 16 Bytes.
+
+    typedef struct _PROCESS {
+        uint32_t PID; // Process Identifier, unique identifier to the process.
+        struct _PROCESS* ParentProcess; // Parent Process Pointer (should always be one)
+        char ImageName[24]; // Process image name, detected in headers.
+        uint64_t ProcessState;
+        uint32_t priority; // TODO
+        uint64_t* PageDirectoryVirtual; // PML4 of the Process, per process page tables, TODO.
+        uintptr_t PageDirectoryPhysical; // Physical address of the PML4 of the process.
+        uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
+        // SID TODO. - User info as well, when users.
+        uint64_t ImageBase; // Base Pointer of loaded process memory.
+        void* FileBuffer; // Pointer of allocated file buffer contents, to free when done.
+
+        // Synchorinzation for internal functions.
+        SPINLOCK ProcessLock; // An internal spinlock so multiple kernel threads cant change the process structure at the same time.
+
+        // Thread infos
+        Thread* MainThread; // Pointer to the main thread created for the process.
+        Queue AllThreads; // A singular linked list of pointers to the current threads of the process. (inserted with each new creation)
+        uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
+        uint64_t NextStackTop; // A 64 bit value representing the next stack top for a newly created thread
+    } PROCESS;
 
     /* --------------------------------------------------------------------------
      * Deferred Procedure Calls (DPC)
@@ -342,10 +407,8 @@ extern "C" {
 #ifndef _MSC_VER
 _Static_assert(sizeof(CTX_FRAME) == 0x90, "CTX_FRAME must be 0x90 bytes");
 _Static_assert(sizeof(Thread) >= 0xA0, "Thread must be at least 0xA0 bytes");
-_Static_assert(offsetof(Thread, threadState) == 0x90, "Thread.threadState offset must be 0x90");
-_Static_assert(offsetof(Thread, timeSlice) == 0x94, "Thread.timeSlice offset must be 0x94");
-_Static_assert(offsetof(Thread, origTimeSlice) == 0x98, "Thread.origTimeSlice offset must be 0x98");
-_Static_assert(offsetof(Thread, nextThread) == 0xa0, "Thread.nextThread offset must be 0xa0");
+_Static_assert(offsetof(Thread, ParentProcess) == 0xD8, "Thread.ParentProcess offset must be 0xD8");
+_Static_assert(offsetof(PROCESS, PageDirectoryPhysical) == 0x40, "PROCESS.PageDirectoryPhysical must be at offset 0x40");
 _Static_assert(sizeof(SPINLOCK) == 4, "SPINLOCK must be 4 bytes");
 _Static_assert(_Alignof(SPINLOCK) >= 4, "SPINLOCK alignment must be >= 4");
 #endif
