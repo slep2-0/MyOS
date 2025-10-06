@@ -377,6 +377,9 @@ void* MtAllocateVirtualMemory(size_t wanted_size, size_t align) {
     //void* ret = __builtin_return_address(0);
     //gop_printf(COLOR_BLUE, "MtAllocateVirtualMemory Called. Return Address: %p\n", ret);
     tracelast_func("MtAllocateVirtualMemory");
+    uint64_t rip;
+    GET_RIP(rip);
+    enforce_max_irql(DISPATCH_LEVEL, (void*)rip);
     assert(align != 0 && (align & (align - 1)) == 0, "align must be power-of-two");
     assert(wanted_size > 0 && wanted_size <= (SIZE_MAX / 2), "wanted_size sane");
 

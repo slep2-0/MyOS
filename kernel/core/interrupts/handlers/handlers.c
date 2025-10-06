@@ -148,16 +148,6 @@ void init_timer(unsigned long int frequency) {
 
 // REVISE THAT SCHEDULEDPC WILL ALSO SEND CTX.
 
-static DPC scheduleDpc = {
-    .Next = NULL,
-    .CallbackRoutine = ScheduleDPC,
-    .Arg1 = NULL,
-    .Arg2 = NULL,
-    .Arg3 = NULL,
-    .Kind = DPC_SCHEDULE,
-    .priority = HIGH_PRIORITY
-};
-
 void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
     // revamp this stupid coding flow
     if (!thisCPU()->schedulePending) {
@@ -197,9 +187,20 @@ void timer_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
 
                     saved_regs->cs = intfr->cs;
                     saved_regs->ss = intfr->ss;
+                    //MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
                     //PRINT_ALL_REGS_AND_HALT(ctx, intfr);
                     /* Ended */
-                    MtQueueDPC(&scheduleDpc);
+
+                    DPC* SchedDpc = &thisCPU()->TimerExpirationDPC;
+                    SchedDpc->Next = NULL;
+                    SchedDpc->CallbackRoutine = ScheduleDPC;
+                    SchedDpc->Arg1 = NULL;
+                    SchedDpc->Arg2 = NULL;
+                    SchedDpc->Arg3 = NULL;
+                    SchedDpc->priority = HIGH_PRIORITY;
+                    SchedDpc->Kind = DPC_SCHEDULE;
+
+                    MtQueueDPC(SchedDpc);
                     /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
                 }
                 else {
@@ -227,27 +228,59 @@ void lapic_handler(bool schedulerEnabled, CTX_FRAME* ctx, INT_FRAME* intfr) {
 }
 
 void ipi_action_handler(void) {
-    uint8_t myid = thisCPU()->ID;
-    InterlockedOrU64(&thisCPU()->flags, CPU_DOING_IPI); // acknowledge that we are in the IPI
-    CPU_ACTION action = thisCPU()->IpiAction;
-
+    CPU* cpu = thisCPU();
+    InterlockedOrU64(&cpu->flags, CPU_DOING_IPI);
+    uint64_t addr = cpu->IpiParameter.debugRegs.address;
+    CPU_ACTION action = cpu->IpiAction;
+    int idx = find_available_debug_reg();
     switch (action) {
     case CPU_ACTION_STOP:
         // explicit action to halt, since we are in an interrupt, unless an NMI somehow comes, we will stay stopped.
         // clear the flag before we halt so BSP can continue iterations
-        InterlockedAndU64(&thisCPU()->flags, ~CPU_DOING_IPI);
+        cpu->IpiSeq = 0;
+        InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
         for (;;) __hlt();
-        break;
     case CPU_ACTION_PERFORM_TLB_SHOOTDOWN:
-        // flush the parameter
-        invlpg((void*)thisCPU()->IpiParameter);
+        invlpg((void*)cpu->IpiParameter.pageParams.addressToInvalidate);
         break;
     case CPU_ACTION_PRINT_ID:
-        gop_printf(COLOR_RED, "[CPU-IPI] Hello from CPU ID: %d (index %d) | Cpu Ptr: %p\n", thisCPU()->lapic_ID, myid, thisCPU());
+        gop_printf(COLOR_RED, "[CPU-IPI] Hello from CPU ID: %d\n", cpu->lapic_ID);
         break;
+    case CPU_ACTION_WRITE_DEBUG_REGS:
+        if (idx == -1) break;
+        __write_dr(7, cpu->IpiParameter.debugRegs.dr7);
+        __write_dr(idx, cpu->IpiParameter.debugRegs.address);
+        thisCPU()->DebugEntry[idx].Address = (void*)cpu->IpiParameter.debugRegs.address;
+        thisCPU()->DebugEntry[idx].Callback = cpu->IpiParameter.debugRegs.callback;
+        break;
+    case CPU_ACTION_CLEAR_DEBUG_REGS:
+        for (int i = 0; i < 4; i++) {
+            if ((uint64_t)thisCPU()->DebugEntry[i].Address == addr) {
+                __write_dr(i, 0);
+
+                /* Clear DR7 bits for this index (local enable and RW/LEN group) */
+                uint64_t dr7 = __read_dr(7);
+                /* clear local enable bit */
+                dr7 &= ~(1ULL << (i * 2));
+                /* clear RW/LEN 4-bit group */
+                uint64_t mask = 0xFULL << (16 + 4 * i);
+                dr7 &= ~mask;
+                __write_dr(7, dr7);
+
+                /* Clear status DR6 too */
+                __write_dr(6, 0);
+                thisCPU()->DebugEntry[i].Address = NULL;
+                thisCPU()->DebugEntry[i].Callback = NULL;
+                break;
+            }
+        }
     }
 
-    InterlockedAndU64(&thisCPU()->flags, ~CPU_DOING_IPI); // clear the bit, signal completion.
+    InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+    if (action != CPU_ACTION_STOP) {
+        InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+        cpu->IpiSeq = 0; // Signal completion for non-halting actions.
+    }
 }
 
 void pagefault_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
@@ -291,7 +324,6 @@ void nmi_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 }
 
 #include "../../../debug/debugfunctions.h"
-extern DEBUG_ENTRY entries[4];
 
 void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
 #ifndef GDB
@@ -308,9 +340,9 @@ void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
     for (int i = 0; i < 4; ++i) {
         if (dr6 & (1ULL << i)) {
             /* If a callback is registered, call it. Provide both address and context. */
-            if (entries[i].Callback) {
+            if (thisCPU()->DebugEntry[i].Callback) {
                 DBG_CALLBACK_INFO info = {
-                    .Address = entries[i].Address,
+                    .Address = thisCPU()->DebugEntry[i].Address,
                     .CpuCtx = ctx,
                     .IntFrame = intfr,
                     .BreakIdx = i,
@@ -318,7 +350,7 @@ void breakpoint_handler(CTX_FRAME* ctx, INT_FRAME* intfr) {
                 };
 
                 /* Call the user-registered callback. It receives &info (void*). */
-                entries[i].Callback(&info);
+                thisCPU()->DebugEntry[i].Callback(&info);
             }
             else {
                 /* no callback registered for this DRx: print for debug and continue */

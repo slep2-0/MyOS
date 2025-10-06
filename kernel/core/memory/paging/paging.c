@@ -215,7 +215,9 @@ void map_page(void* virtualaddress, uintptr_t physicaladdress, uint64_t flags) {
     pt_va[pt_i] = (pa & ~0xFFFULL) | flags;
     smp_wmb(); /* do not re-order memory stores */
     // 6. Flush the TLB for the target virtual address
-    MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+    IPI_PARAMS params;
+    params.pageParams.addressToInvalidate = va;
+    MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
     invlpg(virtualaddress);
 }
 
@@ -247,7 +249,9 @@ bool unmap_page(void* virtualaddress) {
     if (pdpt_entry & PAGE_PS) {
         uintptr_t base = (uintptr_t)(pdpt_entry & ~((1ULL << 30) - 1));
         pdpt[pdpt_i] = 0;               /* clear PDPT entry */
-        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+        IPI_PARAMS params;
+        params.pageParams.addressToInvalidate = va;
+        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
         invlpg((void*)va);              /* flush TLB for VA */
         free_frame(base);               /* free phys base */
         return true;
@@ -286,7 +290,9 @@ bool unmap_page(void* virtualaddress) {
     uintptr_t phys_addr = (uintptr_t)(pte & ~0xFFFULL);
     pt[pt_i] = 0;               /* clear mapping */
     smp_wmb(); /* do not re-order memory stores */
-    MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+    IPI_PARAMS params;
+    params.pageParams.addressToInvalidate = va;
+    MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
     invlpg((void*)va);         /* flush TLB for VA */
     free_frame(phys_addr);     /* free physical frame */
     return true;
@@ -330,7 +336,9 @@ void set_page_writable(void* virtualaddress, bool writable) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+        IPI_PARAMS params;
+        params.pageParams.addressToInvalidate = va;
+        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
         invlpg((void*)va);
     }
 }
@@ -370,7 +378,9 @@ void set_page_user_access(void* virtualaddress, bool user_accessible) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+        IPI_PARAMS params;
+        params.pageParams.addressToInvalidate = va;
+        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
         invlpg((void*)va);
     }
 }
@@ -405,7 +415,9 @@ void MtAddPageFlags(void* virtualaddress, uint64_t flags) {
     uint64_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
     if (cr0 & 0x80000000) {
-        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, (uint64_t)va); /* send TLB shootdown to all CPUs via an IPI */
+        IPI_PARAMS params;
+        params.pageParams.addressToInvalidate = va;
+        MtSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, params); /* send TLB shootdown to all CPUs via an IPI */
         invlpg((void*)va);
     }
 }

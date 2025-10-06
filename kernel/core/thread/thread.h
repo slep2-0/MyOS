@@ -12,7 +12,6 @@
 #include "../scheduler/scheduler.h"
 #include "../../mtstatus.h"
 
-#define THREAD_DEFAULT_STACK_SIZE 4096
 #define USER_INITIAL_STACK_TOP 0x00007FFFFFFFFFFF
 
 /// <summary>

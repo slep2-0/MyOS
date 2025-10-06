@@ -25,4 +25,8 @@ void MtQueueDPC(DPC* dpc);
 /// This gets called in a kernel idle (main) function thread.
 void RetireDPCs(void);
 
+// These 2 functions are used internally by assembly interrupts, do not use.
+int MtBeginDpcProcessing(void);
+void MtEndDpcProcessing(void);
+
 #endif

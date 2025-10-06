@@ -96,40 +96,39 @@ isr_common_stub64:
     sub     rsp, 8
     call    isr_handler64
     add     rsp, 8
-    
-    ; Send EOI (End of Interrupt) if this was an IRQ (vector >= 32)
-    cmp     r10, 32
-    jl      .dpc
-    
-    ; Send EOI to master PIC
-    mov     al, 0x20
-    out     0x20, al
-    
-    ; If IRQ >= 8, also send EOI to slave PIC
-    cmp     r10, 40
-    jl      .no_slave_eoi
-    out     0xA0, al
-.no_slave_eoi:
 
 extern Schedule
+extern MtBeginDpcProcessing ; per cpu func
+extern MtEndDpcProcessing ; per cpu func
 
 .dpc:
-    ; Enable Interrupts.
-    sti
+    ; Attempt to become the CPU's DPC processor, if we fail, just exit.
+    sub rsp, 8 ; Align
+    call MtBeginDpcProcessing
+    add rsp, 8
+    test rax, rax
+    jz .exit ; Somebody else already is processing DPCs on this CPU, exit.
 
-    ; Retire all DPCs (this will not be done in the scheduler, as we will need to know if a schedule will happen, because it will not return)
-    mov r15, gs:[0] ; &thisCPU
-    mov r15, [r15 + 0x70] ; *(&thisCPU.DeferredRoutineQueue.dpcQueueHead)
-    jz .exit ; No DPCs.
+    ; Do not enable interrupts, we only enable interrupts when the context is being executed so we can check it's timer. (when we implement a DPC Timeout TODO)
 
-    ; Check if we are allowed to retire even. the flag will tell us if we were at DISPATCH_LEVEL or not.
-    mov r15, gs:[0] ; &thisCPU
-    mov r15, [r15 + 0xC] ; *(&thisCPU.schedulerEnabled)
-    test r15, r15
-    jz .exit ; We are not allowed to schedule or retire DPCs (since we are at DISPATCH_LEVEL or above.)
+    ; Retire all DPCs
+    mov r15, gs:[0]             ; &thisCPU
+    mov r15, [r15 + 0x70]       ; *(&thisCPU.DeferredRoutineQueue.dpcQueueHead)
+    jz .clear_and_exit          ; No DPCs.
 
     ; Finally, retire the DPCs. (all DPCs must return, if not - bugcheck)
     call RetireDPCs
+    
+    ; After retiring, always clear the flag.
+    sub rsp, 8
+    call MtEndDpcProcessing
+    add rsp, 8
+
+    ; Now let's check if the scheduler is enabled, so we can't pre-empt the current running thread, even if it's timeslice has expired.
+    mov r15, gs:[0]
+    mov r15, [r15 + 0xC]          ; *(&thisCPU.schedulerEnabled)
+    test r15, r15
+    jz .exit            ; not allowed to retire
 
     ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
     mov r15, gs:[0] ; &thisCPU
@@ -191,6 +190,13 @@ extern Schedule
 
     ; Return from interrupt. pops all CPU pushed regs from the stack back (5 qwords.)
     iretq
+
+.clear_and_exit:
+    ; Reaching here means we have done all DPCs, but we are not allowed to schedule.
+    sub rsp, 8
+    call MtEndDpcProcessing
+    add rsp, 8
+    jmp .exit
 
 ;---------------------------------------------------------------------------
 ; Instantiate ISRs 0-31 (cpu Exceptions)

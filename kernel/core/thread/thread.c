@@ -159,15 +159,8 @@ MTSTATUS MtCreateThread(PROCESS* ParentProcess, Thread** outThread, ThreadEntry 
     thread->startStackPtr = krnlstckPtr;
     thread->userStackVa = (uint64_t)user_rsp_top;
 
-    size_t pages = (THREAD_STACK_SIZE + PAGE_SIZE_4K - 1) / PAGE_SIZE_4K;
-    uint8_t* kernel_top = (uint8_t*)krnlstckPtr + pages * PAGE_SIZE_4K;
-    kernel_top = (uint8_t*)((uintptr_t)kernel_top & ~(uintptr_t)(THREAD_ALIGNMENT - 1));
-
     // reserve red zone, then place CTX_FRAME below it (working in kernel buffer)
-    uint8_t* ksp = kernel_top;
-    ksp -= 64; // red zone
-    ksp -= sizeof(TRAP_FRAME);
-    TRAP_FRAME* kcfm = (TRAP_FRAME*)ksp;
+    TRAP_FRAME* kcfm = &thread->registers;
     kmemset(kcfm, 0, sizeof * kcfm);
 
     uint64_t user_top_aligned = (uint64_t)user_rsp_top & ~(uint64_t)(THREAD_ALIGNMENT - 1);
@@ -244,12 +237,7 @@ MTSTATUS MtCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, tim
     uint8_t* top = (uint8_t*)stackStart + THREAD_STACK_SIZE;
     top = (uint8_t*)((uintptr_t)top & ~(uintptr_t)(THREAD_ALIGNMENT - 1)); // 16-byte aligned
 
-    // reserve red zone, then place CTX_FRAME below it
-    uint8_t* sp = top;
-    sp -= 64;                     // red zone (leave caller-safety area)
-    sp -= sizeof(TRAP_FRAME);      // space for CTX_FRAME
-    TRAP_FRAME* cfm = (TRAP_FRAME*)sp;
-
+    TRAP_FRAME* cfm = &thread->registers;
     kmemset(cfm, 0, sizeof * cfm);
 
     // Set our timeslice.
@@ -262,6 +250,9 @@ MTSTATUS MtCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, tim
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
     cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
+
+    cfm->ss = KERNEL_SS;
+    cfm->cs = KERNEL_CS;
 
     // Create it's RFLAGS with IF bit set to 1.
     cfm->rflags |= (1 << 9ULL);

@@ -194,31 +194,33 @@ void smp_start(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
 	smpInitialized = true;
 }
 
-void MtSendActionToCpusAndWait(CPU_ACTION action, uint64_t parameter) {
-	if (!g_cpuCount) return;
-	if (!smpInitialized) return; // if we haven't even setup SMP yet, just return.
+void MtSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
+	if (!g_cpuCount || !smpInitialized) return;
 	uint8_t myid = my_lapic_id();
+
+	static atomic_uint_fast64_t g_ipiSeq = 1;
+	uint64_t seq = atomic_fetch_add(&g_ipiSeq, 1);
 
 	__asm__ volatile("mfence" ::: "memory");
 
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
-		if (cpus[i].lapic_ID == myid) continue; // skip ourselves
-		if (!(cpus[i].flags & CPU_ONLINE)) continue; // skip CPUs that aren't online yet.
-		if (cpus[i].flags & CPU_UNAVAILABLE) continue; // skip unavailable cpus (cpus shouldnt be marked as unavailable mostly)
-		if (cpus[i].flags & CPU_DOING_IPI) continue; // skip CPUs that are doing an IPI right now.
+		if (cpus[i].lapic_ID == myid) continue;
+		if (!(cpus[i].flags & CPU_ONLINE)) continue;
 
-		// Set the pending action
 		cpus[i].IpiAction = action;
-		if (action == CPU_ACTION_PERFORM_TLB_SHOOTDOWN) cpus[i].IpiParameter = parameter;
+		cpus[i].IpiParameter = parameter;
+
+		cpus[i].IpiSeq = seq; // assign sequence number
 		lapic_send_ipi(cpus[i].lapic_ID, LAPIC_ACTION_VECTOR, 0x0);
 	}
 
-	// second loop to wait for each CPU to signal to stop doing the IPI
+	// wait for all CPUs to handle this exact IPI
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
-		// loop until the AP stops doing the IPI (clears the bit), or until we have exhausted all loops.
-		uint64_t loops = 10000000; // TODO implement HPET so we dont rely on a stupid number
-		while ((*(volatile uint64_t*)&cpus[i].flags & CPU_DOING_IPI) && loops--) {
-			__pause();
+		if (cpus[i].lapic_ID == myid || !(cpus[i].flags & CPU_ONLINE))
+			continue;
+
+		while (cpus[i].IpiSeq == seq) {
+			__pause(); // spin until they clear the seq
 		}
 	}
 }

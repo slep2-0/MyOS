@@ -72,7 +72,7 @@ void MtRaiseIRQL(IRQL new_irql, IRQL* old_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    //update_apic_irqs(new_irql);
+    update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 
@@ -92,7 +92,7 @@ void MtLowerIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    //update_apic_irqs(new_irql);
+    update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 
@@ -104,7 +104,7 @@ void _MtSetIRQL(IRQL new_irql) {
 
     thisCPU()->currentIrql = new_irql;
     toggle_scheduler();
-    //update_apic_irqs(new_irql);
+    update_apic_irqs(new_irql);
     if (prev_if) __sti();
 }
 

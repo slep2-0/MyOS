@@ -478,7 +478,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         smp_start(apic_list, 4, lapicAddress);
     }
-    MtSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, 0);
+    IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
+    MtSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
     __sti();
     //status = MtCreateProcess("loop.mtexe", NULL, NULL);
     //if (MT_FAILURE(status)) {

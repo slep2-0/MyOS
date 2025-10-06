@@ -312,6 +312,8 @@ extern "C" {
      *
      * Callback signature intentionally takes 4 parameters to match compiler/calling convention.
      */
+
+#define PENDING_DPC_BUCKETS 16
     typedef struct _DPC {
         DPC* Next; /* Next DPC in pending queue */
         void (*CallbackRoutine)(DPC* arg1, void* arg2, void* arg3, void* arg4);
@@ -320,12 +322,39 @@ extern "C" {
         void* Arg3;
         DPC_KIND Kind;
         DPC_PRIORITY priority; /* higher runs earlier */
+        _Atomic(uint8_t)Queued;
     } DPC;
+
+    /* --------------------------------------------------------------------------
+     * Interprocessor Interrupt Structure
+    * -------------------------------------------------------------------------- */
+
+    typedef void (*DebugCallback)(void*);
+
+    typedef struct _DEBUG_ENTRY {
+        void* Address;
+        DebugCallback Callback;
+    } DEBUG_ENTRY;
+
+    typedef struct _DEBUG_REGISTERS {
+        uint64_t dr7;
+        uint64_t address;
+        DebugCallback callback;
+    } DEBUG_REGISTERS;
+
+    typedef struct _PAGE_PARAMETERS {
+        uint64_t addressToInvalidate;
+    } PAGE_PARAMETERS;
+
+    typedef struct _IPI_PARAMS {
+        DEBUG_REGISTERS debugRegs;
+        PAGE_PARAMETERS pageParams;
+    } IPI_PARAMS;
 
     /* --------------------------------------------------------------------------
      * Per-CPU structure
      * -------------------------------------------------------------------------- */
-    
+
     /**
     * CPU_FLAGS - Bitflags for the CPU Flags field in the CPU struct for the current CPU.
     *
@@ -342,6 +371,7 @@ extern "C" {
         DPC* dpcQueueHead;
         DPC* dpcQueueTail;
         SPINLOCK lock;
+        _Atomic(DPC*)pendingHeads[PENDING_DPC_BUCKETS];
     };
 
 #define LASTFUNC_BUFFER_SIZE 128
@@ -365,7 +395,7 @@ extern "C" {
     typedef struct _CPU {
         struct _CPU* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c
         enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which IOAPIC interrupts are masked
-        bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
+        volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
         struct _Thread* currentThread; // Current thread that is being executed in the CPU.
         struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
         uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
@@ -381,11 +411,19 @@ extern "C" {
         struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
         struct _DPC AllocatedDPC; // CPU Allocated DPC routine to be used if memory allocation is unable to be used at the current context.
         Thread idleThread; // Idle thread for the current CPU.
-        uint32_t IpiAction; // IPI Action specified in the function.
-        uint64_t IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
+        volatile uint64_t IpiSeq; 
+        volatile uint32_t IpiAction; // IPI Action specified in the function.
+        volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
         volatile uint32_t* LapicAddressVirt; // Virtual address of the Local APIC MMIO Address (mapped)
         uintptr_t LapicAddressPhys; // Physical address of the Local APIC MMIO
         LASTFUNC_HISTORY* lastfuncBuffer; // Per CPU Buffer for the latest functions trace, allocated dynamically. (ptr)
+        volatile bool DeferredRoutineActive; // Per CPU Flag that indicates if the RetireDPCs call is active and retiring DPCs (to prevent re-entracy)
+        
+        /* Statically Special Allocated DPCs */
+        DPC TimerExpirationDPC;
+        /* End Statically Special Allocated DPCs */
+
+        DEBUG_ENTRY DebugEntry[4]; // Per CPU Strucutre that contains debug entries for each debug register.
     } CPU;
 
     /* --------------------------------------------------------------------------

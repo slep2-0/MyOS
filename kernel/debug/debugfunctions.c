@@ -5,14 +5,13 @@
  */
 
 #include "debugfunctions.h"
-
- /* Global table for DR0..DR3 */
-DEBUG_ENTRY entries[4] = { {0} };
+#include "../cpu/cpu.h"
+#include "../cpu/smp/smp.h"
 
 /* Find a free debug slot (0..3) or -1 if none */
-static int find_available_debug_reg(void) {
+int find_available_debug_reg(void) {
     for (int i = 0; i < 4; ++i) {
-        if (entries[i].Callback == NULL) return i;
+        if (thisCPU()->DebugEntry[i].Callback == NULL) return i;
     }
     return -1;
 }
@@ -61,15 +60,22 @@ MTSTATUS MtSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
     write_dr7(dr7);
 
     // Save in the DEBUG db so the INT1 will handle it.
-    entries[idx].Address = BreakpointAddress;
-    entries[idx].Callback = CallbackFunction;
+    thisCPU()->DebugEntry[idx].Address = BreakpointAddress;
+    thisCPU()->DebugEntry[idx].Callback = CallbackFunction;
+
+    IPI_PARAMS params;
+    params.debugRegs.address = addr;
+    params.debugRegs.dr7 = dr7;
+    params.debugRegs.callback = CallbackFunction;
+
+    MtSendActionToCpusAndWait(CPU_ACTION_WRITE_DEBUG_REGS, params);
 
     return MT_SUCCESS;
 }
 
 MTSTATUS MtClearHardwareBreakpointByIndex(int index) {
     if (index < 0 || index > 3) return MT_INVALID_PARAM;
-    if (entries[index].Callback == NULL && entries[index].Address == NULL) return MT_NOT_FOUND;
+    if (thisCPU()->DebugEntry[index].Callback == NULL && thisCPU()->DebugEntry[index].Address == NULL) return MT_NOT_FOUND;
 
     /* Clear DRx address */
     write_dr_idx(index, 0);
@@ -83,12 +89,17 @@ MTSTATUS MtClearHardwareBreakpointByIndex(int index) {
     dr7 &= ~mask;
     write_dr7(dr7);
 
-    /* Clear status DR6 too (optional) */
+    /* Clear status DR6 too */
     write_dr6(0);
 
+    IPI_PARAMS params;
+    params.debugRegs.address = (uint64_t)thisCPU()->DebugEntry[index].Address;
+
     /* Clear table entry */
-    entries[index].Callback = NULL;
-    entries[index].Address = NULL;
+    thisCPU()->DebugEntry[index].Callback = NULL;
+    thisCPU()->DebugEntry[index].Address = NULL;
+
+    MtSendActionToCpusAndWait(CPU_ACTION_CLEAR_DEBUG_REGS, params);
 
     return MT_SUCCESS;
 }
@@ -96,7 +107,7 @@ MTSTATUS MtClearHardwareBreakpointByIndex(int index) {
 MTSTATUS MtClearHardwareBreakpointByAddress(void* BreakpointAddress) {
     if (!BreakpointAddress) return MT_INVALID_PARAM;
     for (int i = 0; i < 4; ++i) {
-        if (entries[i].Address == BreakpointAddress) {
+        if (thisCPU()->DebugEntry[i].Address == BreakpointAddress) {
             return MtClearHardwareBreakpointByIndex(i);
         }
     }

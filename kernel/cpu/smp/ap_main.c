@@ -131,9 +131,9 @@ extern void InitialiseControlRegisters(void);
     InitPerCPU();
 
     /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
-    LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
-    thisCPU()->lastfuncBuffer = bfr;
-    thisCPU()->lastfuncBuffer->current_index = -1; // init to -1
+    //LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
+    //thisCPU()->lastfuncBuffer = bfr;
+    //thisCPU()->lastfuncBuffer->current_index = -1; // init to -1
 
     InitScheduler();
     init_dpc_system();

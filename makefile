@@ -202,7 +202,7 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 # Link kernel
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
                       build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
-                      build/fat32.o build/gop.o build/irql.o build/process.o build/scheduler.o build/dpc.o build/dpc_list.o \
+                      build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
                       build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       build/mutex_asm.o
 	mkdir -p build

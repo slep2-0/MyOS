@@ -311,12 +311,13 @@ static bool isInGuardDB(void* address) {
 __attribute__((noreturn))
 void MtBugcheck(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_code, uint64_t additional, bool isAdditionals) {
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
-    // Disable interrupts if they werent disabled before.
-    __cli();
     if (smpInitialized) {
         // If all other cores are online, we obviously want to stop them.
-        MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
+        IPI_PARAMS dummy = { 0 };
+        MtSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
     }
+    // Disable interrupts if they werent disabled before.
+    __cli();
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);
 #ifdef DEBUG
@@ -442,7 +443,8 @@ void MtBugcheckEx(CTX_FRAME* context, INT_FRAME* int_frame, BUGCHECK_CODES err_c
     __cli();
     if (smpInitialized) {
         // If all other cores are online, we obviously want to stop them.
-        MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
+        IPI_PARAMS dummy = { 0 };
+        MtSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
     }
     // atomically set isBugChecking
     InterlockedExchangeBool(&isBugChecking, 1);

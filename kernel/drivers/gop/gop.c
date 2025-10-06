@@ -598,8 +598,8 @@ static void release_tmp_lock(SPINLOCK* lock) {
 void gop_printf(uint32_t color, const char* fmt, ...) {
     tracelast_func("gop_printf");
     bool prev_if = interrupts_enabled();
-    __cli();
     acquire_tmp_lock(&gop_lock);
+    __cli();
     GOP_PARAMS* gop = &gop_local;
     va_list ap;
     va_start(ap, fmt);
@@ -607,7 +607,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         if (*p == '*' && p[1] == '*') {
             gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
             p++; // skip the second '*'
-            continue;
+            continue; 
         }
         if (*p == '%' && p[1]) {
             switch (*++p) {
