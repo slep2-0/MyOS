@@ -105,7 +105,7 @@ Global variables initialization
 Kernel Specific
 */
 bool isBugChecking = false;
-CPU cpu0;
+PROCESSOR cpu0;
 
 /*
 Boot Parameters
@@ -230,7 +230,6 @@ void kernel_idle_checks(void) {
         // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
         if (!interrupts_enabled()) {
             gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
-            MtPrintStackTrace(15);
         }
         __hlt();
         //Schedule();
@@ -239,10 +238,10 @@ void kernel_idle_checks(void) {
 
 static void test(MUTEX* mut) {
     tracelast_func("test - Thread");
-    Thread* currentThread = MtGetCurrentThread();
+    PETHREAD currentThread = PsGetCurrentThread();
     gop_printf_forced(0xFF00FF00, "Hit Test! test thread ptr: %p\n", currentThread);
     gop_printf(COLOR_GREEN, "(test) Acquiring Mutex Object: %p\n", mut);
-    MTSTATUS status = MtAcquireMutexObject(mut);
+    MTSTATUS status = MsAcquireMutexObject(mut);
     gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
     volatile uint64_t z = 0;
 #ifdef GDB
@@ -253,21 +252,21 @@ static void test(MUTEX* mut) {
         z++;
     }
     gop_printf(COLOR_GREEN, "(test) Releasing Mutex Object: %p\n", mut);
-    MtReleaseMutexObject(mut);
+    MsReleaseMutexObject(mut);
     gop_printf_forced(0xFFA020F0, "**Ended Test.**\n");
 }
 
 static void funcWithParam(MUTEX* mut) {
     tracelast_func("funcWithParam - Thread");
-    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", MtGetCurrentThread(), MtGetCurrentThread()->startStackPtr);
+    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", PsGetCurrentThread(), PsGetCurrentThread()->InternalThread.StackBase);
     char buf[256];
     ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
     gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
-    MtAcquireMutexObject(mut);
-    MTSTATUS status = vfs_mkdir("/testdir/");
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
-    status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    //MTSTATUS status = vfs_mkdir("/testdir/");
+    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
+    //status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
+    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
+    MsAcquireMutexObject(mut);
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {
@@ -277,8 +276,8 @@ static void funcWithParam(MUTEX* mut) {
         z++;
     }
     gop_printf(COLOR_OLIVE, "(funcWithParam) Releasing Mutex Object: %p\n", mut);
-    MtReleaseMutexObject(mut);
-    Thread* currentThread = MtGetCurrentThread();
+    MsReleaseMutexObject(mut);
+    PETHREAD currentThread = PsGetCurrentThread();
     gop_printf(COLOR_OLIVE, "Current thread in funcWithParam: %p\n", currentThread);
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
 }
@@ -287,10 +286,8 @@ static void bp_exec(void* vinfo) {
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
     if (!info) return;
 
-    gop_printf_forced(0xFFFFFF00, "(EXECUTE) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n",
-        info->BreakIdx, info->Address, info->IntFrame->rip, (unsigned long long)info->Dr6);
+    gop_printf(0xFFFFFF00, "(EXECUTE) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n", info->BreakIdx, info->Address, info->trap->rip, (unsigned long long)info->Dr6);
     gop_printf(COLOR_RED, "Stack Trace:\n");
-    MtPrintStackTrace(10);
     __hlt();
 }
 
@@ -318,19 +315,21 @@ void __stack_chk_fail(void) {
 #endif
 
 // Todo allocate dynamically
-PROCESS SystemProcess;
+EPROCESS SystemProcess;
 
 static void InitSystemProcess(void) {
     SystemProcess.PID = 4; // Initial PID, reserved.
     SystemProcess.ParentProcess = NULL; // No creator process
     kstrncpy(SystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(SystemProcess.ImageName)); // Name for the process
-    SystemProcess.ProcessState |= PROCESS_RUNNING; // It's always running, even though we technically dont have anything for it yet.
     SystemProcess.priority = 0; // TODO
-    SystemProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
+    SystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
     SystemProcess.CreationTime = MtGetEpoch();
-    SystemProcess.MainThread = &thisCPU()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
-    MtEnqueueThreadWithLock(&SystemProcess.AllThreads, &thisCPU()->idleThread);
+    SystemProcess.MainThread = &MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
+    MsEnqueueThreadWithLock(&SystemProcess.AllThreads, &MeGetCurrentProcessor()->idleThread);
 }
+
+extern uint8_t bss_start;
+extern uint8_t bss_end;
 
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 __attribute__((noreturn))
@@ -343,7 +342,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize the CR (Control Registers) registers to our settings.
     InitialiseControlRegisters();
     // Zero the BSS.
-    zero_bss();
+    size_t len = &bss_end - &bss_start;
+    RtlZeroMemory(&bss_start, len);
     // Create the local boot struct.
     init_boot_info(boot_info);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
@@ -352,18 +352,18 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize interrupts & exceptions.
     init_interrupts();
     // Initialize ACPI.
-    MTSTATUS st = InitializeACPI();
+    MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
         gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n");
         __hlt();
     }
-    // Initialize the frame bitmaps for dynamic frame allocation.
-    frame_bitmap_init();
-    // Finally, initialize our heap for memory allocation (like threads, processes, structs..)
-    init_heap();
+    // Initialize the memory manager.
+    MiInitializePfnDatabase(boot_info);
+    MiInitializePoolVaSpace();
+    MiInitializePoolSystem();
     // And, initialize our system process.
     InitSystemProcess();
-    _MtSetIRQL(PASSIVE_LEVEL);
+    _MeSetIrql(PASSIVE_LEVEL);
 #ifdef DEBUG
     {
         uint64_t temp_canary = 0;
@@ -391,9 +391,9 @@ void kernel_main(BOOT_INFO* boot_info) {
 #endif
     /* Initiate Scheduler and DPCs */
     InitScheduler();
-    init_dpc_system();
+    MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueHead = MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueTail = NULL;
     /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
-    LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
+    LASTFUNC_HISTORY* bfr = MmAllocatePoolWithTag(NonPagedPool, sizeof(LASTFUNC_HISTORY), 'TSAL');
     cpu0.lastfuncBuffer = bfr;
     cpu0.lastfuncBuffer->current_index = -1; // init to -1
     ///PRINT_OFFSETS_AND_HALT();
@@ -406,49 +406,39 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     gop_printf_forced(0xFFFFFF00, "Current RIP: %p\n", rip);
 
-    if (rip >= KERNEL_VA_START) {
+    if (rip >= KernelVaStart) {
         gop_printf_forced(0x00FF00FF, "**[+] Running in higher-half**\n");
     }
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-    void* buf = MtAllocateVirtualMemory(64, 16);
+
+    void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
-    void* buf2 = MtAllocateVirtualMemory(128, 16);
+    void* buf2 = MmAllocatePoolWithTag(NonPagedPool, 128, 'buf2');
     gop_printf_forced(0xFFFFFF00, "buf2 addr: %p\n", buf2);
-    MtFreeVirtualMemory(buf2);
-    void* buf3 = MtAllocateVirtualMemory(128, 16);
+    MmFreePool(buf2);
+    void* buf3 = MmAllocatePoolWithTag(NonPagedPool, 128, 'buf3');
     gop_printf_forced(0xFFFFFF00, "buf3 addr (should be same as buf2): %p\n", buf3);
-    void* buf4 = MtAllocateVirtualMemory(2048, 16);
+    void* buf4 = MmAllocatePoolWithTag(NonPagedPool, 2048, 'buf4');
     gop_printf_forced(0xFF964B00, "buf4 addr (should reside after buf3, allocated 2048 bytes): %p\n", buf4);
-    void* buf5 = MtAllocateVirtualMemory(64, 16);
+    void* buf5 = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf5');
     gop_printf_forced(0xFF964B00, "buf5 addr (should be a larger addr): %p\n", buf5);
-    void* buf6 = MtAllocateVirtualMemory(5000, 64);
+    void* buf6 = MmAllocatePoolWithTag(NonPagedPool, 5000, 'buf6');
     gop_printf_forced(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
-    void* buf7 = MtAllocateVirtualMemory(10000, 128);
+    void* buf7 = MmAllocatePoolWithTag(NonPagedPool, 10000, 'buf7');
     gop_printf_forced(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
-    // check
-    void* addr = 0;
-    gop_printf(COLOR_ORANGE, "Address: %p is %s\n", addr, MtIsAddressValid(addr) ? "Valid" : "Invalid");
-    gop_printf(COLOR_ORANGE, "Address %p (buf7) is %s\n", buf7, MtIsAddressValid(buf7) ? "Valid" : "Invalid");
-    gop_printf(COLOR_MAGENTA, "BUF7 (VIRT): %p | (PHYS): %p\n", buf7, MtTranslateVirtualToPhysical(buf7));
-#ifdef CAUSE_BUGCHECK
-    MtBugcheck(NULL, NULL, MANUALLY_INITIATED_CRASH, 0xDEADBEEF, true);
-#endif
-    
     if (checkcpuid()) {
         char str[256];
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
-    MTSTATUS status = MtSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
+    MTSTATUS status = MdSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
     gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
     status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
-        CTX_FRAME ctx;
-        SAVE_CTX_FRAME(&ctx);
-        MtBugcheck(&ctx, NULL, FILESYSTEM_PANIC, 0, false);
+        MeBugCheck(FILESYSTEM_PANIC);
     }
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
@@ -458,35 +448,29 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
     gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
     gop_printf(COLOR_CYAN, "%s", listings);
-    MUTEX* sharedMutex =  MtAllocateVirtualMemory(sizeof(MUTEX), _Alignof(MUTEX));
+    MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
-    status = MtInitializeMutexObject(sharedMutex);
+    status = MsInitializeMutexObject(sharedMutex);
     gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
-    MtCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
+    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
     //int integer = 1234;
-    MtCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    PsCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
     lapic_timer_calibrate();
     init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
-    status = ParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
+    status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
         gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
     }
     else {
-        smp_start(apic_list, 4, lapicAddress);
+        MhInitializeSMP(apic_list, 4, lapicAddress);
     }
     IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
-    MtSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
+    MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
     __sti();
-    //status = MtCreateProcess("loop.mtexe", NULL, NULL);
-    //if (MT_FAILURE(status)) {
-      //  gop_printf(COLOR_RED, "STATUS FAILURE: %p", status);
-        //__cli();
-        //__hlt();
-    //}
     Schedule();
     for (;;) __hlt();
     __builtin_unreachable();

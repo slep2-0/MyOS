@@ -180,8 +180,10 @@ static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char*
 		for (int c = 0; c < 5; ++c) {
 			uint16_t ch = name1[c];
 			if (ch == 0x0000) { out_name[pos] = '\0'; goto done; }
+			if (pos >= MAX_LFN_LEN - 1) { // Check BEFORE writing
+				goto done;
+			}
 			if (ch <= 0x7F) out_name[pos++] = (char)ch; else out_name[pos++] = '?';
-			if (pos >= MAX_LFN_LEN - 1) goto done;
 		}
 
 		// Name2 at offset 14, 6 UTF-16 chars
@@ -189,8 +191,10 @@ static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char*
 		for (int c = 0; c < 6; ++c) {
 			uint16_t ch = name2[c];
 			if (ch == 0x0000) { out_name[pos] = '\0'; goto done; }
+			if (pos >= MAX_LFN_LEN - 1) {
+				goto done;
+			}
 			if (ch <= 0x7F) out_name[pos++] = (char)ch; else out_name[pos++] = '?';
-			if (pos >= MAX_LFN_LEN - 1) goto done;
 		}
 
 		// Name3 at offset 28, 2 UTF-16 chars
@@ -198,8 +202,10 @@ static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char*
 		for (int c = 0; c < 2; ++c) {
 			uint16_t ch = name3[c];
 			if (ch == 0x0000) { out_name[pos] = '\0'; goto done; }
+			if (pos >= MAX_LFN_LEN - 1) {
+				goto done;
+			}
 			if (ch <= 0x7F) out_name[pos++] = (char)ch; else out_name[pos++] = '?';
-			if (pos >= MAX_LFN_LEN - 1) goto done;
 		}
 	}
 
@@ -247,7 +253,7 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 
 	// allocate cache buffer onceW
 	if (!fat_cache_buf) {
-		fat_cache_buf = MtAllocateVirtualMemory(512, 512);
+		fat_cache_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 		if (!fat_cache_buf) {
 			gop_printf(0xFFFF0000, "fat32_read_fat: couldn't alloc cache buf\n");
 			MtReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
@@ -524,10 +530,10 @@ static uint32_t fat32_find_free_cluster(void) {
 }
 
 static bool zero_cluster(uint32_t cluster) {
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	bool success = true;
 	if (!buf) return false;
-	kmemset(buf, 0, 512);
+	kmemset(buf, 0, fs.bytes_per_sector);
 	MTSTATUS status;
 	uint32_t sector = first_sector_of_cluster(cluster);
 	for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
@@ -643,7 +649,7 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 		bool found_this_token = false;
 		parent_cluster_of_last_found = current_cluster;
 
-		void* sector_buf = MtAllocateVirtualMemory(512, 512);
+		void* sector_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 		if (!sector_buf) return false;
 
 		uint32_t search_cluster = current_cluster;
@@ -729,7 +735,7 @@ static bool fat32_extend_directory(uint32_t dir_cluster) {
 
 static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint32_t* out_sector, uint32_t* out_entry_index) {
 	uint32_t current_cluster = dir_cluster;
-	void* sector_buf = MtAllocateVirtualMemory(512, 512);
+	void* sector_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!sector_buf) return false;
 	MTSTATUS status;
 
@@ -805,7 +811,7 @@ MTSTATUS fat32_init(int disk_index) {
 	fs.root_cluster = bpb.root_cluster;
 
 	fs.fat_start = BPB_SECTOR_START + bpb.reserved_sector_count; // technically also reserved_sector_count of fs. holds it as well.
-	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat;
+	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat; 
 	MtFreeVirtualMemory(buf);
 	return MT_SUCCESS;
 }
@@ -815,7 +821,7 @@ void fat32_list_root(void) {
 	tracelast_func("fat32_list_root");
 	uint32_t cluster = fs.root_cluster;
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!buf) return;
 
 	// Temp buffer to accumulate LFN entries (and eventually the 8.3 entry).
@@ -826,8 +832,10 @@ void fat32_list_root(void) {
 		uint32_t sector = first_sector_of_cluster(cluster);
 		for (uint32_t i = 0; i < fs.sectors_per_cluster; ++i) {
 			status = read_sector(sector + i, buf);
-			if (MT_FAILURE(status)) return;
-
+			if (MT_FAILURE(status)) {
+				MtFreeVirtualMemory(buf);
+				return;
+			}
 			FAT32_DIR_ENTRY* dir = (FAT32_DIR_ENTRY*)buf;
 			uint32_t entries = fs.bytes_per_sector / sizeof(*dir);
 
@@ -967,7 +975,7 @@ MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** b
 	tracelast_func("fat32_read_file");
 	MTSTATUS status;
 	// We still need a temporary buffer for reading sectors
-	void* sblk = MtAllocateVirtualMemory(512, 512);
+	void* sblk = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!sblk) return MT_NO_MEMORY;
 
 	// Get the cluster of the directory filename points to (e.g "tmp/folder/myfile.txt", we need the "folder" cluster.)
@@ -1160,9 +1168,9 @@ MTSTATUS fat32_create_directory(const char* path) {
 	zero_cluster(new_cluster);
 
 	// 5. Create '.' and '..' entries in the new cluster
-	void* sector_buf = MtAllocateVirtualMemory(512, 512);
+	void* sector_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!sector_buf) { /* handle error */ return MT_MEMORY_LIMIT; }
-	kmemset(sector_buf, 0, 512);
+	kmemset(sector_buf, 0, fs.bytes_per_sector);
 	FAT32_DIR_ENTRY* dot_entries = (FAT32_DIR_ENTRY*)sector_buf;
 
 	kmemcpy(dot_entries[0].name, ".          ", 11);
@@ -1210,7 +1218,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 		}
 
 		// Prepare temporary buffer with LFN entries followed by SFN
-		FAT32_LFN_ENTRY* temp_entries = (FAT32_LFN_ENTRY*)MtAllocateVirtualMemory(total_slots * sizeof(FAT32_LFN_ENTRY), 512);
+		FAT32_LFN_ENTRY* temp_entries = (FAT32_LFN_ENTRY*)MtAllocateVirtualMemory(total_slots * sizeof(FAT32_LFN_ENTRY), fs.bytes_per_sector);
 		if (!temp_entries) {
 			MtFreeVirtualMemory(sector_buf);
 			fat32_write_fat(new_cluster, FAT32_FREE_CLUSTER);
@@ -1231,7 +1239,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 		sfn_entry->fst_clus_hi = (uint16_t)(new_cluster >> 16);
 
 		// Write temp_entries sequentially into parent directory slots (may span sectors)
-		const int entries_per_sector = 512 / sizeof(FAT32_DIR_ENTRY);
+		const int entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
 		uint32_t cur_sector = entry_sector;
 		int cur_index = (int)entry_index;
 		uint32_t remaining = total_slots;
@@ -1383,7 +1391,7 @@ MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uin
 	uint32_t located_consumed = 0;
 	bool located = false;
 	if (exists) {
-		void* buf = MtAllocateVirtualMemory(512, 512);
+		void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 		if (!buf) return MT_NO_MEMORY;
 		uint32_t cluster = parent_cluster;
 		do {
@@ -1494,7 +1502,7 @@ locate_done:
 			if (first_new != 0) first_cluster = first_new;
 		}
 
-		void* sector_buf = MtAllocateVirtualMemory(512, 512);
+		void* sector_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 		if (!sector_buf) {
 			if (first_new) fat32_free_cluster_chain(first_new);
 			return MT_NO_MEMORY;
@@ -1559,7 +1567,7 @@ locate_done:
 
 	// If the file existed before, we must mark its old directory entries as deleted.
 	if (exists && located) {
-		void* delete_buf = MtAllocateVirtualMemory(512, 512);
+		void* delete_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 		if (delete_buf) {
 			// This logic assumes old entries are in one sector. A more complex implementation
 			// would loop across sectors if located_consumed + located_index > entries_per_sector.
@@ -1586,7 +1594,7 @@ locate_done:
 		return MT_FAT32_DIR_FULL;
 	}
 
-	void* write_buf = MtAllocateVirtualMemory(512, 512);
+	void* write_buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!write_buf) { MtFreeVirtualMemory(entry_buf); return MT_NO_MEMORY; }
 
 	uint32_t current_sector = entry_sector;
@@ -1642,7 +1650,7 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 		cluster = fs.root_cluster;
 	}
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!buf) return MT_NO_MEMORY;
 
 	if (max_len > 0) listings[0] = '\0';
@@ -1722,7 +1730,7 @@ bool fat32_directory_is_empty(const char* path) {
 	uint32_t dir_cluster = get_dir_cluster(&entry);
 	if (dir_cluster == 0) return false;
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!buf) return false;
 
 	uint32_t cluster = dir_cluster;
@@ -1789,7 +1797,7 @@ static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluste
 	char sfn_formatted[11];
 	format_short_name(filename, sfn_formatted);
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!buf) return false;
 
 	uint32_t cluster = parent_cluster;
@@ -1870,7 +1878,7 @@ static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
 
 	if (dir_cluster == 0 || dir_cluster == fs.root_cluster) return false; // never delete root here
 
-	void* buf = MtAllocateVirtualMemory(512, 512);
+	void* buf = MtAllocateVirtualMemory(fs.bytes_per_sector, fs.bytes_per_sector);
 	if (!buf) return false;
 
 	uint32_t cluster = dir_cluster;

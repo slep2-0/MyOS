@@ -8,6 +8,29 @@
 #define FONT8X16_IMPLEMENTATION
 #include "font8x16.h"
 
+
+ // integer font scale (1 = native 8×16, 2 = 16×32, etc)
+#define FONT_SCALE 1
+
+static inline bool gop_params_valid(const GOP_PARAMS* gop) {
+    if (!gop) return false;
+    if (!gop->FrameBufferBase) return false;
+    if (gop->Width == 0 || gop->Height == 0) return false;
+    if (gop->PixelsPerScanLine == 0) return false;
+    return true;
+}
+
+static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color) {
+    if (!gop_params_valid(gop)) return;
+    if (x >= gop->Width || y >= gop->Height) return; // safeguard
+    uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
+    uint32_t  stride = gop->PixelsPerScanLine;
+    fb[y * stride + x] = color;
+}
+
+static inline uint32_t char_width(void) { return  8 * FONT_SCALE; }
+static inline uint32_t line_height(void) { return 16 * FONT_SCALE; }
+
 bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;

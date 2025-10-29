@@ -11,24 +11,18 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "core/bugcheck/bugcheck.h"
+#include "includes/me.h"
 __attribute__((noreturn))
 static void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line) {
     // Getting here means a runtime assertion has failed (assert())
-    BUGCHECK_ADDITIONALS addt = { 0 };
 
     // It can be versatile, with a reason or not.
     if (reason) {
-        ksnprintf(addt.str, sizeof(addt.str), "An assertion has failed (%s)\nReason: %s\nLocation: %s:%d, function %s", expr, reason, file, line, func);
-        CTX_FRAME ctx;
-        SAVE_CTX_FRAME(&ctx);
-        MtBugcheckEx(&ctx, NULL, ASSERTION_FAILURE, &addt, true);
+        MeBugCheckEx(ASSERTION_FAILURE, (void*)expr, (void*)reason, (void*)file, (void*)(uintptr_t)line);
     }
     else {
-        ksnprintf(addt.str, sizeof(addt.str), "An assertion has failed (%s)\nLocation: %s:%d, function %s", expr, file, line, func);
-        CTX_FRAME ctx;
-        SAVE_CTX_FRAME(&ctx);
-        MtBugcheckEx(&ctx, NULL, ASSERTION_FAILURE, &addt, true);
+        reason = "NO_REASON_SPECIFIED";
+        MeBugCheckEx(ASSERTION_FAILURE, (void*)expr, (void*)reason, (void*)file, (void*)(uintptr_t)line);
     }
 
     __builtin_unreachable();

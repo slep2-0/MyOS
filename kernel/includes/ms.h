@@ -1,0 +1,314 @@
+#ifndef X86_MATANEL_SYNCHRONIZATION_H
+#define X86_MATANEL_SYNCHRONIZATION_H
+
+/*++
+
+Module Name:
+
+    ms.h
+
+Purpose:
+
+    This module contains the header files & prototypes required for synchronization in a threaded - multiprocessing system.
+
+Author:
+
+    slep (Matanel) 2025.
+
+Revision History:
+
+--*/
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "../mtstatus.h"
+#include "annotations.h"
+#include "core.h"
+#include "ps.h"
+
+// ------------------ STRUCTURES ------------------
+
+/**
+ * SPINLOCK - a tiny embedded spinlock representation.
+ *
+ * Implementation note: keep this embedded (not a pointer) inside structures.
+ */
+typedef struct _SPINLOCK {
+    volatile uint32_t locked; /* 0 = unlocked, 1 = locked */
+} SPINLOCK, *PSPINLOCK;
+
+/**
+* Rundown Reference Protection.
+*
+* Used to protect current acquisition of destruction, for example, acquiring a rundown protection on a PROCESS or a Thread to assert they will not be destroyed during modification.
+*
+*/
+
+typedef struct _RUNDOWN_REF {
+    uint64_t Count; // Reference count, bit 0-62 is used for reference counting, bit 63 is used to signify the object is being terminated. (teardown flag)
+} RUNDOWN_REF, *PRUNDOWN_REF;
+ 
+typedef struct _Queue {
+    PETHREAD head;
+    PETHREAD tail;
+    struct _SPINLOCK lock; /* embedded spinlock (do not change from embedded) */
+} Queue;
+
+/**
+ * EVENT_TYPE - controls wake behavior
+ */
+typedef enum _EVENT_TYPE {
+    NotificationEvent,   /* wake all waiting threads */
+    SynchronizationEvent /* wake one thread at a time */
+} EVENT_TYPE;
+
+/**
+ * EVENT - kernel event object
+ * - Embedded SPINLOCK and Queue for waiting threads.
+ */
+typedef struct _EVENT {
+    enum _EVENT_TYPE type;              /* Notification vs Synchronization */
+    volatile bool signaled;             /* current state */
+    struct _SPINLOCK lock;                /* protects signaled + waitingQueue */
+    struct _Queue waitingQueue;           /* threads waiting on this event */
+} EVENT, *PEVENT;
+
+/**
+* MUTEX - Mutual exclusion.
+*
+* Used to sleep instead of busy waiting, used in non critical paths (e.g IRQL < DISPATCH_LEVEL)
+*
+*/
+typedef struct _MUTEX {
+    uint32_t ownerTid;  /* owning thread id (0 if none) */
+    struct _EVENT SynchEvent;   /* event used for waking waiters */
+    bool locked;        /* fast-check boolean (protected by lock) */
+    struct _SPINLOCK lock;      /* protects ownerTid/locked and wait list */
+    struct _ETHREAD* ownerThread; /* pointer to current thread that holds the mutex */
+} MUTEX, *PMUTEX;
+
+// ------------------ FUNCTIONS ------------------
+
+void
+MsAcquireSpinlock(
+    IN	PSPINLOCK lock,
+    IN	PIRQL OldIrql
+);
+
+void
+MsReleaseSpinlock(
+    IN	PSPINLOCK lock,
+    IN	IRQL OldIrql
+);
+
+MTSTATUS
+MsInitializeMutexObject(
+    IN  PMUTEX mut
+);
+
+MTSTATUS
+MsAcquireMutexObject(
+    IN  PMUTEX mut
+);
+
+MTSTATUS
+MsReleaseMutexObject(
+    IN  PMUTEX mut
+);
+
+bool
+MsAcquireRundownProtection(
+    IN	PRUNDOWN_REF rundown
+);
+
+void
+MsReleaseRundownProtection(
+    IN	PRUNDOWN_REF rundown
+);
+
+void 
+MsWaitForRundownProtectionRelease(
+    IN  PRUNDOWN_REF rundown
+);
+
+MTSTATUS
+MtSetEvent(
+    IN PEVENT event
+);
+
+MTSTATUS 
+MtWaitForEvent(
+    IN  PEVENT event
+);
+
+FORCEINLINE
+void
+InitializeListHead(
+    PDOUBLY_LINKED_LIST Head
+)
+
+{
+    Head->Flink = Head;
+    Head->Blink = Head;
+}
+
+FORCEINLINE
+void
+InsertTailList(
+    PDOUBLY_LINKED_LIST Head,
+    PDOUBLY_LINKED_LIST Entry
+)
+
+{
+    PDOUBLY_LINKED_LIST Blink;
+    // The last element is the one before Head (circular list style)
+    Blink = Head->Blink;
+    Entry->Flink = Head;  // New entry points forward to Head
+    Entry->Blink = Blink; // New entry points back to old last node
+    Blink->Flink = Entry; // Old last node points forward to new entry
+    Head->Blink = Entry;  // Head points back to new entry
+}
+
+FORCEINLINE
+PDOUBLY_LINKED_LIST
+RemoveHeadList(
+    PDOUBLY_LINKED_LIST Head
+)
+
+{
+    PDOUBLY_LINKED_LIST Entry;
+    PDOUBLY_LINKED_LIST Flink;
+
+    Entry = Head->Flink;
+    if (Entry == Head) {
+        // List is empty
+        return NULL;
+    }
+
+    Flink = Entry->Flink;
+    Head->Flink = Flink;
+    Flink->Blink = Head;
+
+    // Clear links
+    Entry->Flink = Entry->Blink = NULL;
+    return Entry;
+}
+
+/* Interlocked push: atomically push Entry onto *ListHeadPtr.
+   ListHeadPtr is PSINGLE_LINKED_LIST* (address of the head pointer). 
+   Usage: InterlockedPushEntry(&Descriptor->FreeListHead.Next, &Header->Metadata.FreeListEntry);
+   */
+FORCEINLINE 
+void
+InterlockedPushEntry(
+    PSINGLE_LINKED_LIST* ListHeadPtr, /* &head_ptr */
+    PSINGLE_LINKED_LIST Entry         /* entry->Next must be valid memory */
+)
+{
+    PSINGLE_LINKED_LIST oldHead;
+    do {
+        oldHead = __atomic_load_n(ListHeadPtr, __ATOMIC_RELAXED);
+        Entry->Next = oldHead;
+        /* try to replace head with Entry */
+    } while (!__atomic_compare_exchange_n(
+        ListHeadPtr,           /* target */
+        &oldHead,              /* expected (updated on failure) */
+        Entry,                 /* desired */
+        /*weak*/ false,
+        __ATOMIC_RELEASE,      /* success: release so prior stores are visible */
+        __ATOMIC_RELAXED));    /* failure: relaxed */
+}
+
+/* Interlocked pop: atomically pop and return the old head (or NULL).
+   Returns the popped entry pointer. 
+   Usage: InterlockedPopEntry(&Descriptor->FreeListHead.Next);
+   */
+FORCEINLINE
+PSINGLE_LINKED_LIST
+InterlockedPopEntry(
+    PSINGLE_LINKED_LIST* ListHeadPtr
+)
+{
+    PSINGLE_LINKED_LIST oldHead;
+    PSINGLE_LINKED_LIST next;
+
+    do {
+        oldHead = __atomic_load_n(ListHeadPtr, __ATOMIC_ACQUIRE);
+        if (oldHead == NULL)
+            return NULL;
+        next = oldHead->Next;
+        /* try to set head to next */
+    } while (!__atomic_compare_exchange_n(
+        ListHeadPtr,
+        &oldHead,
+        next,
+        /*weak*/ false,
+        __ATOMIC_ACQ_REL,      /* success: acquire+release to pair with push */
+        __ATOMIC_RELAXED));   /* failure ordering */
+    return oldHead;
+}
+
+FORCEINLINE
+void 
+MsEnqueueThreadWithLock (
+    Queue* queue, PETHREAD thread) {
+    tracelast_func("MtEnqueueThreadWithLock");
+    IRQL flags;
+    MsAcquireSpinlock(&queue->lock, &flags);
+    thread->nextThread = NULL;
+    if (!queue->head) queue->head = thread;
+    else queue->tail->nextThread = thread;
+    queue->tail = thread;
+    MsReleaseSpinlock(&queue->lock, flags);
+}
+
+// Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
+FORCEINLINE
+PETHREAD 
+MsDequeueThreadWithLock(Queue* q) {
+    tracelast_func("MtDequeueThreadWithLock");
+    IRQL flags;
+    MsAcquireSpinlock(&q->lock, &flags);
+    if (!q->head) {
+        MsReleaseSpinlock(&q->lock, flags); // CRITICAL BUG, did not release the spinlock when returning, and here I am wondering why all my CPUs halted... :(
+        return NULL;
+    }
+
+    PETHREAD t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
+    MsReleaseSpinlock(&q->lock, flags);
+    return t;
+}
+
+// Enqueues the thread given to the queue.
+FORCEINLINE
+void MsEnqueueThread(Queue* queue, PETHREAD thread) {
+    tracelast_func("MtEnqueueThread");
+    thread->nextThread = NULL;
+    if (!queue->head) queue->head = thread;
+    else queue->tail->nextThread = thread;
+    queue->tail = thread;
+}
+
+// Dequeues the current thread from the queue, returns null if none.
+FORCEINLINE
+PETHREAD MsDequeueThread(Queue* q) {
+    tracelast_func("MtDequeueThread");
+    if (!q->head) {
+        return NULL;
+    }
+
+    PETHREAD t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
+    return t;
+}
+
+#endif // X86_MATANEL_SYNCHRONIZATION_H

@@ -7,11 +7,13 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include "intrinsics/intrin.h"
-#include "cpu/cpu_types.h"
+#include "includes/me.h"
 
-static inline CPU* thisCPUtmp(void) {
-    return (CPU*)__readgsqword(0);
+#ifdef DEBUG
+static inline PPROCESSOR thisCPUtmp(void) {
+    return (PPROCESSOR)__readgsqword(0);
 }
+#endif
 
 // this stays `static inline` so every .c gets its own copy
 static inline void tracelast_func(const char* function_name) {

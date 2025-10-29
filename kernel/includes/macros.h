@@ -1,0 +1,28 @@
+#ifndef X86_MATANEL_MACROS_H
+#define X86_MATANEL_MACROS_H
+#include "../assert.h"
+
+/// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
+/// Example: 
+/// CTX_FRAME* ctxframeptr = 0x1234; // Hypothetical address of the pointer.
+/// Thread* threadAssociated = CONTAINING_RECORD(ctxframeptr, Thread, ctx); // Note that ctx is the member name for CTX_FRAME in the Thread struct.
+#ifndef CONTAINING_RECORD
+#define CONTAINING_RECORD(ptr, type, member) \
+    ((type *)((char *)(ptr) - offsetof(type, member)))
+#endif
+
+#ifndef SIZE_T_MAX
+#define SIZE_T_MAX (size_t)-1
+#endif
+
+extern uint8_t kernel_start;
+#define LK_KERNEL_START &kernel_start
+
+extern uint8_t kernel_end;
+#define LK_KERNEL_END &kernel_end
+
+#define LK_KERNEL_SIZE (LK_KERNEL_END - LK_KERNEL_START)
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+#endif
