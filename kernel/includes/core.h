@@ -3,6 +3,9 @@
 
 /* minimal shared types to avoid circular includes */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,
 	DISPATCH_LEVEL = 2,
@@ -22,14 +25,28 @@ typedef struct _DOUBLY_LINKED_LIST {
 	struct _DOUBLY_LINKED_LIST* Flink;
 } DOUBLY_LINKED_LIST, * PDOUBLY_LINKED_LIST;
 
-/* forward-declare thread struct and public typedef */
 struct _ITHREAD;
 typedef struct _ITHREAD ITHREAD;
 typedef ITHREAD* PITHREAD;
 
-/* forward-declare processor if needed */
+struct _IPROCESS;
+typedef struct _IPROCESS IPROCESS;
+typedef IPROCESS* PIPROCESS;
+
+struct _ETHREAD;
+typedef struct _ETHREAD ETHREAD;
+typedef ETHREAD* PETHREAD;
+
 struct _PROCESSOR;
 typedef struct _PROCESSOR PROCESSOR;
 typedef PROCESSOR* PPROCESSOR;
+
+struct _EPROCESS;
+typedef struct _EPROCESS EPROCESS;
+typedef EPROCESS* PEPROCESS;
+
+struct _TRAP_FRAME;
+typedef struct _TRAP_FRAME TRAP_FRAME;
+typedef TRAP_FRAME* PTRAP_FRAME;
 
 #endif // MATANEL_CORE_H

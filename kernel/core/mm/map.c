@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../assert.h"
 
 static inline uint64_t canonical_high(uint64_t addr) {
     // If bit 47 is set, set all higher bits
@@ -86,7 +87,7 @@ MiGetPtePointer (
 
     Return Values:
 
-        Pointer to PTE associated with the Virtual Address.
+        Pointer to PTE associated with the Virtual Address. (NULL if failure)
 
 --*/
 
@@ -132,8 +133,9 @@ MiTranslatePteToPfn (
 --*/
 
 {
-    uintptr_t phys = PMMPTE_TO_PHYSICAL(pte);
-    return  PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
+    if (!pte) return 0;
+    uintptr_t phys = PTE_TO_PHYSICAL(pte);
+    return PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
 }
 
 FORCEINLINE
@@ -186,7 +188,7 @@ MiUnmapPte (
 
     Notes:
 
-        This function DOES NOT release the PFN back to the database, you must do so yourself.
+        This function DOES NOT release the PFN associated with the PTE back to the database, you must do so yourself.
 
 --*/
 
@@ -200,11 +202,11 @@ MiUnmapPte (
 
     // Atomically exchange old info with new info to avoid races.
     MMPTE newPte;
-    newPte.PresentNotSet.Present = 0;
+    newPte.Soft.Present = 0;
 
     // Write new values.
-    newPte.PresentNotSet.PageFrameNumber = pfn;
-    newPte.PresentNotSet.Transition = 1;
+    newPte.Soft.PageFrameNumber = pfn;
+    newPte.Soft.Transition = 1;
 
     // Exchange now.
     InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
@@ -215,4 +217,60 @@ MiUnmapPte (
 
     // Return.
     return;
+}
+
+uintptr_t
+MiTranslateVirtualToPhysical(
+    IN void* VirtualAddress
+)
+
+/*++
+
+    Routine description:
+
+        Translates the given virtual address to its equivalent (**IF MAPPED TO**) physical address.
+
+    Arguments:
+
+        [IN]    void* VirtualAddress - The mapped virtual address.
+
+    Return Values:
+
+        The physical address mapped to the virtual address, or 0 if invalid.
+
+--*/
+
+{
+    PMMPTE pte = MiGetPtePointer((uintptr_t)VirtualAddress);
+    if (!pte) return 0;
+
+    if (!pte->Hard.Present) return 0;
+
+    return (uintptr_t)PTE_TO_PHYSICAL(pte);
+}
+
+bool
+MmIsAddressPresent(
+    IN  uintptr_t VirtualAddress
+)
+
+/*++
+
+    Routine description:
+
+        Checks if the given address is currently present in memory (won't cause a page fault on access)
+
+    Arguments:
+
+        [IN]    uintptr_t VirtualAddress - The virtual address.
+
+    Return Values:
+
+        True if the address is valid and in memory, false otherwise.
+
+--*/
+
+{
+    PMMPTE pte = MiGetPtePointer(VirtualAddress);
+    return pte->Hard.Present;
 }

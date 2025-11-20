@@ -13,8 +13,7 @@
 #include <stdint.h>
 #include "../../includes/stdarg_myos.h"
 #include "../../trace.h"
-#include "../../core/memory/memory.h"
-#include "../../core/uefi_memory.h"
+#include "../../includes/mg.h"
 
 void gop_printf(uint32_t color, const char* fmt, ...);
 

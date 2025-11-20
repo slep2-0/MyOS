@@ -26,7 +26,7 @@ static void map_physical_range(uint64_t phys, size_t length, uint32_t flags) {
 	for (uint64_t p = start; p < end; p += VirtualPageSize) {
 		uintptr_t v = (p + PhysicalMemoryOffset);
 		PMMPTE pte = MiGetPtePointer(v);
-		MI_WRITE_PTE(pte, v, p, PAGE_PRESENT | PAGE_RW);
+		MI_WRITE_PTE(pte, v, p, flags);
 	}
 }
 
@@ -79,7 +79,6 @@ static void* MiFindACPIHeader(XSDT* xsdt, const char* headerSignature) {
 FADT* fadt;
 MADT* madt;
 
-NORETURN
 void 
 MhRebootComputer (
 	void

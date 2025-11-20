@@ -10,6 +10,7 @@
 #include "../../intrinsics/intrin.h"
 #include "../../intrinsics/atomic.h"
 #include "../../includes/mh.h"
+#include "../../includes/ps.h"
 
 #ifndef NOTHING
 #define NOTHING
@@ -202,8 +203,8 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
 NORETURN
 void
 MeBugCheck(
-    IN enum _BUGCHECK_CODES BugCheckCode
-) 
+	IN enum _BUGCHECK_CODES BugCheckCode
+)
 
 /*++
 
@@ -245,11 +246,12 @@ MeBugCheck(
     gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
     char* stopCodeToStr = ""; // empty at first.
     resolveStopCode(&stopCodeToStr, BugCheckCode);
-    uint64_t rspIfExist = (uint64_t)-1;
     gop_printf(0xFFFFFFFF, "**STOP CODE: ");
     gop_printf(0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(0xFF00FF00, " (numerical: %d)**", BugCheckCode);
+    gop_printf(0xFF00FF00, " (numerical: %d)**\n", BugCheckCode);
+#ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+#endif
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
@@ -275,7 +277,7 @@ MeBugCheck(
 
 NORETURN
 void 
-MeBugcheckEx (
+MeBugCheckEx (
     IN enum _BUGCHECK_CODES	BugCheckCode,
     IN void* BugCheckParameter1,
     IN void* BugCheckParameter2,
@@ -329,7 +331,7 @@ MeBugcheckEx (
     resolveStopCode(&stopCodeToStr, BugCheckCode);
     gop_printf(0xFFFFFFFF, "**STOP CODE: ");
     gop_printf(0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(0xFF00FF00, " (numerical: %d)**", BugCheckCode);
+    gop_printf(0xFF00FF00, " (numerical: %d)**\n", BugCheckCode);
     {
 #ifdef DEBUG
         if (BugCheckCode == ASSERTION_FAILURE) {
@@ -338,7 +340,7 @@ MeBugcheckEx (
                 "Expression: %s\n"
                 "Reason: %s\n"
                 "File: %s\n"
-                "Line: %s\n",
+                "Line: %d\n", // Changed to %d since assert_fail passes a decimal number and not a char ptr.
                 BugCheckParameter1,
                 BugCheckParameter2,
                 BugCheckParameter3,
@@ -360,9 +362,10 @@ MeBugcheckEx (
         }
 #endif
     }
+#ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
-    // FIXME
-    int32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
+#endif
+    uint32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");

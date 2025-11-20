@@ -18,7 +18,7 @@ CFLAGS = -std=gnu11 \
          -fno-omit-frame-pointer \
          -Wno-unused-function \
          -Wall -Wextra -Werror -Wmissing-prototypes \
-         -Wstrict-prototypes -Wshadow -Wcast-align \
+         -Wstrict-prototypes -Wno-multichar -Wshadow -Wcast-align \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -fno-pie -fno-pic
 
@@ -124,7 +124,7 @@ build/dpc.o: kernel/core/me/dpc.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/thread.o: kernel/core/mp/thread.c
+build/thread.o: kernel/core/ps/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
@@ -164,11 +164,23 @@ build/acpi.o: kernel/core/mh/acpi.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/process.o: kernel/core/mp/process.c
+build/process.o: kernel/core/ps/process.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
 build/rundown.o: kernel/core/ms/rundown.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/spinlock.o: kernel/core/ms/spinlock.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/pool.o: kernel/core/mm/pool.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/fault.o: kernel/core/mm/fault.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
@@ -193,7 +205,7 @@ build/cpuid.o: kernel/core/mh/cpuid.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/mutex_asm.o: kernel/core/ms/mutex.asm
+build/sleep.o: kernel/core/ms/sleep.asm
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 	
@@ -209,9 +221,9 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 # Link kernel
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o \
                       build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o \
-                      build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o \
+                      build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o \
                       build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
-                      build/mutex_asm.o
+                      build/sleep.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

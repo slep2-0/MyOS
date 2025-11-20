@@ -24,8 +24,11 @@ Revision History:
 #include <stddef.h>
 
 // Other file includes
-#include "ms.h"
 #include "me.h"
+#include "core.h"
+
+// Exception Includes
+#include "exception.h"
 
 // ------------------ ENUMERATORS ------------------
 
@@ -42,8 +45,8 @@ typedef enum _PROCESS_STATE {
     PROCESS_RUNNING = 0, // A thread in the process is currently running
     PROCESS_READY,  // The process is ready to run. (essentially its threads)
     PROCESS_WAITING,  // Waiting on a mutual exclusion or just sleeping.
-    PROCESS_TERMINATING,   // A process is ongoing termination in the kernel.
-    PROCESS_TERMINATED,  // Process is terminated, yet the memory stays.
+    PROCESS_TERMINATING,   // The process is ongoing termination in the kernel.
+    PROCESS_TERMINATED,  // Process is terminated, but core parts of its structure has been kept.
     PROCESS_SUSPENDED // The process has been suspended by the kernel, either by choice or forcefully.
 } PROCESS_STATE, *PPROCESS_STATE;
 
@@ -51,14 +54,15 @@ typedef enum _PROCESS_STATE {
 
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure.
-    char ImageName[24];
+    char ImageName[24]; // Process image name - e.g 'mtoskrnl.mtexe'
     uint32_t PID; // Process Identifier, unique identifier to the process.
     struct _EPROCESS* ParentProcess; // Parent Process Pointer (should always be one)
     uint32_t priority; // TODO
     uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
     // SID TODO. - User info as well, when users.
+
+    // TODO PEB
     uint64_t ImageBase; // Base Pointer of loaded process memory.
-    void* FileBuffer; // Pointer of allocated file buffer contents, to free when done.
 
     // Synchorinzation for internal functions.
     struct _RUNDOWN_REF ProcessRundown; // A process rundown that is used to safely synchronize the teardown or deletion of a process, ensuring no threads are still accessing it.
@@ -76,10 +80,12 @@ typedef struct _EPROCESS {
 
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure.
-    struct _Thread* nextThread;     /* singly-linked list pointer for queues */
+    struct _ETHREAD* nextThread;     /* singly-linked list pointer for queues */
+    // TODO TEB
+    struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
     uint32_t TID;           /* thread id */
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
-    struct _PROCESS* ParentProcess; /* pointer to the parent process of the thread */
+    struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     /* TODO: priority, affinity, wait list, etc. */
 } ETHREAD, *PETHREAD;
@@ -100,7 +106,6 @@ MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS Pare
 MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 
-FORCEINLINE_NOHEADER
 PETHREAD
 PsGetCurrentThread(
     void
@@ -112,8 +117,93 @@ PsGetCurrentProcess(
     void
 )
 
+// Will return current running process, or NULL if not present. (shouldn't happen after init)
+
 {
-    return PsGetCurrentThread()->ParentProcess;
+    if (PsGetCurrentThread()->ParentProcess) {
+        return PsGetCurrentThread()->ParentProcess;
+    }
+    else return NULL;
+}
+
+FORCEINLINE
+PETHREAD
+PsGetEThreadFromIThread(
+    IN PITHREAD IThread
+)
+
+{
+    return CONTAINING_RECORD(IThread, ETHREAD, InternalThread);
+}
+
+FORCEINLINE
+PEPROCESS
+PsGetEProcessFromIProcess(
+    IN PIPROCESS IProcess
+)
+
+{
+    return CONTAINING_RECORD(IProcess, EPROCESS, InternalProcess);
+}
+
+// Executive Functions - Are in PS.H
+FORCEINLINE
+void
+MeEnqueueThreadWithLock(
+    Queue* queue, PETHREAD thread) {
+    IRQL flags;
+    MsAcquireSpinlock(&queue->lock, &flags);
+    thread->nextThread = NULL;
+    if (!queue->head) queue->head = thread;
+    else queue->tail->nextThread = thread;
+    queue->tail = thread;
+    MsReleaseSpinlock(&queue->lock, flags);
+}
+
+// Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
+FORCEINLINE
+PETHREAD
+MeDequeueThreadWithLock(Queue* q) {
+    IRQL flags;
+    MsAcquireSpinlock(&q->lock, &flags);
+    if (!q->head) {
+        MsReleaseSpinlock(&q->lock, flags); // bye bye comment
+        return NULL;
+    }
+
+    PETHREAD t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
+    MsReleaseSpinlock(&q->lock, flags);
+    return t;
+}
+
+// Enqueues the thread given to the queue.
+FORCEINLINE
+void MeEnqueueThread(Queue* queue, PETHREAD thread) {
+    thread->nextThread = NULL;
+    if (!queue->head) queue->head = thread;
+    else queue->tail->nextThread = thread;
+    queue->tail = thread;
+}
+
+// Dequeues the current thread from the queue, returns null if none.
+FORCEINLINE
+PETHREAD MeDequeueThread(Queue* q) {
+    if (!q->head) {
+        return NULL;
+    }
+
+    PETHREAD t = q->head;
+    q->head = t->nextThread;
+    if (!q->head) {
+        q->tail = NULL;
+    }
+    t->nextThread = NULL;
+    return t;
 }
 
 #endif

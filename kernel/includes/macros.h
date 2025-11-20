@@ -1,6 +1,6 @@
 #ifndef X86_MATANEL_MACROS_H
 #define X86_MATANEL_MACROS_H
-#include "../assert.h"
+#include <stdint.h>
 
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
@@ -11,8 +11,14 @@
     ((type *)((char *)(ptr) - offsetof(type, member)))
 #endif
 
+#undef SIZE_T_MAX
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX (size_t)-1
+#endif
+
+#undef UINT64_T_MAX
+#ifndef UINT64_T_MAX
+#define UINT64_T_MAX (uint64_t)-1
 #endif
 
 extern uint8_t kernel_start;

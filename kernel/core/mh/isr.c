@@ -5,9 +5,11 @@
  * EXPLANATION: An ISR is what handles the interrupts that gets sent from the CPU (after interrupt is sent to ISR itself), it will do stuff based if it's an exception, or a normal interrupt.
  */
 
+#include "../../includes/core.h"
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
 #include "../../trace.h"
+#include "../../includes/me.h"
 
 extern GOP_PARAMS gop_local;
 
@@ -50,6 +52,20 @@ MhHandleInterrupt (
     
     // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)
     bool schedulerEnabled = MeGetCurrentProcessor()->schedulerEnabled;
+
+    // Save the PreviousMode to current thread.
+    PRIVILEGE_MODE PreviousMode;
+
+    if ((trap->cs & 0x3) == 0x3) {
+        PreviousMode = UserMode;
+    }
+    else {
+        PreviousMode = KernelMode;
+    }
+    
+    if (MeGetCurrentProcessor()->currentThread) {
+        MeGetCurrentProcessor()->currentThread->PreviousMode = PreviousMode;
+    }
 
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:

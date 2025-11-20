@@ -20,6 +20,7 @@ Revision History:
 // So: LeftChild < Node < RightChild
 
 #include "../../includes/mm.h"
+#include "../../includes/ps.h"
 
 FORCEINLINE
 int
@@ -588,6 +589,7 @@ MiDeleteVadNode(
 PMMVAD vadStack[MAX_VAD_DEPTH];
 int stackTop = -1;
 
+static
 uintptr_t
 MiFindGap(
     IN  PMMVAD Root,
@@ -600,7 +602,7 @@ MiFindGap(
 
     Routine description:
 
-        Finds a VA gap in the VAD Tree using an iterative in-order traversal.
+        Finds a VA gap in the VAD Tree using an iterative in-order traversal. (does NOT claim the gap)
 
     Arguments:
 
@@ -733,7 +735,7 @@ MmAllocateVirtualMemory(
     Arguments:
 
         [IN]    PEPROCESS Process - Process to allocate memory for
-        [IN OPTIONAL | OUT OPTIONAL]    void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes.
+        [IN OPTIONAL | OUT OPTIONAL]    void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *baseAddress is set to the found start of gap.
         [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
         [IN]    uint32_t VadFlags - The VAD Flags to supply for the allocation (file backed?)
 
@@ -752,9 +754,9 @@ MmAllocateVirtualMemory(
     bool checkForOverlap = true;
 
     if (!StartVa) {
-        // We would need to calculate if this is a user call or kernel call.
-        bool KernelCall = (Process->PID == 4) ? true : false;
-        if (KernelCall) {
+        // We need to determine if the allocation is for a system process or a user process.
+        bool KernelProcess = (Process->PID == 4) ? true : false;
+        if (KernelProcess) {
             StartVa = MiFindGap(Process->VadRoot, NumberOfBytes, MI_VAD_SEARCH_START, MI_VAD_SEARCH_END);
         }
         else {
@@ -764,7 +766,10 @@ MmAllocateVirtualMemory(
         if (!StartVa) return MT_NOT_FOUND;
         // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.
         checkForOverlap = false;
-    }
+
+        // Calculate the end VA.
+        EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
+    } 
 
     // Acquire rundown protection for process
     if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
@@ -851,13 +856,13 @@ MmFreeVirtualMemory(
     }
 
     // Unmap all PTEs and physical pages from VAD.
-    for (uintptr_t va = VadToFree->StartVa; va <= VadToFree->EndVa; va += VirtualPageSize) {
+    for (uintptr_t virtualaddr = VadToFree->StartVa; virtualaddr <= VadToFree->EndVa; virtualaddr += VirtualPageSize) {
         // Get the PTE pointer for the current VA.
-        PMMPTE pte = MiGetPtePointer(va);
+        PMMPTE pte = MiGetPtePointer(virtualaddr);
         // Atomically unmap the PTE.
         MiUnmapPte(pte);
         // Grab the PFN Number from the (now replaced) PTE. (in PresentSet, PageFrameNumber is the physical address, not the PFN index, our MiUnmapPte function replaced that)
-        PAGE_INDEX pfn = pte->PresentNotSet.PageFrameNumber;
+        PAGE_INDEX pfn = pte->Soft.PageFrameNumber;
         // Release the PFN back to MM.
         MiReleasePhysicalPage(pfn);
     }

@@ -7,7 +7,7 @@
 #include "../../includes/md.h"
 #include "../../includes/mh.h"
 
-/* Find a free debug slot (0..3) or -1 if none */
+ /* Find a free debug slot (0..3) or -1 if none */
 int find_available_debug_reg(void) {
     for (int i = 0; i < 4; ++i) {
         if (MeGetCurrentProcessor()->DebugEntry[i].Callback == NULL) return i;
@@ -98,7 +98,7 @@ MTSTATUS MdClearHardwareBreakpointByIndex(int index) {
     MeGetCurrentProcessor()->DebugEntry[index].Callback = NULL;
     MeGetCurrentProcessor()->DebugEntry[index].Address = NULL;
 
-    MtSendActionToCpusAndWait(CPU_ACTION_CLEAR_DEBUG_REGS, params);
+    MhSendActionToCpusAndWait(CPU_ACTION_CLEAR_DEBUG_REGS, params);
 
     return MT_SUCCESS;
 }
@@ -107,7 +107,7 @@ MTSTATUS MdClearHardwareBreakpointByAddress(void* BreakpointAddress) {
     if (!BreakpointAddress) return MT_INVALID_PARAM;
     for (int i = 0; i < 4; ++i) {
         if (MeGetCurrentProcessor()->DebugEntry[i].Address == BreakpointAddress) {
-            return MtClearHardwareBreakpointByIndex(i);
+            return MdClearHardwareBreakpointByIndex(i);
         }
     }
     return MT_NOT_FOUND;

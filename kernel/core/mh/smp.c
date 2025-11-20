@@ -7,11 +7,13 @@
 #include "../../assert.h"
 #include "../../includes/mh.h"
 #include "../../includes/mm.h"
+#include "../../includes/me.h"
+#include <stdint.h>
 
 extern uint8_t _binary_build_ap_trampoline_bin_start[];
 extern uint8_t _binary_build_ap_trampoline_bin_end[];
 
-PROCESSOR cpus[32];
+PROCESSOR cpus[MAX_CPUS];
 int smp_cpu_count = 0;
 SMP_BOOTINFO bootInfo;
 extern bool smpInitialized;
@@ -34,7 +36,7 @@ static void install_trampoline(void) {
 	MI_WRITE_PTE(apPhysPte, AP_TRAMP_PHYS, AP_TRAMP_PHYS, PAGE_PRESENT | PAGE_RW);
 
 	/* 3) Copy the trampoline into that mapped page */
-	kmemcpy(virt, _binary_build_ap_trampoline_bin_start, sz);
+	kmemcpy((void*)virt, _binary_build_ap_trampoline_bin_start, sz);
 
 	/* 4) Make sure caches/TLB don't have stale data:
 	   clflush the page (per 64-byte cacheline) and invlpg the page. */
@@ -50,7 +52,6 @@ extern PROCESSOR cpu0;
 
 // Allocate PER CPU stack and populare cpus[]
 static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
-    tracelast_func("prepare_percpu");
     uint8_t my_id = my_lapic_id();
 
     for (uint32_t i = 0; i < cpu_count && i < MAX_CPUS; i++) {
@@ -81,7 +82,7 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		cpus[i].VirtStackTop = stackTop;
 		
 		// allocate tss
-		void* tss = MtAllocateVirtualMemory(sizeof(TSS), 16); // tss must be 16 byte aligned.
+		void* tss = MmAllocatePoolWithTag(NonPagedPool, sizeof(TSS), ' sst'); // If fails on here, check alignment (16 byte)
 		cpus[i].tss = tss;
 
 		// setup the IST stacks.
@@ -91,9 +92,7 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		void* istIpi = MmAllocatePoolWithTag(NonPagedPool, IST_SIZE, ' UPC');
 #ifdef DEBUG
 		if (!istpf || !istdf) {
-			BUGCHECK_ADDITIONALS addt = { 0 };
-			ksnprintf(addt.str, sizeof(addt.str), "Could not allocate IST df/pf stack for CPUs..");
-			MtBugcheckEx(NULL, NULL, SEVERE_MACHINE_CHECK, &addt, true);
+			MeBugCheck(MEMORY_LIMIT_REACHED);
 		}
 #endif
 		uint64_t pftop = (uint64_t)istpf + IST_SIZE;
@@ -110,7 +109,7 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		cpus[i].schedulePending = false;
 
 		// GDT
-		uint64_t* gdt = MmAllocatePoolWithTag(NonPagedPool, sizeof(uint64_t) * 7, " TDG");
+		uint64_t* gdt = MmAllocatePoolWithTag(NonPagedPool, sizeof(uint64_t) * 7, ' TDG');
 		cpus[i].gdt = gdt;
 
 		// DPCs & Queue
@@ -171,7 +170,7 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uint64_t ap_main_addr = (uint64_t)&APMain;
-	kmemcpy(virt, &ap_main_addr, sizeof(ap_main_addr));
+	kmemcpy((void*)virt, &ap_main_addr, sizeof(ap_main_addr));
 
 	//// write physical address of PML4 (cr3) to CPU offset. (both virt and identity mapping it)
 	virt = PhysicalMemoryOffset + AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET;
@@ -180,7 +179,7 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uintptr_t cr3 = boot_info_local.Pml4Phys;
-	kmemcpy(virt, &cr3, sizeof(cr3));
+	kmemcpy((void*)virt, &cr3, sizeof(cr3));
 
 	// send INIT/SIPI/SIPI to APs (skip BSP)
 	uint8_t my_id = my_lapic_id();
@@ -203,8 +202,8 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	if (!g_cpuCount || !smpInitialized) return;
 	uint8_t myid = my_lapic_id();
 
-	static atomic_uint_fast64_t g_ipiSeq = 1;
-	uint64_t seq = atomic_fetch_add(&g_ipiSeq, 1);
+	static uint64_t g_ipiSeq = 1;
+	uint64_t seq = InterlockedIncrementU64(&g_ipiSeq);
 
 	__asm__ volatile("mfence" ::: "memory");
 

@@ -22,8 +22,12 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/mg.h"
+#include "../../assert.h"
+#include "../../includes/me.h"
 
 MM_PFN_DATABASE PfnDatabase;
+bool MmPfnDatabaseInitialized = false;
 
 static
 uint64_t 
@@ -49,19 +53,18 @@ MiGetTotalMemory (
 
 {
     uint64_t highest_addr = 0;
-
-    // Calculate the number of entries in the memory map
     size_t entry_count = boot_info->MapSize / boot_info->DescriptorSize;
-
-    // Get a pointer to the first descriptor
     PEFI_MEMORY_DESCRIPTOR desc = boot_info->MemoryMap;
 
     for (size_t i = 0; i < entry_count; i++) {
-        // Calculate the end address of the current memory region.
-        uint64_t region_end = desc->PhysicalStart + (desc->NumberOfPages * PhysicalFrameSize);
-
-        // If this region ends at a higher address, update our maximum.
-        if (region_end > highest_addr) highest_addr = region_end;
+        // FILTER: Only look at usable RAM or memory we might reclaim.
+        // Ignore Reserved, Unusable, and MemoryMappedIO.
+        // TODO Other types...
+        if (desc->Type == EfiConventionalMemory)
+        {
+            uint64_t region_end = desc->PhysicalStart + (desc->NumberOfPages * PhysicalFrameSize);
+            if (region_end > highest_addr) highest_addr = region_end;
+        }
 
         desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + boot_info->DescriptorSize);
     }
@@ -89,8 +92,6 @@ MiReservePhysRange(
         InterlockedIncrementU64(&PfnDatabase.TotalReserved);
     }
 }
-
-extern MMPTE HyperspacePtes[];
 
 MTSTATUS
 MiInitializePfnDatabase(
@@ -124,6 +125,7 @@ MiInitializePfnDatabase(
 
     // The amount of PFN Entries needed times the sizeof the struct, gives us the amount in bytes.
     uint64_t neededRam = totalPfnEntries * sizeof(PFN_ENTRY);
+    assert((neededRam) < INT32_MAX, "Needed Ram DB is insanely huge");
 
     // Now, we need to find a suitable memory region to hold the PFN Entries in.
     PEFI_MEMORY_DESCRIPTOR desc = BootInfo->MemoryMap;
@@ -218,15 +220,18 @@ MiInitializePfnDatabase(
 
             PPFN_ENTRY entry = &PfnDatabase.PfnEntries[currentPfnIndex];
 
+            // If this page is inside the PFN-array region we just reserved, skip adding it to db.
+            if (desc->Type == EfiConventionalMemory) {
+                if (physAddr >= pfn_region_phys && physAddr < pfn_region_phys + neededPages * VirtualPageSize) {
+                    continue; // Do not touch this entry, it was set by MiReservePhysRange
+                }
+            }
+
             // Initialize the PFN Entry.
             entry->RefCount = 0;
 
             switch (desc->Type) {
             case EfiConventionalMemory:
-                // If this page is inside the PFN-array region we just reserved, skip adding it to free
-                if (physAddr >= pfn_region_phys && physAddr < pfn_region_phys + neededPages * VirtualPageSize) {
-                    break;
-                }
                 entry->State = PfnStateFree;
                 entry->Flags = PFN_FLAG_NONE;
 
@@ -268,6 +273,8 @@ MiInitializePfnDatabase(
         desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + BootInfo->DescriptorSize);
     }
 
+    // Set the global state as initialized.
+    MmPfnDatabaseInitialized = true;
     return MT_SUCCESS;
 }
 
@@ -294,8 +301,6 @@ MiReleaseAnyPage(
 --*/
 
 {
-    // Return NULL if list is empty.
-    if (ListEntry->Flink == ListEntry->Blink) return NULL;
     PDOUBLY_LINKED_LIST pListEntry = RemoveHeadList(ListEntry);
     if (!pListEntry) return NULL;
 
@@ -332,9 +337,13 @@ MiRequestPhysicalPage(
 {  
     // Declarations
     IRQL oldIrql;
+    IRQL DbIrql;
     PPFN_ENTRY pfn = NULL;
     PFN_STATE oldState; // To know if we need to zero
-
+    
+    // Acquire global PFN DB lock.
+    MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
+    
     // 1. Try ZeroedPageList
     MsAcquireSpinlock(&PfnDatabase.ZeroedPageList.PfnListLock, &oldIrql);
     pfn = MiReleaseAnyPage(&PfnDatabase.ZeroedPageList.ListEntry);
@@ -366,10 +375,14 @@ MiRequestPhysicalPage(
     }
 
     // 4. All lists are empty
-    // TODO: Paging
-    return 0;
+    // TODO: Paging (flush modified list to disk, give a page from there.)
+    // Release Global Lock
+    MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
+    return (uint64_t)-1;
 
 found:
+    // Release Global Lock
+    MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
     // Decrement total available pages
     InterlockedDecrementU64(&PfnDatabase.AvailablePages);
 
@@ -419,12 +432,12 @@ MiReleasePhysicalPage(
 
     assert((pfn->RefCount) > 0, "Refcount is 0 while releasing. Double Free");
 
-    if (InterlockedDecrementU64(&pfn->RefCount) == 0) {
+    if (InterlockedDecrementU32(&pfn->RefCount) == 0) {
         // This is the last reference to the page, store it back in the list.
         if (pfn->State == PfnStateActive) {
             // Clear mapping info.
             pfn->Descriptor.Mapping.Vad = NULL;
-            if (pfn->Descriptor.Mapping.PteAddress->PresentSet.Dirty == true) {
+            if (pfn->Descriptor.Mapping.PteAddress->Hard.Dirty == true) {
                 // Dirty bit is set, we throw it back to the modified page list.
                 IRQL oldIrql;
                 pfn->State = PfnStateModified;
@@ -454,4 +467,209 @@ MiReleasePhysicalPage(
             }
         }
     }
+}
+
+static
+void
+MiUnlinkPageFromList(
+    PPFN_ENTRY pfn
+)
+{
+    IRQL oldIrql;
+    SPINLOCK* lock = NULL;
+    volatile uint64_t* count = NULL;
+
+    /* Determine which list this PFN is on and pick the corresponding lock/count */
+    switch (pfn->State) {
+    case PfnStateFree:
+        lock = &PfnDatabase.FreePageList.PfnListLock;
+        count = &PfnDatabase.FreePageList.Count;
+        break;
+    case PfnStateZeroed:
+        lock = &PfnDatabase.ZeroedPageList.PfnListLock;
+        count = &PfnDatabase.ZeroedPageList.Count;
+        break;
+    case PfnStateStandby:
+        lock = &PfnDatabase.StandbyPageList.PfnListLock;
+        count = &PfnDatabase.StandbyPageList.Count;
+        break;
+    default:
+        /* Active/Modified/Bad pages are handled elsewhere */
+        return;
+    }
+
+    MsAcquireSpinlock(lock, &oldIrql);
+
+    /*
+     * Guard: if the entry isn't linked (both pointers NULL) then nothing to do.
+     * This avoids calling RemoveEntryList on an unlinked node.
+     */
+    if (pfn->Descriptor.ListEntry.Flink == NULL &&
+        pfn->Descriptor.ListEntry.Blink == NULL) {
+        MsReleaseSpinlock(lock, oldIrql);
+        return;
+    }
+
+    /* Remove this node from whatever list it currently sits on. */
+    RemoveEntryList(&pfn->Descriptor.ListEntry);
+
+    /* Clear the entry's links to mark it as unlinked (like RemoveHeadList does). */
+    pfn->Descriptor.ListEntry.Flink = pfn->Descriptor.ListEntry.Blink = NULL;
+
+    /* Update list and global counts while holding the lock. */
+    InterlockedDecrementU64(count);
+    InterlockedDecrementU64(&PfnDatabase.AvailablePages);
+
+    MsReleaseSpinlock(lock, oldIrql);
+}
+
+void*
+MmAllocateContigiousMemory(
+    IN  size_t NumberOfBytes,
+    IN  uint64_t HighestAcceptableAddress
+)
+
+/*++
+
+    Routine description:
+
+        Allocate contingious physical memory pages and maps them. (used for DMA)
+
+    Arguments:
+
+        [IN]    size_t NumberOfBytes - The amount of contigious bytes to allocate.
+        [IN]    uint64_t HighestAcceptableAddress - The highest physical address to find contigious bytes for. (used for drivers that cannot see the full 64bit system memory amount)
+
+    Return Values:
+
+        Base virtual address to allocated memory, or NULL on failure.
+
+    Notes:
+
+        This will probably cause fragmentation, and is very expensive as it iterates O(n) over the PFN Database, use sparingly.
+
+--*/
+
+{
+    // According to MSDN this must be satisfied (this isnt NT compatible, but it follows its rules)
+    if (MeGetCurrentIrql() > DISPATCH_LEVEL) return NULL;
+
+    // Declarations
+    size_t pageCount = BYTES_TO_PAGES(NumberOfBytes);
+    PAGE_INDEX MaxPfn = PPFN_TO_INDEX(PHYSICAL_TO_PPFN(HighestAcceptableAddress));
+    size_t ConsecutiveFound = 0;
+    IRQL DbIrql;
+    PAGE_INDEX StartIndex = 0;
+    void* BaseAddress = NULL; // Null initially, unless enough pages.
+
+    // Acquire the global DB lock so we dont get the contigious pages stolen from us.
+    MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
+
+    for (PAGE_INDEX i = 0; i < PfnDatabase.TotalPageCount; i++) {
+        // Check bounds.
+        if (i >= MaxPfn) break;
+
+        PPFN_ENTRY pfn = &PfnDatabase.PfnEntries[i];
+
+        // Is this page a candidate
+        bool isCandidate = (pfn->State == PfnStateFree || pfn->State == PfnStateZeroed || pfn->State == PfnStateStandby);
+
+        if (isCandidate) {
+            if (ConsecutiveFound == 0) {
+                StartIndex = i;
+            }
+            ConsecutiveFound++;
+        }
+        else {
+            ConsecutiveFound = 0;
+        }
+
+        // Found a good enough block?
+        if (ConsecutiveFound == pageCount) {
+            // We found a range! Now we must claim them.
+            bool first = true;
+            for (PAGE_INDEX j = 0; j < pageCount; j++) {
+                PPFN_ENTRY pageToClaim = &PfnDatabase.PfnEntries[StartIndex + j];
+
+                // Remove from whatever list it is currently in
+                MiUnlinkPageFromList(pageToClaim);
+
+                // Mark as active
+                pageToClaim->State = PfnStateActive;
+                pageToClaim->RefCount = 1;
+                pageToClaim->Flags = PFN_FLAG_LOCKED_FOR_IO;
+
+                // Clear mapping info
+                pageToClaim->Descriptor.Mapping.PteAddress = NULL;
+                pageToClaim->Descriptor.Mapping.Vad = NULL;
+
+                // Map the physical to the offset.
+                uintptr_t phys = PPFN_TO_PHYSICAL_ADDRESS(pageToClaim);
+                uintptr_t virt = (phys + PhysicalMemoryOffset);
+
+                PMMPTE pte = MiGetPtePointer(virt);
+                assert((pte) != NULL);
+
+                // Set the return value to the first address.
+                if (first) {
+                    first = false;
+                    BaseAddress = (void*)virt;
+                }
+
+                // Write through is set, we want immediate flush to main memory.
+                MI_WRITE_PTE(pte, virt, phys, PAGE_PRESENT | PAGE_RW | PAGE_PWT);
+            }
+            InterlockedAddU64(&PfnDatabase.TotalReserved, pageCount);
+            // Break out of the 'i' loop
+            break;
+        }
+    }
+
+    MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
+    // This could be NULL if we didnt find a contigious amount, or the valid pointer to start of block (mapped with PhysicalMemoryOffset)
+    return BaseAddress;
+}
+
+void
+MmFreeContigiousMemory(
+    IN  void* BaseAddress,
+    IN  size_t NumberOfBytes
+)
+
+/*++
+
+    Routine description:
+
+        Releases contigious physical memory allocated by the MmAllocateContigiousMemory routine.
+
+    Arguments:
+
+        [IN]    void* BaseAddress - Base virtual address to allocated memory, returned by the allocation routine.
+        [IN]    size_t NumberOfBytes - Number of bytes allocated.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // Declarations
+    IRQL DbIrql;
+    size_t pageCount = BYTES_TO_PAGES(NumberOfBytes);
+    uintptr_t CurrentAddress = (uintptr_t)BaseAddress;
+
+    // Just unmap each page, and return the PFN to DB.
+    MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
+
+    for (size_t i = 0; i < pageCount; i++) {
+        PMMPTE pte = MiGetPtePointer(CurrentAddress);
+        PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
+        MiUnmapPte(pte);
+        MiReleasePhysicalPage(pfn);
+
+        CurrentAddress += VirtualPageSize;
+    }
+
+    MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
 }

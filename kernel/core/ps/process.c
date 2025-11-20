@@ -4,11 +4,11 @@
  * PURPOSE:     Process Creation Implementation
  */
 
-#include "process.h"
 #include "../../time.h"
 #include "../../filesystem/vfs/vfs.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ms.h"
 
 #define MIN_PID           4u
 #define MAX_PID           0xFFFFFFFCu
@@ -29,7 +29,7 @@ extern EPROCESS SystemProcess;
 static uint32_t ManagePID(uint32_t freedPid)
 {
     IRQL oldIrql;
-    MtAcquireSpinlock(&g_pid_lock, &oldIrql);
+    MsAcquireSpinlock(&g_pid_lock, &oldIrql);
     static uint32_t nextPID = MIN_PID;
     static uint32_t freePool[MAX_FREE_POOL];
     static uint32_t freeCount = 0;
@@ -59,7 +59,7 @@ static uint32_t ManagePID(uint32_t freedPid)
             }
         }
     }
-    MtReleaseSpinlock(&g_pid_lock, oldIrql);
+    MsReleaseSpinlock(&g_pid_lock, oldIrql);
     return result;
 }
 
@@ -81,6 +81,9 @@ static bool GetBaseName(const char* fullpath, char* out, size_t outsz) {
 }
 
 MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS ParentProcess) {
+    UNREFERENCED_PARAMETER(path); UNREFERENCED_PARAMETER(outProcess); UNREFERENCED_PARAMETER(ParentProcess);
+    return MT_NOT_IMPLEMENTED;
+    /*
 	// First, we must allocate the PROCESS structure, this is a kernel mode structure, so it is NOT allocated with PAGE_USER flags.
     PEPROCESS process = MmAllocatePoolWithTag(NonPagedPool, sizeof(EPROCESS), 'PROC');
     if (!process) return MT_NO_MEMORY;
@@ -233,7 +236,7 @@ MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS Pare
 
     // End of the line, now setup its threads, and begin.
     PETHREAD MainThread = NULL;
-    status = MtCreateThread(process, &MainThread, (ThreadEntry)process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
+    status = PsCreateThread(process, &MainThread, (ThreadEntry)process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
     if (MT_FAILURE(status)) {
         // Looks like a thread creation failed, we free, everything.
         MtFreeVirtualMemory((void*)process);
@@ -245,9 +248,10 @@ MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS Pare
         ManagePID(pid);
         return status;
     }
-
+        
     if (outProcess) *outProcess = process;
     // Thread has been created yet not enqueued, we enqueue it now, and return success. (we dont put it in the struct, it already has been put by the createThread function)
-    MtEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, MainThread);
+    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, MainThread);
     return MT_SUCCESS;
+    */
 }

@@ -1,3 +1,4 @@
+#include "../../includes/me.h"
 #include "../../includes/mh.h"
 #include "../../includes/mm.h"
 #include <stddef.h>
@@ -57,12 +58,11 @@ void lapic_init_siv(void) {
 
 static void map_lapic(uint64_t lapicPhysicalAddr) {
     if (MeGetCurrentProcessor()->LapicAddressVirt) return;
-    tracelast_func("map_lapic");
 
     void* virt = (void*)(lapicPhysicalAddr + PhysicalMemoryOffset);
 
     // Map the single LAPIC page (phys -> virt)
-    PMMPTE pte = MiGetPtePointer(virt);
+    PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
     if (!pte) return;
     MI_WRITE_PTE(pte, virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 
@@ -87,7 +87,6 @@ static inline uint64_t get_lapic_base_address(void) {
 
 // Enable local APIC via IA32_APIC_BASE MSR and set SVR
 void lapic_enable(void) {
-    tracelast_func("lapic_enable");
     uint64_t apic_msr = __readmsr(IA32_APIC_BASE_MSR);
     if (!(apic_msr & (1ULL << 11))) {
         // set APIC global enable
@@ -103,7 +102,6 @@ void lapic_enable(void) {
 
 // Initialize CPU's LAPIC (call early from kernel init on BSP, and from each ap)
 void lapic_init_cpu(void) {
-    tracelast_func("lapic_init_cpu");
     map_lapic(get_lapic_base_address());
 
     lapic_enable();

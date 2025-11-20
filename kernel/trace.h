@@ -25,7 +25,7 @@ static inline void tracelast_func(const char* function_name) {
 
     if (!function_name || isBugChecking) return;
 
-    CPU* cp = thisCPUtmp();
+    PPROCESSOR cp = thisCPUtmp();
     if (!cp) return;
 
     LASTFUNC_HISTORY* lfh = thisCPUtmp()->lastfuncBuffer;

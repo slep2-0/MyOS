@@ -19,8 +19,13 @@ Revision History:
 
 --*/
 
-#include "me.h"
+#include "core.h"
+#include "annotations.h"
+#include "macros.h"
+#include <cpuid.h>
 #define IDT_ENTRIES        256
+
+#include "mm.h"
 
 // ------------------ ENUMERATORS ------------------
 
@@ -349,6 +354,22 @@ typedef struct __attribute__((packed)) _TSS {
     uint16_t io_map_base;
 } TSS;
 
+typedef void (*DebugCallback)(void*);
+
+typedef struct _DEBUG_REGISTERS {
+    uint64_t dr7;
+    uint64_t address;
+    DebugCallback callback;
+} DEBUG_REGISTERS;
+
+typedef struct _PAGE_PARAMETERS {
+    uint64_t addressToInvalidate;
+} PAGE_PARAMETERS;
+
+typedef struct _IPI_PARAMS {
+    struct _DEBUG_REGISTERS debugRegs;
+    struct _PAGE_PARAMETERS pageParams;
+} IPI_PARAMS;
 
 // ------------------ MACROS ------------------
 #define AP_TRAMP_PHYS 0x7000ULL
@@ -399,7 +420,6 @@ void APMain(void);
 void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress);
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter);
 
-extern PPROCESSOR cpus[MAX_CPUS];
 extern int smp_cpu_count;
 
 // Didn't get rename yet.
@@ -567,19 +587,9 @@ MiMachineCheck(
 MTSTATUS MhInitializeACPI(void);
 MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint32_t* lapicAddress);
 
-// Assertions
-#ifndef __INTELLISENSE__
-// Static Asserts to make sure at compile time we're good.
-_Static_assert(sizeof(GDTEntry64) == 16, "GDTEntry64 must be 16 bytes");
-_Static_assert(offsetof(GDTEntry64, limit_low) == 0, "limit_low offset wrong");
-_Static_assert(offsetof(GDTEntry64, base_low) == 2, "base_low offset wrong");
-_Static_assert(offsetof(GDTEntry64, base_middle) == 4, "base_middle offset wrong");
-_Static_assert(offsetof(GDTEntry64, access) == 5, "access offset wrong");
-_Static_assert(offsetof(GDTEntry64, granularity) == 6, "granularity offset wrong");
-_Static_assert(offsetof(GDTEntry64, base_high) == 7, "base_high offset wrong");
-_Static_assert(offsetof(GDTEntry64, base_upper) == 8, "base_upper offset wrong");
-_Static_assert(offsetof(GDTEntry64, reserved) == 12, "reserved offset wrong");
-_Static_assert(sizeof(GDTPtr) == 10, "GDTPtr must be 10 bytes (16-bit limit + 64-bit base)");
-#endif
+void
+MhRebootComputer(
+    void
+);
 
 #endif

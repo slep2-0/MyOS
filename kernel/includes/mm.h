@@ -30,45 +30,53 @@ Revision History:
 
 // Needed for linked list and spinlocks
 #include "ms.h"
-#include "ps.h"
 #include "core.h"
 #include "efi.h"
 
 // ------------------ HEADER SPECIFIC MACROS ------------------
-
-#ifndef __INTELLISENSE__
-#define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)            \
-    do {                                                             \
-        volatile PMMPTE _pte = (volatile PMMPTE)(uintptr_t)(_PtePointer); \
-        uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags); \
-        _pte->Value = _val;                                          \
-        __asm__ volatile("" ::: "memory"); /* compiler barrier */    \
-        invlpg((void*)(uintptr_t)(_Va));                             \
-    } while (0)
-#define PPFN_TO_INDEX(PPFN) ((size_t)((PPFN) - PfnDatabase.PfnEntries))
-#define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
-    ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
-
-/* Convert a PFN index to a PPFN_ENTRY pointer */
-#define INDEX_TO_PPFN(Index) \
-    (&(PfnDatabase.PfnEntries[(size_t)(Index)]))
-#define PHYSICAL_TO_PPFN(PHYS) \
-    (&PfnDatabase.PfnEntries[(size_t)((PHYS) / (uint64_t)PhysicalFrameSize)])
-#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
-#else
-#define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
-#define PPFN_TO_INDEX(PPFN) (0)
-#define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
-#define INDEX_TO_PPFN(Index) (NULL)
-#define PHYSICAL_TO_PPFN(PHYS) (NULL)
-#define PMMPTE_TO_PHYSICAL(PMMPTE) (0)
-#endif
 
 #define VirtualPageSize 4096ULL // Same as each physical frame.
 #define PhysicalFrameSize 4096ULL // Each physical frame.
 #define KernelVaStart 0xfffff80000000000ULL
 #define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping
 #define RECURSIVE_INDEX 0x1FF
+
+// Global Declarations for signals.
+extern bool MmPfnDatabaseInitialized;
+
+#ifndef __INTELLISENSE__
+/* Convert a PFN index to a PPFN_ENTRY pointer */
+#define INDEX_TO_PPFN(Index) \
+    (&(PfnDatabase.PfnEntries[(size_t)(Index)]))
+#define PHYSICAL_TO_PPFN(PHYS) \
+    (&PfnDatabase.PfnEntries[(size_t)((PHYS) / (uint64_t)PhysicalFrameSize)])
+#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
+#define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
+do {                                                                        \
+    volatile MMPTE* _pte = (volatile MMPTE*)(_PtePointer);                  \
+    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
+    _pte->Value = _val;                                                     \
+    __asm__ volatile("" ::: "memory");                                      \
+                                                                            \
+    /* Only set PFN->PTE link if PFN database is initialized */             \
+    if (MmPfnDatabaseInitialized) {                                         \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+        _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
+    }                                                                       \
+                                                                            \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+} while (0)
+#define PPFN_TO_INDEX(PPFN) ((size_t)((PPFN) - PfnDatabase.PfnEntries))
+#define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
+    ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
+#else
+#define PTE_TO_PHYSICAL(PMMPTE) (0)
+#define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
+#define PPFN_TO_INDEX(PPFN) (0)
+#define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
+#define INDEX_TO_PPFN(Index) (NULL)
+#define PHYSICAL_TO_PPFN(PHYS) (NULL)
+#endif
 
 // Convert bytes to pages (rounding up)
 #define BYTES_TO_PAGES(Bytes) (((Bytes) + VirtualPageSize - 1) / VirtualPageSize)
@@ -113,6 +121,17 @@ Revision History:
 
 #define MI_VAD_SEARCH_START MI_NONPAGED_POOL_END
 #define MI_VAD_SEARCH_END   (uintptr_t)-1
+
+// Address Manipulation And Checks
+#define MI_IS_CANONICAL_ADDR(va) \
+({ \
+    uint64_t _va = (uint64_t)(va); \
+    uint64_t _mask = ~((1ULL << 48) - 1); /* bits 63:48 */ \
+    ((_va & _mask) == 0 || (_va & _mask) == _mask); \
+})
+
+
+#define PFN_ERROR UINT64_T_MAX
 
 // ------------------ TYPE DEFINES ------------------
 typedef uint64_t PAGE_INDEX;
@@ -197,8 +216,20 @@ typedef enum _POOL_TYPE {
     NonPagedPoolCacheAligned = 2,     // Non-paged, cache-aligned (UNIMPLEMENTED)
     PagedPoolCacheAligned = 3,        // Paged, cache-aligned (UNIMPLEMENTED)
     NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (UNIMPLEMENTED)
+    PagedPoolNx = 5,                  // Paged, non-executable (UNIMPLEMENTED)
     // No MustSucceeds, these are a bad concept, handle errors gracefully.
 } POOL_TYPE;
+
+typedef enum _FAULT_OPERATION {
+    ReadOperation = 0,
+    WriteOperation = 2,
+    ExecuteOperation = 10,
+} FAULT_OPERATION, *PFAULT_OPERATION;
+
+typedef enum _PRIVILEGE_MODE {
+    KernelMode = 0,
+    UserMode = 1
+} PRIVILEGE_MODE, * PPRIVILEGE_MODE;
 
 // ------------------ STRUCTURES ------------------
 
@@ -206,38 +237,46 @@ typedef struct _MMPTE
 {
     union
     {
-        uint64_t Value; // Raw 64-bit value for direct manipulation.
+        uint64_t Value; // Raw 64-bit PTE value
 
+        //
+        // Hardware format when the page is present in memory
+        //
         struct
         {
-            uint64_t Present : 1;  // 0: Not present / 1: Present
-            uint64_t Write : 1;  // Writable if set
-            uint64_t User : 1;  // User-accessible if set
-            uint64_t WriteThrough : 1;  // Write-through caching
-            uint64_t CacheDisable : 1;  // Disable caching
-            uint64_t Accessed : 1;  // Set by CPU when accessed
-            uint64_t Dirty : 1;  // Set by CPU when written
-            uint64_t LargePage : 1;  // 1 = 2MB/1GB page (depends on level)
-            uint64_t Global : 1;  // Global TLB entry if CR4.PGE=1
-            uint64_t SoftwareAvailable : 3;  // OS use (AVL bits)
+            uint64_t Present : 1;         // 1 = Present
+            uint64_t Write : 1;           // Writable
+            uint64_t User : 1;            // User-accessible
+            uint64_t WriteThrough : 1;    // Write-through cache
+            uint64_t CacheDisable : 1;    // Disable caching
+            uint64_t Accessed : 1;        // Set by CPU when accessed
+            uint64_t Dirty : 1;           // Set by CPU when written
+            uint64_t LargePage : 1;       // Large page flag (2MB/1GB)
+            uint64_t Global : 1;          // Global TLB entry
+            uint64_t CopyOnWrite : 1;     // Software: copy-on-write
+            uint64_t Prototype : 1;       // Software: prototype PTE (section)
+            uint64_t Reserved0 : 1;       // Unused or software-available
+            uint64_t PageFrameNumber : 40;// Physical page frame number
+            uint64_t Reserved1 : 11;      // Reserved by hardware
+            uint64_t NoExecute : 1;       // NX bit
+        } Hard;
 
-            uint64_t PageFrameNumber : 40; // Physical page base address / 4KB
-            uint64_t Reserved : 11; // Reserved by hardware
-            uint64_t NoExecute : 1;  // NX bit (if supported)
-        } PresentSet;
-
+        //
+        // Software format when not present
+        // (Paged out / transition / pagefile / prototype)
+        //
         struct
         {
-            uint64_t Present : 1; // 0: Not present / 1: Present
-            // Begin custom.
-            uint64_t PageFile : 1;         // 1 = pagefile-backed
-            uint64_t Transition : 1;       // 1 = PFN assigned, page in transition
-            uint64_t Prototype : 1;        // 1 = prototype PTE (mapped file / section)
-            uint64_t Reserved : 8;         // chik chik chik (sean)
-            uint64_t PageFrameNumber : 40; // PFN index if transition
-            uint64_t SoftwareFlags : 13;   // extra flags for pool type, copy-on-write, etc.
-            uint64_t NoExecute : 1;        // NX bit still meaningful
-        } PresentNotSet;
+            uint64_t Present : 1;            // 0 = Not present
+            uint64_t Write : 1;              // Meaning depends on context
+            uint64_t Transition : 1;         // 1 = Page is in transition (has PFN)
+            uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
+            uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
+            uint64_t Reserved : 7;           // Software-defined bits
+            uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
+            uint64_t SoftwareFlags : 20;     // e.g. protection mask, pool type
+            uint64_t NoExecute : 1;          // NX still meaningful in transition
+        } Soft;
     };
 } MMPTE, * PMMPTE;
 
@@ -336,6 +375,8 @@ typedef struct _POOL_DESCRIPTOR {
 
 // ------------------ FUNCTIONS ------------------
 
+extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
+
 // general functions
 
 // Memory Set.
@@ -393,6 +434,37 @@ MiReloadTLBs(
     __write_cr3(__read_cr3());
 }
 
+FORCEINLINE
+FAULT_OPERATION
+MiRetrieveOperationFromErrorCode(
+    uint64_t ErrorCode
+)
+
+{
+    FAULT_OPERATION operation = -1;
+    if (ErrorCode & (1 << 4)) {
+        operation = ExecuteOperation; // Execute (NX Fault) (nx bit set, and CPU executed an instruction there)
+    }
+    else if (ErrorCode & 1) {
+        operation = WriteOperation; // Write fault (read only page \ not present)
+    }
+    else {
+        operation = ReadOperation; // Read Fault (not present?)
+    }
+    
+    return operation;
+}
+
+FORCEINLINE
+uint64_t
+MiRetrieveLastFaultyAddress(
+    void
+)
+
+{
+    return __read_cr2();
+}
+
 // module: pfn.c
 
 MTSTATUS
@@ -410,24 +482,43 @@ MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
 );
 
+void*
+MmAllocateContigiousMemory(
+    IN  size_t NumberOfBytes,
+    IN  uint64_t HighestAcceptableAddress
+);
+
+void
+MmFreeContigiousMemory(
+    IN  void* BaseAddress,
+    IN  size_t NumberOfBytes
+);
+
 // module: map.c
 
-FORCEINLINE_NOHEADER
 PMMPTE
 MiGetPtePointer(
     IN  uintptr_t va
 );
 
-FORCEINLINE_NOHEADER
 PAGE_INDEX
 MiTranslatePteToPfn(
     IN  PMMPTE pte
 );
 
-FORCEINLINE_NOHEADER
+uintptr_t
+MiTranslateVirtualToPhysical(
+    IN void* VirtualAddress
+);
+
 void
 MiUnmapPte(
     IN  PMMPTE pte
+);
+
+bool
+MmIsAddressPresent(
+    IN  uintptr_t VirtualAddress
 );
 
 // module: hypermap.c
@@ -514,5 +605,24 @@ MiFreePoolVaContiguous(
     IN  size_t NumberOfBytes,
     IN  POOL_TYPE PoolType
 );
+
+// module: fault.c
+
+MTSTATUS
+MmAccessFault(
+    IN  uint64_t FaultBits,
+    IN  uint64_t VirtualAddress,
+    IN  PRIVILEGE_MODE PreviousMode,
+    IN  PTRAP_FRAME TrapFrame
+);
+
+bool
+MmInvalidAccessAllowed(
+    void
+);
+
+// module: oom.c
+
+// TODO OOM KILLER, TO USE WHEN 0 PHYSICAL MEMORY IS AVAILABLE, AND PAGING TO DISK EVEN FAILED.
 
 #endif

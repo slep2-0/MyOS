@@ -140,7 +140,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
         // handle error, memory map too big
-        MtBugcheck(NULL, NULL, MEMORY_MAP_SIZE_OVERRUN, 0, false);
+        MeBugCheck(MEMORY_MAP_SIZE_OVERRUN);
     }
 
     // Copy the entire memory map into the static buffer
@@ -169,7 +169,7 @@ void init_boot_info(BOOT_INFO* boot_info) {
     copy_memory_map(boot_info);
     copy_gop(boot_info);
     if (boot_info->AhciCount > MAX_AHCI_CONTROLLERS) {
-        MtBugcheck(NULL, NULL, BAD_AHCI_COUNT, 0, false);
+        MeBugCheck(BAD_AHCI_COUNT);
     }
     for (uint32_t i = 0; i < boot_info->AhciCount; i++) {
         ahci_bases_local[i] = boot_info->AhciBarBases[i];
@@ -211,7 +211,6 @@ static void InitCPU(void) {
     cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
     cpu0.lastfuncBuffer = NULL;
     // Function Trace Buffer
-    spinlock_init(&cpu0.readyQueue.lock);
 }
 
 static inline bool interrupts_enabled(void) {
@@ -306,11 +305,7 @@ volatile uintptr_t __stack_chk_guard;
 __attribute__((noreturn))
 void __stack_chk_fail(void) {
     __cli();
-    BUGCHECK_ADDITIONALS addt = { 0 };
-    ksnprintf(addt.str, sizeof(addt.str), "Kernel Has Encountered a buffer overflow, return address: %p (will signify the stack check guard, it only shows which function this was triggered)", __builtin_return_address(0));
-    CTX_FRAME ctx;
-    SAVE_CTX_FRAME(&ctx);
-    MtBugcheckEx(&ctx, NULL, KERNEL_STACK_OVERFLOWN, &addt, true);
+    MeBugCheckEx(KERNEL_STACK_OVERFLOWN, (void*)__builtin_return_address(0), NULL, NULL, NULL);
 }
 #endif
 
@@ -324,8 +319,7 @@ static void InitSystemProcess(void) {
     SystemProcess.priority = 0; // TODO
     SystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
     SystemProcess.CreationTime = MtGetEpoch();
-    SystemProcess.MainThread = &MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
-    MsEnqueueThreadWithLock(&SystemProcess.AllThreads, &MeGetCurrentProcessor()->idleThread);
+    SystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
 }
 
 extern uint8_t bss_start;
@@ -351,16 +345,41 @@ void kernel_main(BOOT_INFO* boot_info) {
     InitCPU();
     // Initialize interrupts & exceptions.
     init_interrupts();
-    // Initialize ACPI.
-    MTSTATUS st = MhInitializeACPI();
+
+    // Initialize the memory manager.
+    MTSTATUS st = MiInitializePfnDatabase(boot_info);
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(
+            PFN_DATABASE_INIT_FAILURE,
+            (void*)(uintptr_t)st,
+            NULL,
+            NULL,
+            NULL
+        );
+    }
+
+    if (!MiInitializePoolVaSpace()) {
+        MeBugCheck(VA_SPACE_INIT_FAILURE);
+    }
+
+    st = MiInitializePoolSystem();
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(
+            POOL_INIT_FAILURE,
+            (void*)(uintptr_t)st,
+            NULL,
+            NULL,
+            NULL
+        );
+    }
+
+    // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
+    st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
         gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n");
         __hlt();
     }
-    // Initialize the memory manager.
-    MiInitializePfnDatabase(boot_info);
-    MiInitializePoolVaSpace();
-    MiInitializePoolSystem();
+
     // And, initialize our system process.
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);
@@ -428,11 +447,13 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf_forced(0xFFFFFF00, "buf6 addr (should use dynamic memory): %p\n", buf6);
     void* buf7 = MmAllocatePoolWithTag(NonPagedPool, 10000, 'buf7');
     gop_printf_forced(0xFFFFFF00, "buf7 addr (should use dynamic memory, extremely larger): %p\n", buf7);
+
     if (checkcpuid()) {
         char str[256];
         getCpuName(str);
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
+
     MTSTATUS status = MdSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
     gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
     status = vfs_init();

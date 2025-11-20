@@ -119,4 +119,10 @@ typedef int32_t MTSTATUS;
 // ==========================
 #define MT_PROCESS_IS_TERMINATING ((MTSTATUS)0xC7000000L)
 
+//
+// ==========================
+// EXCEPTION MTSTATUSES
+// ==========================
+#define MT_ACCESS_VIOLATION ((MTSTATUS)0xC8000000L)
+
 #endif // MTSTATUS_H

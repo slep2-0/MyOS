@@ -5,8 +5,10 @@
  */
 
 #include "../../includes/mh.h"
+#include "../../includes/me.h"
 #include "../../includes/mg.h"
 #include "../../includes/ps.h"
+#include "../../includes/md.h"
 #include "../../trace.h"
 
 #define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
@@ -71,8 +73,6 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
 
                     saved_regs->cs = trap->cs;
                     saved_regs->ss = trap->ss;
-                    //MtSendActionToCpusAndWait(CPU_ACTION_STOP, 0);
-                    //PRINT_ALL_REGS_AND_HALT(ctx, intfr);
                     /* Ended */
 
                     DPC* SchedDpc = &MeGetCurrentProcessor()->TimerExpirationDPC;
@@ -199,7 +199,7 @@ MiPageFault (
 
     Return Values:
 
-        None, this function currently does not return.
+        None. Function would bugcheck/return if conditions are met.
 
 --*/
 
@@ -212,32 +212,42 @@ MiPageFault (
     : "=r"(fault_addr)
 	);
 
-    // Retrieve operation.
-    uint64_t operation;
-    uint64_t errorCode = trap->error_code;
-
-    if (errorCode & (1 << 4)) {
-        operation = 8; // Execute (NX Fault) (nx bit set, and CPU executed an instruction there)
-    }
-    else if (errorCode & 1) {
-        operation = 1; // Write fault (read only page \ not present)
-    }
-    else {
-        operation = 0; // Read Fault (not present?)
-    }
-
     /*++
     
     Page fault bugcheck parameters:
 
-    Parameter 1: Memory address referenced.
+    Parameter 1: Memory address referenced. (CR2)
     Parameter 2: (decimal) 0 - Read Operation, 2 - Write Operation, 10 - Execute operation (unused for now, NX hasn't been turned on for now)
     Parameter 3: Address that referenced memory (RIP)
     Parameter 4: CPU Error code pushed.
 
     --*/
 
-    MeBugCheckEx(PAGE_FAULT, (void*)fault_addr, (void*)operation, trap->rip, trap->error_code);
+    
+
+    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, MeGetPreviousMode(), trap);
+
+    if (MT_FAILURE(status)) {
+        // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
+        //if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
+        //    ExpDispatchException(trap);
+        //    return;
+        //}
+
+        //else {
+            // No kernel exception handler present, bugcheck.
+            MeBugCheckEx(
+                KMODE_EXCEPTION_NOT_HANDLED,
+                (void*)MT_ACCESS_VIOLATION,
+                (void*)fault_addr,
+                NULL,
+                NULL
+            );
+        //}
+    }
+
+    // MmAccessFault returned MT_SUCCESS, that means it handled the fault (filled the PTE, etc.), we return to original instruction and re-run.
+    return;
 }
 
 NORETURN
@@ -270,7 +280,7 @@ MiDoubleFault(
 
     --*/
 
-    MeBugCheckEx(DOUBLE_FAULT, trap->rip, NULL, NULL, NULL);
+    MeBugCheckEx(DOUBLE_FAULT, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
 }
 
 void 
@@ -304,7 +314,7 @@ MiDivideByZero (
     --*/
     
     // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION.
-    MeBugCheckEx(DIVIDE_BY_ZERO, trap->rip, NULL, NULL, NULL);
+    MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
 
 }
 

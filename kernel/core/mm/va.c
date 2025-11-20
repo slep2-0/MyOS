@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/ps.h"
 
 // NONPAGED ----
 static uint64_t* g_NonpagedPoolVaBitmap;
@@ -51,7 +52,7 @@ MiInitializePoolVaSpace(
     for (size_t i = 0; i < MI_NONPAGED_BITMAP_PAGES_NEEDED; i++) {
         // Request a physical page.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (!pfn) return false; // Would bugcheck, no need for physical page release back.
+        if (pfn == PFN_ERROR) return false; // Would bugcheck, no need for physical page release back. (loop unroll)
 
         // Get the PTE ptr for the curr va.
         PMMPTE pte = MiGetPtePointer(currNpgBitmapVa);
@@ -195,7 +196,7 @@ MiAllocatePoolVa(
 
     Notes:
 
-        The returned VA is NOT mapped, and is NOT backed by ANY pfn. 
+        If **NonPagedPool** ->>> The returned VA is NOT mapped, and is NOT backed by ANY pfn. 
 
 --*/
 
@@ -222,7 +223,13 @@ MiAllocatePoolVa(
     else {
         // If we want a NonPagedPool VA space, we use the VAD (and allocate the memory in the process)
         // The caller (probably MmAllocatePoolWithTag(pagedPool)) will set the pool header and return the VA.
-        return MmAllocateVirtualMemory(PsGetCurrentProcess(), NULL, NumberOfBytes, VAD_FLAG_WRITE | VAD_FLAG_READ);
+        // The base address is NULL, we use VADs to find it.
+        void* baseAddr = NULL;
+        MTSTATUS status = MmAllocateVirtualMemory(PsGetCurrentProcess(), &baseAddr, NumberOfBytes, VAD_FLAG_WRITE | VAD_FLAG_READ);
+        if (MT_FAILURE(status)) {
+            return 0;
+        }
+        return (uintptr_t)baseAddr;
     }
 
     total_qwords = total_pages / 64;
@@ -264,7 +271,7 @@ MiAllocatePoolVa(
     size_t contiguous_found = 0;
     size_t start_of_run_idx = 0;
 
-    // This loop must check *every* bit.
+    // This loop must check every bit.
     for (size_t i = 0; i < total_pages; i++) {
         size_t current_idx = (start_idx + i) % total_pages;
 
@@ -358,7 +365,13 @@ MiFreePoolVaContiguous(
     }
     else {
         // Paged pool, we deallocate VADs. (NumberOfBytes is ignored)
-        return MmFreeVirtualMemory(PsGetCurrentProcess(), va);
+        MTSTATUS stat = MmFreeVirtualMemory(PsGetCurrentProcess(), (void*)va);
+
+        if (MT_FAILURE(stat)) {
+            MeBugCheck(MEMORY_INVALID_FREE);
+        }
+        
+        return;
     }
 
     if (va < poolBase || va >= poolEnd) return;

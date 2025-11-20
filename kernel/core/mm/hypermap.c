@@ -17,14 +17,15 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../assert.h"
 
-// The physical memory offset itself is the hypermap virtual address. This is ruled by not touching the 0x0 - 0x1000 physical addresses AT ALL.
+// The physical memory offset itself is the hypermap virtual address. This is ruled by not touching the 0x0 - 0x1000 physical addresses AT ALL (you may touch the physical addresses, but not map them with the PhysicalMemoryOffset virtual arithemtic.)
 #define HYPERMAP_VIRTUAL_ADDRESS PhysicalMemoryOffset
 
 SPINLOCK HyperLock;
 PPFN_ENTRY g_pfnInUse;
 
-#define LOCK_HYPERSPACE(PtrOldIrql) MsAcquireSpinlock(&HyperLock, &PtrOldIrql)
+#define LOCK_HYPERSPACE(PtrOldIrql) MsAcquireSpinlock(&HyperLock, PtrOldIrql)
 #define UNLOCK_HYPERSPACE(OldIrql) MsReleaseSpinlock(&HyperLock, OldIrql)
 
 void*
@@ -74,7 +75,7 @@ MiMapPageInHyperspace(
     g_pfnInUse = pfn;
 
     // Return the virtual address (now mapped)
-    return HYPERMAP_VIRTUAL_ADDRESS;
+    return (void*)HYPERMAP_VIRTUAL_ADDRESS;
 }
 
 void
@@ -107,7 +108,7 @@ MiUnmapHyperSpaceMap(
     assert((HyperLock.locked) == 1, "Double hypermap unlock");
     assert((g_pfnInUse) != 0, "No PFN when releasing hyperspace.");
     PPFN_ENTRY pfn = g_pfnInUse;
-    // TODO : Clear PTE from mapping (MiUnmapPte will return early if a PFN wasnt assigned to the PTE, force unmap of PTE anyways.), to prevent use after free (of hypermap) - place code before unlocking hyperspace, so concurrency can be achieved.
+    // Clear the PTE present bit (to prevent use after free)
     MiUnmapPte(MiGetPtePointer((uintptr_t)HYPERMAP_VIRTUAL_ADDRESS));
     
     // After MiUnmapPte changed the pfn metadata, we change it once again to invalidate it.

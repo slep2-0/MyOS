@@ -14,8 +14,8 @@ void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
     MeGetCurrentProcessor()->schedulePending = true;
 }
 
-void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4) {
-    UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg4);
+void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* isStatic) {
+    UNREFERENCED_PARAMETER(dpc);
     tracelast_func("CleanStacks");
     PETHREAD t = (PETHREAD)thread;
     // We must clean in order, first the stack THEN the thread.
@@ -24,7 +24,10 @@ void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4) {
     MmFreePool(t);
 
     // Finally, free the DPC allocated.
-    MtFreeVirtualMemory(allocatedDPC);
+    if (isStatic == false) {
+        MmFreePool((void*)allocatedDPC);
+    }
+
     return;
 }
 

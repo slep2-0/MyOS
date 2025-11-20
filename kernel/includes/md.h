@@ -61,4 +61,5 @@ MdDebugBreak(
 MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* BreakpointAddress, DEBUG_ACCESS_MODE AccessMode, DEBUG_LENGTH Length);
 MTSTATUS MdClearHardwareBreakpointByIndex(int index);
 MTSTATUS MdClearHardwareBreakpointByAddress(void* BreakpointAddress);
+int find_available_debug_reg(void);
 #endif

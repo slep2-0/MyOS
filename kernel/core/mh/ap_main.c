@@ -1,8 +1,9 @@
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
+#include "../../includes/me.h"
 
 extern SMP_BOOTINFO bootInfo;
-extern PROCESSOR cpus[];
+extern PPROCESSOR cpus[];
 
 extern IDT_PTR PIDT;
 
@@ -75,12 +76,12 @@ static void setup_gdt_tss(void) {
 }
 
 static void InitPerCPU(void) {
-    MeGetCurrentProcessor()->self = thisCPU();
+    MeGetCurrentProcessor()->self = MeGetCurrentProcessor();
     MeGetCurrentProcessor()->currentIrql = PASSIVE_LEVEL;
     MeGetCurrentProcessor()->schedulerEnabled = NULL; // since NULL is 0, it would be false.
     MeGetCurrentProcessor()->currentThread = NULL;
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
-    spinlock_init(&MeGetCurrentProcessor()->readyQueue.lock);
+    MeGetCurrentProcessor()->readyQueue.lock.locked = 0;
 }
 
 static inline uint8_t get_initial_apic_id(void) {
@@ -139,7 +140,7 @@ extern void InitialiseControlRegisters(void);
 	// mark as online and clear being unavailable
 	InterlockedOrU64(&cpus[idx]->flags, CPU_ONLINE); 
     InterlockedAndU64(&cpus[idx]->flags, ~CPU_UNAVAILABLE);   // clear unavailable
-    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, stack_top, thisCPU());
+    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, stack_top, MeGetCurrentProcessor());
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();
     lapic_enable();

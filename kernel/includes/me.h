@@ -29,8 +29,8 @@ Revision History:
 
 // Other includes:	
 #include "mm.h"
+#include "mh.h"
 #include "ms.h"
-#include "ps.h"
 #include "core.h"
 // ------------------ UNIONS ------------------
 
@@ -42,11 +42,6 @@ typedef enum _TimeSliceTicks {
 	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 10 ms */
 	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 25 ms */
 } TimeSliceTicks, *PTimeSliceTicks;
-
-typedef enum _PRIVILEGE_MODE {
-	KernelMode = 0,
-	UserMode = 1
-} PRIVILEGE_MODE, *PPRIVILEGE_MODE;
 
 typedef enum _WAIT_REASON {
 	Mutex = 0,
@@ -113,7 +108,11 @@ typedef enum _BUGCHECK_CODES {
 	MEMORY_DOUBLE_FREE,
 	MEMORY_CORRUPT_FOOTER,
 	GUARD_PAGE_DEREFERENCE, // A guard page has been dereferenced.
-	KERNEL_STACK_OVERFLOWN // A kernel stack has been overflown (and didnt hit the guard page) (detected by canary)
+	KERNEL_STACK_OVERFLOWN, // A kernel stack has been overflown (and didnt hit the guard page) (detected by canary)
+	KMODE_EXCEPTION_NOT_HANDLED, // A kernel mode exception hasn't been handled (an __except block hasn't been handled)
+	PFN_DATABASE_INIT_FAILURE,
+	VA_SPACE_INIT_FAILURE,
+	POOL_INIT_FAILURE,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -124,21 +123,6 @@ typedef struct _DEBUG_ENTRY {
 	void* Address;
 	DebugCallback Callback;
 } DEBUG_ENTRY;
-
-typedef struct _DEBUG_REGISTERS {
-	uint64_t dr7;
-	uint64_t address;
-	DebugCallback callback;
-} DEBUG_REGISTERS;
-
-typedef struct _PAGE_PARAMETERS {
-	uint64_t addressToInvalidate;
-} PAGE_PARAMETERS;
-
-typedef struct _IPI_PARAMS {
-	struct _DEBUG_REGISTERS debugRegs;
-	struct _PAGE_PARAMETERS pageParams;
-} IPI_PARAMS;
 
 typedef struct _WAIT_BLOCK {
 	struct _SINGLE_LINKED_LIST WaitBlockList;	// List entry of the current wait block of the thread.
@@ -182,7 +166,7 @@ typedef struct _DBG_CALLBACK_INFO {
 #define PENDING_DPC_BUCKETS 16
 typedef struct _DPC {
 	struct _DPC* Next; /* Next DPC in pending queue */
-	void (*CallbackRoutine)(DPC* arg1, void* arg2, void* arg3, void* arg4);
+	void (*CallbackRoutine)(struct _DPC* arg1, void* arg2, void* arg3, void* arg4);
 	void* Arg1;
 	void* Arg2;
 	void* Arg3;
@@ -228,12 +212,12 @@ typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
 	uint64_t* PageDirectoryVirtual;			// Virtual Address of the PML4 of the process. (accessible in kernel pages)
 	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
-	enum _PROCESS_STATE ProcessState;		// Current process state.
+	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;
 
 typedef struct _ITHREAD {
 	struct _TRAP_FRAME TrapRegisters;					   // TRAP Registers used for context switching, saving, and alternation.
-	enum _THREAD_STATE ThreadState;						   // Current thread state, presented by the THREAD_STATE enumerator.
+	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
@@ -259,7 +243,7 @@ typedef struct _PROCESSOR {
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC_QUEUE DeferredRoutineQueue; // Deferred Routine queue, used to RetireDPCs that exist after an interrupt
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
-	struct _ETHREAD idleThread; // Idle thread for the current CPU.
+	struct _ETHREAD* idleThread; // Idle thread for the current CPU.
 	volatile uint64_t IpiSeq;
 	volatile enum _CPU_ACTION IpiAction; // IPI Action specified in the function.
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
@@ -314,6 +298,28 @@ MeGetCurrentIrql(void)
 	return MeGetCurrentProcessor()->currentIrql;
 }
 
+FORCEINLINE
+PITHREAD
+MeGetCurrentThread(void)
+
+/*++
+
+	Routine description : Retrieves the current running thread on the processor.
+
+	Arguments:
+
+		None.
+
+	Return Values:
+
+		Current thread running on time of call (this thread)
+
+--*/
+
+{
+	return MeGetCurrentProcessor()->currentThread;
+}
+
 NORETURN
 void
 MeBugCheck(
@@ -363,5 +369,27 @@ void InitScheduler(void);
 NORETURN
 void
 Schedule(void);
+
+FORCEINLINE
+PRIVILEGE_MODE
+MeGetPreviousMode(
+	void
+)
+
+{
+	if (MeGetCurrentProcessor()->currentThread) {
+		return MeGetCurrentProcessor()->currentThread->PreviousMode;
+	}
+	else {
+		// No thread is active on the current processor (not even a kernel one), this is early init.
+		return KernelMode;
+	}
+}
+
+int
+MeBeginDpcProcessing(void);
+
+void
+MeEndDpcProcessing(void);
 
 #endif

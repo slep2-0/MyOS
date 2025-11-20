@@ -1,6 +1,7 @@
 #include "../../includes/ps.h"
 #include "../../assert.h"
 #include "../../trace.h"
+#include "../../includes/mg.h"
 
 #define MIN_TID           3u
 #define MAX_TID           0xFFFFFFFCu
@@ -14,38 +15,40 @@ static SPINLOCK g_tid_lock = { 0 };
 /*returns user stack TOP(user VA) on success, 0 on failure.
 out_kernel_buf receives the kernel pointer to the backing buffer for free later.*/
 static uintptr_t allocate_and_map_user_stack(PEPROCESS proc, size_t stack_size, void** out_kernel_buf) {
-    if (!proc || stack_size == 0) return 0;
+    UNREFERENCED_PARAMETER(proc); UNREFERENCED_PARAMETER(stack_size); UNREFERENCED_PARAMETER(out_kernel_buf);
+    return (uintptr_t)MT_NOT_IMPLEMENTED;
+    //if (!proc || stack_size == 0) return 0;
 
-    size_t pages = (stack_size + VirtualPageSize - 1) / VirtualPageSize;
+    //size_t pages = (stack_size + VirtualPageSize - 1) / VirtualPageSize;
 
-    /* determine user region: leave a guard page below the base */
-    uintptr_t user_top = proc->NextStackTop;                /* top (exclusive) */
-    uintptr_t user_base = user_top - pages * VirtualPageSize;   /* base (inclusive) */
-    uintptr_t guard_page = user_base - VirtualPageSize;         /* unmapped guard page */
+    ///* determine user region: leave a guard page below the base */
+    //uintptr_t user_top = proc->NextStackTop;                /* top (exclusive) */
+    //uintptr_t user_base = user_top - pages * VirtualPageSize;   /* base (inclusive) */
+    //uintptr_t guard_page = user_base - VirtualPageSize;         /* unmapped guard page */
 
-    /* ensure we didn't underflow address space */
-    if (user_base < 0x100000) {
-        return 0;
-    }
+    ///* ensure we didn't underflow address space */
+    //if (user_base < 0x100000) {
+    //    return 0;
+    //}
 
-    /* allocate kernel backing buffer (kernel virtual memory) */
-    void* kernel_buf = MtAllocateVirtualMemory(pages * VirtualPageSize, VirtualPageSize);
-    if (!kernel_buf) return 0;
+    ///* allocate kernel backing buffer (kernel virtual memory) */
+    //void* kernel_buf = MtAllocateVirtualMemory(pages * VirtualPageSize, VirtualPageSize);
+    //if (!kernel_buf) return 0;
 
-    /* Map each page from backing buffer into process PML4 */
-    for (size_t i = 0; i < pages; ++i) {
-        void* kpage = (uint8_t*)kernel_buf + i * VirtualPageSize;
-        uintptr_t phys = MtTranslateVirtualToPhysical(kpage);
-        uintptr_t user_va = user_base + i * VirtualPageSize;
-        /* map into target PML4 (proc->PageDirectoryVirtual) */
-        MtMapPageInAddressSpace(proc->InternalProcess.PageDirectoryVirtual, (void*)user_va, phys, PAGE_PRESENT | PAGE_RW | PAGE_USER);
-    }
+    ///* Map each page from backing buffer into process PML4 */
+    //for (size_t i = 0; i < pages; ++i) {
+    //    void* kpage = (uint8_t*)kernel_buf + i * VirtualPageSize;
+    //    uintptr_t phys = MtTranslateVirtualToPhysical(kpage);
+    //    uintptr_t user_va = user_base + i * VirtualPageSize;
+    //    /* map into target PML4 (proc->PageDirectoryVirtual) */
+    //    MtMapPageInAddressSpace(proc->InternalProcess.PageDirectoryVirtual, (void*)user_va, phys, PAGE_PRESENT | PAGE_RW | PAGE_USER);
+    //}
 
-    /* update bump pointer leaving the guard page for next allocation */
-    proc->NextStackTop = guard_page;
+    ///* update bump pointer leaving the guard page for next allocation */
+    //proc->NextStackTop = guard_page;
 
-    if (out_kernel_buf) *out_kernel_buf = kernel_buf;
-    return user_base + pages * VirtualPageSize; /* user stack TOP (RSP initial) */
+    //if (out_kernel_buf) *out_kernel_buf = kernel_buf;
+    //return user_base + pages * VirtualPageSize; /* user stack TOP (RSP initial) */
 }
 
 ///
@@ -94,10 +97,10 @@ static uint32_t ManageTID(uint32_t freedTid)
 static void ThreadExit(PETHREAD thread) {
     tracelast_func("ThreadExit");
 #ifdef DEBUG
-    gop_printf_forced(COLOR_RED, "Reached ThreadExit\n");
+    gop_printf(COLOR_RED, "Reached ThreadExit\n");
 #endif
     // Before all, wait for its rundown to expire (if any).
-    MtWaitForRundownProtectionRelease(&thread->ThreadRundown);
+    MsWaitForRundownProtectionRelease(&thread->ThreadRundown);
     // 1) mark as dead
     thread->InternalThread.ThreadState = THREAD_TERMINATED;
     thread->InternalThread.TimeSlice = 1;
@@ -107,10 +110,7 @@ static void ThreadExit(PETHREAD thread) {
     Schedule();
     // should never get here
     /* assertions */
-#ifdef DEBUG
-    bool valid = MtIsHeapAddressAllocated(thread->startStackPtr);
-    assert((valid) == false, "Thread's stack hasn't been freed correctly!");
-#endif
+    assert(false);
     // When the stack got freed, the scheduler was called here, and since it's freed and it atttempted to PUSH the return address to the stack, we faulted.
 }
 
@@ -124,87 +124,89 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
 // Internal function for thread creation
 MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
     if (!ParentProcess || !entry || !TIMESLICE) return MT_INVALID_PARAM;
-    tracelast_func("MtCreateThread");
-    if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
-        // Process is being terminated, abort.
-        return MT_PROCESS_IS_TERMINATING;
-    }
-    // Rundown acquired, safe to modify.
-    IRQL oldIrql;
-    MsAcquireSpinlock(&ParentProcess->InternalProcess.ProcessLock, &oldIrql);
+    UNREFERENCED_PARAMETER(ParentProcess); UNREFERENCED_PARAMETER(outThread); UNREFERENCED_PARAMETER(entry); UNREFERENCED_PARAMETER(parameter); UNREFERENCED_PARAMETER(TIMESLICE);
+    return MT_NOT_IMPLEMENTED;
+    //tracelast_func("MtCreateThread");
+    //if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
+    //    // Process is being terminated, abort.
+    //    return MT_PROCESS_IS_TERMINATING;
+    //}
+    //// Rundown acquired, safe to modify.
+    //IRQL oldIrql;
+    //MsAcquireSpinlock(&ParentProcess->InternalProcess.ProcessLock, &oldIrql);
 
-    uint32_t tid = ManageTID(0);
+    //uint32_t tid = ManageTID(0);
 
-    if (!tid) {
-        MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
-        MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
-        return MT_NO_RESOURCES;
-    }
+    //if (!tid) {
+    //    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+    //    MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
+    //    return MT_NO_RESOURCES;
+    //}
 
-    // First, allocate a new thread.
-    PETHREAD thread = MmAllocatePoolWithTag(NonPagedPool, sizeof(ETHREAD), 'GOON');
-    if (!thread) {
-        MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
-        MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
-        return MT_NO_MEMORY;
-    }
+    //// First, allocate a new thread.
+    //PETHREAD thread = MmAllocatePoolWithTag(NonPagedPool, sizeof(ETHREAD), 'THR ');
+    //if (!thread) {
+    //    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+    //    MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
+    //    return MT_NO_MEMORY;
+    //}
 
-    // Zero it.
-    kmemset((void*)thread, 0, sizeof(ETHREAD));
+    //// Zero it.
+    //kmemset((void*)thread, 0, sizeof(ETHREAD));
 
-    void* krnlstckPtr = NULL;
-    uintptr_t user_rsp_top = allocate_and_map_user_stack(ParentProcess, THREAD_STACK_SIZE, &krnlstckPtr);
-    if (!user_rsp_top) {
-        MtFreeVirtualMemory(thread);
-        MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
-        MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
-        return MT_NO_MEMORY;
-    }
+    //void* krnlstckPtr = NULL;
+    //uintptr_t user_rsp_top = allocate_and_map_user_stack(ParentProcess, THREAD_STACK_SIZE, &krnlstckPtr);
+    //if (!user_rsp_top) {
+    //    MtFreeVirtualMemory(thread);
+    //    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+    //    MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
+    //    return MT_NO_MEMORY;
+    //}
 
-    thread->InternalThread.StackBase = krnlstckPtr;
+    //thread->InternalThread.StackBase = krnlstckPtr;
 
-    // reserve red zone, then place CTX_FRAME below it (working in kernel buffer)
-    TRAP_FRAME* kcfm = &thread->InternalThread.TrapRegisters;
-    kmemset(kcfm, 0, sizeof * kcfm);
+    //// reserve red zone, then place CTX_FRAME below it (working in kernel buffer)
+    //TRAP_FRAME* kcfm = &thread->InternalThread.TrapRegisters;
+    //kmemset(kcfm, 0, sizeof * kcfm);
 
-    uint64_t user_top_aligned = (uint64_t)user_rsp_top & ~(uint64_t)(THREAD_ALIGNMENT - 1);
-    kcfm->rsp = user_top_aligned;
-    kcfm->rip = (uint64_t)entry;
-    kcfm->rdi = (uint64_t)parameter;
-    kcfm->rflags |= (1 << 9ULL);
-    kcfm->cs = USER_CS;
-    kcfm->ss = USER_SS;
+    //uint64_t user_top_aligned = (uint64_t)user_rsp_top & ~(uint64_t)(THREAD_ALIGNMENT - 1);
+    //kcfm->rsp = user_top_aligned;
+    //kcfm->rip = (uint64_t)entry;
+    //kcfm->rdi = (uint64_t)parameter;
+    //kcfm->rflags |= (1 << 9ULL);
+    //kcfm->cs = USER_CS;
+    //kcfm->ss = USER_SS;
 
-    // Set our timeslice.
-    thread->InternalThread.TimeSlice = TIMESLICE;
-    thread->InternalThread.TimeSliceAllocated = TIMESLICE;
+    //// Set our timeslice.
+    //thread->InternalThread.TimeSlice = TIMESLICE;
+    //thread->InternalThread.TimeSliceAllocated = TIMESLICE;
 
-    // Set it's registers and others.
-    thread->InternalThread.TrapRegisters = *kcfm;
-    thread->InternalThread.ThreadState = THREAD_READY;
-    thread->nextThread = NULL;
-    thread->TID = tid;
-    thread->CurrentEvent = NULL;
+    //// Set it's registers and others.
+    //thread->InternalThread.TrapRegisters = *kcfm;
+    //thread->InternalThread.ThreadState = THREAD_READY;
+    //thread->nextThread = NULL;
+    //thread->TID = tid;
+    //thread->CurrentEvent = NULL;
 
-    // Now, set it's parent process properties, this is the part that separates for user mode.
-    if (!ParentProcess->MainThread) {
-        // This is the first thread, and the main thread, of the process.
-        ParentProcess->MainThread = thread;
-    }
+    //// Now, set it's parent process properties, this is the part that separates for user mode.
+    //if (!ParentProcess->MainThread) {
+    //    // This is the first thread, and the main thread, of the process.
+    //    ParentProcess->MainThread = thread;
+    //}
 
-    thread->ParentProcess = ParentProcess;
-    MtEnqueueThreadWithLock(&ParentProcess->AllThreads, thread);
-    // The enqueuing of the thread into the CPU Readyqueue is only if this is not the main thread, if this IS the main thread, the process creator function, should enqueue.
-    if (ParentProcess->MainThread != thread) {
-        // This is not the main thread, we enqueue.
-        MtEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
-    }
-    if (outThread) *outThread = thread;
-    ParentProcess->NumThreads++; // Increment the number of threads.
+    //thread->ParentProcess = ParentProcess;
+    //MeEnqueueThreadWithLock(&ParentProcess->AllThreads, thread);
+    //// The enqueuing of the thread into the CPU Readyqueue is only if this is not the main thread, if this IS the main thread, the process creator function, should enqueue.
+    //if (ParentProcess->MainThread != thread) {
+    //    // This is not the main thread, we enqueue.
+    //    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
+    //}
+    //if (outThread) *outThread = thread;
+    //ParentProcess->NumThreads++; // Increment the number of threads.
 
-    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
-    MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
-    return MT_SUCCESS;
+    //MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+    //MsReleaseSpinlock(&ParentProcess->InternalProcess.ProcessLock, oldIrql);
+    //return MT_SUCCESS;
 }
 
 extern EPROCESS SystemProcess;
@@ -228,10 +230,11 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(ETHREAD));
-    void* stackStart = MtAllocateGuardedVirtualMemory(THREAD_STACK_SIZE, THREAD_ALIGNMENT);
+    // FIXME MiCreateKernelStack
+    void* stackStart = MmAllocatePoolWithTag(NonPagedPool, THREAD_STACK_SIZE, 'kcts');
     if (!stackStart) {
         // free thread
-        MtFreeVirtualMemory(thread);
+        MmFreePool(thread);
         return MT_NO_MEMORY;
     }
     thread->InternalThread.StackBase = stackStart;
@@ -268,7 +271,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     // Process stuffz
     thread->ParentProcess = &SystemProcess; // The parent process for the system thread, is the system process.
-    MtEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
+    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
 
     return MT_SUCCESS;
 }

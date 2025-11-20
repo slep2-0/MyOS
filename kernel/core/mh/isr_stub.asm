@@ -4,10 +4,10 @@ BITS 64
 DEFAULT REL
 
 ; Extern the ISR handler.
-extern isr_handler64
+extern MhHandleInterrupt
 
 ; Extern the DPC handler.
-extern RetireDPCs
+extern MeRetireDPCs
 
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
@@ -79,14 +79,8 @@ isr_common_stub64:
     mov     rdi, [rsp + 120]        ; vector number
 
 .welcome_to_los_santos_2
-    ; RSI is the second parameter in the System V ABI calling convention. It is our CTX_FRAME, its the start of the stack basically. (first is r15, so like in the struct)
+    ; RSI is the second parameter in the System V ABI calling convention. It is our TRAP_FRAME, its the start of the stack basically. (first is r15, so like in the struct)
     mov     rsi, rsp
-
-    ; RDX is the THIRD parameter in the System V ABI calling convention. It is our INT_FRAME, it is the start of where the CPU pushed interrupted context plus our vec_num and error codes.
-    ; Now in x86-64 (64bit), the CPU ALWAYS pushes SS:RSP, RFLAGS, CS and RIP. (where in 32bit x86 it did not)
-    ; Reference (i also provided the #id) - https://wiki.osdev.org/Interrupt_Service_Routines#x86-64, look at the top of your browser :)
-    ; It is acccessed like this (since it accesses the stack downward): vec_num -> error code -> rip -> cs -> rflags -> rsp -> ss (all present, some may be dummy, look in macros)
-    lea     rdx, [rsp + 120]
 
 .begin_call
     ; Save vector number for EOI logic (function call may clobber RDI)
@@ -94,17 +88,17 @@ isr_common_stub64:
     
     ; Call C interrupt handler
     sub     rsp, 8
-    call    isr_handler64
+    call    MhHandleInterrupt
     add     rsp, 8
 
 extern Schedule
-extern MtBeginDpcProcessing ; per cpu func
-extern MtEndDpcProcessing ; per cpu func
+extern MeBeginDpcProcessing ; per cpu func
+extern MeEndDpcProcessing ; per cpu func
 
 .dpc:
     ; Attempt to become the CPU's DPC processor, if we fail, just exit.
     sub rsp, 8 ; Align
-    call MtBeginDpcProcessing
+    call MeBeginDpcProcessing
     add rsp, 8
     test rax, rax
     jz .exit ; Somebody else already is processing DPCs on this CPU, exit.
@@ -113,12 +107,12 @@ extern MtEndDpcProcessing ; per cpu func
 
     ; Finally, retire the DPCs. (all DPCs must return, if not - bugcheck)
     sub rsp, 8
-    call RetireDPCs
+    call MeRetireDPCs
     add rsp, 8 
 
     ; After retiring, always clear the flag.
     sub rsp, 8
-    call MtEndDpcProcessing
+    call MeEndDpcProcessing
     add rsp, 8
 
     ; Now let's check if the scheduler is enabled, so we can't pre-empt the current running thread, even if it's timeslice has expired.
@@ -191,7 +185,7 @@ extern MtEndDpcProcessing ; per cpu func
 .clear_and_exit:
     ; Reaching here means we have done all DPCs, but we are not allowed to schedule.
     sub rsp, 8
-    call MtEndDpcProcessing
+    call MeEndDpcProcessing
     add rsp, 8
     jmp .exit
 

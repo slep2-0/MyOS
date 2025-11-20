@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/mm.h"
 #include "../../includes/me.h"
+#include "../../assert.h"
 
 // Can hold any size.
 POOL_DESCRIPTOR GlobalPool;
@@ -66,6 +67,7 @@ MiInitializePoolSystem(
     return MT_SUCCESS;
 }
 
+static
 bool
 MiRefillPool(
     PPOOL_DESCRIPTOR Desc,
@@ -92,7 +94,7 @@ MiRefillPool(
 {
     // Before allocating a va or another PFN, lets check the global pool first, see if we have a free 4KiB block.
     IRQL oldIrql;
-    void* PageVa = NULL;
+    uintptr_t PageVa = 0;
     size_t HeaderBlockSize = 0;
     size_t Iterations = 0;
 
@@ -130,7 +132,7 @@ MiRefillPool(
         }
 
         // The block is good! The loop that refills the desc wil overwrite this header data. (this is why we dont add sizeof)
-        PageVa = (void*)header;
+        PageVa = (uintptr_t)header;
         HeaderBlockSize = header->Metadata.BlockSize;
         break;
     }
@@ -155,12 +157,12 @@ MiRefillPool(
     if (!PageVa) {
         // The global pool is empty... lets allocate.
         // Allocate a 4KiB virtual address.
-        PageVa = (void*)MiAllocatePoolVa(NonPagedPool, VirtualPageSize);
+        PageVa = MiAllocatePoolVa(NonPagedPool, VirtualPageSize);
         if (!PageVa) return false; // Out of VA Space.
 
         // Allocate a 4KiB Physical page.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (!pfn) {
+        if (pfn == PFN_ERROR) {
             MiFreePoolVaContiguous(PageVa, VirtualPageSize, NonPagedPool);
             return false;
         }
@@ -192,9 +194,9 @@ MiRefillPool(
         // Set its header metadata.
         newBlock->Metadata.BlockSize = Desc->BlockSize;
         newBlock->Metadata.PoolIndex = PoolIndex;
-        newBlock->PoolCanary = 'BEKA';
-        newBlock->PoolTag = 'ADIR';
-
+        newBlock->PoolCanary = 'BEKA'; // Pool Canary
+        newBlock->PoolTag = 'ADIR'; // Default Tag
+        
         // Add this block to the list of the descriptor.
         newBlock->Metadata.FreeListEntry.Next = Desc->FreeListHead.Next;
         Desc->FreeListHead.Next = &newBlock->Metadata.FreeListEntry;
@@ -206,6 +208,7 @@ MiRefillPool(
     return true;
 }
 
+static
 void*
 MiAllocateLargePool(
     size_t NumberOfBytes,
@@ -294,13 +297,13 @@ MiAllocateLargePool(
     bool failure = false;
     size_t Iterations = 0;
 
-    for (int i = 0; i < neededPages; i++) {
+    for (size_t i = 0; i < neededPages; i++) {
         // Increment by 4KiB each time.
         uint8_t* currVa = (uint8_t*)pageVa + (i * VirtualPageSize);
 
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
 
-        if (!pfn) {
+        if (pfn == PFN_ERROR) {
             // Allocation for a physical page failed, free the VA allocated, and unroll the loop (see code below loop)
             MiFreePoolVaContiguous(pageVa, RequiredSize, NonPagedPool);
             failure = true;
@@ -344,6 +347,7 @@ MiAllocateLargePool(
     return (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
 }
 
+static
 void*
 MiAllocatePagedPool(
     IN  size_t NumberOfBytes,
@@ -367,15 +371,14 @@ MiAllocatePagedPool(
 
     Notes:
 
-        This function MUST be called at BELOW DISPATCH_LEVEL IRQL.
-
-        Access to pool in this function MUST be called
+        This function AND access to it's pool contents MUST be with IRQL < DISPATCH_LEVEL.
 
 --*/
 
 {
+    assert((MeGetCurrentIrql()) < DISPATCH_LEVEL, "IRQL Is dispatch or above at blocking function.");
     size_t ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
-    void* PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
+    uintptr_t PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
 
     // Since we supplied the PagedPool parameter to MiAllocatePoolVa, it would internally use the MmAllocateVirtualMemory, now we are destined to page fault when we access PagedVa.
     // But IRQL restrictions guranteed us that we wont bugcheck now (as we are below Dispatch)
@@ -441,24 +444,22 @@ MmAllocatePoolWithTag(
                 (void*)&MmAllocatePoolWithTag,
                 (void*)MeGetCurrentIrql(),
                 (void*)8,
-                (void*)__read_rip()
+                (void*)__builtin_return_address(0)
             );
         }
     }
     // IRQL Must NOT be greater than DISPATCH_LEVEL at any allocation.
     else {
-        MeBugCheck(
+        MeBugCheckEx(
             IRQL_NOT_LESS_OR_EQUAL,
             (void*)&MmAllocatePoolWithTag,
             (void*)MeGetCurrentIrql(),
             (void*)8,
-            (void*)__read_rip()
+            (void*)__builtin_return_address(0)
         );
     }
 
-    // Quick check
     if (PoolType == PagedPool) {
-        // TODO: Call VAD-based virtual allocator
         // Use the internal paged pool allocator.
         return MiAllocatePagedPool(NumberOfBytes, Tag);
     }
@@ -484,7 +485,7 @@ MmAllocatePoolWithTag(
     }
     
     MsAcquireSpinlock(&Desc->PoolLock, &oldIrql);
-    assert((Desc->FreeCount) >= 0);
+    assert((Desc->FreeCount) != UINT64_T_MAX);
 
     if (Desc->FreeCount == 0) {
         // Looks like the pool is empty, refill all empty pools.
@@ -501,9 +502,14 @@ MmAllocatePoolWithTag(
     // Looks like we have a block to return! Return its PTR.
     // First, acquire it. (we are under spinlock, no need for interlocked pop)
     list = Desc->FreeListHead.Next;
-    assert((list) != 0, "Pool is nullptr even though freecount isn't zero.");
+    assert((list) != NULL, "Pool is nullptr even though freecount isn't zero.");
     Desc->FreeListHead.Next = list->Next; // Finish the pop
     header = CONTAINING_RECORD(list, POOL_HEADER, Metadata.FreeListEntry);
+
+    // We must restore the metadata because the linked list pointer 
+    // overwrote it while the block was sitting in the free list.
+    header->Metadata.PoolIndex = (uint16_t)Index;
+    header->Metadata.BlockSize = (uint16_t)Desc->BlockSize;
 
     // First check if the canary is wrong.
     if (header->PoolCanary != 'BEKA') {
@@ -590,7 +596,7 @@ MmFreePool(
 
     if (PoolIndex == POOL_TYPE_PAGED) {
         // Paged pool allocation, we don't return it to any pool, instead, we free the VADs.
-        return MiFreePoolVaContiguous(header, header->Metadata.BlockSize, PagedPool);
+        return MiFreePoolVaContiguous((uintptr_t)header, header->Metadata.BlockSize, PagedPool);
     }
 
     //

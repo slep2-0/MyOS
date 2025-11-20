@@ -19,12 +19,12 @@ Revision History:
 
 --*/
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "../mtstatus.h"
 #include "annotations.h"
 #include "core.h"
-#include "ps.h"
 
 // ------------------ STRUCTURES ------------------
 
@@ -132,12 +132,12 @@ MsWaitForRundownProtectionRelease(
 );
 
 MTSTATUS
-MtSetEvent(
+MsSetEvent(
     IN PEVENT event
 );
 
 MTSTATUS 
-MtWaitForEvent(
+MsWaitForEvent(
     IN  PEVENT event
 );
 
@@ -194,6 +194,24 @@ RemoveHeadList(
     return Entry;
 }
 
+FORCEINLINE
+void
+RemoveEntryList(
+    PDOUBLY_LINKED_LIST Entry
+)
+{
+    PDOUBLY_LINKED_LIST Flink;
+    PDOUBLY_LINKED_LIST Blink;
+
+    Flink = Entry->Flink;
+    Blink = Entry->Blink;
+
+    /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
+    Blink->Flink = Flink;
+    Flink->Blink = Blink;
+}
+
+
 /* Interlocked push: atomically push Entry onto *ListHeadPtr.
    ListHeadPtr is PSINGLE_LINKED_LIST* (address of the head pointer). 
    Usage: InterlockedPushEntry(&Descriptor->FreeListHead.Next, &Header->Metadata.FreeListEntry);
@@ -246,69 +264,6 @@ InterlockedPopEntry(
         __ATOMIC_ACQ_REL,      /* success: acquire+release to pair with push */
         __ATOMIC_RELAXED));   /* failure ordering */
     return oldHead;
-}
-
-FORCEINLINE
-void 
-MsEnqueueThreadWithLock (
-    Queue* queue, PETHREAD thread) {
-    tracelast_func("MtEnqueueThreadWithLock");
-    IRQL flags;
-    MsAcquireSpinlock(&queue->lock, &flags);
-    thread->nextThread = NULL;
-    if (!queue->head) queue->head = thread;
-    else queue->tail->nextThread = thread;
-    queue->tail = thread;
-    MsReleaseSpinlock(&queue->lock, flags);
-}
-
-// Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
-FORCEINLINE
-PETHREAD 
-MsDequeueThreadWithLock(Queue* q) {
-    tracelast_func("MtDequeueThreadWithLock");
-    IRQL flags;
-    MsAcquireSpinlock(&q->lock, &flags);
-    if (!q->head) {
-        MsReleaseSpinlock(&q->lock, flags); // CRITICAL BUG, did not release the spinlock when returning, and here I am wondering why all my CPUs halted... :(
-        return NULL;
-    }
-
-    PETHREAD t = q->head;
-    q->head = t->nextThread;
-    if (!q->head) {
-        q->tail = NULL;
-    }
-    t->nextThread = NULL;
-    MsReleaseSpinlock(&q->lock, flags);
-    return t;
-}
-
-// Enqueues the thread given to the queue.
-FORCEINLINE
-void MsEnqueueThread(Queue* queue, PETHREAD thread) {
-    tracelast_func("MtEnqueueThread");
-    thread->nextThread = NULL;
-    if (!queue->head) queue->head = thread;
-    else queue->tail->nextThread = thread;
-    queue->tail = thread;
-}
-
-// Dequeues the current thread from the queue, returns null if none.
-FORCEINLINE
-PETHREAD MsDequeueThread(Queue* q) {
-    tracelast_func("MtDequeueThread");
-    if (!q->head) {
-        return NULL;
-    }
-
-    PETHREAD t = q->head;
-    q->head = t->nextThread;
-    if (!q->head) {
-        q->tail = NULL;
-    }
-    t->nextThread = NULL;
-    return t;
 }
 
 #endif // X86_MATANEL_SYNCHRONIZATION_H

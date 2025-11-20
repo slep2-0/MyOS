@@ -7,8 +7,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "../../trace.h"
-#include "../../core/bugcheck/bugcheck.h"
-#include "../../cpu/cpu.h"
 #include "../../mtstatus.h"
 
 typedef struct _BLOCK_DEVICE {

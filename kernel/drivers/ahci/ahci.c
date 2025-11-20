@@ -7,39 +7,43 @@
 #include "ahci.h"
 #include "../../trace.h"
 #include "../../assert.h"
+#include "../../includes/mg.h"
 
 #ifdef REMINDER
 _Static_assert(false, "Reminder: AHCI, and other DMA stuff DEAL WITH PHYSICAL ADDRESSES ONLY! not virtual, so supply to them the translated addresses.");
 #endif
+
+#define AHCI_DEBUG_PRINT
+
 #ifdef AHCI_DEBUG_PRINT
 static void decode_serr(uint32_t serr) {
     if (serr == 0) {
-        gop_printf_forced(0xFFFFFF00, "SERR: No errors\n");
+        gop_printf(0xFFFFFF00, "SERR: No errors\n");
         return;
     }
 
-    gop_printf_forced(0xFFFF0000, "SERR: 0x%08x - Errors detected:\n", serr);
+    gop_printf(0xFFFF0000, "SERR: 0x%08x - Errors detected:\n", serr);
 
     // ERR bits (0-15) - Recoverable and non-recoverable errors
-    if (serr & (1 << 0))  gop_printf_forced(0xFFFFFF00, "  [0] ERR.I - Recovered Data Integrity Error\n");
-    if (serr & (1 << 1))  gop_printf_forced(0xFFFFFF00, "  [1] ERR.M - Recovered Communications Error\n");
-    if (serr & (1 << 8))  gop_printf_forced(0xFFFFFF00, "  [8] ERR.T - Transient Data Integrity Error\n");
-    if (serr & (1 << 9))  gop_printf_forced(0xFFFFFF00, "  [9] ERR.C - Persistent Communication/Data Integrity Error\n");
-    if (serr & (1 << 10)) gop_printf_forced(0xFFFFFF00, "  [10] ERR.P - Protocol Error\n");
-    if (serr & (1 << 11)) gop_printf_forced(0xFFFFFF00, "  [11] ERR.E - Internal Error\n");
+    if (serr & (1 << 0))  gop_printf(0xFFFFFF00, "  [0] ERR.I - Recovered Data Integrity Error\n");
+    if (serr & (1 << 1))  gop_printf(0xFFFFFF00, "  [1] ERR.M - Recovered Communications Error\n");
+    if (serr & (1 << 8))  gop_printf(0xFFFFFF00, "  [8] ERR.T - Transient Data Integrity Error\n");
+    if (serr & (1 << 9))  gop_printf(0xFFFFFF00, "  [9] ERR.C - Persistent Communication/Data Integrity Error\n");
+    if (serr & (1 << 10)) gop_printf(0xFFFFFF00, "  [10] ERR.P - Protocol Error\n");
+    if (serr & (1 << 11)) gop_printf(0xFFFFFF00, "  [11] ERR.E - Internal Error\n");
 
     // DIAG bits (16-31) - Diagnostic errors
-    if (serr & (1 << 16)) gop_printf_forced(0xFFFFFF00, "  [16] DIAG.N - PhyRdy Change\n");
-    if (serr & (1 << 17)) gop_printf_forced(0xFFFFFF00, "  [17] DIAG.I - Phy Internal Error\n");
-    if (serr & (1 << 18)) gop_printf_forced(0xFFFFFF00, "  [18] DIAG.W - Comm Wake\n");
-    if (serr & (1 << 19)) gop_printf_forced(0xFFFFFF00, "  [19] DIAG.B - 10B to 8B Decode Error\n");
-    if (serr & (1 << 20)) gop_printf_forced(0xFFFFFF00, "  [20] DIAG.D - Disparity Error\n");
-    if (serr & (1 << 21)) gop_printf_forced(0xFFFFFF00, "  [21] DIAG.C - CRC Error\n");
-    if (serr & (1 << 22)) gop_printf_forced(0xFFFFFF00, "  [22] DIAG.H - Handshake Error\n");
-    if (serr & (1 << 23)) gop_printf_forced(0xFFFFFF00, "  [23] DIAG.S - Link Sequence Error\n");
-    if (serr & (1 << 24)) gop_printf_forced(0xFFFFFF00, "  [24] DIAG.T - Transport State Transition Error\n");
-    if (serr & (1 << 25)) gop_printf_forced(0xFFFFFF00, "  [25] DIAG.F - Unknown FIS Type\n");
-    if (serr & (1 << 26)) gop_printf_forced(0xFFFFFF00, "  [26] DIAG.X - Exchanged\n");
+    if (serr & (1 << 16)) gop_printf(0xFFFFFF00, "  [16] DIAG.N - PhyRdy Change\n");
+    if (serr & (1 << 17)) gop_printf(0xFFFFFF00, "  [17] DIAG.I - Phy Internal Error\n");
+    if (serr & (1 << 18)) gop_printf(0xFFFFFF00, "  [18] DIAG.W - Comm Wake\n");
+    if (serr & (1 << 19)) gop_printf(0xFFFFFF00, "  [19] DIAG.B - 10B to 8B Decode Error\n");
+    if (serr & (1 << 20)) gop_printf(0xFFFFFF00, "  [20] DIAG.D - Disparity Error\n");
+    if (serr & (1 << 21)) gop_printf(0xFFFFFF00, "  [21] DIAG.C - CRC Error\n");
+    if (serr & (1 << 22)) gop_printf(0xFFFFFF00, "  [22] DIAG.H - Handshake Error\n");
+    if (serr & (1 << 23)) gop_printf(0xFFFFFF00, "  [23] DIAG.S - Link Sequence Error\n");
+    if (serr & (1 << 24)) gop_printf(0xFFFFFF00, "  [24] DIAG.T - Transport State Transition Error\n");
+    if (serr & (1 << 25)) gop_printf(0xFFFFFF00, "  [25] DIAG.F - Unknown FIS Type\n");
+    if (serr & (1 << 26)) gop_printf(0xFFFFFF00, "  [26] DIAG.X - Exchanged\n");
 }
 #endif
 // Context per initialized port
@@ -107,19 +111,19 @@ static void ensure_ahci_busmaster_enabled(void) {
                     uint32_t cmd32 = pci_cfg_read32(bus, slot, func, 0x04);
                     uint16_t cmd = cmd32 & 0xFFFF;
 #ifdef AHCI_DEBUG_PRINT
-                    gop_printf_forced(0xFFFFFF00, "AHCI PCI at %p:%p vendor=%p device=%p\n", bus, slot, func, vendor, device);
-                    gop_printf_forced(0xFFFFFF00, "PCI CMD before: %p\n", cmd);
+                    gop_printf(0xFFFFFF00, "AHCI PCI at %p:%p vendor=%p device=%p\n", bus, slot, func, vendor, device);
+                    gop_printf(0xFFFFFF00, "PCI CMD before: %p\n", cmd);
 #endif
                     if (!(cmd & (1 << 2))) {
                         cmd |= (1 << 2); // set Bus Master
                         pci_cfg_write32(bus, slot, func, 0x04, (cmd32 & 0xFFFF0000) | (uint32_t)cmd);
 #ifdef AHCI_DEBUG_PRINT
-                        gop_printf_forced(0xFFFFFF00, "Enabled PCI Bus Master bit for AHCI\n");
+                        gop_printf(0xFFFFFF00, "Enabled PCI Bus Master bit for AHCI\n");
 #endif
                     }
                     else {
 #ifdef AHCI_DEBUG_PRINT
-                        gop_printf_forced(0xFFFFFF00, "PCI Bus Master already enabled\n");
+                        gop_printf(0xFFFFFF00, "PCI Bus Master already enabled\n");
 #endif
                     }
                     return;
@@ -128,7 +132,7 @@ static void ensure_ahci_busmaster_enabled(void) {
         }
     }
 #ifdef AHCI_DEBUG_PRINT
-    gop_printf_forced(0xFFFF0000, "AHCI PCI device not found while scanning PCI bus\n");
+    gop_printf(0xFFFF0000, "AHCI PCI device not found while scanning PCI bus\n");
 #endif
 }
 
@@ -178,11 +182,11 @@ static bool init_one_port(int idx) {
     }
 
     // Allocate and zero CLB (1 KiB)
-    void* clb = MtAllocateVirtualMemoryEx(1024, 1024, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT);
+    void* clb = MmAllocateContigiousMemory(1024, UINT64_T_MAX);
     if (!clb) return false;
     kmemset(clb, 0, 1024);
     // pass the PHYSICAL address.
-    uintptr_t clb_phys = MtTranslateVirtualToPhysical(clb);
+    uintptr_t clb_phys = MiTranslateVirtualToPhysical(clb);
     assert(((uintptr_t)clb_phys & 0x3FF) == 0, "CLB must be 1KiB-aligned (1024 byte multiple)");
 #ifdef AHCI_DEBUG_PRINT
     gop_printf(COLOR_BLUE, "In INIT_ONE_PORT, clb_phys: %p | virt: %p\n", clb_phys, clb);
@@ -191,11 +195,11 @@ static bool init_one_port(int idx) {
     p->clbu = (uint32_t)((uintptr_t)clb_phys >> 32);
 
     // Allocate and zero FIS receive buffer (256 B)
-    void* fis_buf = MtAllocateVirtualMemoryEx(256, 256, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT);
+    void* fis_buf = MmAllocateContigiousMemory(256, UINT64_T_MAX);
     if (!fis_buf) return false;
     kmemset(fis_buf, 0, 256);
     // Again, pass the PHYSICAL.
-    uintptr_t fis_buf_phys = MtTranslateVirtualToPhysical(fis_buf);
+    uintptr_t fis_buf_phys = MiTranslateVirtualToPhysical(fis_buf);
 #ifdef AHCI_DEBUG_PRINT
     gop_printf(COLOR_BLUE, "In INIT_ONE_PORT, fis_buf_phys: %p | virt: %p\n", fis_buf_phys, fis_buf);
 #endif
@@ -204,10 +208,10 @@ static bool init_one_port(int idx) {
 
     // Allocate and zero Command Table buffers: 256 B × 32 slots
     size_t tbl_size = 256 * 32;
-    void* cmd_tbl = MtAllocateVirtualMemoryEx(tbl_size, 256, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT);
+    void* cmd_tbl = MmAllocateContigiousMemory(tbl_size, UINT64_T_MAX);
     if (!cmd_tbl) return false;
     kmemset(cmd_tbl, 0, tbl_size);
-    uintptr_t cmd_tbl_phys = MtTranslateVirtualToPhysical(cmd_tbl);
+    uintptr_t cmd_tbl_phys = MiTranslateVirtualToPhysical(cmd_tbl);
     assert(((uintptr_t)cmd_tbl_phys & 0xFF) == 0, "Command table block must be 256-byte aligned");
 #ifdef AHCI_DEBUG_PRINT
     gop_printf(COLOR_BLUE, "In INIT_ONE_PORT, cmd_tbl_phys: %p | virt: %p\n", cmd_tbl_phys, cmd_tbl);
@@ -285,16 +289,19 @@ extern GOP_PARAMS gop_local;
 
 bool ahci_initialized = false;
 
+/***************************************** >>>>>>>>>>>>>>>>>>>> change all em functions to the one in new krnl and remove me */
+
 MTSTATUS ahci_init(void) {
     if (ahci_initialized) { gop_printf(COLOR_RED, "AHCI Initialization got called again when already init.\n"); return MT_SUCCESS; }
     tracelast_func("ahci_init");
     // Use BootInfo PCI BARs.
     for (size_t i = 0; i < boot_info_local.AhciCount; i++) {
         uint64_t base = boot_info_local.AhciBarBases[i];
-        void* virt = (void*)(base + PHYS_MEM_OFFSET);
-        map_page(virt, base, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT); // MMIO flags
+        void* virt = (void*)(base + PhysicalMemoryOffset);
+        PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
+        MI_WRITE_PTE(pte, (uintptr_t)virt, base, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT); // MMIO Flags
 #ifdef AHCI_DEBUG_PRINT
-        gop_printf(COLOR_ORANGE, "Address of AHCI BAR %u (%p) is: %s\n", i, virt, MtIsAddressValid(virt) ? "Valid" : "Invalid");
+        gop_printf(COLOR_ORANGE, "Address of AHCI BAR %u (%p) is: %s\n", i, virt, MmIsAddressPresent((uintptr_t)virt) ? "Valid" : "Invalid");
 #endif
         // Now change the values in the struct
         boot_info_local.AhciBarBases[i] = (uint64_t)virt;
@@ -303,7 +310,7 @@ MTSTATUS ahci_init(void) {
     uint64_t bar = boot_info_local.AhciBarBases[0];
     hba_mem = (HBA_MEM*)(uintptr_t)bar;
 #ifdef AHCI_DEBUG_PRINT
-    gop_printf(0xFF00FFFF, "About to touch AHCI %u at %p | It's %s\n",0, hba_mem, MtIsAddressValid((void*)bar) ? "Valid" : "Invalid");
+    gop_printf(0xFF00FFFF, "About to touch AHCI %u at %p | It's %s\n",0, hba_mem, MmIsAddressPresent((uintptr_t)bar) ? "Valid" : "Invalid");
     //_cli(); __hlt();
 #endif
     ensure_ahci_busmaster_enabled();
@@ -371,7 +378,7 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
     /* PRDT (one entry) */
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    uintptr_t buf_phys = MtTranslateVirtualToPhysical(buf);
+    uintptr_t buf_phys = MiTranslateVirtualToPhysical(buf);
 #ifdef AHCI_DEBUG_PRINT
 
     gop_printf(COLOR_BLUE, "In ahci_read_sector: buf_phys: %p | virt: %p\n", (void*)buf_phys, buf);
@@ -392,7 +399,7 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     /* Buffer sanity */
 #ifdef AHCI_DEBUG_PRINT
     assert(buf != NULL, "read buffer is NULL");
-    assert(MtIsAddressValid(buf), "read buffer virtual address invalid");
+    assert(MmIsAddressPresent((uintptr_t)buf), "read buffer virtual address invalid");
     assert((buf_phys & 0x1) == 0, "Buffer not word-aligned.");
     assert(buf_phys != 0, "read buffer physical translation returned 0");
     assert((buf_phys & 0x1FF) == 0, "read buffer physical address must be 512-byte aligned");
@@ -431,15 +438,15 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
 #ifdef AHCI_DEBUG_PRINT
     // Validate the Command FIS:
-    gop_printf_forced(0xFFFFFF00, "Command FIS Validation:\n");
-    gop_printf_forced(0xFFFFFF00, "  FIS Type: %p (should be 0x27)\n", fis->fis_type);
-    gop_printf_forced(0xFFFFFF00, "  C bit: %u (should be 1)\n", fis->c);
-    gop_printf_forced(0xFFFFFF00, "  Command: %p (READ DMA EXT)\n", fis->command);
-    gop_printf_forced(0xFFFFFF00, "  Device: %p (should be 0x40)\n", fis->device);
+    gop_printf(0xFFFFFF00, "Command FIS Validation:\n");
+    gop_printf(0xFFFFFF00, "  FIS Type: %p (should be 0x27)\n", fis->fis_type);
+    gop_printf(0xFFFFFF00, "  C bit: %u (should be 1)\n", fis->c);
+    gop_printf(0xFFFFFF00, "  Command: %p (READ DMA EXT)\n", fis->command);
+    gop_printf(0xFFFFFF00, "  Device: %p (should be 0x40)\n", fis->device);
     // Verify the complete FIS is exactly 20 bytes and properly terminated
 
     uint8_t cfl = hba_cmd_hdr_get_cfl(hdr);
-    gop_printf_forced(0xFFFFFF00, "  FIS size check: CFL=%u DWORDs = %u bytes (should be 20)\n",
+    gop_printf(0xFFFFFF00, "  FIS size check: CFL=%u DWORDs = %u bytes (should be 20)\n",
         cfl, cfl * 4);
 #endif
 
@@ -457,9 +464,9 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
 #ifdef AHCI_DEBUG_PRINT
 
-        gop_printf_forced(0xFFFF0000, "AHCI read timeout\n");
+        gop_printf(0xFFFF0000, "AHCI read timeout\n");
 
-        gop_printf_forced(0xFFFFFF00,
+        gop_printf(0xFFFFFF00,
 
             "tfd=%p serr=%p is=%p\n",
 
@@ -469,7 +476,7 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
             (void*)(uintptr_t)p->is);
 
-        gop_printf_forced(0xFFFFFF00,
+        gop_printf(0xFFFFFF00,
 
             "hdr.ctba=%p hdr.prdtl=%u hdr.prdbc=%u\n",
 
@@ -479,7 +486,7 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
 
             hdr->prdbc);
 
-        gop_printf_forced(0xFFFFFF00,
+        gop_printf(0xFFFFFF00,
 
             "ctx=%p ctx->cmd_tbl=%p ctx->clb=%p port=%p\n",
 
@@ -501,9 +508,9 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     if (p->tfd & ((1 << 7) | (1 << 0))) {
 #ifdef AHCI_DEBUG_PRINT
 
-        gop_printf_forced(0xFFFF0000, "AHCI read error!\n");
+        gop_printf(0xFFFF0000, "AHCI read error!\n");
 
-        gop_printf_forced(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
+        gop_printf(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
 
 #endif
         return MT_AHCI_READ_FAILURE;
@@ -531,11 +538,8 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
     // Now read prdbc
 #ifdef AHCI_DEBUG_PRINT
     uint32_t actual_bytes = hdr->prdbc;
-    gop_printf_forced(0xFFFFFF00, "Expected: %u, Actual prdbc: %u\n", bytes, actual_bytes);
+    gop_printf(0xFFFFFF00, "Expected: %u, Actual prdbc: %u\n", bytes, actual_bytes);
     assert(hdr->prdbc == (uint32_t)bytes, "hdr.prdbc != bytes transferred");
-
-    /* Make sure CPU cache invalidation can see device writes (simple check: buf_phys non-zero and mapped) */
-    assert(MtIsAddressValid(buf), "buffer invalid after transfer (mapping vanished)");
 #endif
     // If we have gotten here, ahci read is successfull.
     cache_flush_invalidate_range(buf, 512);
@@ -586,7 +590,7 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
     /* PRDT */
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
     // this removes constness from buf, but it's fine since the translation DOES NOT write to the buffer, only makes translations.
-    uintptr_t buf_phys = MtTranslateVirtualToPhysical((void*)buf);
+    uintptr_t buf_phys = MiTranslateVirtualToPhysical((void*)buf);
 #ifdef AHCI_DEBUG_PRINT
     gop_printf(COLOR_BLUE, "In AHCI_WRITE_SECTOR, buf_phys: %p | buf: %p\n", buf_phys, buf);
 #endif
@@ -626,8 +630,8 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
     // IMPORTANT: Check for errors from the device
     if (p->tfd & ((1 << 7) | (1 << 0))) {
 #ifdef AHCI_DEBUG_PRINT
-        gop_printf_forced(0xFFFF0000, "AHCI write error!\n");
-        gop_printf_forced(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
+        gop_printf(0xFFFF0000, "AHCI write error!\n");
+        gop_printf(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
 #endif
         return MT_AHCI_WRITE_FAILURE;
     }

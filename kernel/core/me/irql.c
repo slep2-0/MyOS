@@ -49,28 +49,6 @@ static inline void toggle_scheduler(void) {
 
 // PUBLIC API
 
-IRQL 
-MeGetCurrentIRQL (void) 
-
-/*++
-
-    Routine description : This function returns the current IRQL (atomically).
-
-    Arguments:
-
-        None.
-
-    Return Values:
-
-        Current IRQL of the processor.
-
---*/
-
-{
-    tracelast_func("MeGetCurrentIRQL");
-    return atomic_load_explicit(&MeGetCurrentProcessor()->currentIrql, memory_order_acquire);
-}
-
 void 
 MeRaiseIrql (
     IN IRQL NewIrql,

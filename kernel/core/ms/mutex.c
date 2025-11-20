@@ -6,6 +6,9 @@
 
 #include "../../includes/me.h"
 #include "../../trace.h"
+#include "../../includes/ps.h"
+#include "../../includes/mg.h"
+#include "../../assert.h"
 
 MTSTATUS 
 MsInitializeMutexObject (
@@ -32,7 +35,7 @@ MsInitializeMutexObject (
     // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
-    bool isValid = MtIsAddressValid((void*)mut);
+    bool isValid = MmIsAddressPresent((uintptr_t)mut);
     assert((isValid) == 1, "MUTEX Pointer given to function isn't paged in.");
     if (!isValid) {
         return MT_INVALID_ADDRESS;
@@ -99,13 +102,13 @@ MsAcquireMutexObject (
         IRQL mflags;
         MsAcquireSpinlock(&mut->lock, &mflags);
 
-        bool isValid = MmIsAddressValid((void*)mut);
+        bool isValid = MmIsAddressPresent((uintptr_t)mut);
         if (!isValid) {
             MsReleaseSpinlock(&mut->lock, mflags);
             return MT_INVALID_ADDRESS;
         }
 
-        Thread* currThread = MeGetCurrentThread(); // FIXME
+        PETHREAD currThread = PsGetCurrentThread();
 
         if (!mut->locked) {
             mut->locked = true; // note to self: no need to make this an atomic, as we acquire a spinlock, always re-read code better

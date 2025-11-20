@@ -26,6 +26,7 @@ Revision History:
 #include "annotations.h"
 #include "../mtstatus.h"
 
+FORCEINLINE
 void
 RtlZeroMemory(
     IN  void* Destination,
