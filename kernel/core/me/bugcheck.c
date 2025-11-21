@@ -194,6 +194,12 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case KERNEL_STACK_OVERFLOWN:
         *s = "KERNEL_STACK_OVERFLOWN";
         break;
+    case BAD_POOL_CALLER:
+        *s = "BAD_POOL_CALLER";
+        break;
+    case KMODE_EXCEPTION_NOT_HANDLED:
+        *s = "KMODE_EXCEPTION_NOT_HANDLED";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

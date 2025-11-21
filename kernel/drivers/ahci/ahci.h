@@ -203,22 +203,22 @@ static inline uint32_t hba_cmd_hdr_get_prdtl(HBA_CMD_HEADER* h) {
 MTSTATUS ahci_init(void);
 
 /// <summary>
-/// Read a single 512-byte sector from the given LBA on a specific BLOCK_DEVICE.
+/// Read a single bytes-byte sector from the given LBA on a specific BLOCK_DEVICE.
 /// </summary>
 /// <param name="dev">Takes the BLOCK_DEVICE device pointer (on register_block_device)</param>
 /// <param name="lba">LBA to read from.</param>
 /// <param name="buf">Return buffer to place the data read.</param>
 /// <returns>True or False based on succession | buf pointer changes.</returns>
-MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf);
+MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes);
 
 /// <summary>
-/// Write a single 512-byte sector to given LBA on a specific BLOCK_DEVICE.
+/// Write a single bytes-byte sector to given LBA on a specific BLOCK_DEVICE.
 /// </summary>
 /// <param name="dev">Takes the BLOCK_DEVICE device pointer (on register_block_device)</param>
 /// <param name="lba">LBA to read from.</param>
 /// <param name="buf">The buffer to write to the specified LBA.</param>
 /// <returns>True or False based on succession</returns>
-MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf);
+MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes);
 
 /// <summary>
 /// Retrieve a pointer to the AHCI driver's BLOCK_DEVICE instance.

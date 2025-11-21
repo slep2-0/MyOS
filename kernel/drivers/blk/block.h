@@ -12,10 +12,12 @@
 typedef struct _BLOCK_DEVICE {
     MTSTATUS(*read_sector)(struct _BLOCK_DEVICE* dev,
         uint32_t lba,
-        void* buf);
+        void* buf,
+        size_t bytes);
     MTSTATUS(*write_sector)(struct _BLOCK_DEVICE* dev,
         uint32_t lba,
-        const void* buf);
+        const void* buf,
+        size_t bytes);
     void* dev_data;
 } BLOCK_DEVICE;
 

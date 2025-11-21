@@ -226,9 +226,11 @@ MiAllocatePoolVa(
         // The base address is NULL, we use VADs to find it.
         void* baseAddr = NULL;
         MTSTATUS status = MmAllocateVirtualMemory(PsGetCurrentProcess(), &baseAddr, NumberOfBytes, VAD_FLAG_WRITE | VAD_FLAG_READ);
+
         if (MT_FAILURE(status)) {
             return 0;
         }
+
         return (uintptr_t)baseAddr;
     }
 

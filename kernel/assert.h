@@ -39,13 +39,11 @@ static void assert_fail(const char* expr, const char* reason, const char* file, 
 #define ASSERT2(expr, reason) \
     ((expr) ? (void)0 : assert_fail(#expr, reason, __FILE__, __func__, __LINE__))
 
-// assert(expression) OR assert(expression, "expression must be ...")
+// assert(expression) OR assert(expression, "expression must be true")
 #define assert(...) GET_MACRO(__VA_ARGS__, ASSERT2, ASSERT1)(__VA_ARGS__)
 
 #else
-// Make intellisense be quiet.
-
-// assert(expression) OR assert(expression, "expression must be ...")
+// assert(expression) OR assert(expression, "expression must be true")
 #define assert(...) do { } while(0)
 #endif
 

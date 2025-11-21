@@ -41,12 +41,18 @@ FS_DRIVER fat32_driver = {
 MTSTATUS vfs_init(void) {
 	// First initialize other FS Related stuff (FAT32, AHCI, etc..)
 	MTSTATUS status = ahci_init();
-	if (MT_FAILURE(status)) return status;
-
+	if (MT_FAILURE(status)) {
+		gop_printf(COLOR_RED, "AHCI | Status failure: %x", status);
+		FREEZE();
+		return status;
+	}
 	// Mount FAT32 on MAIN_FS_DEVICE
 	status = fat32_driver.init(MAIN_FS_DEVICE);
-	if (MT_FAILURE(status)) return status;
-
+	if (MT_FAILURE(status)) {
+		gop_printf(COLOR_RED, "FAT32 | Status failure: %x", status);
+		FREEZE();
+		return status;
+	}
 	mounted_fs[mount_count++] = (MOUNTED_FS){ .driver = &fat32_driver, .device_id = MAIN_FS_DEVICE, .mount_point = "/" };
 
 	return MT_SUCCESS;

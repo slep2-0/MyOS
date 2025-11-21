@@ -120,7 +120,7 @@ PsGetCurrentProcess(
 // Will return current running process, or NULL if not present. (shouldn't happen after init)
 
 {
-    if (PsGetCurrentThread()->ParentProcess) {
+    if (PsGetCurrentThread()) {
         return PsGetCurrentThread()->ParentProcess;
     }
     else return NULL;

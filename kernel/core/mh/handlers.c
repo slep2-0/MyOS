@@ -313,7 +313,12 @@ MiDivideByZero (
 
     --*/
     
-    // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION.
+    // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION. TODO
+    if (MeGetPreviousMode() == UserMode) {
+        // guard it for now.
+        MeBugCheckEx(ASSERTION_FAILURE, (void*)"MiDivideByZero", (void*)"A Fault in user mode occured, division error, implement.", NULL, NULL);
+    }
+
     MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
 
 }

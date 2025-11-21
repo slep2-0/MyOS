@@ -430,8 +430,19 @@ MmAllocatePoolWithTag(
     size_t Index;
 
     // Runtime assertions
-    assert((NumberOfBytes) != 0);
+    //assert((NumberOfBytes) != 0); Better to use the if statement, supplies retaddr.
     assert((Tag) != 0);
+
+    if (NumberOfBytes == 0) {
+        // Bad pool caller.
+        MeBugCheckEx(
+            BAD_POOL_CALLER,
+            RETADDR(0),
+            NULL,
+            NULL,
+            NULL
+        );
+    }
 
     IRQL currIrql = MeGetCurrentIrql();
 
@@ -440,7 +451,7 @@ MmAllocatePoolWithTag(
     if (currIrql <= DISPATCH_LEVEL) {
         if (PoolType == PagedPool && currIrql == DISPATCH_LEVEL) {
             MeBugCheckEx(
-                IRQL_NOT_LESS_OR_EQUAL,
+                BAD_POOL_CALLER,
                 (void*)&MmAllocatePoolWithTag,
                 (void*)MeGetCurrentIrql(),
                 (void*)8,
@@ -451,7 +462,7 @@ MmAllocatePoolWithTag(
     // IRQL Must NOT be greater than DISPATCH_LEVEL at any allocation.
     else {
         MeBugCheckEx(
-            IRQL_NOT_LESS_OR_EQUAL,
+            BAD_POOL_CALLER,
             (void*)&MmAllocatePoolWithTag,
             (void*)MeGetCurrentIrql(),
             (void*)8,
@@ -529,8 +540,11 @@ MmAllocatePoolWithTag(
     assert((Desc->FreeCount) != SIZE_T_MAX); // Check for underflow.
     // Release spinlock.
     MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
+    void* UserAddress = (void*)((uint8_t*)header + sizeof(POOL_HEADER));
+    // Set to zero (to avoid kernel issues)
+    kmemset(UserAddress, 0, NumberOfBytes);
     // Return the pointer (exclude metadata start).
-    return (void*)((uint8_t*)header + sizeof(POOL_HEADER));
+    return UserAddress;
 }
 
 void

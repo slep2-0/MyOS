@@ -332,233 +332,146 @@ MTSTATUS ahci_init(void) {
     return port_count > 0 ? MT_SUCCESS : MT_AHCI_PORT_FAILURE; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
 }
 
-MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf) {
+MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
     tracelast_func("ahci_read_sector");
-    AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
-    HBA_PORT* p = ctx->port;
-    // Clear pending interrupt bits.
-    p->is = (uint32_t)-1;
-    int slot = find_free_slot(p->sact | p->ci);
-    if (slot < 0) return MT_AHCI_PORT_FAILURE;
-    uint32_t spin = 0;
-    const uint32_t TIMEOUT = 100000000;
-    while (p->ci & (1u << slot)) {
-        if (++spin >= TIMEOUT) break;
+
+    // 1. Input Validation
+    if (bytes == 0 || (bytes % 512 != 0)) {
+        // ATA DMA transfers must typically be sector-aligned
+        return MT_INVALID_PARAM;
     }
 
+    AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
+    HBA_PORT* p = ctx->port;
 
-    /* Command table for this slot (256 bytes per slot) */
+    // 2. Clear Pending Interrupts
+    p->is = (uint32_t)-1;
+
+    int slot = find_free_slot(p->sact | p->ci);
+    if (slot < 0) return MT_AHCI_PORT_FAILURE;
+
+    uint32_t spin = 0;
+    const uint32_t TIMEOUT = 100000000;
+
+    // Wait for slot to be clear (sanity check)
+    while (p->ci & (1u << slot)) {
+        if (++spin >= TIMEOUT) return MT_AHCI_TIMEOUT;
+    }
+
+    // 3. Setup Command Table
     HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)((uint8_t*)ctx->cmd_tbl + slot * 256);
     kmemset(cmd, 0, 256);
 
-
-    /* Command header in CLB for this slot */
+    // 4. Setup Command Header
     HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)ctx->clb + slot * sizeof(HBA_CMD_HEADER));
-    hba_cmd_hdr_set_cfl(hdr, (sizeof(FIS_REG_H2D) + 3) / 4); /* CFIS length in DWORDs (20 bytes -> 5) */
-    hba_cmd_hdr_set_w(hdr, 0);       /* read */
-    hdr->prdbc = 0;   /* clear transferred byte count (DW1) */
-    hba_cmd_hdr_set_prdtl(hdr, 1);   /* one PRDT entry */
+    hba_cmd_hdr_set_cfl(hdr, (sizeof(FIS_REG_H2D) + 3) / 4);
+    hba_cmd_hdr_set_w(hdr, 0);      // Read
+    hba_cmd_hdr_set_prdtl(hdr, 1);  // One PRDT entry (Assuming bytes <= 4MB)
+    hdr->prdbc = 0;                 // Reset transferred count
 
+    // 5. Calculate Sector Count
+    // We assume bytes is a multiple of 512 based on the check above.
+    uint32_t sector_count = bytes / 512;
 
-    /* Build CFIS */
+    // 6. Build FIS with Dynamic Sector Count
     FIS_REG_H2D* fis = (FIS_REG_H2D*)(&cmd->cfis);
     kmemset(fis, 0, sizeof(*fis));
     fis->fis_type = FIS_TYPE_REG_H2D;
-    fis->c = 1;
-    fis->command = 0x25; /* READ DMA EXT */
-    fis->device = 1 << 6;
+    fis->c = 1; // Command
+    fis->command = 0x25; // READ DMA EXT
+
     fis->lba0 = (uint8_t)(lba & 0xFF);
     fis->lba1 = (uint8_t)((lba >> 8) & 0xFF);
     fis->lba2 = (uint8_t)((lba >> 16) & 0xFF);
-    fis->lba3 = (uint8_t)((lba >> 24) & 0xFF);
-    fis->lba4 = 0;
-    fis->lba5 = 0;
-    fis->countl = 1;
-    fis->counth = 0;
+    fis->device = 1 << 6; // LBA mode
 
-    /* PRDT (one entry) */
+    fis->lba3 = (uint8_t)((lba >> 24) & 0xFF);
+    fis->lba4 = 0; // Extended LBA not supported in this simplified LBA32 param
+    fis->lba5 = 0;
+
+    // Split sector count for LBA48 command structure
+    fis->countl = (uint8_t)(sector_count & 0xFF);
+    fis->counth = (uint8_t)((sector_count >> 8) & 0xFF);
+
+    // 7. Setup PRDT
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
     uintptr_t buf_phys = MiTranslateVirtualToPhysical(buf);
-#ifdef AHCI_DEBUG_PRINT
 
-    gop_printf(COLOR_BLUE, "In ahci_read_sector: buf_phys: %p | virt: %p\n", (void*)buf_phys, buf);
+    // Validate PRDT limits (AHCI PRDT dbc is max 4MB)
+    if (bytes > 4 * 1024 * 1024) return MT_INVALID_PARAM;
 
-#endif
-    uint32_t bytes = 512;
     prdt->dba = (uint32_t)(uintptr_t)buf_phys;
     prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
-    prdt->dbc = bytes - 1;
-    prdt->i |= 1;
+    prdt->dbc = bytes - 1; // Zero-based count (e.g., 512 bytes -> 511)
+    prdt->i = 1; // Interrupt on Completion
 
-    /* Ensure controller sees CLB/CMD/FIS and data buffer in memory in correct order. */
-
-    /* Flush/invalidate command structures first, then the data buffer, then strong fences. */
-    cache_flush_invalidate_range(ctx->clb, 1024);            // CLB is 1 KiB
+    // 8. Memory Fences & Cache Flushing
+    // Ensure the Table and Buffer are in RAM before the HBA fetches them
+    cache_flush_invalidate_range(ctx->clb, 1024);
     cache_flush_invalidate_range(cmd, 256);
-    cache_flush_invalidate_range(ctx->fis, 256);             // FIS receive buffer
-    /* Buffer sanity */
-#ifdef AHCI_DEBUG_PRINT
-    assert(buf != NULL, "read buffer is NULL");
-    assert(MmIsAddressPresent((uintptr_t)buf), "read buffer virtual address invalid");
-    assert((buf_phys & 0x1) == 0, "Buffer not word-aligned.");
-    assert(buf_phys != 0, "read buffer physical translation returned 0");
-    assert((buf_phys & 0x1FF) == 0, "read buffer physical address must be 512-byte aligned");
-    /* hdr / cmd table bounds sanity */
-    assert(((uintptr_t)hdr >= (uintptr_t)ctx->clb) && ((uintptr_t)hdr < ((uintptr_t)ctx->clb + 1024)),
-        "HBA_CMD_HEADER pointer not inside CLB region");
-    uintptr_t cmd_tbl_region_start = (uintptr_t)ctx->cmd_tbl;
-    uintptr_t cmd_tbl_region_end = cmd_tbl_region_start + (256 * 32);
-    assert(((uintptr_t)cmd >= cmd_tbl_region_start) && ((uintptr_t)cmd < cmd_tbl_region_end),
-        "Command table pointer out of allocated command-table region");
-    /* PRDT correctness: DBA/DBAU match the buffer physical address and dbc encodes bytes-1 and IOC set */
-    uintptr_t prdt_dba_full = (((uintptr_t)prdt->dbau) << 32) | (uintptr_t)prdt->dba;
-    assert(prdt_dba_full == buf_phys, "PRDT DBA != buffer physical address");
-    uint32_t prdt_bytes = prdt->dbc & 0x003FFFFFu;  // low 22 bits = byte_count - 1
-    uint32_t prdt_ioc = (prdt->i & 0x1);
-    assert(prdt_ioc == 1, "PRDT IOC (interrupt-on-completion) not set");
-    assert(prdt_bytes == (uint32_t)(bytes - 1), "PRDT dbc byte count not equal to bytes-1");
-    /* CFIS/header sanity */
-#endif
-#ifdef HBA_CMD_HDR_CFL_MASK
-    assert(hba_cmd_hdr_get_cfl(hdr) >= 2 && hba_cmd_hdr_get_cfl(hdr) <= 16, "CFIS length out of range");
-
-#else
-
-    assert(((hdr->dw0 & 0x1F) >= 2) && ((hdr->dw0 & 0x1F) <= 16), "CFIS length out of range");
-
-#endif
-    /* Flush/invalidate the data buffer as well (prepare CPU cache for DMA result) */
-    cache_flush_invalidate_range(buf, 512);
-    /* Strong ordering so device definitely sees the command and PRDT */
+    cache_flush_invalidate_range(buf, bytes); // Flush the receiving buffer to be safe (invalidate)
     __asm__ volatile("sfence; mfence" ::: "memory");
 
-    /* Clear pending interrupts for the port (read/write to acknowledge) - explicit read/write */
-    uint32_t port_is_before = p->is;
-    p->is = port_is_before;
-
-#ifdef AHCI_DEBUG_PRINT
-    // Validate the Command FIS:
-    gop_printf(0xFFFFFF00, "Command FIS Validation:\n");
-    gop_printf(0xFFFFFF00, "  FIS Type: %p (should be 0x27)\n", fis->fis_type);
-    gop_printf(0xFFFFFF00, "  C bit: %u (should be 1)\n", fis->c);
-    gop_printf(0xFFFFFF00, "  Command: %p (READ DMA EXT)\n", fis->command);
-    gop_printf(0xFFFFFF00, "  Device: %p (should be 0x40)\n", fis->device);
-    // Verify the complete FIS is exactly 20 bytes and properly terminated
-
-    uint8_t cfl = hba_cmd_hdr_get_cfl(hdr);
-    gop_printf(0xFFFFFF00, "  FIS size check: CFL=%u DWORDs = %u bytes (should be 20)\n",
-        cfl, cfl * 4);
-#endif
-
-
-    /* Issue command */
+    // 9. Start Command
     p->ci = (1u << slot);
 
-    /* Wait for completion with timeout */
-
+    // 10. Wait for Completion
     spin = 0;
     while (p->ci & (1u << slot)) {
         if (++spin >= TIMEOUT) break;
     }
-    if (spin >= TIMEOUT) {
 
+    // 11. Error Checking
+    if ((spin >= TIMEOUT) || (p->tfd & ((1 << 7) | (1 << 0)))) {
 #ifdef AHCI_DEBUG_PRINT
-
-        gop_printf(0xFFFF0000, "AHCI read timeout\n");
-
-        gop_printf(0xFFFFFF00,
-
-            "tfd=%p serr=%p is=%p\n",
-
-            (void*)(uintptr_t)p->tfd,
-
-            (void*)(uintptr_t)p->serr,
-
-            (void*)(uintptr_t)p->is);
-
-        gop_printf(0xFFFFFF00,
-
-            "hdr.ctba=%p hdr.prdtl=%u hdr.prdbc=%u\n",
-
-            (void*)(uintptr_t)hdr->ctba,
-
-            hba_cmd_hdr_get_prdtl(hdr),
-
-            hdr->prdbc);
-
-        gop_printf(0xFFFFFF00,
-
-            "ctx=%p ctx->cmd_tbl=%p ctx->clb=%p port=%p\n",
-
-            (void*)ctx,
-
-            (void*)ctx->cmd_tbl,
-
-            (void*)ctx->clb,
-
-            (void*)p);
-
-#endif
-        return MT_AHCI_TIMEOUT;
-
-    }
-
-    // IMPORTANT: Even if it didn't time out, check for errors from the device
-    // p->tfd bit 7 is BSY, bit 0 is ERR
-    if (p->tfd & ((1 << 7) | (1 << 0))) {
-#ifdef AHCI_DEBUG_PRINT
-
-        gop_printf(0xFFFF0000, "AHCI read error!\n");
-
-        gop_printf(0xFFFFFF00, "Port TFD: %p, SERR: %p\n", (void*)(uintptr_t)p->tfd, (void*)(uintptr_t)p->serr);
-
+        gop_printf(COLOR_RED, "AHCI Err: TFD: %x, SERR: %x\n", p->tfd, p->serr);
 #endif
         return MT_AHCI_READ_FAILURE;
     }
 
-#ifdef AHCI_DEBUG_PRINT
-    /* Command issue cleared */
-    assert(((p->ci & (1u << slot)) == 0), "PxCI slot bit still set after completion");
-
-    /* Task file and error checks */
-    assert(((p->tfd & (1u << 0)) == 0), "PxTFD ERR bit set after transfer (device reported error)");
-    /* optional: ensure not BSY */
-    assert(((p->tfd & (1u << 7)) == 0), "PxTFD BSY still set after transfer");
-
-    assert((p->serr) == 0, "Serr isn't equal 0");
-    uint8_t status = (p->tfd >> 8) & 0xFF;  // ATA status register
-    assert((status & 0x01) == 0, "ERR Bit in status set");
-#endif
-    /* Byte count reported by header (DW1) matches requested bytes (512) */
-    /* Read prdbc after we ensure device completed and after an mfence to be safe */
+    // 12. Check Result
+    // Invalidate header cache so CPU reads the updated prdbc from RAM
     __asm__ volatile("mfence" ::: "memory");
     cache_flush_invalidate_range(hdr, sizeof(HBA_CMD_HEADER));
     __asm__ volatile("mfence" ::: "memory");
 
-    // Now read prdbc
+    if (hdr->prdbc != bytes) {
 #ifdef AHCI_DEBUG_PRINT
-    uint32_t actual_bytes = hdr->prdbc;
-    gop_printf(0xFFFFFF00, "Expected: %u, Actual prdbc: %u\n", bytes, actual_bytes);
-    assert(hdr->prdbc == (uint32_t)bytes, "hdr.prdbc != bytes transferred");
+        gop_printf(COLOR_RED, "AHCI Partial Read: Req %u, Got %u\n", bytes, hdr->prdbc);
 #endif
-    // If we have gotten here, ahci read is successfull.
-    cache_flush_invalidate_range(buf, 512);
-    __asm__ volatile("mfence" ::: "memory");
+        // Even if mismatched, return success if data was moved? 
+        // Usually strictly strictly enforce equality.
+        return MT_AHCI_READ_FAILURE;
+    }
 
-    /* Acknowledge/clear interrupts (read and write back) */
-    uint32_t port_is_after = p->is;
-    p->is = port_is_after;
+    // Invalidate data buffer cache so CPU reads new data from RAM
+    cache_flush_invalidate_range(buf, bytes);
+
+    // Ack interrupt
+    p->is = p->is;
 
     return MT_SUCCESS;
 }
 
-MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
+MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
     tracelast_func("ahci_write_sector");
+
+    // 1. Input Validation
+    if (bytes == 0 || (bytes % 512 != 0)) return MT_INVALID_PARAM;
+    // 4MB Limit per PRDT entry check
+    if (bytes > 4 * 1024 * 1024) return MT_INVALID_PARAM;
+
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
     HBA_PORT* p = ctx->port;
 
+    // 2. Clear Pending Interrupts
+    p->is = (uint32_t)-1;
+
     int slot = find_free_slot(p->sact | p->ci);
     if (slot < 0) return MT_AHCI_GENERAL_FAILURE;
+
+    // Calculate sector count dynamically
+    uint32_t sector_count = bytes / 512;
 
     /* Command table for this slot */
     HBA_CMD_TBL* cmd = (HBA_CMD_TBL*)((uint8_t*)ctx->cmd_tbl + slot * 256);
@@ -577,38 +490,43 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
     fis->fis_type = FIS_TYPE_REG_H2D;
     fis->c = 1;
     fis->command = 0x35; /* WRITE DMA EXT */
-    fis->device = 1 << 6;
+    fis->device = 1 << 6; // LBA mode
+
     fis->lba0 = (uint8_t)(lba & 0xFF);
     fis->lba1 = (uint8_t)((lba >> 8) & 0xFF);
     fis->lba2 = (uint8_t)((lba >> 16) & 0xFF);
     fis->lba3 = (uint8_t)((lba >> 24) & 0xFF);
     fis->lba4 = 0;
     fis->lba5 = 0;
-    fis->countl = 1;
-    fis->counth = 0;
+
+    // >>> FIXED: Dynamic Sector Count <<<
+    fis->countl = (uint8_t)(sector_count & 0xFF);
+    fis->counth = (uint8_t)((sector_count >> 8) & 0xFF);
 
     /* PRDT */
     HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    // this removes constness from buf, but it's fine since the translation DOES NOT write to the buffer, only makes translations.
+    // translation DOES NOT write to the buffer, only makes translations.
     uintptr_t buf_phys = MiTranslateVirtualToPhysical((void*)buf);
+
 #ifdef AHCI_DEBUG_PRINT
-    gop_printf(COLOR_BLUE, "In AHCI_WRITE_SECTOR, buf_phys: %p | buf: %p\n", buf_phys, buf);
+    gop_printf(COLOR_BLUE, "AHCI WRITE: phys: %p | virt: %p | bytes: %u\n", buf_phys, buf, bytes);
 #endif
-    uint32_t bytes = 512;
+
     prdt->dba = (uint32_t)(uintptr_t)buf_phys;
     prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
-    prdt->dbc = bytes - 1;
-    prdt->i |= 1;
+    prdt->dbc = bytes - 1; // Set byte count (length - 1)
+    prdt->i = 1;           // Interrupt on completion
 
-    cache_flush_invalidate_range((void*)buf, 512);
-    cache_flush_invalidate_range((void*)buf, 512);
-    cache_flush_invalidate_range(ctx->clb, 1024);            // CLB is 1 KiB
+    // >>> CRITICAL: Cache Flushing for Writes <<<
+    // For writes, we must ensure the data in the CPU cache is written back to RAM
+    // before the DMA controller reads it.
+    cache_flush_invalidate_range((void*)buf, bytes); // Flush entire buffer, not just 512
+
+    // Flush metadata
+    cache_flush_invalidate_range(ctx->clb, 1024);
     cache_flush_invalidate_range(cmd, 256);
-    cache_flush_invalidate_range(ctx->fis, 256);             // FIS receive buffer
-    __asm__ volatile("mfence" ::: "memory");
 
-    /* Clear pending interrupts */
-    p->is = p->is;
+    __asm__ volatile("sfence; mfence" ::: "memory");
 
     /* Issue */
     p->ci = (1u << slot);
@@ -622,7 +540,7 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 
     if (spin >= TIMEOUT) {
 #ifdef AHCI_DEBUG_PRINT
-        gop_printf(COLOR_RED, "AHCI TIMEOUT ahci_read_sector\n");
+        gop_printf(COLOR_RED, "AHCI TIMEOUT ahci_write_sector\n");
 #endif
         return MT_AHCI_TIMEOUT;
     }
@@ -635,6 +553,11 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf) {
 #endif
         return MT_AHCI_WRITE_FAILURE;
     }
+
+    // Optional: Verify prdbc matches bytes written
+    // __asm__ volatile("mfence" ::: "memory");
+    // cache_flush_invalidate_range(hdr, sizeof(HBA_CMD_HEADER));
+    // if (hdr->prdbc != bytes) { /* Warning */ }
 
     // clear int
     p->is = p->is;

@@ -238,6 +238,8 @@ MiTranslateVirtualToPhysical(
 
         The physical address mapped to the virtual address, or 0 if invalid.
 
+        The physical address is returned with its equivalent offset (so not page aligned). (e.g VA = 0xff8880 Phys = 0x4080)
+
 --*/
 
 {
@@ -246,7 +248,7 @@ MiTranslateVirtualToPhysical(
 
     if (!pte->Hard.Present) return 0;
 
-    return (uintptr_t)PTE_TO_PHYSICAL(pte);
+    return (uintptr_t)PTE_TO_PHYSICAL(pte) + VA_OFFSET(VirtualAddress);
 }
 
 bool

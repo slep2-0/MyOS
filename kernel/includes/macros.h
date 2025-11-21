@@ -31,4 +31,15 @@ extern uint8_t kernel_end;
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#if defined __GNUC__
+#define RETADDR(level) __builtin_return_address(level)
+#else
+#define RETADDR(level) (void)(level)
+#endif
+
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
+#define FREEZE() __cli(); __hlt()
+
 #endif

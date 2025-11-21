@@ -663,11 +663,17 @@ MmFreeContigiousMemory(
     MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
 
     for (size_t i = 0; i < pageCount; i++) {
+        // Retrieve the PTE for the current VA.
         PMMPTE pte = MiGetPtePointer(CurrentAddress);
+        if (!pte) break;
+        // Retrieve the PFN for the current PTE.
         PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
+        // Unmap the PTE.
         MiUnmapPte(pte);
+        // Release the PFN back.
         MiReleasePhysicalPage(pfn);
 
+        // Advance VA by VirtualPageSize
         CurrentAddress += VirtualPageSize;
     }
 

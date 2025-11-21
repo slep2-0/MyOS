@@ -456,11 +456,13 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     MTSTATUS status = MdSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
     gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
+
     status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
         MeBugCheck(FILESYSTEM_PANIC);
     }
+
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);

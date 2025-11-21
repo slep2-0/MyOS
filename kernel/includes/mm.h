@@ -62,6 +62,7 @@ do {                                                                        \
     if (MmPfnDatabaseInitialized) {                                         \
         PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
+        _pfn->State = PfnStateActive;                                       \
     }                                                                       \
                                                                             \
     invlpg((void*)(uintptr_t)(_Va));                                        \
@@ -69,6 +70,7 @@ do {                                                                        \
 #define PPFN_TO_INDEX(PPFN) ((size_t)((PPFN) - PfnDatabase.PfnEntries))
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
     ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
+#define VA_OFFSET(_VirtualAddress) ((uintptr_t)(_VirtualAddress) & 0xFFF)
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
@@ -76,6 +78,7 @@ do {                                                                        \
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
 #define INDEX_TO_PPFN(Index) (NULL)
 #define PHYSICAL_TO_PPFN(PHYS) (NULL)
+#define VA_OFFSET(_VirtualAddress) (uintptr_t)(NULL)
 #endif
 
 // Convert bytes to pages (rounding up)

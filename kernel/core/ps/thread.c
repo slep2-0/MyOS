@@ -279,6 +279,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 FORCEINLINE_NOHEADER
 PETHREAD 
 PsGetCurrentThread (void) {
+    if (!MeGetCurrentProcessor() || !MeGetCurrentProcessor()->currentThread) return NULL;
     PITHREAD currThread = MeGetCurrentProcessor()->currentThread;
     return CONTAINING_RECORD(currThread, ETHREAD, InternalThread);
 }

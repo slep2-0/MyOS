@@ -45,13 +45,31 @@ typedef struct {
 // Read sector into the buffer.
 static MTSTATUS read_sector(uint32_t lba, void* buf) {
 	tracelast_func("read_sector - fat32");
-	return disk->read_sector(disk, lba, buf);
+
+	size_t NumberOfBytes = fs.bytes_per_sector;
+	if (!NumberOfBytes) NumberOfBytes = 512;
+
+	if (NumberOfBytes % 512 != 0) {
+		// NumberOfBytes must be in multiples of 512.
+		return MT_INVALID_PARAM;
+	}
+
+	return disk->read_sector(disk, lba, buf, NumberOfBytes);
 }
 
 // Write to sector from buffer
 static MTSTATUS write_sector(uint32_t lba, const void* buf) {
 	tracelast_func("write_sector - fat32");
-	return disk->write_sector(disk, lba, buf);
+
+	size_t NumberOfBytes = fs.bytes_per_sector;
+	if (!NumberOfBytes) NumberOfBytes = 512;
+
+	if (NumberOfBytes % 512 != 0) {
+		// NumberOfBytes must be in multiples of 512.
+		return MT_INVALID_PARAM;
+	}
+
+	return disk->write_sector(disk, lba, buf, NumberOfBytes);
 }
 
 // Compute checksum of 8.3 name (from specification)
@@ -750,7 +768,6 @@ MTSTATUS fat32_init(int disk_index) {
 	fs.reserved_sector_count = bpb.reserved_sector_count;
 	fs.sectors_per_fat = bpb.fat_size_32;
 	fs.root_cluster = bpb.root_cluster;
-
 	fs.fat_start = BPB_SECTOR_START + bpb.reserved_sector_count; // technically also reserved_sector_count of fs. holds it as well.
 	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat; 
 	MmFreePool(buf);
