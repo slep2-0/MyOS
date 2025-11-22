@@ -253,6 +253,7 @@ typedef enum _POOL_TYPE {
 } POOL_TYPE;
 
 typedef enum _FAULT_OPERATION {
+    FaultOpInvalid = -1,
     ReadOperation = 0,
     WriteOperation = 2,
     ExecuteOperation = 10,
@@ -480,11 +481,12 @@ MiRetrieveOperationFromErrorCode(
 )
 
 {
-    FAULT_OPERATION operation = -1;
+    FAULT_OPERATION operation = FaultOpInvalid;
+
     if (ErrorCode & (1 << 4)) {
         operation = ExecuteOperation; // Execute (NX Fault) (nx bit set, and CPU executed an instruction there)
     }
-    else if (ErrorCode & 1) {
+    else if (ErrorCode & (1 << 1)) {
         operation = WriteOperation; // Write fault (read only page \ not present)
     }
     else {

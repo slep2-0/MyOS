@@ -215,7 +215,11 @@ MiInitializePfnDatabase(
             uint64_t physAddr = regionStart + p * PhysicalFrameSize;
 
             uint64_t currentPfnIndex = (physAddr / PhysicalFrameSize);
-            lastPfnIdx = currentPfnIndex;
+
+            if (currentPfnIndex > lastPfnIdx) {
+                lastPfnIdx = currentPfnIndex;
+            }
+
             if (currentPfnIndex >= PfnDatabase.TotalPageCount) {
                 // out of range physical address, we skip.
                 continue;
@@ -330,7 +334,7 @@ MiRequestPhysicalPage(
 
     Return Values:
 
-        PFN Index of the page, otherwise 0 on failure.
+        PFN Index of the page, otherwise PFN_ERROR on failure.
 
     Notes:
 
@@ -385,16 +389,18 @@ MiRequestPhysicalPage(
     return (uint64_t)-1;
 
 found:
+    // Claim while locked.
+    assert((pfn->RefCount) == 0);
+    pfn->State = PfnStateTransition;
+    // Set final metadata: now "owned" by the caller.
+    pfn->RefCount = 1;
+
     // Release Global Lock
     MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
     // Decrement total available pages
     InterlockedDecrementU64(&PfnDatabase.AvailablePages);
 
-    assert((pfn->RefCount) == 0);
     uint64_t pfnIndex = PPFN_TO_INDEX(pfn);
-
-    // Set state to Transition (locked)
-    pfn->State = PfnStateTransition;
 
     // If caller wants a zeroed page, but we didn't get one, zero it now.
     if (ListType == PfnStateZeroed && oldState != PfnStateZeroed) {
@@ -404,8 +410,6 @@ found:
         MiUnmapHyperSpaceMap(hyperIrql);
     }
 
-    // Set final metadata: now "owned" by the caller.
-    pfn->RefCount = 1;
     return pfnIndex;
 }
 
@@ -441,7 +445,8 @@ MiReleasePhysicalPage(
         if (pfn->State == PfnStateActive) {
             // Clear mapping info.
             pfn->Descriptor.Mapping.Vad = NULL;
-            if (pfn->Descriptor.Mapping.PteAddress->Hard.Dirty == true) {
+            if (pfn->Descriptor.Mapping.PteAddress != NULL &&
+                pfn->Descriptor.Mapping.PteAddress->Hard.Dirty) {
                 // Dirty bit is set, we throw it back to the modified page list.
                 IRQL oldIrql;
                 pfn->State = PfnStateModified;
