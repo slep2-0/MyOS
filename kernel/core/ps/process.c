@@ -22,6 +22,10 @@
 static SPINLOCK g_pid_lock = { 0 };
 extern EPROCESS SystemProcess;
 
+uintptr_t MmSystemRangeStart = KernelVaStart;
+uintptr_t MmHighestUserAddress = USER_VA_END;
+uintptr_t MmUserProbeAddress = 0x00007FFFFFFF0000;
+
 ///
 // Call with freedPid == 0 ? allocate a new PID (returns 0 on failure)
 // Call with freedPid  > 0 ? release that PID back into the pool (always returns 0)

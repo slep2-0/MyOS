@@ -274,6 +274,7 @@ MeBugCheck(
     }
 #endif
     __cli();
+    __hlt();
     while (1) {
         NOTHING;
         __pause();
@@ -386,9 +387,8 @@ MeBugCheckEx (
         }
     }
 #endif
-    //test
     __cli();
-    // spin the thisCPU()->
+    __hlt();
     while (1) {
         NOTHING;
         __pause();

@@ -19,6 +19,7 @@ Revision History:
 #include "../../includes/mm.h"
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
+#include "../../includes/mg.h"
 
 MTSTATUS
 MmAccessFault(
@@ -63,7 +64,20 @@ MmAccessFault(
 {
     // Declarations
     // previrql
-    UNREFERENCED_PARAMETER(FaultBits);
+    PMMPTE ReferencedPte = MiGetPtePointer(VirtualAddress);
+    FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
+    IRQL PreviousIrql = MeGetCurrentIrql();
+#ifdef DEBUG
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame: %p | Operation: %d | Irql: %d", FaultBits, VirtualAddress, PreviousMode, TrapFrame, OperationDone, PreviousIrql);
+#endif
+    if (!ReferencedPte) {
+        // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
+        if (PreviousMode == UserMode) {
+            return MT_ACCESS_VIOLATION;
+        }
+
+        goto PageFaultBugCheck;
+    }
 
     // If the VA given isn't canonical (sign extended after bit 47, required by CPU MMU Laws), we return or bugcheck depending on the previous mode.
     if (!MI_IS_CANONICAL_ADDR(VirtualAddress)) {
@@ -78,86 +92,126 @@ MmAccessFault(
 
     }
 
-    if (VirtualAddress >= KernelVaStart) {
-        // If the address referenced is above the kernel VA, we return or bugcheck depending on previous mode.
+    // Now we check for each address in the system, and handle the request based on that.
+    if (VirtualAddress >= MmSystemRangeStart) {
         if (PreviousMode == UserMode) {
-            // User mode fault on system address.
+            // User mode access in kernel memory, invalid.
             return MT_ACCESS_VIOLATION;
         }
 
-        // Kernel mode page fault on a system address
-        if (!MmInvalidAccessAllowed()) {
-            goto PageFaultBugCheck;
+        MMPTE TempPte = *ReferencedPte;
+
+        // PTE Is present, but we got a fault.
+        if (TempPte.Hard.Present) {
+            // Write fault to read-only memory.
+            if ((OperationDone == WriteOperation) && (TempPte.Hard.Write == 0)) {
+                MeBugCheckEx(
+                    ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+                    (void*)VirtualAddress,
+                    (void*)ReferencedPte,
+                    NULL,
+                    NULL
+                );
+            }
+
+            // If we get here, it was an access/dirty update — set dirty bit if write
+            if (OperationDone == WriteOperation) {
+                // set dirty in PTE and, if needed, PFN->Dirty
+                // Prefer an atomic update: build NewPte = TempPte; NewPte.Hard.Dirty = 1; WriteValidPteAtomic(...)
+                MMPTE NewPte = TempPte;
+                NewPte.Hard.Dirty = 1;
+                MiAtomicExchangePte(ReferencedPte, NewPte.Value);
+            }
+            return MT_SUCCESS;
         }
+        
+        // Before any demand allocation, check IRQL.
+        if (PreviousIrql > DISPATCH_LEVEL) {
+            // IRQL Isn't less or equal to DISPATCH_LEVEL, so we cannot lazily allocate, since it would **block**.
+            MeBugCheckEx(
+                IRQL_NOT_LESS_OR_EQUAL,
+                (void*)VirtualAddress,
+                (void*)PreviousIrql,
+                (void*)OperationDone,
+                (void*)TrapFrame->rip
+            );
+        }
+        
 
-        // Kernel Mode Fault Allowed - Check if we have a VAD for the VA, if we do, bring a page in.
-        PMMVAD vad = MiFindVad(PsGetCurrentProcess()->VadRoot, VirtualAddress);
-        if (vad) {
-            // Looks like we have a valid VAD for the virtual address.
-            // This means this is a PagedPool (most likely) from the pool allocator.
-            // Map the page, not the whole VAD.
-            // Acquire a PFN from physical memory.
-            PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
-            if (pfn == PFN_ERROR) goto PageFaultBugCheck; // TODO OOM
+        // PTE Isn't present, check for demand allocations.
+        if (MM_IS_DEMAND_ZERO_PTE(TempPte)) {
+            // Allocate a physical page for kernel demand-zero
+            PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+            if (pfn == PFN_ERROR) {
+                // out of memory.
+                goto PageFaultBugCheck;
+            }
 
-            // Acquire the PTE for the faulty VA.
-            PMMPTE pte = MiGetPtePointer(VirtualAddress);
+            // Check protection mask.
+            uint64_t ProtectionFlags = PAGE_PRESENT;
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
 
             // Write the PTE.
-            MI_WRITE_PTE(pte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), PAGE_PRESENT | PAGE_RW);
-
-            // Return success.
+            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), ProtectionFlags);
+            
             return MT_SUCCESS;
         }
 
-        else {
-            goto PageFaultBugCheck;
-        }
-    }
+        // PTE Isn't present, and its a transition
+        if (TempPte.Soft.Transition == 1) {
+            // Retrieve the PFN Number written in the transition page.
+            PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
+            if (!MiIsValidPfn(pfn)) goto PageFaultBugCheck;
 
-    // This is checked after KernelVaStart to sanitize valid kernel requests.
-    if (VirtualAddress >= USER_VA_END) {
-        // User above user VA limit.
-        if (PreviousMode == UserMode) {
-            return MT_ACCESS_VIOLATION;
+            // Check protection mask.
+            uint64_t ProtectionFlags = PAGE_PRESENT;
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
+
+            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PFN_TO_PHYS(pfn), ProtectionFlags);
+
+            return MT_SUCCESS;
         }
 
-        if (MmInvalidAccessAllowed()) {
-            return MT_ACCESS_VIOLATION;
-        }
+        // TODO GRAB FROM PAGEFILE
 
+        // Unknown PTE format -> bugcheck (kernel space)
         goto PageFaultBugCheck;
     }
 
-    // The address is in the user mode virtual address range.
-    if (PreviousMode == UserMode) {
+    // Address is below the kernel start, and above user address.
+    if (VirtualAddress > MmHighestUserAddress && VirtualAddress < MmSystemRangeStart) {
+        if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
+        goto PageFaultBugCheck;
+    }
+
+    // Address is in user range.
+    if (VirtualAddress <= MmHighestUserAddress) {
+        if (PreviousMode == KernelMode) {
+            // Kernel mode dereference on a user address
+            goto PageFaultBugCheck;
+        }
+
+        // User mode fault on a user address, we check if there is a vad for it, if so, allocate the page.
         PMMVAD vad = MiFindVad(PsGetCurrentProcess()->VadRoot, VirtualAddress);
-        if (vad) {
-            // Map the page, not the whole VAD.
-            // Acquire a PFN from physical memory.
-            PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
-            if (pfn == PFN_ERROR) goto PageFaultBugCheck; // TODO OOM
+        if (!vad) return MT_ACCESS_VIOLATION;
 
-            // Acquire the PTE for the faulty VA.
-            PMMPTE pte = MiGetPtePointer(VirtualAddress);
+        // Looks like we have a valid vad, lets allocate.
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
+        if (pfn == PFN_ERROR) goto PageFaultBugCheck; // TODO OOM
 
-            // Write the PTE.
-            MI_WRITE_PTE(pte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), PAGE_PRESENT | PAGE_RW);
+        // Acquire the PTE for the faulty VA.
+        PMMPTE pte = MiGetPtePointer(VirtualAddress);
 
-            // Return success.
-            return MT_SUCCESS;
-        }
-        else {
-            return MT_ACCESS_VIOLATION;
-        }
+        // Write the PTE.
+        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+
+        // Return success.
+        return MT_SUCCESS;
     }
 
-    // The kernel has faulted in a user mode address, check if invalid access is allowed, if not, bugcheck.
-    if (MmInvalidAccessAllowed()) {
-        return MT_ACCESS_VIOLATION;
-    }
-
-    goto PageFaultBugCheck;
+    // Address, is, what... impossible!
+    // This comment means execution is impossible to reach here, as we sanitized all addresses in the 48bit paging hierarchy.
+    // If it does reach here, look below.
 
 PageFaultBugCheck:
     MeBugCheckEx(
@@ -177,7 +231,7 @@ MmInvalidAccessAllowed(
 /*++
 
     Routine description:
-
+        (UNUSED, ALWAYS FALSE)
         This function determines if invalid access (e.g, a null pointer dereference), is allowed within the current context.
 
     Arguments:
@@ -188,19 +242,13 @@ MmInvalidAccessAllowed(
 
         True if invalid access is allowed, false otherwise.
 
+    Notes:
+
+        This routine is unused, but will be kept for future modifications if any.
+
 --*/
 
 
 {
-    if (MeGetCurrentIrql() >= DISPATCH_LEVEL) {
-        return false;
-    }
-
-    if (MeGetPreviousMode() == UserMode) {
-        return true;
-    }
-
-    // FIXME Check for an exception handler.
-
-    return false; // This should change when we introduce the handler check.
+    return false;
 }

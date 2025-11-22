@@ -28,6 +28,7 @@ Revision History:
 
 MM_PFN_DATABASE PfnDatabase;
 bool MmPfnDatabaseInitialized = false;
+PAGE_INDEX MmHighestPfn = 0;
 
 static
 uint64_t 
@@ -202,6 +203,7 @@ MiInitializePfnDatabase(
     MiReservePhysRange(pfn_region_phys, neededPages * VirtualPageSize); // implement helper below
 
     // We can interact with the entries, begin filling the PFN DB.
+    PAGE_INDEX lastPfnIdx = 0;
     desc = BootInfo->MemoryMap; // reset desc to original pointer
     for (size_t i = 0; i < entryCount; i++) {
         uint64_t regionStart = desc->PhysicalStart;
@@ -213,6 +215,7 @@ MiInitializePfnDatabase(
             uint64_t physAddr = regionStart + p * PhysicalFrameSize;
 
             uint64_t currentPfnIndex = (physAddr / PhysicalFrameSize);
+            lastPfnIdx = currentPfnIndex;
             if (currentPfnIndex >= PfnDatabase.TotalPageCount) {
                 // out of range physical address, we skip.
                 continue;
@@ -275,6 +278,7 @@ MiInitializePfnDatabase(
 
     // Set the global state as initialized.
     MmPfnDatabaseInitialized = true;
+    MmHighestPfn = lastPfnIdx;
     return MT_SUCCESS;
 }
 

@@ -72,10 +72,10 @@ static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
 FORCEINLINE_NOHEADER
-PMMPTE 
-MiGetPtePointer (
+PMMPTE
+MiGetPtePointer(
     IN  uintptr_t va
-) 
+)
 
 /*++
 
@@ -87,27 +87,53 @@ MiGetPtePointer (
 
     Return Values:
 
-        Pointer to PTE associated with the Virtual Address. (NULL if failure)
+        Pointer to PTE associated with the Virtual Address. (NULL if out of memory)
 
 --*/
 
 {
+    // 1. Calculate Indices
     size_t pml4_i = get_pml4_index(va);
     size_t pdpt_i = get_pdpt_index(va);
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) return NULL;
+    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
+        // Allocate a new PDPT
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // We are modifying the recursive mapping of the PML4 entry.
+        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+    }
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) return NULL;
+    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
+        // Allocate a new Page Directory
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // Link new PD into PDPT
+        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+    }
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd_va[pd_i] & PAGE_PRESENT)) return NULL;
+    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
+        // Allocate a new Page Table
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
 
+        // Link new PT into PD
+        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+    }
+
+    // Return addr of PTE.
     uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
-    return (PMMPTE) & pt_va[pt_i];  // pointer to PTE
+    return (PMMPTE)&pt_va[pt_i];
 }
 
 FORCEINLINE_NOHEADER
@@ -238,7 +264,7 @@ MiTranslateVirtualToPhysical(
 
         The physical address mapped to the virtual address, or 0 if invalid.
 
-        The physical address is returned with its equivalent offset (so not page aligned). (e.g VA = 0xff8880 Phys = 0x4080)
+        The physical address is returned with its equivalent offset (so not page aligned, maybe, modulus the VA given to check.). (e.g VA = 0xff8880 Phys = 0x4880)
 
 --*/
 

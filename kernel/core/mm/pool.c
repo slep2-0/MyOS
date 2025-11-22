@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/mm.h"
 #include "../../includes/me.h"
+#include "../../includes/mg.h"
 #include "../../assert.h"
 
 // Can hold any size.
@@ -376,22 +377,48 @@ MiAllocatePagedPool(
 --*/
 
 {
-    assert((MeGetCurrentIrql()) < DISPATCH_LEVEL, "IRQL Is dispatch or above at blocking function.");
     size_t ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
     uintptr_t PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
-
-    // Since we supplied the PagedPool parameter to MiAllocatePoolVa, it would internally use the MmAllocateVirtualMemory, now we are destined to page fault when we access PagedVa.
-    // But IRQL restrictions guranteed us that we wont bugcheck now (as we are below Dispatch)
+    assert((PagedVa) != 0);
     PPOOL_HEADER header = (PPOOL_HEADER)PagedVa;
     
-    // Set metadata.
+    // Make the first page of the PagedPool allocation always resident in memory, as the header must be resident. FIXME TODO PAGEDPOOL SLAB ALLOCATIONS LIKE NONPAGED.
+    PMMPTE pte = MiGetPtePointer(PagedVa);
+    if (!pte) goto failure;
+    PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+    if (pfn == PFN_ERROR) goto failure;
+
+    // Write the PTE.
+    MI_WRITE_PTE(pte, PagedVa, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+    assert(MmIsAddressPresent(PagedVa));
+
+    // Set metadata. (header must ALWAYS be resident in memory).
     header->PoolCanary = 'BEKA';
     header->PoolTag = Tag;
     header->Metadata.BlockSize = ActualSize;
     header->Metadata.PoolIndex = POOL_TYPE_PAGED;
 
+    // Set each page to be a demand lazy allocation.
+    size_t NumberOfPages = BYTES_TO_PAGES(ActualSize);
+    size_t currVa = PagedVa + VirtualPageSize;
+    for (size_t i = 0; i < NumberOfPages; i++) {
+        PMMPTE tmpPte = MiGetPtePointer(currVa);
+        if (!tmpPte) continue;
+        MMPTE TempPte = *tmpPte;
+        // Set the PTE as demand zero.
+        MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE, false);
+        // Atomically exchange new value.
+        MiAtomicExchangePte(tmpPte, TempPte.Value);
+
+        currVa += VirtualPageSize;
+    }
+
     // Return VA.
     return (void*)((uint8_t*)PagedVa + sizeof(POOL_HEADER));
+
+failure:
+    MiFreePoolVaContiguous(PagedVa, NumberOfBytes, PagedPool);
+    return NULL;
 }
 
 void*

@@ -46,7 +46,7 @@ static void install_trampoline(void) {
 	__asm__ volatile("invlpg (%0)" :: "r"(virt) : "memory");
 }
 
-#define CPU_STACK_SIZE (32*1024) // 64 KiB stack, 16 Byte Alignment.
+#define CPU_STACK_SIZE (24*1024) // 24 KiB stack.
 
 extern PROCESSOR cpu0;
 

@@ -741,7 +741,7 @@ MmAllocateVirtualMemory(
 
     Return Values:
 
-        Various MTSTATUS Status code.
+        Various MTSTATUS Status codes.
 
 --*/
 
@@ -750,14 +750,14 @@ MmAllocateVirtualMemory(
     uintptr_t StartVa = (uintptr_t)*BaseAddress;
     size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
-    MTSTATUS status = MT_GENERAL_FAILURE;
+    MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
     bool checkForOverlap = true;
 
     if (!StartVa) {
         // We need to determine if the allocation is for a system process or a user process.
         bool KernelProcess = (Process->PID == 4) ? true : false;
         if (KernelProcess) {
-            StartVa = MiFindGap(Process->VadRoot, NumberOfBytes, MI_VAD_SEARCH_START, MI_VAD_SEARCH_END);
+            return MT_INVALID_PARAM;
         }
         else {
             // User mode

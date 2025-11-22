@@ -432,6 +432,13 @@ void kernel_main(BOOT_INFO* boot_info) {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
 
+    uint8_t* z = MmAllocatePoolWithTag(PagedPool, 8192, 'nigg');
+    for (int i = 0; i < 8192; i++) {
+        z[i] = 0xA;
+    }
+
+    FREEZE();
+
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MmAllocatePoolWithTag(NonPagedPool, 128, 'buf2');
@@ -484,15 +491,15 @@ void kernel_main(BOOT_INFO* boot_info) {
     lapic_timer_calibrate();
     init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
-    status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
+    //status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
-        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
+      //  gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
     }
     else {
-        MhInitializeSMP(apic_list, 4, lapicAddress);
+      //  MhInitializeSMP(apic_list, 4, lapicAddress);
     }
-    IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
-    MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
+    //IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
+    //MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
     __sti();
     Schedule();
     for (;;) __hlt();

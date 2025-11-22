@@ -19,7 +19,7 @@ Revision History:
 
 --*/
 
-// Base Includes    z
+// Base Includes
 #include <stdint.h>
 #include <stdbool.h>
 #include "annotations.h"
@@ -41,9 +41,6 @@ Revision History:
 #define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping
 #define RECURSIVE_INDEX 0x1FF
 
-// Global Declarations for signals.
-extern bool MmPfnDatabaseInitialized;
-
 #ifndef __INTELLISENSE__
 /* Convert a PFN index to a PPFN_ENTRY pointer */
 #define INDEX_TO_PPFN(Index) \
@@ -53,9 +50,9 @@ extern bool MmPfnDatabaseInitialized;
 #define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
-    volatile MMPTE* _pte = (volatile MMPTE*)(_PtePointer);                  \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                  \
     uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
-    _pte->Value = _val;                                                     \
+    MiAtomicExchangePte(_pte, _val);                                        \
     __asm__ volatile("" ::: "memory");                                      \
                                                                             \
     /* Only set PFN->PTE link if PFN database is initialized */             \
@@ -71,6 +68,24 @@ do {                                                                        \
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
     ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
 #define VA_OFFSET(_VirtualAddress) ((uintptr_t)(_VirtualAddress) & 0xFFF)
+#define MM_IS_DEMAND_ZERO_PTE(pte) \
+    ( ((pte).Soft.Present == 0) && \
+      ((pte).Soft.Transition == 0) && \
+      ((pte).Soft.Prototype == 0) && \
+      ((pte).Soft.PageFile == 0) && \
+      ((pte).Soft.PageFrameNumber == 0) )
+
+#define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx)  \
+    do { \
+        (pte).Value = 0; /* clear everything first */ \
+        (pte).Soft.Present = 0; \
+        (pte).Soft.Transition = 0; \
+        (pte).Soft.Prototype = 0; \
+        (pte).Soft.PageFile = 0; \
+        (pte).Soft.PageFrameNumber = 0; \
+        (pte).Soft.SoftwareFlags = (prot_flags); /* protection mask */ \
+        (pte).Soft.NoExecute = (nx); \
+    } while(0)
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
@@ -79,6 +94,8 @@ do {                                                                        \
 #define INDEX_TO_PPFN(Index) (NULL)
 #define PHYSICAL_TO_PPFN(PHYS) (NULL)
 #define VA_OFFSET(_VirtualAddress) (uintptr_t)(NULL)
+#define MM_IS_DEMAND_ZERO_PTE(pte) (NULL)
+#define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx) ((void)0)
 #endif
 
 // Convert bytes to pages (rounding up)
@@ -101,15 +118,19 @@ do {                                                                        \
 #define POOL_MAX_ALLOC 2048
 // Pool sizes
 #define MI_NONPAGED_POOL_SIZE ((size_t)8ULL * 1024 * 1024 * 1024)  // 8 GiB
+#define MI_PAGED_POOL_SIZE ((size_t)32ULL * 1024 * 1024 * 1024)
 
 // Total pages in each pool
 #define NONPAGED_POOL_VA_TOTAL_PAGES (MI_NONPAGED_POOL_SIZE / VirtualPageSize)
+#define PAGED_POOL_VA_TOTAL_PAGES (MI_PAGED_POOL_SIZE / VirtualPageSize)
 
 // Bitmap QWORDs
 #define NONPAGED_POOL_VA_BITMAP_QWORDS ((NONPAGED_POOL_VA_TOTAL_PAGES + 63) / 64)
+#define PAGED_POOL_VA_BITMAP_QWORDS ((PAGED_POOL_VA_TOTAL_PAGES + 63) / 64)
 
 // Number of pages needed for each bitmap (page-aligned)
 #define MI_NONPAGED_BITMAP_PAGES_NEEDED ((NONPAGED_POOL_VA_BITMAP_QWORDS * sizeof(uint64_t) + VirtualPageSize - 1) / VirtualPageSize)
+#define MI_PAGED_BITMAP_PAGES_NEEDED ((PAGED_POOL_VA_BITMAP_QWORDS * sizeof(uint64_t) + VirtualPageSize - 1) / VirtualPageSize)
 
 // Alignment helper
 #define ALIGN_UP(x, align) (((uintptr_t)(x) + ((align)-1)) & ~((uintptr_t)((align)-1)))
@@ -118,12 +139,15 @@ do {                                                                        \
 #define MI_NONPAGED_BITMAP_BASE  ALIGN_UP(LK_KERNEL_END, VirtualPageSize)
 #define MI_NONPAGED_BITMAP_END   (MI_NONPAGED_BITMAP_BASE + MI_NONPAGED_BITMAP_PAGES_NEEDED * VirtualPageSize)
 
+#define MI_PAGED_BITMAP_BASE ALIGN_UP(MI_NONPAGED_BITMAP_END, VirtualPageSize)
+#define MI_PAGED_BITMAP_END (MI_PAGED_BITMAP_BASE + MI_PAGED_BITMAP_PAGES_NEEDED * VirtualPageSize)
+
 // Pool virtual address ranges (page-aligned)
 #define MI_NONPAGED_POOL_BASE    ALIGN_UP(MI_NONPAGED_BITMAP_END, VirtualPageSize)
 #define MI_NONPAGED_POOL_END     (MI_NONPAGED_POOL_BASE + MI_NONPAGED_POOL_SIZE)
 
-#define MI_VAD_SEARCH_START MI_NONPAGED_POOL_END
-#define MI_VAD_SEARCH_END   (uintptr_t)-1
+#define MI_PAGED_POOL_BASE ALIGN_UP(MI_NONPAGED_POOL_END, VirtualPageSize)
+#define MI_PAGED_POOL_END (MI_PAGED_POOL_BASE + MI_PAGED_POOL_SIZE)
 
 // Address Manipulation And Checks
 #define MI_IS_CANONICAL_ADDR(va) \
@@ -133,8 +157,13 @@ do {                                                                        \
     ((_va & _mask) == 0 || (_va & _mask) == _mask); \
 })
 
+#define PFN_TO_PHYS(Pfn) PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(Pfn))
 
 #define PFN_ERROR UINT64_T_MAX
+
+// Lazy allocations macros
+#define PROT_KERNEL_READ  0x1
+#define PROT_KERNEL_WRITE 0x2
 
 // ------------------ TYPE DEFINES ------------------
 typedef uint64_t PAGE_INDEX;
@@ -332,7 +361,7 @@ typedef struct _MM_PFN_DATABASE {
 typedef struct _MMVAD {
     uintptr_t StartVa; // Starting Virtual Page Number.
     uintptr_t EndVa;   // Ending Virtual Page Number.
-    uint32_t Flags;     // VAD_FLAGS Bitfield
+    VAD_FLAGS Flags;     // VAD_FLAGS Bitfield
     
     // VAD Are per process, stored in an AVL.
     struct _MMVAD* LeftChild;
@@ -379,6 +408,13 @@ typedef struct _POOL_DESCRIPTOR {
 // ------------------ FUNCTIONS ------------------
 
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
+// Global Declarations for signals & constants.
+extern bool MmPfnDatabaseInitialized;
+extern PAGE_INDEX MmHighestPfn;
+
+extern uintptr_t MmSystemRangeStart;
+extern uintptr_t MmHighestUserAddress;
+extern uintptr_t MmUserProbeAddress;
 
 // general functions
 
@@ -466,6 +502,27 @@ MiRetrieveLastFaultyAddress(
 
 {
     return __read_cr2();
+}
+
+FORCEINLINE
+void
+MiAtomicExchangePte(
+    PMMPTE PtePtr,
+    uint64_t NewPteValue
+)
+
+{
+    InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
+}
+
+FORCEINLINE
+bool
+MiIsValidPfn(
+    IN PAGE_INDEX Pfn
+)
+
+{
+    return Pfn <= MmHighestPfn;
 }
 
 // module: pfn.c

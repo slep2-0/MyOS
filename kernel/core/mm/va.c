@@ -25,6 +25,12 @@ static uint64_t* g_NonpagedPoolVaBitmap;
 // Hint for next search
 static volatile uint64_t g_NonpagedPoolHintIndex = 0;
 
+// PAGED ----
+static uint64_t* g_PagedPoolVaBitmap;
+
+// Hint for next search
+static volatile uint64_t g_PagedPoolHintIndex = 0;
+
 bool
 MiInitializePoolVaSpace(
     void
@@ -34,7 +40,7 @@ MiInitializePoolVaSpace(
 
     Routine description:
 
-        Initializes the nonpaged pool virtual address bitmap.
+        Initializes the nonpaged & paged pool virtual address bitmap.
 
     Arguments:
 
@@ -49,6 +55,8 @@ MiInitializePoolVaSpace(
 {
     // Initialize the nonpaged bitmap first.
     uintptr_t currNpgBitmapVa = MI_NONPAGED_BITMAP_BASE;
+    uintptr_t currPgBitmapVa = MI_PAGED_BITMAP_BASE;
+
     for (size_t i = 0; i < MI_NONPAGED_BITMAP_PAGES_NEEDED; i++) {
         // Request a physical page.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
@@ -73,16 +81,44 @@ MiInitializePoolVaSpace(
         currNpgBitmapVa += VirtualPageSize;
     }
 
+    for (size_t i = 0; i < MI_PAGED_BITMAP_PAGES_NEEDED; i++) {
+        // Request a physical page.
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return false; // Would bugcheck, no need for physical page release back. (loop unroll)
+
+        // Get the PTE ptr for the curr va.
+        PMMPTE pte = MiGetPtePointer(currPgBitmapVa);
+        if (!pte) return false;
+        // Get the physical address of the PFN.
+        uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
+        // Map it.
+        MI_WRITE_PTE(pte, currNpgBitmapVa, phys, PAGE_PRESENT | PAGE_RW);
+
+        // Set the PFNs states.
+        PPFN_ENTRY pfnEntry = INDEX_TO_PPFN(pfn);
+        pfnEntry->State = PfnStateActive;
+        pfnEntry->Flags = PFN_FLAG_NONPAGED;
+        pfnEntry->Descriptor.Mapping.PteAddress = pte;
+        pfnEntry->Descriptor.Mapping.Vad = NULL; // Not VAD-backed
+
+        // Advance VA by 4KiB.
+        currPgBitmapVa += VirtualPageSize;
+    }
+
     g_NonpagedPoolVaBitmap = (uint64_t*)MI_NONPAGED_BITMAP_BASE;
+    g_PagedPoolVaBitmap = (uint64_t*)MI_PAGED_BITMAP_BASE;
 
     // Both bitmaps are mapped, begin building them.
     // Initialize both bitmaps to FREE.
     size_t nonpaged_bitmap_bytes = (size_t)NONPAGED_POOL_VA_BITMAP_QWORDS * sizeof(uint64_t);
+    size_t paged_bitmap_bytes = (size_t)PAGED_POOL_VA_BITMAP_QWORDS * sizeof(uint64_t);
 
     kmemset(g_NonpagedPoolVaBitmap, 0, nonpaged_bitmap_bytes);
+    kmemset(g_PagedPoolVaBitmap, 0, paged_bitmap_bytes);
     
     // Initialize hints.
     g_NonpagedPoolHintIndex = 0;
+    g_PagedPoolHintIndex = 0;
 
     // Both bitmaps fully setupped
     return true;
@@ -220,18 +256,16 @@ MiAllocatePoolVa(
         poolBase = MI_NONPAGED_POOL_BASE;
         hintIndexPtr = &g_NonpagedPoolHintIndex;
     }
+    else if (PoolType == PagedPool) {
+        total_pages = PAGED_POOL_VA_TOTAL_PAGES;
+        hint = (size_t)InterlockedFetchU64(&g_PagedPoolHintIndex);
+        bitmap = g_PagedPoolVaBitmap;
+        poolBase = MI_PAGED_POOL_BASE;
+        hintIndexPtr = &g_PagedPoolHintIndex;
+    }
     else {
-        // If we want a NonPagedPool VA space, we use the VAD (and allocate the memory in the process)
-        // The caller (probably MmAllocatePoolWithTag(pagedPool)) will set the pool header and return the VA.
-        // The base address is NULL, we use VADs to find it.
-        void* baseAddr = NULL;
-        MTSTATUS status = MmAllocateVirtualMemory(PsGetCurrentProcess(), &baseAddr, NumberOfBytes, VAD_FLAG_WRITE | VAD_FLAG_READ);
-
-        if (MT_FAILURE(status)) {
-            return 0;
-        }
-
-        return (uintptr_t)baseAddr;
+        // Invalid parameter.
+        return 0;
     }
 
     total_qwords = total_pages / 64;
@@ -366,13 +400,7 @@ MiFreePoolVaContiguous(
         bitmap = g_NonpagedPoolVaBitmap;
     }
     else {
-        // Paged pool, we deallocate VADs. (NumberOfBytes is ignored)
-        MTSTATUS stat = MmFreeVirtualMemory(PsGetCurrentProcess(), (void*)va);
-
-        if (MT_FAILURE(stat)) {
-            MeBugCheck(MEMORY_INVALID_FREE);
-        }
-        
+        // BITMAP FIXME
         return;
     }
 
