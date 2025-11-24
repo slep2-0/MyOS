@@ -12,8 +12,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "../../includes/stdarg_myos.h"
-#include "../../trace.h"
+#include "../../intrinsics/intrin.h"
 #include "../../includes/mg.h"
+#include "../../includes/ms.h"
 
 void gop_printf(uint32_t color, const char* fmt, ...);
 

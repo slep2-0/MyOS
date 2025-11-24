@@ -5,14 +5,12 @@
  */
 
 #include "../../includes/mh.h"
-#include "../../trace.h"
 
 IDT_ENTRY64 IDT[IDT_ENTRIES];
 IDT_PTR  PIDT;
 
 /* Set one gate. */
 void set_idt_gate(int n, unsigned long int handler) {
-    tracelast_func("set_idt_gate");
     IDT[n].offset_low = handler & 0xFFFF;
     IDT[n].selector = 0x08;   // code segment selector
     IDT[n].ist = 0;         
@@ -24,7 +22,6 @@ void set_idt_gate(int n, unsigned long int handler) {
 
 /* Populate IDT: exceptions, IRQ, and then finally load it. */
 void install_idt() {
-    tracelast_func("install_idt");
     /* REMAP the PIC so IRQs start at vector 0x20 */
     __outbyte(0x20, 0x11); // initialize master PIC
     __outbyte(0xA0, 0x11); // initialize slave PIC

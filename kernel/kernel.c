@@ -209,7 +209,6 @@ static void InitCPU(void) {
     cpu0.schedulerEnabled = NULL; // since NULL is 0, it would be false.
     cpu0.currentThread = NULL;
     cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
-    cpu0.lastfuncBuffer = NULL;
     // Function Trace Buffer
 }
 
@@ -223,7 +222,6 @@ static inline bool interrupts_enabled(void) {
 }
 
 void kernel_idle_checks(void) {
-    tracelast_func("kernel_idle_checks - Thread");
     gop_printf(0xFF000FF0, "Reached the scheduler!\n");
     while (1) {
         // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
@@ -236,7 +234,6 @@ void kernel_idle_checks(void) {
 }
 
 static void test(MUTEX* mut) {
-    tracelast_func("test - Thread");
     PETHREAD currentThread = PsGetCurrentThread();
     gop_printf_forced(0xFF00FF00, "Hit Test! test thread ptr: %p\n", currentThread);
     gop_printf(COLOR_GREEN, "(test) Acquiring Mutex Object: %p\n", mut);
@@ -256,7 +253,6 @@ static void test(MUTEX* mut) {
 }
 
 static void funcWithParam(MUTEX* mut) {
-    tracelast_func("funcWithParam - Thread");
     gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", PsGetCurrentThread(), PsGetCurrentThread()->InternalThread.StackBase);
     char buf[256];
     ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
@@ -296,7 +292,7 @@ uint32_t cpu_count = 0;
 uint32_t lapicAddress;
 bool smpInitialized;
 
-/// The Stack Overflow check only checks for minor overflows, that don't completetly smash the stack, yet do change the canaries (since it only checks in function epilogue)
+/// The Stack Overflow check only checks for minor overflows, that don't completely smash the stack, yet do change the canaries (since it only checks in function epilogue)
 /// To check for complete stack smashing, use the MtAllocateGuardedVirtualMemory function.
 #ifdef DEBUG
 // Stack Canary GCC
@@ -318,7 +314,7 @@ static void InitSystemProcess(void) {
     kstrncpy(SystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(SystemProcess.ImageName)); // Name for the process
     SystemProcess.priority = 0; // TODO
     SystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
-    SystemProcess.CreationTime = MtGetEpoch();
+    SystemProcess.CreationTime = MeGetEpoch();
     SystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
 }
 
@@ -328,7 +324,6 @@ extern uint8_t bss_end;
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 __attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
-    //tracelast_func("kernel_main");
     // 1. CORE SYSTEM INITIALIZATION
     __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpu0);
     __swapgs();
@@ -346,35 +341,11 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize interrupts & exceptions.
     init_interrupts();
 
-    // Initialize the memory manager.
-    MTSTATUS st = MiInitializePfnDatabase(boot_info);
-    if (MT_FAILURE(st)) {
-        MeBugCheckEx(
-            PFN_DATABASE_INIT_FAILURE,
-            (void*)(uintptr_t)st,
-            NULL,
-            NULL,
-            NULL
-        );
-    }
-
-    if (!MiInitializePoolVaSpace()) {
-        MeBugCheck(VA_SPACE_INIT_FAILURE);
-    }
-
-    st = MiInitializePoolSystem();
-    if (MT_FAILURE(st)) {
-        MeBugCheckEx(
-            POOL_INIT_FAILURE,
-            (void*)(uintptr_t)st,
-            NULL,
-            NULL,
-            NULL
-        );
-    }
+    // Initialize the memory manager
+    MmInitSystem(1, boot_info);
 
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
-    st = MhInitializeACPI();
+    MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
         gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n");
         __hlt();
@@ -411,10 +382,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Initiate Scheduler and DPCs */
     InitScheduler();
     MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueHead = MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueTail = NULL;
-    /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
-    LASTFUNC_HISTORY* bfr = MmAllocatePoolWithTag(NonPagedPool, sizeof(LASTFUNC_HISTORY), 'TSAL');
-    cpu0.lastfuncBuffer = bfr;
-    cpu0.lastfuncBuffer->current_index = -1; // init to -1
     ///PRINT_OFFSETS_AND_HALT();
     uint64_t rip;
     __asm__ volatile (
@@ -431,13 +398,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
-
-    uint8_t* z = MmAllocatePoolWithTag(PagedPool, 8192, 'nigg');
-    for (int i = 0; i < 8192; i++) {
-        z[i] = 0xA;
-    }
-
-    FREEZE();
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
@@ -461,10 +421,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
 
-    MTSTATUS status = MdSetHardwareBreakpoint((DebugCallback)bp_exec, (void*)0x10, DEBUG_ACCESS_EXECUTE, DEBUG_LEN_8);
-    gop_printf(COLOR_RED, "[MTSTATUS] Status Returned: %p\n", status);
-
-    status = vfs_init();
+    MTSTATUS status = vfs_init();
     gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
         MeBugCheck(FILESYSTEM_PANIC);
@@ -481,15 +438,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
-    gop_printf(COLOR_RED, "[MTSTATUS] MtInitializeObject Returned: %p\n", status);
     PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
     //int integer = 1234;
     PsCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
-    lapic_timer_calibrate();
-    init_lapic_timer(100); // 10ms, must be called before other APs
+    //lapic_timer_calibrate();
+    //init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
     //status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {

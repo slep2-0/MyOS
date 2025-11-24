@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "../../trace.h"
 #include "../../mtstatus.h"
 
 typedef struct _BLOCK_DEVICE {

@@ -5,18 +5,19 @@
  */
 
 #include "../../includes/me.h"
-#include "../../trace.h"
+#include "../../includes/mg.h"
 
 //Statically made DPC Routines.
 
 void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
     UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg2); UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
+    gop_printf(COLOR_RED, "Freezing...\n");
+    FREEZE();
     MeGetCurrentProcessor()->schedulePending = true;
 }
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* isStatic) {
     UNREFERENCED_PARAMETER(dpc);
-    tracelast_func("CleanStacks");
     PETHREAD t = (PETHREAD)thread;
     // We must clean in order, first the stack THEN the thread.
     // TODO Change to MiFreeStack(THREAD_TYPE, PTR)
@@ -60,7 +61,6 @@ MeQueueDPC (
 --*/
 
 {
-    tracelast_func("MtQueueDPC");
     if (!dpc) return;
 
     // Try to claim queued flag, if already queued - do nothing.
@@ -165,7 +165,6 @@ MeRetireDPCs (void)
 --*/
 
 {
-    tracelast_func("RetireDPCs");
     PDPC_QUEUE queue = &MeGetCurrentProcessor()->DeferredRoutineQueue;
 
     // quick check: if both main queue and all pending buckets empty, we just return.

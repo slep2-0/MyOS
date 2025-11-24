@@ -53,8 +53,8 @@ typedef enum _PROCESS_STATE {
 // ------------------ STRUCTURES ------------------
 
 typedef struct _EPROCESS {
-    struct _IPROCESS InternalProcess; // Internal process structure.
-    char ImageName[24]; // Process image name - e.g 'mtoskrnl.mtexe'
+    struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
+    char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
     uint32_t PID; // Process Identifier, unique identifier to the process.
     struct _EPROCESS* ParentProcess; // Parent Process Pointer (should always be one)
     uint32_t priority; // TODO
@@ -79,7 +79,7 @@ typedef struct _EPROCESS {
 } EPROCESS, *PEPROCESS;
 
 typedef struct _ETHREAD {
-    struct _ITHREAD InternalThread; // Internal thread structure.
+    struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
     struct _ETHREAD* nextThread;     /* singly-linked list pointer for queues */
     // TODO TEB
     struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;

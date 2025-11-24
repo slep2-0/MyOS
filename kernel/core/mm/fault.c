@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../assert.h"
 
 MTSTATUS
 MmAccessFault(
@@ -68,7 +69,7 @@ MmAccessFault(
     FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
     IRQL PreviousIrql = MeGetCurrentIrql();
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame: %p | Operation: %d | Irql: %d", FaultBits, VirtualAddress, PreviousMode, TrapFrame, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame, OperationDone, PreviousIrql);
 #endif
     if (!ReferencedPte) {
         // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
@@ -76,7 +77,7 @@ MmAccessFault(
             return MT_ACCESS_VIOLATION;
         }
 
-        goto PageFaultBugCheck;
+        goto BugCheck;
     }
 
     // If the VA given isn't canonical (sign extended after bit 47, required by CPU MMU Laws), we return or bugcheck depending on the previous mode.
@@ -88,7 +89,7 @@ MmAccessFault(
         }
 
         // Kernel mode page fault on a non canonical address.
-        goto PageFaultBugCheck;
+        goto BugCheck;
 
     }
 
@@ -126,7 +127,7 @@ MmAccessFault(
         }
         
         // Before any demand allocation, check IRQL.
-        if (PreviousIrql > DISPATCH_LEVEL) {
+        if (PreviousIrql >= DISPATCH_LEVEL) {
             // IRQL Isn't less or equal to DISPATCH_LEVEL, so we cannot lazily allocate, since it would **block**.
             MeBugCheckEx(
                 IRQL_NOT_LESS_OR_EQUAL,
@@ -144,7 +145,7 @@ MmAccessFault(
             PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
             if (pfn == PFN_ERROR) {
                 // out of memory.
-                goto PageFaultBugCheck;
+                goto BugCheck;
             }
 
             // Check protection mask.
@@ -161,7 +162,7 @@ MmAccessFault(
         if (TempPte.Soft.Transition == 1) {
             // Retrieve the PFN Number written in the transition page.
             PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
-            if (!MiIsValidPfn(pfn)) goto PageFaultBugCheck;
+            if (!MiIsValidPfn(pfn)) goto BugCheck;
 
             // Check protection mask.
             uint64_t ProtectionFlags = PAGE_PRESENT;
@@ -175,20 +176,20 @@ MmAccessFault(
         // TODO GRAB FROM PAGEFILE
 
         // Unknown PTE format -> bugcheck (kernel space)
-        goto PageFaultBugCheck;
+        goto BugCheck;
     }
 
     // Address is below the kernel start, and above user address.
     if (VirtualAddress > MmHighestUserAddress && VirtualAddress < MmSystemRangeStart) {
         if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
-        goto PageFaultBugCheck;
+        goto BugCheck;
     }
 
     // Address is in user range.
     if (VirtualAddress <= MmHighestUserAddress) {
         if (PreviousMode == KernelMode) {
             // Kernel mode dereference on a user address
-            goto PageFaultBugCheck;
+            goto BugCheck;
         }
 
         // User mode fault on a user address, we check if there is a vad for it, if so, allocate the page.
@@ -197,7 +198,7 @@ MmAccessFault(
 
         // Looks like we have a valid vad, lets allocate.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
-        if (pfn == PFN_ERROR) goto PageFaultBugCheck; // TODO OOM
+        if (pfn == PFN_ERROR) goto BugCheck; // TODO OOM
 
         // Acquire the PTE for the faulty VA.
         PMMPTE pte = MiGetPtePointer(VirtualAddress);
@@ -213,7 +214,18 @@ MmAccessFault(
     // This comment means execution is impossible to reach here, as we sanitized all addresses in the 48bit paging hierarchy.
     // If it does reach here, look below.
 
-PageFaultBugCheck:
+BugCheck:
+    // Check if its a guard page violation
+    if (ReferencedPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
+        MeBugCheckEx(
+            GUARD_PAGE_DEREFERENCE,
+            (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip,
+            (void*)TrapFrame->error_code
+        );
+    }
+
     MeBugCheckEx(
         PAGE_FAULT,
         (void*)VirtualAddress,

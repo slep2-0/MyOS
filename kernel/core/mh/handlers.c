@@ -9,7 +9,6 @@
 #include "../../includes/mg.h"
 #include "../../includes/ps.h"
 #include "../../includes/md.h"
-#include "../../trace.h"
 
 #define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
     do {                                                             \
@@ -41,7 +40,6 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
             if (MeGetCurrentProcessor()->currentThread) {
                 if (__sync_sub_and_fetch(&MeGetCurrentProcessor()->currentThread->TimeSlice, 1) <= 0) {
                     MeGetCurrentProcessor()->currentThread->TimeSlice = MeGetCurrentProcessor()->currentThread->TimeSliceAllocated;
-                    tracelast_func("Queuing DPC in timer_handler, and saving regs.");
                     /* Setup of DPC */
                     PETHREAD thread_to_save = PsGetCurrentThread();
                     TRAP_FRAME* saved_regs = &thread_to_save->InternalThread.TrapRegisters;
@@ -82,24 +80,20 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
                     SchedDpc->Arg2 = NULL;
                     SchedDpc->Arg3 = NULL;
                     SchedDpc->priority = HIGH_PRIORITY;
-
+                    gop_printf(COLOR_RED, "Queuing DPC, and setting flag.\n Saved Regs (phys): %p", MiTranslateVirtualToPhysical((void*)trap));
                     MeQueueDPC(SchedDpc);
                     /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
                 }
                 else {
-                    tracelast_func("Did not queue DPC in timer handler. Reason: Thread's timeslice isn't over.");
                 }
             }
             else {
-                tracelast_func("Did not queue DPC in timer handler. Reason: Thread is NULL (no current thread)");
             }
         }
         else {
-            tracelast_func("Did not queue DPC in timer handler. Reason: Scheduler isn't enabled..");
         }
     }
     else {
-        tracelast_func("Did not queue DPC in timer handler. Reason: Schedule DPC is already pending..");
     }
 }
 

@@ -5,7 +5,6 @@
  */
 
 #include "../../includes/me.h"
-#include "../../trace.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../assert.h"
@@ -30,7 +29,6 @@ MsInitializeMutexObject (
 --*/
 
 {
-    tracelast_func("MtInitializeMutexObject");
 
     // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
@@ -93,7 +91,6 @@ MsAcquireMutexObject (
 --*/
 
 {
-    tracelast_func("MsAcquireMutexObject");
     if (!mut) return MT_INVALID_ADDRESS;
 
     assert((MeGetCurrentIrql() < DISPATCH_LEVEL), "Blocking code called at DISPATCH_LEVEL or higher IRQL.");
@@ -125,12 +122,12 @@ MsAcquireMutexObject (
 #ifdef DEBUG
         gop_printf(COLOR_RED, "[MUTEX-DEBUG] Mutex busy, enqueuing: MUT: %p\n", mut);
 #endif
-        /* Enqueue under the event lock inside MtWaitForEvent; release mut->lock first */
+        /* Enqueue under the event lock inside MsWaitForEvent; release mut->lock first */
         MsReleaseSpinlock(&mut->lock, mflags);
 
         MsWaitForEvent(&mut->SynchEvent);
 
-        /* When MtWaitForEvent returns we loop and try again atomically */
+        /* When MsWaitForEvent returns we loop and try again atomically */
     }
 }
 
@@ -154,7 +151,6 @@ MsReleaseMutexObject (
 --*/
 
 {
-    tracelast_func("MsReleaseMutexObject");
 
     // Start of function
     if (!mut) return MT_INVALID_ADDRESS;

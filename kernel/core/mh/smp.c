@@ -116,10 +116,6 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		cpus[i].DeferredRoutineQueue.dpcQueueHead = cpus[i].DeferredRoutineQueue.dpcQueueTail = NULL;
 		kmemset(&cpus[i].CurrentDeferredRoutine, 0, sizeof(cpus[i].CurrentDeferredRoutine));
 
-		// Function Trace Buffer
-		LASTFUNC_HISTORY* bfr = MmAllocatePoolWithTag(NonPagedPool, sizeof(LASTFUNC_HISTORY), 'TSAL');
-		cpus[i].lastfuncBuffer = bfr;
-		cpus[i].lastfuncBuffer->current_index = -1; // init to -1
 	}
 	smp_cpu_count = cpu_count;
 }

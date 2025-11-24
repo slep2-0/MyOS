@@ -183,6 +183,14 @@ build/pool.o: kernel/core/mm/pool.c
 build/fault.o: kernel/core/mm/fault.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/mminit.o: kernel/core/mm/mminit.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/mmio.o: kernel/core/mm/mmio.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Assemble ASM to ELF
 build/kernel_entry.o: kernel/kernel_entry.asm
@@ -221,7 +229,7 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 # Link kernel
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o \
                       build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o \
-                      build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o \
+                      build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o build/mminit.o build/mmio.o \
                       build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
                       build/sleep.o
 	mkdir -p build

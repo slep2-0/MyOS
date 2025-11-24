@@ -8,7 +8,6 @@
 #include "../../includes/core.h"
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
-#include "../../trace.h"
 #include "../../includes/me.h"
 
 extern GOP_PARAMS gop_local;
@@ -47,7 +46,6 @@ MhHandleInterrupt (
 {
     char buf[256];
     ksnprintf(buf, sizeof(buf), "INTERRUPT: %d", vec_num);
-    tracelast_func(buf);
     IRQL oldIrql;
     
     // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)

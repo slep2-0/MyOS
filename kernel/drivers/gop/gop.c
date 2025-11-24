@@ -619,7 +619,6 @@ static void release_tmp_lock(SPINLOCK* lock) {
 }
 
 void gop_printf(uint32_t color, const char* fmt, ...) {
-    tracelast_func("gop_printf");
     bool prev_if = interrupts_enabled();
     acquire_tmp_lock(&gop_lock);
     __cli();

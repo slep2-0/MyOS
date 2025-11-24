@@ -28,8 +28,9 @@ void InitScheduler(void) {
     TRAP_FRAME cfm;
     kmemset(&cfm, 0, sizeof(cfm)); // Start with a clean, all-zero context
 
-    // Set only the essential registers for starting the thread FIXME MiCreateKernelStack
-    void* idleStack = MmAllocatePoolWithTag(NonPagedPool, IDLE_STACK_SIZE, 'ELDI');
+    // Set only the essential registers for starting the thread
+    void* idleStack = MiCreateKernelStack(false);
+    assert(idleStack != NULL);
     cfm.rsp = (uint64_t)((uint8_t*)idleStack + IDLE_STACK_SIZE);
     cfm.rip = (uint64_t)kernel_idle_checks;
 

@@ -1,6 +1,5 @@
 #include "../../includes/ps.h"
 #include "../../assert.h"
-#include "../../trace.h"
 #include "../../includes/mg.h"
 
 #define MIN_TID           3u
@@ -95,7 +94,6 @@ static uint32_t ManageTID(uint32_t freedTid)
 
 // Clean exit for a thread—never returns!
 static void ThreadExit(PETHREAD thread) {
-    tracelast_func("ThreadExit");
 #ifdef DEBUG
     gop_printf(COLOR_RED, "Reached ThreadExit\n");
 #endif
@@ -126,7 +124,6 @@ MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntr
     if (!ParentProcess || !entry || !TIMESLICE) return MT_INVALID_PARAM;
     UNREFERENCED_PARAMETER(ParentProcess); UNREFERENCED_PARAMETER(outThread); UNREFERENCED_PARAMETER(entry); UNREFERENCED_PARAMETER(parameter); UNREFERENCED_PARAMETER(TIMESLICE);
     return MT_NOT_IMPLEMENTED;
-    //tracelast_func("MtCreateThread");
     //if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
     //    // Process is being terminated, abort.
     //    return MT_PROCESS_IS_TERMINATING;
@@ -214,7 +211,6 @@ extern EPROCESS SystemProcess;
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
     if (!SystemProcess.PID) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
-    tracelast_func("MtCreateSystemThread");
 
     uint32_t tid = ManageTID(0);
 
@@ -230,8 +226,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(ETHREAD));
-    // FIXME MiCreateKernelStack
-    void* stackStart = MmAllocatePoolWithTag(NonPagedPool, THREAD_STACK_SIZE, 'kcts');
+    void* stackStart = MiCreateKernelStack(false);
     if (!stackStart) {
         // free thread
         MmFreePool(thread);

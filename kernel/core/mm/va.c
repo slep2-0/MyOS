@@ -224,7 +224,7 @@ MiAllocatePoolVa(
     Arguments:
 
         [IN] POOL_TYPE PoolType - The type of pool to return the VA for.
-        [IN] size_t NumberOfBytes - The amount of contingious VA bytes to find for.
+        [IN] size_t NumberOfBytes - The amount of contingious VA bytes to find for. (rounds up to next page)
 
     Return Values:
 

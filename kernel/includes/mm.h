@@ -50,7 +50,7 @@ Revision History:
 #define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
-    MMPTE* _pte = (MMPTE*)(_PtePointer);                  \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
     uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
     MiAtomicExchangePte(_pte, _val);                                        \
     __asm__ volatile("" ::: "memory");                                      \
@@ -165,8 +165,26 @@ do {                                                                        \
 #define PROT_KERNEL_READ  0x1
 #define PROT_KERNEL_WRITE 0x2
 
+// Tags
+#define MM_POOL_CANARY 'BEKA'
+
+// Stack sizes & protections.
+#define MI_STACK_SIZE 0x4000 // 16KiB
+#define MI_LARGE_STACK_SIZE 0xf000 // 60 KiB
+#define MI_GUARD_PAGE_PROTECTION 0x3
+
+// Barriers
+
+// Prevents CPU Reordering as well as the MmBarrier functionality.
+#define MmFullBarrier() __sync_synchronize()
+
+// Ensure ordedring of memory operations (memory should be visible before continuing)
+#define MmBarrier() __asm__ __volatile__("" ::: "memory")
+
 // ------------------ TYPE DEFINES ------------------
 typedef uint64_t PAGE_INDEX;
+
+#define MmIsAddressValid(VirtualAddress) MmIsAddressPresent(VirtualAddress)
 
 // ------------------ ENUMERATORS ------------------
 
@@ -233,6 +251,9 @@ typedef enum _PAGE_FLAGS {
     // 0 = normal 4KB page
     // 1 = large page (4MB in PDE, 2MB in PTE for PAE/long mode)
 
+#define PAGE_PAT  (1ULL << 7)
+    // PAGE_PAT, Look at MEMORY_CACHING_TYPE enum.
+
     PAGE_GLOBAL = 0x100,   // Bit 8
     // Global page
     // Not flushed from TLB on CR3 reload
@@ -244,7 +265,7 @@ typedef enum _PAGE_FLAGS {
 
 typedef enum _POOL_TYPE {
     NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs)
-    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL.
+    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL).
     NonPagedPoolCacheAligned = 2,     // Non-paged, cache-aligned (UNIMPLEMENTED)
     PagedPoolCacheAligned = 3,        // Paged, cache-aligned (UNIMPLEMENTED)
     NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (UNIMPLEMENTED)
@@ -263,6 +284,43 @@ typedef enum _PRIVILEGE_MODE {
     KernelMode = 0,
     UserMode = 1
 } PRIVILEGE_MODE, * PPRIVILEGE_MODE;
+
+typedef enum _MEMORY_CACHING_TYPE {
+
+    MmNonCached = 0,           // UC  (Uncacheable)
+    // CPU never caches reads/writes.
+    // Every access goes directly to RAM or device.
+    // Most MMIO devices require this.
+
+    MmCached,                  // WB  (Write-Back)
+    // Normal DRAM caching behavior.
+    // Reads/writes go through CPU caches; writes may be delayed.
+    // Fastest and default for regular memory.
+
+    MmWriteCombined,           // WC  (Write-Combining)
+    // Writes are buffered and combined, NOT cached.
+    // Ideal for framebuffers / GPUs.
+    // Fast sequential writes; CPU collects them and bursts to memory.
+
+    MmWriteThrough,            // WT  (Write-Through)
+    // Reads are cached, but writes go straight to memory.
+    // Ensures memory is always coherent but slower for writes.
+    // Rarely used today.
+
+    MmNonCachedUnordered,      // UC- (Uncacheable Minus)
+    // Similar to UC but allows some reordering and speculative reads.
+    // Safe for some device memory but not all.
+    // Used mostly by OSes for special mappings.
+
+    MmUSWCCached,              // USWC (Uncached Speculative Write Combining)
+    // Read = UC-, Write = WC.
+    // Used for some high-end GPU/PCIe devices.
+    // Allows speculative reads + write-combined writes.
+
+    MmHardwareCoherentCached,  // WB or WT depending on device
+    // For coherent DMA-capable devices.
+    // Typically WB unless device explicitly requires WT.
+} MEMORY_CACHING_TYPE;
 
 // ------------------ STRUCTURES ------------------
 
@@ -360,9 +418,9 @@ typedef struct _MM_PFN_DATABASE {
 } MM_PFN_DATABASE;
 
 typedef struct _MMVAD {
-    uintptr_t StartVa; // Starting Virtual Page Number.
-    uintptr_t EndVa;   // Ending Virtual Page Number.
-    VAD_FLAGS Flags;     // VAD_FLAGS Bitfield
+    uintptr_t StartVa; // Starting Virtual Address.
+    uintptr_t EndVa;   // Ending Virtual Address.
+    VAD_FLAGS Flags;   // VAD_FLAGS Bitfield
     
     // VAD Are per process, stored in an AVL.
     struct _MMVAD* LeftChild;
@@ -475,6 +533,38 @@ MiReloadTLBs(
 }
 
 FORCEINLINE
+uint64_t 
+MiCacheToFlags(MEMORY_CACHING_TYPE type)
+{
+    switch (type)
+    {
+    case MmCached:                 // WB
+        return 0;
+
+    case MmWriteThrough:           // WT
+        return PAGE_PWT;
+
+    case MmNonCached:              // UC
+        return PAGE_PCD | PAGE_PWT;
+
+    case MmWriteCombined:          // WC
+        return PAGE_PAT;           // (Index 5)
+
+    case MmNonCachedUnordered:     // UC-
+        return PAGE_PAT | PAGE_PCD; // (Index 6)
+
+    case MmUSWCCached:             // USWC (UC- reads + WC writes)
+        return PAGE_PAT | PAGE_PWT; // (Index 7 = UC, but write behavior is WC)
+
+    case MmHardwareCoherentCached: // Usually WB; fallback WT if required
+        return 0;
+
+    default:
+        return 0;
+    }
+}
+
+FORCEINLINE
 FAULT_OPERATION
 MiRetrieveOperationFromErrorCode(
     uint64_t ErrorCode
@@ -544,16 +634,9 @@ MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
 );
 
-void*
-MmAllocateContigiousMemory(
-    IN  size_t NumberOfBytes,
-    IN  uint64_t HighestAcceptableAddress
-);
-
 void
-MmFreeContigiousMemory(
-    IN  void* BaseAddress,
-    IN  size_t NumberOfBytes
+MiUnlinkPageFromList(
+    PPFN_ENTRY pfn
 );
 
 // module: map.c
@@ -603,7 +686,7 @@ MiInitializePoolSystem(
     void
 );
 
-// ONLY NONPAGEDPOOL IMPLEMENTED.
+// Only NonPagedPool and PagedPool is implemented out of the POOL_TYPE enumerator.
 void*
 MmAllocatePoolWithTag(
     IN enum _POOL_TYPE PoolType,
@@ -616,6 +699,10 @@ MmFreePool(
     IN  void* buf
 );
 
+void*
+MiCreateKernelStack(
+    IN  bool LargeStack
+);
 
 // module: vad.c
 
@@ -681,6 +768,41 @@ MmAccessFault(
 bool
 MmInvalidAccessAllowed(
     void
+);
+
+// module: mmio.c
+
+bool
+MiCheckForContigiousMemory(
+    IN void* StartAddress,
+    IN size_t NumberOfBytes
+);
+
+void*
+MmAllocateContigiousMemory(
+    IN  size_t NumberOfBytes,
+    IN  uint64_t HighestAcceptableAddress
+);
+
+void
+MmFreeContigiousMemory(
+    IN  void* BaseAddress,
+    IN  size_t NumberOfBytes
+);
+
+void*
+MmMapIoSpace(
+    IN uintptr_t PhysicalAddress,
+    IN size_t NumberOfBytes,
+    IN MEMORY_CACHING_TYPE CacheType
+);
+
+// module: mminit.c
+
+bool
+MmInitSystem(
+    IN uint8_t Phase,
+    IN PBOOT_INFO BootInformation
 );
 
 // module: oom.c

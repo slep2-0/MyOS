@@ -8,6 +8,7 @@
 
 #include "../../drivers/ahci/ahci.h"
 #include "../fat32/fat32.h"
+#include "../../includes/macros.h"
 
 typedef struct MOUNTED_FS {
 	FS_DRIVER* driver;

@@ -7,7 +7,6 @@
 #include "../../includes/me.h"
 #include "../../intrinsics/atomic.h"
 #include "../../intrinsics/intrin.h"
-#include "../../trace.h"
 #include <stdatomic.h>
 
 // PRIVATE API
@@ -74,7 +73,6 @@ MeRaiseIrql (
 {
     bool prev_if = interrupts_enabled();
     __cli();
-    tracelast_func("MeRaiseIRQL");
 
     if (OldIrql) {
         *OldIrql = MeGetCurrentProcessor()->currentIrql;
@@ -113,7 +111,6 @@ MeLowerIrql (
 {
     bool prev_if = interrupts_enabled();
     __cli();
-    tracelast_func("MeLowerIRQL");
 
     IRQL curr = atomic_load_explicit(&MeGetCurrentProcessor()->currentIrql, memory_order_acquire);
     if (NewIrql > curr) {
@@ -153,7 +150,6 @@ _MeSetIrql (
 {
     bool prev_if = interrupts_enabled();
     __cli();
-    tracelast_func("_MeSetIRQL");
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
     toggle_scheduler();

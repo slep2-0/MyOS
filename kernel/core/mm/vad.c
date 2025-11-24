@@ -21,6 +21,7 @@ Revision History:
 
 #include "../../includes/mm.h"
 #include "../../includes/ps.h"
+#include "../../assert.h"
 
 FORCEINLINE
 int
@@ -735,7 +736,7 @@ MmAllocateVirtualMemory(
     Arguments:
 
         [IN]    PEPROCESS Process - Process to allocate memory for
-        [IN OPTIONAL | OUT OPTIONAL]    void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *baseAddress is set to the found start of gap.
+        [IN OPTIONAL | OUT OPTIONAL] [PTR_TO_PTR]   void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *baseAddress is set to the found start of gap.
         [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
         [IN]    uint32_t VadFlags - The VAD Flags to supply for the allocation (file backed?)
 
@@ -756,8 +757,9 @@ MmAllocateVirtualMemory(
     if (!StartVa) {
         // We need to determine if the allocation is for a system process or a user process.
         bool KernelProcess = (Process->PID == 4) ? true : false;
-        if (KernelProcess) {
-            return MT_INVALID_PARAM;
+        if (unlikely(KernelProcess)) {
+            assert(false);
+            MeBugCheckEx(MANUALLY_INITIATED_CRASH, RETADDR(0), NULL, NULL, NULL);
         }
         else {
             // User mode

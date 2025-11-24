@@ -609,7 +609,7 @@ MmFreePool(
         MeBugCheckEx(
             MEMORY_CORRUPT_HEADER,
             (void*)header,
-            (void*)__read_rip(),
+            (void*)RETADDR(0),
             NULL,
             NULL
         );
@@ -660,4 +660,105 @@ MmFreePool(
 
     // Release the lock
     MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
+}
+
+void*
+MiCreateKernelStack(
+    IN  bool LargeStack
+)
+
+/*++
+
+    Routine description:
+
+        Creates a kernel stack for use in threads.
+
+    Arguments:
+
+        [IN]    bool LargeStack - Determines if the stack allocated should be MI_LARGE_STACK_SIZE bytes long. (default is MI_STACK_SIZE)
+
+    Return Values:
+
+        Pointer to guard page, or NULL on failure.
+
+        Since the pointer is returned at the very end of the guard page (or start, the stack grows downwards).
+        You MUST subtract space from the stack BEFORE interacting with it, as emitting the PUSH instruction before
+        subtracting space from the stack WILL cause a page fault.
+
+--*/
+
+{
+    // Declarations
+    size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
+    size_t GuardSize = VirtualPageSize;
+    size_t TotalSize = StackSize + GuardSize;
+    size_t PagesToMap = BYTES_TO_PAGES(StackSize);
+
+    // Allocate VA range, the stack + guard page.
+    uintptr_t BaseVa = MiAllocatePoolVa(NonPagedPool, TotalSize);
+    if (!BaseVa) return NULL;
+
+    // Define where we actually start mapping, we skip the Guard page as we obviously dont want to map it.
+    uintptr_t MapStartVa = BaseVa + GuardSize;
+
+    size_t Iterations = 0;
+    bool failure = false;
+
+    for (size_t i = 0; i < PagesToMap; i++) {
+        // Calculate current VA to map
+        uintptr_t currVa = MapStartVa + (i * VirtualPageSize);
+
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+
+        if (pfn == PFN_ERROR) {
+            failure = true;
+            break;
+        }
+
+        PMMPTE pte = MiGetPtePointer(currVa);
+        if (!pte) {
+            MiReleasePhysicalPage(pfn);
+            failure = true;
+            break;
+        }
+
+        // Map the Stack Page
+        MI_WRITE_PTE(pte, currVa, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        Iterations++;
+    }
+    
+    PMMPTE GuardPte = MiGetPtePointer(BaseVa);
+
+    if (!GuardPte) {
+        // Now, I could continue and just not mark the GuardPte as a guard page, as it is only used in bugcheck
+        // debugging, but I want to make my debugging life easier.
+        // I don't even have a stable kernel debugger, so excuse me for the horrifying line im about to put below.
+        failure = true;
+
+    }
+
+    if (failure) goto failure_cleanup;
+
+    // Return the TOP of the stack.
+    return (void*)(BaseVa + TotalSize);
+
+failure_cleanup:
+    // Unmap the pages we successfully mapped
+    for (size_t j = 0; j < Iterations; j++) {
+        uintptr_t vaToFree = MapStartVa + (j * VirtualPageSize);
+        PMMPTE pte = MiGetPtePointer(vaToFree);
+
+        if (pte && pte->Hard.Present) {
+            PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
+            MiUnmapPte(pte);
+            MiReleasePhysicalPage(pfn);
+        }
+    }
+
+    // Free the VA reservation
+    if (BaseVa) {
+        MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);
+    }
+
+    return NULL;
 }

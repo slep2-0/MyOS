@@ -37,7 +37,12 @@ extern uint8_t kernel_end;
 #define RETADDR(level) (void)(level)
 #endif
 
+// 'likely' hints to the compiler that the condition is expected to be true most of the time.
+// It allows the compiler to optimize branch prediction.
 #define likely(x)       __builtin_expect(!!(x), 1)
+
+// 'unlikely' hints to the compiler that the condition is expected to be false most of the time.
+// Useful for error handling or rare cases.
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
 #define FREEZE() __cli(); __hlt()

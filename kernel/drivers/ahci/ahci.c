@@ -5,9 +5,9 @@
  */
 
 #include "ahci.h"
-#include "../../trace.h"
 #include "../../assert.h"
 #include "../../includes/mg.h"
+#include "../../includes/mm.h"
 
 #ifdef REMINDER
 _Static_assert(false, "Reminder: AHCI, and other DMA stuff DEAL WITH PHYSICAL ADDRESSES ONLY! not virtual, so supply to them the translated addresses.");
@@ -142,7 +142,6 @@ static void ensure_ahci_busmaster_enabled(void) {
 /// <param name="mask">The 32-bit mask.</param>
 /// <returns>First Zero bit from the argument supplied. | -1 if not found.</returns>
 static int find_free_slot(uint32_t mask) {
-    tracelast_func("find_free_slot");
     for (int i = 0; i < 32; i++) {
         if (!(mask & (1u << i))) {
             return i;
@@ -155,7 +154,6 @@ static int find_free_slot(uint32_t mask) {
 /// Enable controller and reset
 /// </summary>
 static void enable_controller(void) {
-    tracelast_func("enable_controller");
     hba_mem->ghc |= (1u << 31); // AHCI Enable.
     hba_mem->ghc |= (1u << 0); // Global Reset.
     /// Busy wait.
@@ -289,17 +287,12 @@ extern GOP_PARAMS gop_local;
 
 bool ahci_initialized = false;
 
-/***************************************** >>>>>>>>>>>>>>>>>>>> change all em functions to the one in new krnl and remove me */
-
 MTSTATUS ahci_init(void) {
     if (ahci_initialized) { gop_printf(COLOR_RED, "AHCI Initialization got called again when already init.\n"); return MT_SUCCESS; }
-    tracelast_func("ahci_init");
     // Use BootInfo PCI BARs.
     for (size_t i = 0; i < boot_info_local.AhciCount; i++) {
         uint64_t base = boot_info_local.AhciBarBases[i];
-        void* virt = (void*)(base + PhysicalMemoryOffset);
-        PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
-        MI_WRITE_PTE(pte, (uintptr_t)virt, base, PAGE_PRESENT | PAGE_RW | PAGE_PCD | PAGE_PWT); // MMIO Flags
+        void* virt = MmMapIoSpace(base, VirtualPageSize, MmNonCached);
 #ifdef AHCI_DEBUG_PRINT
         gop_printf(COLOR_ORANGE, "Address of AHCI BAR %u (%p) is: %s\n", i, virt, MmIsAddressPresent((uintptr_t)virt) ? "Valid" : "Invalid");
 #endif
@@ -333,7 +326,6 @@ MTSTATUS ahci_init(void) {
 }
 
 MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
-    tracelast_func("ahci_read_sector");
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) {
@@ -454,7 +446,6 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t byt
 }
 
 MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
-    tracelast_func("ahci_write_sector");
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) return MT_INVALID_PARAM;
@@ -567,6 +558,5 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, siz
 
 
 BLOCK_DEVICE* ahci_get_block_device(int index) {
-    tracelast_func("ahci_get_block_device");
     return get_block_device(index);
 }

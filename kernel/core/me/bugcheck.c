@@ -6,15 +6,10 @@
 
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
-#include "../../trace.h"
 #include "../../intrinsics/intrin.h"
 #include "../../intrinsics/atomic.h"
 #include "../../includes/mh.h"
 #include "../../includes/ps.h"
-
-#ifndef NOTHING
-#define NOTHING
-#endif
 
 #ifndef DEBUG
 #define DEBUG
@@ -27,25 +22,6 @@ extern bool smpInitialized;
 
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
-
-static inline void print_lastfunc_chain(uint32_t color) {
-    LASTFUNC_HISTORY* lfh = MeGetCurrentProcessor()->lastfuncBuffer;
-    if (!lfh) return;
-
-    int idx = lfh->current_index;
-    int start = (idx + 1) % LASTFUNC_HISTORY_SIZE;
-    bool first = true;
-
-    for (int i = 0; i < LASTFUNC_HISTORY_SIZE; i++) {
-        idx = (start + i) % LASTFUNC_HISTORY_SIZE;
-        char* name = (char*)lfh->names[idx];
-        if (!*name) break;
-
-        if (!first) gop_printf(color, " -> ");
-        gop_printf(color, "%s", name);
-        first = false;
-    }
-}
 
 // switched to uint64_t and not BUGCHECK_CODES since the custom ones arent in that enum, and compiler throws an error.
 static void resolveStopCode(char** s, uint64_t stopcode) {
@@ -264,19 +240,9 @@ MeBugCheck(
     }
     int32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
-#ifdef DEBUG
-    if (MeGetCurrentProcessor()->lastfuncBuffer) {
-        if (MeGetCurrentProcessor()->lastfuncBuffer->names[MeGetCurrentProcessor()->lastfuncBuffer->current_index][0] != '\0') {
-            gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest, on this CPU): ");
-            print_lastfunc_chain(0xFFBF40BF);
-            gop_printf(0xFFBF40BF, "**");
-        }
-    }
-#endif
     __cli();
-    __hlt();
     while (1) {
-        NOTHING;
+        __hlt();
         __pause();
     }
 }
@@ -307,6 +273,10 @@ MeBugCheckEx (
     Return Values:
 
         None - This function does not return to caller.
+
+    TODO:
+
+        Add minidumps if the filesystem is initialized.
 
 --*/
 
@@ -378,19 +348,9 @@ MeBugCheckEx (
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
-#ifdef DEBUG
-    if (MeGetCurrentProcessor()->lastfuncBuffer) {
-        if (MeGetCurrentProcessor()->lastfuncBuffer->names[MeGetCurrentProcessor()->lastfuncBuffer->current_index][0] != '\0') {
-            gop_printf(0xFFBF40BF, "\n**FUNCTION TRACE (oldest to newest, on this CPU): ");
-            print_lastfunc_chain(0xFFBF40BF);
-            gop_printf(0xFFBF40BF, "**");
-        }
-    }
-#endif
     __cli();
-    __hlt();
     while (1) {
-        NOTHING;
+        __hlt();
         __pause();
     }
 }

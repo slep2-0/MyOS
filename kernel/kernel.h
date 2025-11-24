@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdatomic.h>
-#include "trace.h"
 
 // forward declarations, i don't think i need them.
 
@@ -24,7 +23,6 @@ void __stack_chk_fail(void);
 
 // Standard globals
 extern bool isBugChecking;
-extern LASTFUNC_HISTORY lastfunc_history; // grab lastfunc from kernel.c
 
 /* Definitions that change kernel behaviour below */
 

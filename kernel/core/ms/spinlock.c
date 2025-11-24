@@ -6,8 +6,8 @@
 #ifndef X86_SPINLOCK_H
 #define X86_SPINLOCK_H
 
-#include "../../includes/ms.h" // Contains ms.h as well
-#include "../../trace.h"
+#include "../../includes/ms.h"
+#include "../../includes/me.h"
 
 extern void gop_printf(uint32_t color, const char* fmt, ...);
 
@@ -42,7 +42,6 @@ MsAcquireSpinlock (
 --*/
 
 {
-	tracelast_func("MtAcquireSpinlock");
 	if (!lock) return;
 	// spin until we grab the lock.
 	MeRaiseIrql(DISPATCH_LEVEL, OldIrql);
@@ -75,7 +74,6 @@ MsReleaseSpinlock (
 --*/
 
 {
-	tracelast_func("MtReleaseSpinlock");
 	if (!lock) return;
 	// Memory barrier before release
 	__asm__ volatile("" ::: "memory");

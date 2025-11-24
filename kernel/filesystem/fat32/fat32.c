@@ -44,7 +44,6 @@ typedef struct {
 
 // Read sector into the buffer.
 static MTSTATUS read_sector(uint32_t lba, void* buf) {
-	tracelast_func("read_sector - fat32");
 
 	size_t NumberOfBytes = fs.bytes_per_sector;
 	if (!NumberOfBytes) NumberOfBytes = 512;
@@ -59,7 +58,6 @@ static MTSTATUS read_sector(uint32_t lba, void* buf) {
 
 // Write to sector from buffer
 static MTSTATUS write_sector(uint32_t lba, const void* buf) {
-	tracelast_func("write_sector - fat32");
 
 	size_t NumberOfBytes = fs.bytes_per_sector;
 	if (!NumberOfBytes) NumberOfBytes = 512;
@@ -83,7 +81,6 @@ static uint8_t lfn_checksum(const uint8_t short_name[11]) {
 
 // Convert to uppercase.
 static inline int toupper(int c) {
-	tracelast_func("toupper - fat32");
 	if (c >= 'a' && c <= 'z') {
 		return c - ('a' - 'A'); // Convert lowercase to uppercase
 	}
@@ -92,7 +89,6 @@ static inline int toupper(int c) {
 
 // Compare short name
 static bool cmp_name(const char* str_1, const char* str_2) {
-	tracelast_func("cmp_name - fat32");
 	char t[12] = { 0 };
 	for (int i = 0; i < 11; i++) { t[i] = str_1[i]; }
 	for (int i = 0; i < 11; i++) {
@@ -242,7 +238,6 @@ static inline uint32_t fat32_total_clusters(void) {
 // Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
 static uint32_t fat32_read_fat(uint32_t cluster) {
 	bool isScanner = InterlockedCompareExchange32(&fat32_called_from_scanner, 0, 0);
-	tracelast_func("fat32_read_fat (cached)");
 
 	// Do not treat reserved clusters as "free" returned to callers that iterate the chain.
 	if (cluster < 2) {
@@ -347,13 +342,11 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 }
 
 static inline uint32_t first_sector_of_cluster(uint32_t cluster) {
-	tracelast_func("first_sector_of_cluster");
 	return fs.first_data_sector + (cluster - 2) * fs.sectors_per_cluster;
 }
 
 
 static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
-	tracelast_func("fat32_write_fat");
 	IRQL oldIrql;
 	MsAcquireSpinlock(&fat32_write_fat_lock, &oldIrql);
 	uint32_t fat_offset = cluster * 4;
@@ -444,7 +437,6 @@ static inline uint32_t get_dir_cluster(FAT32_DIR_ENTRY* entry) {
 
 // Free a cluster chain starting at start_cluster (set each entry to FREE)
 static bool fat32_free_cluster_chain(uint32_t start_cluster) {
-	tracelast_func("fat32_free_cluster_chain");
 	if (start_cluster < 2 || start_cluster >= FAT32_EOC_MIN) return false;
 
 	uint32_t cur = start_cluster;
@@ -464,7 +456,6 @@ static bool fat32_free_cluster_chain(uint32_t start_cluster) {
 }
 
 static uint32_t fat32_find_free_cluster(void) {
-	tracelast_func("fat32_find_free_cluster");
 	// Atomically update.
 	InterlockedExchange32(&fat32_called_from_scanner, 1);
 	// Start searching from cluster 2 (the first usable cluster)
@@ -751,7 +742,6 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 
 // Read BPB (Bios Parameter Block) and initialize.
 MTSTATUS fat32_init(int disk_index) {
-	tracelast_func("fat32_init");
 	MTSTATUS status;
 	disk = get_block_device(disk_index);
 	if (!disk) { return MT_GENERAL_FAILURE; }
@@ -776,7 +766,6 @@ MTSTATUS fat32_init(int disk_index) {
 
 // Walk cluster chain and read directory entries.
 void fat32_list_root(void) {
-	tracelast_func("fat32_list_root");
 	uint32_t cluster = fs.root_cluster;
 
 	void* buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fatb');
@@ -879,7 +868,6 @@ static bool is_filename_in_dir(const char* filename) {
 }
 
 static uint32_t extract_dir_cluster(const char* filename) {
-	tracelast_func("extract_dir_cluster - fat32");
 
 	if (!filename || filename[0] == '\0') return fs.root_cluster;
 
@@ -930,7 +918,6 @@ static uint32_t extract_dir_cluster(const char* filename) {
 }
 
 MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** buffer_out) {
-	tracelast_func("fat32_read_file");
 	MTSTATUS status;
 	// We still need a temporary buffer for reading sectors
 	void* sblk = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'sblk');
@@ -1057,7 +1044,6 @@ MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** b
 }
 
 MTSTATUS fat32_create_directory(const char* path) {
-	tracelast_func("fat32_create_directory");
 	// 1. Check if an entry already exists at this path
 	if (fat32_find_entry(path, NULL, NULL)) {
 #ifdef DEBUG
@@ -1287,7 +1273,6 @@ static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date)
 }
 
 MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
-	tracelast_func("fat32_write_file");
 	// Safety check.
 	if (mode != WRITE_MODE_CREATE_OR_REPLACE && mode != WRITE_MODE_APPEND_EXISTING) {
 		return MT_FAT32_INVALID_WRITE_MODE;
@@ -1592,7 +1577,6 @@ locate_done:
 }
 
 MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) {
-	tracelast_func("fat32_list_directory");
 	MTSTATUS status;
 	// 1. Find the directory entry for the given path to get its starting cluster.
 	FAT32_DIR_ENTRY dir_entry;
@@ -1677,7 +1661,6 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 // Check that a directory cluster contains only '.' and '..' (and deleted entries).
 // Returns true if empty ,false if non-empty or error.
 bool fat32_directory_is_empty(const char* path) {
-	tracelast_func("fat32_directory_is_empty");
 
 	FAT32_DIR_ENTRY entry;
 	uint32_t parent_cluster = 0;
@@ -1734,7 +1717,6 @@ bool fat32_directory_is_empty(const char* path) {
 // `path` is the full path. parent_cluster is cluster of parent directory.
 // Returns true on success (sector written), false otherwise.
 static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluster) {
-	tracelast_func("mark_entry_and_lfns_deleted");
 	// extract filename (last component)
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
@@ -1830,7 +1812,6 @@ static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluste
 // marks their directory entries as DELETED on disk, and finally frees dir_cluster itself.
 // Returns true on success, false on any error.
 static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
-	tracelast_func("fat32_rm_rf_dir");
 
 	if (dir_cluster == 0 || dir_cluster == fs.root_cluster) return false; // never delete root here
 
@@ -1939,7 +1920,6 @@ free_and_return:
 }
 
 MTSTATUS fat32_delete_directory(const char* path) {
-	tracelast_func("fat32_delete_directory");
 
 	// Find entry & its parent cluster
 	FAT32_DIR_ENTRY entry;
@@ -1972,7 +1952,6 @@ static inline bool is_file(FAT32_DIR_ENTRY* entry) {
 }
 
 MTSTATUS fat32_delete_file(const char* path) {
-	tracelast_func("fat32_delete_file");
 
 	// Find the file entry and its parent cluster
 	FAT32_DIR_ENTRY entry;

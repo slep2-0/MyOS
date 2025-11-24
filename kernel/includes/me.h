@@ -205,11 +205,6 @@ typedef struct _DPC_QUEUE {
 #define INITIAL_RFLAGS  0x202
 #define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
 
-typedef struct _LASTFUNC_HISTORY {
-	uint8_t names[LASTFUNC_HISTORY_SIZE][LASTFUNC_BUFFER_SIZE];
-	int     current_index;
-} LASTFUNC_HISTORY;
-
 typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
 	uint64_t* PageDirectoryVirtual;			// Virtual Address of the PML4 of the process. (accessible in kernel pages)
@@ -251,7 +246,6 @@ typedef struct _PROCESSOR {
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
 	volatile uint32_t* LapicAddressVirt; // Virtual address of the Local APIC MMIO Address (mapped)
 	uintptr_t LapicAddressPhys; // Physical address of the Local APIC MMIO
-	struct _LASTFUNC_HISTORY* lastfuncBuffer; // Per CPU Buffer for the latest functions trace, allocated dynamically. (ptr)
 	volatile bool DeferredRoutineActive; // Per CPU Flag that indicates if the RetireDPCs call is active and retiring DPCs (to prevent re-entracy)
 
 	/* Statically Special Allocated DPCs */

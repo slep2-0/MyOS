@@ -98,7 +98,7 @@ static bool is_leap_year(uint16_t year) {
 
 static const int days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
 
-static uint64_t MtGetEpoch(void) {
+static uint64_t MeGetEpoch(void) {
     TIME_ENTRY t = get_time();
 
     // 1. count total days since 1970

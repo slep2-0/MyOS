@@ -71,7 +71,6 @@ static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
 static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
-FORCEINLINE_NOHEADER
 PMMPTE
 MiGetPtePointer(
     IN  uintptr_t va
