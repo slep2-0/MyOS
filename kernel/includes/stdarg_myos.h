@@ -12,7 +12,7 @@ typedef __builtin_va_list va_list;
 #define va_arg(ap, type)   __builtin_va_arg(ap, type)
 #define va_end(ap)         __builtin_va_end(ap)
 #else
-#define va_arg
+#define va_arg(ap, type) ((type)0)
 #endif
 
 #endif

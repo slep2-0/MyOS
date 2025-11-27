@@ -115,7 +115,7 @@ MhRebootComputer (
 		phys = fadt->ResetReg.Address;
 		// Map one page containing the reset register itself.
 		PMMPTE pte = MiGetPtePointer((uintptr_t)phys);
-		MI_WRITE_PTE(pte, phys, phys, PAGE_PRESENT | PAGE_RW);
+		MI_WRITE_PTE(pte, phys, phys, PAGE_PRESENT | PAGE_RW | PAGE_PWT | PAGE_PCD);
 		volatile uint8_t* reg = (volatile uint8_t*)phys;
 		*reg = fadt->ResetValue;
 		break;
@@ -168,7 +168,7 @@ MTSTATUS MhInitializeACPI(void) {
 	RSDP_Descriptor* rsdp = (RSDP_Descriptor*)(rsdpPhys + PhysicalMemoryOffset);
 
 	// Validate signatures and checksums.
-	if (kmemcmp(rsdp->Signature, "RSD PTR ", 8) != 0) return (MTSTATUS)0xBABE;
+	if (kmemcmp(rsdp->Signature, "RSD PTR ", 8) != 0) return (MTSTATUS)0xC000BABE;
 	if (!validate_acpi_chksum((uint8_t*)rsdp, 20)) return MT_INVALID_CHECK;
 	uint64_t xsdtPhys = 0;
 	if (rsdp->Revision >= 2 && rsdp->Length >= sizeof(RSDP_Descriptor)) {
@@ -177,7 +177,7 @@ MTSTATUS MhInitializeACPI(void) {
 		if (!validate_acpi_chksum((uint8_t*)rsdp, rsdp->Length)) return MT_INVALID_CHECK;
 		xsdtPhys = rsdp->XsdtAddress;
 	}
-	if (!xsdtPhys) return (MTSTATUS)0xBEEF;
+	if (!xsdtPhys) return (MTSTATUS)0xC000BEEF;
 
 	// Map XSDT header first so we can read its Length
 	map_physical_range(xsdtPhys, sizeof(ACPI_SDT_HEADER), PAGE_PRESENT | PAGE_RW | PAGE_PCD);

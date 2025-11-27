@@ -158,7 +158,7 @@ MiTranslatePteToPfn (
 --*/
 
 {
-    if (!pte) return 0;
+    if (!pte) return PFN_ERROR;
     uintptr_t phys = PTE_TO_PHYSICAL(pte);
     return PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
 }
@@ -231,7 +231,9 @@ MiUnmapPte (
 
     // Write new values.
     newPte.Soft.PageFrameNumber = pfn;
-    newPte.Soft.Transition = 1;
+    
+    // I removed the transition set here, even though it has a PFN assigned to it (to track last good PFN), we don't mark it as transition.
+    // Instead, when we put it in the standby list, there should be a unique function for it. TODO
 
     // Exchange now.
     InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);

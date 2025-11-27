@@ -223,11 +223,12 @@ static inline bool interrupts_enabled(void) {
 
 void kernel_idle_checks(void) {
     gop_printf(0xFF000FF0, "Reached the scheduler!\n");
+    // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
+    if (!interrupts_enabled()) {
+        gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
+        FREEZE();
+    }
     while (1) {
-        // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
-        if (!interrupts_enabled()) {
-            gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
-        }
         __hlt();
         //Schedule();
     }
@@ -305,17 +306,17 @@ void __stack_chk_fail(void) {
 }
 #endif
 
-// Todo allocate dynamically
-EPROCESS SystemProcess;
+// TODO allocate dynamically (use PsCreateProcess)
+EPROCESS PsInitialSystemProcess;
 
 static void InitSystemProcess(void) {
-    SystemProcess.PID = 4; // Initial PID, reserved.
-    SystemProcess.ParentProcess = NULL; // No creator process
-    kstrncpy(SystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(SystemProcess.ImageName)); // Name for the process
-    SystemProcess.priority = 0; // TODO
-    SystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
-    SystemProcess.CreationTime = MeGetEpoch();
-    SystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
+    PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
+    PsInitialSystemProcess.ParentProcess = NULL; // No creator process
+    kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
+    PsInitialSystemProcess.priority = 0; // TODO
+    PsInitialSystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
+    PsInitialSystemProcess.CreationTime = MeGetEpoch();
+    PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
 }
 
 extern uint8_t bss_start;
@@ -444,8 +445,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
-    //lapic_timer_calibrate();
-    //init_lapic_timer(100); // 10ms, must be called before other APs
+    lapic_timer_calibrate();
+    init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
     //status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {

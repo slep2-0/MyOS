@@ -9,7 +9,7 @@ Module Name:
 
 Purpose:
 
-    This module contains the header files required for memory management (virtual, physical, PFN, VAD, etc.)
+    This module contains the header files required for memory management (virtual, physical, PFN, VAD, MMIO, init, etc.)
 
 Author:
 
@@ -60,6 +60,7 @@ do {                                                                        \
         PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
         _pfn->State = PfnStateActive;                                       \
+        _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
     }                                                                       \
                                                                             \
     invlpg((void*)(uintptr_t)(_Va));                                        \
@@ -69,22 +70,16 @@ do {                                                                        \
     ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
 #define VA_OFFSET(_VirtualAddress) ((uintptr_t)(_VirtualAddress) & 0xFFF)
 #define MM_IS_DEMAND_ZERO_PTE(pte) \
-    ( ((pte).Soft.Present == 0) && \
-      ((pte).Soft.Transition == 0) && \
-      ((pte).Soft.Prototype == 0) && \
-      ((pte).Soft.PageFile == 0) && \
-      ((pte).Soft.PageFrameNumber == 0) )
-
+    (((pte).Soft.SoftwareFlags & MI_DEMAND_ZERO_BIT) != 0)
 #define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx)  \
     do { \
-        (pte).Value = 0; /* clear everything first */ \
-        (pte).Soft.Present = 0; \
-        (pte).Soft.Transition = 0; \
-        (pte).Soft.Prototype = 0; \
-        (pte).Soft.PageFile = 0; \
-        (pte).Soft.PageFrameNumber = 0; \
-        (pte).Soft.SoftwareFlags = (prot_flags); /* protection mask */ \
+        (pte).Value = 0; \
+        (pte).Soft.SoftwareFlags = (prot_flags) | MI_DEMAND_ZERO_BIT; \
         (pte).Soft.NoExecute = (nx); \
+    } while(0)
+#define MM_UNSET_DEMAND_ZERO_PTE(pte) \
+    do { \
+        (pte).Soft.SoftwareFlags &= ~MI_DEMAND_ZERO_BIT; \
     } while(0)
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
@@ -96,6 +91,7 @@ do {                                                                        \
 #define VA_OFFSET(_VirtualAddress) (uintptr_t)(NULL)
 #define MM_IS_DEMAND_ZERO_PTE(pte) (NULL)
 #define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx) ((void)0)
+#define MM_UNSET_DEMAND_ZERO_PTE(pte) (NULL)
 #endif
 
 // Convert bytes to pages (rounding up)
@@ -117,8 +113,8 @@ do {                                                                        \
 // You are allowed to request bytes above max allocation, the global pool would be used.
 #define POOL_MAX_ALLOC 2048
 // Pool sizes
-#define MI_NONPAGED_POOL_SIZE ((size_t)8ULL * 1024 * 1024 * 1024)  // 8 GiB
-#define MI_PAGED_POOL_SIZE ((size_t)32ULL * 1024 * 1024 * 1024)
+#define MI_NONPAGED_POOL_SIZE ((size_t)16ULL * 1024 * 1024 * 1024)  // 16 GiB
+#define MI_PAGED_POOL_SIZE ((size_t)32ULL * 1024 * 1024 * 1024)     // 32 GiB
 
 // Total pages in each pool
 #define NONPAGED_POOL_VA_TOTAL_PAGES (MI_NONPAGED_POOL_SIZE / VirtualPageSize)
@@ -164,6 +160,7 @@ do {                                                                        \
 // Lazy allocations macros
 #define PROT_KERNEL_READ  0x1
 #define PROT_KERNEL_WRITE 0x2
+#define MI_DEMAND_ZERO_BIT   (1ULL << 16)
 
 // Tags
 #define MM_POOL_CANARY 'BEKA'
@@ -292,7 +289,7 @@ typedef enum _MEMORY_CACHING_TYPE {
     // Every access goes directly to RAM or device.
     // Most MMIO devices require this.
 
-    MmCached,                  // WB  (Write-Back)
+    MmCached,                  // WB  (Write-Back) (default)
     // Normal DRAM caching behavior.
     // Reads/writes go through CPU caches; writes may be delayed.
     // Fastest and default for regular memory.
@@ -360,13 +357,13 @@ typedef struct _MMPTE
         {
             uint64_t Present : 1;            // 0 = Not present
             uint64_t Write : 1;              // Meaning depends on context
-            uint64_t Transition : 1;         // 1 = Page is in transition (has PFN)
+            uint64_t Transition : 1;         // 1 = Page is in transition (has PFN) (used for StandBy List)
             uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
             uint64_t Reserved : 7;           // Software-defined bits
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
             uint64_t SoftwareFlags : 20;     // e.g. protection mask, pool type
-            uint64_t NoExecute : 1;          // NX still meaningful in transition
+            uint64_t NoExecute : 1;          // NX still meaningful in software
         } Soft;
     };
 } MMPTE, * PMMPTE;
@@ -470,10 +467,13 @@ extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
 // Global Declarations for signals & constants.
 extern bool MmPfnDatabaseInitialized;
 extern PAGE_INDEX MmHighestPfn;
-
 extern uintptr_t MmSystemRangeStart;
 extern uintptr_t MmHighestUserAddress;
 extern uintptr_t MmUserProbeAddress;
+extern uintptr_t MmNonPagedPoolStart;
+extern uintptr_t MmNonPagedPoolEnd;
+extern uintptr_t MmPagedPoolStart;
+extern uintptr_t MmPagedPoolEnd;
 
 // general functions
 
@@ -574,7 +574,7 @@ MiRetrieveOperationFromErrorCode(
     FAULT_OPERATION operation = FaultOpInvalid;
 
     if (ErrorCode & (1 << 4)) {
-        operation = ExecuteOperation; // Execute (NX Fault) (nx bit set, and CPU executed an instruction there)
+        operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.)
     }
     else if (ErrorCode & (1 << 1)) {
         operation = WriteOperation; // Write fault (read only page \ not present)
@@ -686,7 +686,7 @@ MiInitializePoolSystem(
     void
 );
 
-// Only NonPagedPool and PagedPool is implemented out of the POOL_TYPE enumerator.
+// Only NonPagedPool and PagedPool are implemented out of the POOL_TYPE enumerator.
 void*
 MmAllocatePoolWithTag(
     IN enum _POOL_TYPE PoolType,
@@ -702,6 +702,12 @@ MmFreePool(
 void*
 MiCreateKernelStack(
     IN  bool LargeStack
+);
+
+void
+MiFreeKernelStack(
+    IN void* AllocatedStackTop,
+    IN bool LargeStack
 );
 
 // module: vad.c

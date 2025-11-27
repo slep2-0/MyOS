@@ -64,13 +64,14 @@ MmAccessFault(
 
 {
     // Declarations
-    // previrql
     PMMPTE ReferencedPte = MiGetPtePointer(VirtualAddress);
     FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
     IRQL PreviousIrql = MeGetCurrentIrql();
+
 #ifdef DEBUG
     gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame, OperationDone, PreviousIrql);
 #endif
+
     if (!ReferencedPte) {
         // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
         if (PreviousMode == UserMode) {
@@ -154,7 +155,7 @@ MmAccessFault(
 
             // Write the PTE.
             MI_WRITE_PTE(ReferencedPte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), ProtectionFlags);
-            
+
             return MT_SUCCESS;
         }
 
@@ -164,6 +165,11 @@ MmAccessFault(
             PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
             if (!MiIsValidPfn(pfn)) goto BugCheck;
 
+            // Check the PFN, it has to be in the StandBy list and be equal to our PTE, if not, bugcheck.
+            PPFN_ENTRY PPfn = INDEX_TO_PPFN(pfn);
+            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) goto BugCheck;
+
+            // PFN Is matching to this pte, now we can allocate, finally.
             // Check protection mask.
             uint64_t ProtectionFlags = PAGE_PRESENT;
             ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
@@ -222,16 +228,39 @@ BugCheck:
             (void*)VirtualAddress,
             (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
             (void*)TrapFrame->rip,
-            (void*)TrapFrame->error_code
+            (void*)FaultBits
         );
     }
 
+    // Check if its a pool dereference (NonPagedPool first)
+    if (VirtualAddress >= MmNonPagedPoolStart && VirtualAddress <= MmNonPagedPoolEnd) {
+        MeBugCheckEx(
+            PAGE_FAULT_IN_FREED_NONPAGED_POOL,
+            (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip,
+            (void*)FaultBits
+        );
+    }
+
+    // Check if Paged Pool Dereference.
+    if (VirtualAddress >= MmPagedPoolStart && VirtualAddress <= MmPagedPoolEnd) {
+        MeBugCheckEx(
+            PAGE_FAULT_IN_FREED_PAGED_POOL,
+            (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip,
+            (void*)FaultBits
+        );
+    }
+
+    // Normal page fault.
     MeBugCheckEx(
         PAGE_FAULT,
         (void*)VirtualAddress,
         (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
         (void*)TrapFrame->rip,
-        (void*)TrapFrame->error_code
+        (void*)FaultBits
     );
 }
 

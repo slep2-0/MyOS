@@ -132,7 +132,8 @@ MTSTATUS MsWaitForEvent (
 #ifdef DEBUG
     gop_printf(COLOR_PURPLE, "Sleeping current thread: %p\n", PsGetCurrentThread());
 #endif
-    MsSleepCurrentThread(&curr->InternalThread.TrapRegisters);
+    assert((MeGetCurrentIrql()) < DISPATCH_LEVEL);
+    MsYieldExecution(&curr->InternalThread.TrapRegisters);
 
     // When we resume here, the waker has already moved us to the ready queue, and we are now an active thread on the CPU.
     return MT_SUCCESS;

@@ -156,22 +156,41 @@ static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
     }
 }
 
-static void sprint_dec(char* buf, unsigned v) {
+static void sprint_dec(char* buf, int64_t v) {
     char* p = buf;
-    if (v == 0) { *p++ = '0'; }
-    else {
-        char tmp[16]; int i = 0;
-        while (v) {
-            tmp[i++] = '0' + (v % 10);
-            v /= 10;
-        }
-        while (i--) *p++ = tmp[i];
+
+    if (v == 0) {
+        *p++ = '0';
+        *p = 0;
+        return;
     }
-    *p = '\0';
+
+    bool neg = false;
+    if (v < 0) {
+        neg = true;
+        v = -v;
+    }
+
+    char tmp[20];
+    int i = 0;
+
+    while (v > 0) {
+        tmp[i++] = '0' + (v % 10);
+        v /= 10;
+    }
+
+    if (neg) *p++ = '-';
+
+    while (i--) {
+        *p++ = tmp[i];
+    }
+
+    *p = 0;
 }
 
-static void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
-    char buf[16];
+
+static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color) {
+    char buf[20];
     sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }

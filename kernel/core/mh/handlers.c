@@ -34,67 +34,35 @@ extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
 static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
-    // revamp this stupid coding flow
-    if (!MeGetCurrentProcessor()->schedulePending) {
-        if (schedulerEnabled) {
-            if (MeGetCurrentProcessor()->currentThread) {
-                if (__sync_sub_and_fetch(&MeGetCurrentProcessor()->currentThread->TimeSlice, 1) <= 0) {
-                    MeGetCurrentProcessor()->currentThread->TimeSlice = MeGetCurrentProcessor()->currentThread->TimeSliceAllocated;
-                    /* Setup of DPC */
-                    PETHREAD thread_to_save = PsGetCurrentThread();
-                    TRAP_FRAME* saved_regs = &thread_to_save->InternalThread.TrapRegisters;
+    PPROCESSOR cpu = MeGetCurrentProcessor();
 
-                    // Values taken from the interrupt frame
-                    saved_regs->rip = trap->rip;
-                    saved_regs->rsp = trap->rsp;
-                    saved_regs->rflags = trap->rflags;
+    // Do not decrement if a schedule is already pending.
+    if (cpu->schedulePending) return;
 
-                    // General-purpose registers from the context frame
-                    saved_regs->r15 = trap->r15;
-                    saved_regs->r14 = trap->r14;
-                    saved_regs->r13 = trap->r13;
-                    saved_regs->r12 = trap->r12;
+    // If scheduler is locked or no thread is running, return.
+    if (!schedulerEnabled || !cpu->currentThread) return;
 
-                    saved_regs->r11 = trap->r11;
-                    saved_regs->r10 = trap->r10;
-                    saved_regs->r9 = trap->r9;
-                    saved_regs->r8 = trap->r8;
+    PITHREAD currentThread = cpu->currentThread;
 
-                    saved_regs->rbp = trap->rbp;
-                    saved_regs->rdi = trap->rdi;
-                    saved_regs->rsi = trap->rsi;
-
-                    saved_regs->rcx = trap->rcx;
-                    saved_regs->rbx = trap->rbx;
-                    saved_regs->rdx = trap->rdx;
-                    saved_regs->rax = trap->rax;
-
-                    saved_regs->cs = trap->cs;
-                    saved_regs->ss = trap->ss;
-                    /* Ended */
-
-                    DPC* SchedDpc = &MeGetCurrentProcessor()->TimerExpirationDPC;
-                    SchedDpc->Next = NULL;
-                    SchedDpc->CallbackRoutine = MeScheduleDPC;
-                    SchedDpc->Arg1 = NULL;
-                    SchedDpc->Arg2 = NULL;
-                    SchedDpc->Arg3 = NULL;
-                    SchedDpc->priority = HIGH_PRIORITY;
-                    gop_printf(COLOR_RED, "Queuing DPC, and setting flag.\n Saved Regs (phys): %p", MiTranslateVirtualToPhysical((void*)trap));
-                    MeQueueDPC(SchedDpc);
-                    /// DO NOT SET schedule_needed TO TRUE HERE, IT WILL BE SET IN ScheduleDPC!!
-                }
-                else {
-                }
-            }
-            else {
-            }
-        }
-        else {
-        }
+    // Atomic decrement, if there is still time, return.
+    if (__sync_sub_and_fetch(&currentThread->TimeSlice, 1) > 0) {
+        return;
     }
-    else {
-    }
+
+    // Time slice has expired
+    // Reset Quantum
+    currentThread->TimeSlice = currentThread->TimeSliceAllocated;
+
+    // Save the thread's context.
+    currentThread->TrapRegisters = *trap;
+
+    // Queue the DPC
+    DPC* schedDpc = &cpu->TimerExpirationDPC;
+
+    // Ensure priority is set.
+    schedDpc->priority = HIGH_PRIORITY;
+
+    MeQueueDPC(schedDpc);
 }
 
 extern void lapic_eoi(void);
@@ -232,7 +200,7 @@ MiPageFault (
             // No kernel exception handler present, bugcheck.
             MeBugCheckEx(
                 KMODE_EXCEPTION_NOT_HANDLED,
-                (void*)MT_ACCESS_VIOLATION,
+                (void*)(uintptr_t)status,
                 (void*)fault_addr,
                 NULL,
                 NULL
@@ -479,7 +447,7 @@ void MiStackSegmentOverrun(PTRAP_FRAME trap) {
 
 void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     // important exception, view error code and bugcheck with it
-    MeBugCheckEx(GENERAL_PROTECTION_FAULT, (void*)trap->rip, NULL, NULL, NULL);
+    MeBugCheckEx(GENERAL_PROTECTION_FAULT, (void*)trap->rip, (void*)(uintptr_t)trap->error_code, NULL, NULL);
 }
 
 void MiFloatingPointError(PTRAP_FRAME trap) {

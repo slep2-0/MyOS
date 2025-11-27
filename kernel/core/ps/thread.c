@@ -206,10 +206,10 @@ MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntr
     //return MT_SUCCESS;
 }
 
-extern EPROCESS SystemProcess;
+extern EPROCESS PsInitialSystemProcess;
 
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
-    if (!SystemProcess.PID) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
+    if (!PsInitialSystemProcess.PID) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
 
     uint32_t tid = ManageTID(0);
@@ -226,13 +226,15 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(ETHREAD));
-    void* stackStart = MiCreateKernelStack(false);
+    bool LargeStack = false;
+    void* stackStart = MiCreateKernelStack(LargeStack);
     if (!stackStart) {
         // free thread
         MmFreePool(thread);
         return MT_NO_MEMORY;
     }
     thread->InternalThread.StackBase = stackStart;
+    thread->InternalThread.IsLargeStack = LargeStack;
     // initial stack pointer should be at the high end of the allocated region
     uint8_t* top = (uint8_t*)stackStart + THREAD_STACK_SIZE;
     top = (uint8_t*)((uintptr_t)top & ~(uintptr_t)(THREAD_ALIGNMENT - 1)); // 16-byte aligned
@@ -265,7 +267,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->CurrentEvent = NULL;
 
     // Process stuffz
-    thread->ParentProcess = &SystemProcess; // The parent process for the system thread, is the system process.
+    thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
 
     return MT_SUCCESS;

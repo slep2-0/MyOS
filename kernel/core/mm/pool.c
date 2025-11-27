@@ -27,6 +27,11 @@ POOL_DESCRIPTOR GlobalPool;
 #define POOL_TYPE_GLOBAL 9999
 #define POOL_TYPE_PAGED  1234
 
+uintptr_t MmNonPagedPoolStart = 0;
+uintptr_t MmNonPagedPoolEnd = 0;
+uintptr_t MmPagedPoolStart = 0;
+uintptr_t MmPagedPoolEnd = 0;
+
 MTSTATUS
 MiInitializePoolSystem(
     void
@@ -56,7 +61,7 @@ MiInitializePoolSystem(
     for (int i = 0; i < MAX_POOL_DESCRIPTORS; i++) {
         PPOOL_DESCRIPTOR desc = &cpu->LookasidePools[i];
 
-        // Would grow in binary (32,64,128,256...) (max would be 2048)
+        // Would grow in binary (32,64,128,256... + sizeof(POOL_HEADER)) (max would be 2048)
         size_t blockSize = (base << i) + sizeof(POOL_HEADER);
         desc->BlockSize = blockSize;
         desc->FreeCount = 0;
@@ -65,6 +70,10 @@ MiInitializePoolSystem(
         desc->PoolLock.locked = 0;
     }
 
+    MmNonPagedPoolStart = MI_NONPAGED_POOL_BASE;
+    MmNonPagedPoolEnd = MI_NONPAGED_POOL_END;
+    MmPagedPoolStart = MI_PAGED_POOL_BASE;
+    MmPagedPoolEnd = MI_PAGED_POOL_END;
     return MT_SUCCESS;
 }
 
@@ -153,6 +162,7 @@ MiRefillPool(
         GlobalPool.FreeCount++;
     }
 
+    // Release global pool lock.
     MsReleaseSpinlock(&GlobalPool.PoolLock, oldIrql);
 
     if (!PageVa) {
@@ -182,7 +192,7 @@ MiRefillPool(
         HeaderBlockSize = VirtualPageSize;
     }
 
-    // Reaching here means we got a valid page, now we must carve it up to the appropriate slab's size.
+    // Reaching here means we got a valid page (either from the global pool, or allocation), now we must carve it up to the appropriate slab's size.
     // Acquire the spinlock for the descriptor given before modifying its data.
     IRQL descIrql;
     MsAcquireSpinlock(&Desc->PoolLock, &descIrql);
@@ -596,12 +606,15 @@ MmFreePool(
     Notes:
 
         Memory is freed here, do not use the pointer after freeing the pool.
+        The Pool tag will not be modified when freeing, useful for debugging.
+
+        Memory allocated with PagedPoolXxX type must be deallocated at IRQL < DISPATCH_LEVEL.
 
 --*/
 
 {
     if (!buf) return;
-
+    assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));
 
@@ -623,9 +636,6 @@ MmFreePool(
         IRQL oldIrql;
         MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
 
-        // Set pool tag for clarity.
-        header->PoolTag = 'ADIR';
-
         // Push the block back onto the global free list
         header->Metadata.FreeListEntry.Next = GlobalPool.FreeListHead.Next;
         GlobalPool.FreeListHead.Next = &header->Metadata.FreeListEntry;
@@ -636,8 +646,37 @@ MmFreePool(
     }
 
     if (PoolIndex == POOL_TYPE_PAGED) {
-        // Paged pool allocation, we don't return it to any pool, instead, we free the VADs.
-        return MiFreePoolVaContiguous((uintptr_t)header, header->Metadata.BlockSize, PagedPool);
+        // For a paged pool allocation, we just free every PTE, then returned the VA space consumed.
+        // The BlockSize field in a PagedPool allocation is how many bytes were requested + sizeof(POOL_HEADER)
+        size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);
+
+        // Loop over the amount, if the PTE is present, unmap it and clear the demand page.
+        uintptr_t CurrentVA = (uintptr_t)buf;
+        for (size_t i = 0; i < NumberOfPages; i++) {
+            PMMPTE pte = MiGetPtePointer(CurrentVA);
+            if (!pte) goto advance;
+            assert(MM_IS_DEMAND_ZERO_PTE(*pte) == true);
+
+            // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.
+            if (pte->Hard.Present) {
+                // It has a PFN.
+                PAGE_INDEX Pfn = MiTranslatePteToPfn(pte);
+                if (Pfn == PFN_ERROR) goto advance;
+
+                // Unmap PTE, free PFN.
+                MiUnmapPte(pte);
+                MiReleasePhysicalPage(Pfn);
+            }
+
+            // Flip the demand zero bit.
+            MMPTE TempPte = *pte;
+            MM_UNSET_DEMAND_ZERO_PTE(TempPte);
+            MiAtomicExchangePte(pte, TempPte.Value);
+
+            advance:
+            CurrentVA += VirtualPageSize;
+        }
+        return;
     }
 
     //
@@ -733,11 +772,22 @@ MiCreateKernelStack(
         // Now, I could continue and just not mark the GuardPte as a guard page, as it is only used in bugcheck
         // debugging, but I want to make my debugging life easier.
         // I don't even have a stable kernel debugger, so excuse me for the horrifying line im about to put below.
+        MeBugCheckEx(MANUALLY_INITIATED_CRASH,
+            (void*)RETADDR(0),
+            (void*)BaseVa,
+            (void*)TotalSize,
+            (void*)123432 /* special identifier for manually initiated crash to know its here */
+        );
+        // If the bugcheck is ever removed, it would be afailure.
         failure = true;
 
     }
 
     if (failure) goto failure_cleanup;
+
+    // Set the Guard page bit in the GuardPte.
+    GuardPte->Hard.Present = 0;
+    GuardPte->Soft.SoftwareFlags |= MI_GUARD_PAGE_PROTECTION;
 
     // Return the TOP of the stack.
     return (void*)(BaseVa + TotalSize);
@@ -761,4 +811,75 @@ failure_cleanup:
     }
 
     return NULL;
+}
+
+void
+MiFreeKernelStack(
+    IN void* AllocatedStackTop,
+    IN bool LargeStack
+)
+
+/*++
+
+    Routine description:
+
+        Frees the stack given to a kernel thread.
+
+    Arguments:
+
+        [IN]    void* AllocatedStackBase - The pointer given by MiCreateKernelStack
+        [IN]    bool LargeStack - Signifies if the stack being deleted is a MI_LARGE_STACK_SIZE bytes long (true), or MI_STACK_SIZE bytes long (false) 
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // Declarations
+    size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
+    size_t GuardSize = VirtualPageSize;
+    size_t TotalSize = StackSize + GuardSize;
+    size_t PagesToUnMap = BYTES_TO_PAGES(StackSize);
+
+    // 1. Calculate the START of the stack memory (The highest valid byte addressable page)
+    // AllocatedStackTop is the byte *after* the stack end. 
+    // We start at Top - PageSize.
+    uintptr_t CurrentVA = (uintptr_t)AllocatedStackTop - VirtualPageSize;
+
+    for (size_t i = 0; i < PagesToUnMap; i++) {
+        PMMPTE pte = MiGetPtePointer(CurrentVA);
+
+        if (pte && pte->Hard.Present) {
+
+            // Get its PFN that was allocated to it.
+            PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
+
+            // Unmap the PTE.
+            MiUnmapPte(pte);
+
+            // Release the physical page back to the PFN DB.
+            MiReleasePhysicalPage(pfn);
+        }
+
+        // Move down to the next page
+        CurrentVA -= VirtualPageSize;
+    }
+
+    // The Guard Page is at the very bottom of the allocation.
+    uintptr_t BaseVa = (uintptr_t)AllocatedStackTop - TotalSize;
+
+    PMMPTE GuardPte = MiGetPtePointer(BaseVa);
+    if (GuardPte) {
+        assert((GuardPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) != 0, "The guard page must have the GUARD_PAGE_PROTECTION bit set.");
+        // Remove the software guard flag
+        GuardPte->Soft.SoftwareFlags &= ~MI_GUARD_PAGE_PROTECTION;
+
+        // Ensure we aren't accidentally unmapping a present page (Guard pages should be non-present)
+        assert(GuardPte->Hard.Present == false);
+    }
+
+    // Free the Virtual Address allocation
+    MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);
 }

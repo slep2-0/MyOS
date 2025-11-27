@@ -2,12 +2,13 @@
 TOOLCHAIN_PATH = tools64/bin
 
 ASM = nasm
+HOST_CC = gcc
 CC = $(TOOLCHAIN_PATH)/x86_64-elf-gcc
 LD = $(TOOLCHAIN_PATH)/x86_64-elf-ld
 OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 
 # Flags
-ASMFLAGS_ELF = -f elf64
+ASMFLAGS_ELF = -f elf64 -Ibuild/
 ASMFLAGS_BIN = -f bin
 
 # Base CFLAGS (no optimization level hardcoded here)
@@ -53,7 +54,7 @@ clearlog:
 	@echo "" > log.txt
 
 clean:
-	rm -f build/*.o build/*.elf build/os-image.img
+	rm -f build/*.o build/*.elf build/os-image.img build/gen_offsets build/offsets.inc
 
 # Compile C files with common CFLAGS
 build/kernel.o: kernel/kernel.c
@@ -192,32 +193,41 @@ build/mmio.o: kernel/core/mm/mmio.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+# Define the Offset generator
+build/gen_offsets: kernel/gen_offsets.c
+	mkdir -p build
+	$(HOST_CC) -m64 -I. -o $@ $<
+
+# Run the tool to create the include file
+build/offsets.inc: build/gen_offsets
+	./build/gen_offsets > build/offsets.inc
+
 # Assemble ASM to ELF
-build/kernel_entry.o: kernel/kernel_entry.asm
+build/kernel_entry.o: kernel/kernel_entry.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/isr_stub.o: kernel/core/mh/isr_stub.asm
+build/isr_stub.o: kernel/core/mh/isr_stub.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/capture_registers.o: kernel/intrinsics/capture_registers.asm
+build/capture_registers.o: kernel/intrinsics/capture_registers.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/context.o: kernel/core/me/context.asm
+build/context.o: kernel/core/me/context.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/cpuid.o: kernel/core/mh/cpuid.asm
+build/cpuid.o: kernel/core/mh/cpuid.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/sleep.o: kernel/core/ms/sleep.asm
+build/sleep.o: kernel/core/ms/sleep.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 	
-build/ap_trampoline.bin: kernel/core/mh/ap_trampoline.asm
+build/ap_trampoline.bin: kernel/core/mh/ap_trampoline.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_BIN) $< -o $@	
 

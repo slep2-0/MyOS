@@ -101,7 +101,9 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 
 // ------------------ FUNCTIONS ------------------
 
-extern void MsSleepCurrentThread(PTRAP_FRAME threadRegisters);
+extern EPROCESS PsInitialSystemProcess;
+
+extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
 MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS ParentProcess);
 MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
@@ -144,6 +146,16 @@ PsGetEProcessFromIProcess(
 
 {
     return CONTAINING_RECORD(IProcess, EPROCESS, InternalProcess);
+}
+
+FORCEINLINE
+bool
+PsIsKernelThread(
+    IN PETHREAD Thread
+)
+
+{
+    return (Thread->ParentProcess == &PsInitialSystemProcess);
 }
 
 // Executive Functions - Are in PS.H

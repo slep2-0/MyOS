@@ -17,7 +17,7 @@ extern void restore_context(TRAP_FRAME* regs);
 extern void kernel_idle_checks(void);
 #define IDLE_STACK_SIZE 4096
 
-extern EPROCESS SystemProcess;
+extern EPROCESS PsInitialSystemProcess;
 
 // In Scheduler.c
 void InitScheduler(void) {
@@ -47,9 +47,9 @@ void InitScheduler(void) {
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
     MeGetCurrentProcessor()->currentThread = NULL; // The idle thread would be chosen
     idleThread->CurrentEvent = NULL; // No event.
-    idleThread->ParentProcess = &SystemProcess;
-    SystemProcess.MainThread = idleThread;
-    MeEnqueueThreadWithLock(&SystemProcess.AllThreads, idleThread);
+    idleThread->ParentProcess = &PsInitialSystemProcess;
+    PsInitialSystemProcess.MainThread = idleThread;
+    MeEnqueueThreadWithLock(&PsInitialSystemProcess.AllThreads, idleThread);
 
     // The ready queue starts empty
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
@@ -111,12 +111,13 @@ Schedule(void) {
             // There is a DPC struct for each CPU incase we cant allocate a dynamic one.
             DPC* allocatedDPC = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'PAER'); // REAP
             if (!allocatedDPC) {
-                allocatedDPC = &MeGetCurrentProcessor()->ReaperDPC;
-                allocatedDPC->Arg3 = (void*)1;
+                assert(false);
+                MeBugCheck(MANUALLY_INITIATED_CRASH);
             }
             allocatedDPC->CallbackRoutine = CleanStacks;
             allocatedDPC->Arg1 = prev;
             allocatedDPC->Arg2 = allocatedDPC;
+            allocatedDPC->Arg3 = false;
             allocatedDPC->Next = NULL; 
             allocatedDPC->priority = MEDIUM_PRIORITY;
             MeQueueDPC(allocatedDPC);

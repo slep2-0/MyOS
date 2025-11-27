@@ -176,6 +176,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case KMODE_EXCEPTION_NOT_HANDLED:
         *s = "KMODE_EXCEPTION_NOT_HANDLED";
         break;
+    case ATTEMPTED_SWITCH_FROM_DPC:
+        *s = "ATTEMPTED_SWITCH_FROM_DPC";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

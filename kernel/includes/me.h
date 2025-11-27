@@ -114,7 +114,11 @@ typedef enum _BUGCHECK_CODES {
 	VA_SPACE_INIT_FAILURE,
 	POOL_INIT_FAILURE,
 	BAD_POOL_CALLER,
-	ATTEMPTED_WRITE_TO_READONLY_MEMORY
+	ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+	INVALID_INITIALIZATION_PHASE,
+	PAGE_FAULT_IN_FREED_NONPAGED_POOL,
+	PAGE_FAULT_IN_FREED_PAGED_POOL,
+	ATTEMPTED_SWITCH_FROM_DPC,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -216,6 +220,7 @@ typedef struct _ITHREAD {
 	struct _TRAP_FRAME TrapRegisters;					   // TRAP Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
+	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel Threads Only)
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
 	struct _SINGLE_LINKED_LIST NextThread;				   // A singular linked list representing the next thread.
@@ -373,8 +378,9 @@ MeGetPreviousMode(
 )
 
 {
-	if (MeGetCurrentProcessor()->currentThread) {
-		return MeGetCurrentProcessor()->currentThread->PreviousMode;
+	PITHREAD CurrentThread = MeGetCurrentThread();
+	if (CurrentThread) {
+		return CurrentThread->PreviousMode;
 	}
 	else {
 		// No thread is active on the current processor (not even a kernel one), this is early init.

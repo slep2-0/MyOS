@@ -72,6 +72,10 @@ MmInitSystem(
 
         1 - BootInformation
 
+    Phase Does:
+           
+        1 - Initializes the core memory managment routines. (PFN Database, Virtual Address bitmap, PAT, PTE Database, etc.)
+
     Return Values:
 
         True or false if the phase given has succeeded initilization.
@@ -80,43 +84,48 @@ MmInitSystem(
 
 {
     // Currently we only support the first and only phase.
-    assert(Phase == 1);
+    if (Phase == 1) {
 
-    // Initialize PAT (Page Attribute Table)
-    bool PatAvailable = MiIsPATAvailable();
-    assert(PatAvailable == true);
-    if (PatAvailable) {
-        MiInitializePAT();
+        // Initialize PAT (Page Attribute Table)
+        bool PatAvailable = MiIsPATAvailable();
+        assert(PatAvailable == true);
+        if (PatAvailable) {
+            MiInitializePAT();
+        }
+
+        // Initialize all memory managment routines (PFN Database, VA Space, Pools, MMIO, PTE Database)
+        // If we fail init of one of them, we bugcheck, since they are mandatory for operation.
+        MTSTATUS st = MiInitializePfnDatabase(BootInformation);
+        if (MT_FAILURE(st)) {
+            MeBugCheckEx(
+                PFN_DATABASE_INIT_FAILURE,
+                (void*)(uintptr_t)st,
+                NULL,
+                NULL,
+                NULL
+            );
+        }
+
+        if (!MiInitializePoolVaSpace()) {
+            MeBugCheck(VA_SPACE_INIT_FAILURE);
+        }
+
+        st = MiInitializePoolSystem();
+        if (MT_FAILURE(st)) {
+            MeBugCheckEx(
+                POOL_INIT_FAILURE,
+                (void*)(uintptr_t)st,
+                NULL,
+                NULL,
+                NULL
+            );
+        }
+
+        // Phase 1 Done.
+        return true;
     }
-
-    // Initialize all memory managment routines (PFN Database, VA Space, Pools, MMIO, PTE Database)
-    // If we fail init of one of them, we bugcheck, since they are mandatory for operation.
-    MTSTATUS st = MiInitializePfnDatabase(BootInformation);
-    if (MT_FAILURE(st)) {
-        MeBugCheckEx(
-            PFN_DATABASE_INIT_FAILURE,
-            (void*)(uintptr_t)st,
-            NULL,
-            NULL,
-            NULL
-        );
+    else {
+        // Only phase 1 is supported currently.
+        MeBugCheck(INVALID_INITIALIZATION_PHASE);
     }
-
-    if (!MiInitializePoolVaSpace()) {
-        MeBugCheck(VA_SPACE_INIT_FAILURE);
-    }
-
-    st = MiInitializePoolSystem();
-    if (MT_FAILURE(st)) {
-        MeBugCheckEx(
-            POOL_INIT_FAILURE,
-            (void*)(uintptr_t)st,
-            NULL,
-            NULL,
-            NULL
-        );
-    }
-
-    // All memory is initialized, return true.
-    return true;
 }

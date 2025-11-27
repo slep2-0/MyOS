@@ -232,7 +232,7 @@ MiAllocatePoolVa(
 
     Notes:
 
-        If **NonPagedPool** ->>> The returned VA is NOT mapped, and is NOT backed by ANY pfn. 
+        The returned VA is not mapped to any physical memory.
 
 --*/
 
@@ -400,7 +400,9 @@ MiFreePoolVaContiguous(
         bitmap = g_NonpagedPoolVaBitmap;
     }
     else {
-        // BITMAP FIXME
+        poolBase = MI_PAGED_POOL_BASE;
+        poolEnd = MI_PAGED_POOL_END;
+        bitmap = g_PagedPoolVaBitmap;
         return;
     }
 

@@ -6,22 +6,25 @@
 
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
+#include "../../includes/ps.h"
+#include "../../assert.h"
 
 //Statically made DPC Routines.
 
 void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
     UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg2); UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
-    gop_printf(COLOR_RED, "Freezing...\n");
-    FREEZE();
     MeGetCurrentProcessor()->schedulePending = true;
 }
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* isStatic) {
     UNREFERENCED_PARAMETER(dpc);
-    PETHREAD t = (PETHREAD)thread;
-    // We must clean in order, first the stack THEN the thread.
-    // TODO Change to MiFreeStack(THREAD_TYPE, PTR)
-    //MmFreePool(t->InternalThread.StackBase);
+    PITHREAD t = (PITHREAD)thread;
+
+    // If the thread is a kernel thread (owned by the System process), we free its stack here.
+    if (PsIsKernelThread(PsGetEThreadFromIThread(t))) {
+        MiFreeKernelStack(t->StackBase, t->IsLargeStack);
+    }
+
     MmFreePool(t);
 
     // Finally, free the DPC allocated.
@@ -132,7 +135,15 @@ MeEndDpcProcessing (void)
     (void)InterlockedExchangeU8((volatile uint8_t*)&cpu->DeferredRoutineActive, 0);
 }
 
+
 static DPC* reverse_list(DPC* head) {
+    if (!MmIsAddressPresent((uintptr_t)head)) {
+        MeBugCheckEx(MANUALLY_INITIATED_CRASH,
+            (void*)RETADDR(0),
+            (void*)head,
+            NULL,
+            (void*)0xBEEF);
+    }
     DPC* prev = NULL;
     while (head) {
         DPC* next = head->Next;
@@ -165,6 +176,7 @@ MeRetireDPCs (void)
 --*/
 
 {
+    assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
     PDPC_QUEUE queue = &MeGetCurrentProcessor()->DeferredRoutineQueue;
 
     // quick check: if both main queue and all pending buckets empty, we just return.
@@ -225,10 +237,12 @@ MeRetireDPCs (void)
         }
         // Clear linkage and queued marker while still under lock so callback can requeue.
         d->Next = NULL;
-        __atomic_store_n(&d->Queued, (uint8_t)0, __ATOMIC_RELEASE);
 
         // release lock so callback can queue new DPCs if needed
         MsReleaseSpinlock(&queue->lock, flags);
+
+        // Clear QUEUED state, before execution (so use after frees of DPC WILL NOT happen)
+        __atomic_store_n(&d->Queued, (uint8_t)0, __ATOMIC_RELEASE);
 
         // STILL at DISPATCH_LEVEL
         if (d->CallbackRoutine) {
