@@ -156,3 +156,36 @@ _MeSetIrql (
     update_apic_irqs(NewIrql);
     if (prev_if) __sti();
 }
+
+bool
+MeDisableInterrupts(
+    void
+)
+
+
+
+{
+    bool prev_if = interrupts_enabled();
+    __cli();
+    return prev_if;
+}
+
+void
+MeEnableInterrupts(
+    IN bool EnabledBefore
+)
+
+
+
+{
+    if (EnabledBefore) __sti();
+}
+
+bool
+MeAreInterruptsEnabled(
+    void
+)
+
+{
+    return interrupts_enabled();
+}

@@ -76,20 +76,18 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		cpus[i].lapic_ID = aid;
 
 		// Allocate stack -- aligned 16.
-		// FIXME TODO MiCreateKernelStack.
-		void* stack = MmAllocatePoolWithTag(NonPagedPool, CPU_STACK_SIZE, ' UPC');
-		void* stackTop = (void*)((uint64_t)stack + CPU_STACK_SIZE);
-		cpus[i].VirtStackTop = stackTop;
+		void* stack = MiCreateKernelStack(true);
+		cpus[i].VirtStackTop = stack;
 		
 		// allocate tss
 		void* tss = MmAllocatePoolWithTag(NonPagedPool, sizeof(TSS), ' sst'); // If fails on here, check alignment (16 byte)
 		cpus[i].tss = tss;
 
 		// setup the IST stacks.
-		void* istpf = MmAllocatePoolWithTag(NonPagedPool, IST_SIZE, ' UPC');
-		void* istdf = MmAllocatePoolWithTag(NonPagedPool, IST_SIZE, ' UPC');
-		void* istTimer = MmAllocatePoolWithTag(NonPagedPool, IST_SIZE, ' UPC');
-		void* istIpi = MmAllocatePoolWithTag(NonPagedPool, IST_SIZE, ' UPC');
+		void* istpf = MiCreateKernelStack(false);
+		void* istdf = MiCreateKernelStack(false);
+		void* istTimer = MiCreateKernelStack(false);
+		void* istIpi = MiCreateKernelStack(false);	
 #ifdef DEBUG
 		if (!istpf || !istdf) {
 			MeBugCheck(MEMORY_LIMIT_REACHED);
@@ -113,7 +111,6 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		cpus[i].gdt = gdt;
 
 		// DPCs & Queue
-		cpus[i].DeferredRoutineQueue.dpcQueueHead = cpus[i].DeferredRoutineQueue.dpcQueueTail = NULL;
 		kmemset(&cpus[i].CurrentDeferredRoutine, 0, sizeof(cpus[i].CurrentDeferredRoutine));
 
 	}

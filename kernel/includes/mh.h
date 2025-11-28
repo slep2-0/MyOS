@@ -68,6 +68,7 @@ typedef enum _CPU_ACTION {
 	CPU_ACTION_PERFORM_TLB_SHOOTDOWN = 2,
 	CPU_ACTION_WRITE_DEBUG_REGS = 3,
 	CPU_ACTION_CLEAR_DEBUG_REGS = 4,
+    CPU_ACTION_DO_DEFERRED_ROUTINES = 5,
 } CPU_ACTION;
 
 enum MADT_TYPES {
@@ -582,6 +583,11 @@ MiAlignmentCheck(
 void 
 MiMachineCheck(
 	PTRAP_FRAME trap
+);
+
+void
+MhRequestSoftwareInterrupt(
+    IN IRQL RequestIrql
 );
 
 MTSTATUS MhInitializeACPI(void);

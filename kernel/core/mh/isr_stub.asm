@@ -96,60 +96,36 @@ isr_common_stub64:
     add     rsp, 8
 
 extern Schedule
-extern MeBeginDpcProcessing ; per cpu func
-extern MeEndDpcProcessing ; per cpu func
-extern MeRaiseIrql
-extern MeLowerIrql
 
 .dpc:
-    ; Attempt to become the CPU's DPC processor, if we fail, just exit.
-    sub rsp, 8 ; Align
-    call MeBeginDpcProcessing
-    add rsp, 8
-    test rax, rax
-    jz .exit ; Somebody else already is processing DPCs on this CPU, exit.
+    ; First check if we are at DISPATCH_LEVEL, if so, we are allowed to retire.
+    cmp byte gs:[PROCESSOR_currentIrql], DISPATCH_LEVEL
 
+    ; Processor at DISPATCH_LEVEL, allowed to retire.
+    je .allowed_to_retire
+
+    ; Not allowed to retire DPCs, attempt to schedule if allowed & quantum expiration.
+    jmp .check_for_schedule
+
+.allowed_to_retire
     ; Do not enable interrupts, we only enable interrupts when the context is being executed so we can check it's timer. (when we implement a DPC Timeout TODO)
-    
-    ; Raise IRQL to DISPATCH_LEVEL
-    sub rsp, 16
-    mov edi, DISPATCH_LEVEL ; NewIrql - DISPATCH_LEVEL
-    lea rsi, [rsp] ; &OldIrql
-
-    call MeRaiseIrql
-
     ; Finally, retire the DPCs. (all DPCs must return, if not - bugcheck)
     sub rsp, 8
     call MeRetireDPCs
     add rsp, 8 
 
-    ; Lower the IRQL back.
-    movzx edi, byte [rsp] ; *&OldIrql at stack
-
-    sub rsp, 8
-    call MeLowerIrql
-    add rsp, 8
-
-    ; Restore back the stack to its original point.
-    add rsp, 16
-
-    ; After retiring, always clear the flag.
-    sub rsp, 8
-    call MeEndDpcProcessing
-    add rsp, 8
-
+.check_for_schedule
+    ; (if we are at DISPATCH_LEVEL schedulerEnabled should be false)
     ; Now let's check if the scheduler is enabled, so we can't pre-empt the current running thread, even if it's timeslice has expired.
-    mov r15, gs:[0]
-    cmp byte [r15 + PROCESSOR_schedulerEnabled], 0 ; Changed to direct comparison, as the load from before loaded additional 7 bytes after schedulerEnabled, which corrupted it, I hate silent bugs.
+    cmp byte [gs:PROCESSOR_schedulerEnabled], 0 ; Changed to direct comparison, as the load from before loaded additional 7 bytes after schedulerEnabled, which corrupted it, I hate silent bugs.
     jz .exit
 
     ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
-    mov r15, gs:[0] ; &thisCPU
-    cmp byte [r15 + PROCESSOR_schedulePending], 0 ; *(&thisCPU.schedulePending)
+    cmp byte [gs:PROCESSOR_schedulePending], 0 ; *(&thisCPU.schedulePending)
     jz .exit ; No schedule pending...
 
     ; All DPCs retired, and a schedule is pending, Schedule. (and clear the pending flag, so we dont always re-enter)
-    mov byte [r15 + PROCESSOR_schedulePending], 0
+    mov byte [gs:PROCESSOR_schedulePending], 0
 
 ; scheduler routine
 .linkinpark:
@@ -203,13 +179,6 @@ extern MeLowerIrql
 
     ; Return from interrupt. pops all CPU pushed regs from the stack back (5 qwords.)
     iretq
-
-.clear_and_exit:
-    ; Reaching here means we have done all DPCs, but we are not allowed to schedule.
-    sub rsp, 8
-    call MeEndDpcProcessing
-    add rsp, 8
-    jmp .exit
 
 ;---------------------------------------------------------------------------
 ; Instantiate ISRs 0-31 (cpu Exceptions)

@@ -155,6 +155,8 @@ PsIsKernelThread(
 )
 
 {
+    // safety guard, can't believe i had to put it.
+    if (Thread == NULL) return true;
     return (Thread->ParentProcess == &PsInitialSystemProcess);
 }
 

@@ -141,6 +141,16 @@ MsWaitForEvent(
     IN  PEVENT event
 );
 
+void
+MsAcquireSpinlockAtDpcLevel(
+    IN PSPINLOCK Lock
+);
+
+void
+MsReleaseSpinlockFromDpcLevel(
+    IN PSPINLOCK Lock
+);
+
 FORCEINLINE
 void
 InitializeListHead(
@@ -152,6 +162,7 @@ InitializeListHead(
     Head->Blink = Head;
 }
 
+// CRASHES IN THESE FUNCTIONS USUALLY BECAUSE INITIALIZELISTHEAD WASNT USED ON THE DOUBLY LINKED LIST !!!!!!!
 FORCEINLINE
 void
 InsertTailList(
@@ -168,6 +179,26 @@ InsertTailList(
     Blink->Flink = Entry; // Old last node points forward to new entry
     Head->Blink = Entry;  // Head points back to new entry
 }
+
+FORCEINLINE
+void
+InsertHeadList(
+    PDOUBLY_LINKED_LIST Head,
+    PDOUBLY_LINKED_LIST Entry
+)
+{
+    PDOUBLY_LINKED_LIST First;
+
+    // The first element is the one after Head (circular list)
+    First = Head->Flink;
+
+    Entry->Flink = First; // Entry -> next = old first
+    Entry->Blink = Head;  // Entry -> prev = head
+
+    First->Blink = Entry; // old first -> prev = entry
+    Head->Flink = Entry;  // head -> next = entry
+}
+
 
 FORCEINLINE
 PDOUBLY_LINKED_LIST

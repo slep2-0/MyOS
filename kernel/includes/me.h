@@ -169,15 +169,37 @@ typedef struct _DBG_CALLBACK_INFO {
 	uint64_t Dr6;           /* raw DR6 value at time of trap */
 } DBG_CALLBACK_INFO;
 
-#define PENDING_DPC_BUCKETS 16
+// Forward declaration
+struct _DPC;
+
+typedef void (DEFERRED_ROUTINE)(
+	struct _DPC* Dpc,
+	void* DeferredContext,
+	void* SystemArgument1,
+	void* SystemArgument2
+	);
+
+typedef DEFERRED_ROUTINE* PDEFERRED_ROUTINE;
+
 typedef struct _DPC {
-	struct _DPC* Next; /* Next DPC in pending queue */
-	void (*CallbackRoutine)(struct _DPC* arg1, void* arg2, void* arg3, void* arg4);
-	void* Arg1;
-	void* Arg2;
-	void* Arg3;
-	enum _DPC_PRIORITY priority; /* higher runs earlier */
-	_Atomic(uint8_t)Queued;
+	// Next/Prev pointers for doubly linked list of DPCs.
+	DOUBLY_LINKED_LIST DpcListEntry;
+
+	// Pointer to deferred routine.
+	PDEFERRED_ROUTINE DeferredRoutine;
+	void* DeferredContext;
+	void* SystemArgument1;
+	void* SystemArgument2;
+
+	// Points to the DPC_DATA struct of the current processor when queued
+	// If NULL, the DPC is NOT queued.
+	volatile void* DpcData;
+
+	// CPU Number to target
+	uint32_t CpuNumber;
+
+	// Determines if it goes to tail or head of queue.
+	enum _DPC_PRIORITY priority;
 } DPC, *PDPC;
 
 typedef enum _CPU_FLAGS {
@@ -188,12 +210,12 @@ typedef enum _CPU_FLAGS {
 } CPU_FLAGS;
 
 // DPC Embedded struct into CPU.
-typedef struct _DPC_QUEUE {
-	struct _DPC* dpcQueueHead;
-	struct _DPC* dpcQueueTail;
-	struct _SPINLOCK lock;
-	_Atomic(DPC*)pendingHeads[PENDING_DPC_BUCKETS];
-} DPC_QUEUE, * PDPC_QUEUE;
+typedef struct _DPC_DATA {
+	DOUBLY_LINKED_LIST DpcListHead;
+	SPINLOCK DpcLock;
+	volatile uint32_t DpcQueueDepth;
+	volatile uint32_t DpcCount; // Statistics
+} DPC_DATA, *PDPC_DATA;
 
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
@@ -217,7 +239,7 @@ typedef struct _IPROCESS {
 } IPROCESS, *PIPROCESS;
 
 typedef struct _ITHREAD {
-	struct _TRAP_FRAME TrapRegisters;					   // TRAP Registers used for context switching, saving, and alternation.
+	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
 	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel Threads Only)
@@ -229,7 +251,7 @@ typedef struct _ITHREAD {
 } ITHREAD, *PITHREAD;
 
 typedef struct _PROCESSOR {
-	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c
+	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
 	enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which LAPIC & IOAPIC interrupts are masked
 	volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
@@ -243,7 +265,6 @@ typedef struct _PROCESSOR {
 	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU.
 	bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
-	struct _DPC_QUEUE DeferredRoutineQueue; // Deferred Routine queue, used to RetireDPCs that exist after an interrupt
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
 	struct _ETHREAD* idleThread; // Idle thread for the current CPU.
 	volatile uint64_t IpiSeq;
@@ -251,12 +272,23 @@ typedef struct _PROCESSOR {
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
 	volatile uint32_t* LapicAddressVirt; // Virtual address of the Local APIC MMIO Address (mapped)
 	uintptr_t LapicAddressPhys; // Physical address of the Local APIC MMIO
-	volatile bool DeferredRoutineActive; // Per CPU Flag that indicates if the RetireDPCs call is active and retiring DPCs (to prevent re-entracy)
 
 	/* Statically Special Allocated DPCs */
 	struct _DPC TimerExpirationDPC;
 	struct _DPC	ReaperDPC;
 	/* End Statically Special Allocated DPCs */
+
+	// Additional DPC Fields
+	DPC_DATA DpcData;               // The main DPC queue
+	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDpcList
+	volatile bool DpcInterruptRequested; // TRUE if we requested a soft INT but it hasn't fired yet
+	volatile uint32_t TimerRequest;      // Non-zero if timers need processing
+	uintptr_t TimerHand;                 // Context for timer expiration
+
+	// Heuristic fields for performance (Optional, but used in Win2k3)
+	uint32_t MaximumDpcQueueDepth;
+	uint32_t MinimumDpcRate;
+	uint32_t DpcRequestRate;
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -274,7 +306,7 @@ MeGetCurrentProcessor (void)
 	// Routine Description:
 	// This function returns the current address of the PROCESSOR struct. - Note this should only be used in kernel mode with the appropriate GS value.
 {
-	return (PPROCESSOR)__readgsqword(0);
+	return (PPROCESSOR)__readgsqword(0); // Only works because we have a self pointer at offset 0 in the struct.
 }
 
 FORCEINLINE
@@ -321,6 +353,11 @@ MeGetCurrentThread(void)
 	return MeGetCurrentProcessor()->currentThread;
 }
 
+void
+MeInitializeProcessor(
+	IN PPROCESSOR CPU
+);
+
 NORETURN
 void
 MeBugCheck(
@@ -354,8 +391,23 @@ _MeSetIrql(
 );
 
 void
-MeQueueDPC(
-	IN   PDPC dpc
+MeInitializeDpc(
+	IN PDPC DpcAllocated,
+	IN PDEFERRED_ROUTINE DeferredRoutine,
+	IN void* DeferredContext,
+	IN DPC_PRIORITY DeferredPriority
+);
+
+bool
+MeInsertQueueDpc(
+	IN PDPC Dpc,
+	IN void* SystemArgument1,
+	IN void* SystemArgument2
+);
+
+bool
+MeRemoveQueueDpc(
+	IN PDPC Dpc
 );
 
 void
@@ -388,10 +440,19 @@ MeGetPreviousMode(
 	}
 }
 
-int
-MeBeginDpcProcessing(void);
-
 void
-MeEndDpcProcessing(void);
+MeEnableInterrupts(
+	IN bool EnabledBefore
+);
+
+bool
+MeDisableInterrupts(
+	void
+);
+
+bool
+MeAreInterruptsEnabled(
+	void
+);
 
 #endif

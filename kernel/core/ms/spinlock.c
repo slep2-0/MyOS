@@ -81,4 +81,53 @@ MsReleaseSpinlock (
 	MeLowerIrql(OldIrql);
 }
 
+void
+MsAcquireSpinlockAtDpcLevel(
+	IN PSPINLOCK Lock
+)
+
+{
+	// Make sure we are at DPC level or above
+	if (MeGetCurrentIrql() < DISPATCH_LEVEL) {
+		// Bugcheck.
+		MeBugCheckEx(
+			IRQL_NOT_GREATER_OR_EQUAL,
+			(void*)Lock,
+			(void*)MeGetCurrentIrql(),
+			NULL,
+			NULL
+		);
+	}
+	
+	// Acquire the spinlock.
+	while (__sync_lock_test_and_set(&Lock->locked, 1)) {
+		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+	}
+	// Memory barrier to prevent instruction reordering
+	__asm__ volatile("" ::: "memory");
+}
+
+void
+MsReleaseSpinlockFromDpcLevel(
+	IN PSPINLOCK Lock
+)
+
+{
+	// Make sure we are at DPC level or above
+	if (MeGetCurrentIrql() < DISPATCH_LEVEL) {
+		// Bugcheck.
+		MeBugCheckEx(
+			IRQL_NOT_GREATER_OR_EQUAL,
+			(void*)Lock,
+			(void*)MeGetCurrentIrql(),
+			NULL,
+			NULL
+		);
+	}
+
+	// Release the spinlock.
+	__asm__ volatile("" ::: "memory");
+	__sync_lock_release(&Lock->locked);
+}
+
 #endif

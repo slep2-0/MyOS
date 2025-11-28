@@ -360,7 +360,7 @@ typedef struct _MMPTE
             uint64_t Transition : 1;         // 1 = Page is in transition (has PFN) (used for StandBy List)
             uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
-            uint64_t Reserved : 7;           // Software-defined bits
+            uint64_t Reserved : 7;           // i'm sorry, h.c
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
             uint64_t SoftwareFlags : 20;     // e.g. protection mask, pool type
             uint64_t NoExecute : 1;          // NX still meaningful in software
@@ -385,12 +385,11 @@ typedef struct _PFN_ENTRY {
         } Mapping;
 
         // State: PfnStateStandby or PfnStateModified (for file backed pages) (Used when - SEMI-ACTIVE, PAGED TO DISK, NOT IN CURRENT USE)
-        uintptr_t FileOffset;
+        uint64_t FileOffset; // Offset of 4KiB pages in pagefile.mtsys
 
     } Descriptor;
 } PFN_ENTRY, *PPFN_ENTRY;
 
-// Memory manager
 typedef struct _MM_PFN_LIST {
     struct _DOUBLY_LINKED_LIST ListEntry;       // List Head
     volatile uint64_t Count;                    // Number of pages in this list.

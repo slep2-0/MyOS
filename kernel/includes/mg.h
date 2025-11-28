@@ -61,4 +61,7 @@ char* kstrtok_r(char* str, const char* delim, char** save_ptr);
 char* kstrncat(char* dest, const char* src, size_t max_len);
 
 
+void MgAcquireExclusiveGopOwnerShip(void);
+void MgReleaseExclusiveGopOwnerShip(void);
+
 #endif

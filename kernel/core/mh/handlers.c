@@ -56,13 +56,8 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
     // Save the thread's context.
     currentThread->TrapRegisters = *trap;
 
-    // Queue the DPC
-    DPC* schedDpc = &cpu->TimerExpirationDPC;
-
-    // Ensure priority is set.
-    schedDpc->priority = HIGH_PRIORITY;
-
-    MeQueueDPC(schedDpc);
+    // Request schedule.
+    cpu->schedulePending = true;
 }
 
 extern void lapic_eoi(void);
@@ -137,6 +132,9 @@ void MiInterprocessorInterrupt (
                 break;
             }
         }
+    case CPU_ACTION_DO_DEFERRED_ROUTINES:
+        // This is a NO-OP, since DPCs WILL be executed when we just return.
+        break;
     }
 
     InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
@@ -144,6 +142,9 @@ void MiInterprocessorInterrupt (
         InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
         cpu->IpiSeq = 0; // Signal completion for non-halting actions.
     }
+
+    // Signal End-Of-Interrupt to LAPIC.
+    lapic_eoi();
 }
 
 void 

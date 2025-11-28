@@ -140,8 +140,7 @@ long_mode_entry:
     mov gs, ax
     mov ss, ax
 
-    ; set a stack
-    mov rsp, 0x8000 ; (mapped in AP_TRAMP_PHYS, will be set to the allocated ptr later)
+    ; Set to OUR stack that was allocated by the prepare_percpu routine.
 
     mov rsi, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET
     mov rax, qword [rsi] ; it is mapped

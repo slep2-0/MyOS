@@ -1,6 +1,7 @@
 #include "../../includes/me.h"
 #include "../../includes/mh.h"
 #include "../../includes/mm.h"
+#include "../../assert.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -186,3 +187,56 @@ int init_lapic_timer(uint32_t hz) {
     return 0;
 }
 
+void
+MhRequestSoftwareInterrupt(
+    IN IRQL RequestIrql
+)
+
+/*++
+
+    Routine description : 
+
+        This function is used to request a software interrupt to the current processor.
+
+    Arguments:
+
+        [IN]    IRQL RequstIrql - The IRQL value to request an interrupt for.
+
+    Return Values:
+
+        None.
+
+    Note:
+
+        The only IRQL supported currently is DISPATCH_LEVEL
+
+--*/
+
+{
+    bool prev_if;
+
+    // We only support DISPATCH_LEVEL.
+    assert(RequestIrql == DISPATCH_LEVEL);
+
+    // Disable interrupts, and save IF flag.
+    prev_if = MeDisableInterrupts();
+
+    // wait until previous ICR is not busy
+    lapic_wait_icr();
+
+    // Write the intended action to our IPI handler.
+    MeGetCurrentProcessor()->IpiAction = CPU_ACTION_DO_DEFERRED_ROUTINES;
+
+    // For a self IPI we can use the destination shorthand
+    uint32_t icr_low = (uint32_t)LAPIC_ACTION_VECTOR | (1U << 18);
+
+    // ICR high is ignored when shorthand is used, but zero it for clarity.
+    lapic_mmio_write(LAPIC_ICR_HIGH, 0);
+    lapic_mmio_write(LAPIC_ICR_LOW, icr_low);
+
+    // wait for delivery to complete
+    lapic_wait_icr();
+
+    // restore interrupts
+    MeEnableInterrupts(prev_if);
+}

@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -161,7 +162,7 @@ extern "C" {
 
     // Boolean
     static inline bool InterlockedExchangeBool(volatile bool* target, bool value) {
-        return __atomic_exchange_n(target, value, ATOMIC_ORDER);
+        return __atomic_exchange_n(target, value, __ATOMIC_SEQ_CST);
     }
 
     /* Pointer convenience wrappers */

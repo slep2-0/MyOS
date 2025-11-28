@@ -9,94 +9,6 @@
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
 #endif
 
-
-#define OFFSET_NESTED(st, member, inner_st, inner_member) \
-    (offsetof(st, member) + offsetof(inner_st, inner_member))
-
-#define PRINT_OFFSETS_AND_HALT()                                      \
-    do {                                                              \
-        gop_printf(COLOR_ORANGE,                                      \
-            "(offsets 24/9/2025) (CPU OFFSETS)\n"                     \
-            "self: %x\n"                                              \
-            "currentIrql: %x\n"                                       \
-            "schedulerEnabled: %x\n"                                  \
-            "currentThread: %x\n"                                     \
-            "readyQueue: %x\n"                                        \
-            "ID: %x\n"                                                \
-            "lapic_ID: %x\n"                                          \
-            "VirtStackTop: %x\n"                                      \
-            "tss: %x\n"                                               \
-            "IstPFStackTop: %x\n"                                     \
-            "IstDFStackTop: %x\n"                                     \
-            "flags: %x\n"                                             \
-            "schedulePending: %x\n"                                   \
-            "gdt: %x\n"                                               \
-            "DeferredRoutineQueue.dpcQueueHead: %x\n"                 \
-            "DeferredRoutineQueue.dpcQueueTail: %x\n",                \
-            offsetof(CPU, self),                        \
-            offsetof(CPU, currentIrql),                 \
-            offsetof(CPU, schedulerEnabled),            \
-            offsetof(CPU, currentThread),               \
-            offsetof(CPU, readyQueue),                  \
-            offsetof(CPU, ID),                          \
-            offsetof(CPU, lapic_ID),                    \
-            offsetof(CPU, VirtStackTop),                \
-            offsetof(CPU, tss),                         \
-            offsetof(CPU, IstPFStackTop),               \
-            offsetof(CPU, IstDFStackTop),               \
-            offsetof(CPU, flags),                       \
-            offsetof(CPU, schedulePending),             \
-            offsetof(CPU, gdt),                         \
-            OFFSET_NESTED(CPU, DeferredRoutineQueue, struct _DPC_QUEUE, dpcQueueHead), \
-            OFFSET_NESTED(CPU, DeferredRoutineQueue, struct _DPC_QUEUE, dpcQueueTail)  \
-        );                                                            \
-                                                                       \
-        gop_printf(COLOR_CYAN,                                        \
-            "(THREAD OFFSETS from - Thread)\n"                                       \
-            "registers: %x\n"                                         \
-            "threadState: %x\n"                                       \
-            "timeSlice: %x\n"                                         \
-            "origTimeSlice: %x\n"                                     \
-            "nextThread: %x\n"                                        \
-            "TID: %x\n"                                                \
-            "startStackPtr: %x\n"                                     \
-            "registers themselves (offsets from CTX_FRAME):\n"                           \
-            " RAX: %x | RBX: %x | RCX: %x | RDX: %x | RSI: %x | RDI: %x | RBP: %x |\n" \
-            " R8: %x | R9: %x | R10: %x | R11: %x | R12: %x | R13: %x |\n" \
-            " R14: %x | R15: %x | RSP: %x | RIP: %x | ",               \
-            offsetof(Thread, registers),                \
-            offsetof(Thread, threadState),              \
-            offsetof(Thread, timeSlice),                \
-            offsetof(Thread, origTimeSlice),            \
-            offsetof(Thread, nextThread),               \
-            offsetof(Thread, TID),                      \
-            offsetof(Thread, startStackPtr),           \
-            offsetof(CTX_FRAME, rax),                   \
-            offsetof(CTX_FRAME, rbx),                   \
-            offsetof(CTX_FRAME, rcx),                   \
-            offsetof(CTX_FRAME, rdx),                   \
-            offsetof(CTX_FRAME, rsi),                   \
-            offsetof(CTX_FRAME, rdi),                   \
-            offsetof(CTX_FRAME, rbp),                   \
-            offsetof(CTX_FRAME, r8),                    \
-            offsetof(CTX_FRAME, r9),                    \
-            offsetof(CTX_FRAME, r10),                   \
-            offsetof(CTX_FRAME, r11),                   \
-            offsetof(CTX_FRAME, r12),                   \
-            offsetof(CTX_FRAME, r13),                   \
-            offsetof(CTX_FRAME, r14),                   \
-            offsetof(CTX_FRAME, r15),                   \
-            offsetof(CTX_FRAME, rsp),                   \
-            offsetof(CTX_FRAME, rip)                    \
-        );                                                            \
-                                                                       \
-        gop_printf(COLOR_CYAN, "RFLAGS: %x |\n",                       \
-            offsetof(CTX_FRAME, rflags)                 \
-        );                                                            \
-                                                                       \
-        __hlt();                                                      \
-    } while (0)
-
 /**
 Global variables initialization
 **/
@@ -201,15 +113,6 @@ void InitialiseControlRegisters(void) {
         // reset all
         __write_dr(i, 0);
     }
-}
-
-static void InitCPU(void) {
-    cpu0.self = &cpu0;
-    cpu0.currentIrql = PASSIVE_LEVEL;
-    cpu0.schedulerEnabled = NULL; // since NULL is 0, it would be false.
-    cpu0.currentThread = NULL;
-    cpu0.readyQueue.head = cpu0.readyQueue.tail = NULL;
-    // Function Trace Buffer
 }
 
 static inline bool interrupts_enabled(void) {
@@ -326,8 +229,7 @@ extern uint8_t bss_end;
 __attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
     // 1. CORE SYSTEM INITIALIZATION
-    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpu0);
-    __swapgs();
+    __writemsr(IA32_GS_BASE, (uint64_t)&cpu0);
     __cli();
     // Initialize the CR (Control Registers) registers to our settings.
     InitialiseControlRegisters();
@@ -338,7 +240,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_boot_info(boot_info);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     // Initialize the global CPU struct.
-    InitCPU();
+    MeInitializeProcessor(&cpu0);
     // Initialize interrupts & exceptions.
     init_interrupts();
 
@@ -380,10 +282,8 @@ void kernel_main(BOOT_INFO* boot_info) {
         }
     }
 #endif
-    /* Initiate Scheduler and DPCs */
+    /* Initiate Scheduler */
     InitScheduler();
-    MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueHead = MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueTail = NULL;
-    ///PRINT_OFFSETS_AND_HALT();
     uint64_t rip;
     __asm__ volatile (
         "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
@@ -448,15 +348,15 @@ void kernel_main(BOOT_INFO* boot_info) {
     lapic_timer_calibrate();
     init_lapic_timer(100); // 10ms, must be called before other APs
     /* Enable SMP */
-    //status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
+    status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
-      //  gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
+        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
     }
     else {
-      //  MhInitializeSMP(apic_list, 4, lapicAddress);
+        MhInitializeSMP(apic_list, 4, lapicAddress);
     }
-    //IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
-    //MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
+    IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
+    MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
     __sti();
     Schedule();
     for (;;) __hlt();

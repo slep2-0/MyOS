@@ -7,10 +7,14 @@
 #include "gop.h"
 #define FONT8X16_IMPLEMENTATION
 #include "font8x16.h"
-
+#include "../../intrinsics/atomic.h"
+#include "../../includes/me.h"
+#include "../../includes/macros.h"
 
  // integer font scale (1 = native 8×16, 2 = 16×32, etc)
 #define FONT_SCALE 1
+
+volatile void* ExclusiveOwnerShip = NULL;
 
 static inline bool gop_params_valid(const GOP_PARAMS* gop) {
     if (!gop) return false;
@@ -638,6 +642,11 @@ static void release_tmp_lock(SPINLOCK* lock) {
 }
 
 void gop_printf(uint32_t color, const char* fmt, ...) {
+    // Check for exclusive ownership, if there is none, continue, if we are the owner, continue, if we are not the owner, return.
+    // Used with unlikely macro since this is only present in bugchecking or other high level scenarios.
+    void* owner = InterlockedCompareExchangePointer((volatile void* volatile*)&ExclusiveOwnerShip, NULL, NULL);
+    if (unlikely(owner && owner != MeGetCurrentProcessor())) return;
+
     bool prev_if = interrupts_enabled();
     acquire_tmp_lock(&gop_lock);
     __cli();
@@ -679,4 +688,14 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     va_end(ap);
     release_tmp_lock(&gop_lock);
     if (prev_if) __sti();
+}
+
+void MgAcquireExclusiveGopOwnerShip(void) {
+    // Set the pointer of exclusive ownership.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, (void*)MeGetCurrentProcessor());
+}
+
+void MgReleaseExclusiveGopOwnerShip(void) {
+    // Trust the caller, just set the ExclusiveOwnerShip pointer to NULL.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, NULL);
 }

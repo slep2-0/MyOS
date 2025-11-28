@@ -3,7 +3,7 @@
 #include "../../includes/me.h"
 
 extern SMP_BOOTINFO bootInfo;
-extern PPROCESSOR cpus[];
+extern PROCESSOR cpus[];
 
 extern IDT_PTR PIDT;
 
@@ -75,15 +75,6 @@ static void setup_gdt_tss(void) {
     __asm__ volatile("ltr %w0" :: "r"(sel));
 }
 
-static void InitPerCPU(void) {
-    MeGetCurrentProcessor()->self = MeGetCurrentProcessor();
-    MeGetCurrentProcessor()->currentIrql = PASSIVE_LEVEL;
-    MeGetCurrentProcessor()->schedulerEnabled = NULL; // since NULL is 0, it would be false.
-    MeGetCurrentProcessor()->currentThread = NULL;
-    MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
-    MeGetCurrentProcessor()->readyQueue.lock.locked = 0;
-}
-
 static inline uint8_t get_initial_apic_id(void) {
     uint32_t eax, ebx, ecx, edx;
 
@@ -103,22 +94,21 @@ void APMain(void) {
     uint8_t id = get_initial_apic_id();
 
 	for (int i = 0; i < (int)bootInfo.cpu_count && i < MAX_CPUS; i++) {
-		if (cpus[i]->lapic_ID == id) { idx = i; break; }
+		if (cpus[i].lapic_ID == id) { idx = i; break; }
 	}
 
 	if (idx < 0) {
         gop_printf(COLOR_RED, "Fatal error, AP Failed to initialize, index below 0.\n");
         __hlt();
 	}
-    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[idx]);
-    __swapgs();
+    __writemsr(IA32_GS_BASE, (uint64_t)&cpus[idx]);
 	setup_gdt_tss();
 
     // Self invalidate all TLBs
-    __asm__ volatile("mov %%cr3, %%rax; mov %%rax, %%cr3" : : : "rax", "memory");
+    MiReloadTLBs();
 
     // set RSP to per CPU stack.
-    void* stack_top = cpus[idx]->VirtStackTop;
+    void* stack_top = cpus[idx].VirtStackTop;
     __asm__ volatile("mov %0, %%rsp" :: "r"(stack_top));
 
     // Now setup the IDT for the CPU. (load the one setupped by the smp func)
@@ -127,19 +117,12 @@ void APMain(void) {
 extern void InitialiseControlRegisters(void);
 
     // Initiate per cpu functions.
-    InitPerCPU();
-
-    /* Initiate the lastfunc buffer for the BSP, placed here since after init_heap call */
-    //LASTFUNC_HISTORY* bfr = MtAllocateVirtualMemory(sizeof(LASTFUNC_HISTORY), _Alignof(LASTFUNC_HISTORY));
-    //thisCPU()->lastfuncBuffer = bfr;
-    //thisCPU()->lastfuncBuffer->current_index = -1; // init to -1
-
+    MeInitializeProcessor(MeGetCurrentProcessor());
     
-    MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueHead = MeGetCurrentProcessor()->DeferredRoutineQueue.dpcQueueTail = NULL;
     InitialiseControlRegisters();
 	// mark as online and clear being unavailable
-	InterlockedOrU64(&cpus[idx]->flags, CPU_ONLINE); 
-    InterlockedAndU64(&cpus[idx]->flags, ~CPU_UNAVAILABLE);   // clear unavailable
+	InterlockedOrU64(&cpus[idx].flags, CPU_ONLINE); 
+    InterlockedAndU64(&cpus[idx].flags, ~CPU_UNAVAILABLE);   // clear unavailable
     gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, stack_top, MeGetCurrentProcessor());
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();

@@ -214,8 +214,17 @@ MeBugCheck(
     }
     // Disable interrupts if they werent disabled before.
     __cli();
-    // atomically set isBugChecking
-    InterlockedExchangeBool(&isBugChecking, 1);
+
+    // atomically check & set isBugChecking
+    bool prev = InterlockedExchangeBool(&isBugChecking, true);
+
+    if (prev == 1) {
+        __hlt();   // someone set isBugChecking before us, we just halt, let em do their thing.
+    }
+
+    // Acquire exclusive ownership to this processor for framebuffer access.
+    MgAcquireExclusiveGopOwnerShip();
+
 #ifdef DEBUG
     IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
 #endif
@@ -292,8 +301,17 @@ MeBugCheckEx (
         IPI_PARAMS dummy = { 0 };
         MhSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
     }
-    // atomically set isBugChecking
-    InterlockedExchangeBool(&isBugChecking, 1);
+
+    // atomically check & set isBugChecking
+    bool prev = InterlockedExchangeBool(&isBugChecking, true);
+
+    if (prev == 1) {
+        while (1) __hlt();
+    }
+
+    // Acquire exclusive ownership to this processor for framebuffer access.
+    MgAcquireExclusiveGopOwnerShip();
+
 #ifdef DEBUG
     IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
 #endif

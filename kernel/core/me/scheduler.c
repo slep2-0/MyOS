@@ -7,6 +7,7 @@
 #include "../../includes/me.h"
 #include "../../assert.h"
 #include "../../includes/ps.h"
+#include "../../includes/mg.h"
 extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
@@ -114,13 +115,9 @@ Schedule(void) {
                 assert(false);
                 MeBugCheck(MANUALLY_INITIATED_CRASH);
             }
-            allocatedDPC->CallbackRoutine = CleanStacks;
-            allocatedDPC->Arg1 = prev;
-            allocatedDPC->Arg2 = allocatedDPC;
-            allocatedDPC->Arg3 = false;
-            allocatedDPC->Next = NULL; 
-            allocatedDPC->priority = MEDIUM_PRIORITY;
-            MeQueueDPC(allocatedDPC);
+            // Initialize the DPC. (at LOW_PRIORITY, we dont want execution after unless depth is too large)
+            MeInitializeDpc(allocatedDPC, CleanStacks, NULL, LOW_PRIORITY);
+            MeInsertQueueDpc(allocatedDPC, (void*)prev, (void*)allocatedDPC);
             prev->ThreadState = THREAD_ZOMBIE;
         }
         prev = NULL;
