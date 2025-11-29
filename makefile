@@ -2,13 +2,14 @@
 TOOLCHAIN_PATH = tools64/bin
 
 ASM = nasm
+HOST_CC = gcc
 CC = $(TOOLCHAIN_PATH)/x86_64-elf-gcc
 LD = $(TOOLCHAIN_PATH)/x86_64-elf-ld
 OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 
 # Flags
-ASMFLAGS_ELF = -f elf64
-ASMFLAGS_BIN = -f bin
+ASMFLAGS_ELF = -f elf64 -Ibuild/
+ASMFLAGS_BIN = -f bin -Ibuild/
 
 # Base CFLAGS (no optimization level hardcoded here)
 CFLAGS = -std=gnu11 \
@@ -18,7 +19,7 @@ CFLAGS = -std=gnu11 \
          -fno-omit-frame-pointer \
          -Wno-unused-function \
          -Wall -Wextra -Werror -Wmissing-prototypes \
-         -Wstrict-prototypes -Wshadow -Wcast-align \
+         -Wstrict-prototypes -Wno-multichar -Wshadow -Wcast-align \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -fno-pie -fno-pic
 
@@ -27,7 +28,7 @@ SCHED_EXTRA = -fno-optimize-sibling-calls
 
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
-    CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection
+    CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection -Wstack-usage=4096 # Larger than 4KiB and we will get a compile hard error.
 else
     CFLAGS += -O2
 endif
@@ -53,38 +54,46 @@ clearlog:
 	@echo "" > log.txt
 
 clean:
-	rm -f build/*.o build/*.elf build/os-image.img
+	rm -f build/*.o build/*.elf build/os-image.img build/gen_offsets build/offsets.inc
 
 # Compile C files with common CFLAGS
 build/kernel.o: kernel/kernel.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/idt.o: kernel/core/interrupts/idt.c
+build/idt.o: kernel/core/mh/idt.c
 	mkdir -p build
 	$(CC) $(CFLAGS)  $< -o $@ >> log.txt 2>&1
 
-build/isr.o: kernel/core/interrupts/isr.c
+build/isr.o: kernel/core/mh/isr.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/handlers.o: kernel/core/interrupts/handlers/handlers.c
+build/handlers.o: kernel/core/mh/handlers.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/memory.o: kernel/core/memory/memory.c
+build/pfn.o: kernel/core/mm/pfn.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/paging.o: kernel/core/memory/paging/paging.c
+build/map.o: kernel/core/mm/map.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/va.o: kernel/core/mm/va.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/vad.o: kernel/core/mm/vad.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/bugcheck.o: kernel/core/bugcheck/bugcheck.c
+build/bugcheck.o: kernel/core/me/bugcheck.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/allocator.o: kernel/core/memory/allocator/allocator.c
+build/hypermap.o: kernel/core/mm/hypermap.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
@@ -104,24 +113,19 @@ build/gop.o: kernel/drivers/gop/gop.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/irql.o: kernel/core/irql/irql.c
+build/irql.o: kernel/core/me/irql.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/scheduler.o: kernel/core/scheduler/scheduler.c
+build/scheduler.o: kernel/core/me/scheduler.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/dpc.o: kernel/core/dpc/dpc.c
+build/dpc.o: kernel/core/me/dpc.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/thread.o: kernel/core/thread/thread.c
-	mkdir -p build
-	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
-
-# DPC list can use common CFLAGS
-build/dpc_list.o: kernel/core/dpc/dpc_list.c
+build/thread.o: kernel/core/ps/thread.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
@@ -129,64 +133,109 @@ build/vfs.o: kernel/filesystem/vfs/vfs.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/pit.o: kernel/cpu/apic/pit.c
+build/pit.o: kernel/core/mh/pit.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/apic.o: kernel/cpu/apic/apic.c
+build/apic.o: kernel/core/mh/apic.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/mutex.o: kernel/core/mutex/mutex.c
+build/mutex.o: kernel/core/ms/mutex.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/events.o: kernel/core/events/events.c
+build/events.o: kernel/core/ms/events.c
 	mkdir -p build
 	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
 
-build/debugfunctions.o: kernel/debug/debugfunctions.c
+build/debugfunctions.o: kernel/core/md/debugfunctions.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/smp.o: kernel/cpu/smp/smp.c
+build/smp.o: kernel/core/mh/smp.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/ap_main.o: kernel/cpu/smp/ap_main.c
+build/ap_main.o: kernel/core/mh/ap_main.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 	
-build/acpi.o: kernel/core/acpi/acpi.c
+build/acpi.o: kernel/core/mh/acpi.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/process.o: kernel/core/ps/process.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/rundown.o: kernel/core/ms/rundown.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/spinlock.o: kernel/core/ms/spinlock.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/pool.o: kernel/core/mm/pool.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/fault.o: kernel/core/mm/fault.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/mminit.o: kernel/core/mm/mminit.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/mmio.o: kernel/core/mm/mmio.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/mmproc.o: kernel/core/mm/mmproc.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/meinit.o: kernel/core/me/meinit.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+# Define the Offset generator
+build/gen_offsets: kernel/gen_offsets.c
+	mkdir -p build
+	$(HOST_CC) -m64 -I. -o $@ $<
+
+# Run the tool to create the include file
+build/offsets.inc: build/gen_offsets
+	./build/gen_offsets > build/offsets.inc
 
 # Assemble ASM to ELF
-build/kernel_entry.o: kernel/kernel_entry.asm
+build/kernel_entry.o: kernel/kernel_entry.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/isr_stub.o: kernel/core/interrupts/isr_stub.asm
+build/isr_stub.o: kernel/core/mh/isr_stub.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/capture_registers.o: kernel/intrinsics/capture_registers.asm
+build/capture_registers.o: kernel/intrinsics/capture_registers.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/context.o: kernel/core/scheduler/context.asm
+build/context.o: kernel/core/me/context.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/cpuid.o: kernel/cpu/cpuid/cpuid.asm
+build/cpuid.o: kernel/core/mh/cpuid.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
-build/mutex_asm.o: kernel/core/mutex/mutex.asm
+build/sleep.o: kernel/core/ms/sleep.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 	
-build/ap_trampoline.bin: kernel/cpu/smp/ap_trampoline.asm
+build/ap_trampoline.bin: kernel/core/mh/ap_trampoline.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_BIN) $< -o $@	
 
@@ -196,11 +245,11 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 		$< $@
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/memory.o \
-                      build/paging.o build/bugcheck.o build/allocator.o build/ahci.o build/block.o \
-                      build/fat32.o build/gop.o build/irql.o build/scheduler.o build/dpc.o build/dpc_list.o \
-                      build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
-                      build/mutex_asm.o
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o \
+                      build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o \
+                      build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o build/mminit.o build/mmio.o build/mmproc.o \
+                      build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/sleep.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1
 

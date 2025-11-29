@@ -10,7 +10,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "../../trace.h"
 #include "../../drivers/gop/gop.h"
 #include "../../mtstatus.h"
 

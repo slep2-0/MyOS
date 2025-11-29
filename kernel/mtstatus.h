@@ -41,6 +41,7 @@ typedef int32_t MTSTATUS;
 #define MT_PAGE_FAULT_ERROR     ((MTSTATUS)0xC1000003L)
 #define MT_HEAP_CORRUPTION      ((MTSTATUS)0xC1000004L)
 #define MT_INVALID_ADDRESS      ((MTSTATUS)0xC1000005L)
+#define MT_CONFLICTING_ADDRESSES ((MTSTATUS)0xC1000006L)
 
 //
 // ==========================
@@ -111,5 +112,18 @@ typedef int32_t MTSTATUS;
 // EVENT MTSTATUS
 // ==========================
 #define MT_EVENT_ALREADY_SIGNALED ((MTSTATUS)0xC6000001L)
+
+//
+// ==========================
+// PROCESS MTSTATUS
+// ==========================
+#define MT_PROCESS_IS_TERMINATING ((MTSTATUS)0xC7000000L)
+
+//
+// ==========================
+// EXCEPTION MTSTATUSES
+// ==========================
+#define MT_ACCESS_VIOLATION ((MTSTATUS)0xC8000000L)
+#define MT_GUARD_PAGE_VIOLATION ((MTSTATUS)0xC8000001L)
 
 #endif // MTSTATUS_H

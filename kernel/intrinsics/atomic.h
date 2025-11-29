@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -113,6 +114,11 @@ extern "C" {
     static inline uint32_t InterlockedIncrementU32(volatile uint32_t* target) { return InterlockedAddU32(target, 1); }
     static inline uint32_t InterlockedDecrementU32(volatile uint32_t* target) { return InterlockedAddU32(target, (uint32_t)-1); }
 
+    static inline int64_t InterlockedIncrement64(volatile int64_t* target) { return InterlockedAdd64(target, 1); }
+    static inline uint64_t InterlockedIncrementU64(volatile uint64_t* target) { return InterlockedAddU64(target, 1); }
+
+    static inline int64_t InterlockedDecrement64(volatile int64_t* target) { return InterlockedAdd64(target, -1); }
+    static inline uint64_t InterlockedDecrementU64(volatile uint64_t* target) { return InterlockedAddU64(target, (uint64_t)-1); }
     /* -------------------------------
        Bitwise AND / OR (return PREVIOUS value)
        ------------------------------- */
@@ -156,7 +162,7 @@ extern "C" {
 
     // Boolean
     static inline bool InterlockedExchangeBool(volatile bool* target, bool value) {
-        return __atomic_exchange_n(target, value, ATOMIC_ORDER);
+        return __atomic_exchange_n(target, value, __ATOMIC_SEQ_CST);
     }
 
     /* Pointer convenience wrappers */
@@ -193,6 +199,16 @@ extern "C" {
         __atomic_store_n(target, v, ATOMIC_ORDER);
     }
 
+
+    static inline int8_t  InterlockedFetch8(volatile int8_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline int16_t InterlockedFetch16(volatile int16_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline int32_t InterlockedFetch32(volatile int32_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline int64_t InterlockedFetch64(volatile int64_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+
+    static inline uint8_t  InterlockedFetchU8(volatile uint8_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline uint16_t InterlockedFetchU16(volatile uint16_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline uint32_t InterlockedFetchU32(volatile uint32_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
+    static inline uint64_t InterlockedFetchU64(volatile uint64_t* target) { return __atomic_load_n(target, ATOMIC_ORDER); }
     /* -------------------------------
        Notes:
        - Types may be signed or unsigned; operations are bit-pattern operations.

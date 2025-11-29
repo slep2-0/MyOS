@@ -7,6 +7,33 @@
 #include "gop.h"
 #define FONT8X16_IMPLEMENTATION
 #include "font8x16.h"
+#include "../../intrinsics/atomic.h"
+#include "../../includes/me.h"
+#include "../../includes/macros.h"
+
+ // integer font scale (1 = native 8×16, 2 = 16×32, etc)
+#define FONT_SCALE 1
+
+volatile void* ExclusiveOwnerShip = NULL;
+
+static inline bool gop_params_valid(const GOP_PARAMS* gop) {
+    if (!gop) return false;
+    if (!gop->FrameBufferBase) return false;
+    if (gop->Width == 0 || gop->Height == 0) return false;
+    if (gop->PixelsPerScanLine == 0) return false;
+    return true;
+}
+
+static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color) {
+    if (!gop_params_valid(gop)) return;
+    if (x >= gop->Width || y >= gop->Height) return; // safeguard
+    uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
+    uint32_t  stride = gop->PixelsPerScanLine;
+    fb[y * stride + x] = color;
+}
+
+static inline uint32_t char_width(void) { return  8 * FONT_SCALE; }
+static inline uint32_t line_height(void) { return 16 * FONT_SCALE; }
 
 bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
@@ -133,22 +160,41 @@ static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
     }
 }
 
-static void sprint_dec(char* buf, unsigned v) {
+static void sprint_dec(char* buf, int64_t v) {
     char* p = buf;
-    if (v == 0) { *p++ = '0'; }
-    else {
-        char tmp[16]; int i = 0;
-        while (v) {
-            tmp[i++] = '0' + (v % 10);
-            v /= 10;
-        }
-        while (i--) *p++ = tmp[i];
+
+    if (v == 0) {
+        *p++ = '0';
+        *p = 0;
+        return;
     }
-    *p = '\0';
+
+    bool neg = false;
+    if (v < 0) {
+        neg = true;
+        v = -v;
+    }
+
+    char tmp[20];
+    int i = 0;
+
+    while (v > 0) {
+        tmp[i++] = '0' + (v % 10);
+        v /= 10;
+    }
+
+    if (neg) *p++ = '-';
+
+    while (i--) {
+        *p++ = tmp[i];
+    }
+
+    *p = 0;
 }
 
-static void gop_print_dec(GOP_PARAMS* gop, unsigned val, uint32_t color) {
-    char buf[16];
+
+static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color) {
+    char buf[20];
     sprint_dec(buf, val);
     gop_puts(gop, buf, color);
 }
@@ -596,10 +642,14 @@ static void release_tmp_lock(SPINLOCK* lock) {
 }
 
 void gop_printf(uint32_t color, const char* fmt, ...) {
-    tracelast_func("gop_printf");
+    // Check for exclusive ownership, if there is none, continue, if we are the owner, continue, if we are not the owner, return.
+    // Used with unlikely macro since this is only present in bugchecking or other high level scenarios.
+    void* owner = InterlockedCompareExchangePointer((volatile void* volatile*)&ExclusiveOwnerShip, NULL, NULL);
+    if (unlikely(owner && owner != MeGetCurrentProcessor())) return;
+
     bool prev_if = interrupts_enabled();
-    __cli();
     acquire_tmp_lock(&gop_lock);
+    __cli();
     GOP_PARAMS* gop = &gop_local;
     va_list ap;
     va_start(ap, fmt);
@@ -607,7 +657,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         if (*p == '*' && p[1] == '*') {
             gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
             p++; // skip the second '*'
-            continue;
+            continue; 
         }
         if (*p == '%' && p[1]) {
             switch (*++p) {
@@ -638,4 +688,14 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     va_end(ap);
     release_tmp_lock(&gop_lock);
     if (prev_if) __sti();
+}
+
+void MgAcquireExclusiveGopOwnerShip(void) {
+    // Set the pointer of exclusive ownership.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, (void*)MeGetCurrentProcessor());
+}
+
+void MgReleaseExclusiveGopOwnerShip(void) {
+    // Trust the caller, just set the ExclusiveOwnerShip pointer to NULL.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, NULL);
 }

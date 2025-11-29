@@ -91,4 +91,32 @@ static TIME_ENTRY get_time(void) {
 
     return t;
 }
+
+static bool is_leap_year(uint16_t year) {
+    return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+static const int days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+
+static uint64_t MeGetEpoch(void) {
+    TIME_ENTRY t = get_time();
+
+    // 1. count total days since 1970
+    uint64_t days = 0;
+    for (uint16_t y = 1970; y < t.year; y++)
+        days += 365 + (is_leap_year(y) ? 1 : 0);
+
+    for (uint8_t m = 1; m < t.month; m++)
+        days += days_in_month[m - 1] + (m == 2 && is_leap_year(t.year) ? 1 : 0);
+
+    days += t.day - 1;
+
+    // 2. convert to seconds
+    uint64_t seconds = days * 86400ULL;
+    seconds += t.hour * 3600ULL;
+    seconds += t.minute * 60ULL;
+    seconds += t.second;
+
+    return seconds;
+}
 #endif
