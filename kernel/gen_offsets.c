@@ -57,6 +57,7 @@ int main(void) {
     GEN_OFFSET(PROCESSOR, schedulePending);
     GEN_OFFSET(PROCESSOR, LapicAddressVirt);
     GEN_OFFSET(PROCESSOR, TimerExpirationDPC);
+    GEN_SIZE(PROCESSOR);
 
     GEN_COMMENT("TRAP_FRAME Offsets (Context Saving/Restoring)");
     GEN_OFFSET(TRAP_FRAME, rax);
@@ -98,6 +99,7 @@ int main(void) {
     GEN_DEFINE(USER_DS, USER_DS);
     GEN_DEFINE(INITIAL_RFLAGS, INITIAL_RFLAGS);
     GEN_DEFINE(USER_RFLAGS, USER_RFLAGS);
+    GEN_DEFINE(MAX_CPUS, MAX_CPUS);
 
     GEN_COMMENT("Bugcheck Codes");
     GEN_DEFINE(IRQL_NOT_LESS_OR_EQUAL, IRQL_NOT_LESS_OR_EQUAL);
@@ -144,10 +146,10 @@ int main(void) {
     // 3. MEMORY SYSTEM (mm.h)
     // ========================================================================
     GEN_COMMENT("Memory Management Constants");
-    GEN_DEFINE(PAGE_SIZE, VirtualPageSize);
-    GEN_DEFINE(KERNEL_VA_START, KernelVaStart);
+    GEN_DEFINE(VirtualPageSize, VirtualPageSize);
+    GEN_DEFINE(KernelVaStart, KernelVaStart);
     // Note: PhysicalMemoryOffset is a large ULL, we cast to preserve generic print
-    GEN_DEFINE(PHYSICAL_MEMORY_OFFSET, PhysicalMemoryOffset);
+    GEN_DEFINE(PhysicalMemoryOffset, PhysicalMemoryOffset);
 
     GEN_COMMENT("MMPTE Offsets & Flags");
     GEN_OFFSET(MMPTE, Value);

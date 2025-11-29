@@ -310,7 +310,7 @@ MeInitializeDpc(
 
     Routine description:
 
-        This function initializes a DPC to be used for queued.
+        This function initializes a DPC to be used for queueing.
 
     Arguments:
 
@@ -333,4 +333,7 @@ MeInitializeDpc(
     DpcAllocated->DeferredRoutine = DeferredRoutine;
     DpcAllocated->DeferredContext = DeferredContext;
     DpcAllocated->DpcData = NULL;
+    
+    // Initialize list head for DPC.
+    InitializeListHead(&DpcAllocated->DpcListEntry);
 }

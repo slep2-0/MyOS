@@ -9,7 +9,7 @@ OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
 
 # Flags
 ASMFLAGS_ELF = -f elf64 -Ibuild/
-ASMFLAGS_BIN = -f bin
+ASMFLAGS_BIN = -f bin -Ibuild/
 
 # Base CFLAGS (no optimization level hardcoded here)
 CFLAGS = -std=gnu11 \

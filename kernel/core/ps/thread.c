@@ -228,16 +228,20 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     kmemset((void*)thread, 0, sizeof(ETHREAD));
     bool LargeStack = false;
     void* stackStart = MiCreateKernelStack(LargeStack);
+
     if (!stackStart) {
         // free thread
         MmFreePool(thread);
         return MT_NO_MEMORY;
     }
-    thread->InternalThread.StackBase = stackStart;
+
+    uintptr_t StackTop = (uintptr_t)stackStart;
+
+    StackTop &= ~0xF; // Align to 16 bytes (clear lower 4 bits)
+    StackTop -= 8; // Decrement by 8 to keep 16-byte alignment. (after pushes)
+
+    thread->InternalThread.StackBase = stackStart; // The stackbase must be the one gotten from MiCreateKernelStack, as freeing with StackTop will result in incorrect arithmetic, and so assertion failure.
     thread->InternalThread.IsLargeStack = LargeStack;
-    // initial stack pointer should be at the high end of the allocated region
-    uint8_t* top = (uint8_t*)stackStart + THREAD_STACK_SIZE;
-    top = (uint8_t*)((uintptr_t)top & ~(uintptr_t)(THREAD_ALIGNMENT - 1)); // 16-byte aligned
 
     TRAP_FRAME* cfm = &thread->InternalThread.TrapRegisters;
     kmemset(cfm, 0, sizeof * cfm);
@@ -247,7 +251,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->InternalThread.TimeSliceAllocated = TIMESLICE;
 
     // saved rsp must point to the top (aligned), not sp-8
-    cfm->rsp = (uint64_t)top;
+    cfm->rsp = (uint64_t)StackTop;
     cfm->rip = (uint64_t)ThreadWrapperEx;
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)

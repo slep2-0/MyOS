@@ -179,6 +179,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case ATTEMPTED_SWITCH_FROM_DPC:
         *s = "ATTEMPTED_SWITCH_FROM_DPC";
         break;
+    case ATTEMPTED_WRITE_TO_READONLY_MEMORY:
+        *s = "ATTEMPTED_WRITE_TO_READONLY_MEMORY";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

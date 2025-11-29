@@ -3,7 +3,10 @@ section .text
 %define AP_TRAMP_PHYS 0x7000
 %define AP_TRAMP_APMAIN_OFFSET 0x1000
 %define AP_TRAMP_PML4_OFFSET 0x2000
+%define AP_TRAMP_CPUS_OFFSET 0x2500
 %define COM_BASE 0x3F8
+
+%include "offsets.inc"
 
 org AP_TRAMP_PHYS
 
@@ -100,7 +103,7 @@ protected_entry:
     mov ss, ax
 
     ; Temporary Stack
-    mov esp, 0x7000
+    mov esp, 0x7ff8
 
     ; Switch to long mode now - Set CR4. Physical Address Extension (pae)
     mov eax, cr4
@@ -141,16 +144,64 @@ long_mode_entry:
     mov ss, ax
 
     ; Set to OUR stack that was allocated by the prepare_percpu routine.
+    ; Get the LAPIC ID (stored in rbx)
+    call .get_initial_apic_id
+    ; RBX = LAPIC_ID
+    
+    ; Loop through the CPUs array until MAX_CPUS
+    mov rax, [AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET] ; Get Address of CPUS array.
+    xor rcx, rcx            ; Loop counter
+    
+.advanceloop:
+    cmp rcx, MAX_CPUS
+    jae .crashUd2
+    
+    ; Check if the lapic id matches ours.
+    ; Address of CPUS[i] is currently in RAX
+    ; Store LAPIC ID in r15
+    mov r15d, [rax + PROCESSOR_lapic_ID] ; Load 32-bit ID (zero extends to r15)
+    cmp rbx, r15
+    je .set_stack_to_ours   ; LAPIC_ID equal
 
+    ; Lapic ID isnt equal, retry loop with next iteration.
+    add rax, SIZEOF_PROCESSOR   ; Advance pointer to next cpu struct
+    inc rcx                     ; Increment index
+    jmp .advanceloop
+
+.set_stack_to_ours:
+    ; RAX = Our CPU pointer
+    ; Just set RSP to ours.
+    mov rsp, [rax + PROCESSOR_VirtStackTop]
+
+    ; Continue normal execution.
     mov rsi, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET
-    mov rax, qword [rsi] ; it is mapped
+    mov rax, qword [rsi]    ; it is mapped
     ; jump to ap_main
     jmp rax
+
+.crashUd2:
+    ; Reaching here means we exhausted all CPU slots and didnt find our stack.
+    ; Crash the system (would triple fault, I cant call a MeBugCheckEx since it would PUSH the stack and the stack is well, unmapped.)
+    ; I could set it to the 0x8000 address but thats where AP startup is, and I dont wanna risk it for the biscuit.
+    ud2
 
 ; since i didnt have the halt loop it would just keep going to memory and crash.
 .hlt_loop:
     hlt
     jmp .hlt_loop
 
+.get_initial_apic_id:
+    ; No params.
+    ; Output: rbx = LAPIC ID (bits 31-24 of EBX from CPUID EAX=1)
+
+    mov eax, 1            ; CPUID function 1
+    xor ecx, ecx          ; CPUID subfunction 0
+    cpuid                 ; EAX, EBX, ECX, EDX updated
+
+    ; LAPIC ID is bits 31-24 of EBX
+    shr ebx, 24           ; shift down to lowest byte
+    movzx rbx, bl         ; zero-extend to 64-bit rbx
+
+    ret
 ; pad the rest of the 4kib page as 0.
 times 4096 - ($ - _start) db 0

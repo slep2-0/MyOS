@@ -24,7 +24,6 @@ static inline uint8_t my_lapic_id(void) {
 }
 
 // Copy trampoline binary to low phys and map identity for this page.
-// Copy trampoline binary to low phys and map identity for this page.
 static void install_trampoline(void) {
 	uintptr_t virt = AP_TRAMP_PHYS + PhysicalMemoryOffset;
 	PMMPTE pte = MiGetPtePointer(virt);
@@ -93,14 +92,10 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 			MeBugCheck(MEMORY_LIMIT_REACHED);
 		}
 #endif
-		uint64_t pftop = (uint64_t)istpf + IST_SIZE;
-		uint64_t dftop = (uint64_t)istdf + IST_SIZE;
-		uint64_t timerTop = (uint64_t)istTimer + IST_SIZE;
-		uint64_t IpiTop = (uint64_t)istIpi + IST_SIZE;
-		cpus[i].IstPFStackTop = (void*)pftop;
-		cpus[i].IstDFStackTop = (void*)dftop;
-		cpus[i].IstTimerStackTop = (void*)timerTop;
-		cpus[i].IstIpiStackTop = (void*)IpiTop;
+		cpus[i].IstPFStackTop = (void*)istpf;
+		cpus[i].IstDFStackTop = (void*)istdf;
+		cpus[i].IstTimerStackTop = (void*)istTimer;
+		cpus[i].IstIpiStackTop = (void*)istIpi;
 
 		// CPU Flags
 		cpus[i].flags |= CPU_UNAVAILABLE; // Start unavailable.
@@ -173,6 +168,15 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uintptr_t cr3 = boot_info_local.Pml4Phys;
 	kmemcpy((void*)virt, &cr3, sizeof(cr3));
+
+	// write address of CPUs to the offset
+	virt = PhysicalMemoryOffset + AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET;
+	pte = MiGetPtePointer(virt);
+	apPtePhys = MiGetPtePointer((AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET));
+	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	uintptr_t cpuAddress = (uintptr_t)cpus;
+	kmemcpy((void*)virt, &cpuAddress, sizeof(cpuAddress));
 
 	// send INIT/SIPI/SIPI to APs (skip BSP)
 	uint8_t my_id = my_lapic_id();

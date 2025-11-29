@@ -169,6 +169,27 @@ MiTranslatePteToVa(
     IN PMMPTE pte
 )
 
+/*++
+
+    Routine description:
+
+        Translates the PTE given to its appropriate virtual address.
+
+    Arguments:
+
+        [IN]    pte - Pointer to MMPTE PTE in memory.
+
+    Return Values:
+
+        Virtual Address associated with the PTE.
+
+    Notes:
+
+        The only reason this works is because the method used to find the indices for the VA (pml4, pdpt, pd, pt, pte) 
+        Is reversible, since it is bit shifting.
+
+--*/
+
 {
     uintptr_t p = (uintptr_t)pte;
 
@@ -227,6 +248,10 @@ MiUnmapPte (
 
     // Atomically exchange old info with new info to avoid races.
     MMPTE newPte;
+    
+    // Zero out newPte
+    kmemset(&newPte, 0, sizeof(MMPTE));
+
     newPte.Soft.Present = 0;
 
     // Write new values.

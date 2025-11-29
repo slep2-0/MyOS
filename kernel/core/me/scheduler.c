@@ -32,7 +32,7 @@ void InitScheduler(void) {
     // Set only the essential registers for starting the thread
     void* idleStack = MiCreateKernelStack(false);
     assert(idleStack != NULL);
-    cfm.rsp = (uint64_t)((uint8_t*)idleStack + IDLE_STACK_SIZE);
+    cfm.rsp = (uint64_t)idleStack;
     cfm.rip = (uint64_t)kernel_idle_checks;
 
     // Enable Interrupts on its RFLAGS.
@@ -44,8 +44,9 @@ void InitScheduler(void) {
     idleThread->InternalThread.TimeSlice = 1; // 1ms
     idleThread->InternalThread.TimeSliceAllocated = 1;
     idleThread->InternalThread.NextThread.Next = NULL;
-    idleThread->TID = 0; // Scheduler thread, TID is 0.
+    idleThread->TID = 0; // Idle thread, TID is 0.
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
+    idleThread->InternalThread.IsLargeStack = false;
     MeGetCurrentProcessor()->currentThread = NULL; // The idle thread would be chosen
     idleThread->CurrentEvent = NULL; // No event.
     idleThread->ParentProcess = &PsInitialSystemProcess;

@@ -419,7 +419,8 @@ MiAllocatePagedPool(
         MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE, false);
         // Atomically exchange new value.
         MiAtomicExchangePte(tmpPte, TempPte.Value);
-
+        // Invalidate the VA.
+        MiInvalidateTlbForVa((void*)currVa);
         currVa += VirtualPageSize;
     }
 
@@ -443,6 +444,7 @@ MmAllocatePoolWithTag(
     Routine description:
 
         Allocates a pool block of the specified type and returns a pointer to allocated block.
+        The allocated block returned is zeroed, no exceptions.
 
     Arguments:
 
@@ -671,6 +673,8 @@ MmFreePool(
             MMPTE TempPte = *pte;
             MM_UNSET_DEMAND_ZERO_PTE(TempPte);
             MiAtomicExchangePte(pte, TempPte.Value);
+            // Invalidate the VA.
+            MiInvalidateTlbForVa((void*)CurrentVA);
 
             advance:
             CurrentVA += VirtualPageSize;

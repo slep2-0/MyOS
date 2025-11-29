@@ -105,9 +105,15 @@ MiCreateKernelStack(
 
     if (failure) goto failure_cleanup;
 
+    // Clean the PTE.
+    GuardPte->Value = 0;
+
     // Set the Guard page bit in the GuardPte.
     GuardPte->Hard.Present = 0;
     GuardPte->Soft.SoftwareFlags |= MI_GUARD_PAGE_PROTECTION;
+
+    // Invalidate the guard page VA.
+    MiInvalidateTlbForVa((void*)BaseVa);
 
     // Return the TOP of the stack.
     return (void*)(BaseVa + TotalSize);
@@ -194,12 +200,12 @@ MiFreeKernelStack(
     PMMPTE GuardPte = MiGetPtePointer(BaseVa);
     if (GuardPte) {
         assert((GuardPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) != 0, "The guard page must have the GUARD_PAGE_PROTECTION bit set.");
-        // Remove the software guard flag
-        GuardPte->Soft.SoftwareFlags &= ~MI_GUARD_PAGE_PROTECTION;
-
-        // Ensure we aren't accidentally unmapping a present page (Guard pages should be non-present)
-        assert(GuardPte->Hard.Present == false);
+        // Clean the page.
+        GuardPte->Value = 0;
     }
+    
+    // Invalidate the VA for the Guard Page.
+    MiInvalidateTlbForVa((void*)BaseVa);
 
     // Free the Virtual Address allocation
     MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);

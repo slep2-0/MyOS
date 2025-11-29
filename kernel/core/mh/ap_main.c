@@ -107,10 +107,6 @@ void APMain(void) {
     // Self invalidate all TLBs
     MiReloadTLBs();
 
-    // set RSP to per CPU stack.
-    void* stack_top = cpus[idx].VirtStackTop;
-    __asm__ volatile("mov %0, %%rsp" :: "r"(stack_top));
-
     // Now setup the IDT for the CPU. (load the one setupped by the smp func)
     __lidt(&PIDT);
 
@@ -119,11 +115,18 @@ extern void InitialiseControlRegisters(void);
     // Initiate per cpu functions.
     MeInitializeProcessor(MeGetCurrentProcessor());
     
+    // Initialize the MM For current core (init PAT)
+    MmInitSystem(SYSTEM_PHASE_INITIALIZE_PAT_ONLY, NULL);
+
     InitialiseControlRegisters();
+
+    // Initialize the idle thread.
+    InitScheduler();
+
 	// mark as online and clear being unavailable
 	InterlockedOrU64(&cpus[idx].flags, CPU_ONLINE); 
     InterlockedAndU64(&cpus[idx].flags, ~CPU_UNAVAILABLE);   // clear unavailable
-    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, stack_top, MeGetCurrentProcessor());
+    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, MeGetCurrentProcessor()->VirtStackTop, MeGetCurrentProcessor());
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();
     lapic_enable();

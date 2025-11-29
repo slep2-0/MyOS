@@ -37,7 +37,7 @@ Ended
 **/
 
 
-#define MAX_MEMORY_MAP_SIZE 0x4000  // 16 KB, enough for ~256 descriptors
+#define MAX_MEMORY_MAP_SIZE 0x8000  // 32 KB, enough for ~512 descriptors (this shouldn't be used, since we init the PFN db with the ptr from original UEFI, but eh, whatevs)
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
 
@@ -231,7 +231,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     // 1. CORE SYSTEM INITIALIZATION
     __writemsr(IA32_GS_BASE, (uint64_t)&cpu0);
     __cli();
-    // Initialize the CR (Control Registers) registers to our settings.
+    // Initialize the CR (Control Registers) to our settings.
     InitialiseControlRegisters();
     // Zero the BSS.
     size_t len = &bss_end - &bss_start;
@@ -245,7 +245,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_interrupts();
 
     // Initialize the memory manager
-    MmInitSystem(1, boot_info);
+    MmInitSystem(SYSTEM_PHASE_INITIALIZE_ALL, boot_info);
 
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
     MTSTATUS st = MhInitializeACPI();
@@ -340,7 +340,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
     PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
-    //int integer = 1234;
     PsCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();

@@ -65,16 +65,19 @@ MmInitSystem(
 
     Arguments:
 
-        [IN]    uint8_t Phase - Specifies the phase of the system for correct init routines.
+        [IN]    uint8_t Phase - Specifies the phase of the system for correct init routines. (enum SYSTEM_PHASE_ROUTINE)
         [IN]    PBOOT_INFO BootInformation - The boot information supplied by the UEFI Bootloader (can be NULL in later phases, look below)
 
     Phase Demands:
 
         1 - BootInformation
+        2 - None.
 
     Phase Does:
            
-        1 - Initializes the core memory managment routines. (PFN Database, Virtual Address bitmap, PAT, PTE Database, etc.)
+        1 (SYSTEM_PHASE_INITIALIZE_ALL) - Initializes PAT and the core memory managment routines. (PFN Database, Virtual Address bitmap, PAT, PTE Database, etc.)
+
+        2 (SYSTEM_PHASE_INITIALIZE_PAT_ONLY) - Initializes PAT only (used in AP startup)
 
     Return Values:
 
@@ -84,7 +87,7 @@ MmInitSystem(
 
 {
     // Currently we only support the first and only phase.
-    if (Phase == 1) {
+    if (Phase == SYSTEM_PHASE_INITIALIZE_ALL) {
 
         // Initialize PAT (Page Attribute Table)
         bool PatAvailable = MiIsPATAvailable();
@@ -124,8 +127,22 @@ MmInitSystem(
         // Phase 1 Done.
         return true;
     }
+
+    else if (Phase == SYSTEM_PHASE_INITIALIZE_PAT_ONLY) {
+        // Phase only initializes PAT for the current core.
+        // Initialize PAT (Page Attribute Table)
+        bool PatAvailable = MiIsPATAvailable();
+        assert(PatAvailable == true);
+        if (PatAvailable) {
+            MiInitializePAT();
+        }
+
+        // Return if PAT is available on the current core or not (if available, it's initialized)
+        return PatAvailable;
+    }
+
     else {
-        // Only phase 1 is supported currently.
+        // Only phase 1 & 2 is supported currently.
         MeBugCheck(INVALID_INITIALIZATION_PHASE);
     }
 }

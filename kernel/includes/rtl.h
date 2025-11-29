@@ -9,7 +9,7 @@ Module Name:
 
 Purpose:
 
-    This module contains declarations for the runtime library (RTL),which provides core support routines used by other kernel components.
+    This module contains declarations for the runtime library (RTL), which provide core support routines used by other kernel components.
 
 Author:
 

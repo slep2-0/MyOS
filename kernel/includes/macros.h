@@ -47,4 +47,10 @@ extern uint8_t kernel_end;
 
 #define FREEZE() __cli(); __hlt()
 
+#if !defined(__GNUC__)
+#define FIELD_OFFSET(t,f)       ((uint32_t)(uint32_t*)&(((t*) 0)->f))
+#else
+#define FIELD_OFFSET(t,f)       ((uint32_t)__builtin_offsetof(t,f))
+#endif
+
 #endif

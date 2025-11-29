@@ -195,9 +195,6 @@ typedef struct _DPC {
 	// If NULL, the DPC is NOT queued.
 	volatile void* DpcData;
 
-	// CPU Number to target
-	uint32_t CpuNumber;
-
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
 } DPC, *PDPC;
@@ -280,12 +277,12 @@ typedef struct _PROCESSOR {
 
 	// Additional DPC Fields
 	DPC_DATA DpcData;               // The main DPC queue
-	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDpcList
-	volatile bool DpcInterruptRequested; // TRUE if we requested a soft INT but it hasn't fired yet
-	volatile uint32_t TimerRequest;      // Non-zero if timers need processing
-	uintptr_t TimerHand;                 // Context for timer expiration
+	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDPCs
+	volatile bool DpcInterruptRequested; // TRUE if we requested an APIC int but isnt active yet.
+	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)
+	uintptr_t TimerHand;                 // Context for timer expiration (unused)
 
-	// Heuristic fields for performance (Optional, but used in Win2k3)
+	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;
 	uint32_t MinimumDpcRate;
 	uint32_t DpcRequestRate;
@@ -328,7 +325,7 @@ MeGetCurrentIrql(void)
 --*/
 
 {
-	return MeGetCurrentProcessor()->currentIrql;
+	return (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
 }
 
 FORCEINLINE
@@ -350,7 +347,15 @@ MeGetCurrentThread(void)
 --*/
 
 {
-	return MeGetCurrentProcessor()->currentThread;
+	return (PITHREAD)__readgsqword(FIELD_OFFSET(PROCESSOR, currentThread));
+}
+
+FORCEINLINE
+bool
+MeIsExecutingDpc(void)
+
+{
+	return (bool)__readgsqword(FIELD_OFFSET(PROCESSOR, DpcRoutineActive));
 }
 
 void

@@ -56,9 +56,9 @@ MmAccessFault(
         MTSTATUS Code resulting in the status of fault handling operation.
 
         Could be:
-            MT_SUCCESS
-            MT_ACCESS_VIOLATION
-            MT_GUARD_PAGE_VIOLATION
+            MT_SUCCESS -- Fault handled, return.
+            MT_ACCESS_VIOLATION -- User mode only (or kernel mode probing).
+            MT_GUARD_PAGE_VIOLATION -- Bugchecks.
 
 --*/
 
@@ -103,6 +103,11 @@ MmAccessFault(
 
         MMPTE TempPte = *ReferencedPte;
 
+        // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
+        if (TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
+            goto BugCheck;
+        }
+
         // PTE Is present, but we got a fault.
         if (TempPte.Hard.Present) {
             // Write fault to read-only memory.
@@ -123,6 +128,7 @@ MmAccessFault(
                 MMPTE NewPte = TempPte;
                 NewPte.Hard.Dirty = 1;
                 MiAtomicExchangePte(ReferencedPte, NewPte.Value);
+                MiInvalidateTlbForVa((void*)VirtualAddress);
             }
             return MT_SUCCESS;
         }
@@ -243,7 +249,7 @@ BugCheck:
         );
     }
 
-    // Check if Paged Pool Dereference.
+    // Check if Paged Pool Dereference. (the IRQL_NOT_LESS_OR_EQUAL bugcheck is up top)
     if (VirtualAddress >= MmPagedPoolStart && VirtualAddress <= MmPagedPoolEnd) {
         MeBugCheckEx(
             PAGE_FAULT_IN_FREED_PAGED_POOL,

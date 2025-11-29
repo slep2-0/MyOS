@@ -319,6 +319,11 @@ typedef enum _MEMORY_CACHING_TYPE {
     // Typically WB unless device explicitly requires WT.
 } MEMORY_CACHING_TYPE;
 
+typedef enum _SYSTEM_PHASE_ROUTINE {
+    SYSTEM_PHASE_INITIALIZE_ALL = 1,
+    SYSTEM_PHASE_INITIALIZE_PAT_ONLY = 2,
+} SYSTEM_PHASE_ROUTINE;
+
 // ------------------ STRUCTURES ------------------
 
 typedef struct _MMPTE
@@ -604,6 +609,16 @@ MiAtomicExchangePte(
 
 {
     InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
+}
+
+FORCEINLINE
+void
+MiInvalidateTlbForVa(
+    IN void* VirtualAddress
+)
+
+{
+    invlpg(VirtualAddress);
 }
 
 FORCEINLINE
