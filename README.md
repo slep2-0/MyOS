@@ -2,9 +2,7 @@
 
 ![DEVELOPMENT](https://img.shields.io/badge/Status-DEVELOPMENT,_STABLE-purple?style=for-the-badge)
 
-**Note - The developer branch is way more advanced currently, but since I still encounter a page fault with SMP & Uniprocessor (still gotta figure it out, DPC stuff), I will not merge yet.**
-
-MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory, and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing. This project is for educational purposes and low-level OS experimentation.
+MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory (PFN DB, pools), and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing. This project is for educational purposes and low-level OS experimentation.
 
 ---
 
@@ -31,14 +29,14 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 | Bugcheck System | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
 | Paging & Virtual Memory | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Interrupt Handling | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
-| Local APIC | ![⚠️](https://img.shields.io/badge/status-PARTIAL-orange) |
+| Local APIC | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | Mutexes & Events | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
+| Memory Allocation Database (PFN, Pools, Bitmaps) | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 
 ### Driver & Hardware
 | Feature | Status |
 |---------|--------|
 | AHCI Driver | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
-| Dynamic Heap Memory Allocation | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
 | MTSTATUS Integration | ![✔️](https://img.shields.io/badge/status-PARTIAL_INTEGRATION-lightgreen) |
 
 ### Filesystem & VFS
@@ -85,6 +83,7 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
 
