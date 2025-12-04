@@ -86,6 +86,7 @@ void init_boot_info(BOOT_INFO* boot_info) {
     for (uint32_t i = 0; i < boot_info->AhciCount; i++) {
         ahci_bases_local[i] = boot_info->AhciBarBases[i];
     }
+    // Copy the local array into local boot info.
     kmemcpy(boot_info_local.AhciBarBases, ahci_bases_local, sizeof(ahci_bases_local));
     boot_info_local.AhciCount = boot_info->AhciCount;
     boot_info_local.KernelStackTop = boot_info->KernelStackTop;
