@@ -44,10 +44,10 @@ _start:
     mov  ss, ax
 
     ; Read the TSS from the BOOT_INFO struct.
-    mov ax, [rdi + 0x48] ; TssSelector offset
+    mov ax, [rdi + 0x158] ; TssSelector offset
     ltr ax               ; Load the TSS into the TR register.
 
-    mov rsp, [rdi + 0x38]
+    mov rsp, [rdi + 0x148]
     mov rbp, rsp
 
     lea  rax, [kernel_main]   ; or: mov rax, kernel_main -- RDI is the BOOT_INFO ptr.

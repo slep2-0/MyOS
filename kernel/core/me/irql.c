@@ -9,42 +9,43 @@
 #include "../../intrinsics/intrin.h"
 #include <stdatomic.h>
 
-// PRIVATE API
-
- // Taken from ReactOS, supports up to 1 IOAPIC.
- // Instead of masking PICs, we now use the CR8 register (or in 32bit, the MMIO of LAPIC + 0x80), to use the TPR
- // The TPR (Task Priority Register), is a special register in the Local APIC that determines which interrupts are allowed to be delivered to the CPU.
- // We use IRQL, and that IRQL translates that to TPR Levels with the macros below.
-#define IRQ2VECTOR(irq)		((irq) + 0x0) // 0 is the starting point
-
-#define IRQL2VECTOR(irql)   (IRQ2VECTOR(PROFILE_LEVEL - (irql)))
-// If its IPI_LEVEL, we use the IDT vector for the IPIs, same thing from PROFILE which is the LAPIC TIMER, and anything else (like DIRQLs), we use the IRQL2VECTOR
-#define IRQL2TPR(irql)	    ((irql) >= IPI_LEVEL ? LAPIC_ACTION_VECTOR : ((irql) >= PROFILE_LEVEL ? LAPIC_INTERRUPT : ((irql) > DISPATCH_LEVEL ? IRQL2VECTOR(irql) : 0)))
-
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
     __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
-static inline uint8_t vector_to_tpr(unsigned int vector) {
-    return (uint8_t)(vector >> 4);
-}
-#define LAPIC_ACTION_VECTOR 0xDE
-#define LAPIC_INTERRUPT 0xEF
-static inline unsigned int irql_to_vector(IRQL irql) {
-    if (irql >= IPI_LEVEL)       return LAPIC_ACTION_VECTOR;
-    else if (irql >= PROFILE_LEVEL) return LAPIC_INTERRUPT;
-    else if (irql > DISPATCH_LEVEL) return IRQ2VECTOR(irql);
-    else                          return 0; // no special masking
-}
+
 static void update_apic_irqs(IRQL newLevel) {
-    unsigned int vec = irql_to_vector(newLevel);
-    uint8_t tpr = vector_to_tpr(vec);
-    __write_cr8((unsigned long)tpr); // CR8 holds the priority threshold
+    uint8_t tpr = 0;
+
+    switch (newLevel) {
+    case HIGH_LEVEL:
+    case POWER_LEVEL:
+    case IPI_LEVEL:
+        tpr = 15; // block everything
+        break;
+
+    case CLOCK_LEVEL:
+    case PROFILE_LEVEL:
+        tpr = TPR_PROFILE; // e.g. 10
+        break;
+
+    case DISPATCH_LEVEL:
+        tpr = TPR_DISPATCH; // numeric (e.g. 8)
+        break;
+
+    case PASSIVE_LEVEL:
+    default:
+        tpr = TPR_PASSIVE; // 0
+        break;
+    }
+
+    __write_cr8((unsigned long)tpr);
 }
+
 static inline void toggle_scheduler(void) {
     // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL
-    MeGetCurrentProcessor()->schedulerEnabled = (MeGetCurrentProcessor()->currentIrql < DISPATCH_LEVEL);
+    MeGetCurrentProcessor()->schedulerEnabled = (MeGetCurrentIrql() < DISPATCH_LEVEL);
 }
 
 // PUBLIC API
@@ -78,7 +79,7 @@ MeRaiseIrql (
         *OldIrql = MeGetCurrentProcessor()->currentIrql;
     }
 
-    IRQL curr = atomic_load_explicit(&MeGetCurrentProcessor()->currentIrql, memory_order_acquire);
+    IRQL curr = MeGetCurrentIrql();
     if (NewIrql < curr) {
         MeBugCheck(IRQL_NOT_GREATER_OR_EQUAL);
     }
@@ -112,15 +113,23 @@ MeLowerIrql (
     bool prev_if = interrupts_enabled();
     __cli();
 
-    IRQL curr = atomic_load_explicit(&MeGetCurrentProcessor()->currentIrql, memory_order_acquire);
+    IRQL curr = MeGetCurrentIrql();
     if (NewIrql > curr) {
         MeBugCheck(IRQL_NOT_LESS_OR_EQUAL);
     }
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
+
     toggle_scheduler();
     update_apic_irqs(NewIrql);
+
     if (prev_if) __sti();
+
+    PPROCESSOR cpu = MeGetCurrentProcessor();
+    MmFullBarrier();
+    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+        MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+    }
 }
 
 // This function should be used sparingly, only during initialization.
@@ -162,7 +171,7 @@ MeDisableInterrupts(
     void
 )
 
-
+// Short Desc: Will disable interrupts, and returns if interrupts were enabled before.
 
 {
     bool prev_if = interrupts_enabled();
@@ -175,7 +184,7 @@ MeEnableInterrupts(
     IN bool EnabledBefore
 )
 
-
+// Short Desc: Will enable interrupts ONLY if EnabledBefore is true. (given from return value of MeDisableInterrupts)
 
 {
     if (EnabledBefore) __sti();
@@ -185,6 +194,8 @@ bool
 MeAreInterruptsEnabled(
     void
 )
+
+// Short Desc: Will return if interrupts are currently enabled on the processor.
 
 {
     return interrupts_enabled();

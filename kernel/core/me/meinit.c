@@ -48,4 +48,11 @@ MeInitializeProcessor(
     // Initialize the DPC Lock & list head.
     CPU->DpcData.DpcLock.locked = 0;
     InitializeListHead(&CPU->DpcData.DpcListHead);
+
+    // Initialize DPC Fields.
+    CPU->MaximumDpcQueueDepth = 4; // Baseline.
+    CPU->MinimumDpcRate = 1000; // 1000 DPCs per second baseline (TODO DPC Throttling)
+    CPU->DpcRequestRate = 0; // Initialized to zero.
+    CPU->DpcRoutineActive = false;
+    CPU->DpcInterruptRequested = false;
 }

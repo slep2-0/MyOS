@@ -1,6 +1,7 @@
 #include "../../includes/me.h"
 #include "../../includes/mh.h"
 #include "../../includes/mm.h"
+#include "../../includes/mg.h"
 #include "../../assert.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -214,6 +215,8 @@ MhRequestSoftwareInterrupt(
 
 {
     bool prev_if;
+    PPROCESSOR cpu = MeGetCurrentProcessor();
+    assert(cpu->DpcInterruptRequested == true);
 
     // We only support DISPATCH_LEVEL.
     assert(RequestIrql == DISPATCH_LEVEL);
@@ -221,14 +224,14 @@ MhRequestSoftwareInterrupt(
     // Disable interrupts, and save IF flag.
     prev_if = MeDisableInterrupts();
 
+    // Clear the flag.
+    cpu->DpcInterruptRequested = false;
+
     // wait until previous ICR is not busy
     lapic_wait_icr();
 
-    // Write the intended action to our IPI handler.
-    MeGetCurrentProcessor()->IpiAction = CPU_ACTION_DO_DEFERRED_ROUTINES;
-
     // For a self IPI we can use the destination shorthand
-    uint32_t icr_low = (uint32_t)LAPIC_ACTION_VECTOR | (1U << 18);
+    uint32_t icr_low = (uint32_t)VECTOR_DPC | (1U << 18);
 
     // ICR high is ignored when shorthand is used, but zero it for clarity.
     lapic_mmio_write(LAPIC_ICR_HIGH, 0);

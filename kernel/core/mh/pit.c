@@ -1,10 +1,7 @@
 #include <stdint.h>
 #include "../../intrinsics/intrin.h"
 #include "../../includes/mh.h"
-
-/* cli/sti helpers */
-static inline void disable_interrupts(void) { __asm__ volatile ("cli" ::: "memory"); }
-static inline void enable_interrupts(void) { __asm__ volatile ("sti"); }
+#include "../../includes/me.h"
 
 /* PIT constants */
 #define PIT_FREQ_HZ 1193182U
@@ -32,7 +29,7 @@ void pit_sleep_ms(uint32_t ms) {
         __outbyte(PIT_CH0_PORT, (uint8_t)(chunk & 0xFF));
         __outbyte(PIT_CH0_PORT, (uint8_t)((chunk >> 8) & 0xFF));
 
-        disable_interrupts();
+        bool Enabled = MeDisableInterrupts();
 
         __outbyte(PIT_CMD_PORT, PIT_CMD_LATCH_CH0);
         // Ensure proper sequencing of port reads
@@ -54,7 +51,7 @@ void pit_sleep_ms(uint32_t ms) {
             asm volatile("pause");
         }
 
-        enable_interrupts();
+        MeEnableInterrupts(Enabled);
         total_ticks -= chunk;
     }
 }

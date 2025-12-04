@@ -38,11 +38,14 @@ MiCreateKernelStack(
 
     Return Values:
 
-        Pointer to guard page, or NULL on failure.
+        Pointer to top of the stack, or NULL on failure.
 
-        Since the pointer is returned at the very end of the guard page (or start, the stack grows downwards).
-        You MUST subtract space from the stack BEFORE interacting with it, as emitting the PUSH instruction before
-        subtracting space from the stack WILL cause a page fault.
+    Notes:
+
+        The previous comment stated that it would return at the end of the guard page, which was incorrect when I went through my code.
+        This means you CAN emit the PUSH instruction, as it will also subtract space from the stack automatically (based on the pushed immediate).
+        But do not subtract too much (hit the guard page), or add to this pointer (hit the next page, could very well be unmapped, or a guard page of another thread)
+        - As you risk a page fault.
 
 --*/
 
@@ -163,7 +166,8 @@ MiFreeKernelStack(
 --*/
 
 {
-    //gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**", (LargeStack ? "True" : "False"), AllocatedStackTop);
+    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**", (LargeStack ? "True" : "False"), AllocatedStackTop);
+    FREEZE();
     // Declarations
     size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
     size_t GuardSize = VirtualPageSize;

@@ -48,6 +48,7 @@ extern bool isBugChecking;
 #include "drivers/gop/gop.h"
 #include "time.h"
 #include "filesystem/vfs/vfs.h"
+#include "includes/behavior.h"
 
 // Entry point in C
 void kernel_idle_checks(void);

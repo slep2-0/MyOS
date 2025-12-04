@@ -277,7 +277,6 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     return MT_SUCCESS;
 }
 
-FORCEINLINE_NOHEADER
 PETHREAD 
 PsGetCurrentThread (void) {
     if (!MeGetCurrentProcessor() || !MeGetCurrentProcessor()->currentThread) return NULL;

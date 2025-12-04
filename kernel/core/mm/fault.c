@@ -69,7 +69,7 @@ MmAccessFault(
     IRQL PreviousIrql = MeGetCurrentIrql();
 
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
     if (!ReferencedPte) {
@@ -92,6 +92,14 @@ MmAccessFault(
         // Kernel mode page fault on a non canonical address.
         goto BugCheck;
 
+    }
+
+    // Check for NX. (NX on anywhere is invalid, no matter the range)
+    if (OperationDone == ExecuteOperation) {
+        // Fault on NX bit set page.
+        if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
+        // Bugcheck, its kernel mode.
+        goto BugCheck;
     }
 
     // Now we check for each address in the system, and handle the request based on that.
@@ -135,7 +143,7 @@ MmAccessFault(
         
         // Before any demand allocation, check IRQL.
         if (PreviousIrql >= DISPATCH_LEVEL) {
-            // IRQL Isn't less or equal to DISPATCH_LEVEL, so we cannot lazily allocate, since it would **block**.
+            // IRQL Isn't less than DISPATCH_LEVEL, so we cannot lazily allocate, since it would **block**.
             MeBugCheckEx(
                 IRQL_NOT_LESS_OR_EQUAL,
                 (void*)VirtualAddress,
@@ -227,6 +235,8 @@ MmAccessFault(
     // If it does reach here, look below.
 
 BugCheck:
+    // TODO Check for NX.
+
     // Check if its a guard page violation
     if (ReferencedPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
         MeBugCheckEx(

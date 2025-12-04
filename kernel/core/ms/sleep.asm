@@ -12,8 +12,7 @@ global MsYieldExecution
 ; void MsYieldExecution(TRAP_FRAME* threadRegisters)
 MsYieldExecution:
     ; Check current IRQL, if we are at DISPATCH_LEVEL or above, we bugcheck.
-    mov r15, gs:[0]
-    mov r15d, [r15 + PROCESSOR_currentIrql]          ; (MeGetCurrentProcessor()->currentIrql)
+    mov r15d, [gs:PROCESSOR_currentIrql]        ; (MeGetCurrentProcessor()->currentIrql)
     cmp r15d, DISPATCH_LEVEL
     jae .BugCheckIrql
 

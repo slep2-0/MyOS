@@ -16,7 +16,9 @@ MsInitializeMutexObject (
 
 /*++
 
-    Routine description : Initializes a MUTEX object, this should be called when the MUTEX is a stack variable that hasn't been zeroed. (uninitialized variable)
+    Routine description : 
+
+        Initializes a MUTEX object, the MUTEX must be in resident memory.
 
     Arguments:
 

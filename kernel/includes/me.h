@@ -259,7 +259,7 @@ typedef struct _PROCESSOR {
 	void* tss; // Task State Segment ptr.
 	void* IstPFStackTop; // Page Fault IST Stack
 	void* IstDFStackTop; // Double Fault IST Stack
-	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU.
+	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
 	bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.

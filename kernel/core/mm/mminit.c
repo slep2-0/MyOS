@@ -6,7 +6,7 @@ Module Name:
 
 Purpose:
 
-    This translation unit contains the implementation of memory initialization routines.
+    This translation unit contains the implementation of memory manager initialization routines.
 
 Author:
 

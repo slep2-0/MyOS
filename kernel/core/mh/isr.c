@@ -9,6 +9,7 @@
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
 #include "../../includes/me.h"
+#include "../../assert.h"
 
 extern GOP_PARAMS gop_local;
 
@@ -44,12 +45,14 @@ MhHandleInterrupt (
 --*/
 
 {
-    char buf[256];
-    ksnprintf(buf, sizeof(buf), "INTERRUPT: %d", vec_num);
+
+    assert(MeAreInterruptsEnabled() == false);
+
+    PPROCESSOR cpu = MeGetCurrentProcessor();
     IRQL oldIrql;
     
     // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)
-    bool schedulerEnabled = MeGetCurrentProcessor()->schedulerEnabled;
+    bool schedulerEnabled = cpu->schedulerEnabled;
 
     // Save the PreviousMode to current thread.
     PRIVILEGE_MODE PreviousMode;
@@ -61,8 +64,8 @@ MhHandleInterrupt (
         PreviousMode = KernelMode;
     }
     
-    if (MeGetCurrentProcessor()->currentThread) {
-        MeGetCurrentProcessor()->currentThread->PreviousMode = PreviousMode;
+    if (cpu->currentThread) {
+        cpu->currentThread->PreviousMode = PreviousMode;
     }
 
     switch (vec_num) {
@@ -123,14 +126,27 @@ MhHandleInterrupt (
         _MeSetIrql(HIGH_LEVEL); // machine check, like NMI, high irql.
         MiMachineCheck(trap);
         break;
-    case LAPIC_ACTION_VECTOR:
-        MeRaiseIrql(IPI_LEVEL, &oldIrql);
-        MiInterprocessorInterrupt();
-        MeLowerIrql(oldIrql);
-        break;
     case LAPIC_INTERRUPT:
         MeRaiseIrql(CLOCK_LEVEL, &oldIrql);
         MiLapicInterrupt(schedulerEnabled, trap);
+        MeLowerIrql(oldIrql);
+        break;
+    case VECTOR_IPI:
+        MeRaiseIrql(IPI_LEVEL, &oldIrql);
+        MiInterprocessorInterrupt();
+        lapic_eoi();
+        MeLowerIrql(oldIrql);
+        break;
+    case VECTOR_DPC:
+        // To see how is this triggered, check MeInsertQueueDpc or MeLowerIrql
+        assert(MeAreInterruptsEnabled() == false);
+        // Raise IRQL to DISPATCH_LEVEL
+        MeRaiseIrql(DISPATCH_LEVEL, &oldIrql);
+        // Drain DPCs while in DISPATCH
+        MeRetireDPCs();
+        // Send EOI, this is called by the APIC Self BIT (so LAPIC)
+        lapic_eoi();
+        // Lower IRQL back.
         MeLowerIrql(oldIrql);
         break;
     case LAPIC_SIV_INTERRUPT:
@@ -138,9 +154,12 @@ MhHandleInterrupt (
         lapic_eoi();
         break;
     default:
-        gop_printf(0xFFFF0000, "Interrupt Exception: %d\n", vec_num);
         break;
     }
+
+    assert(MeAreInterruptsEnabled() == false);
+    // Send An EOI
+    // TODO KINTERRUPT
 }
 
 void init_interrupts() {

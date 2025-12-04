@@ -5,6 +5,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "behavior.h"
+#include "macros.h"
+#include "annotations.h"
 
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,

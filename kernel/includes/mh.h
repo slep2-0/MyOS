@@ -27,6 +27,32 @@ Revision History:
 
 #include "mm.h"
 
+#define IRQL_VECTOR_BASE    0x40
+
+// Priority Levels (0-15)
+// With Base 0x40, the Max Priority allowed is 11 (0x40 + 11<<4 = 240).
+// If we need 12, we must lower IRQL_VECTOR_BASE to 0x20.
+// But we are good with 11 from now.
+
+#define TPR_PASSIVE         0
+#define TPR_APC             3
+#define TPR_DISPATCH        6   
+#define TPR_DPC             8   // Vector: 0x40 + 0x80 = 0xC0 (192)
+#define TPR_PROFILE         10
+#define TPR_IPI             11 
+
+// The Math Macros
+#define CALC_VECTOR(pri)    (IRQL_VECTOR_BASE + (pri << 4))
+
+// Calculated Vectors
+#define VECTOR_DPC          CALC_VECTOR(TPR_DPC)
+#define VECTOR_IPI          CALC_VECTOR(TPR_IPI)
+
+static inline unsigned int priority_to_vector(uint8_t pri) {
+    if (pri > 15) pri = 15;
+    return CALC_VECTOR(pri);
+}
+
 // ------------------ ENUMERATORS ------------------
 
 //** Exception Definitions **/
@@ -54,12 +80,11 @@ typedef enum _CPU_EXCEPTIONS {
 
 /** Interrupt Definitions **/
 typedef enum _INTERRUPT_LIST {
-	TIMER_INTERRUPT = 32,
-	KEYBOARD_INTERRUPT = 33,
-	ATA_INTERRUPT = 46,
-	LAPIC_INTERRUPT = 0xEF,
-	LAPIC_SIV_INTERRUPT = 0xFF,
-	LAPIC_ACTION_VECTOR = 0xDE
+	TIMER_INTERRUPT = 32, // Unused, PIC.
+	KEYBOARD_INTERRUPT = 33, // Unused, PS/2 Keyboard
+	ATA_INTERRUPT = 46, // Might be used for driver, ATA.
+	LAPIC_INTERRUPT = 0xEF, // LAPIC Timer.
+	LAPIC_SIV_INTERRUPT = 0xFF, // LAPIC Spurious interrupt vector.
 } INTERRUPT_LIST;
 
 typedef enum _CPU_ACTION {
@@ -552,10 +577,6 @@ MiCoprocessorSegmentOverrun(
 	PTRAP_FRAME trap
 );
 
-void 
-MiInvalidTss(
-	PTRAP_FRAME trap
-);
 void 
 MiSegmentSelectorNotPresent(
 	PTRAP_FRAME trap

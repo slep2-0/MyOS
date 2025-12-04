@@ -44,6 +44,28 @@ irq%1:
     jmp     isr_common_stub64
 %endmacro
 
+; ISR Routines with names:
+
+; ---------------------------------------------
+; DPC ISR Stub
+; ---------------------------------------------
+global isr_dpc
+isr_dpc:
+    cli
+    push 0              ; Dummy error code
+    push VECTOR_DPC     ; This now expands to 192 (0xC0) statically
+    jmp isr_common_stub64
+
+; ---------------------------------------------
+; IPI ISR Stub
+; ---------------------------------------------
+global isr_ipi
+isr_ipi:
+    cli
+    push 0              ; Dummy error code
+    push VECTOR_IPI     ; This now expands to 240 (0xF0) statically
+    jmp isr_common_stub64
+
 ;---------------------------------------------------------------------------
 ; Common stub for all ISRs and IRQs in 64-bit long mode
 ; Stack layout after entry:
@@ -97,22 +119,8 @@ isr_common_stub64:
 
 extern Schedule
 
-.dpc:
-    ; First check if we are at DISPATCH_LEVEL, if so, we are allowed to retire.
-    cmp byte gs:[PROCESSOR_currentIrql], DISPATCH_LEVEL
-
-    ; Processor at DISPATCH_LEVEL, allowed to retire.
-    je .allowed_to_retire
-
-    ; Not allowed to retire DPCs, attempt to schedule if allowed & quantum expiration.
+    ; DPC Revision, just check for schedule (DPC Retirement in MhHandleInterrupt)
     jmp .check_for_schedule
-
-.allowed_to_retire
-    ; Do not enable interrupts, we only enable interrupts when the context is being executed so we can check it's timer. (when we implement a DPC Timeout TODO)
-    ; Finally, retire the DPCs. (all DPCs must return, if not - bugcheck)
-    sub rsp, 8
-    call MeRetireDPCs
-    add rsp, 8 
 
 .check_for_schedule
     ; (if we are at DISPATCH_LEVEL schedulerEnabled should be false)
@@ -121,7 +129,7 @@ extern Schedule
     jz .exit
 
     ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
-    cmp byte [gs:PROCESSOR_schedulePending], 0 ; *(&thisCPU.schedulePending)
+    cmp byte [gs:PROCESSOR_schedulePending], 0
     jz .exit ; No schedule pending...
 
     ; All DPCs retired, and a schedule is pending, Schedule. (and clear the pending flag, so we dont always re-enter)
@@ -152,7 +160,7 @@ extern Schedule
     ; pop the 5 qwords the CPU pushed.
     add rsp, 40
 
-    call Schedule
+    jmp Schedule ; Changed to jmp instruction, the function is a NORETURN
     int 8 ; Double Fault if we reached here, which we should never.
 
 .exit:
@@ -217,7 +225,6 @@ DEFINE_ISR 30
 DEFINE_ISR 31
 
 ; Custom ISR's
-DEFINE_ISR 222 ; LAPIC CPU Actions - Must  be the lowest between the 3, to mask them on pending interrupts list.
 DEFINE_ISR 239 ; LAPIC
 DEFINE_ISR 254 ; LAPIC Spurious Interrupt Vector
 

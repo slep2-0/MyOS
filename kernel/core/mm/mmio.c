@@ -124,20 +124,21 @@ MmAllocateContigiousMemory(
 
     /* FIXME NonPagedPoolCacheAligned type. (That returns an addres that is page aligned actually), since ahci wanted & 0x3FF, for alignment.
     // First, try to allocate from the NonPagedPool, if it returned a contigious physical memory address, we are lucky! (if we reach MiRefillPool we are less lucky, its actually worse...)
-    BaseAddress = MmAllocatePoolWithTag(NonPagedPool, NumberOfBytes, 'mCmM');
+    if (HighestAcceptableAddress == UINT64_T_MAX) {
+        BaseAddress = MmAllocatePoolWithTag(NonPagedPool, NumberOfBytes, 'mCmM');
 
-    if (BaseAddress) {
-        if (MiCheckForContigiousMemory(BaseAddress, NumberOfBytes)) {
-            // Its physically contigious!
-            return BaseAddress;
-        }
-        else {
-            // It's not.. Free allocated memory.
-            MmFreePool(BaseAddress);
-            BaseAddress = NULL;
+        if (BaseAddress) {
+            if (MiCheckForContigiousMemory(BaseAddress, NumberOfBytes)) {
+                // Its physically contigious!
+                return BaseAddress;
+            }
+            else {
+                // It's not.. Free allocated memory.
+                MmFreePool(BaseAddress);
+                BaseAddress = NULL;
+            }
         }
     }
-
     */
 
     // Acquire the global DB lock so we dont get the contigious pages stolen from us.
@@ -299,7 +300,7 @@ MmMapIoSpace(
     assert(NumberOfBytes > 0);
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
 
-    // Get space reservation for amount of bytes.
+    // Get space reservation for amount of bytes. (we could also use PhysicalMemoryOffset, but the caller must adhere that the PhysicalAddress given is NOT mapped.)
     uintptr_t VA = MiAllocatePoolVa(NonPagedPool, NumberOfBytes);
     if (!VA) return NULL;
 
