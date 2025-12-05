@@ -85,19 +85,3 @@ I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
 
-
-**64 BIT LONG MODE - UEFI**
-
-
-
-
-
-# THIS IS THE DEVELOPER BRANCH.
-
-
-
-
-**Kernel might boot here, might not, changes are made here, then are merged to master**
-
-
-
