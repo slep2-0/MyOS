@@ -38,9 +38,9 @@ Revision History:
 
 #define TICK_MS 4
 typedef enum _TimeSliceTicks {
-	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 4 ms  */
-	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 10 ms */
-	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 25 ms */
+	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 40 ms  */
+	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 100 ms */
+	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 250 ms */
 } TimeSliceTicks, *PTimeSliceTicks;
 
 typedef enum _WAIT_REASON {

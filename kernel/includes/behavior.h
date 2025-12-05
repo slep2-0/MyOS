@@ -19,6 +19,8 @@ Revision History:
 #ifndef X86_MATANEL_BEHAVIOR_H
 #define X86_MATANEL_BEHAVIOR_H
 
-#define MT_UP // Uncomment to define the system to run in UniProcessor mode (will NOT enable SMP, undefs spinlocks)
+//#define MT_UP // Uncomment to define the system to run in UniProcessor mode (will NOT enable SMP, undefs spinlocks)
+
+//#define DISABLE_CACHE // Uncomment to disable CPU Caching on ALL CPUs (if SMP, if not, only BSP)
 
 #endif

@@ -142,7 +142,7 @@ MmInitSystem(
     }
 
     else {
-        // Only phase 1 & 2 is supported currently.
+        // Only phase 1 & 2 are supported currently.
         MeBugCheck(INVALID_INITIALIZATION_PHASE);
     }
 }

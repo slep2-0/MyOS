@@ -107,28 +107,6 @@ Schedule(void) {
 
     PITHREAD prev = MeGetCurrentProcessor()->currentThread;
 
-    // always check if exists, didn't check and got faulted.
-    if (prev && prev->ThreadState == THREAD_TERMINATED) {
-        // there was a critical memory issue here where we freed the stack and then pushed an address immediately (to an unmapped stack).
-        // just queue a DPC for cleaning both (in order)
-        // (it will not pre-empt the scheduler as we are in DISPATCH_LEVEL, scheduling is disabled)
-        {
-            // TODO: Replace the dynamic allocation with a global variable that is held with a lock, actually - keep the allocation, or make a global variable for each CPU, maybe in their struct?
-            // There is a DPC struct for each CPU incase we cant allocate a dynamic one.
-            DPC* allocatedDPC = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'PAER'); // REAP
-            if (!allocatedDPC) {
-                assert(1==3);
-                MeBugCheck(MANUALLY_INITIATED_CRASH);
-            }
-            // Initialize the DPC. (at LOW_PRIORITY, we dont want execution after unless depth is too large)
-            MeInitializeDpc(allocatedDPC, CleanStacks, NULL, HIGH_PRIORITY);
-            MeInsertQueueDpc
-            (allocatedDPC, (void*)prev, (void*)allocatedDPC);
-            prev->ThreadState = THREAD_ZOMBIE;
-        }
-        prev = NULL;
-    }
-
     // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
     if (prev && prev != &MeGetCurrentProcessor()->idleThread->InternalThread && prev->ThreadState == THREAD_RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)

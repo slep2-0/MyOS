@@ -108,6 +108,12 @@ MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS Pare
 MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 
+NORETURN
+void
+PsTerminateSystemThread(
+    void
+);
+
 PETHREAD
 PsGetCurrentThread(
     void

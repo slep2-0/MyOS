@@ -7,6 +7,7 @@
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
 #include "../../includes/ps.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 
 //Statically made DPC Routines.
@@ -14,19 +15,25 @@
 void CleanStacks(DPC* dpc, void* DeferrredContext, void* SystemArgument1, void* SystemArgument2) {
     /*
     DeferredContext - Ignored
-    SystemArgument1 - Thread
+    SystemArgument1 - Thread (ETHREAD)
     SystemArgument2 - isStatic (asserted at scheduler, ignored for now)
     */
     UNREFERENCED_PARAMETER(dpc);
     UNREFERENCED_PARAMETER(DeferrredContext);
     UNREFERENCED_PARAMETER(SystemArgument2);
-    PITHREAD t = (PITHREAD)SystemArgument1;
+    PETHREAD t = (PETHREAD)SystemArgument1;
 
     // If the thread is a kernel thread (owned by the System process), we free its stack here.
-    if (PsIsKernelThread(PsGetEThreadFromIThread(t))) {
-        MiFreeKernelStack(t->StackBase, t->IsLargeStack);
+    if (PsIsKernelThread(t)) {
+        MiFreeKernelStack(t->InternalThread.StackBase, t->InternalThread.IsLargeStack);
     }
 
+    extern uint32_t ManageTID(uint32_t freedTid);
+
+    // Free its thread ID from the global list.
+    ManageTID(t->TID);
+
+    // Free ETHREAD (contains ITHREAD)
     MmFreePool(t);
 
     return;
@@ -278,7 +285,7 @@ MeRetireDPCs(
                     Cpu->CurrentDeferredRoutine = Dpc;
                     DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
                     Cpu->CurrentDeferredRoutine = NULL;
-                    if (1) MeBugCheck(MANUALLY_INITIATED_CRASH);
+
                     // Assertion, incase the DPC changed the IRQL level.
                     assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
 
