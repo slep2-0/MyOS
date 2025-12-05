@@ -372,6 +372,18 @@ MeBugCheckEx (
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
+#ifdef DEBUG
+    // Thread information
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    if (CurrentThread) {
+        // Display thread debug info
+        uintptr_t ThreadStack = (uintptr_t)CurrentThread->InternalThread.StackBase;
+        uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
+        uintptr_t StackEnd = ThreadStack + StackSize;
+        uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
+        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
+    }
+#endif
     __cli();
     while (1) {
         __hlt();

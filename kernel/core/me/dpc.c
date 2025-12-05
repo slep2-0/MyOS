@@ -7,31 +7,33 @@
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
 #include "../../includes/ps.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 
 //Statically made DPC Routines.
 
-void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4) {
-    UNREFERENCED_PARAMETER(dpc); UNREFERENCED_PARAMETER(arg2); UNREFERENCED_PARAMETER(arg3); UNREFERENCED_PARAMETER(arg4);
-    MeGetCurrentProcessor()->schedulePending = true;
-}
-
 void CleanStacks(DPC* dpc, void* DeferrredContext, void* SystemArgument1, void* SystemArgument2) {
     /*
     DeferredContext - Ignored
-    SystemArgument1 - Thread
+    SystemArgument1 - Thread (ETHREAD)
     SystemArgument2 - isStatic (asserted at scheduler, ignored for now)
     */
     UNREFERENCED_PARAMETER(dpc);
     UNREFERENCED_PARAMETER(DeferrredContext);
     UNREFERENCED_PARAMETER(SystemArgument2);
-    PITHREAD t = (PITHREAD)SystemArgument1;
+    PETHREAD t = (PETHREAD)SystemArgument1;
 
     // If the thread is a kernel thread (owned by the System process), we free its stack here.
-    if (PsIsKernelThread(PsGetEThreadFromIThread(t))) {
-        MiFreeKernelStack(t->StackBase, t->IsLargeStack);
+    if (PsIsKernelThread(t)) {
+        MiFreeKernelStack(t->InternalThread.StackBase, t->InternalThread.IsLargeStack);
     }
 
+    extern uint32_t ManageTID(uint32_t freedTid);
+
+    // Free its thread ID from the global list.
+    ManageTID(t->TID);
+
+    // Free ETHREAD (contains ITHREAD)
     MmFreePool(t);
 
     return;
@@ -101,6 +103,8 @@ MeInsertQueueDpc(
         }
 
         Inserted = true;
+        // Increment request rate
+        Cpu->DpcRequestRate++;
 
         // Check if we need to request an interurpt
         // We only request if a DPC isnt currently running.
@@ -112,9 +116,14 @@ MeInsertQueueDpc(
             if ((Dpc->priority != LOW_PRIORITY) ||
                 (DpcData->DpcQueueDepth >= Cpu->MaximumDpcQueueDepth)) {
 
+                // Always mark that an interrupt is needed eventually
                 Cpu->DpcInterruptRequested = true;
-                // Request an interrupt from HAL.
-                MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+
+                // Cannot request an interrupt on DISPATCH_LEVEL already.
+                if (MeGetCurrentIrql() < DISPATCH_LEVEL) {
+                    // Request an interrupt from HAL.
+                    MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+                }
             }
         }
     }
@@ -296,6 +305,9 @@ MeRetireDPCs(
         Cpu->DpcInterruptRequested = false;
 
     } while (DpcData->DpcQueueDepth != 0);
+
+    // Return statement, assert that interrupts are disabled.
+    assert(MeAreInterruptsEnabled() == false, "Interrupts must not enabled at DPC Retirement exit");
 }
 
 void

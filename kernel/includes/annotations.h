@@ -26,7 +26,7 @@
 // Function will be forcefully inlined by the compiler. (between translation files)
 #ifndef FORCEINLINE_NOHEADER
 #if defined(__clang__) || defined(__GNUC__)
-#define FORCEINLINE_NOHEADER inline __attribute__((always_inline))
+#define FORCEINLINE_NOHEADER __attribute__((always_inline))
 #elif defined(_MSC_VER)
 #define FORCEINLINE_NOHEADER __forceinline
 #else

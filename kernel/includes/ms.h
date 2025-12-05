@@ -89,6 +89,7 @@ typedef struct _MUTEX {
 
 // ------------------ FUNCTIONS ------------------
 
+//#ifndef MT_UP
 void
 MsAcquireSpinlock(
     IN	PSPINLOCK lock,
@@ -100,6 +101,15 @@ MsReleaseSpinlock(
     IN	PSPINLOCK lock,
     IN	IRQL OldIrql
 );
+/**
+#else
+#undef MsAcquireSpinlock
+#undef MsReleaseSpinlock
+
+#define MsAcquireSpinlock() // NO-OP
+#define MsReleaseSpinlock() // NO-OP
+#endif
+*/
 
 MTSTATUS
 MsInitializeMutexObject(
@@ -162,7 +172,8 @@ InitializeListHead(
     Head->Blink = Head;
 }
 
-// CRASHES IN THESE FUNCTIONS USUALLY BECAUSE INITIALIZELISTHEAD WASNT USED ON THE DOUBLY LINKED LIST !!!!!!!
+// ->>>> CRASHES IN THESE FUNCTIONS USUALLY BECAUSE INITIALIZELISTHEAD WASNT USED ON THE DOUBLY LINKED LIST !!!!!!!
+
 FORCEINLINE
 void
 InsertTailList(

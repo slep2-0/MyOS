@@ -32,9 +32,6 @@ extern bool isBugChecking;
 /* Uncomment to show all reminders in a static assertion */
 ///#define REMINDER
 
-/* Uncomment to disable CPU Caching */
-///#define DISABLE_CACHE
-
 /* To define DEBUG globally, use a compiler flag. I removed this since I now transitioned each header to iself and others instead of relying on kernel.h that caused circular includes. */
 
 #define UNREFERENCED_PARAMETER(x) (void)(x)
@@ -48,6 +45,7 @@ extern bool isBugChecking;
 #include "drivers/gop/gop.h"
 #include "time.h"
 #include "filesystem/vfs/vfs.h"
+#include "includes/behavior.h"
 
 // Entry point in C
 void kernel_idle_checks(void);

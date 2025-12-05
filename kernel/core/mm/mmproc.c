@@ -166,7 +166,7 @@ MiFreeKernelStack(
 --*/
 
 {
-    //gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**", (LargeStack ? "True" : "False"), AllocatedStackTop);
+    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
     // Declarations
     size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
     size_t GuardSize = VirtualPageSize;
@@ -206,7 +206,7 @@ MiFreeKernelStack(
         // Clean the page.
         GuardPte->Value = 0;
     }
-    
+
     // Invalidate the VA for the Guard Page.
     MiInvalidateTlbForVa((void*)BaseVa);
 

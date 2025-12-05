@@ -260,6 +260,8 @@ typedef enum _PAGE_FLAGS {
     // Execution cannot happen in this page.
 } PAGE_FLAGS;
 
+// NonPagedPools - Allocations occur at max DISPATCH_LEVEL (inclusive). (e.g assert(IRQL == DISPATCH/PASSIVE/APC_LEVEL)
+// PagedPools - Allocations occur at max DISPATCH_LEVEL (exclusive) (e.g assert(IRQL == PASSIVE/APC_LEVEL)
 typedef enum _POOL_TYPE {
     NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs)
     PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL).

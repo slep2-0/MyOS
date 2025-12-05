@@ -17,7 +17,7 @@ Global variables initialization
 Kernel Specific
 */
 bool isBugChecking = false;
-PROCESSOR cpu0;
+PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_lapic_id] after initializing SMP.
 
 /*
 Boot Parameters
@@ -41,13 +41,6 @@ Ended
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
 
-static void* tmpcpy(void* dest, const void* src, size_t len) {
-    uint8_t* d = (uint8_t*)dest;
-    const uint8_t* s = (const uint8_t*)src;
-    for (size_t i = 0; i < len; i++) d[i] = s[i];
-    return dest;
-}
-
 void copy_memory_map(BOOT_INFO* boot_info) {
     if (!boot_info || !boot_info->MemoryMap) return;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
@@ -56,7 +49,7 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     }
 
     // Copy the entire memory map into the static buffer
-    tmpcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
+    kmemcpy(memory_map_copy, boot_info->MemoryMap, boot_info->MapSize);
 
     boot_info_local.MemoryMap = memory_map_copy;
     boot_info_local.MapSize = boot_info->MapSize;
@@ -65,13 +58,13 @@ void copy_memory_map(BOOT_INFO* boot_info) {
 }
 
 void copy_gop(BOOT_INFO* boot_info) {
-    if (!boot_info || !boot_info->Gop) return;
+    if (!boot_info || !boot_info->Gop.FrameBufferBase) return;
 
     // Copy the GOP data to a local global variable
-    gop_local = *(boot_info->Gop);
+    gop_local = (boot_info->Gop);
 
     // Update all relevant pointers to point to the local copy
-    boot_info_local.Gop = &gop_local;
+    boot_info_local.Gop = gop_local;
 }
 
 
@@ -86,7 +79,8 @@ void init_boot_info(BOOT_INFO* boot_info) {
     for (uint32_t i = 0; i < boot_info->AhciCount; i++) {
         ahci_bases_local[i] = boot_info->AhciBarBases[i];
     }
-    boot_info_local.AhciBarBases = ahci_bases_local;
+    // Copy the local array into local boot info.
+    kmemcpy(boot_info_local.AhciBarBases, ahci_bases_local, sizeof(ahci_bases_local));
     boot_info_local.AhciCount = boot_info->AhciCount;
     boot_info_local.KernelStackTop = boot_info->KernelStackTop;
     boot_info_local.Pml4Phys = boot_info->Pml4Phys;
@@ -94,6 +88,7 @@ void init_boot_info(BOOT_INFO* boot_info) {
 }
 
 void InitialiseControlRegisters(void) {
+    // This routine is ran by all CPUs.
 
     /* CR0 */
     unsigned long cr0 = __read_cr0();
@@ -179,15 +174,6 @@ static void funcWithParam(MUTEX* mut) {
     PETHREAD currentThread = PsGetCurrentThread();
     gop_printf(COLOR_OLIVE, "Current thread in funcWithParam: %p\n", currentThread);
     gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
-}
-
-static void bp_exec(void* vinfo) {
-    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
-    if (!info) return;
-
-    gop_printf(0xFFFFFF00, "(EXECUTE) HWBP: idx=%d variable addr=%p rip: %p DR6=%p\n", info->BreakIdx, info->Address, info->trap->rip, (unsigned long long)info->Dr6);
-    gop_printf(COLOR_RED, "Stack Trace:\n");
-    __hlt();
 }
 
 // All CPUs
@@ -346,17 +332,22 @@ void kernel_main(BOOT_INFO* boot_info) {
     lapic_enable(); // call again.
     lapic_timer_calibrate();
     init_lapic_timer(100); // 10ms, must be called before other APs
+#ifndef MT_UP
     /* Enable SMP */
     status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
-        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x\n");
+        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x, continuing in UP mode.\n");
     }
     else {
         MhInitializeSMP(apic_list, 4, lapicAddress);
+        IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
+        MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
     }
-    IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
-    MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
-    __sti();
+#else
+    gop_printf(COLOR_RED, "System configured to run in UP mode.\n");
+#endif
+    // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
+    // Thread creations (including idle threads) must come with the IF flag set.
     Schedule();
     for (;;) __hlt();
     __builtin_unreachable();

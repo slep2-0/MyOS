@@ -38,9 +38,9 @@ Revision History:
 
 #define TICK_MS 4
 typedef enum _TimeSliceTicks {
-	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 4 ms  */
-	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 10 ms */
-	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 25 ms */
+	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 40 ms  */
+	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 100 ms */
+	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 250 ms */
 } TimeSliceTicks, *PTimeSliceTicks;
 
 typedef enum _WAIT_REASON {
@@ -259,7 +259,7 @@ typedef struct _PROCESSOR {
 	void* tss; // Task State Segment ptr.
 	void* IstPFStackTop; // Page Fault IST Stack
 	void* IstDFStackTop; // Double Fault IST Stack
-	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU.
+	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
 	bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.

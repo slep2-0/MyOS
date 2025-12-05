@@ -54,7 +54,8 @@ static uintptr_t allocate_and_map_user_stack(PEPROCESS proc, size_t stack_size, 
 // Call with freedTid == 0 ? allocate a new TID (returns 0 on failure)
 // Call with freedTid  > 0 ? release that TID back into the pool (always returns 0)
 ///
-static uint32_t ManageTID(uint32_t freedTid)
+uint32_t ManageTID(uint32_t freedTid);
+uint32_t ManageTID(uint32_t freedTid)
 {
     IRQL oldIrql;
     MsAcquireSpinlock(&g_tid_lock, &oldIrql);
@@ -93,30 +94,19 @@ static uint32_t ManageTID(uint32_t freedTid)
 
 
 // Clean exit for a thread—never returns!
-static void ThreadExit(PETHREAD thread) {
+static void ThreadExit(void) {
 #ifdef DEBUG
     gop_printf(COLOR_RED, "Reached ThreadExit\n");
 #endif
-    // Before all, wait for its rundown to expire (if any).
-    MsWaitForRundownProtectionRelease(&thread->ThreadRundown);
-    // 1) mark as dead
-    thread->InternalThread.ThreadState = THREAD_TERMINATED;
-    thread->InternalThread.TimeSlice = 1;
-    ManageTID(thread->TID);
-
-    // Call scheduler (don't delete the stack)
-    Schedule();
-    // should never get here
-    /* assertions */
-    assert(false);
-    // When the stack got freed, the scheduler was called here, and since it's freed and it atttempted to PUSH the return address to the stack, we faulted.
+    // Terminate the thread.
+    PsTerminateSystemThread();
 }
 
-static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter, PETHREAD thread) {
+static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
     // thread_entry(parameters) -> void func(void*)
     thread_entry(parameter); // If thread entry takes no parameters, passing NULL is still fine.
     /// When the thread finishes execution, it will go to ThreadExit to manage cleanup.
-    ThreadExit(thread);
+    ThreadExit();
 }
 
 // Internal function for thread creation
@@ -255,7 +245,6 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     cfm->rip = (uint64_t)ThreadWrapperEx;
     cfm->rdi = (uint64_t)entry; // first argument to ThreadWrapperEx (the entry point)
     cfm->rsi = (uint64_t)parameter; // second arugment to ThreadWrapperEx (the parameter pointer)
-    cfm->rdx = (uint64_t)thread; // third argument to ThreadWrapperEx, our newly created Thread ptr.
 
     cfm->ss = KERNEL_SS;
     cfm->cs = KERNEL_CS;
@@ -277,10 +266,62 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     return MT_SUCCESS;
 }
 
-FORCEINLINE_NOHEADER
 PETHREAD 
 PsGetCurrentThread (void) {
     if (!MeGetCurrentProcessor() || !MeGetCurrentProcessor()->currentThread) return NULL;
     PITHREAD currThread = MeGetCurrentProcessor()->currentThread;
     return CONTAINING_RECORD(currThread, ETHREAD, InternalThread);
+}
+
+NORETURN
+void
+PsTerminateSystemThread(
+    void
+)
+
+/*++
+
+    Routine description:
+
+        Terminates the current thread. This thread is guranteed to be a system thread.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        This function does not return, at all.
+
+--*/
+
+{
+    // Before all, wait for its rundown to expire (if any).
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    assert(CurrentThread != NULL);
+    assert(CurrentThread->ParentProcess == &PsInitialSystemProcess);
+    MsWaitForRundownProtectionRelease(&PsGetCurrentThread()->ThreadRundown);
+
+    // Explicitly disable interrupts, the scheduler would switch to a thread with interrupts enabled.
+    // The reason we disable the interrupts, is because if the DPC executes the instant we queue it
+    // (Depth is full, or priority is higher than LOW), we would technically unmap our own stack
+    // Since the DPC Vector in the IDT does NOT have an IST, and when it would return ANY PUSH instruction
+    // Would page fault (or memory access on the stack generally).
+    // So interrupts disabled gurantee NO DPC will run at the current execution (raising to HIGH_LEVEL would deadlock the system at MhRequestSoftwareInterrupt, waiting for APIC until dawn)
+    MeDisableInterrupts();
+
+    // Terminate its stack and thread structure.
+    // Initialize the DPC. (at LOW_PRIORITY, we dont want execution after unless depth is too large)
+    DPC* allocatedDPC = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'PAER'); // REAP/
+    assert(allocatedDPC != NULL);
+    if (!allocatedDPC) {
+        MeBugCheck(MANUALLY_INITIATED_CRASH); // TODO Use ReaperDPC.
+    }
+
+    CurrentThread->InternalThread.ThreadState = THREAD_ZOMBIE;
+    MeInitializeDpc(allocatedDPC, CleanStacks, NULL, HIGH_PRIORITY);
+    MeInsertQueueDpc(allocatedDPC, (void*)CurrentThread, (void*)allocatedDPC);
+
+    // Schedule to another thread.
+    Schedule();
 }

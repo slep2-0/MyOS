@@ -57,11 +57,29 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
         uint8_t aid = apic_list[i];
 
 		if (aid == my_id) {
-			// BSP slot, ensure basic mapping, aside from that, continue.
-			cpus[i].self = &cpu0;
+			// BSP slot, since we want synchronization for all APs, we migrate cpu0 to this global variable of CPUs, and change gs once again.
+			// Debugging helped me solve this, I saw that [i].IpiSeq (i = bsp slot), was 3, but [i].self->IpiSeq is 0, which was the real one.
+			// So we infinite looped.
+
+			// Explicitly disable interrupts for synchronization.
+			
+			bool Enabled = MeDisableInterrupts();
+			
+			// Copy all of the cpu data to here.
+			kmemcpy(&cpus[i], &cpu0, sizeof(PROCESSOR));
+
+			// Set the new self ptr and other variables.
+			cpus[i].self = &cpus[i];
 			cpus[i].ID = i;
 			cpus[i].lapic_ID = aid;
 			cpus[i].flags = CPU_ONLINE;
+
+			// Set the GS to point to new cpus[i]
+			__writemsr(IA32_GS_BASE, (uint64_t)&cpus[i]);
+
+			// Re-Enable if enabled before.
+			MeEnableInterrupts(Enabled);
+
 			continue;
 		}
 		
@@ -199,7 +217,7 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	if (!g_cpuCount || !smpInitialized) return;
 	uint8_t myid = my_lapic_id();
 
-	static uint64_t g_ipiSeq = 1;
+	static uint64_t g_ipiSeq = 1; // Global sequence of IPIs made.
 	uint64_t seq = InterlockedIncrementU64(&g_ipiSeq);
 
 	__asm__ volatile("mfence" ::: "memory");
@@ -212,7 +230,8 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		cpus[i].IpiParameter = parameter;
 
 		cpus[i].IpiSeq = seq; // assign sequence number
-		lapic_send_ipi(cpus[i].lapic_ID, LAPIC_ACTION_VECTOR, 0x0);
+		uint32_t LAPIC_ACTION_VECTOR = VECTOR_IPI;
+		lapic_send_ipi(cpus[i].lapic_ID, (uint8_t)LAPIC_ACTION_VECTOR, 0x0);
 	}
 
 	// wait for all CPUs to handle this exact IPI
@@ -220,7 +239,7 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		if (cpus[i].lapic_ID == myid || !(cpus[i].flags & CPU_ONLINE))
 			continue;
 
-		while (cpus[i].IpiSeq == seq) {
+		while (*(volatile uint64_t*)&cpus[i].IpiSeq == seq) {
 			__pause(); // spin until they clear the seq
 		}
 	}

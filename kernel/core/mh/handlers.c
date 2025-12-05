@@ -64,7 +64,7 @@ extern void lapic_eoi(void);
 
 void MiLapicInterrupt(bool schedulerEnabled, PTRAP_FRAME trap) {
     MiHandleTimer(schedulerEnabled, trap);
-    lapic_eoi();
+    lapic_eoi(); // Signal end of interrupt.
 }
 
 void MiInterprocessorInterrupt (
@@ -96,6 +96,7 @@ void MiInterprocessorInterrupt (
         // explicit action to halt, since we are in an interrupt, unless an NMI somehow comes, we will stay stopped.
         // clear the flag before we halt so BSP can continue iterations
         cpu->IpiSeq = 0;
+        MmFullBarrier();
         InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
         for (;;) __hlt();
     case CPU_ACTION_PERFORM_TLB_SHOOTDOWN:
@@ -143,8 +144,7 @@ void MiInterprocessorInterrupt (
         cpu->IpiSeq = 0; // Signal completion for non-halting actions.
     }
 
-    // Signal End-Of-Interrupt to LAPIC.
-    lapic_eoi();
+    // End of Interrupt for LAPIC is signaled at functio return.
 }
 
 void 
@@ -189,6 +189,9 @@ MiPageFault (
     
 
     MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, MeGetPreviousMode(), trap);
+#ifdef DEBUG
+    gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
+#endif
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
@@ -428,7 +431,7 @@ void MiCoprocessorSegmentOverrun(PTRAP_FRAME trap) {
     MeBugCheckEx(COPROCESSOR_SEGMENT_OVERRUN, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiInvalidTss(PTRAP_FRAME trap) {
+void MiInvalidTss(IN PTRAP_FRAME trap) {
     // a tss is when the CPU hardware switches (usually does not happen, since OS'es implement switching in software, like process timer context switch, all in software)
     // if it did happen though, we bugcheck.
     MeBugCheckEx(INVALID_TSS, (void*)trap->rip, NULL, NULL, NULL);

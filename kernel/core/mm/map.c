@@ -135,7 +135,6 @@ MiGetPtePointer(
     return (PMMPTE)&pt_va[pt_i];
 }
 
-FORCEINLINE_NOHEADER
 PAGE_INDEX
 MiTranslatePteToPfn (
     IN  PMMPTE pte
@@ -212,7 +211,6 @@ MiTranslatePteToVa(
     return canonical_high(va); /* page-aligned VA for invlpg */
 }
 
-FORCEINLINE_NOHEADER
 void
 MiUnmapPte (
     IN  PMMPTE pte

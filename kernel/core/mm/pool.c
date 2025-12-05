@@ -41,7 +41,7 @@ MiInitializePoolSystem(
 
     Routine description:
 
-        Refills the specified pool with a block of its size.
+        Initializes the Pool Allocation System of the kernel.
 
     Arguments:
 
@@ -389,31 +389,16 @@ MiAllocatePagedPool(
 {
     size_t ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
     uintptr_t PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
-    assert((PagedVa) != 0);
+    if (!PagedVa) return NULL;
+
     PPOOL_HEADER header = (PPOOL_HEADER)PagedVa;
-    
-    // Make the first page of the PagedPool allocation always resident in memory, as the header must be resident. FIXME TODO PAGEDPOOL SLAB ALLOCATIONS LIKE NONPAGED.
-    PMMPTE pte = MiGetPtePointer(PagedVa);
-    if (!pte) goto failure;
-    PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-    if (pfn == PFN_ERROR) goto failure;
-
-    // Write the PTE.
-    MI_WRITE_PTE(pte, PagedVa, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
-    assert(MmIsAddressPresent(PagedVa));
-
-    // Set metadata. (header must ALWAYS be resident in memory).
-    header->PoolCanary = 'BEKA';
-    header->PoolTag = Tag;
-    header->Metadata.BlockSize = ActualSize;
-    header->Metadata.PoolIndex = POOL_TYPE_PAGED;
-
+    // The first page will not be resident in memory anymore, it should be paged in as well, that means that pool free routines will need to be executed at < DISPATCH_LEVEL too.
     // Set each page to be a demand lazy allocation.
     size_t NumberOfPages = BYTES_TO_PAGES(ActualSize);
-    size_t currVa = PagedVa + VirtualPageSize;
+    size_t currVa = PagedVa;
     for (size_t i = 0; i < NumberOfPages; i++) {
         PMMPTE tmpPte = MiGetPtePointer(currVa);
-        if (!tmpPte) continue;
+        if (!tmpPte) continue; // TODO Unroll.
         MMPTE TempPte = *tmpPte;
         // Set the PTE as demand zero.
         MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE, false);
@@ -424,12 +409,14 @@ MiAllocatePagedPool(
         currVa += VirtualPageSize;
     }
 
+    // Set metadata. (header should get paged in now).
+    header->PoolCanary = 'BEKA';
+    header->PoolTag = Tag;
+    header->Metadata.BlockSize = ActualSize;
+    header->Metadata.PoolIndex = POOL_TYPE_PAGED;
+
     // Return VA.
     return (void*)((uint8_t*)PagedVa + sizeof(POOL_HEADER));
-
-failure:
-    MiFreePoolVaContiguous(PagedVa, NumberOfBytes, PagedPool);
-    return NULL;
 }
 
 void*
@@ -455,6 +442,11 @@ MmAllocatePoolWithTag(
     Return Values:
 
         Pointer to allocated region, or NULL on failure.
+
+    Notes:
+
+        PagedPool allocations CANNOT happen at IRQL => DISPATCH_LEVEL.
+        NonPagedPool allocations CANNOT happen at IRQL > DISPATCH_LEVEL.
 
 --*/
 

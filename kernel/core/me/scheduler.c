@@ -68,13 +68,16 @@ static void enqueue_runnable(PITHREAD t) {
 }
 
 extern uint32_t g_cpuCount; // extern the global cpu count. (gotten from smp)
+extern bool smpInitialized;
 
 // The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
 static PITHREAD MeAcquireNextScheduledThread(void) {
     // First, lets try to get from our own queue.
     PETHREAD chosenThread = MeDequeueThreadWithLock(&MeGetCurrentProcessor()->readyQueue);
+    if (chosenThread) return &chosenThread->InternalThread;
 
-    if (!chosenThread) {
+#ifndef MT_UP
+    if (smpInitialized) {
         // Our own CPU queue is empty, steal from others.
         for (uint32_t i = 0; i < g_cpuCount; i++) {
             if (cpus[i].lapic_ID == MeGetCurrentProcessor()->lapic_ID) continue; // skip ourselves.
@@ -85,44 +88,24 @@ static PITHREAD MeAcquireNextScheduledThread(void) {
             if (!victimQueue->head) continue; // skip empty queues
 
             chosenThread = MeDequeueThreadWithLock(victimQueue);
-            if (chosenThread) break;
+            // Found a suitable thread, return it.
+            if (chosenThread) return &chosenThread->InternalThread;
         }
     }
+#endif
 
-    // This returns NULL if no thread has been found, or a pointer to the scheduled thread.
-    //gop_printf(COLOR_RED, "Returning %p thread | AP: %d\n", chosenThread, thisCPU()->ID); - Spamming this will result in a stack overflow, causing the guard pages to hit on the AP cpus.
-    return &chosenThread->InternalThread;
+    // No thread found.
+    return NULL;
 }
 
 NORETURN
 void 
 Schedule(void) {
-    //gop_printf(COLOR_PURPLE, "**In scheduler, IRQL: %d**\n", thisCPU()->currentIrql);
-
+    //gop_printf(COLOR_PURPLE, "**In scheduler, IRQL: %d**\n", MeGetCurrentIrql());
     IRQL oldIrql;
-    MeRaiseIrql(DISPATCH_LEVEL, &oldIrql);
-    PITHREAD prev = MeGetCurrentProcessor()->currentThread;
+    MeRaiseIrql(DISPATCH_LEVEL, &oldIrql); // Prevents scheduling re-entrance.
 
-    // always check if exists, didn't check and got faulted.
-    if (prev && prev->ThreadState == THREAD_TERMINATED) {
-        // there was a critical memory issue here where we freed the stack and then pushed an address immediately (to an unmapped stack).
-        // just queue a DPC for cleaning both (in order)
-        // (it will not pre-empt the scheduler as we are in DISPATCH_LEVEL, scheduling is disabled)
-        {
-            // TODO: Replace the dynamic allocation with a global variable that is held with a lock, actually - keep the allocation, or make a global variable for each CPU, maybe in their struct?
-            // There is a DPC struct for each CPU incase we cant allocate a dynamic one.
-            DPC* allocatedDPC = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'PAER'); // REAP
-            if (!allocatedDPC) {
-                assert(false);
-                MeBugCheck(MANUALLY_INITIATED_CRASH);
-            }
-            // Initialize the DPC. (at LOW_PRIORITY, we dont want execution after unless depth is too large)
-            MeInitializeDpc(allocatedDPC, CleanStacks, NULL, LOW_PRIORITY);
-            MeInsertQueueDpc(allocatedDPC, (void*)prev, (void*)allocatedDPC);
-            prev->ThreadState = THREAD_ZOMBIE;
-        }
-        prev = NULL;
-    }
+    PITHREAD prev = MeGetCurrentProcessor()->currentThread;
 
     // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
     if (prev && prev != &MeGetCurrentProcessor()->idleThread->InternalThread && prev->ThreadState == THREAD_RUNNING) {

@@ -97,13 +97,17 @@ void install_idt() {
     extern void isr254(void); // SIV ISR
     set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr254);
     /* For LAPIC CPU Action */
-    extern void isr222(void);
-    set_idt_gate(LAPIC_ACTION_VECTOR, (unsigned long)isr222);
+    extern void isr_ipi(void);
+    set_idt_gate(VECTOR_IPI, (unsigned long)isr_ipi);
+
+    extern void isr_dpc(void);   // stub that will call your IPI/DPC handler
+    set_idt_gate(VECTOR_DPC, (unsigned long)isr_dpc);
+
     /* Enable IST for Page Fault and Double Fault */
     IDT[14].ist = 1;  // uses gTss.ist[0] (page fault)
     IDT[8].ist = 2;  // uses gTss.ist[1] (double fault)
     IDT[LAPIC_TIMER_VECTOR].ist = 3; // uses gTss.ist[2] (LAPIC Timer)
-    IDT[LAPIC_ACTION_VECTOR].ist = 4; // uses gTss.ist[3] (APIC IPI)
+    IDT[VECTOR_IPI].ist = 4; // uses gTss.ist[3] (APIC IPI)
 
     /* Finally, Load IDT. */
     PIDT.limit = sizeof(IDT_ENTRY64) * IDT_ENTRIES - 1; // Max limit is the amount of IDT_ENTRIES structs (0-255)

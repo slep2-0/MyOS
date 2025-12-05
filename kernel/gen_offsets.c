@@ -120,6 +120,10 @@ int main(void) {
     GEN_DEFINE(POWER_LEVEL, POWER_LEVEL);
     GEN_DEFINE(HIGH_LEVEL, HIGH_LEVEL);
 
+    GEN_COMMENT("TPR Levels");
+    GEN_DEFINE(VECTOR_DPC, VECTOR_DPC);
+    GEN_DEFINE(VECTOR_IPI, VECTOR_IPI);
+
     // ========================================================================
     // 2. PROCESS & THREAD (ps.h)
     // ========================================================================
