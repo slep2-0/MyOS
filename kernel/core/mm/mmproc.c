@@ -212,4 +212,5 @@ MiFreeKernelStack(
 
     // Free the Virtual Address allocation
     MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);
+
 }
