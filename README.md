@@ -4,10 +4,5 @@
 
 **64 BIT LONG MODE - UEFI**
 
-
-
-@@ -13,3 +99,5 @@
-
-
-
 **Kernel might boot here, might not, changes are made here, then are merged to master**
+
