@@ -266,8 +266,10 @@ static bool init_one_port(int idx) {
     /* Per-header CTBA programmed correctly (for the number of slots the HBA advertises) */
 #ifdef AHCI_DEBUG_PRINT
     for (unsigned sl = 0; sl <= ncs; ++sl) {
+#ifdef DEBUG
         HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)clb + sl * sizeof(HBA_CMD_HEADER));
         uintptr_t expected = (uintptr_t)cmd_tbl_phys + sl * 256;
+#endif
         assert(hdr->ctba == (uint32_t)(expected & 0xFFFFFFFFu), "Header CTBA low doesn't match expected CTBA");
         if (s64a) {
             assert(hdr->ctbau == (uint32_t)(expected >> 32), "Header CTBAU mismatch (S64A advertised)");

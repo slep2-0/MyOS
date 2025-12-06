@@ -10,6 +10,7 @@
 #include "../../time.h"
 #include "../../intrinsics/atomic.h"
 #include "../../includes/mg.h"
+#include "../../includes/mm.h"
 
 #define WRITE_MODE_APPEND_EXISTING 0
 #define WRITE_MODE_CREATE_OR_REPLACE 1

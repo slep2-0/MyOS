@@ -119,6 +119,7 @@ typedef enum _BUGCHECK_CODES {
 	PAGE_FAULT_IN_FREED_NONPAGED_POOL,
 	PAGE_FAULT_IN_FREED_PAGED_POOL,
 	ATTEMPTED_SWITCH_FROM_DPC,
+	INVALID_INTERRUPT_REQUEST,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -276,7 +277,7 @@ typedef struct _PROCESSOR {
 	/* End Statically Special Allocated DPCs */
 
 	// Additional DPC Fields
-	DPC_DATA DpcData;               // The main DPC queue
+	DPC_DATA DpcData;					 // The main DPC queue
 	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDPCs
 	volatile bool DpcInterruptRequested; // TRUE if we requested an APIC int but isnt active yet.
 	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)

@@ -87,29 +87,6 @@ void init_boot_info(BOOT_INFO* boot_info) {
     boot_info_local.AcpiRsdpPhys = boot_info->AcpiRsdpPhys;
 }
 
-void InitialiseControlRegisters(void) {
-    // This routine is ran by all CPUs.
-
-    /* CR0 */
-    unsigned long cr0 = __read_cr0();
-    cr0 |= (1UL << 16); // Set bit 16 (WRITE PROTECT), so when the kernel touches read only memory it would #PF.
-#ifdef DISABLE_CACHE
-    cr0 |= (1UL << 30); // Set bit 30 (CACHE DISABLE).
-#endif
-    __write_cr0(cr0);
-
-    /* CR4 */
-    unsigned long cr4 = __read_cr4();
-    cr4 |= (1UL << 11); // Set bit 11 - User Mode Instruction Prevention. This'll be useful against user mode attacks to locate IDT/GDT/LDT...
-    __write_cr4(cr4);
-
-    /* Debug Registers */
-    for (int i = 0; i < 7; i++) {
-        // reset all
-        __write_dr(i, 0);
-    }
-}
-
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
     __asm__ __volatile__("pushfq; popq %0"
@@ -217,8 +194,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     // 1. CORE SYSTEM INITIALIZATION
     __writemsr(IA32_GS_BASE, (uint64_t)&cpu0);
     __cli();
-    // Initialize the CR (Control Registers) to our settings.
-    InitialiseControlRegisters();
     // Zero the BSS.
     size_t len = &bss_end - &bss_start;
     RtlZeroMemory(&bss_start, len);

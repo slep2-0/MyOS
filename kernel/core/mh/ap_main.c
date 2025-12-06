@@ -110,15 +110,11 @@ void APMain(void) {
     // Now setup the IDT for the CPU. (load the one setupped by the smp func)
     __lidt(&PIDT);
 
-extern void InitialiseControlRegisters(void);
-
     // Initiate per cpu functions.
     MeInitializeProcessor(MeGetCurrentProcessor());
     
     // Initialize the MM For current core (init PAT)
     MmInitSystem(SYSTEM_PHASE_INITIALIZE_PAT_ONLY, NULL);
-
-    InitialiseControlRegisters();
 
     // Initialize the idle thread.
     InitScheduler();

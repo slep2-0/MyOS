@@ -97,7 +97,12 @@ MeLowerIrql (
 
 /*++
 
-    Routine description : This function lowers the current IRQL of the CPU to the specified 'NewIrql', and updates IRQL rules along with it (scheduler, APIC masks...).
+    Routine description : 
+    
+        This function lowers the current IRQL of the CPU to the specified 'NewIrql', and updates IRQL rules along with it (scheduler, APIC masks...).
+        
+        N.B: The function checks if a software interrupt is pending AND that the interrupt IRQL pending is LOWER or EQUAL to current IRQL,
+             if so, it will generate the interrupt, even on interrupts disabled.
 
     Arguments:
 
@@ -123,13 +128,15 @@ MeLowerIrql (
     toggle_scheduler();
     update_apic_irqs(NewIrql);
 
-    if (prev_if) __sti();
-
     PPROCESSOR cpu = MeGetCurrentProcessor();
     MmFullBarrier();
     if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
+
+    // TODO Check for APC interrupt when APCs developed
+
+    if (prev_if) __sti();
 }
 
 // This function should be used sparingly, only during initialization.

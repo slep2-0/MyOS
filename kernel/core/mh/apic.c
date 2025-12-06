@@ -220,6 +220,7 @@ MhRequestSoftwareInterrupt(
 
     // We only support DISPATCH_LEVEL.
     assert(RequestIrql == DISPATCH_LEVEL);
+    if (RequestIrql != DISPATCH_LEVEL) MeBugCheckEx(INVALID_INTERRUPT_REQUEST, (void*)RETADDR(0), (void*)RequestIrql, NULL, NULL);
 
     // Disable interrupts, and save IF flag.
     prev_if = MeDisableInterrupts();

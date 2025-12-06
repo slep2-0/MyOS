@@ -55,9 +55,6 @@ void copy_memory_map(BOOT_INFO* boot_info);
 void copy_gop(BOOT_INFO* boot_info);
 void init_boot_info(BOOT_INFO* boot_info);
 
-// Initialize per CPU control registers (CR)
-void InitialiseControlRegisters(void);
-
 #define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
 
 #endif // X86_KERNEL_H
