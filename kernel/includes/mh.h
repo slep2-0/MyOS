@@ -612,6 +612,11 @@ MhRequestSoftwareInterrupt(
     IN IRQL RequestIrql
 );
 
+void
+MhExecuteSoftwareInterrupt(
+    IN IRQL RequestIrql
+);
+
 MTSTATUS MhInitializeACPI(void);
 MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint32_t* lapicAddress);
 

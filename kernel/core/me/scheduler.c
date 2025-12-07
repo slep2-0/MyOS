@@ -43,7 +43,7 @@ void InitScheduler(void) {
     idleThread->InternalThread.ThreadState = THREAD_READY;
     idleThread->InternalThread.TimeSlice = 1; // 1ms
     idleThread->InternalThread.TimeSliceAllocated = 1;
-    idleThread->InternalThread.NextThread.Next = NULL;
+    InitializeListHead(&idleThread->ThreadListEntry);
     idleThread->TID = 0; // Idle thread, TID is 0.
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
     idleThread->InternalThread.IsLargeStack = false;

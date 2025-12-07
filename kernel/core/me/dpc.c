@@ -9,34 +9,35 @@
 #include "../../includes/ps.h"
 #include "../../includes/mh.h"
 #include "../../assert.h"
+#include "../../includes/ob.h"
 
 //Statically made DPC Routines.
 
-void CleanStacks(DPC* dpc, void* DeferrredContext, void* SystemArgument1, void* SystemArgument2) {
+void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2) {
     /*
     DeferredContext - Ignored
-    SystemArgument1 - Thread (ETHREAD)
-    SystemArgument2 - isStatic (asserted at scheduler, ignored for now)
+    SystemArgument1 - ObpReaperList
+    SystemArgument2 - allocatedDPC.
     */
-    UNREFERENCED_PARAMETER(dpc);
-    UNREFERENCED_PARAMETER(DeferrredContext);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-    PETHREAD t = (PETHREAD)SystemArgument1;
 
-    // If the thread is a kernel thread (owned by the System process), we free its stack here.
-    if (PsIsKernelThread(t)) {
-        MiFreeKernelStack(t->InternalThread.StackBase, t->InternalThread.IsLargeStack);
+    POBJECT_HEADER head, cur;
+
+    UNREFERENCED_PARAMETER(DeferredContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    // Atomically take the list
+    head = (POBJECT_HEADER)InterlockedExchangePointer((volatile void*) & SystemArgument1, NULL);
+
+    // Walk the captured chain and free each header
+    while (head) {
+        cur = head;
+        head = (POBJECT_HEADER)head->NextToFree;
+        MmFreePool(cur); // Free the header (frees object as well, header + sizeof(header) = object)
     }
 
-    extern uint32_t ManageTID(uint32_t freedTid);
-
-    // Free its thread ID from the global list.
-    ManageTID(t->TID);
-
-    // Free ETHREAD (contains ITHREAD)
-    MmFreePool(t);
-
-    return;
+    // Free our allocated DPC
+    MmFreePool(dpc);
 }
 
 //End

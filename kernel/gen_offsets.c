@@ -89,7 +89,6 @@ int main(void) {
     GEN_OFFSET(ITHREAD, ThreadState);
     GEN_OFFSET(ITHREAD, StackBase);
     GEN_OFFSET(ITHREAD, IsLargeStack);
-    GEN_OFFSET(ITHREAD, NextThread);
     GEN_OFFSET(ITHREAD, PreviousMode);
 
     GEN_COMMENT("Processor Constants");

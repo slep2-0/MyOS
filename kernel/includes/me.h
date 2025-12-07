@@ -120,6 +120,9 @@ typedef enum _BUGCHECK_CODES {
 	PAGE_FAULT_IN_FREED_PAGED_POOL,
 	ATTEMPTED_SWITCH_FROM_DPC,
 	INVALID_INTERRUPT_REQUEST,
+	MANUALLY_INITIATED_CRASH2,
+	PSMGR_INIT_FAILED,
+	PSWORKER_INIT_FAILED,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -243,7 +246,6 @@ typedef struct _ITHREAD {
 	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel Threads Only)
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
-	struct _SINGLE_LINKED_LIST NextThread;				   // A singular linked list representing the next thread.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
 } ITHREAD, *PITHREAD;
@@ -279,7 +281,6 @@ typedef struct _PROCESSOR {
 	// Additional DPC Fields
 	DPC_DATA DpcData;					 // The main DPC queue
 	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDPCs
-	volatile bool DpcInterruptRequested; // TRUE if we requested an APIC int but isnt active yet.
 	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)
 	uintptr_t TimerHand;                 // Context for timer expiration (unused)
 
@@ -287,6 +288,10 @@ typedef struct _PROCESSOR {
 	uint32_t MaximumDpcQueueDepth;
 	uint32_t MinimumDpcRate;
 	uint32_t DpcRequestRate;
+
+	// Interrupt requests
+	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
+	volatile bool ApcInterruptRequested; // (Undeveloped yet) True if we requested an interrupt for APCs.
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -422,7 +427,7 @@ MeRetireDPCs(
 );
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4);
-void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4);
+void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2);
 void InitScheduler(void);
 
 NORETURN

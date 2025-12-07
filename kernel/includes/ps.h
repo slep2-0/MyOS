@@ -52,6 +52,34 @@ typedef enum _PROCESS_STATE {
 
 // ------------------ STRUCTURES ------------------
 
+//
+// Thread Access Rights
+//
+#define MT_THREAD_TERMINATE          0x0001    // Terminate the thread
+#define MT_THREAD_SUSPEND_RESUME     0x0002    // Suspend or resume thread execution
+#define MT_THREAD_SET_CONTEXT        0x0004    // Modify thread CPU context (registers, RIP/RSP)
+#define MT_THREAD_GET_CONTEXT        0x0008    // Read thread CPU context
+#define MT_THREAD_QUERY_INFO         0x0010    // Query thread info (state, priority, etc.)
+#define MT_THREAD_SET_INFO           0x0020    // Modify thread info (priority, name, affinity)
+
+#define MT_THREAD_ALL_ACCESS         0x003F    // Request all valid thread access rights
+
+
+//
+// Process Access Rights
+//
+#define MT_PROCESS_TERMINATE          0x0001  // Kill the process
+#define MT_PROCESS_CREATE_THREAD      0x0002  // Create a new thread inside process
+#define MT_PROCESS_VM_OPERATION       0x0004  // Allocate/Protect/Free process memory
+#define MT_PROCESS_VM_READ            0x0008  // Read from process memory
+#define MT_PROCESS_VM_WRITE           0x0010  // Write to process memory
+#define MT_PROCESS_DUP_HANDLE         0x0020  // Duplicate a handle into this process
+#define MT_PROCESS_SET_INFO           0x0040  // Modify process properties/metadata
+#define MT_PROCESS_QUERY_INFO         0x0080  // Query process details (PID, exit code, etc.)
+#define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
+
+#define MT_PROCESS_ALL_ACCESS         0x01FF  // Everything above
+
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
@@ -80,15 +108,22 @@ typedef struct _EPROCESS {
 
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
-    struct _ETHREAD* nextThread;     /* singly-linked list pointer for queues */
     // TODO TEB
     struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
     uint32_t TID;           /* thread id */
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
+    struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
+    MTSTATUS ExitStatus; // The status the thread exited in.
     /* TODO: priority, affinity, wait list, etc. */
 } ETHREAD, *PETHREAD;
+
+typedef struct _STACK_REAPER_ENTRY {
+    struct _STACK_REAPER_ENTRY* Next;
+    void* StackBase;
+    bool IsLarge;
+} STACK_REAPER_ENTRY, * PSTACK_REAPER_ENTRY;
 
 // ------------------ MACROS ------------------
 #define PROCESS_STACK_SIZE (32*1024) // 32 KiB
@@ -108,16 +143,35 @@ MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS Pare
 MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 
-NORETURN
-void
-PsTerminateSystemThread(
+MTSTATUS
+PsInitializeProcessThreadManager(
     void
+);
+
+void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge);
+
+void
+PsTerminateProcess(
+    IN PEPROCESS Process
+);
+
+void
+PsTerminateThread(
+    IN PETHREAD Thread,
+    IN MTSTATUS ExitStatus
+);
+
+void
+PsDeleteThread(
+    IN void* Object
 );
 
 PETHREAD
 PsGetCurrentThread(
     void
 );
+
+void PsInitializeWorkerThreads(void);
 
 FORCEINLINE
 PEPROCESS
@@ -132,6 +186,18 @@ PsGetCurrentProcess(
         return PsGetCurrentThread()->ParentProcess;
     }
     else return NULL;
+}
+
+FORCEINLINE
+void
+PsTerminateCurrentThread(void) {
+    return PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
+}
+
+FORCEINLINE
+void
+PsTerminateCurrentProcess(void) {
+    return PsTerminateProcess(PsGetCurrentProcess());
 }
 
 FORCEINLINE
@@ -167,62 +233,124 @@ PsIsKernelThread(
 }
 
 // Executive Functions - Are in PS.H
+// Executive Functions - Are in PS.H 
+
+// Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE
 void
 MeEnqueueThreadWithLock(
-    Queue* queue, PETHREAD thread) {
+    Queue* queue, PETHREAD thread)
+{
     IRQL flags;
     MsAcquireSpinlock(&queue->lock, &flags);
-    thread->nextThread = NULL;
-    if (!queue->head) queue->head = thread;
-    else queue->tail->nextThread = thread;
+
+    // Initialize the new node's links
+    thread->ThreadListEntry.Flink = NULL;
+
+    if (queue->tail) {
+        // Link new node to current tail
+        thread->ThreadListEntry.Blink = &queue->tail->ThreadListEntry;
+        // Link current tail to new node
+        queue->tail->ThreadListEntry.Flink = &thread->ThreadListEntry;
+    }
+    else {
+        // List was empty
+        thread->ThreadListEntry.Blink = NULL;
+        queue->head = thread;
+    }
+
+    // Update tail to be the new thread
     queue->tail = thread;
+
     MsReleaseSpinlock(&queue->lock, flags);
 }
 
-// Dequeues the current thread from the queue, returns null if none. (acquires spinlock)
+// Dequeues the head thread from the queue with spinlock protection.
 FORCEINLINE
 PETHREAD
-MeDequeueThreadWithLock(Queue* q) {
+MeDequeueThreadWithLock(Queue* q)
+{
     IRQL flags;
     MsAcquireSpinlock(&q->lock, &flags);
+
     if (!q->head) {
-        MsReleaseSpinlock(&q->lock, flags); // bye bye comment
+        MsReleaseSpinlock(&q->lock, flags);
         return NULL;
     }
 
     PETHREAD t = q->head;
-    q->head = t->nextThread;
-    if (!q->head) {
+
+    // Check if there is a next item
+    if (t->ThreadListEntry.Flink) {
+        // Get the ETHREAD from the generic list entry
+        q->head = CONTAINING_RECORD(t->ThreadListEntry.Flink, ETHREAD, ThreadListEntry);
+        // The new head has no previous item
+        q->head->ThreadListEntry.Blink = NULL;
+    }
+    else {
+        // Queue is now empty
+        q->head = NULL;
         q->tail = NULL;
     }
-    t->nextThread = NULL;
+
+    // Isolate the removed thread
+    t->ThreadListEntry.Flink = NULL;
+    t->ThreadListEntry.Blink = NULL;
+
     MsReleaseSpinlock(&q->lock, flags);
     return t;
 }
 
-// Enqueues the thread given to the queue.
+// Enqueues the thread given to the queue (No Lock).
 FORCEINLINE
-void MeEnqueueThread(Queue* queue, PETHREAD thread) {
-    thread->nextThread = NULL;
-    if (!queue->head) queue->head = thread;
-    else queue->tail->nextThread = thread;
+void MeEnqueueThread(Queue* queue, PETHREAD thread)
+{
+    // Initialize the new node's links
+    thread->ThreadListEntry.Flink = NULL;
+
+    if (queue->tail) {
+        // Link new node to current tail
+        thread->ThreadListEntry.Blink = &queue->tail->ThreadListEntry;
+        // Link current tail to new node
+        queue->tail->ThreadListEntry.Flink = &thread->ThreadListEntry;
+    }
+    else {
+        // List was empty
+        thread->ThreadListEntry.Blink = NULL;
+        queue->head = thread;
+    }
+
+    // Update tail to be the new thread
     queue->tail = thread;
 }
 
-// Dequeues the current thread from the queue, returns null if none.
+// Dequeues the head thread from the queue (No Lock).
 FORCEINLINE
-PETHREAD MeDequeueThread(Queue* q) {
+PETHREAD MeDequeueThread(Queue* q)
+{
     if (!q->head) {
         return NULL;
     }
 
     PETHREAD t = q->head;
-    q->head = t->nextThread;
-    if (!q->head) {
+
+    // Check if there is a next item
+    if (t->ThreadListEntry.Flink) {
+        // Get the ETHREAD from the generic list entry
+        q->head = CONTAINING_RECORD(t->ThreadListEntry.Flink, ETHREAD, ThreadListEntry);
+        // The new head has no previous item
+        q->head->ThreadListEntry.Blink = NULL;
+    }
+    else {
+        // Queue is now empty
+        q->head = NULL;
         q->tail = NULL;
     }
-    t->nextThread = NULL;
+
+    // Isolate the removed thread
+    t->ThreadListEntry.Flink = NULL;
+    t->ThreadListEntry.Blink = NULL;
+
     return t;
 }
 

@@ -29,19 +29,22 @@ Revision History:
 
 // ------------------ STRUCTURES ------------------
 
+//struct _CONTEXT;
+
 #define EXCEPTION_MAXIMUM_PARAMETERS 15
 typedef struct _EXCEPTION_RECORD {
     MTSTATUS ExceptionCode;
     uint32_t ExceptionFlags;
     struct _EXCEPTION_RECORD* ExceptionRecord; // For nested exceptions
     void* ExceptionAddress;                     // RIP at time of fault
-    uint32_t NumberParameters;
-    uintptr_t ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+    //struct _CONTEXT ExceptionContext;
 } EXCEPTION_RECORD, * PEXCEPTION_RECORD;
 
 typedef enum _EXCEPTION_DISPOSITION {
     ExceptionContinueExecution = 0,
     ExceptionContinueSearch = 1,
+    ExceptionNestedException = 2,
+    ExceptionCollidedUnwind = 3
 } EXCEPTION_DISPOSITION;
 
 typedef struct _CONTEXT {
@@ -73,7 +76,7 @@ typedef struct _CONTEXT {
 
 typedef struct _EXCEPTION_REGISTRATION_RECORD {
     struct _EXCEPTION_REGISTRATION_RECORD* Next;
-    enum _EXCEPTION_DISPOSITION(*Handler)(struct _EXCEPTION_RECORD* arg1, struct _CONTEXT* arg2);
+    enum _EXCEPTION_DISPOSITION(*Handler)(struct _EXCEPTION_RECORD* arg1, void* Frame, struct _CONTEXT* arg2, void* DispCtx);
 } EXCEPTION_REGISTRATION_RECORD;
 
 typedef struct _EX_FRAME_REGISTRATION {
@@ -83,21 +86,42 @@ typedef struct _EX_FRAME_REGISTRATION {
 
 // ------------------ FUNCTIONS ------------------
 
-// INTERNAL********
-FORCEINLINE
-void
-__MeInternalCleanupFrame(EX_FRAME_REGISTRATION* pRegistration) {
-    if (pRegistration->RegistrationPointer) {
-        (pRegistration->RegistrationPointer->Handler) = NULL;
-    }
-}
-
 extern PETHREAD PsGetCurrentThread(void);
 extern bool ExpCaptureContext(IN PCONTEXT Context);
 
+EXCEPTION_DISPOSITION MeStandardHandler(
+    PEXCEPTION_RECORD ExceptionRecord,
+    void* EstablisherFrame,
+    PCONTEXT ContextRecord,
+    void* DispatcherContext
+);
+
 // macros
-#define _try __UNIMPLEMENTED
-#define _except __UNIMPLEMENTED
+#define _try \
+    { \
+        PETHREAD _CurrentThread = PsGetCurrentThread(); \
+        ME_EXCEPTION_FRAME _MyFrame; \
+        _MyFrame.Next = (PME_EXCEPTION_FRAME)_CurrentThread->ExceptionList; \
+        _MyFrame.Handler = MeStandardHandler; \
+        _CurrentThread->ExceptionList = &_MyFrame; \
+        /* Save Context. Returns 0 initially. Returns 1 if we crashed. */ \
+        if (ExpCaptureContext(&_MyFrame) == 0) { \
+
+#define _except(FilterExpression) \
+            /* Success path: Unlink frame */ \
+            _CurrentThread->ExceptionList = _MyFrame.Next; \
+        } else { \
+            /* Crash path: We just "landed" here from the handler! */ \
+            /* Unlink frame (safe to do again) */ \
+            _CurrentThread->ExceptionList = _MyFrame.Next; \
+            /* You can access _MyFrame.ExceptionCode here if needed */ \
+            { \
+               /* User Code inside except block */
+
+#define _end_except \
+            } \
+        } \
+    }
 
 bool
 ExpIsExceptionHandlerPresent(

@@ -199,6 +199,8 @@ MhRequestSoftwareInterrupt(
 
         This function is used to request a software interrupt to the current processor.
 
+        N.B: The function will 100% have the interrupt executed when it returns.
+
     Arguments:
 
         [IN]    IRQL RequstIrql - The IRQL value to request an interrupt for.
@@ -207,9 +209,11 @@ MhRequestSoftwareInterrupt(
 
         None.
 
-    Note:
+    Notes:
 
         The only IRQL supported currently is DISPATCH_LEVEL
+
+        To have this function serviced for a DPC or an APC, set the flag in the CPU accordingly and wait for IRQL to be equal or below to IRQL requested.
 
 --*/
 

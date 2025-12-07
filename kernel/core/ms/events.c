@@ -57,10 +57,27 @@ MsSetEvent (
     PETHREAD head = NULL;
     PETHREAD tail = NULL;
     PETHREAD t;
+
     while ((t = MeDequeueThread(&event->waitingQueue)) != NULL) {
-        t->nextThread = NULL;
-        if (tail) tail->nextThread = t;
-        else head = t;
+        // 1. Detach the thread from any previous list by nulling its links
+        t->ThreadListEntry.Flink = NULL;
+        t->ThreadListEntry.Blink = NULL;
+
+        // 2. Build the local singly-linked list (head/tail) using Flink
+        if (tail) {
+            // Link the current tail to the new thread via Flink
+            tail->ThreadListEntry.Flink = &t->ThreadListEntry;
+            // Optionally: Set the new thread's Blink to the old tail (for local list integrity)
+            t->ThreadListEntry.Blink = &tail->ThreadListEntry;
+        }
+        else {
+            // First thread
+            head = t;
+            // First thread's Blink should be NULL
+            t->ThreadListEntry.Blink = NULL;
+        }
+
+        // The new tail is 't'
         tail = t;
     }
 
@@ -71,10 +88,22 @@ MsSetEvent (
     // Enqueue drained threads to scheduler (after releasing event lock)
     t = head;
     while (t) {
-        PETHREAD nxt = t->nextThread;
+        // Get the next thread pointer by reading the Flink, then CONTAINING_RECORD
+        struct _DOUBLY_LINKED_LIST* nxtEntry = t->ThreadListEntry.Flink;
+
+        // Set thread state
         t->InternalThread.ThreadState = THREAD_READY;
+
+        // Enqueue
         MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
-        t = nxt;
+
+        // Move to the next thread
+        if (nxtEntry) {
+            t = CONTAINING_RECORD(nxtEntry, ETHREAD, ThreadListEntry);
+        }
+        else {
+            t = NULL;
+        }
     }
 
     return MT_SUCCESS;
@@ -116,12 +145,14 @@ MTSTATUS MsWaitForEvent (
         if (event->type == SynchronizationEvent) {
             // consume the single-signaled state
             event->signaled = false;
+            goto Continue;
         }
         // For NotificationEvent, leave event->signaled = true (notification persists)
         MsReleaseSpinlock(&event->lock, flags);
         return MT_SUCCESS;
     }
 
+    Continue:
     // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
     curr->InternalThread.ThreadState = THREAD_BLOCKED;
     curr->CurrentEvent = event;

@@ -44,19 +44,19 @@ static void InitialiseControlRegisters(void) {
     unsigned long cr4 = __read_cr4();
     unsigned int eax, ebx, ecx, edx;
 
-    // --- 1. Prepare CR0 Configuration ---
+    // Prepare CR0 Configuration
     cr0 |= CR0_WP; // Write Protect
 #ifdef DISABLE_CACHE
     cr0 |= CR0_CD; // Cache Disable
 #endif
 
-    // --- 2. Prepare CR4 Configuration ---
+    // Prepare CR4 Configuration
     cr4 |= CR4_UMIP; // User Mode Instruction Prevention
 
     // Clear Debug Registers
     for (int i = 0; i < 7; i++) __write_dr(i, 0);
 
-    // --- 3. Detect & Setup SSE/FPU Bits ---
+    // Detect & Setup SSE/FPU Bits
     __asm__ volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(1), "c"(0));
 
     int has_sse = (edx & CPUID_1_EDX_SSE) || (edx & CPUID_1_EDX_SSE2);
@@ -72,7 +72,7 @@ static void InitialiseControlRegisters(void) {
         FREEZE();
     }
 
-    // --- 4. Detect & Setup SMAP/SMEP Bits ---
+    // Detect & Setup SMAP/SMEP Bits
     __asm__ volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(7), "c"(0));
 
     if (ebx & CPUID_7_EBX_SMEP) cr4 |= CR4_SMEP;
@@ -81,12 +81,12 @@ static void InitialiseControlRegisters(void) {
     if (ebx & CPUID_7_EBX_SMAP) cr4 |= CR4_SMAP;
     else gop_printf(COLOR_YELLOW, "SMAP not available.\n");
 
-    // --- 5. COMMIT REGISTERS TO CPU (CRITICAL STEP) ---
+    // COMMIT REGISTERS TO CPU
     // We MUST write these before executing LDMXCSR below.
     __write_cr0(cr0);
     __write_cr4(cr4);
 
-    // --- 6. Initialize SSE Hardware ---
+    // Initialize SSE Hardware
     // Now that CR4.OSFXSR is set in hardware, this instruction is valid.
     if (has_sse) {
         unsigned int mxcsr = 0x1f80;

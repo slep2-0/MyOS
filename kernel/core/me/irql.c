@@ -130,6 +130,9 @@ MeLowerIrql (
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
     MmFullBarrier();
+    
+    // First check for DPC Interrupts.
+
     if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }

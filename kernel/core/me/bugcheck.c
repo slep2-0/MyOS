@@ -182,6 +182,18 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case ATTEMPTED_WRITE_TO_READONLY_MEMORY:
         *s = "ATTEMPTED_WRITE_TO_READONLY_MEMORY";
         break;
+    case PSMGR_INIT_FAILED:
+        *s = "PSMGR_INIT_FAILED";
+        break;
+    case PAGE_FAULT_IN_FREED_NONPAGED_POOL:
+        *s = "PAGE_FAULT_IN_FREED_NONPAGED_POOL";
+        break;
+    case PAGE_FAULT_IN_FREED_PAGED_POOL:
+        *s = "PAGE_FAULT_IN_FREED_PAGED_POOL";
+        break;
+    case PSWORKER_INIT_FAILED:
+        *s = "PSWORKER_INIT_FAILED";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

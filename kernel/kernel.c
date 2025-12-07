@@ -215,6 +215,15 @@ void kernel_main(BOOT_INFO* boot_info) {
         __hlt();
     }
 
+    // Initialize the object manager subsystem.
+    ObInitialize();
+
+    // Initialize process & thread subsystem.
+    st = PsInitializeProcessThreadManager();
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(PSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
+    }
+
     // And, initialize our system process.
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);
@@ -260,6 +269,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
     }
+
+    // Initialize worker threads. (all thread creation must be after sched init)
+    PsInitializeWorkerThreads();
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
