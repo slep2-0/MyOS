@@ -19,6 +19,11 @@ Revision History:
 
 --*/
 
+#define MSR_IA32_DEBUGCTL   0x1D9
+#define MSR_LASTBRANCH_TOS  0x1C9
+#define MSR_LASTBRANCH_FROM0 0x680
+#define MSR_LASTBRANCH_TO0   0x6C0
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "annotations.h"
@@ -201,6 +206,9 @@ typedef struct _DPC {
 
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
+#ifdef DEBUG
+	char DpcName[32];
+#endif
 } DPC, *PDPC;
 
 typedef enum _CPU_FLAGS {
@@ -299,9 +307,29 @@ typedef struct _PROCESSOR {
 	struct _DEBUG_ENTRY DebugEntry[4]; // Per CPU Structure that contains debug entries for each debug register.
 	void* IstTimerStackTop;
 	void* IstIpiStackTop;
+
+	// Zombie Thread (for deferred reference deletion)
+	PITHREAD ZombieThread;
 } PROCESSOR, *PPROCESSOR;
 
 // ------------------ FUNCTIONS ------------------
+
+
+NORETURN
+void
+MeBugCheck(
+	IN enum _BUGCHECK_CODES BugCheckCode
+);
+
+NORETURN
+void
+MeBugCheckEx(
+	IN enum _BUGCHECK_CODES	BugCheckCode,
+	IN void* BugCheckParameter1,
+	IN void* BugCheckParameter2,
+	IN void* BugCheckParameter3,
+	IN void* BugCheckParameter4
+);
 
 FORCEINLINE
 PPROCESSOR
@@ -331,8 +359,15 @@ MeGetCurrentIrql(void)
 --*/
 
 {
+#ifdef DEBUG
+	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
+	if (returningIrql > HIGH_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
+	return returningIrql;
+#else
 	return (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
+#endif
 }
+
 
 FORCEINLINE
 PITHREAD
@@ -367,22 +402,6 @@ MeIsExecutingDpc(void)
 void
 MeInitializeProcessor(
 	IN PPROCESSOR CPU
-);
-
-NORETURN
-void
-MeBugCheck(
-	IN enum _BUGCHECK_CODES BugCheckCode
-);
-
-NORETURN
-void 
-MeBugCheckEx(
-	IN enum _BUGCHECK_CODES	BugCheckCode,
-	IN void*	BugCheckParameter1,
-	IN void*	BugCheckParameter2,
-	IN void*	BugCheckParameter3,
-	IN void*	BugCheckParameter4
 );
 
 void

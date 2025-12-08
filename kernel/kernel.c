@@ -104,6 +104,10 @@ void kernel_idle_checks(void) {
         FREEZE();
     }
     while (1) {
+        if (MeGetCurrentProcessor()->ZombieThread) {
+            // Delete the last thread.
+            Schedule();
+        }
         __hlt();
         //Schedule();
     }

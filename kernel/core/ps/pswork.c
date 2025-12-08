@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../assert.h"
 // globals
 volatile void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
 EVENT g_StackReaperEvent;
@@ -79,7 +80,8 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
         old) != old);
 
     // Wake the reaper (safe from any context)
-    MsSetEvent(&g_StackReaperEvent);
+    MTSTATUS status = MsSetEvent(&g_StackReaperEvent);
+    assert(MT_SUCCEEDED(status));
 }
 
 void PsInitializeWorkerThreads(void) {

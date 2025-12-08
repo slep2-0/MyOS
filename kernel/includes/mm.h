@@ -577,7 +577,7 @@ MiRetrieveOperationFromErrorCode(
 )
 
 {
-    FAULT_OPERATION operation = FaultOpInvalid;
+    FAULT_OPERATION operation;
 
     if (ErrorCode & (1 << 4)) {
         operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.)

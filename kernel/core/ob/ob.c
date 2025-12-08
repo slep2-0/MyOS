@@ -224,9 +224,9 @@ ObpDeferObjectDeletion(
         // Looks like a DPC hasn't been queued yet, lets do so!
         DPC* DpcAllocated = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'pRbO'); // Ob Reaper
         assert(DpcAllocated != NULL);
-        if (!DpcAllocated) return;
+        if (!DpcAllocated) MeBugCheck(MANUALLY_INITIATED_CRASH2);
         MeInitializeDpc(DpcAllocated, ReapOb, NULL, MEDIUM_PRIORITY);
-        MeInsertQueueDpc(DpcAllocated, (void*)ObpReaperList, NULL);
+        MeInsertQueueDpc(DpcAllocated, NULL, NULL);
     }
 }
 

@@ -8,6 +8,7 @@
 #include "../../assert.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ob.h"
 extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
@@ -105,10 +106,23 @@ Schedule(void) {
     IRQL oldIrql;
     MeRaiseIrql(DISPATCH_LEVEL, &oldIrql); // Prevents scheduling re-entrance.
 
+    PPROCESSOR cpu = MeGetCurrentProcessor();
     PITHREAD prev = MeGetCurrentProcessor()->currentThread;
+    PITHREAD IdleThread = &MeGetCurrentProcessor()->idleThread->InternalThread;
+
+    // Check if we need to delete another thread's (safe now, we are at a separate stack)
+    if (cpu->ZombieThread) {
+        // Drop the reference, we are on another thread's stack.
+        ObDereferenceObject((void*)cpu->ZombieThread);
+        cpu->ZombieThread = NULL;
+    }
 
     // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
-    if (prev && prev != &MeGetCurrentProcessor()->idleThread->InternalThread && prev->ThreadState == THREAD_RUNNING) {
+    if (prev && prev != IdleThread && prev->ThreadState == THREAD_TERMINATING) {
+        cpu->ZombieThread = prev;
+        prev = NULL;
+    }
+    else if (prev && prev != IdleThread && prev->ThreadState == THREAD_RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)
         enqueue_runnable(prev);
     }
@@ -116,7 +130,7 @@ Schedule(void) {
     PITHREAD next = MeAcquireNextScheduledThread();
 
     if (!next) {
-        next = &MeGetCurrentProcessor()->idleThread->InternalThread;
+        next = IdleThread;
     }
 
     next->ThreadState = THREAD_RUNNING;

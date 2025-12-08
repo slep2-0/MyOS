@@ -60,11 +60,9 @@ static void ThreadExit(void) {
 #ifdef DEBUG
     gop_printf(COLOR_RED, "Reached ThreadExit, dereferencing object.\n");
 #endif
-    // Decrement count of reference.
+    // Terminate the thread.
+    assert(&PsGetCurrentThread()->InternalThread == MeGetCurrentThread());
     PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
-    // If the thread is still referenced, we just schedule, however if it is not
-    // The deletion routine would activate, and we would not reach the schedule call below (instead we delete the thread and then schedule, view PsTerminateSystemThread)
-    Schedule();
 }
 
 static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
@@ -167,8 +165,9 @@ PsTerminateThread(
     // Signal all events that the thread is waiting on to execute immediately.
     // Todo parse waitblock.
 
-    // Dereference the thread.
-    ObDereferenceObject((void*)Thread);
+    // Since this is marked as TERMINATING, the scheduler will dereference the thread in Ob, and from that if
+    // the references have reached 0, the Ob will call PsDeleteThread.
+    // The scheduler WILL NOT schedule this thread anymore due to its TERMINATION flag.
 
     // Schedule away!
     Schedule();

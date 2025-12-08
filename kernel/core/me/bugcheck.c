@@ -194,6 +194,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case PSWORKER_INIT_FAILED:
         *s = "PSWORKER_INIT_FAILED";
         break;
+    case MANUALLY_INITIATED_CRASH2:
+        *s = "MANUALLY_INITIATED_CRASH2";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

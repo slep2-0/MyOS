@@ -13,11 +13,13 @@
 
 //Statically made DPC Routines.
 
+extern volatile void* ObpReaperList;
+
 void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2) {
     /*
     DeferredContext - Ignored
-    SystemArgument1 - ObpReaperList
-    SystemArgument2 - allocatedDPC.
+    SystemArgument1 - Ignored
+    SystemArgument2 - Ignored
     */
 
     POBJECT_HEADER head, cur;
@@ -27,7 +29,7 @@ void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* System
     UNREFERENCED_PARAMETER(SystemArgument2);
 
     // Atomically take the list
-    head = (POBJECT_HEADER)InterlockedExchangePointer((volatile void*) & SystemArgument1, NULL);
+    head = (POBJECT_HEADER)InterlockedExchangePointer((volatile void**)&ObpReaperList, NULL);
 
     // Walk the captured chain and free each header
     while (head) {
@@ -217,6 +219,9 @@ MeRetireDPCs(
 --*/
 
 {
+#ifdef DEBUG
+    gop_printf(COLOR_WHITE, "Retiring DPCs!\n");
+#endif
     // Few assertions.
     assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
     assert(MeAreInterruptsEnabled() == false);
