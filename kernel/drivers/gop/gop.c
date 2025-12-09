@@ -691,8 +691,15 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
 }
 
 void MgAcquireExclusiveGopOwnerShip(void) {
-    // Set the pointer of exclusive ownership.
-    InterlockedExchangePointer(&ExclusiveOwnerShip, (void*)MeGetCurrentProcessor());
+    void* me = (void*)MeGetCurrentProcessor();
+
+    for (;;) {
+        void* prev = InterlockedCompareExchangePointer(&ExclusiveOwnerShip, me, NULL);
+        if (prev == NULL)
+            return; // acquired
+
+        __pause();
+    }
 }
 
 void MgReleaseExclusiveGopOwnerShip(void) {

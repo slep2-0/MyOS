@@ -27,9 +27,10 @@ void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* System
     UNREFERENCED_PARAMETER(DeferredContext);
     UNREFERENCED_PARAMETER(SystemArgument1);
     UNREFERENCED_PARAMETER(SystemArgument2);
+    UNREFERENCED_PARAMETER(dpc); // Switched to global, freeing this would cause in MEMORY_CORRUPT_HEADER.
 
     // Atomically take the list
-    head = (POBJECT_HEADER)InterlockedExchangePointer((volatile void**)&ObpReaperList, NULL);
+    head = (POBJECT_HEADER)InterlockedExchangePointer(&ObpReaperList, NULL);
 
     // Walk the captured chain and free each header
     while (head) {
@@ -38,8 +39,6 @@ void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* System
         MmFreePool(cur); // Free the header (frees object as well, header + sizeof(header) = object)
     }
 
-    // Free our allocated DPC
-    MmFreePool(dpc);
 }
 
 //End
@@ -82,7 +81,13 @@ MeInsertQueueDpc(
     // Raise IRQL to HIGH_LEVEL to prevent all interrupts while we touch the processor DPC queue. (prevent corruption)
     MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
-    Cpu = MeGetCurrentProcessor();
+    if (Dpc->CpuNumber < MeGetActiveProcessorCount()) {
+        Cpu = MeGetProcessorBlock(Dpc->CpuNumber);
+    }
+    else {
+        Cpu = MeGetCurrentProcessor();
+    }
+
     DpcData = &Cpu->DpcData;
 
     // Acquire the DpcData lock for the current processor.
@@ -277,6 +282,9 @@ MeRetireDPCs(
                     SystemArgument1 = Dpc->SystemArgument1;
                     SystemArgument2 = Dpc->SystemArgument2;
 
+                    // Changes must be set before others can modify.
+                    MmFullBarrier();
+
                     // Clear DpcData so it can be re-queued inside its own routine
                     Dpc->DpcData = NULL;
                     DpcData->DpcQueueDepth -= 1;
@@ -289,6 +297,7 @@ MeRetireDPCs(
 
                     // Execute
                     Cpu->CurrentDeferredRoutine = Dpc;
+                    gop_printf(COLOR_WHITE, "I'm about to execute DPC %p | Routine: %p | SysArg1: %p | SysArg2: %p | Priority: %d\n", Dpc, Dpc->DeferredRoutine, Dpc->SystemArgument1, Dpc->SystemArgument2, Dpc->priority);
                     DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
                     Cpu->CurrentDeferredRoutine = NULL;
 
@@ -314,6 +323,18 @@ MeRetireDPCs(
 
     // Return statement, assert that interrupts are disabled.
     assert(MeAreInterruptsEnabled() == false, "Interrupts must not enabled at DPC Retirement exit");
+}
+
+void
+MeSetTargetProcessorDpc(
+    IN PDPC Dpc,
+    IN uint32_t CpuNumber
+)
+
+{
+    assert(CpuNumber < MeGetActiveProcessorCount());
+
+    Dpc->CpuNumber = CpuNumber;
 }
 
 void
@@ -352,6 +373,9 @@ MeInitializeDpc(
     DpcAllocated->DeferredContext = DeferredContext;
     DpcAllocated->DpcData = NULL;
     
+    // Set to current CPU. (the driver can modify his CPU)
+    DpcAllocated->CpuNumber = DPC_TARGET_CURRENT;
+
     // Initialize list head for DPC.
     InitializeListHead(&DpcAllocated->DpcListEntry);
 }

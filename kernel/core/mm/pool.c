@@ -640,6 +640,7 @@ MmFreePool(
     }
 
     if (PoolIndex == POOL_TYPE_PAGED) {
+        assert(MeGetCurrentIrql() < DISPATCH_LEVEL); // I mean, this assertion is KINDA useless, as we cant get here in the first place, since we would IRQL_NOT_LESS_OR_EQUAL while acquiring the index.
         // For a paged pool allocation, we just free every PTE, then returned the VA space consumed.
         // The BlockSize field in a PagedPool allocation is how many bytes were requested + sizeof(POOL_HEADER)
         size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);

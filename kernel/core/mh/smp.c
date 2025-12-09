@@ -146,7 +146,7 @@ static void send_startup_ipis(uint8_t apic_id) {
 
 // Globals for use of IPI & other functions.
 uint8_t g_apic_list[MAX_CPUS];
-uint32_t g_cpuCount;
+uint32_t g_cpuCount = 1; // Must be 1, to include the BSP.
 uint32_t g_lapicAddress;
 
 // BSP Entry: start all APs.
@@ -211,6 +211,23 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 		}
 	}
 	smpInitialized = true;
+}
+
+PPROCESSOR 
+MeGetProcessorBlock(
+	uint8_t ProcessorNumber
+)
+
+{
+	if (!smpInitialized) return &cpu0;
+
+	// SMP Is on, we iterate over the cpus list until we find the lapic for the processor.
+	for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
+		if (cpus[i].lapic_ID == ProcessorNumber) return &cpus[i];
+	}
+
+	// The CPU isn't found, we return NULL (would bugcheck though).
+	return NULL;
 }
 
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {

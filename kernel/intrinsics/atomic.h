@@ -169,6 +169,7 @@ extern "C" {
     /* Pointer convenience wrappers */
     FORCEINLINE void* InterlockedExchangePointer(volatile void* volatile* target, void* value) { return InterlockedExchangePtr(target, value); }
     FORCEINLINE void* InterlockedCompareExchangePointer(volatile void* volatile* target, void* value, void* comparand) { return InterlockedCompareExchangePtr(target, value, comparand); }
+    FORCEINLINE void* InterlockedFetchPointer(volatile void* volatile* target) { return InterlockedCompareExchangePtr(target, NULL, NULL); }
 
     /* -------------------------------
        Utility: test-and-set style helpers

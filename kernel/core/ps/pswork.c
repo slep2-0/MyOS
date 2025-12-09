@@ -80,8 +80,12 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
         old) != old);
 
     // Wake the reaper (safe from any context)
+#ifdef DEBUG
     MTSTATUS status = MsSetEvent(&g_StackReaperEvent);
     assert(MT_SUCCEEDED(status));
+#else
+    MsSetEvent(&g_StackReaperEvent);
+#endif
 }
 
 void PsInitializeWorkerThreads(void) {

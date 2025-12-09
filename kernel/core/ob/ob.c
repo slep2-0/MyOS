@@ -18,11 +18,14 @@ Revision History:
 
 #include "../../includes/ob.h"
 #include "../../includes/mg.h"
+#include "../../includes/md.h"
 #include "../../assert.h"
 
 // Global list of types (for debugging/enumeration)
 DOUBLY_LINKED_LIST ObTypeDirectoryList;
 SPINLOCK ObGlobalLock;
+
+DPC ObpReaperDpc;
 
 void ObInitialize (
     void
@@ -47,6 +50,8 @@ void ObInitialize (
 {
     ObGlobalLock.locked = false;
     InitializeListHead(&ObTypeDirectoryList);
+    // Initialize the DPC here, not at the ObpDefer function, as it would overwrite.
+    MeInitializeDpc(&ObpReaperDpc, ReapOb, NULL, MEDIUM_PRIORITY);
 }
 
 MTSTATUS ObCreateObjectType(
@@ -222,11 +227,7 @@ ObpDeferObjectDeletion(
 
     if (!Entry) {
         // Looks like a DPC hasn't been queued yet, lets do so!
-        DPC* DpcAllocated = MmAllocatePoolWithTag(NonPagedPool, sizeof(DPC), 'pRbO'); // Ob Reaper
-        assert(DpcAllocated != NULL);
-        if (!DpcAllocated) MeBugCheck(MANUALLY_INITIATED_CRASH2);
-        MeInitializeDpc(DpcAllocated, ReapOb, NULL, MEDIUM_PRIORITY);
-        MeInsertQueueDpc(DpcAllocated, NULL, NULL);
+        MeInsertQueueDpc(&ObpReaperDpc, NULL, NULL);
     }
 }
 
@@ -275,6 +276,8 @@ void ObDereferenceObject(
         // Update Stats
         InterlockedDecrementU32((volatile uint32_t*)&Type->TotalNumberOfObjects);
         // Free Memory
-        ObpDeferObjectDeletion(Header);
+        gop_printf(COLOR_RED, "Freeing the header\n");
+        //ObpDeferObjectDeletion(Header);
+        MmFreePool(Header);
     }
 }

@@ -29,12 +29,14 @@ SCHED_EXTRA = -fno-optimize-sibling-calls
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
     CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection -Wstack-usage=4096 # Larger than 4KiB and we will get a compile hard error.
+    HOST_CC += -DDEBUG # Had to add this, I remember there was a #define DEBUG in the include, and it miscounted the offset, and so SMP failed.
 else
     CFLAGS += -O2
 endif
 
 ifeq ($(GDB),1)
     CFLAGS += -DGDB -g
+    HOST_CC += -DGDB
 endif
 
 # $(SCHED_CFLAGS) means no optimizations will be applied on the C file.
@@ -230,11 +232,7 @@ build/kernel_entry.o: kernel/kernel_entry.asm build/offsets.inc
 build/isr_stub.o: kernel/core/mh/isr_stub.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
-build/capture_registers.o: kernel/intrinsics/capture_registers.asm build/offsets.inc
-	mkdir -p build
-	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
+	
 build/context.o: kernel/core/me/context.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
@@ -260,7 +258,7 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o \
                       build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o build/ob.o build/psmgr.o build/pswork.o \
                       build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o build/mminit.o build/mmio.o build/mmproc.o \
-                      build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/context.o build/cpuid.o \
                       build/sleep.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

@@ -263,6 +263,7 @@ MeBugCheck(
     gop_printf(0xFF00FF00, " (numerical: %d)**\n", BugCheckCode);
 #ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+    gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
@@ -380,6 +381,7 @@ MeBugCheckEx (
     }
 #ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
+    gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
     uint32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);

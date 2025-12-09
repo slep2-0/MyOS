@@ -23,6 +23,7 @@ Revision History:
 #define MSR_LASTBRANCH_TOS  0x1C9
 #define MSR_LASTBRANCH_FROM0 0x680
 #define MSR_LASTBRANCH_TO0   0x6C0
+#define DPC_TARGET_CURRENT  0xFF
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -206,9 +207,9 @@ typedef struct _DPC {
 
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
-#ifdef DEBUG
-	char DpcName[32];
-#endif
+
+	// Determines to which CPU this DPC is supposed to be executed on, this allows multiple re-entracy.
+	uint8_t CpuNumber; // 0xFF means current CPU, else its per lapic id.
 } DPC, *PDPC;
 
 typedef enum _CPU_FLAGS {
@@ -340,6 +341,16 @@ MeGetCurrentProcessor (void)
 	return (PPROCESSOR)__readgsqword(0); // Only works because we have a self pointer at offset 0 in the struct.
 }
 
+extern uint32_t g_cpuCount;
+
+FORCEINLINE
+uint8_t
+MeGetActiveProcessorCount(void)
+
+{
+	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :) 
+}
+
 FORCEINLINE
 IRQL
 MeGetCurrentIrql(void)
@@ -421,6 +432,12 @@ _MeSetIrql(
 );
 
 void
+MeSetTargetProcessorDpc(
+	IN PDPC Dpc,
+	IN uint32_t CpuNumber
+);
+
+void
 MeInitializeDpc(
 	IN PDPC DpcAllocated,
 	IN PDEFERRED_ROUTINE DeferredRoutine,
@@ -484,5 +501,8 @@ bool
 MeAreInterruptsEnabled(
 	void
 );
+
+// smp.c
+PPROCESSOR MeGetProcessorBlock(uint8_t ProcessorNumber);
 
 #endif
