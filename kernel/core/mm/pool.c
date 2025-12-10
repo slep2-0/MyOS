@@ -609,8 +609,11 @@ MmFreePool(
 {
     if (!buf) return;
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));
+
+    gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
 
     if (header->PoolCanary != 'BEKA') {
         MeBugCheckEx(

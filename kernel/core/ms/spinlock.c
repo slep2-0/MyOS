@@ -9,17 +9,6 @@
 #include "../../includes/ms.h"
 #include "../../includes/me.h"
 
-extern void gop_printf(uint32_t color, const char* fmt, ...);
-
-/// <summary>
-/// Use before acquiring a spinlock
-/// </summary>
-/// <param name="lock">SPINLOCK Object pointer.</param>
-static void spinlock_init(SPINLOCK* lock) {
-	if (!lock) return;
-	lock->locked = 0;
-}
-
 void 
 MsAcquireSpinlock (
 	IN	PSPINLOCK lock,

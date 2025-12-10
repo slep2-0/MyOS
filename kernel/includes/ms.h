@@ -251,6 +251,10 @@ RemoveEntryList(
     /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
     Blink->Flink = Flink;
     Flink->Blink = Blink;
+
+    // Sanitize the removed entry so it doesn't look valid
+    Entry->Flink = NULL;
+    Entry->Blink = NULL;
 }
 
 

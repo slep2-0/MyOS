@@ -197,6 +197,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case MANUALLY_INITIATED_CRASH2:
         *s = "MANUALLY_INITIATED_CRASH2";
         break;
+    case DPC_NOT_INITIALIZED:
+        *s = "DPC_NOT_INITIALIZED";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

@@ -52,6 +52,7 @@ void ObInitialize (
     InitializeListHead(&ObTypeDirectoryList);
     // Initialize the DPC here, not at the ObpDefer function, as it would overwrite.
     MeInitializeDpc(&ObpReaperDpc, ReapOb, NULL, MEDIUM_PRIORITY);
+    gop_printf(COLOR_RED, "Its address (&ObpReaperDpc.DeferredRoutine): %p | VS What it points: %p\n", &ObpReaperDpc.DeferredRoutine, ObpReaperDpc.DeferredRoutine);
 }
 
 MTSTATUS ObCreateObjectType(

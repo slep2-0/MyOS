@@ -180,8 +180,12 @@ PsDeleteThread(
 
 {
     // This function is called when the reference count for this thread has reached 0 (e.g, it is no longer in use)
+    // (No need to call PsTerminateThread, it is the one that initiated the final dereference, since it set to terminated, and scheduler called dereference)
     // We free everything that the thread uses.
+    // All though, before, we should wait for rundown release (so nobody is changing the fields to avoid UAF)
     PETHREAD Thread = (PETHREAD)Object;
+    MsWaitForRundownProtectionRelease(&Thread->ThreadRundown);
+
     bool IsKernelThread = PsIsKernelThread(Thread);
 
     // Free its stack.

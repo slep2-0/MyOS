@@ -78,6 +78,24 @@ MeInsertQueueDpc(
     bool Inserted = false;
     IRQL OldIrql;
 
+    if (!Dpc->DeferredRoutine) {
+#ifdef DEBUG
+        MeBugCheckEx(DPC_NOT_INITIALIZED,
+            (void*)(uintptr_t)RETADDR(0),
+            (void*)Dpc,
+            NULL,
+            NULL
+        );
+#else
+        MeBugCheckEx(DPC_NOT_INITIALIZED,
+            (void*)Dpc,
+            NULL,
+            NULL,
+            NULL
+        );
+#endif
+    }
+
     // Raise IRQL to HIGH_LEVEL to prevent all interrupts while we touch the processor DPC queue. (prevent corruption)
     MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
@@ -275,7 +293,6 @@ MeRetireDPCs(
                     // Remove from List
                     RemoveEntryList(Entry);
                     Dpc = CONTAINING_RECORD(Entry, DPC, DpcListEntry);
-
                     // Capture Context
                     DeferredRoutine = Dpc->DeferredRoutine;
                     DeferredContext = Dpc->DeferredContext;
@@ -297,7 +314,9 @@ MeRetireDPCs(
 
                     // Execute
                     Cpu->CurrentDeferredRoutine = Dpc;
+#ifdef DEBUG
                     gop_printf(COLOR_WHITE, "I'm about to execute DPC %p | Routine: %p | SysArg1: %p | SysArg2: %p | Priority: %d\n", Dpc, Dpc->DeferredRoutine, Dpc->SystemArgument1, Dpc->SystemArgument2, Dpc->priority);
+#endif
                     DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
                     Cpu->CurrentDeferredRoutine = NULL;
 

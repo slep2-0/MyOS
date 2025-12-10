@@ -63,6 +63,7 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
     MeGetCurrentProcessor()->DebugEntry[idx].Callback = CallbackFunction;
 
     IPI_PARAMS params;
+    kmemset(&params, 0, sizeof(IPI_PARAMS));
     params.debugRegs.address = addr;
     params.debugRegs.dr7 = dr7;
     params.debugRegs.callback = CallbackFunction;
