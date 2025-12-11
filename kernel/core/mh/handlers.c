@@ -135,6 +135,10 @@ void MiInterprocessorInterrupt (
         }
     case CPU_ACTION_DO_DEFERRED_ROUTINES:
         // This is a NO-OP, since DPCs WILL be executed when we just return.
+        // unused.
+        break;
+    case CPU_ACTION_FLUSH_CR3:
+        MiReloadTLBs();
         break;
     }
 
@@ -144,7 +148,7 @@ void MiInterprocessorInterrupt (
         cpu->IpiSeq = 0; // Signal completion for non-halting actions.
     }
 
-    // End of Interrupt for LAPIC is signaled at functio return.
+    // End of Interrupt for LAPIC is signaled at function return.
 }
 
 void 

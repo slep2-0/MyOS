@@ -42,12 +42,16 @@ Revision History:
 #define RECURSIVE_INDEX 0x1FF
 
 #ifndef __INTELLISENSE__
+#ifndef __OFFSET_GENERATOR__
 /* Convert a PFN index to a PPFN_ENTRY pointer */
 #define INDEX_TO_PPFN(Index) \
     (&(PfnDatabase.PfnEntries[(size_t)(Index)]))
 #define PHYSICAL_TO_PPFN(PHYS) \
     (&PfnDatabase.PfnEntries[(size_t)((PHYS) / (uint64_t)PhysicalFrameSize)])
 #define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
+/* single-CPU build (no IPI shootdown code) */
+#ifdef MT_UP
+
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
@@ -65,6 +69,35 @@ do {                                                                        \
                                                                             \
     invlpg((void*)(uintptr_t)(_Va));                                        \
 } while (0)
+
+#else /* MP / SMP build: include TLB shootdown via IPI */
+
+#define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
+                                                                            \
+    /* Only set PFN->PTE link if PFN database is initialized */             \
+    if (MmPfnDatabaseInitialized) {                                         \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+        _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
+        _pfn->State = PfnStateActive;                                       \
+        _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
+    }                                                                       \
+                                                                            \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+                                                                            \
+    /* Send IPIs if SMP is initialized */                                   \
+    if (smpInitialized) {                                                   \
+        IPI_PARAMS _Params;                                                 \
+        _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
+        MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
+    }                                                                       \
+} while (0)
+
+#endif
 #define PPFN_TO_INDEX(PPFN) ((size_t)((PPFN) - PfnDatabase.PfnEntries))
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
     ((uint64_t)((uint64_t)PPFN_TO_INDEX(PPFN) * (uint64_t)PhysicalFrameSize))
@@ -92,6 +125,7 @@ do {                                                                        \
 #define MM_IS_DEMAND_ZERO_PTE(pte) (NULL)
 #define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx) ((void)0)
 #define MM_UNSET_DEMAND_ZERO_PTE(pte) (NULL)
+#endif
 #endif
 
 // Convert bytes to pages (rounding up)
@@ -613,15 +647,10 @@ MiAtomicExchangePte(
     InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
 }
 
-FORCEINLINE
 void
 MiInvalidateTlbForVa(
     IN void* VirtualAddress
-)
-
-{
-    invlpg(VirtualAddress);
-}
+);
 
 FORCEINLINE
 bool
@@ -660,6 +689,11 @@ MiUnlinkPageFromList(
 PMMPTE
 MiGetPtePointer(
     IN  uintptr_t va
+);
+
+uint64_t
+MiTranslatePteToVa(
+    IN PMMPTE pte
 );
 
 PAGE_INDEX

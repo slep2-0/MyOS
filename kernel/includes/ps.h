@@ -25,6 +25,7 @@ Revision History:
 
 // Other file includes
 #include "me.h"
+#include "ht.h"
 #include "core.h"
 
 // Exception Includes
@@ -49,6 +50,11 @@ typedef enum _PROCESS_STATE {
     PROCESS_TERMINATED,  // Process is terminated, but core parts of its structure has been kept.
     PROCESS_SUSPENDED // The process has been suspended by the kernel, either by choice or forcefully.
 } PROCESS_STATE, *PPROCESS_STATE;
+
+typedef enum _PS_PHASE_ROUTINE {
+    PS_PHASE_INITIALIZE_SYSTEM = 0,
+    PS_PHASE_INITIALIZE_WORKER_THREADS, 
+} PS_PHASE_ROUTINE;
 
 // ------------------ STRUCTURES ------------------
 
@@ -101,6 +107,9 @@ typedef struct _EPROCESS {
     uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
     uint64_t NextStackTop; // A 64 bit value representing the next stack top for a newly created thread
 
+    // Handle Table
+    PHANDLE_TABLE ObjectTable;
+
     // VAD
     struct _MMVAD* VadRoot; // The Root of the VAD for the process. (used to find free virtual addresses spaces in the process, and information about them)
     SPINLOCK VadLock; // The spinlock to ensure VAD atomicity.
@@ -144,8 +153,8 @@ MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntr
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 
 MTSTATUS
-PsInitializeProcessThreadManager(
-    void
+PsInitializeSystem(
+    IN enum _PS_PHASE_ROUTINE Phase
 );
 
 void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge);
@@ -172,6 +181,11 @@ PsGetCurrentThread(
 );
 
 void PsInitializeWorkerThreads(void);
+
+void
+PsInitializeCidTable(
+    void
+);
 
 FORCEINLINE
 PEPROCESS
@@ -232,9 +246,40 @@ PsIsKernelThread(
     return (Thread->ParentProcess == &PsInitialSystemProcess);
 }
 
-// Executive Functions - Are in PS.H
-// Executive Functions - Are in PS.H 
+HANDLE
+PsAllocateProcessId(
+    IN  PEPROCESS Process
+);
 
+HANDLE
+PsAllocateThreadId(
+    IN  PETHREAD Thread
+);
+
+PEPROCESS
+PsLookupProcessByProcessId(
+    IN HANDLE ProcessId
+);
+
+PETHREAD
+PsLookupThreadByThreadId(
+    IN HANDLE ThreadId
+);
+
+void
+PsFreeCid(
+    IN HANDLE Cid
+);
+
+
+
+
+
+
+
+// End Of Ps API.
+
+// Executive Functions - Are in PS.H
 // Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE
 void

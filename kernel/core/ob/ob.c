@@ -20,10 +20,13 @@ Revision History:
 #include "../../includes/mg.h"
 #include "../../includes/md.h"
 #include "../../assert.h"
+#include "../../includes/ps.h"
 
 // Global list of types (for debugging/enumeration)
 DOUBLY_LINKED_LIST ObTypeDirectoryList;
 SPINLOCK ObGlobalLock;
+volatile void* ObpReaperList = NULL;
+
 
 DPC ObpReaperDpc;
 
@@ -168,7 +171,7 @@ ObReferenceObject(
 
     Return Values:
 
-        True if reference succeded, false otherwise (object dyind/dead).
+        True if reference succeded, false otherwise (object dying/dead).
 
 --*/
 
@@ -191,7 +194,165 @@ ObReferenceObject(
     }
 }
 
-volatile void* ObpReaperList = NULL;
+MTSTATUS
+ObReferenceObjectByPointer(
+    IN  void* Object,
+    IN  POBJECT_TYPE DesiredType
+)
+
+/*++
+
+    Routine description:
+
+       References the Object given by its pointer.
+
+    Arguments:
+
+        [IN]    void* Object - The Object to increment reference count for.
+        [IN]    POBJECT_TYPE DesiredType - The type we EXPECT the Object to be (PsProcessType, PsThreadType, etc..)
+
+    Return Values:
+
+        MT_SUCCESS if reference succeeded.
+        MT_TYPE_MISMATCH if DesiredType isn't the Object's actual OBJECT_TYPE.
+        MT_INVALID_PARAM if Object is NULL.
+        MT_OBJECT_DELETED if Object is deleted / ongoing deletion.
+
+        MT_BETTER_THAN_WINDOWS if (true)
+
+--*/
+
+{
+    if (!Object) return MT_INVALID_PARAM;
+
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+
+    // If the caller expects a process but gets a thread or a file, we say no no bye bye.
+    if (DesiredType != NULL && Header->Type != DesiredType) {
+        return MT_TYPE_MISMATCH;
+    }
+
+    // We reference it.
+    if (ObReferenceObject(Object)) {
+        return MT_SUCCESS;
+    }
+
+    // Object is RIP, we return.
+    return MT_OBJECT_DELETED;
+}
+
+MTSTATUS
+ObReferenceObjectByHandle(
+    IN HANDLE Handle,
+    IN uint32_t DesiredAccess,
+    IN POBJECT_TYPE DesiredType,
+    OUT void** Object,
+    _Out_Opt PHANDLE_TABLE_ENTRY HandleInformation
+)
+
+/*++
+
+    Routine description:
+
+       References the Object given by its given handle.
+
+    Arguments:
+
+        [IN]    HANDLE Handle - The handle to reference the object for.
+        [IN]    uint32_t DesiredAccess - The access rights requested for the object.
+        [IN]    POBJECT_TYPE DesiredType - The type we EXPECT the Object to be (PsProcessType, PsThreadType, etc..)
+        [OUT]   void** Object - The pointer to the object expected.
+        [OUT OPTIONAL]  PHANDLE_TABLE_ENTRY HandleInformation - Information about the handle given if MT_SUCCESS is returned.
+
+    Return Values:
+
+        MT_SUCCESS if reference succeeded.
+        MT_INVALID_HANDLE if the HANDLE is simply invalid (doesn't exist, or table doesnt exist)
+        MT_TYPE_MISMATCH if DesiredType isn't the Object's actual OBJECT_TYPE.
+        MT_INVALID_PARAM if Object is NULL.
+        MT_OBJECT_DELETED if Object is deleted / ongoing deletion.
+        MT_ACCESS_DENIED if the desired access does not meet the access rights of the Object.
+
+        MT_BETTER_THAN_WINDOWS if (true)
+
+--*/
+
+{
+    // Set initially to NULL. (to overwrite stack default if uninitialized)
+    *Object = NULL;
+
+    // Get the handle table from current process (requesting process)
+    PEPROCESS Process = PsGetCurrentProcess();
+    if (!Process || !Process->ObjectTable) return MT_INVALID_HANDLE;
+
+    // Lookup in the handle table.
+    PHANDLE_TABLE_ENTRY OutHandleEntry = NULL;
+    void* RetrievedObject = HtGetObject(Process->ObjectTable, Handle, &OutHandleEntry);
+    if (!RetrievedObject) return MT_INVALID_HANDLE;
+
+    // Get the header.
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(RetrievedObject);
+
+    // Lets check if the type matches
+    if (DesiredType && Header->Type != DesiredType) {
+        // Invalid type.
+        return MT_TYPE_MISMATCH;
+    }
+
+    // Check access.
+    if ((OutHandleEntry->GrantedAccess & DesiredAccess) != DesiredAccess) {
+        // Access is invalid.
+        return MT_ACCESS_DENIED;
+    }
+
+    // Wow!! It is all good!!, reference it.
+    ObReferenceObject(RetrievedObject);
+    *Object = RetrievedObject;
+    if (HandleInformation) *HandleInformation = *OutHandleEntry;
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+ObCreateHandleForObject(
+    IN void* Object,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE ReturnedHandle
+)
+
+/*++
+
+    Routine description:
+
+       Creates a handle in the current process's handle table for the specified Object.
+
+    Arguments:
+
+        [IN]    void* Object - The object to create the handle for.
+        [IN]    ACCESS_MASK DesiredAccess - The maximum access the handle should have.
+        [OUT]   PHANDLE ReturnedHandle - The returned handle for the object if success.
+
+    Return Values:
+
+        MTSTATUS Status Codes:
+
+            MT_SUCCESS - Successful.
+            MT_INVALID_STATE - No handle table for current process.
+            MT_INVALID_CHECK - HtCreateHandle returned MT_INVALID_HANDLE.
+--*/
+
+{
+    // Acquire the current Process Handle Table.
+    PHANDLE_TABLE HandleTable = PsGetCurrentProcess()->ObjectTable;
+    if (!HandleTable) return MT_INVALID_STATE;
+
+    // Create the handle.
+    HANDLE Handle = HtCreateHandle(HandleTable, Object, DesiredAccess);
+    if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
+
+    // Return success.
+    *ReturnedHandle = Handle;
+    return MT_SUCCESS;
+}
 
 static
 void

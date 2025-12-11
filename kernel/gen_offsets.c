@@ -4,6 +4,8 @@
  * definitions for struct offsets, sizes, and enums.
  */
 
+#define __OFFSET_GENERATOR__
+
 #include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>

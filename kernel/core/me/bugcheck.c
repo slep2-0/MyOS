@@ -268,12 +268,25 @@ MeBugCheck(
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
+    int32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
+    gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
-    int32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
-    gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
+#ifdef DEBUG
+    // Thread information
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    if (CurrentThread) {
+        // Display thread debug info
+        uintptr_t ThreadStack = (uintptr_t)CurrentThread->InternalThread.StackBase;
+        uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
+        uintptr_t StackEnd = ThreadStack + StackSize;
+        uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
+        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
+        gop_printf(COLOR_YELLOW, "PreviousMode: %u", MeGetPreviousMode());
+    }
+#endif
     __cli();
     while (1) {
         __hlt();
@@ -402,6 +415,7 @@ MeBugCheckEx (
         uintptr_t StackEnd = ThreadStack + StackSize;
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
         gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
+        gop_printf(COLOR_YELLOW, "PreviousMode: %u", MeGetPreviousMode());
     }
 #endif
     __cli();

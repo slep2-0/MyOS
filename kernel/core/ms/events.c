@@ -109,7 +109,8 @@ MsSetEvent (
     return MT_SUCCESS;
 }
 
-MTSTATUS MsWaitForEvent (
+MTSTATUS 
+MsWaitForEvent (
     IN  PEVENT event
 ) 
 

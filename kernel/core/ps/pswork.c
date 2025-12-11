@@ -74,10 +74,8 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
     do {
         old = (void*)g_StackReaperList;
         node->Next = (PSTACK_REAPER_ENTRY)old;
-        // cast target to volatile PVOID* to match prototype
-    } while (InterlockedCompareExchangePointer((volatile void* volatile*)&g_StackReaperList,
-        (void*)node,
-        old) != old);
+        // cast target to volatile void** to match prototype
+    } while (InterlockedCompareExchangePointer((volatile void* volatile*)&g_StackReaperList, (void*)node, old) != old);
 
     // Wake the reaper (safe from any context)
 #ifdef DEBUG

@@ -21,6 +21,7 @@ Revision History:
 
 #include "core.h"
 #include "me.h"
+#include "ht.h"
 
 // --------------- STRUCTURES ---------------
 
@@ -72,6 +73,8 @@ _Static_assert(sizeof(OBJECT_HEADER) % 16 == 0, "OBJECT_HEADER must be 16-byte a
 
 // --------------- FUNCTIONS ---------------
 
+typedef uint32_t ACCESS_MASK;
+
 void ObInitialize(void);
 
 MTSTATUS ObCreateObjectType(
@@ -86,9 +89,31 @@ void* ObCreateObject(
     //_In_Opt char* Name - When files arrive, i'll uncomment this.
 );
 
+MTSTATUS
+ObCreateHandleForObject(
+    IN void* Object,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE ReturnedHandle
+);
+
 bool
 ObReferenceObject(
     IN  void* Object
+);
+
+MTSTATUS
+ObReferenceObjectByPointer(
+    IN  void* Object,
+    IN  POBJECT_TYPE DesiredType
+);
+
+MTSTATUS
+ObReferenceObjectByHandle(
+    IN HANDLE Handle,
+    IN uint32_t DesiredAccess,
+    IN POBJECT_TYPE DesiredType,
+    OUT void** Object,
+    _Out_Opt PHANDLE_TABLE_ENTRY HandleInformation
 );
 
 void ObDereferenceObject(

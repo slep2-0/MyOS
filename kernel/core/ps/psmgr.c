@@ -34,6 +34,7 @@ static void PsTerminateProcessWrap(void* Object) {
     PsTerminateProcess((PEPROCESS)Object);
 }
 
+static
 MTSTATUS
 PsInitializeProcessThreadManager(
     void
@@ -89,5 +90,30 @@ PsInitializeProcessThreadManager(
     if (MT_FAILURE(status)) return status;
 
     return MT_SUCCESS;
+}
+
+
+MTSTATUS
+PsInitializeSystem(
+    IN  enum _PS_PHASE_ROUTINE Phase
+)
+
+{
+    if (Phase == PS_PHASE_INITIALIZE_SYSTEM) {
+        // Initialize the PS Subsystem.
+        // Initialize the CID Table.
+        PsInitializeCidTable();
+
+        // Initialize the process & thread subsystem.
+        MTSTATUS st = PsInitializeProcessThreadManager();
+        return st;
+    }
+    else if (Phase == PS_PHASE_INITIALIZE_WORKER_THREADS) {
+        PsInitializeWorkerThreads();
+        return MT_SUCCESS;
+    }
+    else {
+        MeBugCheck(INVALID_INITIALIZATION_PHASE);
+    }
 }
 

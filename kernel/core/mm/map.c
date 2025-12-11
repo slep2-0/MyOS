@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 
 static inline uint64_t canonical_high(uint64_t addr) {
@@ -135,6 +136,23 @@ MiGetPtePointer(
     return (PMMPTE)&pt_va[pt_i];
 }
 
+void
+MiInvalidateTlbForVa(
+    IN void* VirtualAddress
+)
+
+{
+    invlpg(VirtualAddress);
+    // If SMP is initialized, send IPI.
+#ifndef MT_UP
+    if (smpInitialized) {
+        IPI_PARAMS Param;
+        Param.pageParams.addressToInvalidate = (uint64_t)VirtualAddress;
+        MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, Param);
+    }
+#endif
+}
+
 PAGE_INDEX
 MiTranslatePteToPfn (
     IN  PMMPTE pte
@@ -162,7 +180,6 @@ MiTranslatePteToPfn (
     return PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
 }
 
-FORCEINLINE
 uint64_t
 MiTranslatePteToVa(
     IN PMMPTE pte

@@ -222,8 +222,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize the object manager subsystem.
     ObInitialize();
 
-    // Initialize process & thread subsystem.
-    st = PsInitializeProcessThreadManager();
+    // Initialize Ps subsystem.
+    st = PsInitializeSystem(PS_PHASE_INITIALIZE_SYSTEM);
     if (MT_FAILURE(st)) {
         MeBugCheckEx(PSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
     }
@@ -275,7 +275,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
 
     // Initialize worker threads. (all thread creation must be after sched init)
-    PsInitializeWorkerThreads();
+    PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
