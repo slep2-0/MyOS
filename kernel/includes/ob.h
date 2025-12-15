@@ -83,9 +83,11 @@ MTSTATUS ObCreateObjectType(
     OUT POBJECT_TYPE* ObjectType
 );
 
-void* ObCreateObject(
+MTSTATUS
+ObCreateObject(
     IN POBJECT_TYPE ObjectType,
-    IN uint32_t ObjectSize
+    IN uint32_t ObjectSize,
+    OUT void** ObjectCreated
     //_In_Opt char* Name - When files arrive, i'll uncomment this.
 );
 
@@ -94,6 +96,14 @@ ObCreateHandleForObject(
     IN void* Object,
     IN ACCESS_MASK DesiredAccess,
     OUT PHANDLE ReturnedHandle
+);
+
+MTSTATUS
+ObCreateHandleForObjectEx(
+    IN void* Object,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE ReturnedHandle,
+    IN PHANDLE_TABLE ObjectTable
 );
 
 bool

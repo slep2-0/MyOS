@@ -20,6 +20,9 @@ Revision History:
 #include "../../includes/ob.h"
 #include "../../assert.h"
 
+// ->>>>> The handle table handles are accessed in pageable memory, we cannot be at DISPATCH_LEVEL or above.
+// FIXME FIXME Implement Push locks to use in PASSIVE_LEVEL in order to use the handle table at Pageable memory, because using spinlocks raises to DISPATCH.
+
 DOUBLY_LINKED_LIST HandleTableList;
 SPINLOCK HandleTableLock;
 
@@ -71,11 +74,12 @@ HtpLookupEntry(
 
         PHANDLE_TABLE_ENTRY* PageTable = (PHANDLE_TABLE_ENTRY*)TableBase;
         PHANDLE_TABLE_ENTRY ActualPage = PageTable[PageIndex];
-
-        return &ActualPage[EntryIndex];
+        if (ActualPage) {
+            return &ActualPage[EntryIndex];
+        }
     }
 
-    // We dont really support millions of handles, so. (level 2)
+    // We dont really support millions of handles, so. (level 2 support needed.)
     return NULL;
 }
 
@@ -103,7 +107,7 @@ HtCreateHandleTable(
 {
     PHANDLE_TABLE Table = MmAllocatePoolWithTag(NonPagedPool, sizeof(HANDLE_TABLE), 'bTtH'); // HtTb - Handle Table.
     
-    // Allocate the first page of the entries (level 0)
+    // Allocate the first page of the entries (level 0) (switched to paged pool now)
     PHANDLE_TABLE_ENTRY Level0 = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'egaP'); // Page
 
     // Initialize the free list in the new page.
@@ -233,7 +237,6 @@ HtpExpandTable(
         PHANDLE_TABLE_ENTRY* Directory = (PHANDLE_TABLE_ENTRY*)TableBase;
 
         // Find the first empty slot in the directory
-        // We calculate max handles to see where we are.
         uint32_t DirectoryIndex = 0;
         for (DirectoryIndex = 0; DirectoryIndex < LOW_LEVEL_ENTRIES; DirectoryIndex++) {
             if (Directory[DirectoryIndex] == NULL) break;
@@ -241,7 +244,7 @@ HtpExpandTable(
 
         if (DirectoryIndex >= LOW_LEVEL_ENTRIES) {
             // Level 1 is full, no level 2 yet.
-            return;
+            goto Level2Setup;
         }
 
         // Calculate the Handle Index base for this new page
@@ -257,6 +260,9 @@ HtpExpandTable(
         // Update Free List
         Table->FirstFreeHandle = NewBaseIndex * 4;
     }
+
+Level2Setup:
+    return;
 }
 
 HANDLE
@@ -280,7 +286,7 @@ HtCreateHandle(
 
     Return Values:
 
-        The HANDLE number, or MT_INVALID_HANDLE on invalid parameters.
+        The HANDLE number, or MT_INVALID_HANDLE on new handle allocation failure.
 
 --*/
 
@@ -422,4 +428,93 @@ HtGetObject (
         if (OutEntry) *OutEntry = Entry;
     }
     return Object;
+}
+
+void
+HtDeleteHandleTable(
+    IN PHANDLE_TABLE Table
+)
+
+/*++
+
+    Routine description:
+
+        Deletes the handle table allocated. (Dereferences any objects that are still alive, frees directory and other)
+
+    Arguments:
+
+        [IN]    PHANDLE_TABLE Table - The table to delete.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // We just free all of the levels and the table itself.
+    if (!Table) return;
+
+    // Grab the table lock.
+    IRQL oldIrql;
+    MsAcquireSpinlock(&Table->TableLock, &oldIrql);
+
+    uint64_t TableCode = Table->TableCode;
+    uint64_t Level = TableCode & TABLE_LEVEL_MASK;
+    void* TableBase = (void*)(TableCode & ~TABLE_LEVEL_MASK);
+
+    if (Level == 0) {
+        // Single contigious page of entries
+        PHANDLE_TABLE_ENTRY Entries = (PHANDLE_TABLE_ENTRY)TableBase;
+        if (Entries) {
+            // Walk and dereference any live objects that are alive.
+            for (uint64_t i = 0; i < LOW_LEVEL_ENTRIES; i++) {
+                void* Object = Entries[i].Object;
+                if (Object) {
+                    Entries[i].Object = NULL;
+                    ObDereferenceObject(Object);
+                }
+            }
+        }
+
+        // No more live handles — release lock and free the page
+        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        if (Entries) MmFreePool(Entries);
+    }
+
+    else if (Level == 1) {
+        // Directory of page pointers.
+        PHANDLE_TABLE_ENTRY* Directory = (PHANDLE_TABLE_ENTRY*)TableBase;
+        if (Directory) {
+            // Walk every allocated page.
+            for (uint64_t dir = 0; dir < LOW_LEVEL_ENTRIES; dir++) {
+                PHANDLE_TABLE_ENTRY Page = Directory[dir];
+                if (!Page) continue;
+
+                for (uint64_t i = 0; i < LOW_LEVEL_ENTRIES; i++) {
+                    void* Object = Page[i].Object;
+                    if (Object) {
+                        Page[i].Object = NULL;
+                        ObDereferenceObject(Object);
+                    }
+                }
+
+                // Free this page of handles.
+                MmFreePool(Page);
+            }
+        }
+
+        // Release spinlock and free the directory itself.
+        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        if (Directory) MmFreePool(Directory);
+    }
+
+    else {
+        // Unsupported level, release lock and get out.
+        assert(false, "Unsupported level encountered on handle table free.");
+        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+    }
+
+    // Finally, free our table itself.
+    MmFreePool(Table);
 }

@@ -200,6 +200,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case DPC_NOT_INITIALIZED:
         *s = "DPC_NOT_INITIALIZED";
         break;
+    case INVALID_PROCESS_ATTACH_ATTEMPT:
+        *s = "INVALID_PROCESS_ATTACH_ATTEMPT";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -268,7 +271,7 @@ MeBugCheck(
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
-    int32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
+    HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
@@ -287,6 +290,8 @@ MeBugCheck(
         gop_printf(COLOR_YELLOW, "PreviousMode: %u", MeGetPreviousMode());
     }
 #endif
+    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", __read_cr3());
+    gop_printf(COLOR_YELLOW, "Current stack top: %p", __read_rsp());
     __cli();
     while (1) {
         __hlt();
@@ -399,7 +404,7 @@ MeBugCheckEx (
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
-    uint32_t currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (uint32_t)-1;
+    HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
@@ -415,8 +420,10 @@ MeBugCheckEx (
         uintptr_t StackEnd = ThreadStack + StackSize;
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
         gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
-        gop_printf(COLOR_YELLOW, "PreviousMode: %u", MeGetPreviousMode());
+        gop_printf(COLOR_YELLOW, "PreviousMode: %u\n", MeGetPreviousMode());
     }
+    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", __read_cr3());
+    gop_printf(COLOR_YELLOW, "Current stack top: %p", __read_rsp());
 #endif
     __cli();
     while (1) {

@@ -355,7 +355,11 @@ MiAllocateLargePool(
     newHeader->Metadata.BlockSize = neededPages * VirtualPageSize; // Store allocated size.
     newHeader->Metadata.PoolIndex = POOL_TYPE_GLOBAL;
 
-    return (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
+    void* UserAddress = (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
+    // Set to zero (to avoid kernel issues)
+    kmemset(UserAddress, 0, NumberOfBytes);
+    // Return the pointer (exclude metadata start).
+    return UserAddress;
 }
 
 static
@@ -431,7 +435,7 @@ MmAllocatePoolWithTag(
     Routine description:
 
         Allocates a pool block of the specified type and returns a pointer to allocated block.
-        The allocated block returned is zeroed, no exceptions.
+        On any allocation, the returned block(s) is/are zeroed, no exceptions.
 
     Arguments:
 
@@ -649,7 +653,8 @@ MmFreePool(
         size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);
 
         // Loop over the amount, if the PTE is present, unmap it and clear the demand page.
-        uintptr_t CurrentVA = (uintptr_t)buf;
+        uintptr_t CurrentVA = (uintptr_t)header;
+
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
             if (!pte) goto advance;

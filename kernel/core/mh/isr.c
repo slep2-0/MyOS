@@ -65,7 +65,12 @@ MhHandleInterrupt (
     }
     
     if (cpu->currentThread) {
-        cpu->currentThread->PreviousMode = PreviousMode;
+        if (cpu->currentThread->ApcState.AttachedToProcess) {
+            cpu->currentThread->PreviousMode = UserMode;
+        }
+        else {
+            cpu->currentThread->PreviousMode = PreviousMode;
+        }
     }
 
     switch (vec_num) {
@@ -148,6 +153,9 @@ MhHandleInterrupt (
         lapic_eoi();
         // Lower IRQL back.
         MeLowerIrql(oldIrql);
+        break;
+    case VECTOR_APC:
+        gop_printf(COLOR_RED, "APC Vector hit.\n");
         break;
     case LAPIC_SIV_INTERRUPT:
         // just send EOI

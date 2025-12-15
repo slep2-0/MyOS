@@ -55,7 +55,6 @@ void ObInitialize (
     InitializeListHead(&ObTypeDirectoryList);
     // Initialize the DPC here, not at the ObpDefer function, as it would overwrite.
     MeInitializeDpc(&ObpReaperDpc, ReapOb, NULL, MEDIUM_PRIORITY);
-    gop_printf(COLOR_RED, "Its address (&ObpReaperDpc.DeferredRoutine): %p | VS What it points: %p\n", &ObpReaperDpc.DeferredRoutine, ObpReaperDpc.DeferredRoutine);
 }
 
 MTSTATUS ObCreateObjectType(
@@ -113,9 +112,11 @@ MTSTATUS ObCreateObjectType(
     return MT_SUCCESS;
 }
 
-void* ObCreateObject(
+MTSTATUS
+ObCreateObject(
     IN POBJECT_TYPE ObjectType,
-    IN uint32_t ObjectSize
+    IN uint32_t ObjectSize,
+    OUT void** ObjectCreated
     //_In_Opt char* Name - When files arrive, i'll uncomment this.
 ) 
 
@@ -142,7 +143,7 @@ void* ObCreateObject(
 
     // Allocate memory for the header.
     POBJECT_HEADER Header = (POBJECT_HEADER)MmAllocatePoolWithTag(ObjectType->TypeInfo.PoolType, ActualSize, 'bObO'); // Ob Object, not bobo, lol.
-    if (!Header) return NULL;
+    if (!Header) return MT_NO_MEMORY;
 
     Header->Type = ObjectType;
     Header->PointerCount = 1; // Start with 1 reference
@@ -151,7 +152,8 @@ void* ObCreateObject(
     InterlockedIncrementU32((volatile uint32_t*)&ObjectType->TotalNumberOfObjects);
 
     // Return Body
-    return OBJECT_HEADER_TO_OBJECT(Header);
+    *ObjectCreated = OBJECT_HEADER_TO_OBJECT(Header);
+    return MT_SUCCESS;
 }
 
 bool 
@@ -341,13 +343,61 @@ ObCreateHandleForObject(
 --*/
 
 {
-    // Acquire the current Process Handle Table.
-    PHANDLE_TABLE HandleTable = PsGetCurrentProcess()->ObjectTable;
-    if (!HandleTable) return MT_INVALID_STATE;
+    // Acquire the object table.
+    PHANDLE_TABLE ObjectTable = PsGetCurrentProcess()->ObjectTable;
+    if (!ObjectTable) return MT_INVALID_ADDRESS;
 
     // Create the handle.
-    HANDLE Handle = HtCreateHandle(HandleTable, Object, DesiredAccess);
+    HANDLE Handle = HtCreateHandle(ObjectTable, Object, DesiredAccess);
     if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
+
+    // Reference the object.
+    ObReferenceObject(Object);
+    
+    // Return success.
+    *ReturnedHandle = Handle;
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+ObCreateHandleForObjectEx(
+    IN void* Object,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE ReturnedHandle,
+    IN PHANDLE_TABLE ObjectTable
+)
+
+/*++
+
+    Routine description:
+
+       Creates a handle in the specified handle table for the specified Object.
+
+    Arguments:
+
+        [IN]    void* Object - The object to create the handle for.
+        [IN]    ACCESS_MASK DesiredAccess - The maximum access the handle should have.
+        [OUT]   PHANDLE ReturnedHandle - The returned handle for the object if success.
+        [IN]    PHANDLE_TABLE ObjectTable - The handle table to insert the newly created handle in.
+
+    Return Values:
+
+        MTSTATUS Status Codes:
+
+            MT_SUCCESS - Successful.
+            MT_INVALID_STATE - No handle table for current process.
+            MT_INVALID_CHECK - HtCreateHandle returned MT_INVALID_HANDLE.
+--*/
+
+{
+    if (!ObjectTable || !Object) return MT_INVALID_ADDRESS;
+
+    // Create the handle.
+    HANDLE Handle = HtCreateHandle(ObjectTable, Object, DesiredAccess);
+    if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
+
+    // Reference the object.
+    ObReferenceObject(Object);
 
     // Return success.
     *ReturnedHandle = Handle;

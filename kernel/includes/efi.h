@@ -47,6 +47,8 @@ typedef struct _GOP_PARAMS {
     uint32_t PixelsPerScanLine;   // Actual pixels per row in framebuffer (stride)
 } GOP_PARAMS;
 
+#define KERNEL_STACK_SIZE_IN_BYTES (8 * 4096) // 32768 Bytes
+
 typedef struct _BOOT_INFO {
     GOP_PARAMS Gop;
     EFI_MEMORY_DESCRIPTOR* MemoryMap;
@@ -57,13 +59,11 @@ typedef struct _BOOT_INFO {
     uint64_t AhciBarBases[32];
     uint64_t KernelStackTop;
     uintptr_t Pml4Phys;
-    uint16_t TssSelector;
     uintptr_t AcpiRsdpPhys;
 } BOOT_INFO, *PBOOT_INFO;
 
 #ifndef _MSC_VER 
-_Static_assert(sizeof(BOOT_INFO) == 360, "Size of BOOT_INFO doesn't equal 360 bytes. Update the struct.");
-_Static_assert(offsetof(BOOT_INFO, TssSelector) == 0x158, "TssSelector offset is not 0x158");
+_Static_assert(sizeof(BOOT_INFO) == 352, "Size of BOOT_INFO doesn't equal 344 bytes. Update the struct.");
 _Static_assert(offsetof(BOOT_INFO, KernelStackTop) == 0x148, "KernelStackTop isnt 0x148");
 #endif
 
@@ -77,9 +77,8 @@ AhciCount           : offset 0x40   (64)
 AhciBarBases        : offset 0x48   (72) 
 KernelStackTop      : offset 0x148  (328)
 Pml4Phys            : offset 0x150  (336)
-TssSelector         : offset 0x158  (344)
-AcpiRsdpPhys        : offset 0x160  (352)
-sizeof(BOOT_INFO)   : 360 (0x168)
+AcpiRsdpPhys        : offset 0x158  (352)
+sizeof(BOOT_INFO)   : 352 (0x160)
 */
 
 // Memory types (we only need ConventionalMemory here)

@@ -210,7 +210,6 @@ InsertHeadList(
     Head->Flink = Entry;  // head -> next = entry
 }
 
-
 FORCEINLINE
 PDOUBLY_LINKED_LIST
 RemoveHeadList(

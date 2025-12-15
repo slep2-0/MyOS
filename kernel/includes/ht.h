@@ -35,7 +35,7 @@ typedef struct _HANDLE_TABLE_ENTRY {
     };
 } HANDLE_TABLE_ENTRY, *PHANDLE_TABLE_ENTRY;
 
-#define LOW_LEVEL_ENTRIES   (VirtualPageSize / sizeof(HANDLE_TABLE_ENTRY)) // e.g., 512 entries per page
+#define LOW_LEVEL_ENTRIES   (VirtualPageSize / sizeof(HANDLE_TABLE_ENTRY)) // 256 entries per page
 #define TABLE_LEVEL_MASK    3
 
 typedef struct _HANDLE_TABLE {
@@ -56,7 +56,7 @@ typedef struct _HANDLE_TABLE {
 
 // --------------- TYPE DEFINES ---------------
 
-typedef int64_t HANDLE, * PHANDLE;
+typedef int32_t HANDLE, * PHANDLE;
 
 // --------------- FUNCTIONS ---------------
 
@@ -85,6 +85,11 @@ HtCreateHandle(
 PHANDLE_TABLE
 HtCreateHandleTable(
     IN  PEPROCESS Process
+);
+
+void
+HtDeleteHandleTable(
+    IN PHANDLE_TABLE Table
 );
 
 #endif

@@ -11,6 +11,7 @@
 
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,
+	APC_LEVEL = 1,
 	DISPATCH_LEVEL = 2,
 	PROFILE_LEVEL = 27,
 	CLOCK_LEVEL = 28,

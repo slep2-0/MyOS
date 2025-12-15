@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 
 // The physical memory offset itself is the hypermap virtual address. This is ruled by not touching the 0x0 - 0x1000 physical addresses AT ALL (you may touch the physical addresses, but not map them with the PhysicalMemoryOffset virtual arithemtic.)

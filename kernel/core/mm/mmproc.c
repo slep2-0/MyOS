@@ -30,7 +30,8 @@ MiCreateKernelStack(
 
     Routine description:
 
-        Creates a kernel stack for use in threads.
+        Creates a kernel stack for general use.
+        The stack cannot be accessible in user mode (assert(cpl == 0);)
 
     Arguments:
 
@@ -101,7 +102,7 @@ MiCreateKernelStack(
             (void*)TotalSize,
             (void*)123432 /* special identifier for manually initiated crash to know its here */
         );
-        // If the bugcheck is ever removed, it would be afailure.
+        // If the bugcheck is ever removed, it would be a failure.
         failure = true;
 
     }
@@ -139,6 +140,7 @@ failure_cleanup:
         MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);
     }
 
+    assert(false, "This function is currently a Must-Succeed.");
     return NULL;
 }
 
@@ -212,4 +214,86 @@ MiFreeKernelStack(
 
     // Free the Virtual Address allocation
     MiFreePoolVaContiguous(BaseVa, TotalSize, NonPagedPool);
+}
+
+MTSTATUS
+MmCreateProcessAddressSpace(
+    OUT void** DirectoryTable
+)
+
+/*++
+
+    Routine description:
+
+        Creates a new paging address space for the process.
+
+    Arguments:
+
+        [OUT] void** DirectoryTable - Pointer to set the newly physical address of the process's CR3.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // Declarations
+    PAGE_INDEX pfnIndex;
+    uint64_t* pml4Base;
+    IRQL oldIrql;
+    uint64_t physicalAddress;
+
+    // Allocate a physical page for the PML4.
+    pfnIndex = MiRequestPhysicalPage(PfnStateZeroed);
+
+    if (pfnIndex == PFN_ERROR) {
+        return MT_NO_RESOURCES;
+    }
+
+    // Convert the Index to a Physical Address (needed for CR3 and Recursive entry)
+    physicalAddress = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfnIndex));
+
+    // Map the physical page into hypermap so we can edit it temporarily.
+    pml4Base = (uint64_t*)MiMapPageInHyperspace(pfnIndex, &oldIrql);
+
+    if (!pml4Base) {
+        // If hyperspace mapping fails, release the page and fail.
+        MiReleasePhysicalPage(pfnIndex);
+        return MT_GENERAL_FAILURE;
+    }
+
+    // Setup our recursive mapping.
+    MMPTE recursivePte;
+    recursivePte.Value = 0;
+    recursivePte.Hard.Present = 1;
+    recursivePte.Hard.Write = 1;
+    recursivePte.Hard.User = 0; // Accessible only by Kernel
+    recursivePte.Hard.NoExecute = 1; // Data only
+    recursivePte.Hard.PageFrameNumber = (uint64_t)pfnIndex & ((1ULL << 40) - 1); // PFN of itself
+
+    // Write to index 0x1FF (511)
+    pml4Base[RECURSIVE_INDEX] = recursivePte.Value;
+
+    // Copy Kernel Address Space.
+    // The higher half of memory (Kernel Space) is shared across all processes.
+    uint64_t* currentPml4 = pml4_from_recursive();
+
+    // This copies the PML4 from PhysicalMemoryOffset all the way ot the end of the 48bit addressing.
+    // Excluding user regions.
+    for (int i = MiConvertVaToPml4Offset(PhysicalMemoryOffset); i < 512; i++) {
+        pml4Base[i] = currentPml4[i];
+    }
+
+    // Ensure it is stored.
+    MmBarrier();
+
+    // Unmap from Hyperspace.
+    MiUnmapHyperSpaceMap(oldIrql);
+
+    // Return the Physical Address.
+    // The scheduler will load this into CR3 when switching to this process.
+    *DirectoryTable = (void*)physicalAddress;
+
+    return MT_SUCCESS;
 }

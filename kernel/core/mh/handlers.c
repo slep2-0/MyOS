@@ -138,7 +138,7 @@ void MiInterprocessorInterrupt (
         // unused.
         break;
     case CPU_ACTION_FLUSH_CR3:
-        MiReloadTLBs();
+        __write_cr3(__read_cr3());
         break;
     }
 
@@ -210,8 +210,8 @@ MiPageFault (
                 KMODE_EXCEPTION_NOT_HANDLED,
                 (void*)(uintptr_t)status,
                 (void*)fault_addr,
-                NULL,
-                NULL
+                (void*)trap->rip,
+                (void*)trap->error_code
             );
         //}
     }

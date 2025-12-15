@@ -28,7 +28,7 @@ static inline uint64_t canonical_high(uint64_t addr) {
     return addr;
 }
 
-static inline uint64_t* pml4_from_recursive(void) {
+uint64_t* pml4_from_recursive(void) {
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)RECURSIVE_INDEX << 21) |
@@ -140,6 +140,26 @@ void
 MiInvalidateTlbForVa(
     IN void* VirtualAddress
 )
+
+/*++
+
+    Routine description:
+
+        Invalidates CPUs TLB for the specified virtual address.
+
+    Arguments:
+
+        [IN]    void* VirtualAddress - Virtual address to flush for.
+
+    Return Values:
+
+        None.
+
+    Notes:
+        
+        On the SMP Build, if APs are active, an IPI is sent to flush their TLB for the VA as well.
+
+--*/
 
 {
     invlpg(VirtualAddress);
@@ -267,8 +287,6 @@ MiUnmapPte (
     // Zero out newPte
     kmemset(&newPte, 0, sizeof(MMPTE));
 
-    newPte.Soft.Present = 0;
-
     // Write new values.
     newPte.Soft.PageFrameNumber = pfn;
     
@@ -279,11 +297,26 @@ MiUnmapPte (
     InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
 
     // Invalidate TLBs
-    if (origVa) invlpg((void*)origVa);
+    if (origVa) MiInvalidateTlbForVa((void*)origVa);
     else MiReloadTLBs();
 
     // Return.
     return;
+}
+
+
+// Reloads CR3 to flush all TLBs (slow flush)
+void
+MiReloadTLBs(
+    void
+)
+
+{
+    __write_cr3(__read_cr3());
+#ifndef MT_UP
+    IPI_PARAMS param;
+    MhSendActionToCpusAndWait(CPU_ACTION_FLUSH_CR3, param);
+#endif
 }
 
 uintptr_t

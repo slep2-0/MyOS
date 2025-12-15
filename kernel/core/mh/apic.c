@@ -65,6 +65,7 @@ static void map_lapic(uint64_t lapicPhysicalAddr) {
 
     // Map the single LAPIC page (phys -> virt)
     PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
+    assert(pte != NULL);
     if (!pte) return;
     MI_WRITE_PTE(pte, virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 
@@ -211,7 +212,7 @@ MhRequestSoftwareInterrupt(
 
     Notes:
 
-        The only IRQL supported currently is DISPATCH_LEVEL
+        The only IRQLs supported currently are DISPATCH_LEVEL and APC_LEVEL
 
         To have this function serviced for a DPC or an APC, set the flag in the CPU accordingly and wait for IRQL to be equal or below to IRQL requested.
 
@@ -223,20 +224,31 @@ MhRequestSoftwareInterrupt(
     assert(cpu->DpcInterruptRequested == true);
 
     // We only support DISPATCH_LEVEL.
-    assert(RequestIrql == DISPATCH_LEVEL);
-    if (RequestIrql != DISPATCH_LEVEL) MeBugCheckEx(INVALID_INTERRUPT_REQUEST, (void*)RETADDR(0), (void*)RequestIrql, NULL, NULL);
+    assert(RequestIrql == DISPATCH_LEVEL || RequestIrql == APC_LEVEL);
+    if (RequestIrql != DISPATCH_LEVEL && RequestIrql != APC_LEVEL) MeBugCheckEx(INVALID_INTERRUPT_REQUEST, (void*)RETADDR(0), (void*)RequestIrql, NULL, NULL);
 
     // Disable interrupts, and save IF flag.
     prev_if = MeDisableInterrupts();
 
     // Clear the flag.
-    cpu->DpcInterruptRequested = false;
+    if (RequestIrql == DISPATCH_LEVEL) {
+        cpu->DpcInterruptRequested = false;
+    }
+    else {
+        cpu->ApcInterruptRequested = false;
+    }
 
     // wait until previous ICR is not busy
     lapic_wait_icr();
 
     // For a self IPI we can use the destination shorthand
-    uint32_t icr_low = (uint32_t)VECTOR_DPC | (1U << 18);
+    uint32_t icr_low;
+    if (RequestIrql == DISPATCH_LEVEL) {
+        icr_low = (uint32_t)VECTOR_DPC | (1U << 18);
+    }
+    else {
+        icr_low = (uint32_t)VECTOR_APC | (1U << 18);
+    }
 
     // ICR high is ignored when shorthand is used, but zero it for clarity.
     lapic_mmio_write(LAPIC_ICR_HIGH, 0);

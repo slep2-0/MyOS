@@ -2,6 +2,7 @@
 #define X86_MATANEL_MACROS_H
 #include <stdint.h>
 
+/// This example is using the legacy kernel structures.
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
 /// CTX_FRAME* ctxframeptr = 0x1234; // Hypothetical address of the pointer.

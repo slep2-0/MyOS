@@ -225,7 +225,7 @@ MmAccessFault(
         PMMPTE pte = MiGetPtePointer(VirtualAddress);
 
         // Write the PTE.
-        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW | PAGE_USER);
 
         // Return success.
         return MT_SUCCESS;

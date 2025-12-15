@@ -27,16 +27,19 @@ static void update_apic_irqs(IRQL newLevel) {
 
     case CLOCK_LEVEL:
     case PROFILE_LEVEL:
-        tpr = TPR_PROFILE; // e.g. 10
+        tpr = TPR_PROFILE; // 10
         break;
 
     case DISPATCH_LEVEL:
-        tpr = TPR_DISPATCH; // numeric (e.g. 8)
+        tpr = TPR_DPC; // 6
         break;
+    case APC_LEVEL:
+        tpr = TPR_APC; // 3
+        break; 
 
     case PASSIVE_LEVEL:
     default:
-        tpr = TPR_PASSIVE; // 0
+        tpr = TPR_PASSIVE; // allow everything.
         break;
     }
 
@@ -137,7 +140,10 @@ MeLowerIrql (
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
-    // TODO Check for APC interrupt when APCs developed
+    // Now APC Interrupts.
+    if (prev_if && cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+    }
 
     if (prev_if) __sti();
 }

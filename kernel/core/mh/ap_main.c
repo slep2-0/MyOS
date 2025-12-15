@@ -1,6 +1,7 @@
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
 #include "../../includes/me.h"
+#include "../../assert.h"
 
 extern SMP_BOOTINFO bootInfo;
 extern PROCESSOR cpus[];
@@ -17,62 +18,6 @@ static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, 
     desc |= (uint64_t)gran_byte << 48;
     desc |= (uint64_t)((base >> 24) & 0xFFull) << 56;
     return desc;
-}
-
-static void setup_gdt_tss(void) {
-    PPROCESSOR cur = MeGetCurrentProcessor();
-    TSS* tss = cur->tss;
-    uint64_t* gdt = cur->gdt;
-    // gdt is uint64_t gdt[7];
-    gdt[0] = 0;
-    gdt[1] = 0x00AF9A000000FFFF;
-    gdt[2] = 0x00CF92000000FFFF;
-    // user code & data
-    gdt[3] = 0x00AFFA000000FFFF;
-    gdt[4] = 0x00CFF2000000FFFF;
-    uint64_t tss_base = (uint64_t)tss;
-    uint32_t limit = sizeof(TSS) - 1;
-
-    // tss entry
-    kmemset(tss, 0, sizeof(TSS));
-    tss->rsp0 = (uint64_t)cur->VirtStackTop;
-    tss->ist[0] = (uint64_t)cur->IstPFStackTop;
-    tss->ist[1] = (uint64_t)cur->IstDFStackTop;
-    tss->ist[2] = (uint64_t)cur->IstTimerStackTop;
-    tss->ist[3] = (uint64_t)cur->IstIpiStackTop;
-    tss->io_map_base = sizeof(TSS);
-
-    uint64_t tss_limit = (uint64_t)limit; // sizeof(TSS)-1
-    // gdt tss descriptor
-    uint64_t low = (tss_limit & 0xFFFFULL)
-        | ((tss_base & 0xFFFFFFULL) << 16)
-        | (0x89ULL << 40)                             // P=1, type=0x9 (available 64-bit TSS)
-        | (((tss_limit >> 16) & 0xFULL) << 48)       // limit high nibble -> bits 48..51
-        | (((tss_base >> 24) & 0xFFULL) << 56);      // base bits 24..31 -> bits 56..63
-
-    // high qword
-    uint64_t high = (tss_base >> 32) & 0xFFFFFFFFULL; // base >> 32 in low 32 bits of high qword
-
-    /* copy two qwords into GDT */
-    gdt[5] = low;
-    gdt[6] = high;
-    const int GDT_ENTRIES = 7;
-
-    GDTPtr gdtr = { .limit = (GDT_ENTRIES * sizeof(uint64_t)) - 1, .base = (uint64_t)gdt };
-    __asm__ volatile("lgdt %0" : : "m"(gdtr));
-    __asm__ volatile(
-        "pushq $0x08\n\t"                 /* kernel code selector */
-        "leaq 1f(%%rip), %%rax\n\t"     /*load ret*/
-        "pushq %%rax\n\t" /*push ret*/
-        "lretq\n\t" /*return*/
-        "1:\n\t"
-        : : : "rax", "memory"
-        );
-
-
-    // tss selector is 16 bit operand
-    unsigned short sel = 0x28; // index 5 * 8
-    __asm__ volatile("ltr %w0" :: "r"(sel));
 }
 
 static inline uint8_t get_initial_apic_id(void) {
@@ -98,20 +43,20 @@ void APMain(void) {
 	}
 
 	if (idx < 0) {
-        gop_printf(COLOR_RED, "Fatal error, AP Failed to initialize, index below 0.\n");
+        assert(false, "All APs must be initialized fully and successfully.");
+        gop_printf(COLOR_RED, "**Fatal error, AP Failed to initialize, index below 0.**\n");
         __hlt();
 	}
     __writemsr(IA32_GS_BASE, (uint64_t)&cpus[idx]);
-	setup_gdt_tss();
 
     // Self invalidate all TLBs
-    MiReloadTLBs();
+    __write_cr3(__read_cr3());
 
     // Now setup the IDT for the CPU. (load the one setupped by the smp func)
     __lidt(&PIDT);
 
     // Initiate per cpu functions.
-    MeInitializeProcessor(MeGetCurrentProcessor());
+    MeInitializeProcessor(MeGetCurrentProcessor(), true, true);
     
     // Initialize the MM For current core (init PAT)
     MmInitSystem(SYSTEM_PHASE_INITIALIZE_PAT_ONLY, NULL);

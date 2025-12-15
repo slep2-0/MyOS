@@ -14,6 +14,8 @@ gdt_start:
     dq 0x00AFFA000000FFFF  ; user code
     dq 0x00CFF2000000FFFF  ; user data
 gdt_tss_desc:
+    ; The following TSS Would be replaced MeInitProcessor.
+    ; It would be filled in with our stuffz.
     dq 0x0000000000000000  ; TSS descriptor low quadword
     dq 0x0000000000000000  ; TSS descriptor high quadword
 gdt_end:
@@ -43,9 +45,7 @@ _start:
     mov  gs, ax
     mov  ss, ax
 
-    ; Read the TSS from the BOOT_INFO struct.
-    mov ax, [rdi + 0x158] ; TssSelector offset
-    ltr ax               ; Load the TSS into the TR register.
+    ; TSS Setup has been moved to kernel Me layer.
 
     mov rsp, [rdi + 0x148]
     mov rbp, rsp

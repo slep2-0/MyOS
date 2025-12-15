@@ -131,6 +131,7 @@ typedef enum _BUGCHECK_CODES {
 	PSWORKER_INIT_FAILED,
 	DPC_NOT_INITIALIZED,
 	CID_TABLE_NULL,
+	INVALID_PROCESS_ATTACH_ATTEMPT,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -243,6 +244,13 @@ typedef struct _DPC_DATA {
 #define INITIAL_RFLAGS  0x202
 #define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
 
+typedef struct _APC_STATE {
+	uint64_t SavedCr3;
+	PEPROCESS SavedApcProcess;
+	bool AttachedToProcess;
+	IRQL PreviousIrql;
+} APC_STATE, *PAPC_STATE;
+
 typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
 	uint64_t* PageDirectoryVirtual;			// Virtual Address of the PML4 of the process. (accessible in kernel pages)
@@ -254,10 +262,12 @@ typedef struct _ITHREAD {
 	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
-	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel Threads Only)
+	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel mode only)
+	void* KernelStack;
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
+	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
 } ITHREAD, *PITHREAD;
 
@@ -271,6 +281,7 @@ typedef struct _PROCESSOR {
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
 	void* VirtStackTop; // Pointer to top of CPU Stack.
 	void* tss; // Task State Segment ptr.
+	void* Rsp0; // General RSP for interrupts & syscalls (entry only) & exceptions.
 	void* IstPFStackTop; // Page Fault IST Stack
 	void* IstDFStackTop; // Double Fault IST Stack
 	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
@@ -295,6 +306,9 @@ typedef struct _PROCESSOR {
 	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)
 	uintptr_t TimerHand;                 // Context for timer expiration (unused)
 
+	// Additional APC Fields
+	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs
+
 	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;
 	uint32_t MinimumDpcRate;
@@ -303,6 +317,9 @@ typedef struct _PROCESSOR {
 	// Interrupt requests
 	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
 	volatile bool ApcInterruptRequested; // (Undeveloped yet) True if we requested an interrupt for APCs.
+
+	// Scheduler Lock
+	SPINLOCK SchedulerLock;
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -341,6 +358,33 @@ MeGetCurrentProcessor (void)
 	// This function returns the current address of the PROCESSOR struct. - Note this should only be used in kernel mode with the appropriate GS value.
 {
 	return (PPROCESSOR)__readgsqword(0); // Only works because we have a self pointer at offset 0 in the struct.
+}
+
+FORCEINLINE
+void
+MeAcquireSchedulerLock(void)
+
+{
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+	// Acquire the spinlock. (FIXME MsAcquireSpinlockAtSynchLevel(&cpu->SchedulerLock)
+	while (__sync_lock_test_and_set(&cpu->SchedulerLock.locked, 1)) {
+		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+	}
+	// Memory barrier to prevent instruction reordering
+	__asm__ volatile("" ::: "memory");
+	cpu->schedulerEnabled = false;
+}
+
+FORCEINLINE
+void
+MeReleaseSchedulerLock(void)
+
+{
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+	cpu->schedulerEnabled = true;
+	// Release the spinlock. (FIXME MsReleaseSpinlockFromSynchLevel(&cpu->SchedulerLock)
+	__asm__ volatile("" ::: "memory");
+	__sync_lock_release(&cpu->SchedulerLock.locked);
 }
 
 extern uint32_t g_cpuCount;
@@ -414,7 +458,9 @@ MeIsExecutingDpc(void)
 
 void
 MeInitializeProcessor(
-	IN PPROCESSOR CPU
+	IN PPROCESSOR CPU,
+	IN bool InitializeStandardRoutine,
+	IN bool AreYouAP
 );
 
 void
@@ -467,6 +513,17 @@ MeRetireDPCs(
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4);
 void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2);
 void InitScheduler(void);
+
+void
+MeAttachProcess(
+	IN PIPROCESS Process,
+	OUT PAPC_STATE ApcState
+);
+
+void
+MeDetachProcess(
+	IN PAPC_STATE ApcState
+);
 
 NORETURN
 void

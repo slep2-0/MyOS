@@ -17,6 +17,7 @@ Global variables initialization
 Kernel Specific
 */
 bool isBugChecking = false;
+bool allApsInitialized = false;
 PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_lapic_id] after initializing SMP.
 
 /*
@@ -133,28 +134,13 @@ static void test(MUTEX* mut) {
 }
 
 static void funcWithParam(MUTEX* mut) {
-    gop_printf(COLOR_OLIVE, "Hit funcWithParam - funcWithParam threadptr: %p | stackStart: %p\n", PsGetCurrentThread(), PsGetCurrentThread()->InternalThread.StackBase);
-    char buf[256];
-    ksnprintf(buf, sizeof(buf), "echo \"Hello World\"");
-    gop_printf(COLOR_OLIVE, "(funcWithParam) Acquiring Mutex Object: %p\n", mut);
-    //MTSTATUS status = vfs_mkdir("/testdir/");
-    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_mkdir: %p**\n", status); }
-    //status = vfs_write("/testdir/test.sh", buf, kstrlen(buf), WRITE_MODE_CREATE_OR_REPLACE);
-    //if (MT_FAILURE(status)) { gop_printf(COLOR_GRAY, "**[MTSTATUS-FAILURE] Failure on vfs_write: %p**\n", status); }
-    MsAcquireMutexObject(mut);
-    volatile uint64_t z = 0;
-#ifdef GDB
-    for (uint64_t i = 0; i < 0xA; i++) {
-#else
-    for (uint64_t i = 0; i < 0xFFFFFFF; i++) {
-#endif
-        z++;
-    }
-    gop_printf(COLOR_OLIVE, "(funcWithParam) Releasing Mutex Object: %p\n", mut);
-    MsReleaseMutexObject(mut);
-    PETHREAD currentThread = PsGetCurrentThread();
-    gop_printf(COLOR_OLIVE, "Current thread in funcWithParam: %p\n", currentThread);
-    gop_printf_forced(COLOR_OLIVE, "**Ended funcWithParam.**\n");
+    UNREFERENCED_PARAMETER(mut);
+    gop_printf(COLOR_OLIVE, "New funcWithParam, starting process.\n");
+    //HANDLE hProcess;
+    //sCreateProcess("loop.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    //UNREFERENCED_PARAMETER(hProcess);
+    for (int i = 0; i < 100000; i++) __pause();
+    gop_printf(COLOR_OLIVE, "FuncWithParam exit\n");
 }
 
 // All CPUs
@@ -181,12 +167,14 @@ EPROCESS PsInitialSystemProcess;
 
 static void InitSystemProcess(void) {
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
-    PsInitialSystemProcess.ParentProcess = NULL; // No creator process
+    PsInitialSystemProcess.ParentProcess = 0; // No creator process
     kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
     PsInitialSystemProcess.priority = 0; // TODO
     PsInitialSystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
     PsInitialSystemProcess.CreationTime = MeGetEpoch();
     PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
+    InitializeListHead(&PsInitialSystemProcess.AllThreads);
+    PsInitialSystemProcess.ObjectTable = HtCreateHandleTable(&PsInitialSystemProcess);
 }
 
 extern uint8_t bss_start;
@@ -205,19 +193,25 @@ void kernel_main(BOOT_INFO* boot_info) {
     init_boot_info(boot_info);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
     // Initialize the global CPU struct.
-    MeInitializeProcessor(&cpu0);
+    MeInitializeProcessor(&cpu0, false, false);
     // Initialize interrupts & exceptions.
     init_interrupts();
-
     // Initialize the memory manager
     MmInitSystem(SYSTEM_PHASE_INITIALIZE_ALL, boot_info);
+
+    // Initialize the TSS & GDT & New IDT with TSS
+    MeInitializeProcessor(&cpu0, true, false);
 
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
     MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
-        gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n");
+        gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n", st);
         __hlt();
     }
+
+    // Move all UEFI Pointers to kernel higher half (after physical memory offset)
+    // To allow copying PML4 of kernel to processes.
+    MiMoveUefiDataToHigherHalf(boot_info);
 
     // Initialize the object manager subsystem.
     ObInitialize();
@@ -333,6 +327,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MhInitializeSMP(apic_list, 4, lapicAddress);
         IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
         MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
+        allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs of the apic list have initialized fully.
     }
 #else
     gop_printf(COLOR_RED, "System configured to run in UP mode.\n");
@@ -340,6 +335,5 @@ void kernel_main(BOOT_INFO* boot_info) {
     // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
     // Thread creations (including idle threads) must come with the IF flag set.
     Schedule();
-    for (;;) __hlt();
     __builtin_unreachable();
 }

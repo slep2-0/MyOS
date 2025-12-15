@@ -26,6 +26,7 @@ Revision History:
 // Other file includes
 #include "me.h"
 #include "ht.h"
+#include "ob.h"
 #include "core.h"
 
 // Exception Includes
@@ -83,19 +84,21 @@ typedef enum _PS_PHASE_ROUTINE {
 #define MT_PROCESS_SET_INFO           0x0040  // Modify process properties/metadata
 #define MT_PROCESS_QUERY_INFO         0x0080  // Query process details (PID, exit code, etc.)
 #define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
+#define MT_PROCESS_CREATE_PROCESS     0x0200  // Create a new process.
 
 #define MT_PROCESS_ALL_ACCESS         0x01FF  // Everything above
 
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
-    uint32_t PID; // Process Identifier, unique identifier to the process.
-    struct _EPROCESS* ParentProcess; // Parent Process Pointer (should always be one)
+    HANDLE PID; // Process Identifier, unique identifier to the process.
+    HANDLE ParentProcess; // Parent Process Handle
     uint32_t priority; // TODO
     uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
     // SID TODO. - User info as well, when users.
 
     // TODO PEB
+    void* FileBuffer; // TODO RemoveMe for sections.
     uint64_t ImageBase; // Base Pointer of loaded process memory.
 
     // Synchorinzation for internal functions.
@@ -103,7 +106,7 @@ typedef struct _EPROCESS {
 
     // Thread infos
     struct _ETHREAD* MainThread; // Pointer to the main thread created for the process.
-    struct _Queue AllThreads; // A singular linked list of pointers to the current threads of the process. (inserted with each new creation)
+    DOUBLY_LINKED_LIST AllThreads; // A linked list of pointers to the current threads of the process. (inserted with each new creation)
     uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
     uint64_t NextStackTop; // A 64 bit value representing the next stack top for a newly created thread
 
@@ -119,7 +122,7 @@ typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
     // TODO TEB
     struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
-    uint32_t TID;           /* thread id */
+    HANDLE TID;           /* thread id */
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
@@ -146,10 +149,27 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 // ------------------ FUNCTIONS ------------------
 
 extern EPROCESS PsInitialSystemProcess;
+extern POBJECT_TYPE PsProcessType;
+extern POBJECT_TYPE PsThreadType;
+
+MTSTATUS
+PsCreateProcess(
+    IN const char* ExecutablePath,
+    OUT PHANDLE ProcessHandle,
+    IN ACCESS_MASK DesiredAccess,
+    _In_Opt HANDLE ParentProcess
+);
+
+MTSTATUS
+PsCreateThread(
+    HANDLE ProcessHandle,
+    PHANDLE ThreadHandle,
+    ThreadEntry EntryPoint,
+    THREAD_PARAMETER ThreadParameter,
+    TimeSliceTicks TimeSlice
+);
 
 extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
-MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS ParentProcess);
-MTSTATUS PsCreateThread(PEPROCESS ParentProcess, PETHREAD* outThread, ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
 
 MTSTATUS
@@ -193,11 +213,11 @@ PsGetCurrentProcess(
     void
 )
 
-// Will return current running process, or NULL if not present. (shouldn't happen after init)
+// Will return the current process the thread is attached to (could be its parent thread, could be another in an APC)
 
 {
-    if (PsGetCurrentThread()) {
-        return PsGetCurrentThread()->ParentProcess;
+    if (MeGetCurrentThread()) {
+        return MeGetCurrentThread()->ApcState.SavedApcProcess;
     }
     else return NULL;
 }

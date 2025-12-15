@@ -10,50 +10,6 @@
 
 #define THREAD_STACK_SIZE (1024*24) // 24 KiB
 #define THREAD_ALIGNMENT 16
-static SPINLOCK g_tid_lock = { 0 };
-
-///
-// Call with freedTid == 0 ? allocate a new TID (returns 0 on failure)
-// Call with freedTid  > 0 ? release that TID back into the pool (always returns 0)
-///
-uint32_t ManageTID(uint32_t freedTid);
-uint32_t ManageTID(uint32_t freedTid)
-{
-    IRQL oldIrql;
-    MsAcquireSpinlock(&g_tid_lock, &oldIrql);
-    static uint32_t nextTID = MIN_TID;
-    static uint32_t freePool[MAX_FREE_POOL];
-    static uint32_t freeCount = 0;
-    uint32_t result = 0;
-
-    if (freedTid) {
-        // Release path: push into free pool if aligned & room
-        if ((freedTid % ALIGN_DELTA) == 0 && freeCount < MAX_FREE_POOL) {
-            freePool[freeCount++] = freedTid;
-        }
-    }
-    else { 
-        // Allocate path:
-        if (freeCount > 0) {
-            // Reuse most-recently freed
-            result = freePool[--freeCount];
-        }
-        else {
-            // Hand out next aligned TID
-            result = nextTID;
-            nextTID += ALIGN_DELTA;
-
-            // Wrap/overflow check
-            if (nextTID < ALIGN_DELTA || result > MAX_TID) {
-                // Exhausted all TIDs
-                result = 0;
-            }
-        }
-    }
-    MsReleaseSpinlock(&g_tid_lock, oldIrql);
-    return result;
-}
-
 
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
@@ -73,23 +29,109 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
 }
 
 extern EPROCESS PsInitialSystemProcess;
-extern POBJECT_TYPE PsThreadType;
+
+MTSTATUS
+PsCreateThread(
+    HANDLE ProcessHandle,
+    PHANDLE ThreadHandle,
+    ThreadEntry EntryPoint,
+    THREAD_PARAMETER ThreadParameter,
+    TimeSliceTicks TimeSlice
+)
+
+{
+    // Checks.
+    if (!ProcessHandle || !EntryPoint || !TimeSlice) return MT_INVALID_PARAM;
+    MTSTATUS Status;
+    PEPROCESS ParentProcess;
+
+    Status = ObReferenceObjectByHandle(ProcessHandle, MT_PROCESS_CREATE_THREAD, PsProcessType, (void**)&ParentProcess, NULL);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Acquire process rundown protection.
+    if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
+        // Process is, being terminated?
+        return MT_PROCESS_IS_TERMINATING;
+    }
+
+    // Create a new thread.
+    PETHREAD Thread;
+    Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**) & Thread);
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // Initialize list head.
+    InitializeListHead(&Thread->ThreadListEntry);
+
+    // Create a TID for the thread.
+    Thread->TID = PsAllocateThreadId(Thread);
+
+    // Create a new stack for the thread's kernel environment.
+    Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
+    if (!Thread->InternalThread.KernelStack) goto CleanupWithRef;
+
+    // Create user mode stack. (FIXME User mode stack creation like in ntdll, but how does it create the first user mode thread stack, helluva i know.)
+    void* BaseAddress = (void*)(USER_VA_END - 4096);
+    Status = MmAllocateVirtualMemory(ParentProcess, &BaseAddress, 4096, VAD_FLAG_WRITE | VAD_FLAG_READ);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+    Thread->InternalThread.StackBase = (void*)(USER_VA_END); // Stack grows downward.
+
+    // Setup timeslice.
+    Thread->InternalThread.TimeSlice = TimeSlice;
+    Thread->InternalThread.TimeSliceAllocated = TimeSlice;
+
+    // Set registers
+    TRAP_FRAME ContextFrame;
+    kmemset(&ContextFrame, 0, sizeof(TRAP_FRAME));
+
+    ContextFrame.rsp = (uint64_t)Thread->InternalThread.StackBase;
+    ContextFrame.rip = (uint64_t)EntryPoint;
+    ContextFrame.rdi = (uint64_t)ThreadParameter;
+    ContextFrame.rflags = USER_RFLAGS;
+    ContextFrame.cs = USER_CS;
+    ContextFrame.ss = USER_SS;
+    Thread->InternalThread.TrapRegisters = ContextFrame;
+    
+    // Set state
+    Thread->InternalThread.ThreadState = THREAD_READY;
+    Thread->InternalThread.ApcState.SavedApcProcess = ParentProcess;
+
+    // Set process's thread properties.
+    if (!ParentProcess->MainThread) {
+        ParentProcess->MainThread = Thread;
+    }
+
+    Thread->ParentProcess = ParentProcess;
+
+    // Create a handle for the thread (and place it in the process's handle table).
+    Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+    
+    // Add to list of all threads in the parent process.
+    InsertTailList(&ParentProcess->AllThreads, &Thread->ThreadListEntry);
+    InterlockedIncrementU32((volatile uint32_t*)&ParentProcess->NumThreads);
+    Status = MT_SUCCESS;
+CleanupWithRef:
+    // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
+    // If not, it would reach reference 0, and PspDeleteThread would execute.
+    ObDereferenceObject(Thread);
+Cleanup:
+    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+    return Status;
+}
 
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
     if (!PsInitialSystemProcess.PID) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
 
-    uint32_t tid = ManageTID(0);
-
-    if (!tid) {
-        return MT_NO_RESOURCES;
-    }
-
     // First, allocate a new thread. (using our shiny and glossy new object manager!!!)
-    PETHREAD thread = (PETHREAD)ObCreateObject(PsThreadType, sizeof(ETHREAD));
-    if (!thread) {
-        return MT_NO_MEMORY;
+    MTSTATUS Status;
+    PETHREAD thread; 
+    Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void*) & thread);
+    if (MT_FAILURE(Status)) {
+        return Status;
     }
+
+    InitializeListHead(&thread->ThreadListEntry);
 
     // Zero it.
     kmemset((void*)thread, 0, sizeof(ETHREAD));
@@ -109,6 +151,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     thread->InternalThread.StackBase = stackStart; // The stackbase must be the one gotten from MiCreateKernelStack, as freeing with StackTop will result in incorrect arithmetic, and so assertion failure.
     thread->InternalThread.IsLargeStack = LargeStack;
+    thread->InternalThread.KernelStack = stackStart;
 
     TRAP_FRAME* cfm = &thread->InternalThread.TrapRegisters;
     kmemset(cfm, 0, sizeof * cfm);
@@ -132,21 +175,21 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     // Set it's registers and others.
     thread->InternalThread.TrapRegisters = *cfm;
     thread->InternalThread.ThreadState = THREAD_READY;
-    thread->TID = tid;
+    thread->TID = PsAllocateThreadId(thread);
     thread->CurrentEvent = NULL;
+    thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
 
     // Process stuffz
     thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
+
 
     return MT_SUCCESS;
 }
 
 PETHREAD 
 PsGetCurrentThread (void) {
-    if (!MeGetCurrentProcessor() || !MeGetCurrentProcessor()->currentThread) return NULL;
-    PITHREAD currThread = MeGetCurrentProcessor()->currentThread;
-    return CONTAINING_RECORD(currThread, ETHREAD, InternalThread);
+    return CONTAINING_RECORD(MeGetCurrentThread(), ETHREAD, InternalThread);
 }
 
 void
@@ -187,6 +230,9 @@ PsDeleteThread(
     MsWaitForRundownProtectionRelease(&Thread->ThreadRundown);
 
     bool IsKernelThread = PsIsKernelThread(Thread);
+
+    // Free TID.
+    PsFreeCid(Thread->TID);
 
     // Free its stack.
     if (IsKernelThread) {

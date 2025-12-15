@@ -13,6 +13,7 @@ extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
 extern void restore_context(TRAP_FRAME* regs);
+extern void restore_user_context(PETHREAD thread);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
@@ -52,7 +53,7 @@ void InitScheduler(void) {
     idleThread->CurrentEvent = NULL; // No event.
     idleThread->ParentProcess = &PsInitialSystemProcess;
     PsInitialSystemProcess.MainThread = idleThread;
-    MeEnqueueThreadWithLock(&PsInitialSystemProcess.AllThreads, idleThread);
+    InsertHeadList(&PsInitialSystemProcess.AllThreads, &idleThread->ThreadListEntry);
 
     // The ready queue starts empty
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
@@ -136,6 +137,12 @@ Schedule(void) {
     next->ThreadState = THREAD_RUNNING;
     MeGetCurrentProcessor()->currentThread = next;
     MeLowerIrql(oldIrql);
-    restore_context(&next->TrapRegisters);
+    if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
+        restore_context(&next->TrapRegisters);
+    }
+    else {
+        // User thread
+        restore_user_context(PsGetEThreadFromIThread(next));
+    }
     __builtin_unreachable();
 }

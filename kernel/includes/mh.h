@@ -36,7 +36,6 @@ Revision History:
 
 #define TPR_PASSIVE         0
 #define TPR_APC             3
-#define TPR_DISPATCH        6   
 #define TPR_DPC             8   // Vector: 0x40 + 0x80 = 0xC0 (192)
 #define TPR_PROFILE         10
 #define TPR_IPI             11 
@@ -46,7 +45,9 @@ Revision History:
 
 // Calculated Vectors
 #define VECTOR_DPC          CALC_VECTOR(TPR_DPC)
+#define VECTOR_APC          CALC_VECTOR(TPR_APC)
 #define VECTOR_IPI          CALC_VECTOR(TPR_IPI)
+#define LAPIC_TIMER_VECTOR 0xEF
 
 static inline unsigned int priority_to_vector(uint8_t pri) {
     if (pri > 15) pri = 15;
@@ -450,6 +451,7 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter);
 
 extern int smp_cpu_count;
 extern bool smpInitialized;
+extern bool allApsInitialized;
 
 // Didn't get rename yet.
 void set_idt_gate(int n, unsigned long int handler);
@@ -611,11 +613,6 @@ MiMachineCheck(
 
 void
 MhRequestSoftwareInterrupt(
-    IN IRQL RequestIrql
-);
-
-void
-MhExecuteSoftwareInterrupt(
     IN IRQL RequestIrql
 );
 

@@ -35,6 +35,21 @@ Revision History:
 
 // ------------------ HEADER SPECIFIC MACROS ------------------
 
+#define PML4_INDEX_BITS   9
+#define PML4_INDEX_SHIFT  39
+#define PML4_INDEX_MASK   ((1ULL << PML4_INDEX_BITS) - 1ULL)
+
+#define PML4_INDEX_FROM_VA(VA) ( ( (uintptr_t)(VA) >> PML4_INDEX_SHIFT ) & PML4_INDEX_MASK )
+
+/* If PhysicalMemoryOffset is the kernel VA base that maps physical 0:
+   index in PML4 for physical address PHYS is the index of (PHYS + PhysicalMemoryOffset) */
+#define PML4_INDEX_FROM_PHYS(PHYS) PML4_INDEX_FROM_VA( (uintptr_t)(PHYS) + (uintptr_t)PhysicalMemoryOffset )
+
+   /* safer typed helper */
+static inline int MiConvertVaToPml4Offset(uint64_t va) {
+    return (int)((va >> PML4_INDEX_SHIFT) & PML4_INDEX_MASK);
+}
+
 #define VirtualPageSize 4096ULL // Same as each physical frame.
 #define PhysicalFrameSize 4096ULL // Each physical frame.
 #define KernelVaStart 0xfffff80000000000ULL
@@ -90,7 +105,7 @@ do {                                                                        \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
     /* Send IPIs if SMP is initialized */                                   \
-    if (smpInitialized) {                                                   \
+    if (smpInitialized && allApsInitialized) {                              \
         IPI_PARAMS _Params;                                                 \
         _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
         MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
@@ -114,6 +129,7 @@ do {                                                                        \
     do { \
         (pte).Soft.SoftwareFlags &= ~MI_DEMAND_ZERO_BIT; \
     } while(0)
+#endif
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
@@ -125,7 +141,6 @@ do {                                                                        \
 #define MM_IS_DEMAND_ZERO_PTE(pte) (NULL)
 #define MM_SET_DEMAND_ZERO_PTE(pte, prot_flags, nx) ((void)0)
 #define MM_UNSET_DEMAND_ZERO_PTE(pte) (NULL)
-#endif
 #endif
 
 // Convert bytes to pages (rounding up)
@@ -202,7 +217,7 @@ do {                                                                        \
 // Stack sizes & protections.
 #define MI_STACK_SIZE 0x4000 // 16KiB
 #define MI_LARGE_STACK_SIZE 0xf000 // 60 KiB
-#define MI_GUARD_PAGE_PROTECTION 0x3
+#define MI_GUARD_PAGE_PROTECTION (1ULL << 17)
 
 // Barriers
 
@@ -210,7 +225,7 @@ do {                                                                        \
 #define MmFullBarrier() __sync_synchronize()
 
 // Ensure ordedring of memory operations (memory should be visible before continuing)
-#define MmBarrier() __asm__ __volatile__("" ::: "memory")
+#define MmBarrier() __asm__ __volatile__("mfence" ::: "memory")
 
 // ------------------ TYPE DEFINES ------------------
 typedef uint64_t PAGE_INDEX;
@@ -516,6 +531,7 @@ extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
 
 // general functions
+uint64_t* pml4_from_recursive(void);
 
 // Memory Set.
 FORCEINLINE
@@ -560,17 +576,10 @@ kmemcmp(
     return 0;
 }
 
-FORCEINLINE
 void
 MiReloadTLBs(
     void
-)
-
-// Reloads CR3 to flush all TLBs (slow flush)
-
-{
-    __write_cr3(__read_cr3());
-}
+);
 
 FORCEINLINE
 uint64_t 
@@ -749,6 +758,8 @@ MmFreePool(
     IN  void* buf
 );
 
+// module: mmproc.c
+
 void*
 MiCreateKernelStack(
     IN  bool LargeStack
@@ -758,6 +769,11 @@ void
 MiFreeKernelStack(
     IN void* AllocatedStackTop,
     IN bool LargeStack
+);
+
+MTSTATUS
+MmCreateProcessAddressSpace(
+    OUT void** DirectoryTable
 );
 
 // module: vad.c
@@ -781,6 +797,11 @@ PMMVAD
 MiFindVad(
     IN  PMMVAD Root,
     IN  uintptr_t VirtualAddress
+);
+
+void
+MiMoveUefiDataToHigherHalf(
+    IN PBOOT_INFO BootInfo
 );
 
 uintptr_t

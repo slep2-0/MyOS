@@ -75,12 +75,12 @@ FORCEINLINE void __write_cr2(unsigned long val) {
 }
 
 // CR3 (Page table base address)
-FORCEINLINE unsigned long __read_cr3(void) {
-    unsigned long val;
+FORCEINLINE uint64_t __read_cr3(void) {
+    uint64_t val;
     __asm__ volatile("mov %%cr3, %0" : "=r"(val));
     return val;
 }
-FORCEINLINE void __write_cr3(unsigned long val) {
+FORCEINLINE void __write_cr3(uint64_t val) {
     __asm__ volatile("mov %0, %%cr3" :: "r"(val) : "memory");
 }
 
