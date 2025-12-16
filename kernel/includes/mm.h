@@ -203,6 +203,7 @@ do {                                                                        \
 })
 
 #define PFN_TO_PHYS(Pfn) PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(Pfn))
+#define PHYS_TO_INDEX(PhysicalAddress) PPFN_TO_INDEX(PHYSICAL_TO_PPFN(PhysicalAddress))
 
 #define PFN_ERROR UINT64_T_MAX
 
@@ -395,7 +396,7 @@ typedef struct _MMPTE
             uint64_t CacheDisable : 1;    // Disable caching
             uint64_t Accessed : 1;        // Set by CPU when accessed
             uint64_t Dirty : 1;           // Set by CPU when written
-            uint64_t LargePage : 1;       // Large page flag (2MB/1GB)
+            uint64_t LargePage : 1;       // Large page flag (2MB/1GB) (valid only in PDE)
             uint64_t Global : 1;          // Global TLB entry
             uint64_t CopyOnWrite : 1;     // Software: copy-on-write
             uint64_t Prototype : 1;       // Software: prototype PTE (section)
@@ -694,6 +695,21 @@ MiUnlinkPageFromList(
 );
 
 // module: map.c
+
+PMMPTE
+MiGetPml4ePointer(
+    IN  uintptr_t va
+);
+
+PMMPTE
+MiGetPdptePointer(
+    IN  uintptr_t va
+);
+
+PMMPTE
+MiGetPdePointer(
+    IN  uintptr_t va
+);
 
 PMMPTE
 MiGetPtePointer(

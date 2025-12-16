@@ -6,6 +6,7 @@
 
 #include "../../time.h"
 #include "../../filesystem/vfs/vfs.h"
+#include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../includes/ms.h"
@@ -22,7 +23,7 @@
 #define USER_INITIAL_STACK_TOP 0x00007FFFFFFFFFFF
 extern EPROCESS SystemProcess;
 
-uintptr_t MmSystemRangeStart = KernelVaStart;
+uintptr_t MmSystemRangeStart = PhysicalMemoryOffset; // Changed to PhysicalMemoryOffset, since thats where actual stuff like hypermap, phys to virt, and more happen.
 uintptr_t MmHighestUserAddress = USER_VA_END;
 uintptr_t MmUserProbeAddress = 0x00007FFFFFFF0000;
 
@@ -81,7 +82,7 @@ PsCreateProcess(
             ParentProcess,
             MT_PROCESS_CREATE_PROCESS,
             PsProcessType,
-            (void*)&Parent,
+            (void**)&Parent,
             NULL
         );
 
@@ -126,6 +127,7 @@ PsCreateProcess(
     Status = MmCreateProcessAddressSpace(&DirectoryTablePhysical);
     if (MT_FAILURE(Status)) goto CleanupWithRef;    
     Process->InternalProcess.PageDirectoryPhysical = (uintptr_t)DirectoryTablePhysical;
+    gop_printf(COLOR_RED, "Process CR3: %p\n", DirectoryTablePhysical);
 
     // Per thread stack calculation.
     Process->NextStackTop = USER_INITIAL_STACK_TOP;
@@ -144,41 +146,54 @@ PsCreateProcess(
     Process->FileBuffer = file_buffer;
     Process->ImageBase = USER_VA_START; // Dummy VA, FIXME Headers.
 
-    // Create VADs for the process to load.
-    void* BaseAddress = (void*)USER_VA_START;
-    Status = MmAllocateVirtualMemory(Process, &BaseAddress, FileSize, VAD_FLAG_MAPPED_FILE);
-    if (MT_FAILURE(Status)) goto CleanupWithRef;
+    // TODO ADD ADDRESS TO WORKING SET OF PROCESS!!
 
     // Calculate the number of pages needed to map the entire file in.
     size_t num_pages = (FileSize + VirtualPageSize - 1) / VirtualPageSize;
-
-    // Attach to the process.
-    APC_STATE State;
-    kmemset(&State, 0, sizeof(APC_STATE));
-    MeAttachProcess(&Process->InternalProcess, &State);
 
     // Prepare for the copy loop
     uintptr_t CurrentVA = Process->ImageBase;
     uint8_t* SourcePtr = (uint8_t*)file_buffer; // Pointer to the data we read from disk
     size_t BytesRemaining = FileSize;
 
+    // Attach to process to get corrent PTE pointer.
+    APC_STATE ApcState;
+    MeAttachProcess(&Process->InternalProcess, &ApcState);
+
     for (size_t i = 0; i < num_pages; i++) {
+        // Allocate a physical page.
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) break;
+
+        // Now we change the actual physical address we got, and thats the physical address of CurrentVA.
+        IRQL oldIrql;
+        void* PhysicalAddressOfVa = MiMapPageInHyperspace(pfn, &oldIrql);
 
         // Calculate how many bytes to copy for this specific iteration.
         // It will be 4096 for every page except potentially the last one.
         size_t BytesToCopy = (BytesRemaining > VirtualPageSize) ? VirtualPageSize : BytesRemaining;
-
+        
         // Copy the data.
-        kmemcpy((void*)CurrentVA, SourcePtr, BytesToCopy);
+        kmemcpy((void*)PhysicalAddressOfVa, SourcePtr, BytesToCopy);
+
+        // End hyperspace mapping for physical address.
+        MiUnmapHyperSpaceMap(oldIrql);
+
+        // Get the PTE pointer for the current address.
+        PMMPTE pte = MiGetPtePointer(CurrentVA);
+
+        // Write to it the physical address.
+        MI_WRITE_PTE(pte, CurrentVA, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW | PAGE_USER);
 
         // Advance pointers and decrement counters
         CurrentVA += VirtualPageSize;
-        SourcePtr += VirtualPageSize;
+        SourcePtr += BytesToCopy;
         BytesRemaining -= BytesToCopy;
     }
 
-    // Detach.
-    MeDetachProcess(&State);
+    // The VA has been filed with the executable's instructions, now we do handle creation and yada yada.
+    // Detach from process address space.
+    MeDetachProcess(&ApcState);
 
     // Create a handle for the process.
     HANDLE hProcess;

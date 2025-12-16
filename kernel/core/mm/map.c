@@ -98,6 +98,13 @@ MiGetPtePointer(
     size_t pd_i = get_pd_index(va);
     size_t pt_i = get_pt_index(va);
 
+    uint64_t intermediateFlags = PAGE_PRESENT | PAGE_RW;
+
+    // If we are touching user address space, we add user accessibility.
+    if (va <= MmHighestUserAddress) {
+        intermediateFlags |= PAGE_USER;
+    }
+
     uint64_t* pml4_va = pml4_from_recursive();
     if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
         // Allocate a new PDPT
@@ -106,7 +113,7 @@ MiGetPtePointer(
 
         // We are modifying the recursive mapping of the PML4 entry.
         PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
     }
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
@@ -117,7 +124,7 @@ MiGetPtePointer(
 
         // Link new PD into PDPT
         PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
     }
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
@@ -128,12 +135,138 @@ MiGetPtePointer(
 
         // Link new PT into PD
         PMMPTE pde = (PMMPTE)&pd_va[pd_i];
-        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
     }
 
     // Return addr of PTE.
     uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
     return (PMMPTE)&pt_va[pt_i];
+}
+
+PMMPTE
+MiGetPml4ePointer(
+    IN  uintptr_t va
+)
+
+{
+    // 1. Calculate Indices
+    size_t pml4_i = get_pml4_index(va);
+
+    uint64_t intermediateFlags = PAGE_PRESENT | PAGE_RW;
+
+    // If we are touching user address space, we add user accessibility.
+    if (va <= MmHighestUserAddress) {
+        intermediateFlags |= PAGE_USER;
+    }
+
+    uint64_t* pml4_va = pml4_from_recursive();
+    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
+        // Allocate a new PDPT
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // We are modifying the recursive mapping of the PML4 entry.
+        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+    
+    return (PMMPTE) & pml4_va[pml4_i];
+}
+
+PMMPTE
+MiGetPdptePointer(
+    IN  uintptr_t va
+)
+
+{
+    // 1. Calculate Indices
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+
+    uint64_t intermediateFlags = PAGE_PRESENT | PAGE_RW;
+
+    // If we are touching user address space, we add user accessibility.
+    if (va <= MmHighestUserAddress) {
+        intermediateFlags |= PAGE_USER;
+    }
+
+    uint64_t* pml4_va = pml4_from_recursive();
+    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
+        // Allocate a new PDPT
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // We are modifying the recursive mapping of the PML4 entry.
+        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+
+    uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
+    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
+        // Allocate a new Page Directory
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // Link new PD into PDPT
+        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+
+    return (PMMPTE)&pdpt_va[pdpt_i];
+}
+
+PMMPTE
+MiGetPdePointer(
+    IN  uintptr_t va
+)
+
+{
+    // 1. Calculate Indices
+    size_t pml4_i = get_pml4_index(va);
+    size_t pdpt_i = get_pdpt_index(va);
+    size_t pd_i = get_pd_index(va);
+
+    uint64_t intermediateFlags = PAGE_PRESENT | PAGE_RW;
+
+    // If we are touching user address space, we add user accessibility.
+    if (va <= MmHighestUserAddress) {
+        intermediateFlags |= PAGE_USER;
+    }
+
+    uint64_t* pml4_va = pml4_from_recursive();
+    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
+        // Allocate a new PDPT
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // We are modifying the recursive mapping of the PML4 entry.
+        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+
+    uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
+    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
+        // Allocate a new Page Directory
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // Link new PD into PDPT
+        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+
+    uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
+    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
+        // Allocate a new Page Table
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+        if (pfn == PFN_ERROR) return NULL;
+
+        // Link new PT into PD
+        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
+    }
+
+    return (PMMPTE)&pd_va[pd_i];
 }
 
 void

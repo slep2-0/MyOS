@@ -59,10 +59,11 @@ static void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t
                     uint32_t px = x + col * FONT_SCALE + dx;
                     if (px < gop->Width) {
                         if (gop_bold_enabled) {
-                            plot_pixel(gop, px, py, color);
-                            plot_pixel(gop, px + 1, py, color);
-                            plot_pixel(gop, px, py + 1, color);
-                            plot_pixel(gop, px + 1, py + 1, color);
+                            // ensure we do not write out of bounds when bold is enabled
+                            if (px < gop->Width && py < gop->Height) plot_pixel(gop, px, py, color);
+                            if ((px + 1) < gop->Width && py < gop->Height) plot_pixel(gop, px + 1, py, color);
+                            if (px < gop->Width && (py + 1) < gop->Height) plot_pixel(gop, px, py + 1, color);
+                            if ((px + 1) < gop->Width && (py + 1) < gop->Height) plot_pixel(gop, px + 1, py + 1, color);
                         }
                         else {
                             plot_pixel(gop, px, py, color);
@@ -199,6 +200,14 @@ static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color) {
     gop_puts(gop, buf, color);
 }
 
+static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t value);
+static void gop_print_udec(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+    char buf[32];
+    size_t written = 0;
+    buf_print_udec64(buf, sizeof(buf), &written, val);
+    gop_puts(gop, buf, color);
+}
+
 static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     char buf[19] = "0x0000000000000000"; // 64 bit addressing
     for (int i = 0; i < 16; i++) {
@@ -244,7 +253,7 @@ void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
 }
 
 static inline void buf_put_char(char* buf, size_t size, size_t* written, char c) {
-    if (*written + 1 < size) {
+    if (size > 0 && *written + 1 < size) {
         buf[*written] = c;
     }
     (*written)++;
@@ -542,15 +551,47 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     for (const char* p = fmt; *p; p++) {
         if (*p == '%' && p[1]) {
             p++;
-            switch (*p) {
+            // support optional length modifiers: 'l' and 'll'
+            int len = 0;
+            while (*p == 'l') {
+                len++;
+                p++;
+                if (len >= 2) break;
+            }
+            char spec = *p;
+            switch (spec) {
             case 'd':
-                buf_print_dec64(buf, bufsize, &written, va_arg(ap, int64_t));
+                if (len >= 2) {
+                    buf_print_dec64(buf, bufsize, &written, va_arg(ap, long long));
+                }
+                else if (len == 1) {
+                    buf_print_dec64(buf, bufsize, &written, va_arg(ap, long));
+                }
+                else {
+                    buf_print_dec64(buf, bufsize, &written, (int64_t)va_arg(ap, int));
+                }
                 break;
             case 'u':
-                buf_print_udec64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                if (len >= 2) {
+                    buf_print_udec64(buf, bufsize, &written, va_arg(ap, unsigned long long));
+                }
+                else if (len == 1) {
+                    buf_print_udec64(buf, bufsize, &written, va_arg(ap, unsigned long));
+                }
+                else {
+                    buf_print_udec64(buf, bufsize, &written, (uint64_t)va_arg(ap, unsigned int));
+                }
                 break;
             case 'x':
-                buf_print_hex64_minimal(buf, bufsize, &written, va_arg(ap, uint64_t));
+                if (len >= 2) {
+                    buf_print_hex64(buf, bufsize, &written, va_arg(ap, unsigned long long));
+                }
+                else if (len == 1) {
+                    buf_print_hex64(buf, bufsize, &written, va_arg(ap, unsigned long));
+                }
+                else {
+                    buf_print_hex64(buf, bufsize, &written, (uint64_t)va_arg(ap, unsigned int));
+                }
                 break;
             case 'p':
                 buf_puts(buf, bufsize, &written, "0x");
@@ -560,7 +601,16 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
                 buf_put_char(buf, bufsize, &written, (char)va_arg(ap, int)); /* chars promoted to int */
                 break;
             case 'b':
-                buf_print_binary64(buf, bufsize, &written, va_arg(ap, uint64_t));
+                // 'b' - binary, treat as 64-bit if ll, otherwise adapt
+                if (len >= 2) {
+                    buf_print_binary64(buf, bufsize, &written, va_arg(ap, unsigned long long));
+                }
+                else if (len == 1) {
+                    buf_print_binary64(buf, bufsize, &written, va_arg(ap, unsigned long));
+                }
+                else {
+                    buf_print_binary64(buf, bufsize, &written, (uint64_t)va_arg(ap, unsigned int));
+                }
                 break;
             case 's': {
                 const char* s = va_arg(ap, const char*);
@@ -572,7 +622,7 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
                 break;
             default:
                 buf_put_char(buf, bufsize, &written, '%');
-                buf_put_char(buf, bufsize, &written, *p);
+                buf_put_char(buf, bufsize, &written, spec);
             }
         }
         else {
@@ -637,7 +687,7 @@ static void acquire_tmp_lock(SPINLOCK* lock) {
 static void release_tmp_lock(SPINLOCK* lock) {
     if (!lock) return;
     // Memory barrier before release
-    __asm__ volatile("" ::: "memory");
+    __asm__ __volatile("" ::: "memory");
     __sync_lock_release(&lock->locked);
 }
 
@@ -657,19 +707,70 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
         if (*p == '*' && p[1] == '*') {
             gop_bold_enabled = !gop_bold_enabled;  // Toggle bold
             p++; // skip the second '*'
-            continue; 
+            continue;
         }
         if (*p == '%' && p[1]) {
-            switch (*++p) {
-            case 'd': gop_print_dec(gop, va_arg(ap, int64_t), color); break;
-            case 'u': gop_print_dec(gop, va_arg(ap, uint64_t), color); break;
-            case 'x': gop_print_hex_minimal(gop, va_arg(ap, uint64_t), color); break;
-            case 'p': gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color); break;
-            case 'c':
-                gop_put_char(gop, (char)va_arg(ap, int), color);    // chars promoted to int
+            p++;
+            // support optional length modifiers: 'l' and 'll'
+            int len = 0;
+            while (*p == 'l') {
+                len++;
+                p++;
+                if (len >= 2) break;
+            }
+            char spec = *p;
+            switch (spec) {
+            case 'd':
+                if (len >= 2) {
+                    gop_print_dec(gop, (int64_t)va_arg(ap, long long), color);
+                }
+                else if (len == 1) {
+                    gop_print_dec(gop, (int64_t)va_arg(ap, long), color);
+                }
+                else {
+                    gop_print_dec(gop, (int64_t)va_arg(ap, int), color);
+                }
                 break;
+            case 'u':
+                if (len >= 2) {
+                    gop_print_udec(gop, (uint64_t)va_arg(ap, unsigned long long), color);
+                }
+                else if (len == 1) {
+                    gop_print_udec(gop, (uint64_t)va_arg(ap, unsigned long), color);
+                }
+                else {
+                    gop_print_udec(gop, (uint64_t)va_arg(ap, unsigned int), color);
+                }
+                break;
+            case 'x':
+                if (len >= 2) {
+                    gop_print_hex_minimal(gop, (uint64_t)va_arg(ap, unsigned long long), color);
+                }
+                else if (len == 1) {
+                    gop_print_hex_minimal(gop, (uint64_t)va_arg(ap, unsigned long), color);
+                }
+                else {
+                    gop_print_hex_minimal(gop, (uint64_t)va_arg(ap, unsigned int), color);
+                }
+                break;
+            case 'p':
+                gop_print_hex(gop, (uint64_t)(uintptr_t)va_arg(ap, void*), color);
+                break;
+            case 'c': {
+                int ch = va_arg(ap, int);
+                gop_put_char(gop, (char)ch, color);    // chars promoted to int
+            } break;
             case 'b':
-                gop_print_binary(gop, va_arg(ap, uint64_t), color); // if 'b' means 64-bit binary
+                // binary: accept width modifiers, default to unsigned long long for no ambiguity
+                if (len >= 2) {
+                    gop_print_binary(gop, (uint64_t)va_arg(ap, unsigned long long), color);
+                }
+                else if (len == 1) {
+                    gop_print_binary(gop, (uint64_t)va_arg(ap, unsigned long), color);
+                }
+                else {
+                    gop_print_binary(gop, (uint64_t)va_arg(ap, unsigned int), color);
+                }
                 break;
             case 's': {
                 const char* str = va_arg(ap, const char*);
@@ -678,7 +779,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
             case '%': gop_put_char(gop, '%', color); break;
             default:
                 gop_put_char(gop, '%', color);
-                gop_put_char(gop, *p, color);
+                gop_put_char(gop, spec, color);
             }
         }
         else {

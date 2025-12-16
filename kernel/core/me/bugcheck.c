@@ -282,16 +282,16 @@ MeBugCheck(
     PETHREAD CurrentThread = PsGetCurrentThread();
     if (CurrentThread) {
         // Display thread debug info
-        uintptr_t ThreadStack = (uintptr_t)CurrentThread->InternalThread.StackBase;
+        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.StackBase; // high address
         uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
-        uintptr_t StackEnd = ThreadStack + StackSize;
+        uintptr_t StackLimit = StackBase - StackSize; // low address (bottom of stack)
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
-        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
-        gop_printf(COLOR_YELLOW, "PreviousMode: %u", MeGetPreviousMode());
+        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", (void*)StackLimit, (void*)StackBase, (void*)ThreadTop);
+        gop_printf(COLOR_YELLOW, "PreviousMode: %s\n", (MeGetPreviousMode() == KernelMode) ? "KernelMode" : "UserMode");
     }
 #endif
-    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", __read_cr3());
-    gop_printf(COLOR_YELLOW, "Current stack top: %p", __read_rsp());
+    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", (void*)(uintptr_t)__read_cr3());
+    gop_printf(COLOR_YELLOW, "Current stack top: %p\n", (void*)(uintptr_t)__read_rsp());
     __cli();
     while (1) {
         __hlt();
@@ -378,24 +378,24 @@ MeBugCheckEx (
                 "Expression: %s\n"
                 "Reason: %s\n"
                 "File: %s\n"
-                "Line: %d\n", // Changed to %d since assert_fail passes a decimal number and not a char ptr.
-                BugCheckParameter1,
-                BugCheckParameter2,
-                BugCheckParameter3,
-                BugCheckParameter4);
+                "Line: %lld\n", // Changed to %d since assert_fail passes a decimal number and not a char ptr.
+                (char*)BugCheckParameter1,
+                (char*)BugCheckParameter2,
+                (char*)BugCheckParameter3,
+                (long long)(intptr_t)BugCheckParameter4);
         }
         else {
 #endif
             // Print parameters.
             gop_printf(COLOR_WHITE,
-                "Parameter 1: (Pointer: %p | Decimal: %d | Pure Hex: %x)\n"
-                "Parameter 2: (Pointer: %p | Decimal: %d | Pure Hex: %x)\n"
-                "Parameter 3: (Pointer: %p | Decimal: %d | Pure Hex: %x)\n"
-                "Parameter 4: (Pointer: %p | Decimal: %d | Pure Hex: %x)\n",
-                BugCheckParameter1, BugCheckParameter1, BugCheckParameter1,
-                BugCheckParameter2, BugCheckParameter2, BugCheckParameter2,
-                BugCheckParameter3, BugCheckParameter3, BugCheckParameter3,
-                BugCheckParameter4, BugCheckParameter4, BugCheckParameter4);
+                "Parameter 1: (Pointer: %p | Decimal: %lld | Pure Hex: %llx)\n"
+                "Parameter 2: (Pointer: %p | Decimal: %lld | Pure Hex: %llx)\n"
+                "Parameter 3: (Pointer: %p | Decimal: %lld | Pure Hex: %llx)\n"
+                "Parameter 4: (Pointer: %p | Decimal: %lld | Pure Hex: %llx)\n",
+                (void*)(uintptr_t)BugCheckParameter1, (long long)(intptr_t)BugCheckParameter1, (unsigned long long)(uintptr_t)BugCheckParameter1,
+                (void*)(uintptr_t)BugCheckParameter2, (long long)(intptr_t)BugCheckParameter2, (unsigned long long)(uintptr_t)BugCheckParameter2,
+                (void*)(uintptr_t)BugCheckParameter3, (long long)(intptr_t)BugCheckParameter3, (unsigned long long)(uintptr_t)BugCheckParameter3,
+                (void*)(uintptr_t)BugCheckParameter4, (long long)(intptr_t)BugCheckParameter4, (unsigned long long)(uintptr_t)BugCheckParameter4);
 #ifdef DEBUG
         }
 #endif
@@ -415,15 +415,15 @@ MeBugCheckEx (
     PETHREAD CurrentThread = PsGetCurrentThread();
     if (CurrentThread) {
         // Display thread debug info
-        uintptr_t ThreadStack = (uintptr_t)CurrentThread->InternalThread.StackBase;
+        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.StackBase; // high address
         uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
-        uintptr_t StackEnd = ThreadStack + StackSize;
+        uintptr_t StackLimit = StackBase - StackSize; // low address (bottom of stack)
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
-        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", ThreadStack, StackEnd, ThreadTop);
-        gop_printf(COLOR_YELLOW, "PreviousMode: %u\n", MeGetPreviousMode());
+        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", (void*)StackLimit, (void*)StackBase, (void*)ThreadTop);
+        gop_printf(COLOR_YELLOW, "PreviousMode: %s\n", (MeGetPreviousMode() == KernelMode) ? "KernelMode" : "UserMode");
     }
-    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", __read_cr3());
-    gop_printf(COLOR_YELLOW, "Current stack top: %p", __read_rsp());
+    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", (void*)(uintptr_t)__read_cr3());
+    gop_printf(COLOR_YELLOW, "Current stack top: %p\n", (void*)(uintptr_t)__read_rsp());
 #endif
     __cli();
     while (1) {

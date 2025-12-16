@@ -61,16 +61,24 @@ MmAccessFault(
             MT_ACCESS_VIOLATION -- User mode only (or kernel mode probing).
             MT_GUARD_PAGE_VIOLATION -- Bugchecks.
 
+        The function would bugcheck if an invalid kernel mode access occured (or in worst case, 0 memory is available to fill the VAD of the user mode process, but I want to change it to sleep instead..)
+
 --*/
 
 {
     // Declarations
+#ifdef DEBUG
+    PMMPTE ReferencedPml4e = MiGetPml4ePointer(VirtualAddress);
+    PMMPTE ReferencedPdpte = MiGetPdptePointer(VirtualAddress);
+    PMMPTE ReferencedPde = MiGetPdePointer(VirtualAddress);
+    UNREFERENCED_PARAMETER(ReferencedPml4e); UNREFERENCED_PARAMETER(ReferencedPdpte); UNREFERENCED_PARAMETER(ReferencedPde);
+#endif
     PMMPTE ReferencedPte = MiGetPtePointer(VirtualAddress);
     FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
     IRQL PreviousIrql = MeGetCurrentIrql();
 
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame->rip, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, PreviousMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
     if (!ReferencedPte) {
@@ -201,10 +209,9 @@ MmAccessFault(
     }
 
     // Address is below the kernel start, and above user address.
-    if (VirtualAddress > MmHighestUserAddress && VirtualAddress < MmSystemRangeStart) {
-        if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
-        goto BugCheck;
-    }
+    // This if statement should never pass, since these addresses are non canonical, and the first if statement checks for a non canonical adddres.
+    // basically kernel bloat this point.
+    // i removed it, bye bye.
 
     // Address is in user range.
     if (VirtualAddress <= MmHighestUserAddress) {
@@ -232,7 +239,7 @@ MmAccessFault(
     }
 
     // Address, is, what... impossible!
-    // This comment means execution is impossible to reach here, as we sanitized all addresses in the 48bit paging hierarchy.
+    // This comment means execution is impossible to reach here, as we sanitized all (valid) addresses in the 48bit paging hierarchy.
     // If it does reach here, look below.
 
 BugCheck:

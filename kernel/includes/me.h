@@ -169,10 +169,10 @@ typedef enum _DEBUG_ACCESS_MODE {
 } DEBUG_ACCESS_MODE;
 
 typedef enum _DEBUG_LENGTH {
-	DEBUG_LEN_1 = 0b00,
-	DEBUG_LEN_2 = 0b01,
-	DEBUG_LEN_8 = 0b10, // Only valid in long mode
-	DEBUG_LEN_4 = 0b11
+	DEBUG_LEN_BYTE = 0b00,
+	DEBUG_LEN_WORD = 0b01,
+	DEBUG_LEN_QWORD = 0b10, // Only valid in long mode
+	DEBUG_LEN_DWORD = 0b11
 } DEBUG_LENGTH;
 
 typedef struct _DBG_CALLBACK_INFO {
@@ -261,9 +261,9 @@ typedef struct _IPROCESS {
 typedef struct _ITHREAD {
 	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
-	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
-	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel mode only)
-	void* KernelStack;
+	void* StackBase;									   // Base of the thread's stack (allocated), used for also freeing it by the memory manager (Mm).
+	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel stack only)
+	void* KernelStack;									   // The threads stack when in kernel space.
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			

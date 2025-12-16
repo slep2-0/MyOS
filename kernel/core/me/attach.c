@@ -25,7 +25,27 @@ MeAttachProcess(
 	OUT PAPC_STATE ApcState
 )
 
+/*++
 
+	Routine description:
+
+		Attach to a process address space, this routine should be managed carefully, and have simple code between the attaching and detaching.
+		
+
+	Arguments:
+
+		[IN]	PIPROCESS Process - Pointer to process to attach to (IPROCESS)
+		[OUT]	PAPC_STATE - Pointer to store the state in resident memory.
+
+	Return Values:
+
+		None.
+
+	Notes:
+
+		DPCs CANNOT attach to a different process.
+
+--*/
 
 {
 	if (MeIsExecutingDpc()) {
@@ -66,6 +86,22 @@ void
 MeDetachProcess(
 	IN PAPC_STATE ApcState
 )
+
+/*++
+
+	Routine description:
+
+		Detach from a process address space.
+
+	Arguments:
+
+		[IN]	PAPC_STATE ApcState - The APC_STATE stored by MeAttachProcess.
+
+	Return Values:
+
+		None.
+
+--*/
 
 {
 	PITHREAD CurrentThread = MeGetCurrentThread();

@@ -263,18 +263,6 @@ MmCreateProcessAddressSpace(
         return MT_GENERAL_FAILURE;
     }
 
-    // Setup our recursive mapping.
-    MMPTE recursivePte;
-    recursivePte.Value = 0;
-    recursivePte.Hard.Present = 1;
-    recursivePte.Hard.Write = 1;
-    recursivePte.Hard.User = 0; // Accessible only by Kernel
-    recursivePte.Hard.NoExecute = 1; // Data only
-    recursivePte.Hard.PageFrameNumber = (uint64_t)pfnIndex & ((1ULL << 40) - 1); // PFN of itself
-
-    // Write to index 0x1FF (511)
-    pml4Base[RECURSIVE_INDEX] = recursivePte.Value;
-
     // Copy Kernel Address Space.
     // The higher half of memory (Kernel Space) is shared across all processes.
     uint64_t* currentPml4 = pml4_from_recursive();
@@ -285,8 +273,21 @@ MmCreateProcessAddressSpace(
         pml4Base[i] = currentPml4[i];
     }
 
+    MMPTE recursivePte;
+    kmemset(&recursivePte, 0, sizeof(MMPTE)); // Ensure clean start
+
+    // Note: We pass NULL for the VA as it's a self-ref, we only care about the PFN and Flags.
+    // Ensure PFN_TO_PHYS is used if MI_WRITE_PTE expects a physical address.
+    MI_WRITE_PTE(&recursivePte,
+        (void*)0,
+        PFN_TO_PHYS(pfnIndex),
+        PAGE_PRESENT | PAGE_RW);
+
+    // Write to index 0x1FF (511)
+    pml4Base[RECURSIVE_INDEX] = recursivePte.Value;
+
     // Ensure it is stored.
-    MmBarrier();
+    MmFullBarrier();
 
     // Unmap from Hyperspace.
     MiUnmapHyperSpaceMap(oldIrql);

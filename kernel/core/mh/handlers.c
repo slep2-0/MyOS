@@ -199,6 +199,7 @@ MiPageFault (
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
+        // If there are no exceptions handlers (for SEH, we use the default one for user mode, TODO SEH USER MODE)
         //if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
         //    ExpDispatchException(trap);
         //    return;
@@ -408,7 +409,7 @@ void MiBreakpoint (
 
 
 {
-    gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p - Halting.\n", trap->rip);
+    gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p - Halting.\n", (void*)(uintptr_t)trap->rip);
     __hlt();
 }
 

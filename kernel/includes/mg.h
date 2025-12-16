@@ -46,7 +46,8 @@ Revision History:
 #define COLOR_TEAL       0xFF008080
 #define COLOR_OLIVE      0xFF808000
 
-void gop_printf(uint32_t color, const char* fmt, ...);
+void gop_printf(uint32_t color, const char* fmt, ...)
+__attribute__((format(printf, 2, 3)));
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
 
 

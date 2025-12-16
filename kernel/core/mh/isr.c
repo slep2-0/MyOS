@@ -65,12 +65,7 @@ MhHandleInterrupt (
     }
     
     if (cpu->currentThread) {
-        if (cpu->currentThread->ApcState.AttachedToProcess) {
-            cpu->currentThread->PreviousMode = UserMode;
-        }
-        else {
-            cpu->currentThread->PreviousMode = PreviousMode;
-        }
+        cpu->currentThread->PreviousMode = PreviousMode;
     }
 
     switch (vec_num) {

@@ -58,6 +58,8 @@ MeInsertQueueDpc(
         If the DPC object is already in the queue, nothing is performed.
         Else, the DPC Object is inserted in the queue, and a software interrupt is generated based on the DPC priority & current depth.
 
+        For setting a certain CPU to run this DPC, use the MeSetTargetProcessorDpc function before calling this one.
+
     Arguments:
 
         [IN]    PDPC Dpc - The DPC Object to queue.
@@ -349,6 +351,28 @@ MeSetTargetProcessorDpc(
     IN PDPC Dpc,
     IN uint32_t CpuNumber
 )
+
+/*++
+
+    Routine description:
+
+        This function ensures that the DPC executes only on the CPU
+        corresponding to the supplied LAPIC ID.
+
+    Arguments:
+
+        [IN] PDPC DpcAllocated - Pointer to DPC allocated in resident memory (e.g, pool alloc)
+        [IN] uint32_t CpuNumber - LAPIC ID Of the certain CPU Core to be ran on.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        This function call must be made before MeInsertQueueDpc.
+
+--*/
 
 {
     assert(CpuNumber < MeGetActiveProcessorCount());

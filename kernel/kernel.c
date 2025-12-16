@@ -118,8 +118,7 @@ static void test(MUTEX* mut) {
     PETHREAD currentThread = PsGetCurrentThread();
     gop_printf_forced(0xFF00FF00, "Hit Test! test thread ptr: %p\n", currentThread);
     gop_printf(COLOR_GREEN, "(test) Acquiring Mutex Object: %p\n", mut);
-    MTSTATUS status = MsAcquireMutexObject(mut);
-    gop_printf(COLOR_GREEN, "(test) status returned: %p\n", status);
+    MsAcquireMutexObject(mut);
     volatile uint64_t z = 0;
 #ifdef GDB
     for (uint64_t i = 0; i < 0xA; i++) {
@@ -136,9 +135,9 @@ static void test(MUTEX* mut) {
 static void funcWithParam(MUTEX* mut) {
     UNREFERENCED_PARAMETER(mut);
     gop_printf(COLOR_OLIVE, "New funcWithParam, starting process.\n");
-    //HANDLE hProcess;
-    //sCreateProcess("loop.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
-    //UNREFERENCED_PARAMETER(hProcess);
+    HANDLE hProcess;
+    PsCreateProcess("loop.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    UNREFERENCED_PARAMETER(hProcess);
     for (int i = 0; i < 100000; i++) __pause();
     gop_printf(COLOR_OLIVE, "FuncWithParam exit\n");
 }
@@ -150,7 +149,7 @@ uint32_t lapicAddress;
 bool smpInitialized;
 
 /// The Stack Overflow check only checks for minor overflows, that don't completely smash the stack, yet do change the canaries (since it only checks in function epilogue)
-/// To check for complete stack smashing, use the MtAllocateGuardedVirtualMemory function.
+/// Complete stack smashes are guarded with the guard page in MiCreateKernelStack.
 #ifdef DEBUG
 // Stack Canary GCC
 volatile uintptr_t __stack_chk_guard;
@@ -259,7 +258,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         : "=r"(rip)              // Output to the 'rip' variable
         );
 
-    gop_printf_forced(0xFFFFFF00, "Current RIP: %p\n", rip);
+    gop_printf_forced(0xFFFFFF00, "Current RIP: %p\n", (void*)(uintptr_t)rip);
 
     if (rip >= KernelVaStart) {
         gop_printf_forced(0x00FF00FF, "**[+] Running in higher-half**\n");
@@ -304,7 +303,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
     char listings[256];
     status = vfs_listdir("/", listings, sizeof(listings));
-    gop_printf(COLOR_RED, "vfs_listdir returned: %p\n", status);
+    gop_printf(COLOR_RED, "vfs_listdir returned: %x\n", status);
     gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
     gop_printf(COLOR_CYAN, "%s", listings);
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
@@ -321,7 +320,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     /* Enable SMP */
     status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
-        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x, continuing in UP mode.\n");
+        gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x, continuing in UP mode.\n", status);
     }
     else {
         MhInitializeSMP(apic_list, 4, lapicAddress);

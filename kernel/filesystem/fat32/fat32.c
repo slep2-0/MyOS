@@ -1099,7 +1099,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 	}
 	if (!(parent_entry.attr & ATTR_DIRECTORY)) {
 #ifdef DEBUG
-		gop_printf(0xFFFF0000, "Error: Parent path is not a directory.\n", parent_path);
+		gop_printf(0xFFFF0000, "Error: Parent path is not a directory. PATH: %s\n", parent_path);
 #endif
 		return MT_FAT32_PARENT_PATH_NOT_DIR;
 	}
