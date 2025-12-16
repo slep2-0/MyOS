@@ -4,6 +4,8 @@
 
 **The developer branch of this repository is always the most updated one, with the newest commits and features, [check it out.](https://github.com/slep2-0/MyOS/tree/developer)**
 
+**There is also a website that gets updated once in a million years (doxygen) (its broken, just use the developer branch), I updated it last at: December 16th, 2025. [link that will hack your computer](https://slep2-0.github.io/MyOS/)**
+
 MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspired by Windows kernel architecture. It features preemption, IRQLs, DPCs, paging, dynamic memory (PFN DB, pools), and a fully-fledged VFS (currently FAT32), and a scheduler that supports multiprocessing. This project is for educational purposes and low-level OS experimentation.
 
 ---
@@ -86,5 +88,6 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 I take PR's, code safety & recommendations, anything basically :)
 
 *Use this project responsibly. Intended for educational purposes only.*
+
 
 
