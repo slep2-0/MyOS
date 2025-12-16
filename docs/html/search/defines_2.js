@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['cmos_5faddress_0',['CMOS_ADDRESS',['../time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3',1,'time.h']]],
-  ['cmos_5fdata_1',['CMOS_DATA',['../time_8h.html#a5554a9134430636bc1044eb72126fe32',1,'time.h']]]
+  ['bpb_5fsector_5fstart_0',['BPB_SECTOR_START',['../fat32_8c.html#a3ec186ea2e52daadb61d345b750ad8cd',1,'fat32.c']]],
+  ['bytes_5fto_5fpages_1',['BYTES_TO_PAGES',['../mm_8h.html#ab05b5531318b0544596166e471eb9d29',1,'mm.h']]]
 ];

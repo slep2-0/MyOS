@@ -1,0 +1,79 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ms/rundown.c File Reference}
+\hypertarget{rundown_8c}{}\label{rundown_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/rundown.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/rundown.c}}
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{rundown_8c_a569e8c410301fbe83a386753e554cb2f}{TEARDOWN\+\_\+\+ACTIVE}}~(1ULL $<$$<$ 63)
+\item 
+\#define \mbox{\hyperlink{rundown_8c_a10e6e0604fc8e0b86acd88f6d5bfff8b}{REFERENCE\+\_\+\+COUNT}}~(0x7\+FFFFFFFFFFFFFFF)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f}{Ms\+Acquire\+Rundown\+Protection}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}} rundown)
+\item 
+void \mbox{\hyperlink{rundown_8c_a83aff9858a03409861f6c210b508b012}{Ms\+Release\+Rundown\+Protection}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}} rundown)
+\item 
+void \mbox{\hyperlink{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6}{Ms\+Wait\+For\+Rundown\+Protection\+Release}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}} rundown)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{rundown_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{rundown_8c_a10e6e0604fc8e0b86acd88f6d5bfff8b}\index{rundown.c@{rundown.c}!REFERENCE\_COUNT@{REFERENCE\_COUNT}}
+\index{REFERENCE\_COUNT@{REFERENCE\_COUNT}!rundown.c@{rundown.c}}
+\doxysubsubsection{\texorpdfstring{REFERENCE\_COUNT}{REFERENCE\_COUNT}}
+{\footnotesize\ttfamily \label{rundown_8c_a10e6e0604fc8e0b86acd88f6d5bfff8b} 
+\#define REFERENCE\+\_\+\+COUNT~(0x7\+FFFFFFFFFFFFFFF)}
+
+
+
+Definition at line \mbox{\hyperlink{rundown_8c_source_l00004}{4}} of file \mbox{\hyperlink{rundown_8c_source}{rundown.\+c}}.
+
+\Hypertarget{rundown_8c_a569e8c410301fbe83a386753e554cb2f}\index{rundown.c@{rundown.c}!TEARDOWN\_ACTIVE@{TEARDOWN\_ACTIVE}}
+\index{TEARDOWN\_ACTIVE@{TEARDOWN\_ACTIVE}!rundown.c@{rundown.c}}
+\doxysubsubsection{\texorpdfstring{TEARDOWN\_ACTIVE}{TEARDOWN\_ACTIVE}}
+{\footnotesize\ttfamily \label{rundown_8c_a569e8c410301fbe83a386753e554cb2f} 
+\#define TEARDOWN\+\_\+\+ACTIVE~(1ULL $<$$<$ 63)}
+
+
+
+Definition at line \mbox{\hyperlink{rundown_8c_source_l00003}{3}} of file \mbox{\hyperlink{rundown_8c_source}{rundown.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{rundown_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f}\index{rundown.c@{rundown.c}!MsAcquireRundownProtection@{MsAcquireRundownProtection}}
+\index{MsAcquireRundownProtection@{MsAcquireRundownProtection}!rundown.c@{rundown.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquireRundownProtection()}{MsAcquireRundownProtection()}}
+{\footnotesize\ttfamily \label{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f} 
+bool Ms\+Acquire\+Rundown\+Protection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}}}]{rundown}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{rundown_8c_source_l00007}{7}} of file \mbox{\hyperlink{rundown_8c_source}{rundown.\+c}}.
+
+\Hypertarget{rundown_8c_a83aff9858a03409861f6c210b508b012}\index{rundown.c@{rundown.c}!MsReleaseRundownProtection@{MsReleaseRundownProtection}}
+\index{MsReleaseRundownProtection@{MsReleaseRundownProtection}!rundown.c@{rundown.c}}
+\doxysubsubsection{\texorpdfstring{MsReleaseRundownProtection()}{MsReleaseRundownProtection()}}
+{\footnotesize\ttfamily \label{rundown_8c_a83aff9858a03409861f6c210b508b012} 
+void Ms\+Release\+Rundown\+Protection (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}}}]{rundown}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{rundown_8c_source_l00040}{40}} of file \mbox{\hyperlink{rundown_8c_source}{rundown.\+c}}.
+
+\Hypertarget{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6}\index{rundown.c@{rundown.c}!MsWaitForRundownProtectionRelease@{MsWaitForRundownProtectionRelease}}
+\index{MsWaitForRundownProtectionRelease@{MsWaitForRundownProtectionRelease}!rundown.c@{rundown.c}}
+\doxysubsubsection{\texorpdfstring{MsWaitForRundownProtectionRelease()}{MsWaitForRundownProtectionRelease()}}
+{\footnotesize\ttfamily \label{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6} 
+void Ms\+Wait\+For\+Rundown\+Protection\+Release (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\+\_\+\+REF}}}]{rundown}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{rundown_8c_source_l00063}{63}} of file \mbox{\hyperlink{rundown_8c_source}{rundown.\+c}}.
+

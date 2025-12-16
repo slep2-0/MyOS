@@ -1,0 +1,245 @@
+\doxysection{process.\+c}
+\hypertarget{process_8c_source}{}\label{process_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c}}
+\mbox{\hyperlink{process_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Process\ Creation\ Implementation}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{time_8h}{../../time.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{vfs_8h}{../../filesystem/vfs/vfs.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00011}00011\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00012}00012\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ms_8h}{../../includes/ms.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00013}00013\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ob_8h}{../../includes/ob.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00014}00014\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00015}00015\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00016}\mbox{\hyperlink{process_8c_af281218f4b838fc0bcb2dfdbef08316a}{00016}}\ \textcolor{preprocessor}{\#define\ MIN\_PID\ \ \ \ \ \ \ \ \ \ \ 4u}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00017}\mbox{\hyperlink{process_8c_a36b11288ada38ae09b8033e32f738c3d}{00017}}\ \textcolor{preprocessor}{\#define\ MAX\_PID\ \ \ \ \ \ \ \ \ \ \ 0xFFFFFFFCUL}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00018}\mbox{\hyperlink{process_8c_a31452d15206784935051c52d5a78ff03}{00018}}\ \textcolor{preprocessor}{\#define\ ALIGN\_DELTA\ \ \ \ \ \ \ 6u}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00019}\mbox{\hyperlink{process_8c_a08150dd3f0ffc0e330a631dd728ea448}{00019}}\ \textcolor{preprocessor}{\#define\ MAX\_FREE\_POOL\ \ \ \ \ 1024u}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00021}\mbox{\hyperlink{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f}{00021}}\ \textcolor{preprocessor}{\#define\ PML4\_INDEX(addr)\ \ (((addr)\ >>\ 39)\ \&\ 0x1FFULL)}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00022}\mbox{\hyperlink{process_8c_af04c99859f460cc79915a4ebb29b2261}{00022}}\ \textcolor{preprocessor}{\#define\ KERNEL\_PML4\_START\ ((size\_t)PML4\_INDEX(KernelVaStart))}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00023}\mbox{\hyperlink{process_8c_ad9dece005ad722afbde08f5df76a065a}{00023}}\ \textcolor{preprocessor}{\#define\ USER\_INITIAL\_STACK\_TOP\ 0x00007FFFFFFFFFFF}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00024}00024\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}\ \mbox{\hyperlink{process_8c_ab8b165b05e519217042b080d15ecd316}{SystemProcess}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00026}\mbox{\hyperlink{process_8c_a31c9c1c3329977652467a6adbf5b77fc}{00026}}\ uintptr\_t\ \mbox{\hyperlink{process_8c_a31c9c1c3329977652467a6adbf5b77fc}{MmSystemRangeStart}}\ =\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}};\ \textcolor{comment}{//\ Changed\ to\ PhysicalMemoryOffset,\ since\ thats\ where\ actual\ stuff\ like\ hypermap,\ phys\ to\ virt,\ and\ more\ happen.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00027}\mbox{\hyperlink{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}{00027}}\ uintptr\_t\ \mbox{\hyperlink{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}{MmHighestUserAddress}}\ =\ \mbox{\hyperlink{mm_8h_a820eaf87fc49c007ebf206dbb7e58d0c}{USER\_VA\_END}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00028}\mbox{\hyperlink{process_8c_a6815bdedae56360940bf80736ac86cbb}{00028}}\ uintptr\_t\ \mbox{\hyperlink{process_8c_a6815bdedae56360940bf80736ac86cbb}{MmUserProbeAddress}}\ =\ 0x00007FFFFFFF0000;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00030}00030\ \textcolor{keyword}{static}\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00031}00031\ \textcolor{keywordtype}{bool}\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00032}00032\ GetBaseName(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ fullpath,\ \textcolor{keywordtype}{char}*\ out,\ \textcolor{keywordtype}{size\_t}\ outsz)\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00033}00033\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ ext\ =\ \textcolor{stringliteral}{"{}.mtexe"{}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00034}00034\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ ext\_len\ =\ \mbox{\hyperlink{gop_8c_a3ce34f7245087a9c75e657df97e21b6b}{kstrlen}}(ext);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00035}00035\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fullpath\ ||\ !out\ ||\ outsz\ ==\ 0)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00036}00036\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00037}00037\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ \mbox{\hyperlink{gop_8c_a3ce34f7245087a9c75e657df97e21b6b}{kstrlen}}(fullpath);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00038}00038\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ p\ =\ fullpath\ +\ len;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00039}00039\ \ \ \ \ \textcolor{keywordflow}{while}\ (p\ >\ fullpath\ \&\&\ *(p\ -\/\ 1)\ !=\ \textcolor{charliteral}{'/'})\ -\/-\/p;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00041}00041\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ name\_len\ =\ \mbox{\hyperlink{gop_8c_a3ce34f7245087a9c75e657df97e21b6b}{kstrlen}}(p);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00042}00042\ \ \ \ \ \textcolor{keywordflow}{if}\ (name\_len\ <\ ext\_len\ ||\ \mbox{\hyperlink{gop_8c_aeb9ae33be9fc0ba0f5380f9af0927176}{kstrcmp}}(p\ +\ name\_len\ -\/\ ext\_len,\ ext)\ !=\ 0)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00043}00043\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00044}00044\ \ \ \ \ \textcolor{keywordflow}{if}\ (name\_len\ +\ 1\ >\ outsz)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};\ \textcolor{comment}{//\ too\ small}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00045}00045\ \ \ \ \ \mbox{\hyperlink{gop_8c_a928767eb3d6af2e725d8be0b32bd4582}{kstrncpy}}(out,\ p,\ name\_len\ +\ 1);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00046}00046\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00047}00047\ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00049}00049\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00050}\mbox{\hyperlink{process_8c_af7ae7a3211790e443ecedc4d83a2e00b}{00050}}\ \mbox{\hyperlink{process_8c_af7ae7a3211790e443ecedc4d83a2e00b}{PsCreateProcess}}(}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00051}00051\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ ExecutablePath,}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00052}00052\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{ht_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ ProcessHandle,}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00053}00053\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ht_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\_MASK}}\ DesiredAccess,}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00054}00054\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\_In\_Opt}}\ \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ ParentProcess}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00055}00055\ )}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00057}00057\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00058}00058\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00059}00059\ \textcolor{comment}{\ \ \ \ Routine\ description:}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00060}00060\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00061}00061\ \textcolor{comment}{\ \ \ \ \ \ \ Creates\ a\ process,\ simple\ as\ that.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00062}00062\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00063}00063\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00064}00064\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00065}00065\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ const\ char*\ ExecutablePath\ -\/\ The\ process's\ main\ executable\ file.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00066}00066\ \textcolor{comment}{\ \ \ \ \ \ \ \ [OUT]\ \ \ PHANDLE\ ProcessHandle\ -\/\ Pointer\ to\ store\ the\ the\ process's\ created\ handle.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00067}00067\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ ACCESS\_MASK\ DesiredAccess\ -\/\ The\ maximum\ access\ the\ process\ should\ originally\ have.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00068}00068\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN\ OPTIONAL]\ \ \ HANDLE\ ParentProcess\ -\/\ Optionally\ supply\ a\ handle\ to\ the\ parent\ of\ this\ process.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00069}00069\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00070}00070\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00071}00071\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00072}00072\ \textcolor{comment}{\ \ \ \ \ \ \ \ Various\ MTSTATUS\ Status\ codes.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00073}00073\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00074}00074\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00075}00075\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00076}00076\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00077}00077\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00078}00078\ \ \ \ \ \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}\ Process,\ Parent;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00079}00079\ \ \ \ \ \textcolor{comment}{//\ If\ we\ have\ a\ parent\ process,\ attempt\ to\ see\ if\ the\ parent\ process\ has\ the\ access\ to\ create\ another\ process.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00080}00080\ \ \ \ \ \textcolor{keywordflow}{if}\ (ParentProcess)\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_a47671180c09015ad53f4b1dbacd09de6}{ObReferenceObjectByHandle}}(}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ \ \ \ \ ParentProcess,}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00083}00083\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ps_8h_aeff8a070ae27e92672a2186f54443bc3}{MT\_PROCESS\_CREATE\_PROCESS}},}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00084}00084\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{psmgr_8c_a5831e6e9cf425b592554e81508ce2155}{PsProcessType}},}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00085}00085\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}**)\&Parent,}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00086}00086\ \ \ \ \ \ \ \ \ \ \ \ \ NULL}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00089}00089\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00091}00091\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00092}00092\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00093}00093\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ have\ no\ parent\ process.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ Parent\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00096}00096\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00097}00097\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00098}00098\ \ \ \ \ \textcolor{comment}{//\ Create\ the\ EPROCESS\ Object.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00099}00099\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_ad77278de8f30feb544f7bd27bd85a81f}{ObCreateObject}}(\mbox{\hyperlink{psmgr_8c_a5831e6e9cf425b592554e81508ce2155}{PsProcessType}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}),\ (\textcolor{keywordtype}{void}*)\&Process);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00100}00100\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ Cleanup;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00101}00101\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00102}00102\ \ \ \ \ \textcolor{comment}{//\ CleanupWithRef\ from\ now\ on.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00103}00103\ \ \ \ \ \textcolor{comment}{//\ Assume\ failure\ status.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00104}00104\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mtstatus_8h_a1c3bb6736a4567dcb59b8bbaa5837a6e}{MT\_GENERAL\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00105}00105\ \ \ \ \ \textcolor{comment}{//\ Setup\ the\ process\ now,\ create\ its\ PID.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00106}00106\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c}{PID}}\ =\ \mbox{\hyperlink{cid_8c_abe588c4dbe572fb75bc3c67d0464fe9b}{PsAllocateProcessId}}(Process);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00107}00107\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00108}00108\ \ \ \ \ \textcolor{comment}{//\ Set\ its\ parent\ process\ handle.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00109}00109\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a369fce34c7900f886dd040ca77fc1467}{ParentProcess}}\ =\ ParentProcess;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00110}00110\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00111}00111\ \ \ \ \ \textcolor{comment}{//\ Set\ its\ image\ name.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00112}00112\ \ \ \ \ \textcolor{keywordtype}{char}\ filename[24];}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00113}00113\ \ \ \ \ GetBaseName(ExecutablePath,\ filename,\ \textcolor{keyword}{sizeof}(filename));}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00114}00114\ \ \ \ \ \textcolor{keywordflow}{if}\ (filename[0]\ ==\ \textcolor{charliteral}{'\(\backslash\)0'})\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00115}00115\ \ \ \ \ \mbox{\hyperlink{gop_8c_a928767eb3d6af2e725d8be0b32bd4582}{kstrncpy}}(Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a75ed2bafc6238d064c4101c1a4714d81}{ImageName}},\ filename,\ \textcolor{keyword}{sizeof}(Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a75ed2bafc6238d064c4101c1a4714d81}{ImageName}}));}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00116}00116\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00117}00117\ \ \ \ \ \textcolor{comment}{//\ Set\ initial\ state}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00118}00118\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}{InternalProcess}}.\mbox{\hyperlink{struct___i_p_r_o_c_e_s_s_a28aa666b4719b0dacd6ea590548a48c7}{ProcessState}}\ |=\ \mbox{\hyperlink{ps_8h_ac6750e73ae0d86bb418a7ea2bad9f628a22f5adeef226127601e8dbaeca92818f}{PROCESS\_READY}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00119}00119\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00120}00120\ \ \ \ \ \textcolor{comment}{//\ Create\ object\ table.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00121}00121\ \ \ \ \ \mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\_TABLE}}\ HandleTable\ =\ \mbox{\hyperlink{handle_8c_a4248a71725a0d96cc5308d2711835c75}{HtCreateHandleTable}}(Process);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00122}00122\ \ \ \ \ \textcolor{keywordflow}{if}\ (!HandleTable)\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00123}00123\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}{ObjectTable}}\ =\ HandleTable;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00124}00124\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00125}00125\ \ \ \ \ \textcolor{comment}{//\ Create\ address\ space.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00126}00126\ \ \ \ \ \textcolor{keywordtype}{void}*\ DirectoryTablePhysical\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00127}00127\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mmproc_8c_a6ce36965e5c7e35927cdaa72acadc16a}{MmCreateProcessAddressSpace}}(\&DirectoryTablePhysical);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00128}00128\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;\ \ \ \ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00129}00129\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}{InternalProcess}}.\mbox{\hyperlink{struct___i_p_r_o_c_e_s_s_ab3d4a943afadd4a23a4ee48cfd7459a2}{PageDirectoryPhysical}}\ =\ (uintptr\_t)DirectoryTablePhysical;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00130}00130\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Process\ CR3:\ \%p\(\backslash\)n"{}},\ DirectoryTablePhysical);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00131}00131\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00132}00132\ \ \ \ \ \textcolor{comment}{//\ Per\ thread\ stack\ calculation.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00133}00133\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ab9b051071a1ef40dea10e41d1e704f8d}{NextStackTop}}\ =\ \mbox{\hyperlink{process_8c_ad9dece005ad722afbde08f5df76a065a}{USER\_INITIAL\_STACK\_TOP}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00134}00134\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00135}00135\ \ \ \ \ \textcolor{comment}{//\ Creation\ time.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00136}00136\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_abbbd5abd14ff3af8b80a59dcbc81becc}{CreationTime}}\ =\ MeGetEpoch();}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00137}00137\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00138}00138\ \ \ \ \ \textcolor{comment}{//\ Initialize\ List\ heads.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00139}00139\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf}{AllThreads}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00140}00140\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00141}00141\ \ \ \ \ \textcolor{comment}{//\ Load\ file\ into\ memory\ (TODO\ Section\ objects)}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00142}00142\ \ \ \ \ \textcolor{keywordtype}{void}*\ file\_buffer\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00143}00143\ \ \ \ \ uint32\_t\ FileSize\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00144}00144\ \ \ \ \ Status\ =\ \mbox{\hyperlink{vfs_8c_a13a1411001190b9817c7fbe0ea690719}{vfs\_read}}(ExecutablePath,\ \&FileSize,\ \&file\_buffer);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00145}00145\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00146}00146\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a4747455b8ba5311ad588c6be48598983}{FileBuffer}}\ =\ file\_buffer;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00147}00147\ \ \ \ \ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3}{ImageBase}}\ =\ \mbox{\hyperlink{mm_8h_ab465be06c000090c5a66ea8f3c96264d}{USER\_VA\_START}};\ \textcolor{comment}{//\ Dummy\ VA,\ FIXME\ Headers.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00148}00148\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00149}00149\ \ \ \ \ \textcolor{comment}{//\ TODO\ ADD\ ADDRESS\ TO\ WORKING\ SET\ OF\ PROCESS!!}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00150}00150\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00151}00151\ \ \ \ \ \textcolor{comment}{//\ Calculate\ the\ number\ of\ pages\ needed\ to\ map\ the\ entire\ file\ in.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00152}00152\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ num\_pages\ =\ (FileSize\ +\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}}\ -\/\ 1)\ /\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00154}00154\ \ \ \ \ \textcolor{comment}{//\ Prepare\ for\ the\ copy\ loop}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00155}00155\ \ \ \ \ uintptr\_t\ CurrentVA\ =\ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3}{ImageBase}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00156}00156\ \ \ \ \ uint8\_t*\ SourcePtr\ =\ (uint8\_t*)file\_buffer;\ \textcolor{comment}{//\ Pointer\ to\ the\ data\ we\ read\ from\ disk}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00157}00157\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ BytesRemaining\ =\ FileSize;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00158}00158\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00159}00159\ \ \ \ \ \textcolor{comment}{//\ Attach\ to\ process\ to\ get\ corrent\ PTE\ pointer.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00160}00160\ \ \ \ \ \mbox{\hyperlink{me_8h_a3919e8d4ea6db2a14f119d45ba8aebcc}{APC\_STATE}}\ ApcState;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00161}00161\ \ \ \ \ \mbox{\hyperlink{attach_8c_abe5e1d1426a0f223f346bd763781720d}{MeAttachProcess}}(\&Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}{InternalProcess}},\ \&ApcState);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00162}00162\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00163}00163\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ num\_pages;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Allocate\ a\ physical\ page.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\_INDEX}}\ pfn\ =\ \mbox{\hyperlink{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff}{MiRequestPhysicalPage}}(\mbox{\hyperlink{mm_8h_a12462d873d8d81a717b5a7622091e998a26f8d58b053c67264f771e0e2dbdc38a}{PfnStateZeroed}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00166}00166\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pfn\ ==\ \mbox{\hyperlink{mm_8h_abf3344e78a4b4bc0810703dd2e119230}{PFN\_ERROR}})\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00167}00167\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00168}00168\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ we\ change\ the\ actual\ physical\ address\ we\ got,\ and\ thats\ the\ physical\ address\ of\ CurrentVA.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00169}00169\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00170}00170\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ PhysicalAddressOfVa\ =\ \mbox{\hyperlink{hypermap_8c_a9e3de9aacb781db1acf2815ec071f30e}{MiMapPageInHyperspace}}(pfn,\ \&oldIrql);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00171}00171\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00172}00172\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calculate\ how\ many\ bytes\ to\ copy\ for\ this\ specific\ iteration.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00173}00173\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ It\ will\ be\ 4096\ for\ every\ page\ except\ potentially\ the\ last\ one.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ BytesToCopy\ =\ (BytesRemaining\ >\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}})\ ?\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}}\ :\ BytesRemaining;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00175}00175\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00176}00176\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ data.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00177}00177\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a6630c639a0df46de61c0bcde4097890d}{kmemcpy}}((\textcolor{keywordtype}{void}*)PhysicalAddressOfVa,\ SourcePtr,\ BytesToCopy);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00178}00178\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00179}00179\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ End\ hyperspace\ mapping\ for\ physical\ address.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00180}00180\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{hypermap_8c_ad57ae3b2e037c15c00dfe55b252e7fc8}{MiUnmapHyperSpaceMap}}(oldIrql);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00181}00181\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00182}00182\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Get\ the\ PTE\ pointer\ for\ the\ current\ address.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00183}00183\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ pte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}(CurrentVA);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00184}00184\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00185}00185\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Write\ to\ it\ the\ physical\ address.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00186}00186\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(pte,\ CurrentVA,\ \mbox{\hyperlink{mm_8h_a0c126830e79f20f2bfa3f70b0c30bab4}{PFN\_TO\_PHYS}}(pfn),\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a95fc312a8636805454c8ff4f8b872042}{PAGE\_USER}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00187}00187\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00188}00188\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Advance\ pointers\ and\ decrement\ counters}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00189}00189\ \ \ \ \ \ \ \ \ CurrentVA\ +=\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00190}00190\ \ \ \ \ \ \ \ \ SourcePtr\ +=\ BytesToCopy;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00191}00191\ \ \ \ \ \ \ \ \ BytesRemaining\ -\/=\ BytesToCopy;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00192}00192\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00193}00193\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00194}00194\ \ \ \ \ \textcolor{comment}{//\ The\ VA\ has\ been\ filed\ with\ the\ executable's\ instructions,\ now\ we\ do\ handle\ creation\ and\ yada\ yada.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00195}00195\ \ \ \ \ \textcolor{comment}{//\ Detach\ from\ process\ address\ space.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00196}00196\ \ \ \ \ \mbox{\hyperlink{attach_8c_a13b3e5dffb1e570758cc8f21b1ac22ad}{MeDetachProcess}}(\&ApcState);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00197}00197\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00198}00198\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ handle\ for\ the\ process.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00199}00199\ \ \ \ \ \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ hProcess;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00200}00200\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_a04672b5205937df681888794716e3a2c}{ObCreateHandleForObject}}(Process,\ DesiredAccess,\ \&hProcess);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00201}00201\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00202}00202\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00203}00203\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ main\ thread\ for\ the\ process.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00204}00204\ \ \ \ \ \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ MainThreadHandle;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00205}00205\ \ \ \ \ Status\ =\ \mbox{\hyperlink{thread_8c_ab8403a27ef7d0d88a6ea3cd4b44bb97d}{PsCreateThread}}(hProcess,\ \&MainThreadHandle,\ (\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}})Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3}{ImageBase}},\ NULL,\ \mbox{\hyperlink{me_8h_af17dae726e070657f87bb1702a5c9834afdd226f1a0c01fe52ac70683076a662e}{DEFAULT\_TIMESLICE\_TICKS}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00206}00206\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00207}00207\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00208}00208\ \ \ \ \ \textcolor{comment}{//\ Insert\ main\ thread\ to\ processor\ queue.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00209}00209\ \ \ \ \ \mbox{\hyperlink{ps_8h_a082a6c14a0748ab67e5560c96a47b623}{MeEnqueueThreadWithLock}}(\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>readyQueue,\ Process-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b}{MainThread}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00210}00210\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00211}00211\ \ \ \ \ \textcolor{comment}{//\ We\ are,\ successful.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00212}00212\ \ \ \ \ *ProcessHandle\ =\ hProcess;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00213}00213\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00214}00214\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00215}00215\ CleanupWithRef:}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00216}00216\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00217}00217\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00218}00218\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\textcolor{keyword}{false},\ \textcolor{stringliteral}{"{}Something\ went\ wrong."{}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00219}00219\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00220}00220\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00221}00221\ \ \ \ \ \textcolor{comment}{//\ If\ all\ went\ smoothly,\ this\ should\ cancel\ out\ the\ reference\ made\ by\ ObCreateHandleForObject.\ (so\ we\ only\ have\ 1\ reference\ left\ by\ ObCreateObject)}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00222}00222\ \ \ \ \ \textcolor{comment}{//\ If\ not,\ it\ would\ reach\ reference\ 0,\ and\ PspDeleteProcessd\ would\ execute.}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00223}00223\ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Process);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00224}00224\ \ \ \ \ \textcolor{comment}{//\ [[fallthrough]]}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00225}00225\ Cleanup:}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00226}00226\ \ \ \ \ \textcolor{keywordflow}{if}\ (Parent)\ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Parent);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00227}00227\ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00228}00228\ \}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00229}00229\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00230}00230\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00231}\mbox{\hyperlink{process_8c_acb082c9ff12b913298f7f4e60fb17668}{00231}}\ \mbox{\hyperlink{process_8c_acb082c9ff12b913298f7f4e60fb17668}{PsTerminateProcess}}(}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00232}00232\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}\ Process}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00233}00233\ )}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00234}00234\ }
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00235}00235\ \{}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00236}00236\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(Process);}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00237}00237\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\textcolor{keyword}{false},\ \textcolor{stringliteral}{"{}Unimplemented\ routine"{}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00238}00238\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ac78ef941187e105468e2b72c5616f10b}{MANUALLY\_INITIATED\_CRASH2}});}
+\DoxyCodeLine{\Hypertarget{process_8c_source_l00239}00239\ \}}
+
+\end{DoxyCode}

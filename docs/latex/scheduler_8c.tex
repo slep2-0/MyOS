@@ -1,0 +1,143 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/me/scheduler.c File Reference}
+\hypertarget{scheduler_8c}{}\label{scheduler_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/scheduler.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/scheduler.c}}
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{scheduler_8c_a5a4eaedba6ce2dd34d625fb9114c8483}{IDLE\+\_\+\+STACK\+\_\+\+SIZE}}~4096
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a}{restore\+\_\+context}} (\mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}regs)
+\item 
+void \mbox{\hyperlink{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810}{restore\+\_\+user\+\_\+context}} (\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} thread)
+\item 
+void \mbox{\hyperlink{scheduler_8c_a9ce2606c20ea524922906d7816228c26}{kernel\+\_\+idle\+\_\+checks}} (void)
+\item 
+void \mbox{\hyperlink{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}{Init\+Scheduler}} (void)
+\item 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}} \mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}} \mbox{[}$\,$\mbox{]}
+\item 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{Ps\+Initial\+System\+Process}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{scheduler_8c_affea11247162104926cfbd2a7737b9bd}{g\+\_\+cpu\+Count}}
+\item 
+bool \mbox{\hyperlink{scheduler_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{smp\+Initialized}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{scheduler_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{scheduler_8c_a5a4eaedba6ce2dd34d625fb9114c8483}\index{scheduler.c@{scheduler.c}!IDLE\_STACK\_SIZE@{IDLE\_STACK\_SIZE}}
+\index{IDLE\_STACK\_SIZE@{IDLE\_STACK\_SIZE}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{IDLE\_STACK\_SIZE}{IDLE\_STACK\_SIZE}}
+{\footnotesize\ttfamily \label{scheduler_8c_a5a4eaedba6ce2dd34d625fb9114c8483} 
+\#define IDLE\+\_\+\+STACK\+\_\+\+SIZE~4096}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00021}{21}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{scheduler_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}\index{scheduler.c@{scheduler.c}!InitScheduler@{InitScheduler}}
+\index{InitScheduler@{InitScheduler}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{InitScheduler()}{InitScheduler()}}
+{\footnotesize\ttfamily \label{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10} 
+void Init\+Scheduler (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00026}{26}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+
+\Hypertarget{scheduler_8c_a9ce2606c20ea524922906d7816228c26}\index{scheduler.c@{scheduler.c}!kernel\_idle\_checks@{kernel\_idle\_checks}}
+\index{kernel\_idle\_checks@{kernel\_idle\_checks}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{kernel\_idle\_checks()}{kernel\_idle\_checks()}}
+{\footnotesize\ttfamily \label{scheduler_8c_a9ce2606c20ea524922906d7816228c26} 
+void kernel\+\_\+idle\+\_\+checks (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00100}{100}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a}\index{scheduler.c@{scheduler.c}!restore\_context@{restore\_context}}
+\index{restore\_context@{restore\_context}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{restore\_context()}{restore\_context()}}
+{\footnotesize\ttfamily \label{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a} 
+void restore\+\_\+context (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*}}]{regs}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810}\index{scheduler.c@{scheduler.c}!restore\_user\_context@{restore\_user\_context}}
+\index{restore\_user\_context@{restore\_user\_context}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{restore\_user\_context()}{restore\_user\_context()}}
+{\footnotesize\ttfamily \label{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810} 
+void restore\+\_\+user\+\_\+context (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}}]{thread}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}\index{scheduler.c@{scheduler.c}!Schedule@{Schedule}}
+\index{Schedule@{Schedule}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{Schedule()}{Schedule()}}
+{\footnotesize\ttfamily \label{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d} 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void Schedule (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{scheduler_8c_source_l00105}{105}} of file \mbox{\hyperlink{scheduler_8c_source}{scheduler.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{scheduler_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}\index{scheduler.c@{scheduler.c}!cpus@{cpus}}
+\index{cpus@{cpus}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{cpus}{cpus}}
+{\footnotesize\ttfamily \label{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f} 
+\mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}} cpus\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{smp_8c_source_l00016}{16}} of file \mbox{\hyperlink{smp_8c_source}{smp.\+c}}.
+
+\Hypertarget{scheduler_8c_affea11247162104926cfbd2a7737b9bd}\index{scheduler.c@{scheduler.c}!g\_cpuCount@{g\_cpuCount}}
+\index{g\_cpuCount@{g\_cpuCount}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{g\_cpuCount}{g\_cpuCount}}
+{\footnotesize\ttfamily \label{scheduler_8c_affea11247162104926cfbd2a7737b9bd} 
+uint32\+\_\+t g\+\_\+cpu\+Count\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{smp_8c_source_l00128}{128}} of file \mbox{\hyperlink{smp_8c_source}{smp.\+c}}.
+
+\Hypertarget{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}\index{scheduler.c@{scheduler.c}!PsInitialSystemProcess@{PsInitialSystemProcess}}
+\index{PsInitialSystemProcess@{PsInitialSystemProcess}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{PsInitialSystemProcess}{PsInitialSystemProcess}}
+{\footnotesize\ttfamily \label{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2} 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} Ps\+Initial\+System\+Process\hspace{0.3cm}{\ttfamily [extern]}}
+
+The Stack Overflow check only checks for minor overflows, that don\textquotesingle{}t completely smash the stack, yet do change the canaries (since it only checks in function epilogue) Complete stack smashes are guarded with the guard page in Mi\+Create\+Kernel\+Stack. 
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00162}{162}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{scheduler_8c_a34f4b05cf0ef8172c66bc051f624d3eb}\index{scheduler.c@{scheduler.c}!smpInitialized@{smpInitialized}}
+\index{smpInitialized@{smpInitialized}!scheduler.c@{scheduler.c}}
+\doxysubsubsection{\texorpdfstring{smpInitialized}{smpInitialized}}
+{\footnotesize\ttfamily \label{scheduler_8c_a34f4b05cf0ef8172c66bc051f624d3eb} 
+bool smp\+Initialized\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00146}{146}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

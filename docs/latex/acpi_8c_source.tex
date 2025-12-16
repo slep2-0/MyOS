@@ -1,0 +1,211 @@
+\doxysection{acpi.\+c}
+\hypertarget{acpi_8c_source}{}\label{acpi_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/acpi.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/acpi.c}}
+\mbox{\hyperlink{acpi_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ ACPI\ Parsing\ \&\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00005}00005\ \textcolor{comment}{\ *\ DEVELOPER:\ \ \ \ https://github.com/slep2-\/0}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00006}00006\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00007}00007\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mh_8h}{../../includes/mh.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{efi_8h}{../../includes/efi.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00012}00012\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ validate\_acpi\_chksum(uint8\_t*\ data,\ \textcolor{keywordtype}{size\_t}\ len)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00013}00013\ \ \ \ \ uint8\_t\ sum\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00014}00014\ \ \ \ \ \textcolor{comment}{//\ acpi\ checksums\ work\ by\ 8\ bit\ addition,\ if\ it\ results\ 0,\ the\ checksum\ is\ valid.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00015}00015\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ len;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00016}00016\ \ \ \ \ \ \ \ \ sum\ +=\ data[i];}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00017}00017\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00018}00018\ \ \ \ \ \textcolor{keywordflow}{return}\ sum\ ==\ 0;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00019}00019\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00021}00021\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}\ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00023}00023\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ map\_physical\_range(uint64\_t\ phys,\ \textcolor{keywordtype}{size\_t}\ length,\ uint32\_t\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}})\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00024}00024\ \ \ \ \ uint64\_t\ start\ =\ phys\ \&\ 0xFFFULL;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00025}00025\ \ \ \ \ uint64\_t\ end\ =\ ((phys\ +\ length)\ +\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}}\ -\/\ 1)\ \&\ 0xFFFULL;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint64\_t\ p\ =\ start;\ p\ <\ end;\ p\ +=\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}})\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00027}00027\ \ \ \ \ \ \ \ \ uintptr\_t\ v\ =\ (p\ +\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00028}00028\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ pte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}(v);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(pte,\ v,\ p,\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00030}00030\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00031}00031\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00033}00033\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}*\ MiFindACPIHeader(XSDT*\ xsdt,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ headerSignature)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00034}00034\ \ \ \ \ uint32\_t\ xsdt\_len\ =\ xsdt-\/>h.Length;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00035}00035\ \ \ \ \ \textcolor{keywordflow}{if}\ (xsdt\_len\ <\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER))\ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00036}00036\ \ \ \ \ uint32\_t\ entries\ =\ (xsdt\_len\ -\/\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER))\ /\ \textcolor{keyword}{sizeof}(uint64\_t);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00037}00037\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00038}00038\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Amount\ of\ ACPI\ Entries:\ \%d\(\backslash\)n"{}},\ entries);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00039}00039\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ entries;\ ++i)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00041}00041\ \ \ \ \ \ \ \ \ uint64\_t\ headerPhys\ =\ xsdt-\/>Entries[i];\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00042}00042\ \ \ \ \ \ \ \ \ map\_physical\_range(headerPhys,\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER),\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ ACPI\_SDT\_HEADER*\ hdr\ =\ (ACPI\_SDT\_HEADER*)(headerPhys\ +\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ check\ signature\ quickly}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mm_8h_a354f378bccb266ef6eca75a119cd8cd9}{kmemcmp}}(hdr-\/>Signature,\ headerSignature,\ 4)\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00047}00047\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Iteration\ \%d,\ signature\ valid.\(\backslash\)n"{}},\ i);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00049}00049\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ table\_len\ =\ hdr-\/>Length;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00051}00051\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (table\_len\ <\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER))\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00052}00052\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00053}00053\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Iteration\ \%d,\ table\_len\ <\ sizeof(ACPI\_SDT\_HEADER),\ continuing...\(\backslash\)n"{}},\ i);\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00054}00054\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};\ \textcolor{comment}{//\ invalid\ length}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ map\ full\ table}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \ \ \ \ map\_physical\_range(headerPhys,\ table\_len,\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00059}00059\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ validate\ table\ checksum}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!validate\_acpi\_chksum((uint8\_t*)hdr,\ table\_len))\ \{\ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}ACPI\ Checksum\ invalid..\(\backslash\)n"{}});\ \textcolor{keywordflow}{continue};\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00061}00061\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_aa817719ae6665a0e4e0862eb45ea2a0d}{COLOR\_LIME}},\ \textcolor{stringliteral}{"{}Returning\ specified\ header\ at\ pointer\ \%p\(\backslash\)n"{}},\ hdr);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00063}00063\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00064}00064\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (\textcolor{keywordtype}{void}*)hdr;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00066}00066\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Signature\ for\ iteration\ \%d\ isn't\ valid...\ Pointer\ (physical):\ \%p\(\backslash\)n"{}},\ i,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)headerPhys);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00070}00070\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00071}00071\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00072}00072\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00073}00073\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Exhausted\ all\ iterations,\ returning\ NULL.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00074}00074\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00075}00075\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00076}00076\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00077}00077\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00078}00078\ \textcolor{comment}{//\ Global\ table\ definitions}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00079}\mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{00079}}\ FADT*\ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00080}\mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{00080}}\ MADT*\ \mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00082}00082\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00083}\mbox{\hyperlink{acpi_8c_a5e6ead246838259df2f922ecfad72c85}{00083}}\ \mbox{\hyperlink{acpi_8c_a5e6ead246838259df2f922ecfad72c85}{MhRebootComputer}}\ (}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00084}00084\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00085}00085\ )\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00087}00087\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00088}00088\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00089}00089\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ This\ function\ cold\ resets\ the\ computer,\ it\ does\ not\ return.\ Call\ appropriate\ cleanup\ functions\ before\ calling\ this\ function.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00090}00090\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00091}00091\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00092}00092\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00093}00093\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00094}00094\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00095}00095\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00096}00096\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00097}00097\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00098}00098\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00099}00099\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00101}00101\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00102}00102\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00103}00103\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetReg.Address\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00104}00104\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}No\ ACPI\ Reset\ Register\ present.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00106}00106\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00107}00107\ \ \ \ \ uint16\_t\ port;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00108}00108\ \ \ \ \ uint64\_t\ phys;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00109}00109\ \ \ \ \ \textcolor{keywordflow}{switch}\ (\mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetReg.AddressSpace)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00110}00110\ \ \ \ \ \textcolor{keywordflow}{case}\ 1:\ \textcolor{comment}{//\ System\ I/O}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ port\ =\ (uint16\_t)\mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetReg.Address;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(port,\ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetValue);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00113}00113\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00114}00114\ \ \ \ \ \textcolor{keywordflow}{case}\ 0:\ \textcolor{comment}{//\ Memory\ mapped\ (MMIO)}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00115}00115\ \ \ \ \ \ \ \ \ phys\ =\ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetReg.Address;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Map\ one\ page\ containing\ the\ reset\ register\ itself.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ pte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}((uintptr\_t)phys);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(pte,\ phys,\ phys,\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a3164e8641959ffef255418f9e97a464f}{PAGE\_PWT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \textcolor{keyword}{volatile}\ uint8\_t*\ reg\ =\ (\textcolor{keyword}{volatile}\ uint8\_t*)phys;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ *reg\ =\ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetValue;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00122}00122\ \ \ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Unsupported\ ACPI\ reset\ AddressSpace:\ \%d\(\backslash\)n"{}},}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}-\/>ResetReg.AddressSpace);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00126}00126\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00127}00127\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00128}00128\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00129}00129\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00130}\mbox{\hyperlink{acpi_8c_a8e0e024a4c708b5bb008c7100841410e}{00130}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{acpi_8c_a8e0e024a4c708b5bb008c7100841410e}{MhParseLAPICs}}(uint8\_t*\ buffer,\ \textcolor{keywordtype}{size\_t}\ maxCPUs,\ uint32\_t*\ cpuCount,\ uint32\_t*\ \mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapicAddress}})\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00131}00131\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}})\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ac3aa7acc02bb56d3bcd59419f84ce9a5}{MT\_NO\_RESOURCES}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00132}00132\ \ \ \ \ \textcolor{comment}{//\ Deference\ the\ lapicAddress\ ptr\ and\ put\ the\ lapic\ address\ for\ each\ CPU\ there.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00133}00133\ \ \ \ \ *\mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapicAddress}}\ =\ \mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}-\/>lapicAddress;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00134}00134\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ count\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00135}00135\ \ \ \ \ \textcolor{comment}{//\ The\ pointer\ right\ after\ the\ MADT\ table\ (according\ to\ the\ spec)}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00136}00136\ \ \ \ \ uint8\_t*\ ptr\ =\ (uint8\_t*)\mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}\ +\ \textcolor{keyword}{sizeof}(MADT);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00137}00137\ \ \ \ \ \textcolor{comment}{//\ The\ end\ of\ pointer\ is\ the\ length\ of\ the\ whole\ table\ itself.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00138}00138\ \ \ \ \ uint8\_t*\ end\ =\ (uint8\_t*)\mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}\ +\ \mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}-\/>h.Length;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00139}00139\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00140}00140\ \ \ \ \ \textcolor{keywordflow}{while}\ (ptr\ <\ end\ \&\&\ count\ <\ maxCPUs)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ uint8\_t\ type\ =\ ptr[0];}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ uint8\_t\ len\ =\ ptr[1];}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00143}00143\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (type\ ==\ \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530a5bffee31515e613a9370f89a5421fae2}{MADT\_LAPIC}})\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Found\ a\ LAPIC\ table.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00146}00146\ \ \ \ \ \ \ \ \ \ \ \ \ MADT\_LOCAL\_APIC*\ lapic\ =\ (MADT\_LOCAL\_APIC*)ptr;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (lapic-\/>Flags\ \&\ 1)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Enabled}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00149}00149\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_aa817719ae6665a0e4e0862eb45ea2a0d}{COLOR\_LIME}},\ \textcolor{stringliteral}{"{}Found\ a\ CPU\ with\ LAPIC\ ID\ \%d\(\backslash\)n"{}},\ lapic-\/>ApicId);}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ buffer[count++]\ =\ lapic-\/>ApicId;\ \textcolor{comment}{//\ Store\ the\ APIC\ ID.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00152}00152\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00154}00154\ \ \ \ \ \ \ \ \ ptr\ +=\ len;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00155}00155\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00156}00156\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00157}00157\ \ \ \ \ \textcolor{keywordflow}{if}\ (count\ >\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00158}00158\ \ \ \ \ \ \ \ \ *cpuCount\ =\ count;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00160}00160\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00161}00161\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a1c3bb6736a4567dcb59b8bbaa5837a6e}{MT\_GENERAL\_FAILURE}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00162}00162\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00163}00163\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00164}\mbox{\hyperlink{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04}{00164}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04}{MhInitializeACPI}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00165}00165\ \ \ \ \ uintptr\_t\ rsdpPhys\ =\ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AcpiRsdpPhys;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00166}00166\ \ \ \ \ \textcolor{keywordflow}{if}\ (!rsdpPhys)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00167}00167\ \ \ \ \ map\_physical\_range(rsdpPhys,\ \textcolor{keyword}{sizeof}(RSDP\_Descriptor),\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00168}00168\ \ \ \ \ RSDP\_Descriptor*\ rsdp\ =\ (RSDP\_Descriptor*)(rsdpPhys\ +\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00169}00169\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00170}00170\ \ \ \ \ \textcolor{comment}{//\ Validate\ signatures\ and\ checksums.}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00171}00171\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mm_8h_a354f378bccb266ef6eca75a119cd8cd9}{kmemcmp}}(rsdp-\/>Signature,\ \textcolor{stringliteral}{"{}RSD\ PTR\ "{}},\ 8)\ !=\ 0)\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0xC000BABE;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00172}00172\ \ \ \ \ \textcolor{keywordflow}{if}\ (!validate\_acpi\_chksum((uint8\_t*)rsdp,\ 20))\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_acc984fa35b66767efe0d221887252596}{MT\_INVALID\_CHECK}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00173}00173\ \ \ \ \ uint64\_t\ xsdtPhys\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00174}00174\ \ \ \ \ \textcolor{keywordflow}{if}\ (rsdp-\/>Revision\ >=\ 2\ \&\&\ rsdp-\/>Length\ >=\ \textcolor{keyword}{sizeof}(RSDP\_Descriptor))\ \{}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00175}00175\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ map\ whole\ RSDP\ length}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00176}00176\ \ \ \ \ \ \ \ \ map\_physical\_range(rsdpPhys,\ rsdp-\/>Length,\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00177}00177\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!validate\_acpi\_chksum((uint8\_t*)rsdp,\ rsdp-\/>Length))\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_acc984fa35b66767efe0d221887252596}{MT\_INVALID\_CHECK}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00178}00178\ \ \ \ \ \ \ \ \ xsdtPhys\ =\ rsdp-\/>XsdtAddress;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00179}00179\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00180}00180\ \ \ \ \ \textcolor{keywordflow}{if}\ (!xsdtPhys)\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}})0xC000BEEF;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00181}00181\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00182}00182\ \ \ \ \ \textcolor{comment}{//\ Map\ XSDT\ header\ first\ so\ we\ can\ read\ its\ Length}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00183}00183\ \ \ \ \ map\_physical\_range(xsdtPhys,\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER),\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00184}00184\ \ \ \ \ XSDT*\ xsdt\ =\ (XSDT*)(xsdtPhys\ +\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00185}00185\ \ \ \ \ \textcolor{keywordflow}{if}\ (xsdt-\/>h.Length\ <\ \textcolor{keyword}{sizeof}(ACPI\_SDT\_HEADER))\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3e547767de23697da8708b501dbbc36e}{MT\_INVALID\_STATE}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00186}00186\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00187}00187\ \ \ \ \ \textcolor{comment}{//\ Map\ the\ entire\ XSDT\ table}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00188}00188\ \ \ \ \ map\_physical\_range(xsdtPhys,\ xsdt-\/>h.Length,\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00189}00189\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00190}00190\ \ \ \ \ \textcolor{comment}{//\ Now\ find\ FACP\ (FADT)\ (the\ function\ checks\ for\ checksum\ automatically)}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00191}00191\ \ \ \ \ ACPI\_SDT\_HEADER*\ facp\ =\ (ACPI\_SDT\_HEADER*)MiFindACPIHeader(xsdt,\ \textcolor{stringliteral}{"{}FACP"{}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00192}00192\ \ \ \ \ \textcolor{keywordflow}{if}\ (!facp)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd}{MT\_NOT\_FOUND}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00193}00193\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00194}00194\ \ \ \ \ \textcolor{comment}{//\ put\ in\ the\ global\ FADT\ ptr}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00195}00195\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}\ =\ (FADT*)facp;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00196}00196\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00197}00197\ \ \ \ \ \textcolor{comment}{//\ Find\ MADT}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00198}00198\ \ \ \ \ ACPI\_SDT\_HEADER*\ madtACPI\ =\ (ACPI\_SDT\_HEADER*)MiFindACPIHeader(xsdt,\ \textcolor{stringliteral}{"{}APIC"{}});}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00199}00199\ \ \ \ \ \textcolor{keywordflow}{if}\ (!madtACPI)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd}{MT\_NOT\_FOUND}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00200}00200\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00201}00201\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}\ =\ (MADT*)madtACPI;}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00202}00202\ }
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00203}00203\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00204}00204\ \}}
+\DoxyCodeLine{\Hypertarget{acpi_8c_source_l00205}00205\ }
+
+\end{DoxyCode}

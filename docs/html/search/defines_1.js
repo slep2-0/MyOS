@@ -1,4 +1,26 @@
 var searchData=
 [
-  ['block_5fsize_0',['BLOCK_SIZE',['../kernel_8h.html#ad51ded0bbd705f02f73fc60c0b721ced',1,'kernel.h']]]
+  ['ahci_5fdev_5fnull_0',['AHCI_DEV_NULL',['../ahci_8h.html#a70cb9cf6f5592304658efff34c009d0f',1,'ahci.h']]],
+  ['ahci_5fdev_5fpm_1',['AHCI_DEV_PM',['../ahci_8h.html#a388f0e67c6bf032307b8e8192bf07c47',1,'ahci.h']]],
+  ['ahci_5fdev_5fsata_2',['AHCI_DEV_SATA',['../ahci_8h.html#a528bf8cf48a25cbb5faf1b47aa41469c',1,'ahci.h']]],
+  ['ahci_5fdev_5fsatapi_3',['AHCI_DEV_SATAPI',['../ahci_8h.html#af14cd62b8394e7284ed7880e9a6cd379',1,'ahci.h']]],
+  ['ahci_5fdev_5fsemb_4',['AHCI_DEV_SEMB',['../ahci_8h.html#a252890fb3343fb24494794f3f2c33a92',1,'ahci.h']]],
+  ['ahci_5fmax_5fports_5',['AHCI_MAX_PORTS',['../ahci_8h.html#a21dfe7d03e0027f3c2e4a1bc81e8d85a',1,'ahci.h']]],
+  ['align_5fdelta_6',['ALIGN_DELTA',['../process_8c.html#a31452d15206784935051c52d5a78ff03',1,'ALIGN_DELTA:&#160;process.c'],['../thread_8c.html#a31452d15206784935051c52d5a78ff03',1,'ALIGN_DELTA:&#160;thread.c']]],
+  ['align_5fup_7',['ALIGN_UP',['../mm_8h.html#afb00b1a27b40fde5065d26e5aa367808',1,'mm.h']]],
+  ['ap_5ftramp_5fapmain_5foffset_8',['AP_TRAMP_APMAIN_OFFSET',['../mh_8h.html#a6acd98173ceb92e7fe04be7130f33375',1,'mh.h']]],
+  ['ap_5ftramp_5fcpus_5foffset_9',['AP_TRAMP_CPUS_OFFSET',['../mh_8h.html#a3ffa2c0b01bd5dda94a8e74d37cc2692',1,'mh.h']]],
+  ['ap_5ftramp_5fphys_10',['AP_TRAMP_PHYS',['../mh_8h.html#afd86178cd02478d2d6c015b87c636471',1,'mh.h']]],
+  ['ap_5ftramp_5fpml4_5foffset_11',['AP_TRAMP_PML4_OFFSET',['../mh_8h.html#a2d4c9e06f4b860dfbe52483ee9934dd3',1,'mh.h']]],
+  ['ap_5ftramp_5fsize_12',['AP_TRAMP_SIZE',['../mh_8h.html#abe314999bbb14f3989ee748b4648fe81',1,'mh.h']]],
+  ['apic_5fbase_5freserved_13',['APIC_BASE_RESERVED',['../apic_8c.html#a97ed6667474648ccd51bf4a254781506',1,'apic.c']]],
+  ['apic_5flvt_5ftimer_5fperiodic_14',['APIC_LVT_TIMER_PERIODIC',['../apic_8c.html#afbe5c3c5e249b35d3230d29faa253475',1,'apic.c']]],
+  ['apic_5ftimer_5fmasked_15',['APIC_TIMER_MASKED',['../apic_8c.html#a15ed1a5c29d526e3faa1e649df0040ab',1,'apic.c']]],
+  ['assert_16',['assert',['../assert_8h.html#a3d4ae9c092e117c836f52dc7d7cee574',1,'assert.h']]],
+  ['ata_5fcmd_5fread_5fdma_5fex_17',['ATA_CMD_READ_DMA_EX',['../ahci_8h.html#a38dd4451240fdf39ed56148f148e9ffd',1,'ahci.h']]],
+  ['ata_5fcmd_5fwrite_5fdma_5fex_18',['ATA_CMD_WRITE_DMA_EX',['../ahci_8h.html#aad07fe181bd03623b039bca75664ec29',1,'ahci.h']]],
+  ['ata_5fdev_5fbsy_19',['ATA_DEV_BSY',['../ahci_8h.html#a5746c8932d211d3f98c423b006c71961',1,'ahci.h']]],
+  ['ata_5fdev_5fdrq_20',['ATA_DEV_DRQ',['../ahci_8h.html#af12bdbc024458d3a760650e93bc32cb3',1,'ahci.h']]],
+  ['ata_5fdev_5ferr_21',['ATA_DEV_ERR',['../ahci_8h.html#a91ba1648e81b1642a471984d44c04cc5',1,'ahci.h']]],
+  ['atomic_5forder_22',['ATOMIC_ORDER',['../atomic_8h.html#a85121edc5dd676f05a59a57225baab5f',1,'atomic.h']]]
 ];

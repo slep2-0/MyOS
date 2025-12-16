@@ -6,39 +6,51 @@
 \item 
 \#define \mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\+\_\+\+AHCI\+\_\+\+CONTROLLERS}}~32
 \item 
-\#define \mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\+\_\+\+MEMORY\+\_\+\+MAP\+\_\+\+SIZE}}~0x4000
+\#define \mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\+\_\+\+MEMORY\+\_\+\+MAP\+\_\+\+SIZE}}~0x8000
 \item 
 \#define \mbox{\hyperlink{kernel_8c_a2d000697316631e744359a19471179c9}{ISRAEL\+\_\+\+UTC\+\_\+\+OFFSET}}~3
 \end{DoxyCompactItemize}
 \doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-void \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\+\_\+memory\+\_\+map}} (\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
+void \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\+\_\+memory\+\_\+map}} (\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
 \item 
-void \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\+\_\+gop}} (\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
+void \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\+\_\+gop}} (\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
 \item 
-void \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\+\_\+boot\+\_\+info}} (\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
-\item 
-void \mbox{\hyperlink{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1}{Init\+CPU}} (void)
+void \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\+\_\+boot\+\_\+info}} (\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
 \item 
 void \mbox{\hyperlink{kernel_8c_a9ce2606c20ea524922906d7816228c26}{kernel\+\_\+idle\+\_\+checks}} (void)
 \item 
-void \mbox{\hyperlink{kernel_8c_a290306ce314d46bd369c185b7b95db40}{kernel\+\_\+main}} (\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}boot\+\_\+info)
+\mbox{\hyperlink{kernel_8c_a1b6824bfd4ec0404a4f875ed8db0274e}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}} ((noreturn))
 \end{DoxyCompactItemize}
 \doxysubsubsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
-uint64\+\_\+t \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\+\_\+bases\+\_\+local}} \mbox{[}\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\+\_\+\+AHCI\+\_\+\+CONTROLLERS}}\mbox{]}
-\item 
-GOP\+\_\+\+PARAMS \mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\+\_\+local}}
-\item 
-\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
-\item 
 bool \mbox{\hyperlink{kernel_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{is\+Bug\+Checking}} = false
 \item 
-\mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\+\_\+\+HISTORY}} \mbox{\hyperlink{kernel_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\+\_\+history}} = \{ .current\+\_\+index = -\/1 \}
+bool \mbox{\hyperlink{kernel_8c_a7824a23577849a6307c98674ea6ade79}{all\+Aps\+Initialized}} = false
 \item 
-CPU \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}
+\mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}} \mbox{\hyperlink{kernel_8c_a323756ac954e1592fafd741525e0ef6b}{cpu0}}
+\item 
+\mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\+\_\+local}}
+\item 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\+\_\+bases\+\_\+local}} \mbox{[}\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\+\_\+\+AHCI\+\_\+\+CONTROLLERS}}\mbox{]}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{apic\+\_\+list}} \mbox{[}\mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\+\_\+\+CPUS}}\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{kernel_8c_abd627bb6a327bec16cef23b42c63c657}{cpu\+\_\+count}} = 0
+\item 
+uint32\+\_\+t \mbox{\hyperlink{kernel_8c_ae2b7e438110e59abf98b568fedbbd749}{lapic\+Address}}
+\item 
+bool \mbox{\hyperlink{kernel_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{smp\+Initialized}}
+\item 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} \mbox{\hyperlink{kernel_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{Ps\+Initial\+System\+Process}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445}{bss\+\_\+start}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{kernel_8c_a2c8bdc1125232c0a840c4b3f423d8b48}{bss\+\_\+end}}
 \end{DoxyCompactItemize}
 
 
@@ -59,62 +71,62 @@ CPU \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00012}{12}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00032}{32}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_ad6664187bc75188329b950c21f5f380a}\index{kernel.c@{kernel.c}!MAX\_MEMORY\_MAP\_SIZE@{MAX\_MEMORY\_MAP\_SIZE}}
 \index{MAX\_MEMORY\_MAP\_SIZE@{MAX\_MEMORY\_MAP\_SIZE}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{MAX\_MEMORY\_MAP\_SIZE}{MAX\_MEMORY\_MAP\_SIZE}}
 {\footnotesize\ttfamily \label{kernel_8c_ad6664187bc75188329b950c21f5f380a} 
-\#define MAX\+\_\+\+MEMORY\+\_\+\+MAP\+\_\+\+SIZE~0x4000}
+\#define MAX\+\_\+\+MEMORY\+\_\+\+MAP\+\_\+\+SIZE~0x8000}
 
+Ended 
 
-
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00031}{31}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00041}{41}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 
 
 \label{doc-func-members}
 \Hypertarget{kernel_8c_doc-func-members}
 \doxysubsection{Function Documentation}
+\Hypertarget{kernel_8c_a1b6824bfd4ec0404a4f875ed8db0274e}\index{kernel.c@{kernel.c}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_()}{\_\_attribute\_\_()}}
+{\footnotesize\ttfamily \label{kernel_8c_a1b6824bfd4ec0404a4f875ed8db0274e} 
+\+\_\+\+\_\+attribute\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{(noreturn)}]{}{}\end{DoxyParamCaption})}
+
+Remember that paging is on when this is called, as UEFI turned it on. 
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00180}{180}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
 \Hypertarget{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}\index{kernel.c@{kernel.c}!copy\_gop@{copy\_gop}}
 \index{copy\_gop@{copy\_gop}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{copy\_gop()}{copy\_gop()}}
 {\footnotesize\ttfamily \label{kernel_8c_a8bf2519b1a607ce677d092c706b92f00} 
-void copy\+\_\+gop (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
+void copy\+\_\+gop (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00051}{51}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00061}{61}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}\index{kernel.c@{kernel.c}!copy\_memory\_map@{copy\_memory\_map}}
 \index{copy\_memory\_map@{copy\_memory\_map}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{copy\_memory\_map()}{copy\_memory\_map()}}
 {\footnotesize\ttfamily \label{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1} 
-void copy\+\_\+memory\+\_\+map (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
+void copy\+\_\+memory\+\_\+map (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00035}{35}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00045}{45}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}\index{kernel.c@{kernel.c}!init\_boot\_info@{init\_boot\_info}}
 \index{init\_boot\_info@{init\_boot\_info}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{init\_boot\_info()}{init\_boot\_info()}}
 {\footnotesize\ttfamily \label{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c} 
-void init\+\_\+boot\+\_\+info (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
+void init\+\_\+boot\+\_\+info (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00063}{63}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
-
-\Hypertarget{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1}\index{kernel.c@{kernel.c}!InitCPU@{InitCPU}}
-\index{InitCPU@{InitCPU}!kernel.c@{kernel.c}}
-\doxysubsubsection{\texorpdfstring{InitCPU()}{InitCPU()}}
-{\footnotesize\ttfamily \label{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1} 
-void Init\+CPU (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
-
-
-
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00096}{96}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00072}{72}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_a9ce2606c20ea524922906d7816228c26}\index{kernel.c@{kernel.c}!kernel\_idle\_checks@{kernel\_idle\_checks}}
 \index{kernel\_idle\_checks@{kernel\_idle\_checks}!kernel.c@{kernel.c}}
@@ -124,17 +136,7 @@ void kernel\+\_\+idle\+\_\+checks (\begin{DoxyParamCaption}\item[{void}]{}{}\end
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00114}{114}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
-
-\Hypertarget{kernel_8c_a290306ce314d46bd369c185b7b95db40}\index{kernel.c@{kernel.c}!kernel\_main@{kernel\_main}}
-\index{kernel\_main@{kernel\_main}!kernel.c@{kernel.c}}
-\doxysubsubsection{\texorpdfstring{kernel\_main()}{kernel\_main()}}
-{\footnotesize\ttfamily \label{kernel_8c_a290306ce314d46bd369c185b7b95db40} 
-void kernel\+\_\+main (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*}}]{boot\+\_\+info}{}\end{DoxyParamCaption})}
-
-Remember that paging is on when this is called, as UEFI turned it on. 
-
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00171}{171}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00100}{100}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 
 
@@ -149,37 +151,79 @@ uint64\+\_\+t ahci\+\_\+bases\+\_\+local\mbox{[}\mbox{\hyperlink{kernel_8c_a9fed
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00013}{13}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00033}{33}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_a7824a23577849a6307c98674ea6ade79}\index{kernel.c@{kernel.c}!allApsInitialized@{allApsInitialized}}
+\index{allApsInitialized@{allApsInitialized}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{allApsInitialized}{allApsInitialized}}
+{\footnotesize\ttfamily \label{kernel_8c_a7824a23577849a6307c98674ea6ade79} 
+bool all\+Aps\+Initialized = false}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00020}{20}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}\index{kernel.c@{kernel.c}!apic\_list@{apic\_list}}
+\index{apic\_list@{apic\_list}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{apic\_list}{apic\_list}}
+{\footnotesize\ttfamily \label{kernel_8c_a37abca752a84d2b41de4f960ff8926c1} 
+uint8\+\_\+t apic\+\_\+list\mbox{[}\mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\+\_\+\+CPUS}}\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00143}{143}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}\index{kernel.c@{kernel.c}!boot\_info\_local@{boot\_info\_local}}
 \index{boot\_info\_local@{boot\_info\_local}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{boot\_info\_local}{boot\_info\_local}}
 {\footnotesize\ttfamily \label{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4} 
-\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local}
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00016}{16}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00027}{27}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
-\Hypertarget{kernel_8c_a0b2a3530e9a5998456be351b4251b878}\index{kernel.c@{kernel.c}!cpu@{cpu}}
-\index{cpu@{cpu}!kernel.c@{kernel.c}}
-\doxysubsubsection{\texorpdfstring{cpu}{cpu}}
-{\footnotesize\ttfamily \label{kernel_8c_a0b2a3530e9a5998456be351b4251b878} 
-CPU cpu}
+\Hypertarget{kernel_8c_a2c8bdc1125232c0a840c4b3f423d8b48}\index{kernel.c@{kernel.c}!bss\_end@{bss\_end}}
+\index{bss\_end@{bss\_end}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{bss\_end}{bss\_end}}
+{\footnotesize\ttfamily \label{kernel_8c_a2c8bdc1125232c0a840c4b3f423d8b48} 
+uint8\+\_\+t bss\+\_\+end\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445}\index{kernel.c@{kernel.c}!bss\_start@{bss\_start}}
+\index{bss\_start@{bss\_start}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{bss\_start}{bss\_start}}
+{\footnotesize\ttfamily \label{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445} 
+uint8\+\_\+t bss\+\_\+start\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{kernel_8c_a323756ac954e1592fafd741525e0ef6b}\index{kernel.c@{kernel.c}!cpu0@{cpu0}}
+\index{cpu0@{cpu0}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{cpu0}{cpu0}}
+{\footnotesize\ttfamily \label{kernel_8c_a323756ac954e1592fafd741525e0ef6b} 
+\mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}} cpu0}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00026}{26}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00021}{21}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_abd627bb6a327bec16cef23b42c63c657}\index{kernel.c@{kernel.c}!cpu\_count@{cpu\_count}}
+\index{cpu\_count@{cpu\_count}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{cpu\_count}{cpu\_count}}
+{\footnotesize\ttfamily \label{kernel_8c_abd627bb6a327bec16cef23b42c63c657} 
+uint32\+\_\+t cpu\+\_\+count = 0}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00144}{144}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}\index{kernel.c@{kernel.c}!gop\_local@{gop\_local}}
 \index{gop\_local@{gop\_local}!kernel.c@{kernel.c}}
 \doxysubsubsection{\texorpdfstring{gop\_local}{gop\_local}}
 {\footnotesize\ttfamily \label{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e} 
-GOP\+\_\+\+PARAMS gop\+\_\+local}
+\mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} gop\+\_\+local}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00015}{15}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00026}{26}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
 \Hypertarget{kernel_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}\index{kernel.c@{kernel.c}!isBugChecking@{isBugChecking}}
 \index{isBugChecking@{isBugChecking}!kernel.c@{kernel.c}}
@@ -187,17 +231,37 @@ Definition at line \mbox{\hyperlink{kernel_8c_source_l00015}{15}} of file \mbox{
 {\footnotesize\ttfamily \label{kernel_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc} 
 bool is\+Bug\+Checking = false}
 
+Global variables initialization 
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00019}{19}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_ae2b7e438110e59abf98b568fedbbd749}\index{kernel.c@{kernel.c}!lapicAddress@{lapicAddress}}
+\index{lapicAddress@{lapicAddress}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{lapicAddress}{lapicAddress}}
+{\footnotesize\ttfamily \label{kernel_8c_ae2b7e438110e59abf98b568fedbbd749} 
+uint32\+\_\+t lapic\+Address}
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00024}{24}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 
-\Hypertarget{kernel_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}\index{kernel.c@{kernel.c}!lastfunc\_history@{lastfunc\_history}}
-\index{lastfunc\_history@{lastfunc\_history}!kernel.c@{kernel.c}}
-\doxysubsubsection{\texorpdfstring{lastfunc\_history}{lastfunc\_history}}
-{\footnotesize\ttfamily \label{kernel_8c_a84fdaa754c58bd3a02ef7e0c36cfff33} 
-\mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\+\_\+\+HISTORY}} lastfunc\+\_\+history = \{ .current\+\_\+index = -\/1 \}}
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00145}{145}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_ac6c835f9ef3163dba3826f22bf43b9d2}\index{kernel.c@{kernel.c}!PsInitialSystemProcess@{PsInitialSystemProcess}}
+\index{PsInitialSystemProcess@{PsInitialSystemProcess}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{PsInitialSystemProcess}{PsInitialSystemProcess}}
+{\footnotesize\ttfamily \label{kernel_8c_ac6c835f9ef3163dba3826f22bf43b9d2} 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} Ps\+Initial\+System\+Process}
+
+The Stack Overflow check only checks for minor overflows, that don\textquotesingle{}t completely smash the stack, yet do change the canaries (since it only checks in function epilogue) Complete stack smashes are guarded with the guard page in Mi\+Create\+Kernel\+Stack. 
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00162}{162}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{kernel_8c_a34f4b05cf0ef8172c66bc051f624d3eb}\index{kernel.c@{kernel.c}!smpInitialized@{smpInitialized}}
+\index{smpInitialized@{smpInitialized}!kernel.c@{kernel.c}}
+\doxysubsubsection{\texorpdfstring{smpInitialized}{smpInitialized}}
+{\footnotesize\ttfamily \label{kernel_8c_a34f4b05cf0ef8172c66bc051f624d3eb} 
+bool smp\+Initialized}
 
 
 
-Definition at line \mbox{\hyperlink{kernel_8c_source_l00025}{25}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00146}{146}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
 

@@ -1,0 +1,25 @@
+var struct___m_m_p_t_e =
+[
+    [ "Accessed", "struct___m_m_p_t_e.html#a1432d86fa3877286b270c234acdbdc6d", null ],
+    [ "CacheDisable", "struct___m_m_p_t_e.html#ae3f1d9fd68fa5e8a3519cec4d3aea185", null ],
+    [ "CopyOnWrite", "struct___m_m_p_t_e.html#a8e301ad830c5de1019ba8ebd4d76d3a2", null ],
+    [ "Dirty", "struct___m_m_p_t_e.html#a7ef88f60d3f8a185fad0ee172f14d4e0", null ],
+    [ "Global", "struct___m_m_p_t_e.html#a3a8100b85679d94af602e040562ab9ea", null ],
+    [ "Hard", "struct___m_m_p_t_e.html#a42f06b61b2dd8128f546b87e48632889", null ],
+    [ "LargePage", "struct___m_m_p_t_e.html#ad320a8e4973895fd56d80637c8bff528", null ],
+    [ "NoExecute", "struct___m_m_p_t_e.html#af363462343b7717ae81a46cc4a8861ec", null ],
+    [ "PageFile", "struct___m_m_p_t_e.html#ab9c666c38f892e8c7234f6538e0155e5", null ],
+    [ "PageFrameNumber", "struct___m_m_p_t_e.html#ac40a725796f2b1faa0035058f04b7586", null ],
+    [ "Present", "struct___m_m_p_t_e.html#acdb871789a1e4398874af8cb07987ef6", null ],
+    [ "Prototype", "struct___m_m_p_t_e.html#a2bb7a595e2fe58cd2abf72350c69b192", null ],
+    [ "Reserved", "struct___m_m_p_t_e.html#acced621e71cb66523846a74031f0be3f", null ],
+    [ "Reserved0", "struct___m_m_p_t_e.html#a9d5d76e64b637dbd330c10bf0b88ff4b", null ],
+    [ "Reserved1", "struct___m_m_p_t_e.html#afea133adf188dfb8979f48bcdaa69acf", null ],
+    [ "Soft", "struct___m_m_p_t_e.html#af9258ac012793b393dcbc5c535abc042", null ],
+    [ "SoftwareFlags", "struct___m_m_p_t_e.html#af42b3ff837f89f0f868ea00b8819cb4c", null ],
+    [ "Transition", "struct___m_m_p_t_e.html#acf5111b7da8f8cb23c5c850a092bf59a", null ],
+    [ "User", "struct___m_m_p_t_e.html#ad0a8b641a9e988ed8f70c528b5d3087e", null ],
+    [ "Value", "struct___m_m_p_t_e.html#ada66fd7d38f43cfb18938e8194b1952b", null ],
+    [ "Write", "struct___m_m_p_t_e.html#aada51a8feb2b4ddc762e29d2fd5ec12d", null ],
+    [ "WriteThrough", "struct___m_m_p_t_e.html#acaaf6a560ddaaeaf75567ab89c5521a7", null ]
+];

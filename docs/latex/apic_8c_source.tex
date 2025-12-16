@@ -1,0 +1,274 @@
+\doxysection{apic.\+c}
+\hypertarget{apic_8c_source}{}\label{apic_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/apic.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/apic.c}}
+\mbox{\hyperlink{apic_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00002}00002\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mh_8h}{../../includes/mh.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00003}00003\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mm_8h}{../../includes/mm.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00004}00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00005}00005\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00006}00006\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00009}\mbox{\hyperlink{apic_8c_a3dac42d568d070ca6f076841c4ef835a}{00009}}\ \textcolor{preprocessor}{\#define\ IA32\_APIC\_BASE\_MSR\ \ \ \ \ 0x1BULL}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00010}\mbox{\hyperlink{apic_8c_a97ed6667474648ccd51bf4a254781506}{00010}}\ \textcolor{preprocessor}{\#define\ APIC\_BASE\_RESERVED\ \ \ \ \ 0xFFF0000000000000ULL}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00012}\mbox{\hyperlink{apic_8c_a5252dd02afc2f4aa041843fd7ff0f2b6}{00012}}\ \textcolor{preprocessor}{\#define\ LAPIC\_PAGE\_SIZE\ \ \ \ 0x1000}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00013}\mbox{\hyperlink{apic_8c_a3d3809d68e350df64c5c6f863209febe}{00013}}\ \textcolor{preprocessor}{\#define\ LAPIC\_MAP\_FLAGS\ (PAGE\_PRESENT\ |\ PAGE\_RW\ |\ PAGE\_PCD)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00014}00014\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00015}00015\ \textcolor{comment}{//\ LAPIC\ register\ offsets\ (32-\/bit\ registers)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00016}00016\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00017}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ac5f5e483d9265145a380bda5d682927c}{00017}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ac5f5e483d9265145a380bda5d682927c}{LAPIC\_VERSION}}\ =\ 0x030,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00018}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782abd2de1774d190821d877777d3f3edc0c}{00018}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782abd2de1774d190821d877777d3f3edc0c}{LAPIC\_TPR}}\ =\ 0x080,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00019}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae1a36b5553b46ac8fe10c198d6b5a340}{00019}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae1a36b5553b46ac8fe10c198d6b5a340}{LAPIC\_EOI}}\ =\ 0x0B0,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00020}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a1d4914ef1e2fbf9345397c7daddd3298}{00020}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a1d4914ef1e2fbf9345397c7daddd3298}{LAPIC\_SVR}}\ =\ 0x0F0,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00021}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab2aec9812d250e0d5b8faa1b0af773d9}{00021}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab2aec9812d250e0d5b8faa1b0af773d9}{LAPIC\_ESR}}\ =\ 0x280,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00022}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab1da7f704c2bc5e9c718fed2847310e6}{00022}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab1da7f704c2bc5e9c718fed2847310e6}{LAPIC\_ICR\_LOW}}\ =\ 0x300,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00023}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a93629ad0dae3ee3834231520db31e445}{00023}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a93629ad0dae3ee3834231520db31e445}{LAPIC\_ICR\_HIGH}}\ =\ 0x310,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00024}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ad5042d4497f75075276c20da844ad609}{00024}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ad5042d4497f75075276c20da844ad609}{LAPIC\_LVT\_TIMER}}\ =\ 0x320,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00025}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a2d27c760cddc8cf55e4a980190ccf3d7}{00025}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a2d27c760cddc8cf55e4a980190ccf3d7}{LAPIC\_LVT\_THERMAL}}\ =\ 0x330,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00026}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a4b66a3adc5d580ee3ee1304edd109586}{00026}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a4b66a3adc5d580ee3ee1304edd109586}{LAPIC\_LVT\_PCC}}\ =\ 0x340,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00027}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a422e75e0295550ccf559d1a1ec094c3e}{00027}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a422e75e0295550ccf559d1a1ec094c3e}{LAPIC\_LVT\_LINT0}}\ =\ 0x350,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00028}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a0f304d96b389e3afd828c8f298b4c0aa}{00028}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a0f304d96b389e3afd828c8f298b4c0aa}{LAPIC\_LVT\_LINT1}}\ =\ 0x360,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00029}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782adc55a4c44a20a991bf529314f0988dab}{00029}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782adc55a4c44a20a991bf529314f0988dab}{LAPIC\_LVT\_ERROR}}\ =\ 0x370,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00030}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a9d40e01ad0976934bc8a1a167e636dd9}{00030}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a9d40e01ad0976934bc8a1a167e636dd9}{LAPIC\_TIMER\_INITCNT}}\ =\ 0x380,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00031}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782aab49de53e0071f39721cca0fd83c2bfd}{00031}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782aab49de53e0071f39721cca0fd83c2bfd}{LAPIC\_TIMER\_CURRCNT}}\ =\ 0x390,}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00032}\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae563d6c7f8ca78e0c6c01e7409afb261}{00032}}\ \ \ \ \ \mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae563d6c7f8ca78e0c6c01e7409afb261}{LAPIC\_TIMER\_DIV}}\ =\ 0x3E0}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00033}00033\ \};}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00035}00035\ \textcolor{comment}{//\ -\/-\/-\/\ low-\/level\ mmio\ helpers\ (assumes\ lapic\ mapped\ to\ virtual\ memory)\ -\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00036}\mbox{\hyperlink{apic_8c_af32890a8dcc4095270fc3c1398956f22}{00036}}\ uint32\_t\ \mbox{\hyperlink{apic_8c_af32890a8dcc4095270fc3c1398956f22}{lapic\_mmio\_read}}(uint32\_t\ off)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00037}00037\ \ \ \ \ \textcolor{comment}{//\ Hi\ matanel,\ if\ you\ ever\ encounter\ enormous\ page\ faults\ in\ this\ area,\ with\ MmAccessFault\ not\ even\ bugchecking.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00038}00038\ \ \ \ \ \textcolor{comment}{//\ It\ is\ because\ an\ IPI\ was\ sent\ from\ an\ AP\ that\ hasn't\ been\ fully\ initialized.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00039}00039\ \ \ \ \ \textcolor{comment}{//\ Thus\ somehow\ in\ gods\ existence\ corrupting\ stuff.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00040}00040\ \ \ \ \ \textcolor{comment}{//\ Like\ in\ the\ case\ of\ MI\_WRITE\_PTE,\ it\ sent\ an\ IPI\ when\ it\ was\ used\ in\ map\_lapic,\ and\ caused\ like\ a\ chain\ reaction\ that\ formed\ into\ a\ black\ hole.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00041}00041\ \ \ \ \ \textcolor{comment}{//\ So\ I\ added\ another\ flag\ allApsInitialized,\ so\ that\ MI\_WRITE\_PTE\ will\ not\ send\ an\ IPI\ if\ they\ are\ not\ init\ yet.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00042}00042\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}{LapicAddressVirt}}[off\ /\ 4];}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00043}00043\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00045}\mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{00045}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(uint32\_t\ off,\ uint32\_t\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00046}00046\ \ \ \ \ \textcolor{comment}{//\ Read\ my\ lapic\_mmio\_read\ comment\ if\ page\ faults\ ever\ happen\ here.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00047}00047\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}{LapicAddressVirt}}[off\ /\ 4]\ =\ val;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00048}00048\ \ \ \ \ (void)\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}{LapicAddressVirt}}[0];\ \textcolor{comment}{//\ Serializing\ read}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00049}00049\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00050}00050\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00051}00051\ \textcolor{comment}{//\ Wait\ for\ ICR\ delivery\ to\ complete\ (ICR\ low:\ bit\ 12\ =\ Delivery\ Status)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00052}00052\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ lapic\_wait\_icr(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00053}00053\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{apic_8c_af32890a8dcc4095270fc3c1398956f22}{lapic\_mmio\_read}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab1da7f704c2bc5e9c718fed2847310e6}{LAPIC\_ICR\_LOW}})\ \&\ (1\ <<\ 12))\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00054}00054\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ spin\ */}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a26e3a63842c3c5f7d7b97a5c2d786e41}{\_\_pause}}();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00056}00056\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00057}00057\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00058}00058\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00059}00059\ \textcolor{comment}{//\ Initialize\ the\ Spurious\ Interrupt\ Vector}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00060}\mbox{\hyperlink{apic_8c_a7a06ac6a29d96de5b2fcacf7c18851aa}{00060}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a7a06ac6a29d96de5b2fcacf7c18851aa}{lapic\_init\_siv}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00061}00061\ \ \ \ \ uint32\_t\ svr\ =\ \mbox{\hyperlink{apic_8c_af32890a8dcc4095270fc3c1398956f22}{lapic\_mmio\_read}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a1d4914ef1e2fbf9345397c7daddd3298}{LAPIC\_SVR}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00062}00062\ \ \ \ \ uint32\_t\ vector\ =\ 0xFF;\ \textcolor{comment}{//\ IDT\ Entry}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00063}00063\ \ \ \ \ svr\ =\ (svr\ \&\ 0xFFFFFF00)\ |\ vector;\ \textcolor{comment}{//\ preserve\ enable\ bit,\ update\ vector.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00064}00064\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a1d4914ef1e2fbf9345397c7daddd3298}{LAPIC\_SVR}},\ svr);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00065}00065\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00067}00067\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ map\_lapic(uint64\_t\ lapicPhysicalAddr)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00068}00068\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>LapicAddressVirt)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00069}00069\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00070}00070\ \ \ \ \ \textcolor{keywordtype}{void}*\ virt\ =\ (\textcolor{keywordtype}{void}*)(lapicPhysicalAddr\ +\ \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{PhysicalMemoryOffset}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00072}00072\ \ \ \ \ \textcolor{comment}{//\ Map\ the\ single\ LAPIC\ page\ (phys\ -\/>\ virt)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00073}00073\ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ pte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}((uintptr\_t)virt);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(pte\ !=\ NULL);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00075}00075\ \ \ \ \ \textcolor{keywordflow}{if}\ (!pte)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(pte,\ virt,\ lapicPhysicalAddr,\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ad4e58e6408565ce662ebab863dc92f0f}{PAGE\_PCD}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00077}00077\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00078}00078\ \ \ \ \ \textcolor{comment}{//\ store\ the\ mmio\ base\ pointer}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00079}00079\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}{LapicAddressVirt}}\ =\ (\textcolor{keyword}{volatile}\ uint32\_t*)virt;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00080}00080\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac8a16604f61ff001a4946acebaa4aafa}{LapicAddressPhys}}\ =\ lapicPhysicalAddr;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00081}00081\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00082}00082\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00083}00083\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t\ get\_lapic\_base\_address(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00084}00084\ \ \ \ \ uint32\_t\ eax,\ edx;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00085}00085\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00086}00086\ \ \ \ \ \textcolor{comment}{//\ The\ 'rdmsr'\ instruction\ reads\ a\ 64-\/bit\ MSR\ into\ the\ EDX:EAX\ registers.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00087}00087\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}rdmsr"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(eax),\ \textcolor{stringliteral}{"{}=d"{}}(edx)\ :\ \textcolor{stringliteral}{"{}c"{}}(\mbox{\hyperlink{apic_8c_a3dac42d568d070ca6f076841c4ef835a}{IA32\_APIC\_BASE\_MSR}}));}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00089}00089\ \ \ \ \ \textcolor{comment}{//\ Combine\ the\ high\ (edx)\ and\ low\ (eax)\ parts\ into\ a\ 64-\/bit\ value.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00090}00090\ \ \ \ \ uint64\_t\ msr\_value\ =\ ((uint64\_t)edx\ <<\ 32)\ |\ eax;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00092}00092\ \ \ \ \ \textcolor{comment}{//\ The\ address\ is\ in\ bits\ 12\ through\ the\ most\ significant\ bit.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00093}00093\ \ \ \ \ \textcolor{comment}{//\ We\ must\ mask\ off\ the\ lower\ 12\ bits\ which\ contain\ flags.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00094}00094\ \ \ \ \ \textcolor{keywordflow}{return}\ msr\_value\ \&\ \string~0xFFFULL;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00095}00095\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00096}00096\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00097}00097\ \textcolor{comment}{//\ Enable\ local\ APIC\ via\ IA32\_APIC\_BASE\ MSR\ and\ set\ SVR}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00098}\mbox{\hyperlink{apic_8c_ac7b59a78aea266f1c387e64bcae6cc51}{00098}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_ac7b59a78aea266f1c387e64bcae6cc51}{lapic\_enable}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00099}00099\ \ \ \ \ uint64\_t\ apic\_msr\ =\ \mbox{\hyperlink{intrin_8h_a01f5d8c9172c3fa07bc93d6227ce2f17}{\_\_readmsr}}(\mbox{\hyperlink{apic_8c_a3dac42d568d070ca6f076841c4ef835a}{IA32\_APIC\_BASE\_MSR}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00100}00100\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(apic\_msr\ \&\ (1ULL\ <<\ 11)))\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00101}00101\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ APIC\ global\ enable}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00102}00102\ \ \ \ \ \ \ \ \ apic\_msr\ |=\ (1ULL\ <<\ 11);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{apic_8c_a3dac42d568d070ca6f076841c4ef835a}{IA32\_APIC\_BASE\_MSR}},\ apic\_msr);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00104}00104\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00105}00105\ \ \ \ \ map\_lapic(get\_lapic\_base\_address());}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00106}00106\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00107}00107\ \ \ \ \ \textcolor{comment}{//\ Set\ Spurious\ Vector\ Register\ and\ enable\ (bit\ 8\ =\ APIC\ enable)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00108}00108\ \ \ \ \ uint32\_t\ svr\ =\ (0xFF)\ |\ (1\ <<\ 8);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00109}00109\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a1d4914ef1e2fbf9345397c7daddd3298}{LAPIC\_SVR}},\ svr);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00110}00110\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00111}00111\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00112}00112\ \textcolor{comment}{//\ Initialize\ CPU's\ LAPIC\ (call\ early\ from\ kernel\ init\ on\ BSP,\ and\ from\ each\ ap)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00113}\mbox{\hyperlink{apic_8c_a91d3fbf4f7264d3456d0ca88f0b54a08}{00113}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a91d3fbf4f7264d3456d0ca88f0b54a08}{lapic\_init\_cpu}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00114}00114\ \ \ \ \ map\_lapic(get\_lapic\_base\_address());}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00115}00115\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00116}00116\ \ \ \ \ \mbox{\hyperlink{apic_8c_ac7b59a78aea266f1c387e64bcae6cc51}{lapic\_enable}}();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00117}00117\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00118}00118\ \ \ \ \ \textcolor{comment}{//\ mask\ LINT0/LINT1\ as\ appropriate,\ clear\ error\ status,\ etc.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00119}00119\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a422e75e0295550ccf559d1a1ec094c3e}{LAPIC\_LVT\_LINT0}},\ (1U\ <<\ 16));\ \textcolor{comment}{//\ mask}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00120}00120\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a0f304d96b389e3afd828c8f298b4c0aa}{LAPIC\_LVT\_LINT1}},\ (1U\ <<\ 16));\ \textcolor{comment}{//\ mask}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00121}00121\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782adc55a4c44a20a991bf529314f0988dab}{LAPIC\_LVT\_ERROR}},\ (1U\ <<\ 16));\ \textcolor{comment}{//\ mask\ (until\ handler\ in\ place)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00122}00122\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae1a36b5553b46ac8fe10c198d6b5a340}{LAPIC\_EOI}},\ 0);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00123}00123\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00124}00124\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00125}00125\ \textcolor{comment}{//\ send\ IPI\ to\ APIC\ id\ }}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00126}00126\ \textcolor{comment}{//\ apic\_id\ -\/\ APICId\ of\ the\ CPU.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00127}00127\ \textcolor{comment}{//\ vector\ -\/\ IDT\ Vector\ number}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00128}00128\ \textcolor{comment}{//\ flags\ -\/\ specified\ cpu\ flags,\ 0\ for\ none.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00129}\mbox{\hyperlink{apic_8c_a54f251fa242c134d1db5108b5a564b42}{00129}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a54f251fa242c134d1db5108b5a564b42}{lapic\_send\_ipi}}(uint8\_t\ apic\_id,\ uint8\_t\ vector,\ uint32\_t\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00130}00130\ \ \ \ \ uint32\_t\ high\ =\ ((uint32\_t)apic\_id)\ <<\ 24;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00131}00131\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a93629ad0dae3ee3834231520db31e445}{LAPIC\_ICR\_HIGH}},\ high);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00132}00132\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab1da7f704c2bc5e9c718fed2847310e6}{LAPIC\_ICR\_LOW}},\ (uint32\_t)vector\ |\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00133}00133\ \ \ \ \ lapic\_wait\_icr();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00134}00134\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00135}00135\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00136}\mbox{\hyperlink{apic_8c_a5c673232a19d0c4e78792208eb62f0cc}{00136}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\_eoi}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00137}00137\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae1a36b5553b46ac8fe10c198d6b5a340}{LAPIC\_EOI}},\ 0);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00138}00138\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00139}00139\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00140}00140\ \textcolor{comment}{//\ -\/-\/-\/\ Timer\ calibration\ and\ init\ -\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00141}00141\ \textcolor{comment}{//\ NOTE:\ the\ APIC\ timer\ is\ a\ downward\ counter.\ Strategy:}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00142}00142\ \textcolor{comment}{//\ \ 1.\ Set\ divide\ to\ known\ divisor.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00143}00143\ \textcolor{comment}{//\ \ 2.\ Write\ initcount\ =\ 0xFFFFFFFF.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00144}00144\ \textcolor{comment}{//\ \ 3.\ Wait\ EXACTLY\ 100\ ms\ via\ PIT/HPET.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00145}00145\ \textcolor{comment}{//\ \ 4.\ curr\ =\ read\ current\ count\ -\/>\ ticks\_in\_100ms\ =\ start\ -\/\ curr}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00146}00146\ \textcolor{comment}{//\ \ 5.\ ticks\_per\_period(10ms)\ =\ ticks\_in\_100ms\ /\ 10}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00147}00147\ \textcolor{comment}{//\ \ 6.\ Program\ LVT\ timer\ to\ periodic\ and\ initial\ count\ =\ ticks\_per\_period}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00148}00148\ \textcolor{comment}{//}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00149}\mbox{\hyperlink{apic_8c_afbe5c3c5e249b35d3230d29faa253475}{00149}}\ \textcolor{preprocessor}{\#define\ APIC\_LVT\_TIMER\_PERIODIC\ (1U\ <<\ 17)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00150}\mbox{\hyperlink{apic_8c_a15ed1a5c29d526e3faa1e649df0040ab}{00150}}\ \textcolor{preprocessor}{\#define\ APIC\_TIMER\_MASKED\ \ \ \ \ \ \ \ (1U\ <<\ 16)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00151}00151\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00152}00152\ \textcolor{keyword}{static}\ uint32\_t\ calibrate\_lapic\_ticks\_per\_10ms(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00153}00153\ \ \ \ \ \textcolor{comment}{//\ choose\ divide\ config:\ here\ set\ encode\ 0x3\ (divide\ by\ 16).\ Adjust\ if\ needed.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00154}00154\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ae563d6c7f8ca78e0c6c01e7409afb261}{LAPIC\_TIMER\_DIV}},\ 0x3);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00155}00155\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00156}00156\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ start\ =\ 0xFFFFFFFFU;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00157}00157\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a9d40e01ad0976934bc8a1a167e636dd9}{LAPIC\_TIMER\_INITCNT}},\ start);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00158}00158\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00159}00159\ \ \ \ \ \mbox{\hyperlink{pit_8c_a9ce3663b57d1010d886159f6ba120e37}{pit\_sleep\_ms}}(100);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00160}00160\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00161}00161\ \ \ \ \ uint32\_t\ curr\ =\ \mbox{\hyperlink{apic_8c_af32890a8dcc4095270fc3c1398956f22}{lapic\_mmio\_read}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782aab49de53e0071f39721cca0fd83c2bfd}{LAPIC\_TIMER\_CURRCNT}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00162}00162\ \ \ \ \ uint32\_t\ ticks\ =\ start\ -\/\ curr;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00163}00163\ \ \ \ \ \textcolor{keywordflow}{if}\ (ticks\ ==\ 0)\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00164}00164\ \ \ \ \ \textcolor{keywordflow}{return}\ ticks\ /\ 10;\ \textcolor{comment}{//\ ticks\ per\ 10ms\ -\/>\ for\ 100Hz\ (10ms\ period)}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00165}00165\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00166}00166\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00167}00167\ \textcolor{comment}{//\ Make\ the\ global\ variable\ static\ to\ this\ file}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00168}00168\ \textcolor{keyword}{static}\ uint32\_t\ g\_apic\_ticks\_per\_10ms\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00169}00169\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00170}00170\ \textcolor{comment}{//\ BSP-\/only\ calibration\ function}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00171}\mbox{\hyperlink{apic_8c_a024a9a5a7e9ecdbe0359b4cae774c9cc}{00171}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{apic_8c_a024a9a5a7e9ecdbe0359b4cae774c9cc}{lapic\_timer\_calibrate}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00172}00172\ \ \ \ \ \textcolor{comment}{//\ Only\ calibrate\ if\ it\ hasn't\ been\ done.\ This\ is\ the\ single\ entry\ point.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00173}00173\ \ \ \ \ \textcolor{keywordflow}{if}\ (g\_apic\_ticks\_per\_10ms\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ g\_apic\_ticks\_per\_10ms\ =\ calibrate\_lapic\_ticks\_per\_10ms();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00175}00175\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00176}00176\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00177}00177\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00178}00178\ \textcolor{comment}{//\ Renamed\ and\ simplified\ init\ function}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00179}\mbox{\hyperlink{apic_8c_a1e4c2eac6f54346ca8dd087e24ff420c}{00179}}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{apic_8c_a1e4c2eac6f54346ca8dd087e24ff420c}{init\_lapic\_timer}}(uint32\_t\ hz)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00180}00180\ \ \ \ \ \textcolor{keywordflow}{if}\ (hz\ ==\ 0)\ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00181}00181\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00182}00182\ \ \ \ \ \textcolor{comment}{//\ This\ now\ assumes\ calibration\ is\ already\ done!}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00183}00183\ \ \ \ \ \textcolor{keywordflow}{if}\ (g\_apic\_ticks\_per\_10ms\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00184}00184\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calibration\ failed\ or\ wasn't\ run,\ this\ is\ an\ error.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00185}00185\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/2;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00186}00186\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00187}00187\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00188}00188\ \ \ \ \ uint32\_t\ period\_ms\ =\ 1000\ /\ hz;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00189}00189\ \ \ \ \ uint64\_t\ initial\ =\ ((uint64\_t)g\_apic\_ticks\_per\_10ms\ *\ (uint64\_t)period\_ms)\ /\ 10ULL;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00190}00190\ \ \ \ \ \textcolor{keywordflow}{if}\ (initial\ ==\ 0)\ initial\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00191}00191\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00192}00192\ \ \ \ \ \textcolor{comment}{//\ Program\ THIS\ CPU's\ timer\ using\ the\ shared\ calibration\ value}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00193}00193\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ad5042d4497f75075276c20da844ad609}{LAPIC\_LVT\_TIMER}},\ \mbox{\hyperlink{apic_8c_afbe5c3c5e249b35d3230d29faa253475}{APIC\_LVT\_TIMER\_PERIODIC}}\ |\ 0xEF\ \textcolor{comment}{/*\ vector\ */});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00194}00194\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a9d40e01ad0976934bc8a1a167e636dd9}{LAPIC\_TIMER\_INITCNT}},\ (uint32\_t)initial);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00195}00195\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00196}00196\ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00197}00197\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00198}00198\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00199}\mbox{\hyperlink{apic_8c_a5fa8dc1090aac3d53a9468b21f95773c}{00199}}\ \mbox{\hyperlink{apic_8c_a5fa8dc1090aac3d53a9468b21f95773c}{MhRequestSoftwareInterrupt}}(}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00200}00200\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ RequestIrql}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00201}00201\ )}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00202}00202\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00203}00203\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00204}00204\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00205}00205\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ }}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00206}00206\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00207}00207\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ is\ used\ to\ request\ a\ software\ interrupt\ to\ the\ current\ processor.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00208}00208\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00209}00209\ \textcolor{comment}{\ \ \ \ \ \ \ \ N.B:\ The\ function\ will\ 100\%\ have\ the\ interrupt\ executed\ when\ it\ returns.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00210}00210\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00211}00211\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00212}00212\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00213}00213\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ IRQL\ RequstIrql\ -\/\ The\ IRQL\ value\ to\ request\ an\ interrupt\ for.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00214}00214\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00215}00215\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00216}00216\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00217}00217\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00218}00218\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00219}00219\ \textcolor{comment}{\ \ \ \ Notes:}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00220}00220\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00221}00221\ \textcolor{comment}{\ \ \ \ \ \ \ \ The\ only\ IRQLs\ supported\ currently\ are\ DISPATCH\_LEVEL\ and\ APC\_LEVEL}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00222}00222\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00223}00223\ \textcolor{comment}{\ \ \ \ \ \ \ \ To\ have\ this\ function\ serviced\ for\ a\ DPC\ or\ an\ APC,\ set\ the\ flag\ in\ the\ CPU\ accordingly\ and\ wait\ for\ IRQL\ to\ be\ equal\ or\ below\ to\ IRQL\ requested.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00224}00224\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00225}00225\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00226}00226\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00227}00227\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00228}00228\ \ \ \ \ \textcolor{keywordtype}{bool}\ prev\_if;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00229}00229\ \ \ \ \ \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}\ cpu\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00230}00230\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5}{DpcInterruptRequested}}\ ==\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00231}00231\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00232}00232\ \ \ \ \ \textcolor{comment}{//\ We\ only\ support\ DISPATCH\_LEVEL.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00233}00233\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(RequestIrql\ ==\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}}\ ||\ RequestIrql\ ==\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00234}00234\ \ \ \ \ \textcolor{keywordflow}{if}\ (RequestIrql\ !=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}}\ \&\&\ RequestIrql\ !=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\_LEVEL}})\ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82aa4c43e24f8de0ecfcfed47e38979c1fd}{INVALID\_INTERRUPT\_REQUEST}},\ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{macros_8h_ac404dd901aac7a34d882f63dfdfd0095}{RETADDR}}(0),\ (\textcolor{keywordtype}{void}*)RequestIrql,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00235}00235\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00236}00236\ \ \ \ \ \textcolor{comment}{//\ Disable\ interrupts,\ and\ save\ IF\ flag.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00237}00237\ \ \ \ \ prev\_if\ =\ \mbox{\hyperlink{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}{MeDisableInterrupts}}();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00238}00238\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00239}00239\ \ \ \ \ \textcolor{comment}{//\ Clear\ the\ flag.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00240}00240\ \ \ \ \ \textcolor{keywordflow}{if}\ (RequestIrql\ ==\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00241}00241\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5}{DpcInterruptRequested}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00242}00242\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00243}00243\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00244}00244\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb6d7827ddf35a32b4ea98ab78d344a}{ApcInterruptRequested}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00245}00245\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00246}00246\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00247}00247\ \ \ \ \ \textcolor{comment}{//\ wait\ until\ previous\ ICR\ is\ not\ busy}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00248}00248\ \ \ \ \ lapic\_wait\_icr();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00249}00249\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00250}00250\ \ \ \ \ \textcolor{comment}{//\ For\ a\ self\ IPI\ we\ can\ use\ the\ destination\ shorthand}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00251}00251\ \ \ \ \ uint32\_t\ icr\_low;}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00252}00252\ \ \ \ \ \textcolor{keywordflow}{if}\ (RequestIrql\ ==\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00253}00253\ \ \ \ \ \ \ \ \ icr\_low\ =\ (uint32\_t)\mbox{\hyperlink{mh_8h_aa6389ca3cc6d1d118e8916b7df10af6e}{VECTOR\_DPC}}\ |\ (1U\ <<\ 18);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00254}00254\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00255}00255\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00256}00256\ \ \ \ \ \ \ \ \ icr\_low\ =\ (uint32\_t)\mbox{\hyperlink{mh_8h_ac906ecc46d8ec7bff1a926611d4a7499}{VECTOR\_APC}}\ |\ (1U\ <<\ 18);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00257}00257\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00258}00258\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00259}00259\ \ \ \ \ \textcolor{comment}{//\ ICR\ high\ is\ ignored\ when\ shorthand\ is\ used,\ but\ zero\ it\ for\ clarity.}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00260}00260\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782a93629ad0dae3ee3834231520db31e445}{LAPIC\_ICR\_HIGH}},\ 0);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00261}00261\ \ \ \ \ \mbox{\hyperlink{apic_8c_a0dd32706f0be034ea2d462f691b7ca25}{lapic\_mmio\_write}}(\mbox{\hyperlink{apic_8c_a27ef0b1ddda69185046b0b2862bf5782ab1da7f704c2bc5e9c718fed2847310e6}{LAPIC\_ICR\_LOW}},\ icr\_low);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00262}00262\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00263}00263\ \ \ \ \ \textcolor{comment}{//\ wait\ for\ delivery\ to\ complete}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00264}00264\ \ \ \ \ lapic\_wait\_icr();}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00265}00265\ }
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00266}00266\ \ \ \ \ \textcolor{comment}{//\ restore\ interrupts}}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00267}00267\ \ \ \ \ \mbox{\hyperlink{irql_8c_a8ed359ce36b3a1000c30116896fe20bb}{MeEnableInterrupts}}(prev\_if);}
+\DoxyCodeLine{\Hypertarget{apic_8c_source_l00268}00268\ \}}
+
+\end{DoxyCode}

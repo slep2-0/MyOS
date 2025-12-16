@@ -1,0 +1,97 @@
+\doxysection{\+\_\+\+POOL\+\_\+\+HEADER Struct Reference}
+\hypertarget{struct___p_o_o_l___h_e_a_d_e_r}{}\label{struct___p_o_o_l___h_e_a_d_e_r}\index{\_POOL\_HEADER@{\_POOL\_HEADER}}
+
+
+{\ttfamily \#include $<$mm.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_a68f9c7bab6e12c2ed2a87eabf225225d}{Pool\+Canary}}
+\item 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>\mbox{\hyperlink{core_8h_addc7e844c7106a4de73789a65cd50a2a}{SINGLE\_LINKED\_LIST}} \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_a4c90b19a3c95aac9390d2bea0182e3e2}{FreeListEntry}}\\
+\>struct \{\\
+\>\>uint16\_t \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_a0e325ffe4a98d1cbdf4d0fec7652d3f9}{BlockSize}}\\
+\>\>uint16\_t \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_a2841afbecaf8854ab200bed6d7b83f05}{PoolIndex}}\\
+\>\} \\
+\} \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_aeca6a80e3151f5ade73d83b8bf22b669}{Metadata}}\\
+
+\end{tabbing}\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_o_o_l___h_e_a_d_e_r_a8b95d54388fdeb4f63367d23320399d6}{Pool\+Tag}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00494}{494}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_a0e325ffe4a98d1cbdf4d0fec7652d3f9}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!BlockSize@{BlockSize}}
+\index{BlockSize@{BlockSize}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{BlockSize}{BlockSize}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_a0e325ffe4a98d1cbdf4d0fec7652d3f9} 
+uint16\+\_\+t Block\+Size}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00505}{505}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_a4c90b19a3c95aac9390d2bea0182e3e2}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!FreeListEntry@{FreeListEntry}}
+\index{FreeListEntry@{FreeListEntry}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{FreeListEntry}{FreeListEntry}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_a4c90b19a3c95aac9390d2bea0182e3e2} 
+\mbox{\hyperlink{core_8h_addc7e844c7106a4de73789a65cd50a2a}{SINGLE\+\_\+\+LINKED\+\_\+\+LIST}} Free\+List\+Entry}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00500}{500}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_aeca6a80e3151f5ade73d83b8bf22b669}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!Metadata@{Metadata}}
+\index{Metadata@{Metadata}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{[union]}{[union]}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_aeca6a80e3151f5ade73d83b8bf22b669} 
+union  \{ ... \}  Metadata}
+
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_a68f9c7bab6e12c2ed2a87eabf225225d}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!PoolCanary@{PoolCanary}}
+\index{PoolCanary@{PoolCanary}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{PoolCanary}{PoolCanary}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_a68f9c7bab6e12c2ed2a87eabf225225d} 
+uint32\+\_\+t Pool\+Canary}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00496}{496}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_a2841afbecaf8854ab200bed6d7b83f05}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!PoolIndex@{PoolIndex}}
+\index{PoolIndex@{PoolIndex}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{PoolIndex}{PoolIndex}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_a2841afbecaf8854ab200bed6d7b83f05} 
+uint16\+\_\+t Pool\+Index}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00506}{506}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___p_o_o_l___h_e_a_d_e_r_a8b95d54388fdeb4f63367d23320399d6}\index{\_POOL\_HEADER@{\_POOL\_HEADER}!PoolTag@{PoolTag}}
+\index{PoolTag@{PoolTag}!\_POOL\_HEADER@{\_POOL\_HEADER}}
+\doxysubsubsection{\texorpdfstring{PoolTag}{PoolTag}}
+{\footnotesize\ttfamily \label{struct___p_o_o_l___h_e_a_d_e_r_a8b95d54388fdeb4f63367d23320399d6} 
+uint32\+\_\+t Pool\+Tag}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00509}{509}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{mm_8h}{mm.\+h}}\end{DoxyCompactItemize}

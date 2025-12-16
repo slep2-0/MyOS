@@ -15,49 +15,52 @@
 \DoxyCodeLine{\Hypertarget{assert_8h_source_l00011}00011\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
 \DoxyCodeLine{\Hypertarget{assert_8h_source_l00012}00012\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
 \DoxyCodeLine{\Hypertarget{assert_8h_source_l00013}00013\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00014}00014\ \textcolor{preprocessor}{\#include\ "{}bugcheck/bugcheck.h"{}}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00015}00015\ \_\_attribute\_\_((noreturn))}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00016}00016\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ assert\_fail(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ expr,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ reason,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ func,\ \textcolor{keywordtype}{int}\ line)\ \{}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00017}00017\ \ \ \ \ \textcolor{comment}{//\ Getting\ here\ means\ a\ runtime\ assertion\ has\ failed\ (assert())}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00018}00018\ \ \ \ \ BUGCHECK\_ADDITIONALS\ addt\ =\ \{\ 0\ \};}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00019}00019\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00020}00020\ \ \ \ \ \textcolor{comment}{//\ It\ can\ be\ versatile,\ with\ a\ reason\ or\ not.}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00021}00021\ \ \ \ \ \textcolor{keywordflow}{if}\ (reason)\ \{}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00022}00022\ \ \ \ \ \ \ \ \ ksnprintf(addt.str,\ \textcolor{keyword}{sizeof}(addt.str),\ \textcolor{stringliteral}{"{}An\ assertion\ has\ failed\ (\%s)\(\backslash\)nReason:\ \%s\(\backslash\)nLocation:\ \%s:\%d,\ function\ \%s"{}},\ expr,\ reason,\ file,\ line,\ func);}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00023}00023\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}\ ctx;}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00024}00024\ \ \ \ \ \ \ \ \ SAVE\_CTX\_FRAME(\&ctx);}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00025}00025\ \ \ \ \ \ \ \ \ MtBugcheckEx(\&ctx,\ NULL,\ ASSERTION\_FAILURE,\ \&addt,\ \textcolor{keyword}{true});}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00026}00026\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00027}00027\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00028}00028\ \ \ \ \ \ \ \ \ ksnprintf(addt.str,\ \textcolor{keyword}{sizeof}(addt.str),\ \textcolor{stringliteral}{"{}An\ assertion\ has\ failed\ (\%s)\(\backslash\)nLocation:\ \%s:\%d,\ function\ \%s"{}},\ expr,\ file,\ line,\ func);}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00029}00029\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}\ ctx;}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00030}00030\ \ \ \ \ \ \ \ \ SAVE\_CTX\_FRAME(\&ctx);}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00031}00031\ \ \ \ \ \ \ \ \ MtBugcheckEx(\&ctx,\ NULL,\ ASSERTION\_FAILURE,\ \&addt,\ \textcolor{keyword}{true});}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00032}00032\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00033}00033\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00034}00034\ \ \ \ \ \_\_builtin\_unreachable();}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00035}00035\ \}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00036}00036\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00037}00037\ \textcolor{comment}{//\ Helper\ macros\ for\ argument\ counting}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00038}00038\ \textcolor{preprocessor}{\#define\ GET\_MACRO(\_1,\_2,NAME,...)\ NAME}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00039}00039\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00040}00040\ \textcolor{comment}{//\ Base\ macros}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00041}00041\ \textcolor{preprocessor}{\#define\ ASSERT1(expr)\ \(\backslash\)}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00042}00042\ \textcolor{preprocessor}{\ \ \ \ ((expr)\ ?\ (void)0\ :\ assert\_fail(\#expr,\ NULL,\ \_\_FILE\_\_,\ \_\_func\_\_,\ \_\_LINE\_\_))}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00043}00043\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00044}00044\ \textcolor{preprocessor}{\#define\ ASSERT2(expr,\ reason)\ \(\backslash\)}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00045}00045\ \textcolor{preprocessor}{\ \ \ \ ((expr)\ ?\ (void)0\ :\ assert\_fail(\#expr,\ reason,\ \_\_FILE\_\_,\ \_\_func\_\_,\ \_\_LINE\_\_))}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00046}00046\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00047}00047\ \textcolor{comment}{//\ assert(expression)\ OR\ assert(expression,\ "{}expression\ must\ be\ ..."{})}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00048}00048\ \textcolor{preprocessor}{\#define\ assert(...)\ GET\_MACRO(\_\_VA\_ARGS\_\_,\ ASSERT2,\ ASSERT1)(\_\_VA\_ARGS\_\_)}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00049}00049\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00050}00050\ \textcolor{preprocessor}{\#else}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00051}00051\ \textcolor{comment}{//\ Make\ intellisense\ be\ quiet.}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00052}00052\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00053}00053\ \textcolor{comment}{//\ assert(expression)\ OR\ assert(expression,\ "{}expression\ must\ be\ ..."{})}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00054}\mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{00054}}\ \textcolor{preprocessor}{\#define\ assert(...)\ do\ \{\ \}\ while(0)}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00055}00055\ \textcolor{preprocessor}{\#endif}}
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00056}00056\ }
-\DoxyCodeLine{\Hypertarget{assert_8h_source_l00057}00057\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00014}00014\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00015}00015\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00016}00016\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00017}00017\ \mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\_\_attribute\_\_}}((noreturn))}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00018}00018\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ assert\_fail(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ expr,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ reason,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ func,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00019}00019\ \ \ \ \ \textcolor{comment}{//\ Getting\ here\ means\ a\ runtime\ assertion\ has\ failed\ (assert())}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00020}00020\ \ \ \ \ (void)(func);}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00022}00022\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ expr\ is\ 0\ or\ 1\ (only)\ to\ make\ it\ true/false\ for\ readability.}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00023}00023\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{gop_8c_aeb9ae33be9fc0ba0f5380f9af0927176}{kstrcmp}}(expr,\ \textcolor{stringliteral}{"{}0"{}}))\ \{}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00024}00024\ \ \ \ \ \ \ \ \ expr\ =\ \textcolor{stringliteral}{"{}false"{}};}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00025}00025\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00026}00026\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{gop_8c_aeb9ae33be9fc0ba0f5380f9af0927176}{kstrcmp}}(expr,\ \textcolor{stringliteral}{"{}1"{}}))\ \{}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00027}00027\ \ \ \ \ \ \ \ \ expr\ =\ \textcolor{stringliteral}{"{}true"{}};}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00028}00028\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00030}00030\ \ \ \ \ \textcolor{comment}{//\ It\ can\ be\ versatile,\ with\ a\ reason\ or\ not.}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00031}00031\ \ \ \ \ \textcolor{keywordflow}{if}\ (reason)\ \{}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00032}00032\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3}{ASSERTION\_FAILURE}},\ (\textcolor{keywordtype}{void}*)expr,\ (\textcolor{keywordtype}{void}*)reason,\ (\textcolor{keywordtype}{void}*)file,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)line);}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00033}00033\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00034}00034\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00035}00035\ \ \ \ \ \ \ \ \ reason\ =\ \textcolor{stringliteral}{"{}NO\_REASON\_SPECIFIED"{}};}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00036}00036\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3}{ASSERTION\_FAILURE}},\ (\textcolor{keywordtype}{void}*)expr,\ (\textcolor{keywordtype}{void}*)reason,\ (\textcolor{keywordtype}{void}*)file,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)line);}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00037}00037\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00038}00038\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00039}00039\ \ \ \ \ \_\_builtin\_unreachable();}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00040}00040\ \}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00041}00041\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00042}00042\ \textcolor{comment}{//\ Helper\ macros\ for\ argument\ counting}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00043}00043\ \textcolor{preprocessor}{\#define\ GET\_MACRO(\_1,\_2,NAME,...)\ NAME}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00045}00045\ \textcolor{comment}{//\ Base\ macros}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00046}00046\ \textcolor{preprocessor}{\#define\ ASSERT1(expr)\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00047}00047\ \textcolor{preprocessor}{\ \ \ \ ((expr)\ ?\ (void)0\ :\ assert\_fail(\#expr,\ NULL,\ \_\_FILE\_\_,\ \_\_func\_\_,\ \_\_LINE\_\_))}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00049}00049\ \textcolor{preprocessor}{\#define\ ASSERT2(expr,\ reason)\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00050}00050\ \textcolor{preprocessor}{\ \ \ \ ((expr)\ ?\ (void)0\ :\ assert\_fail(\#expr,\ reason,\ \_\_FILE\_\_,\ \_\_func\_\_,\ \_\_LINE\_\_))}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00052}00052\ \textcolor{comment}{//\ assert(expression)\ OR\ assert(expression,\ "{}expression\ must\ be\ true"{})}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00053}00053\ \textcolor{preprocessor}{\#define\ assert(...)\ GET\_MACRO(\_\_VA\_ARGS\_\_,\ ASSERT2,\ ASSERT1)(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00055}00055\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00056}00056\ \textcolor{comment}{//\ assert(expression)\ OR\ assert(expression,\ "{}expression\ must\ be\ true"{})}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00057}\mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{00057}}\ \textcolor{preprocessor}{\#define\ assert(...)\ do\ \{\ \}\ while(0)}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00058}00058\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{assert_8h_source_l00060}00060\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

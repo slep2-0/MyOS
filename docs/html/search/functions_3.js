@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['read_5fcontext_5fframe_0',['read_context_frame',['../kernel_8h.html#a7614d4a9e62a3f55e776c1230bb27627',1,'kernel.h']]],
-  ['read_5finterrupt_5fframe_1',['read_interrupt_frame',['../kernel_8h.html#a29b0957b94e2cdc2783958bd0a2d43ff',1,'kernel.h']]]
+  ['expcapturecontext_0',['ExpCaptureContext',['../exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a',1,'exception.h']]],
+  ['expdispatchexception_1',['ExpDispatchException',['../exception_8c.html#a899600fb60c845d2acfda420340e0fbe',1,'ExpDispatchException(IN PTRAP_FRAME TrapFrame, IN PCONTEXT ContextRecord, IN PEXCEPTION_RECORD ExceptionRecord):&#160;exception.c'],['../exception_8h.html#a899600fb60c845d2acfda420340e0fbe',1,'ExpDispatchException(IN PTRAP_FRAME TrapFrame, IN PCONTEXT ContextRecord, IN PEXCEPTION_RECORD ExceptionRecord):&#160;exception.c']]],
+  ['expisexceptionhandlerpresent_2',['ExpIsExceptionHandlerPresent',['../exception_8c.html#a2dee8f10bb0d7be89909abb721626b2a',1,'ExpIsExceptionHandlerPresent(IN PETHREAD Thread):&#160;exception.c'],['../exception_8h.html#a2dee8f10bb0d7be89909abb721626b2a',1,'ExpIsExceptionHandlerPresent(IN PETHREAD Thread):&#160;exception.c']]]
 ];

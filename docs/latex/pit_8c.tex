@@ -1,0 +1,94 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mh/pit.c File Reference}
+\hypertarget{pit_8c}{}\label{pit_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/pit.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/pit.c}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include "{}../../intrinsics/intrin.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{pit_8c_a6c77d2958775f3d8b93ed6dcae758a07}{PIT\+\_\+\+FREQ\+\_\+\+HZ}}~1193182U
+\item 
+\#define \mbox{\hyperlink{pit_8c_af3222276bab8b1bf12325e35ee2c0337}{PIT\+\_\+\+CMD\+\_\+\+PORT}}~0x43
+\item 
+\#define \mbox{\hyperlink{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}{PIT\+\_\+\+CH0\+\_\+\+PORT}}~0x40
+\item 
+\#define \mbox{\hyperlink{pit_8c_a4287cf8f5cff07319c87565fcfecb291}{PIT\+\_\+\+CMD\+\_\+\+MODE2\+\_\+\+LBHB}}~0x34
+\item 
+\#define \mbox{\hyperlink{pit_8c_a16a0a00705c65d7d4182d6911cf3890d}{PIT\+\_\+\+CMD\+\_\+\+LATCH\+\_\+\+CH0}}~0x00
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{pit_8c_a9ce3663b57d1010d886159f6ba120e37}{pit\+\_\+sleep\+\_\+ms}} (uint32\+\_\+t ms)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{pit_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3}\index{pit.c@{pit.c}!PIT\_CH0\_PORT@{PIT\_CH0\_PORT}}
+\index{PIT\_CH0\_PORT@{PIT\_CH0\_PORT}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{PIT\_CH0\_PORT}{PIT\_CH0\_PORT}}
+{\footnotesize\ttfamily \label{pit_8c_a52d3b48aa20d4710106fd580ed9b82a3} 
+\#define PIT\+\_\+\+CH0\+\_\+\+PORT~0x40}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00009}{9}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+\Hypertarget{pit_8c_a16a0a00705c65d7d4182d6911cf3890d}\index{pit.c@{pit.c}!PIT\_CMD\_LATCH\_CH0@{PIT\_CMD\_LATCH\_CH0}}
+\index{PIT\_CMD\_LATCH\_CH0@{PIT\_CMD\_LATCH\_CH0}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{PIT\_CMD\_LATCH\_CH0}{PIT\_CMD\_LATCH\_CH0}}
+{\footnotesize\ttfamily \label{pit_8c_a16a0a00705c65d7d4182d6911cf3890d} 
+\#define PIT\+\_\+\+CMD\+\_\+\+LATCH\+\_\+\+CH0~0x00}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00016}{16}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+\Hypertarget{pit_8c_a4287cf8f5cff07319c87565fcfecb291}\index{pit.c@{pit.c}!PIT\_CMD\_MODE2\_LBHB@{PIT\_CMD\_MODE2\_LBHB}}
+\index{PIT\_CMD\_MODE2\_LBHB@{PIT\_CMD\_MODE2\_LBHB}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{PIT\_CMD\_MODE2\_LBHB}{PIT\_CMD\_MODE2\_LBHB}}
+{\footnotesize\ttfamily \label{pit_8c_a4287cf8f5cff07319c87565fcfecb291} 
+\#define PIT\+\_\+\+CMD\+\_\+\+MODE2\+\_\+\+LBHB~0x34}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00015}{15}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+\Hypertarget{pit_8c_af3222276bab8b1bf12325e35ee2c0337}\index{pit.c@{pit.c}!PIT\_CMD\_PORT@{PIT\_CMD\_PORT}}
+\index{PIT\_CMD\_PORT@{PIT\_CMD\_PORT}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{PIT\_CMD\_PORT}{PIT\_CMD\_PORT}}
+{\footnotesize\ttfamily \label{pit_8c_af3222276bab8b1bf12325e35ee2c0337} 
+\#define PIT\+\_\+\+CMD\+\_\+\+PORT~0x43}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00008}{8}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+\Hypertarget{pit_8c_a6c77d2958775f3d8b93ed6dcae758a07}\index{pit.c@{pit.c}!PIT\_FREQ\_HZ@{PIT\_FREQ\_HZ}}
+\index{PIT\_FREQ\_HZ@{PIT\_FREQ\_HZ}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{PIT\_FREQ\_HZ}{PIT\_FREQ\_HZ}}
+{\footnotesize\ttfamily \label{pit_8c_a6c77d2958775f3d8b93ed6dcae758a07} 
+\#define PIT\+\_\+\+FREQ\+\_\+\+HZ~1193182U}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00007}{7}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{pit_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{pit_8c_a9ce3663b57d1010d886159f6ba120e37}\index{pit.c@{pit.c}!pit\_sleep\_ms@{pit\_sleep\_ms}}
+\index{pit\_sleep\_ms@{pit\_sleep\_ms}!pit.c@{pit.c}}
+\doxysubsubsection{\texorpdfstring{pit\_sleep\_ms()}{pit\_sleep\_ms()}}
+{\footnotesize\ttfamily \label{pit_8c_a9ce3663b57d1010d886159f6ba120e37} 
+void pit\+\_\+sleep\+\_\+ms (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{ms}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00019}{19}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+

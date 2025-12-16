@@ -1,0 +1,61 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/mmio.c File Reference}
+\hypertarget{mmio_8c}{}\label{mmio_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmio.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmio.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{mmio_8c_a17314759b57e834ab629d21746317d8e}{Mi\+Check\+For\+Contigious\+Memory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Start\+Address, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes)
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mmio_8c_ac78ff048b41c520d5b2f9cd176dfce2b}{Mm\+Allocate\+Contigious\+Memory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t Highest\+Acceptable\+Address)
+\item 
+void \mbox{\hyperlink{mmio_8c_a0710a778ca4c13692cff818db218b066}{Mm\+Free\+Contigious\+Memory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Base\+Address, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes)
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mmio_8c_a4939c6c7723219a53552746a8b716657}{Mm\+Map\+Io\+Space}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t Physical\+Address, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a38e8697844f666050ca4be062ea593a8}{MEMORY\+\_\+\+CACHING\+\_\+\+TYPE}} Cache\+Type)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{mmio_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{mmio_8c_a17314759b57e834ab629d21746317d8e}\index{mmio.c@{mmio.c}!MiCheckForContigiousMemory@{MiCheckForContigiousMemory}}
+\index{MiCheckForContigiousMemory@{MiCheckForContigiousMemory}!mmio.c@{mmio.c}}
+\doxysubsubsection{\texorpdfstring{MiCheckForContigiousMemory()}{MiCheckForContigiousMemory()}}
+{\footnotesize\ttfamily \label{mmio_8c_a17314759b57e834ab629d21746317d8e} 
+bool Mi\+Check\+For\+Contigious\+Memory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Start\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mmio_8c_source_l00025}{25}} of file \mbox{\hyperlink{mmio_8c_source}{mmio.\+c}}.
+
+\Hypertarget{mmio_8c_ac78ff048b41c520d5b2f9cd176dfce2b}\index{mmio.c@{mmio.c}!MmAllocateContigiousMemory@{MmAllocateContigiousMemory}}
+\index{MmAllocateContigiousMemory@{MmAllocateContigiousMemory}!mmio.c@{mmio.c}}
+\doxysubsubsection{\texorpdfstring{MmAllocateContigiousMemory()}{MmAllocateContigiousMemory()}}
+{\footnotesize\ttfamily \label{mmio_8c_ac78ff048b41c520d5b2f9cd176dfce2b} 
+void \texorpdfstring{$\ast$}{*} Mm\+Allocate\+Contigious\+Memory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{Highest\+Acceptable\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mmio_8c_source_l00087}{87}} of file \mbox{\hyperlink{mmio_8c_source}{mmio.\+c}}.
+
+\Hypertarget{mmio_8c_a0710a778ca4c13692cff818db218b066}\index{mmio.c@{mmio.c}!MmFreeContigiousMemory@{MmFreeContigiousMemory}}
+\index{MmFreeContigiousMemory@{MmFreeContigiousMemory}!mmio.c@{mmio.c}}
+\doxysubsubsection{\texorpdfstring{MmFreeContigiousMemory()}{MmFreeContigiousMemory()}}
+{\footnotesize\ttfamily \label{mmio_8c_a0710a778ca4c13692cff818db218b066} 
+void Mm\+Free\+Contigious\+Memory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Base\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mmio_8c_source_l00213}{213}} of file \mbox{\hyperlink{mmio_8c_source}{mmio.\+c}}.
+
+\Hypertarget{mmio_8c_a4939c6c7723219a53552746a8b716657}\index{mmio.c@{mmio.c}!MmMapIoSpace@{MmMapIoSpace}}
+\index{MmMapIoSpace@{MmMapIoSpace}!mmio.c@{mmio.c}}
+\doxysubsubsection{\texorpdfstring{MmMapIoSpace()}{MmMapIoSpace()}}
+{\footnotesize\ttfamily \label{mmio_8c_a4939c6c7723219a53552746a8b716657} 
+void \texorpdfstring{$\ast$}{*} Mm\+Map\+Io\+Space (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{Physical\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a38e8697844f666050ca4be062ea593a8}{MEMORY\+\_\+\+CACHING\+\_\+\+TYPE}}}]{Cache\+Type}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mmio_8c_source_l00269}{269}} of file \mbox{\hyperlink{mmio_8c_source}{mmio.\+c}}.
+

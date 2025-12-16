@@ -1,0 +1,59 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/drivers/blk/block.h File Reference}
+\hypertarget{block_8h}{}\label{block_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include "{}../../mtstatus.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\+\_\+\+BLOCK\+\_\+\+DEVICE}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\+\_\+\+BLOCK\+\_\+\+DEVICE}} \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{block_8h_a5907b72093bd3ea0bee7c7409d3a6090}{register\+\_\+block\+\_\+device}} (\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}dev)
+\item 
+\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{block_8h_ac7446440486f68f8b12119a25eb9740b}{get\+\_\+block\+\_\+device}} (int index)
+\end{DoxyCompactItemize}
+
+
+\label{doc-typedef-members}
+\Hypertarget{block_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{block_8h_a1e03bdef1501e96036b676dc18e71787}\index{block.h@{block.h}!BLOCK\_DEVICE@{BLOCK\_DEVICE}}
+\index{BLOCK\_DEVICE@{BLOCK\_DEVICE}!block.h@{block.h}}
+\doxysubsubsection{\texorpdfstring{BLOCK\_DEVICE}{BLOCK\_DEVICE}}
+{\footnotesize\ttfamily \label{block_8h_a1e03bdef1501e96036b676dc18e71787} 
+typedef struct \mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\+\_\+\+BLOCK\+\_\+\+DEVICE}} \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}}}
+
+
+
+\label{doc-func-members}
+\Hypertarget{block_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{block_8h_ac7446440486f68f8b12119a25eb9740b}\index{block.h@{block.h}!get\_block\_device@{get\_block\_device}}
+\index{get\_block\_device@{get\_block\_device}!block.h@{block.h}}
+\doxysubsubsection{\texorpdfstring{get\_block\_device()}{get\_block\_device()}}
+{\footnotesize\ttfamily \label{block_8h_ac7446440486f68f8b12119a25eb9740b} 
+\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*} get\+\_\+block\+\_\+device (\begin{DoxyParamCaption}\item[{int}]{index}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{block_8c_source_l00032}{32}} of file \mbox{\hyperlink{block_8c_source}{block.\+c}}.
+
+\Hypertarget{block_8h_a5907b72093bd3ea0bee7c7409d3a6090}\index{block.h@{block.h}!register\_block\_device@{register\_block\_device}}
+\index{register\_block\_device@{register\_block\_device}!block.h@{block.h}}
+\doxysubsubsection{\texorpdfstring{register\_block\_device()}{register\_block\_device()}}
+{\footnotesize\ttfamily \label{block_8h_a5907b72093bd3ea0bee7c7409d3a6090} 
+void register\+\_\+block\+\_\+device (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}}]{dev}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{block_8c_source_l00017}{17}} of file \mbox{\hyperlink{block_8c_source}{block.\+c}}.
+

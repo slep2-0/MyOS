@@ -1,0 +1,93 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mh/acpi.c File Reference}
+\hypertarget{acpi_8c}{}\label{acpi_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/acpi.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/acpi.c}}
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/efi.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{acpi_8c_a5e6ead246838259df2f922ecfad72c85}{Mh\+Reboot\+Computer}} (void)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{acpi_8c_a8e0e024a4c708b5bb008c7100841410e}{Mh\+Parse\+LAPICs}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}buffer, size\+\_\+t max\+CPUs, uint32\+\_\+t \texorpdfstring{$\ast$}{*}cpu\+Count, uint32\+\_\+t \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapic\+Address}})
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04}{Mh\+Initialize\+ACPI}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
+\item 
+FADT \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{acpi_8c_a18fec9d231286744939190239d9eed7c}{fadt}}
+\item 
+MADT \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}{madt}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{acpi_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04}\index{acpi.c@{acpi.c}!MhInitializeACPI@{MhInitializeACPI}}
+\index{MhInitializeACPI@{MhInitializeACPI}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{MhInitializeACPI()}{MhInitializeACPI()}}
+{\footnotesize\ttfamily \label{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mh\+Initialize\+ACPI (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00164}{164}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{acpi_8c_a8e0e024a4c708b5bb008c7100841410e}\index{acpi.c@{acpi.c}!MhParseLAPICs@{MhParseLAPICs}}
+\index{MhParseLAPICs@{MhParseLAPICs}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{MhParseLAPICs()}{MhParseLAPICs()}}
+{\footnotesize\ttfamily \label{acpi_8c_a8e0e024a4c708b5bb008c7100841410e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mh\+Parse\+LAPICs (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{size\+\_\+t}]{max\+CPUs}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{cpu\+Count}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{lapic\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00130}{130}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{acpi_8c_a5e6ead246838259df2f922ecfad72c85}\index{acpi.c@{acpi.c}!MhRebootComputer@{MhRebootComputer}}
+\index{MhRebootComputer@{MhRebootComputer}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{MhRebootComputer()}{MhRebootComputer()}}
+{\footnotesize\ttfamily \label{acpi_8c_a5e6ead246838259df2f922ecfad72c85} 
+void Mh\+Reboot\+Computer (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00083}{83}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{acpi_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}\index{acpi.c@{acpi.c}!boot\_info\_local@{boot\_info\_local}}
+\index{boot\_info\_local@{boot\_info\_local}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{boot\_info\_local}{boot\_info\_local}}
+{\footnotesize\ttfamily \label{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4} 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00027}{27}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{acpi_8c_a18fec9d231286744939190239d9eed7c}\index{acpi.c@{acpi.c}!fadt@{fadt}}
+\index{fadt@{fadt}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{fadt}{fadt}}
+{\footnotesize\ttfamily \label{acpi_8c_a18fec9d231286744939190239d9eed7c} 
+FADT\texorpdfstring{$\ast$}{*} fadt}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00079}{79}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{acpi_8c_a95afcb669fb550e9993093ae874d9fc4}\index{acpi.c@{acpi.c}!madt@{madt}}
+\index{madt@{madt}!acpi.c@{acpi.c}}
+\doxysubsubsection{\texorpdfstring{madt}{madt}}
+{\footnotesize\ttfamily \label{acpi_8c_a95afcb669fb550e9993093ae874d9fc4} 
+MADT\texorpdfstring{$\ast$}{*} madt}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00080}{80}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+

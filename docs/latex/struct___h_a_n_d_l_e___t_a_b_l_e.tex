@@ -1,0 +1,122 @@
+\doxysection{\+\_\+\+HANDLE\+\_\+\+TABLE Struct Reference}
+\hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e}{}\label{struct___h_a_n_d_l_e___t_a_b_l_e}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+
+
+{\ttfamily \#include $<$ht.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a30016c0d0eb869baf66d2a3e33f737a9}{Table\+List}}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a4a7ed92088fd67aff2cdbbc556acfc0b}{Table\+Lock}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a67ff1861e81c9aa1033681c5fb47608e}{Table\+Code}}
+\item 
+\mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}} \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_ad02d99ab696eac436d8a3308495857c7}{Quota\+Process}}
+\item 
+\mbox{\hyperlink{ht_8h_a555fe8af7cfd68bcf804156fc8b3777a}{PHANDLE\+\_\+\+TABLE\+\_\+\+ENTRY}} \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a1140404623ed3862fd0fbd8757285659}{Last\+Free\+Handle\+Entry}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_ad11e2c98cf6159cc5cf5a7ac5c3b66f7}{First\+Free\+Handle}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a3820befc55e7951f6ef7a66a7799656b}{Next\+Handle\+Needing\+Pool}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___h_a_n_d_l_e___t_a_b_l_e_a0eef2b5a3ffbfef90ad857119fdf173f}{Handle\+Count}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00041}{41}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_ad11e2c98cf6159cc5cf5a7ac5c3b66f7}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!FirstFreeHandle@{FirstFreeHandle}}
+\index{FirstFreeHandle@{FirstFreeHandle}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{FirstFreeHandle}{FirstFreeHandle}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_ad11e2c98cf6159cc5cf5a7ac5c3b66f7} 
+uint32\+\_\+t First\+Free\+Handle}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00052}{52}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a0eef2b5a3ffbfef90ad857119fdf173f}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!HandleCount@{HandleCount}}
+\index{HandleCount@{HandleCount}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{HandleCount}{HandleCount}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a0eef2b5a3ffbfef90ad857119fdf173f} 
+uint32\+\_\+t Handle\+Count}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00054}{54}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a1140404623ed3862fd0fbd8757285659}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!LastFreeHandleEntry@{LastFreeHandleEntry}}
+\index{LastFreeHandleEntry@{LastFreeHandleEntry}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{LastFreeHandleEntry}{LastFreeHandleEntry}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a1140404623ed3862fd0fbd8757285659} 
+\mbox{\hyperlink{ht_8h_a555fe8af7cfd68bcf804156fc8b3777a}{PHANDLE\+\_\+\+TABLE\+\_\+\+ENTRY}} Last\+Free\+Handle\+Entry}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00051}{51}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a3820befc55e7951f6ef7a66a7799656b}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!NextHandleNeedingPool@{NextHandleNeedingPool}}
+\index{NextHandleNeedingPool@{NextHandleNeedingPool}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{NextHandleNeedingPool}{NextHandleNeedingPool}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a3820befc55e7951f6ef7a66a7799656b} 
+uint32\+\_\+t Next\+Handle\+Needing\+Pool}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00053}{53}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_ad02d99ab696eac436d8a3308495857c7}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!QuotaProcess@{QuotaProcess}}
+\index{QuotaProcess@{QuotaProcess}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{QuotaProcess}{QuotaProcess}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_ad02d99ab696eac436d8a3308495857c7} 
+\mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}} Quota\+Process}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00048}{48}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a67ff1861e81c9aa1033681c5fb47608e}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!TableCode@{TableCode}}
+\index{TableCode@{TableCode}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{TableCode}{TableCode}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a67ff1861e81c9aa1033681c5fb47608e} 
+uint64\+\_\+t Table\+Code}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00047}{47}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a30016c0d0eb869baf66d2a3e33f737a9}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!TableList@{TableList}}
+\index{TableList@{TableList}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{TableList}{TableList}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a30016c0d0eb869baf66d2a3e33f737a9} 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} Table\+List}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00043}{43}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+\Hypertarget{struct___h_a_n_d_l_e___t_a_b_l_e_a4a7ed92088fd67aff2cdbbc556acfc0b}\index{\_HANDLE\_TABLE@{\_HANDLE\_TABLE}!TableLock@{TableLock}}
+\index{TableLock@{TableLock}!\_HANDLE\_TABLE@{\_HANDLE\_TABLE}}
+\doxysubsubsection{\texorpdfstring{TableLock}{TableLock}}
+{\footnotesize\ttfamily \label{struct___h_a_n_d_l_e___t_a_b_l_e_a4a7ed92088fd67aff2cdbbc556acfc0b} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Table\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{ht_8h_source_l00044}{44}} of file \mbox{\hyperlink{ht_8h_source}{ht.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{ht_8h}{ht.\+h}}\end{DoxyCompactItemize}

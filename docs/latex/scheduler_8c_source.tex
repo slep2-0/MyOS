@@ -1,0 +1,154 @@
+\doxysection{scheduler.\+c}
+\hypertarget{scheduler_8c_source}{}\label{scheduler_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/scheduler.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/scheduler.c}}
+\mbox{\hyperlink{scheduler_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00002}00002\ \textcolor{comment}{\ \ \ \ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00003}00003\ \textcolor{comment}{\ \ \ \ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00004}00004\ \textcolor{comment}{\ \ \ \ *\ PURPOSE:\ \ \ \ \ \ Scheduler\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ */}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00011}00011\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ob_8h}{../../includes/ob.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00012}00012\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}\ \mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[];}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00014}00014\ \textcolor{comment}{//\ assembly\ stubs\ to\ save\ and\ restore\ register\ contexts.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00015}\mbox{\hyperlink{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a}{00015}}\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a}{restore\_context}}(\mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\_FRAME}}*\ regs);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00016}\mbox{\hyperlink{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810}{00016}}\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810}{restore\_user\_context}}(\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ thread);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00018}00018\ \textcolor{comment}{//\ Idle\ thread,\ runs\ when\ no\ other\ is\ ready.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00019}00019\ \textcolor{comment}{//\ Stack\ for\ idle\ thread}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00020}00020\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{scheduler_8c_a9ce2606c20ea524922906d7816228c26}{kernel\_idle\_checks}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00021}\mbox{\hyperlink{scheduler_8c_a5a4eaedba6ce2dd34d625fb9114c8483}{00021}}\ \textcolor{preprocessor}{\#define\ IDLE\_STACK\_SIZE\ 4096}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00023}00023\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}\ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00024}00024\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00025}00025\ \textcolor{comment}{//\ In\ Scheduler.c}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00026}\mbox{\hyperlink{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}{00026}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}{InitScheduler}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00027}00027\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a18064996902c47642fa42faed7fbb9d5}{schedulerEnabled}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00028}00028\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}{idleThread}}\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}),\ \textcolor{stringliteral}{'ELDI'});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00029}00029\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ idleThread\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}{idleThread}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00030}00030\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00031}00031\ \ \ \ \ \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\_FRAME}}\ cfm;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00032}00032\ \ \ \ \ \mbox{\hyperlink{mm_8h_a7d9455da4f2ec94a98286a19e7d8e39d}{kmemset}}(\&cfm,\ 0,\ \textcolor{keyword}{sizeof}(cfm));\ \textcolor{comment}{//\ Start\ with\ a\ clean,\ all-\/zero\ context}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00033}00033\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00034}00034\ \ \ \ \ \textcolor{comment}{//\ Set\ only\ the\ essential\ registers\ for\ starting\ the\ thread}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00035}00035\ \ \ \ \ \textcolor{keywordtype}{void}*\ idleStack\ =\ \mbox{\hyperlink{mmproc_8c_a395221ebf401ad2be0b1e0b2389da78d}{MiCreateKernelStack}}(\textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00036}00036\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(idleStack\ !=\ NULL);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00037}00037\ \ \ \ \ cfm.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}}\ =\ (uint64\_t)idleStack;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00038}00038\ \ \ \ \ cfm.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}}\ =\ (uint64\_t)\mbox{\hyperlink{scheduler_8c_a9ce2606c20ea524922906d7816228c26}{kernel\_idle\_checks}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00039}00039\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00040}00040\ \ \ \ \ \textcolor{comment}{//\ Enable\ Interrupts\ on\ its\ RFLAGS.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00041}00041\ \ \ \ \ cfm.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_ac67e007ae346a1499c5a276869bfd1bb}{rflags}}\ |=\ (1\ <<\ 9ULL);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00043}00043\ \ \ \ \ \textcolor{comment}{//\ Assign\ the\ clean\ context\ to\ the\ idle\ thread}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00044}00044\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}}\ =\ cfm;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00045}00045\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3adc6a307a71277ce8d642b5b916e05042}{THREAD\_READY}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00046}00046\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}}\ =\ 1;\ \textcolor{comment}{//\ 1ms}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00047}00047\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ac82dc0f66693dda24c97ed90c0f899b7}{TimeSliceAllocated}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00048}00048\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00049}00049\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}}\ =\ 0;\ \textcolor{comment}{//\ Idle\ thread,\ TID\ is\ 0.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00050}00050\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}}\ =\ (\textcolor{keywordtype}{void}*)cfm.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00051}00051\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a1ceb5f81bce3838a9703c746dbfc9066}{IsLargeStack}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00052}00052\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{currentThread}}\ =\ NULL;\ \textcolor{comment}{//\ The\ idle\ thread\ would\ be\ chosen}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00053}00053\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a9f858225ecfd7174a28bddc1a075bd08}{CurrentEvent}}\ =\ NULL;\ \textcolor{comment}{//\ No\ event.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00054}00054\ \ \ \ \ idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a1db330b908dc0c15f56f4a4de49ed883}{ParentProcess}}\ =\ \&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00055}00055\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.MainThread\ =\ idleThread;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00056}00056\ \ \ \ \ \mbox{\hyperlink{ms_8h_adcecea0b47aeea240c34aeaaac258559}{InsertHeadList}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.AllThreads,\ \&idleThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00058}00058\ \ \ \ \ \textcolor{comment}{//\ The\ ready\ queue\ starts\ empty}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00059}00059\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0e1bee91c77868b3b8fdbe7328e64374}{readyQueue}}.\mbox{\hyperlink{struct___queue_aa45f7a2cc2c1312d1d08539c4ff64590}{head}}\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0e1bee91c77868b3b8fdbe7328e64374}{readyQueue}}.\mbox{\hyperlink{struct___queue_a9e6fc3c774ea31b41f1cf4c8d8fb325c}{tail}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00060}00060\ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00062}00062\ \textcolor{comment}{//\ Enqueue\ the\ thread\ if\ it's\ still\ RUNNING.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00063}00063\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ enqueue\_runnable(\mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ t)\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00064}00064\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((t)\ !=\ 0);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00065}00065\ \ \ \ \ \textcolor{keywordflow}{if}\ (t-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ ==\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3aa5639ff4eff3f959406116db9e020c44}{THREAD\_RUNNING}})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00066}00066\ \ \ \ \ \ \ \ \ t-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3adc6a307a71277ce8d642b5b916e05042}{THREAD\_READY}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ t-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}}\ =\ t-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ac82dc0f66693dda24c97ed90c0f899b7}{TimeSliceAllocated}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ps_8h_a082a6c14a0748ab67e5560c96a47b623}{MeEnqueueThreadWithLock}}(\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>readyQueue,\ \mbox{\hyperlink{ps_8h_a1cc0971d41e6cd17000db899ff13e66a}{PsGetEThreadFromIThread}}(t));\ \textcolor{comment}{//\ Insert\ into\ CPU\ ready\ queue}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00069}00069\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00070}00070\ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00072}00072\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{scheduler_8c_affea11247162104926cfbd2a7737b9bd}{g\_cpuCount}};\ \textcolor{comment}{//\ extern\ the\ global\ cpu\ count.\ (gotten\ from\ smp)}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00073}00073\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{smpInitialized}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00074}00074\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00075}00075\ \textcolor{comment}{//\ The\ following\ function\ uses\ CPU\ Work\ stealing\ to\ steal\ other\ CPUs\ thread\ (in\ a\ queue),\ if\ the\ current\ thread\ has\ no\ scheduled\ threads\ in\ the\ queue.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00076}00076\ \textcolor{keyword}{static}\ \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ MeAcquireNextScheduledThread(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00077}00077\ \ \ \ \ \textcolor{comment}{//\ First,\ lets\ try\ to\ get\ from\ our\ own\ queue.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00078}00078\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ chosenThread\ =\ \mbox{\hyperlink{ps_8h_a4a0c37328cfa26ed8e575a245e6ad8a0}{MeDequeueThreadWithLock}}(\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>readyQueue);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00079}00079\ \ \ \ \ \textcolor{keywordflow}{if}\ (chosenThread)\ \textcolor{keywordflow}{return}\ \&chosenThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00080}00080\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00081}00081\ \textcolor{preprocessor}{\#ifndef\ MT\_UP}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00082}00082\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{bugcheck_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{smpInitialized}})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00083}00083\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Our\ own\ CPU\ queue\ is\ empty,\ steal\ from\ others.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00084}00084\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ \mbox{\hyperlink{scheduler_8c_affea11247162104926cfbd2a7737b9bd}{g\_cpuCount}};\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00085}00085\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[i].lapic\_ID\ ==\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>lapic\_ID)\ \textcolor{keywordflow}{continue};\ \textcolor{comment}{//\ skip\ ourselves.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ reason\ I\ used\ the\ self\ pointer\ here,\ is\ because\ the\ BSP\ in\ the\ cpus\ array,\ is\ empty\ except\ for\ 4\ fields,\ as\ its\ main\ struct\ is\ cpu0,\ }}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00088}00088\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ which\ is\ defined\ at\ the\ kernel\ main,\ so\ we\ access\ it\ through\ self,\ view\ SMP.C\ prepare\_percpu\ for\ more\ info.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00089}00089\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_aaa31d02f2b2876d12bb8f83900eacce6}{Queue}}*\ victimQueue\ =\ \&\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[i].self-\/>readyQueue;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!victimQueue-\/>\mbox{\hyperlink{struct___queue_aa45f7a2cc2c1312d1d08539c4ff64590}{head}})\ \textcolor{keywordflow}{continue};\ \textcolor{comment}{//\ skip\ empty\ queues}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00092}00092\ \ \ \ \ \ \ \ \ \ \ \ \ chosenThread\ =\ \mbox{\hyperlink{ps_8h_a4a0c37328cfa26ed8e575a245e6ad8a0}{MeDequeueThreadWithLock}}(victimQueue);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Found\ a\ suitable\ thread,\ return\ it.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (chosenThread)\ \textcolor{keywordflow}{return}\ \&chosenThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00096}00096\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00097}00097\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00098}00098\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00099}00099\ \ \ \ \ \textcolor{comment}{//\ No\ thread\ found.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00100}00100\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00101}00101\ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00102}00102\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00103}00103\ \mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00104}00104\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00105}\mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{00105}}\ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00106}00106\ \ \ \ \ \textcolor{comment}{//gop\_printf(COLOR\_PURPLE,\ "{}**In\ scheduler,\ IRQL:\ \%d**\(\backslash\)n"{},\ MeGetCurrentIrql());}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00107}00107\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00108}00108\ \ \ \ \ \mbox{\hyperlink{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf}{MeRaiseIrql}}(\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}},\ \&oldIrql);\ \textcolor{comment}{//\ Prevents\ scheduling\ re-\/entrance.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00109}00109\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00110}00110\ \ \ \ \ \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}\ cpu\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}();}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00111}00111\ \ \ \ \ \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ prev\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{currentThread}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00112}00112\ \ \ \ \ \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ IdleThread\ =\ \&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}{idleThread}}-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00113}00113\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00114}00114\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ we\ need\ to\ delete\ another\ thread's\ (safe\ now,\ we\ are\ at\ a\ separate\ stack)}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00115}00115\ \ \ \ \ \textcolor{keywordflow}{if}\ (cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}{ZombieThread}})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Drop\ the\ reference,\ we\ are\ on\ another\ thread's\ stack.}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}((\textcolor{keywordtype}{void}*)cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}{ZombieThread}});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}{ZombieThread}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00119}00119\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00120}00120\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00121}00121\ \ \ \ \ \textcolor{comment}{//\ All\ thread's\ that\ weren't\ RUNNING\ are\ ignored\ by\ the\ Scheduler.\ (like\ BLOCKED\ threads\ when\ waiting\ or\ an\ event,\ ZOMBIE\ threads,\ TERMINATED,\ etc..)}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00122}00122\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\ \&\&\ prev\ !=\ IdleThread\ \&\&\ prev-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ ==\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3a671b68cda962520c0b53a108cb584203}{THREAD\_TERMINATING}})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}{ZombieThread}}\ =\ prev;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ prev\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00125}00125\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00126}00126\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (prev\ \&\&\ prev\ !=\ IdleThread\ \&\&\ prev-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ ==\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3aa5639ff4eff3f959406116db9e020c44}{THREAD\_RUNNING}})\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ current\ thread's\ registers\ were\ already\ saved\ in\ isr\_stub.\ (look\ after\ the\ pushes)\ (also\ saved\ in\ MtSleepCurrentThread)}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ enqueue\_runnable(prev);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00129}00129\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00130}00130\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00131}00131\ \ \ \ \ \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ next\ =\ MeAcquireNextScheduledThread();}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00132}00132\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00133}00133\ \ \ \ \ \textcolor{keywordflow}{if}\ (!next)\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ next\ =\ IdleThread;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00135}00135\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00136}00136\ }
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00137}00137\ \ \ \ \ next-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3aa5639ff4eff3f959406116db9e020c44}{THREAD\_RUNNING}};}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00138}00138\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{currentThread}}\ =\ next;}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00139}00139\ \ \ \ \ \mbox{\hyperlink{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}{MeLowerIrql}}(oldIrql);}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00140}00140\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{ps_8h_aa30db9b8d584b69873c706c5ea12aa87}{PsIsKernelThread}}(\mbox{\hyperlink{ps_8h_a1cc0971d41e6cd17000db899ff13e66a}{PsGetEThreadFromIThread}}(next)))\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a5ccc6bfb3fa8db57ed23f709d288f72a}{restore\_context}}(\&next-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}});}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00142}00142\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00143}00143\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ User\ thread}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6561d8e9ba3a2cfd24c29c8c22d8810}{restore\_user\_context}}(\mbox{\hyperlink{ps_8h_a1cc0971d41e6cd17000db899ff13e66a}{PsGetEThreadFromIThread}}(next));}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00146}00146\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00147}00147\ \ \ \ \ \_\_builtin\_unreachable();}
+\DoxyCodeLine{\Hypertarget{scheduler_8c_source_l00148}00148\ \}}
+
+\end{DoxyCode}

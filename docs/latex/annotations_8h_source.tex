@@ -1,0 +1,46 @@
+\doxysection{annotations.\+h}
+\hypertarget{annotations_8h_source}{}\label{annotations_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/annotations.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/annotations.h}}
+\mbox{\hyperlink{annotations_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00001}00001\ \textcolor{preprocessor}{\#ifndef\ X86\_ANNOTATIONS\_H}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00002}00002\ \textcolor{preprocessor}{\#define\ X86\_ANNOTATIONS\_H}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00003}00003\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00004}00004\ \textcolor{comment}{//\ Annotations\ (and\ macros)\ for\ documentation,\ and\ potential\ future\ analyzing.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00005}00005\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00006}00006\ \textcolor{comment}{//\ Parameter\ Annotations}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00007}\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{00007}}\ \textcolor{preprocessor}{\#define\ IN\ }\textcolor{comment}{//\ Takes\ REQUIRED\ INPUT}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00008}\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{00008}}\ \textcolor{preprocessor}{\#define\ OUT\ }\textcolor{comment}{//\ Supplies\ REQUIRED\ OUTPUT}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00009}\mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{00009}}\ \textcolor{preprocessor}{\#define\ \_In\_Opt\ }\textcolor{comment}{//\ Takes\ OPTIONAL\ INPUT\ if\ given.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00010}\mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{00010}}\ \textcolor{preprocessor}{\#define\ \_Out\_Opt\ }\textcolor{comment}{//\ OPTIONALLY\ Supplies\ OUTPUT\ if\ given.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00012}00012\ \textcolor{comment}{//\ Function\ will\ not\ return.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00013}\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{00013}}\ \textcolor{preprocessor}{\#define\ NORETURN\ \_\_attribute\_\_((noreturn))}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00014}00014\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00015}00015\ \textcolor{comment}{//\ Function\ will\ be\ forcefully\ inlined\ by\ the\ compiler.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00016}00016\ \textcolor{preprocessor}{\#ifndef\ FORCEINLINE}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00017}00017\ \textcolor{preprocessor}{\#if\ defined(\_\_clang\_\_)\ ||\ defined(\_\_GNUC\_\_)}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00018}00018\ \textcolor{preprocessor}{\#define\ FORCEINLINE\ static\ inline\ \_\_attribute\_\_((always\_inline))}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00019}00019\ \textcolor{preprocessor}{\#elif\ defined(\_MSC\_VER)}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00020}00020\ \textcolor{preprocessor}{\#define\ FORCEINLINE\ static\ \_\_forceinline}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00021}00021\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00022}\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{00022}}\ \textcolor{preprocessor}{\#define\ FORCEINLINE\ static\ inline}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00023}00023\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00024}00024\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00026}00026\ \textcolor{comment}{//\ Function\ will\ be\ forcefully\ inlined\ by\ the\ compiler.\ (between\ translation\ files)}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00027}00027\ \textcolor{preprocessor}{\#ifndef\ FORCEINLINE\_NOHEADER}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00028}00028\ \textcolor{preprocessor}{\#if\ defined(\_\_clang\_\_)\ ||\ defined(\_\_GNUC\_\_)}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00029}00029\ \textcolor{preprocessor}{\#define\ FORCEINLINE\_NOHEADER\ \_\_attribute\_\_((always\_inline))}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00030}00030\ \textcolor{preprocessor}{\#elif\ defined(\_MSC\_VER)}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00031}00031\ \textcolor{preprocessor}{\#define\ FORCEINLINE\_NOHEADER\ \_\_forceinline}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00032}00032\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00033}\mbox{\hyperlink{annotations_8h_a3d3146d095d92ca9ba09f1e2ff22a8d1}{00033}}\ \textcolor{preprocessor}{\#define\ FORCEINLINE\_NOHEADER\ inline}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00034}00034\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00035}00035\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00036}00036\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00037}00037\ \textcolor{comment}{//\ Function\ /\ Object\ is\ signaled\ as\ used,\ even\ though\ it\ is\ not\ used\ in\ any\ translation\ unit.}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00038}\mbox{\hyperlink{annotations_8h_abcd0a22ee4346cad5706adb6d2119429}{00038}}\ \textcolor{preprocessor}{\#define\ USED\ \_\_attribute\_\_((used))}}
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00039}00039\ }
+\DoxyCodeLine{\Hypertarget{annotations_8h_source_l00040}00040\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

@@ -1,0 +1,157 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/map.c File Reference}
+\hypertarget{map_8c}{}\label{map_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/map.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/map.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+uint64\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{map_8c_aac45f1c4cf933451f12d0bf6b212db49}{pml4\+\_\+from\+\_\+recursive}} (void)
+\item 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{Mi\+Get\+Pte\+Pointer}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t va)
+\item 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} \mbox{\hyperlink{map_8c_ab6a386341ec15bdefb039df9f137591a}{Mi\+Get\+Pml4e\+Pointer}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t va)
+\item 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} \mbox{\hyperlink{map_8c_a826ab4b40df93f18cec0248e95d3f813}{Mi\+Get\+Pdpte\+Pointer}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t va)
+\item 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} \mbox{\hyperlink{map_8c_aac08743a17b8efc9e374ff5a4f577f51}{Mi\+Get\+Pde\+Pointer}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t va)
+\item 
+void \mbox{\hyperlink{map_8c_ae2b6d4075b0e93f28cd8adc57b890ce0}{Mi\+Invalidate\+Tlb\+For\+Va}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Virtual\+Address)
+\item 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} \mbox{\hyperlink{map_8c_ab8622097f04d79cb476a78f307323100}{Mi\+Translate\+Pte\+To\+Pfn}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} pte)
+\item 
+uint64\+\_\+t \mbox{\hyperlink{map_8c_ad21f0e64e742af499e06c2b21ebc1ead}{Mi\+Translate\+Pte\+To\+Va}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} pte)
+\item 
+void \mbox{\hyperlink{map_8c_ae3021d571acb9a636398898e79e539be}{Mi\+Unmap\+Pte}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} pte)
+\item 
+void \mbox{\hyperlink{map_8c_a4087336eeffc465259da0318319c9c74}{Mi\+Reload\+TLBs}} (void)
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{map_8c_a29e582a0230e8396492f0620023f0ae5}{Mi\+Translate\+Virtual\+To\+Physical}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Virtual\+Address)
+\item 
+bool \mbox{\hyperlink{map_8c_ab2c1d72decad25f1eba4f9d1fbb9089a}{Mm\+Is\+Address\+Present}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t Virtual\+Address)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{map_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{map_8c_aac08743a17b8efc9e374ff5a4f577f51}\index{map.c@{map.c}!MiGetPdePointer@{MiGetPdePointer}}
+\index{MiGetPdePointer@{MiGetPdePointer}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiGetPdePointer()}{MiGetPdePointer()}}
+{\footnotesize\ttfamily \label{map_8c_aac08743a17b8efc9e374ff5a4f577f51} 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} Mi\+Get\+Pde\+Pointer (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{va}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00219}{219}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_a826ab4b40df93f18cec0248e95d3f813}\index{map.c@{map.c}!MiGetPdptePointer@{MiGetPdptePointer}}
+\index{MiGetPdptePointer@{MiGetPdptePointer}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiGetPdptePointer()}{MiGetPdptePointer()}}
+{\footnotesize\ttfamily \label{map_8c_a826ab4b40df93f18cec0248e95d3f813} 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} Mi\+Get\+Pdpte\+Pointer (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{va}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00177}{177}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ab6a386341ec15bdefb039df9f137591a}\index{map.c@{map.c}!MiGetPml4ePointer@{MiGetPml4ePointer}}
+\index{MiGetPml4ePointer@{MiGetPml4ePointer}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiGetPml4ePointer()}{MiGetPml4ePointer()}}
+{\footnotesize\ttfamily \label{map_8c_ab6a386341ec15bdefb039df9f137591a} 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} Mi\+Get\+Pml4e\+Pointer (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{va}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00147}{147}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ae02125d7ba25e59d4034251153f86492}\index{map.c@{map.c}!MiGetPtePointer@{MiGetPtePointer}}
+\index{MiGetPtePointer@{MiGetPtePointer}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiGetPtePointer()}{MiGetPtePointer()}}
+{\footnotesize\ttfamily \label{map_8c_ae02125d7ba25e59d4034251153f86492} 
+\mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}} Mi\+Get\+Pte\+Pointer (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{va}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00076}{76}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ae2b6d4075b0e93f28cd8adc57b890ce0}\index{map.c@{map.c}!MiInvalidateTlbForVa@{MiInvalidateTlbForVa}}
+\index{MiInvalidateTlbForVa@{MiInvalidateTlbForVa}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiInvalidateTlbForVa()}{MiInvalidateTlbForVa()}}
+{\footnotesize\ttfamily \label{map_8c_ae2b6d4075b0e93f28cd8adc57b890ce0} 
+void Mi\+Invalidate\+Tlb\+For\+Va (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Virtual\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00273}{273}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_a4087336eeffc465259da0318319c9c74}\index{map.c@{map.c}!MiReloadTLBs@{MiReloadTLBs}}
+\index{MiReloadTLBs@{MiReloadTLBs}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiReloadTLBs()}{MiReloadTLBs()}}
+{\footnotesize\ttfamily \label{map_8c_a4087336eeffc465259da0318319c9c74} 
+void Mi\+Reload\+TLBs (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00443}{443}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ab8622097f04d79cb476a78f307323100}\index{map.c@{map.c}!MiTranslatePteToPfn@{MiTranslatePteToPfn}}
+\index{MiTranslatePteToPfn@{MiTranslatePteToPfn}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiTranslatePteToPfn()}{MiTranslatePteToPfn()}}
+{\footnotesize\ttfamily \label{map_8c_ab8622097f04d79cb476a78f307323100} 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} Mi\+Translate\+Pte\+To\+Pfn (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}}]{pte}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00310}{310}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ad21f0e64e742af499e06c2b21ebc1ead}\index{map.c@{map.c}!MiTranslatePteToVa@{MiTranslatePteToVa}}
+\index{MiTranslatePteToVa@{MiTranslatePteToVa}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiTranslatePteToVa()}{MiTranslatePteToVa()}}
+{\footnotesize\ttfamily \label{map_8c_ad21f0e64e742af499e06c2b21ebc1ead} 
+uint64\+\_\+t Mi\+Translate\+Pte\+To\+Va (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}}]{pte}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00337}{337}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_a29e582a0230e8396492f0620023f0ae5}\index{map.c@{map.c}!MiTranslateVirtualToPhysical@{MiTranslateVirtualToPhysical}}
+\index{MiTranslateVirtualToPhysical@{MiTranslateVirtualToPhysical}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiTranslateVirtualToPhysical()}{MiTranslateVirtualToPhysical()}}
+{\footnotesize\ttfamily \label{map_8c_a29e582a0230e8396492f0620023f0ae5} 
+uintptr\+\_\+t Mi\+Translate\+Virtual\+To\+Physical (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Virtual\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00456}{456}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ae3021d571acb9a636398898e79e539be}\index{map.c@{map.c}!MiUnmapPte@{MiUnmapPte}}
+\index{MiUnmapPte@{MiUnmapPte}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MiUnmapPte()}{MiUnmapPte()}}
+{\footnotesize\ttfamily \label{map_8c_ae3021d571acb9a636398898e79e539be} 
+void Mi\+Unmap\+Pte (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}}]{pte}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00385}{385}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_ab2c1d72decad25f1eba4f9d1fbb9089a}\index{map.c@{map.c}!MmIsAddressPresent@{MmIsAddressPresent}}
+\index{MmIsAddressPresent@{MmIsAddressPresent}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{MmIsAddressPresent()}{MmIsAddressPresent()}}
+{\footnotesize\ttfamily \label{map_8c_ab2c1d72decad25f1eba4f9d1fbb9089a} 
+bool Mm\+Is\+Address\+Present (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{Virtual\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00488}{488}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+
+\Hypertarget{map_8c_aac45f1c4cf933451f12d0bf6b212db49}\index{map.c@{map.c}!pml4\_from\_recursive@{pml4\_from\_recursive}}
+\index{pml4\_from\_recursive@{pml4\_from\_recursive}!map.c@{map.c}}
+\doxysubsubsection{\texorpdfstring{pml4\_from\_recursive()}{pml4\_from\_recursive()}}
+{\footnotesize\ttfamily \label{map_8c_aac45f1c4cf933451f12d0bf6b212db49} 
+uint64\+\_\+t \texorpdfstring{$\ast$}{*} pml4\+\_\+from\+\_\+recursive (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{map_8c_source_l00031}{31}} of file \mbox{\hyperlink{map_8c_source}{map.\+c}}.
+

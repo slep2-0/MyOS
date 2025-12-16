@@ -1,0 +1,218 @@
+\doxysection{\+\_\+\+EPROCESS Struct Reference}
+\hypertarget{struct___e_p_r_o_c_e_s_s}{}\label{struct___e_p_r_o_c_e_s_s}\index{\_EPROCESS@{\_EPROCESS}}
+
+
+{\ttfamily \#include $<$ps.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___i_p_r_o_c_e_s_s}{\+\_\+\+IPROCESS}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}{Internal\+Process}}
+\item 
+char \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a75ed2bafc6238d064c4101c1a4714d81}{Image\+Name}} \mbox{[}24\mbox{]}
+\item 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c}{PID}}
+\item 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a369fce34c7900f886dd040ca77fc1467}{Parent\+Process}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a90249de64da5ae5d7acd34da7ea1b857}{priority}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_abbbd5abd14ff3af8b80a59dcbc81becc}{Creation\+Time}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a4747455b8ba5311ad588c6be48598983}{File\+Buffer}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3}{Image\+Base}}
+\item 
+struct \mbox{\hyperlink{struct___r_u_n_d_o_w_n___r_e_f}{\+\_\+\+RUNDOWN\+\_\+\+REF}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7}{Process\+Rundown}}
+\item 
+struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b}{Main\+Thread}}
+\item 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf}{All\+Threads}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a18cc8b1fbce9eb05da106ba8c46a9cb1}{Num\+Threads}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ab9b051071a1ef40dea10e41d1e704f8d}{Next\+Stack\+Top}}
+\item 
+\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}{Object\+Table}}
+\item 
+struct \mbox{\hyperlink{struct___m_m_v_a_d}{\+\_\+\+MMVAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a9013306a9ca87d963c48aa2950175182}{Vad\+Root}}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_af5f069181b59626a313767b81a14a703}{Vad\+Lock}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00091}{91}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___e_p_r_o_c_e_s_s_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf}\index{\_EPROCESS@{\_EPROCESS}!AllThreads@{AllThreads}}
+\index{AllThreads@{AllThreads}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{AllThreads}{AllThreads}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf} 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} All\+Threads}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00109}{109}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_abbbd5abd14ff3af8b80a59dcbc81becc}\index{\_EPROCESS@{\_EPROCESS}!CreationTime@{CreationTime}}
+\index{CreationTime@{CreationTime}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{CreationTime}{CreationTime}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_abbbd5abd14ff3af8b80a59dcbc81becc} 
+uint64\+\_\+t Creation\+Time}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00097}{97}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a4747455b8ba5311ad588c6be48598983}\index{\_EPROCESS@{\_EPROCESS}!FileBuffer@{FileBuffer}}
+\index{FileBuffer@{FileBuffer}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{FileBuffer}{FileBuffer}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a4747455b8ba5311ad588c6be48598983} 
+void\texorpdfstring{$\ast$}{*} File\+Buffer}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00101}{101}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3}\index{\_EPROCESS@{\_EPROCESS}!ImageBase@{ImageBase}}
+\index{ImageBase@{ImageBase}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{ImageBase}{ImageBase}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_af8df9953c8c190fdb02a4319088284c3} 
+uint64\+\_\+t Image\+Base}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00102}{102}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a75ed2bafc6238d064c4101c1a4714d81}\index{\_EPROCESS@{\_EPROCESS}!ImageName@{ImageName}}
+\index{ImageName@{ImageName}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{ImageName}{ImageName}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a75ed2bafc6238d064c4101c1a4714d81} 
+char Image\+Name\mbox{[}24\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00093}{93}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}\index{\_EPROCESS@{\_EPROCESS}!InternalProcess@{InternalProcess}}
+\index{InternalProcess@{InternalProcess}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{InternalProcess}{InternalProcess}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80} 
+struct \mbox{\hyperlink{struct___i_p_r_o_c_e_s_s}{\+\_\+\+IPROCESS}} Internal\+Process}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00092}{92}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b}\index{\_EPROCESS@{\_EPROCESS}!MainThread@{MainThread}}
+\index{MainThread@{MainThread}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{MainThread}{MainThread}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b} 
+struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}}\texorpdfstring{$\ast$}{*} Main\+Thread}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00108}{108}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_ab9b051071a1ef40dea10e41d1e704f8d}\index{\_EPROCESS@{\_EPROCESS}!NextStackTop@{NextStackTop}}
+\index{NextStackTop@{NextStackTop}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{NextStackTop}{NextStackTop}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_ab9b051071a1ef40dea10e41d1e704f8d} 
+uint64\+\_\+t Next\+Stack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00111}{111}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a18cc8b1fbce9eb05da106ba8c46a9cb1}\index{\_EPROCESS@{\_EPROCESS}!NumThreads@{NumThreads}}
+\index{NumThreads@{NumThreads}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{NumThreads}{NumThreads}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a18cc8b1fbce9eb05da106ba8c46a9cb1} 
+uint32\+\_\+t Num\+Threads}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00110}{110}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}\index{\_EPROCESS@{\_EPROCESS}!ObjectTable@{ObjectTable}}
+\index{ObjectTable@{ObjectTable}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{ObjectTable}{ObjectTable}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab} 
+\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Object\+Table}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00114}{114}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a369fce34c7900f886dd040ca77fc1467}\index{\_EPROCESS@{\_EPROCESS}!ParentProcess@{ParentProcess}}
+\index{ParentProcess@{ParentProcess}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{ParentProcess}{ParentProcess}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a369fce34c7900f886dd040ca77fc1467} 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Parent\+Process}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00095}{95}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c}\index{\_EPROCESS@{\_EPROCESS}!PID@{PID}}
+\index{PID@{PID}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{PID}{PID}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c} 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} PID}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00094}{94}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a90249de64da5ae5d7acd34da7ea1b857}\index{\_EPROCESS@{\_EPROCESS}!priority@{priority}}
+\index{priority@{priority}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{priority}{priority}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a90249de64da5ae5d7acd34da7ea1b857} 
+uint32\+\_\+t priority}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00096}{96}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7}\index{\_EPROCESS@{\_EPROCESS}!ProcessRundown@{ProcessRundown}}
+\index{ProcessRundown@{ProcessRundown}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{ProcessRundown}{ProcessRundown}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7} 
+struct \mbox{\hyperlink{struct___r_u_n_d_o_w_n___r_e_f}{\+\_\+\+RUNDOWN\+\_\+\+REF}} Process\+Rundown}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00105}{105}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_af5f069181b59626a313767b81a14a703}\index{\_EPROCESS@{\_EPROCESS}!VadLock@{VadLock}}
+\index{VadLock@{VadLock}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{VadLock}{VadLock}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_af5f069181b59626a313767b81a14a703} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Vad\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00118}{118}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+\Hypertarget{struct___e_p_r_o_c_e_s_s_a9013306a9ca87d963c48aa2950175182}\index{\_EPROCESS@{\_EPROCESS}!VadRoot@{VadRoot}}
+\index{VadRoot@{VadRoot}!\_EPROCESS@{\_EPROCESS}}
+\doxysubsubsection{\texorpdfstring{VadRoot}{VadRoot}}
+{\footnotesize\ttfamily \label{struct___e_p_r_o_c_e_s_s_a9013306a9ca87d963c48aa2950175182} 
+struct \mbox{\hyperlink{struct___m_m_v_a_d}{\+\_\+\+MMVAD}}\texorpdfstring{$\ast$}{*} Vad\+Root}
+
+
+
+Definition at line \mbox{\hyperlink{ps_8h_source_l00117}{117}} of file \mbox{\hyperlink{ps_8h_source}{ps.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{ps_8h}{ps.\+h}}\end{DoxyCompactItemize}

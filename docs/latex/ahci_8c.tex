@@ -1,0 +1,180 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/drivers/ahci/ahci.c File Reference}
+\hypertarget{ahci_8c}{}\label{ahci_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/ahci/ahci.c}}
+{\ttfamily \#include "{}ahci.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x}{\+\_\+\+AHCI\+\_\+\+PORT\+\_\+\+CTX}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x}{\+\_\+\+AHCI\+\_\+\+PORT\+\_\+\+CTX}} \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\+\_\+\+PORT\+\_\+\+CTX}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{ahci_8c_a237a75df76bac12d7652004b7f579692}{ahci\+\_\+init}} (void)
+\begin{DoxyCompactList}\small\item\em \#define AHCI\+\_\+\+DEBUG\+\_\+\+PRINT \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{ahci_8c_ace09d7c971766cc2b7aba7c06032f781}{ahci\+\_\+read\+\_\+sector}} (\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}dev, uint32\+\_\+t lba, void \texorpdfstring{$\ast$}{*}buf, size\+\_\+t bytes)
+\begin{DoxyCompactList}\small\item\em Read a single bytes-\/byte sector from the given LBA on a specific \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{ahci_8c_a71a8e835dddd5b57babc5f00de3e0623}{ahci\+\_\+write\+\_\+sector}} (\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}dev, uint32\+\_\+t lba, const void \texorpdfstring{$\ast$}{*}buf, size\+\_\+t bytes)
+\begin{DoxyCompactList}\small\item\em Write a single bytes-\/byte sector to given LBA on a specific \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{ahci_8c_a155325b891cfe68e3e74735a8f304702}{ahci\+\_\+get\+\_\+block\+\_\+device}} (int index)
+\begin{DoxyCompactList}\small\item\em Retrieve a pointer to the AHCI driver\textquotesingle{}s \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} instance. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
+\item 
+\mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{ahci_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\+\_\+local}}
+\item 
+bool \mbox{\hyperlink{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}{ahci\+\_\+initialized}} = false
+\end{DoxyCompactItemize}
+
+
+\label{doc-typedef-members}
+\Hypertarget{ahci_8c_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}\index{ahci.c@{ahci.c}!AHCI\_PORT\_CTX@{AHCI\_PORT\_CTX}}
+\index{AHCI\_PORT\_CTX@{AHCI\_PORT\_CTX}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{AHCI\_PORT\_CTX}{AHCI\_PORT\_CTX}}
+{\footnotesize\ttfamily \label{ahci_8c_a826ec3f5221e81ed24f55d01073491a4} 
+typedef struct \mbox{\hyperlink{struct___a_h_c_i___p_o_r_t___c_t_x}{\+\_\+\+AHCI\+\_\+\+PORT\+\_\+\+CTX}} \mbox{\hyperlink{ahci_8c_a826ec3f5221e81ed24f55d01073491a4}{AHCI\+\_\+\+PORT\+\_\+\+CTX}}}
+
+
+
+\label{doc-func-members}
+\Hypertarget{ahci_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{ahci_8c_a155325b891cfe68e3e74735a8f304702}\index{ahci.c@{ahci.c}!ahci\_get\_block\_device@{ahci\_get\_block\_device}}
+\index{ahci\_get\_block\_device@{ahci\_get\_block\_device}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{ahci\_get\_block\_device()}{ahci\_get\_block\_device()}}
+{\footnotesize\ttfamily \label{ahci_8c_a155325b891cfe68e3e74735a8f304702} 
+\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*} ahci\+\_\+get\+\_\+block\+\_\+device (\begin{DoxyParamCaption}\item[{int}]{index}{}\end{DoxyParamCaption})}
+
+
+
+Retrieve a pointer to the AHCI driver\textquotesingle{}s \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} instance. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em index} & Index of the \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} registration.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+A \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} struct pointer.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{ahci_8c_source_l00562}{562}} of file \mbox{\hyperlink{ahci_8c_source}{ahci.\+c}}.
+
+\Hypertarget{ahci_8c_a237a75df76bac12d7652004b7f579692}\index{ahci.c@{ahci.c}!ahci\_init@{ahci\_init}}
+\index{ahci\_init@{ahci\_init}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{ahci\_init()}{ahci\_init()}}
+{\footnotesize\ttfamily \label{ahci_8c_a237a75df76bac12d7652004b7f579692} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} ahci\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+\#define AHCI\+\_\+\+DEBUG\+\_\+\+PRINT 
+
+Initialize the AHCI Driver.
+
+\begin{DoxyReturn}{Returns}
+True or False based if it initialized correctly or not. (if failure = bugcheck)
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{ahci_8c_source_l00292}{292}} of file \mbox{\hyperlink{ahci_8c_source}{ahci.\+c}}.
+
+\Hypertarget{ahci_8c_ace09d7c971766cc2b7aba7c06032f781}\index{ahci.c@{ahci.c}!ahci\_read\_sector@{ahci\_read\_sector}}
+\index{ahci\_read\_sector@{ahci\_read\_sector}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{ahci\_read\_sector()}{ahci\_read\_sector()}}
+{\footnotesize\ttfamily \label{ahci_8c_ace09d7c971766cc2b7aba7c06032f781} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} ahci\+\_\+read\+\_\+sector (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}}]{dev}{, }\item[{uint32\+\_\+t}]{lba}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{buf}{, }\item[{size\+\_\+t}]{bytes}{}\end{DoxyParamCaption})}
+
+
+
+Read a single bytes-\/byte sector from the given LBA on a specific \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dev} & Takes the \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} device pointer (on register\+\_\+block\+\_\+device)\\
+\hline
+{\em lba} & LBA to read from.\\
+\hline
+{\em buf} & Return buffer to place the data read.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True or False based on succession \texorpdfstring{$\vert$}{|} buf pointer changes.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{ahci_8c_source_l00330}{330}} of file \mbox{\hyperlink{ahci_8c_source}{ahci.\+c}}.
+
+\Hypertarget{ahci_8c_a71a8e835dddd5b57babc5f00de3e0623}\index{ahci.c@{ahci.c}!ahci\_write\_sector@{ahci\_write\_sector}}
+\index{ahci\_write\_sector@{ahci\_write\_sector}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{ahci\_write\_sector()}{ahci\_write\_sector()}}
+{\footnotesize\ttfamily \label{ahci_8c_a71a8e835dddd5b57babc5f00de3e0623} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} ahci\+\_\+write\+\_\+sector (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}} \texorpdfstring{$\ast$}{*}}]{dev}{, }\item[{uint32\+\_\+t}]{lba}{, }\item[{const void \texorpdfstring{$\ast$}{*}}]{buf}{, }\item[{size\+\_\+t}]{bytes}{}\end{DoxyParamCaption})}
+
+
+
+Write a single bytes-\/byte sector to given LBA on a specific \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dev} & Takes the \doxylink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\+\_\+\+DEVICE} device pointer (on register\+\_\+block\+\_\+device)\\
+\hline
+{\em lba} & LBA to read from.\\
+\hline
+{\em buf} & The buffer to write to the specified LBA.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True or False based on succession
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{ahci_8c_source_l00450}{450}} of file \mbox{\hyperlink{ahci_8c_source}{ahci.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{ahci_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{ahci_8c_a1ed835aaf13aa614433110d49cfa556d}\index{ahci.c@{ahci.c}!ahci\_initialized@{ahci\_initialized}}
+\index{ahci\_initialized@{ahci\_initialized}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{ahci\_initialized}{ahci\_initialized}}
+{\footnotesize\ttfamily \label{ahci_8c_a1ed835aaf13aa614433110d49cfa556d} 
+bool ahci\+\_\+initialized = false}
+
+
+
+Definition at line \mbox{\hyperlink{ahci_8c_source_l00290}{290}} of file \mbox{\hyperlink{ahci_8c_source}{ahci.\+c}}.
+
+\Hypertarget{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4}\index{ahci.c@{ahci.c}!boot\_info\_local@{boot\_info\_local}}
+\index{boot\_info\_local@{boot\_info\_local}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{boot\_info\_local}{boot\_info\_local}}
+{\footnotesize\ttfamily \label{ahci_8c_a5f06053b8248ece91f68e4ae8da74ee4} 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00027}{27}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{ahci_8c_ad8ca0be32b831aec9de80bcf0e22107e}\index{ahci.c@{ahci.c}!gop\_local@{gop\_local}}
+\index{gop\_local@{gop\_local}!ahci.c@{ahci.c}}
+\doxysubsubsection{\texorpdfstring{gop\_local}{gop\_local}}
+{\footnotesize\ttfamily \label{ahci_8c_ad8ca0be32b831aec9de80bcf0e22107e} 
+\mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}} gop\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00026}{26}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

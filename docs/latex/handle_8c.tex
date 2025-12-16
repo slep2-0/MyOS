@@ -1,0 +1,105 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ht/handle.c File Reference}
+\hypertarget{handle_8c}{}\label{handle_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ht/handle.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ht/handle.c}}
+{\ttfamily \#include "{}../../includes/ht.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} \mbox{\hyperlink{handle_8c_a4248a71725a0d96cc5308d2711835c75}{Ht\+Create\+Handle\+Table}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}} Process)
+\item 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} \mbox{\hyperlink{handle_8c_a4ad24010cc4b9f4331e7ab83c2967fef}{Ht\+Create\+Handle}} (\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Table, void \texorpdfstring{$\ast$}{*}Object, uint32\+\_\+t Access)
+\item 
+void \mbox{\hyperlink{handle_8c_a5fd6b74d4b408fdce880fd4a9c01f073}{Ht\+Delete\+Handle}} (\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Table, \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Handle)
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{handle_8c_a3ab925bc21d946c96d3656b6e9662a43}{Ht\+Get\+Object}} (\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Table, \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Handle, \mbox{\hyperlink{ht_8h_a555fe8af7cfd68bcf804156fc8b3777a}{PHANDLE\+\_\+\+TABLE\+\_\+\+ENTRY}} \texorpdfstring{$\ast$}{*}Out\+Entry)
+\item 
+void \mbox{\hyperlink{handle_8c_a95832b8395bd6ef19ed5b428994eb291}{Ht\+Delete\+Handle\+Table}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Table)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{handle_8c_a546fdba4904ae6132ccc6ad6b5a19356}{Handle\+Table\+List}}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{handle_8c_a4fb2d80ea0a3e6cf3bf9332eff935150}{Handle\+Table\+Lock}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{handle_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{handle_8c_a4ad24010cc4b9f4331e7ab83c2967fef}\index{handle.c@{handle.c}!HtCreateHandle@{HtCreateHandle}}
+\index{HtCreateHandle@{HtCreateHandle}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HtCreateHandle()}{HtCreateHandle()}}
+{\footnotesize\ttfamily \label{handle_8c_a4ad24010cc4b9f4331e7ab83c2967fef} 
+\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Ht\+Create\+Handle (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}}}]{Table}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{Object}{, }\item[{uint32\+\_\+t}]{Access}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00269}{269}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+\Hypertarget{handle_8c_a4248a71725a0d96cc5308d2711835c75}\index{handle.c@{handle.c}!HtCreateHandleTable@{HtCreateHandleTable}}
+\index{HtCreateHandleTable@{HtCreateHandleTable}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HtCreateHandleTable()}{HtCreateHandleTable()}}
+{\footnotesize\ttfamily \label{handle_8c_a4248a71725a0d96cc5308d2711835c75} 
+\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}} Ht\+Create\+Handle\+Table (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}}]{Process}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00087}{87}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+\Hypertarget{handle_8c_a5fd6b74d4b408fdce880fd4a9c01f073}\index{handle.c@{handle.c}!HtDeleteHandle@{HtDeleteHandle}}
+\index{HtDeleteHandle@{HtDeleteHandle}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HtDeleteHandle()}{HtDeleteHandle()}}
+{\footnotesize\ttfamily \label{handle_8c_a5fd6b74d4b408fdce880fd4a9c01f073} 
+void Ht\+Delete\+Handle (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}}}]{Table}{, }\item[{\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Handle}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00333}{333}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+\Hypertarget{handle_8c_a95832b8395bd6ef19ed5b428994eb291}\index{handle.c@{handle.c}!HtDeleteHandleTable@{HtDeleteHandleTable}}
+\index{HtDeleteHandleTable@{HtDeleteHandleTable}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HtDeleteHandleTable()}{HtDeleteHandleTable()}}
+{\footnotesize\ttfamily \label{handle_8c_a95832b8395bd6ef19ed5b428994eb291} 
+void Ht\+Delete\+Handle\+Table (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}}}]{Table}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00434}{434}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+\Hypertarget{handle_8c_a3ab925bc21d946c96d3656b6e9662a43}\index{handle.c@{handle.c}!HtGetObject@{HtGetObject}}
+\index{HtGetObject@{HtGetObject}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HtGetObject()}{HtGetObject()}}
+{\footnotesize\ttfamily \label{handle_8c_a3ab925bc21d946c96d3656b6e9662a43} 
+void \texorpdfstring{$\ast$}{*} Ht\+Get\+Object (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ht_8h_a7ef9aee766b45c680842fc726fb6cb7f}{PHANDLE\+\_\+\+TABLE}}}]{Table}{, }\item[{\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Handle}{, }\item[{\mbox{\hyperlink{ht_8h_a555fe8af7cfd68bcf804156fc8b3777a}{PHANDLE\+\_\+\+TABLE\+\_\+\+ENTRY}} \texorpdfstring{$\ast$}{*}}]{Out\+Entry}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00389}{389}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{handle_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{handle_8c_a546fdba4904ae6132ccc6ad6b5a19356}\index{handle.c@{handle.c}!HandleTableList@{HandleTableList}}
+\index{HandleTableList@{HandleTableList}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HandleTableList}{HandleTableList}}
+{\footnotesize\ttfamily \label{handle_8c_a546fdba4904ae6132ccc6ad6b5a19356} 
+\mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} Handle\+Table\+List}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00026}{26}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+
+\Hypertarget{handle_8c_a4fb2d80ea0a3e6cf3bf9332eff935150}\index{handle.c@{handle.c}!HandleTableLock@{HandleTableLock}}
+\index{HandleTableLock@{HandleTableLock}!handle.c@{handle.c}}
+\doxysubsubsection{\texorpdfstring{HandleTableLock}{HandleTableLock}}
+{\footnotesize\ttfamily \label{handle_8c_a4fb2d80ea0a3e6cf3bf9332eff935150} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Handle\+Table\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{handle_8c_source_l00027}{27}} of file \mbox{\hyperlink{handle_8c_source}{handle.\+c}}.
+

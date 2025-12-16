@@ -1,0 +1,146 @@
+\doxysection{\+\_\+\+MM\+\_\+\+PFN\+\_\+\+DATABASE Struct Reference}
+\hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e}{}\label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+
+
+{\ttfamily \#include $<$mm.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a72e9ad3c7aaa452e7bfbae7fb6b28cc1}{Pfn\+Entries}}
+\item 
+size\+\_\+t \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a3529b6b508bae6225f16e0886099c02f}{Total\+Page\+Count}}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_afe7925a8f133fb9f2e72b5726a0f84bd}{Pfn\+Database\+Lock}}
+\item 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_affe2e18dddb09fd47213f7e769904169}{Free\+Page\+List}}
+\item 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_ab061e91f3a59a80602f165808c32d4dc}{Zeroed\+Page\+List}}
+\item 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a1b7c8b459ba38e3423fcff80924eef33}{Standby\+Page\+List}}
+\item 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a5a87527da1a330dbca2cb634775c8674}{Modified\+Page\+List}}
+\item 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2345d2c3724afe77c18dde594ebe8b7c}{Bad\+Page\+List}}
+\item 
+volatile size\+\_\+t \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2277cb07818c16afed410b3a6c3491d5}{Available\+Pages}}
+\item 
+volatile size\+\_\+t \mbox{\hyperlink{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a60232745834116dfbf3bbda4c886930b}{Total\+Reserved}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00456}{456}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2277cb07818c16afed410b3a6c3491d5}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!AvailablePages@{AvailablePages}}
+\index{AvailablePages@{AvailablePages}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{AvailablePages}{AvailablePages}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2277cb07818c16afed410b3a6c3491d5} 
+volatile size\+\_\+t Available\+Pages}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00469}{469}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2345d2c3724afe77c18dde594ebe8b7c}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!BadPageList@{BadPageList}}
+\index{BadPageList@{BadPageList}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{BadPageList}{BadPageList}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a2345d2c3724afe77c18dde594ebe8b7c} 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} Bad\+Page\+List}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00466}{466}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_affe2e18dddb09fd47213f7e769904169}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!FreePageList@{FreePageList}}
+\index{FreePageList@{FreePageList}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{FreePageList}{FreePageList}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_affe2e18dddb09fd47213f7e769904169} 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} Free\+Page\+List}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00462}{462}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a5a87527da1a330dbca2cb634775c8674}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!ModifiedPageList@{ModifiedPageList}}
+\index{ModifiedPageList@{ModifiedPageList}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{ModifiedPageList}{ModifiedPageList}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a5a87527da1a330dbca2cb634775c8674} 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} Modified\+Page\+List}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00465}{465}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_afe7925a8f133fb9f2e72b5726a0f84bd}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!PfnDatabaseLock@{PfnDatabaseLock}}
+\index{PfnDatabaseLock@{PfnDatabaseLock}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{PfnDatabaseLock}{PfnDatabaseLock}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_afe7925a8f133fb9f2e72b5726a0f84bd} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Pfn\+Database\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00459}{459}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a72e9ad3c7aaa452e7bfbae7fb6b28cc1}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!PfnEntries@{PfnEntries}}
+\index{PfnEntries@{PfnEntries}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{PfnEntries}{PfnEntries}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a72e9ad3c7aaa452e7bfbae7fb6b28cc1} 
+\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}} Pfn\+Entries}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00457}{457}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a1b7c8b459ba38e3423fcff80924eef33}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!StandbyPageList@{StandbyPageList}}
+\index{StandbyPageList@{StandbyPageList}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{StandbyPageList}{StandbyPageList}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a1b7c8b459ba38e3423fcff80924eef33} 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} Standby\+Page\+List}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00464}{464}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a3529b6b508bae6225f16e0886099c02f}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!TotalPageCount@{TotalPageCount}}
+\index{TotalPageCount@{TotalPageCount}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{TotalPageCount}{TotalPageCount}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a3529b6b508bae6225f16e0886099c02f} 
+size\+\_\+t Total\+Page\+Count}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00458}{458}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a60232745834116dfbf3bbda4c886930b}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!TotalReserved@{TotalReserved}}
+\index{TotalReserved@{TotalReserved}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{TotalReserved}{TotalReserved}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_a60232745834116dfbf3bbda4c886930b} 
+volatile size\+\_\+t Total\+Reserved}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00470}{470}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+\Hypertarget{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_ab061e91f3a59a80602f165808c32d4dc}\index{\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}!ZeroedPageList@{ZeroedPageList}}
+\index{ZeroedPageList@{ZeroedPageList}!\_MM\_PFN\_DATABASE@{\_MM\_PFN\_DATABASE}}
+\doxysubsubsection{\texorpdfstring{ZeroedPageList}{ZeroedPageList}}
+{\footnotesize\ttfamily \label{struct___m_m___p_f_n___d_a_t_a_b_a_s_e_ab061e91f3a59a80602f165808c32d4dc} 
+\mbox{\hyperlink{mm_8h_a11753cbaa8a99c0cd33327df44168f20}{MM\+\_\+\+PFN\+\_\+\+LIST}} Zeroed\+Page\+List}
+
+
+
+Definition at line \mbox{\hyperlink{mm_8h_source_l00463}{463}} of file \mbox{\hyperlink{mm_8h_source}{mm.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{mm_8h}{mm.\+h}}\end{DoxyCompactItemize}

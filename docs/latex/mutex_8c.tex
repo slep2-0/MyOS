@@ -1,0 +1,52 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ms/mutex.c File Reference}
+\hypertarget{mutex_8c}{}\label{mutex_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/mutex.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/mutex.c}}
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{mutex_8c_a8ad3f7c22a372c800bef23af15a68356}{Ms\+Initialize\+Mutex\+Object}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}} mut)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{mutex_8c_abf498741edb94310cef6584f57fc025e}{Ms\+Acquire\+Mutex\+Object}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}} mut)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734}{Ms\+Release\+Mutex\+Object}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}} mut)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{mutex_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{mutex_8c_abf498741edb94310cef6584f57fc025e}\index{mutex.c@{mutex.c}!MsAcquireMutexObject@{MsAcquireMutexObject}}
+\index{MsAcquireMutexObject@{MsAcquireMutexObject}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquireMutexObject()}{MsAcquireMutexObject()}}
+{\footnotesize\ttfamily \label{mutex_8c_abf498741edb94310cef6584f57fc025e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ms\+Acquire\+Mutex\+Object (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}}]{mut}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mutex_8c_source_l00073}{73}} of file \mbox{\hyperlink{mutex_8c_source}{mutex.\+c}}.
+
+\Hypertarget{mutex_8c_a8ad3f7c22a372c800bef23af15a68356}\index{mutex.c@{mutex.c}!MsInitializeMutexObject@{MsInitializeMutexObject}}
+\index{MsInitializeMutexObject@{MsInitializeMutexObject}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{MsInitializeMutexObject()}{MsInitializeMutexObject()}}
+{\footnotesize\ttfamily \label{mutex_8c_a8ad3f7c22a372c800bef23af15a68356} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ms\+Initialize\+Mutex\+Object (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}}]{mut}{}\end{DoxyParamCaption})}
+
+\#else \#undef Ms\+Acquire\+Spinlock \#undef Ms\+Release\+Spinlock
+
+\#define \doxylink{ms_8h_a1efc92e3aa7c8ab17da8a844bb9fd129}{Ms\+Acquire\+Spinlock()} // NO-\/\+OP \#define \doxylink{ms_8h_ac938b07a766c2e0f5c701f2264e46918}{Ms\+Release\+Spinlock()} // NO-\/\+OP \#endif 
+
+Definition at line \mbox{\hyperlink{mutex_8c_source_l00013}{13}} of file \mbox{\hyperlink{mutex_8c_source}{mutex.\+c}}.
+
+\Hypertarget{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734}\index{mutex.c@{mutex.c}!MsReleaseMutexObject@{MsReleaseMutexObject}}
+\index{MsReleaseMutexObject@{MsReleaseMutexObject}!mutex.c@{mutex.c}}
+\doxysubsubsection{\texorpdfstring{MsReleaseMutexObject()}{MsReleaseMutexObject()}}
+{\footnotesize\ttfamily \label{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ms\+Release\+Mutex\+Object (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}}]{mut}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mutex_8c_source_l00135}{135}} of file \mbox{\hyperlink{mutex_8c_source}{mutex.\+c}}.
+

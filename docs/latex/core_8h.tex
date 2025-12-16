@@ -1,0 +1,278 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/core.h File Reference}
+\hypertarget{core_8h}{}\label{core_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/core.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/core.h}}
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include "{}behavior.\+h"{}}\newline
+{\ttfamily \#include "{}macros.\+h"{}}\newline
+{\ttfamily \#include "{}annotations.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___s_i_n_g_l_e___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+SINGLE\+\_\+\+LINKED\+\_\+\+LIST}}
+\item 
+struct \mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}
+\item 
+typedef enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}
+\item 
+typedef struct \mbox{\hyperlink{struct___s_i_n_g_l_e___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+SINGLE\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{core_8h_addc7e844c7106a4de73789a65cd50a2a}{SINGLE\+\_\+\+LINKED\+\_\+\+LIST}}
+\item 
+typedef struct \mbox{\hyperlink{struct___s_i_n_g_l_e___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+SINGLE\+\_\+\+LINKED\+\_\+\+LIST}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_af74ceeda6c0874b4fd5e54d87dee46bf}{PSINGLE\+\_\+\+LINKED\+\_\+\+LIST}}
+\item 
+typedef struct \mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}}
+\item 
+typedef struct \mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}{PDOUBLY\+\_\+\+LINKED\+\_\+\+LIST}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_t_h_r_e_a_d}{\+\_\+\+ITHREAD}} \mbox{\hyperlink{core_8h_a15e5064e6618add1f7018e410c408752}{ITHREAD}}
+\item 
+typedef \mbox{\hyperlink{core_8h_a15e5064e6618add1f7018e410c408752}{ITHREAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_p_r_o_c_e_s_s}{\+\_\+\+IPROCESS}} \mbox{\hyperlink{core_8h_a15c931faf01f97ced82b87103547cee0}{IPROCESS}}
+\item 
+typedef \mbox{\hyperlink{core_8h_a15c931faf01f97ced82b87103547cee0}{IPROCESS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a3e9988613b48cfa96a902fc01b1cf7a0}{PIPROCESS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}} \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}
+\item 
+typedef \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}
+\item 
+typedef struct \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r}{\+\_\+\+PROCESSOR}} \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}
+\item 
+typedef \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s}{\+\_\+\+EPROCESS}} \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}
+\item 
+typedef \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e}{\+\_\+\+TRAP\+\_\+\+FRAME}} \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}}
+\item 
+typedef \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \{ \newline
+\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f}{PASSIVE\+\_\+\+LEVEL}} = 0
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\+\_\+\+LEVEL}} = 1
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\+\_\+\+LEVEL}} = 2
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea35055bf8ec0514e7e8afee9d4227c6d7}{PROFILE\+\_\+\+LEVEL}} = 27
+, \newline
+\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea9562f0a4b039e529f5e7a949b6afc3fd}{CLOCK\+\_\+\+LEVEL}} = 28
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea901304439d70b3e35dd6eaa57644f524}{IPI\+\_\+\+LEVEL}} = 29
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eae7135c89d9f73f43351bda695027836e}{POWER\+\_\+\+LEVEL}} = 30
+, \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf}{HIGH\+\_\+\+LEVEL}} = 31
+ \}
+\end{DoxyCompactItemize}
+
+
+\label{doc-typedef-members}
+\Hypertarget{core_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{core_8h_afb9223ccda4ca489763aad6961a26c65}\index{core.h@{core.h}!DOUBLY\_LINKED\_LIST@{DOUBLY\_LINKED\_LIST}}
+\index{DOUBLY\_LINKED\_LIST@{DOUBLY\_LINKED\_LIST}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{DOUBLY\_LINKED\_LIST}{DOUBLY\_LINKED\_LIST}}
+{\footnotesize\ttfamily \label{core_8h_afb9223ccda4ca489763aad6961a26c65} 
+typedef struct \mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{core_8h_afb9223ccda4ca489763aad6961a26c65}{DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}}}
+
+\Hypertarget{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}\index{core.h@{core.h}!EPROCESS@{EPROCESS}}
+\index{EPROCESS@{EPROCESS}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{EPROCESS}{EPROCESS}}
+{\footnotesize\ttfamily \label{core_8h_a1079f854acf7ed03691ff4ea20bc1be6} 
+typedef struct \mbox{\hyperlink{struct___e_p_r_o_c_e_s_s}{\+\_\+\+EPROCESS}} \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00049}{49}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}\index{core.h@{core.h}!ETHREAD@{ETHREAD}}
+\index{ETHREAD@{ETHREAD}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{ETHREAD}{ETHREAD}}
+{\footnotesize\ttfamily \label{core_8h_ab36019f6c21ddbae4a9dd226ed885a46} 
+typedef struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}} \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00041}{41}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a15c931faf01f97ced82b87103547cee0}\index{core.h@{core.h}!IPROCESS@{IPROCESS}}
+\index{IPROCESS@{IPROCESS}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{IPROCESS}{IPROCESS}}
+{\footnotesize\ttfamily \label{core_8h_a15c931faf01f97ced82b87103547cee0} 
+typedef struct \mbox{\hyperlink{struct___i_p_r_o_c_e_s_s}{\+\_\+\+IPROCESS}} \mbox{\hyperlink{core_8h_a15c931faf01f97ced82b87103547cee0}{IPROCESS}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00037}{37}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a7258ea91cea6c1c174df48f6225ef4da}\index{core.h@{core.h}!IRQL@{IRQL}}
+\index{IRQL@{IRQL}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{IRQL}{IRQL}}
+{\footnotesize\ttfamily \label{core_8h_a7258ea91cea6c1c174df48f6225ef4da} 
+typedef enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}
+
+\Hypertarget{core_8h_a15e5064e6618add1f7018e410c408752}\index{core.h@{core.h}!ITHREAD@{ITHREAD}}
+\index{ITHREAD@{ITHREAD}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{ITHREAD}{ITHREAD}}
+{\footnotesize\ttfamily \label{core_8h_a15e5064e6618add1f7018e410c408752} 
+typedef struct \mbox{\hyperlink{struct___i_t_h_r_e_a_d}{\+\_\+\+ITHREAD}} \mbox{\hyperlink{core_8h_a15e5064e6618add1f7018e410c408752}{ITHREAD}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00033}{33}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}\index{core.h@{core.h}!PDOUBLY\_LINKED\_LIST@{PDOUBLY\_LINKED\_LIST}}
+\index{PDOUBLY\_LINKED\_LIST@{PDOUBLY\_LINKED\_LIST}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PDOUBLY\_LINKED\_LIST}{PDOUBLY\_LINKED\_LIST}}
+{\footnotesize\ttfamily \label{core_8h_a5ab6087d9cf9b1c2356140128e66b95f} 
+typedef struct \mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+DOUBLY\+\_\+\+LINKED\+\_\+\+LIST}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}{PDOUBLY\+\_\+\+LINKED\+\_\+\+LIST}}}
+
+\Hypertarget{core_8h_a991a69d592c53aaa098317abccbdfca7}\index{core.h@{core.h}!PEPROCESS@{PEPROCESS}}
+\index{PEPROCESS@{PEPROCESS}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PEPROCESS}{PEPROCESS}}
+{\footnotesize\ttfamily \label{core_8h_a991a69d592c53aaa098317abccbdfca7} 
+typedef \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00050}{50}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}\index{core.h@{core.h}!PETHREAD@{PETHREAD}}
+\index{PETHREAD@{PETHREAD}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PETHREAD}{PETHREAD}}
+{\footnotesize\ttfamily \label{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7} 
+typedef \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00042}{42}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a3e9988613b48cfa96a902fc01b1cf7a0}\index{core.h@{core.h}!PIPROCESS@{PIPROCESS}}
+\index{PIPROCESS@{PIPROCESS}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PIPROCESS}{PIPROCESS}}
+{\footnotesize\ttfamily \label{core_8h_a3e9988613b48cfa96a902fc01b1cf7a0} 
+typedef \mbox{\hyperlink{core_8h_a15c931faf01f97ced82b87103547cee0}{IPROCESS}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a3e9988613b48cfa96a902fc01b1cf7a0}{PIPROCESS}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00038}{38}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a759f4aeab4719639765f2160de0116da}\index{core.h@{core.h}!PIRQL@{PIRQL}}
+\index{PIRQL@{PIRQL}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PIRQL}{PIRQL}}
+{\footnotesize\ttfamily \label{core_8h_a759f4aeab4719639765f2160de0116da} 
+typedef enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}}
+
+\Hypertarget{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}\index{core.h@{core.h}!PITHREAD@{PITHREAD}}
+\index{PITHREAD@{PITHREAD}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PITHREAD}{PITHREAD}}
+{\footnotesize\ttfamily \label{core_8h_aa0a64d5bd95b62dc01f93f880483eed8} 
+typedef \mbox{\hyperlink{core_8h_a15e5064e6618add1f7018e410c408752}{ITHREAD}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00034}{34}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}\index{core.h@{core.h}!PPROCESSOR@{PPROCESSOR}}
+\index{PPROCESSOR@{PPROCESSOR}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PPROCESSOR}{PPROCESSOR}}
+{\footnotesize\ttfamily \label{core_8h_a70c4f07737f0f901b6b34b4655c9ee42} 
+typedef \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00046}{46}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}\index{core.h@{core.h}!PROCESSOR@{PROCESSOR}}
+\index{PROCESSOR@{PROCESSOR}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PROCESSOR}{PROCESSOR}}
+{\footnotesize\ttfamily \label{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4} 
+typedef struct \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r}{\+\_\+\+PROCESSOR}} \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00045}{45}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_af74ceeda6c0874b4fd5e54d87dee46bf}\index{core.h@{core.h}!PSINGLE\_LINKED\_LIST@{PSINGLE\_LINKED\_LIST}}
+\index{PSINGLE\_LINKED\_LIST@{PSINGLE\_LINKED\_LIST}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PSINGLE\_LINKED\_LIST}{PSINGLE\_LINKED\_LIST}}
+{\footnotesize\ttfamily \label{core_8h_af74ceeda6c0874b4fd5e54d87dee46bf} 
+typedef struct \mbox{\hyperlink{struct___s_i_n_g_l_e___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+SINGLE\+\_\+\+LINKED\+\_\+\+LIST}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_af74ceeda6c0874b4fd5e54d87dee46bf}{PSINGLE\+\_\+\+LINKED\+\_\+\+LIST}}}
+
+\Hypertarget{core_8h_aa67765a45c59a875c081a07037408850}\index{core.h@{core.h}!PTRAP\_FRAME@{PTRAP\_FRAME}}
+\index{PTRAP\_FRAME@{PTRAP\_FRAME}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{PTRAP\_FRAME}{PTRAP\_FRAME}}
+{\footnotesize\ttfamily \label{core_8h_aa67765a45c59a875c081a07037408850} 
+typedef \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}}\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00054}{54}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+\Hypertarget{core_8h_addc7e844c7106a4de73789a65cd50a2a}\index{core.h@{core.h}!SINGLE\_LINKED\_LIST@{SINGLE\_LINKED\_LIST}}
+\index{SINGLE\_LINKED\_LIST@{SINGLE\_LINKED\_LIST}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{SINGLE\_LINKED\_LIST}{SINGLE\_LINKED\_LIST}}
+{\footnotesize\ttfamily \label{core_8h_addc7e844c7106a4de73789a65cd50a2a} 
+typedef struct \mbox{\hyperlink{struct___s_i_n_g_l_e___l_i_n_k_e_d___l_i_s_t}{\+\_\+\+SINGLE\+\_\+\+LINKED\+\_\+\+LIST}} \mbox{\hyperlink{core_8h_addc7e844c7106a4de73789a65cd50a2a}{SINGLE\+\_\+\+LINKED\+\_\+\+LIST}}}
+
+\Hypertarget{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}\index{core.h@{core.h}!TRAP\_FRAME@{TRAP\_FRAME}}
+\index{TRAP\_FRAME@{TRAP\_FRAME}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{TRAP\_FRAME}{TRAP\_FRAME}}
+{\footnotesize\ttfamily \label{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a} 
+typedef struct \mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e}{\+\_\+\+TRAP\+\_\+\+FRAME}} \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\+\_\+\+FRAME}}}
+
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00053}{53}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+
+
+
+\label{doc-enum-members}
+\Hypertarget{core_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}\index{core.h@{core.h}!\_IRQL@{\_IRQL}}
+\index{\_IRQL@{\_IRQL}!core.h@{core.h}}
+\doxysubsubsection{\texorpdfstring{\_IRQL}{\_IRQL}}
+{\footnotesize\ttfamily \label{core_8h_a6ff101fd8adf1c79792d98893f8dee3e} 
+enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{PASSIVE\_LEVEL@{PASSIVE\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!PASSIVE\_LEVEL@{PASSIVE\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f} 
+PASSIVE\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{APC\_LEVEL@{APC\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!APC\_LEVEL@{APC\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2} 
+APC\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DISPATCH\_LEVEL@{DISPATCH\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!DISPATCH\_LEVEL@{DISPATCH\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f} 
+DISPATCH\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{PROFILE\_LEVEL@{PROFILE\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!PROFILE\_LEVEL@{PROFILE\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea35055bf8ec0514e7e8afee9d4227c6d7}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea35055bf8ec0514e7e8afee9d4227c6d7} 
+PROFILE\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CLOCK\_LEVEL@{CLOCK\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!CLOCK\_LEVEL@{CLOCK\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea9562f0a4b039e529f5e7a949b6afc3fd}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea9562f0a4b039e529f5e7a949b6afc3fd} 
+CLOCK\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IPI\_LEVEL@{IPI\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!IPI\_LEVEL@{IPI\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea901304439d70b3e35dd6eaa57644f524}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea901304439d70b3e35dd6eaa57644f524} 
+IPI\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{POWER\_LEVEL@{POWER\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!POWER\_LEVEL@{POWER\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3eae7135c89d9f73f43351bda695027836e}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3eae7135c89d9f73f43351bda695027836e} 
+POWER\+\_\+\+LEVEL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{HIGH\_LEVEL@{HIGH\_LEVEL}!core.h@{core.h}}\index{core.h@{core.h}!HIGH\_LEVEL@{HIGH\_LEVEL}}}\Hypertarget{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf}\label{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf} 
+HIGH\+\_\+\+LEVEL&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{core_8h_source_l00012}{12}} of file \mbox{\hyperlink{core_8h_source}{core.\+h}}.
+

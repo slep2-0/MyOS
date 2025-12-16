@@ -1,0 +1,108 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/me/dpc.c File Reference}
+\hypertarget{dpc_8c}{}\label{dpc_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/dpc.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/dpc.c}}
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{dpc_8c_abdd0a726135e1e29003297d864243ebc}{Reap\+Ob}} (\mbox{\hyperlink{me_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*}dpc, void \texorpdfstring{$\ast$}{*}Deferred\+Context, void \texorpdfstring{$\ast$}{*}System\+Argument1, void \texorpdfstring{$\ast$}{*}System\+Argument2)
+\item 
+bool \mbox{\hyperlink{dpc_8c_a693b51ec9479301c4651c9c623d784fa}{Me\+Insert\+Queue\+Dpc}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}} Dpc, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}System\+Argument1, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}System\+Argument2)
+\item 
+bool \mbox{\hyperlink{dpc_8c_a616e1a98354857dc1b20ea740d5c4ba3}{Me\+Remove\+Queue\+Dpc}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}} Dpc)
+\item 
+void \mbox{\hyperlink{dpc_8c_a383e4ac532b21a123418732a52de9ad4}{Me\+Retire\+DPCs}} (void)
+\item 
+void \mbox{\hyperlink{dpc_8c_ab5394f0b02b05dc6fc0a3fe668b603d8}{Me\+Set\+Target\+Processor\+Dpc}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}} Dpc, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t Cpu\+Number)
+\item 
+void \mbox{\hyperlink{dpc_8c_a9f616b46e03e4d75165b5e334582fe2f}{Me\+Initialize\+Dpc}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}} Dpc\+Allocated, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_a98ccdf2ca1cea60aacd4b0029eff4d5a}{PDEFERRED\+\_\+\+ROUTINE}} Deferred\+Routine, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Deferred\+Context, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_a7f413397165967ca4cdadfb6310158be}{DPC\+\_\+\+PRIORITY}} Deferred\+Priority)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+volatile void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{dpc_8c_a8e865b7f3f75266d2ac2ebbeda776520}{Obp\+Reaper\+List}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{dpc_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{dpc_8c_a9f616b46e03e4d75165b5e334582fe2f}\index{dpc.c@{dpc.c}!MeInitializeDpc@{MeInitializeDpc}}
+\index{MeInitializeDpc@{MeInitializeDpc}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MeInitializeDpc()}{MeInitializeDpc()}}
+{\footnotesize\ttfamily \label{dpc_8c_a9f616b46e03e4d75165b5e334582fe2f} 
+void Me\+Initialize\+Dpc (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}}}]{Dpc\+Allocated}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_a98ccdf2ca1cea60aacd4b0029eff4d5a}{PDEFERRED\+\_\+\+ROUTINE}}}]{Deferred\+Routine}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Deferred\+Context}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_a7f413397165967ca4cdadfb6310158be}{DPC\+\_\+\+PRIORITY}}}]{Deferred\+Priority}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00384}{384}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a693b51ec9479301c4651c9c623d784fa}\index{dpc.c@{dpc.c}!MeInsertQueueDpc@{MeInsertQueueDpc}}
+\index{MeInsertQueueDpc@{MeInsertQueueDpc}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MeInsertQueueDpc()}{MeInsertQueueDpc()}}
+{\footnotesize\ttfamily \label{dpc_8c_a693b51ec9479301c4651c9c623d784fa} 
+bool Me\+Insert\+Queue\+Dpc (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}}}]{Dpc}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{System\+Argument1}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{System\+Argument2}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00047}{47}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a616e1a98354857dc1b20ea740d5c4ba3}\index{dpc.c@{dpc.c}!MeRemoveQueueDpc@{MeRemoveQueueDpc}}
+\index{MeRemoveQueueDpc@{MeRemoveQueueDpc}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MeRemoveQueueDpc()}{MeRemoveQueueDpc()}}
+{\footnotesize\ttfamily \label{dpc_8c_a616e1a98354857dc1b20ea740d5c4ba3} 
+bool Me\+Remove\+Queue\+Dpc (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}}}]{Dpc}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00167}{167}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_a383e4ac532b21a123418732a52de9ad4}\index{dpc.c@{dpc.c}!MeRetireDPCs@{MeRetireDPCs}}
+\index{MeRetireDPCs@{MeRetireDPCs}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MeRetireDPCs()}{MeRetireDPCs()}}
+{\footnotesize\ttfamily \label{dpc_8c_a383e4ac532b21a123418732a52de9ad4} 
+void Me\+Retire\+DPCs (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00222}{222}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_ab5394f0b02b05dc6fc0a3fe668b603d8}\index{dpc.c@{dpc.c}!MeSetTargetProcessorDpc@{MeSetTargetProcessorDpc}}
+\index{MeSetTargetProcessorDpc@{MeSetTargetProcessorDpc}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{MeSetTargetProcessorDpc()}{MeSetTargetProcessorDpc()}}
+{\footnotesize\ttfamily \label{dpc_8c_ab5394f0b02b05dc6fc0a3fe668b603d8} 
+void Me\+Set\+Target\+Processor\+Dpc (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{me_8h_af17808df1561cc593973d56446dfa44f}{PDPC}}}]{Dpc}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t}]{Cpu\+Number}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00350}{350}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+\Hypertarget{dpc_8c_abdd0a726135e1e29003297d864243ebc}\index{dpc.c@{dpc.c}!ReapOb@{ReapOb}}
+\index{ReapOb@{ReapOb}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{ReapOb()}{ReapOb()}}
+{\footnotesize\ttfamily \label{dpc_8c_abdd0a726135e1e29003297d864243ebc} 
+void Reap\+Ob (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{me_8h_ab4a5c3c2096f05e5f0db35f80685b4a2}{DPC}} \texorpdfstring{$\ast$}{*}}]{dpc}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{Deferred\+Context}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{System\+Argument1}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{System\+Argument2}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{dpc_8c_source_l00018}{18}} of file \mbox{\hyperlink{dpc_8c_source}{dpc.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{dpc_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{dpc_8c_a8e865b7f3f75266d2ac2ebbeda776520}\index{dpc.c@{dpc.c}!ObpReaperList@{ObpReaperList}}
+\index{ObpReaperList@{ObpReaperList}!dpc.c@{dpc.c}}
+\doxysubsubsection{\texorpdfstring{ObpReaperList}{ObpReaperList}}
+{\footnotesize\ttfamily \label{dpc_8c_a8e865b7f3f75266d2ac2ebbeda776520} 
+volatile void\texorpdfstring{$\ast$}{*} Obp\+Reaper\+List\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{ob_8c_source_l00028}{28}} of file \mbox{\hyperlink{ob_8c_source}{ob.\+c}}.
+

@@ -1,0 +1,106 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/pfn.c File Reference}
+\hypertarget{pfn_8c}{}\label{pfn_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pfn.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pfn.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{pfn_8c_aa80c9f143f084f29f0961969eecbab97}{Mi\+Initialize\+Pfn\+Database}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{efi_8h_a30603a4329e93f45c29e6988998e39b8}{PBOOT\+\_\+\+INFO}} Boot\+Info)
+\item 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} \mbox{\hyperlink{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff}{Mi\+Request\+Physical\+Page}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a2af3dbc8dfc6350d4c18c46bf3c92d2a}{PFN\+\_\+\+STATE}} List\+Type)
+\item 
+void \mbox{\hyperlink{pfn_8c_a5c45262799a0761469b19a5dd9810947}{Mi\+Release\+Physical\+Page}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} Pfn\+Index)
+\item 
+void \mbox{\hyperlink{pfn_8c_a2c570a4f0e97fa11887df60d7a1b502d}{Mi\+Unlink\+Page\+From\+List}} (\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}} pfn)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mm_8h_a67864b7f6770308b692c66253a69e09d}{MM\+\_\+\+PFN\+\_\+\+DATABASE}} \mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{Pfn\+Database}}
+\item 
+bool \mbox{\hyperlink{pfn_8c_a751b1ff6046212e402e3ac873016e7ff}{Mm\+Pfn\+Database\+Initialized}} = false
+\item 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} \mbox{\hyperlink{pfn_8c_a22803a09c3713dda1ef6f7ee637874dc}{Mm\+Highest\+Pfn}} = 0
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{pfn_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{pfn_8c_aa80c9f143f084f29f0961969eecbab97}\index{pfn.c@{pfn.c}!MiInitializePfnDatabase@{MiInitializePfnDatabase}}
+\index{MiInitializePfnDatabase@{MiInitializePfnDatabase}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MiInitializePfnDatabase()}{MiInitializePfnDatabase()}}
+{\footnotesize\ttfamily \label{pfn_8c_aa80c9f143f084f29f0961969eecbab97} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mi\+Initialize\+Pfn\+Database (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{efi_8h_a30603a4329e93f45c29e6988998e39b8}{PBOOT\+\_\+\+INFO}}}]{Boot\+Info}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00100}{100}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+\Hypertarget{pfn_8c_a5c45262799a0761469b19a5dd9810947}\index{pfn.c@{pfn.c}!MiReleasePhysicalPage@{MiReleasePhysicalPage}}
+\index{MiReleasePhysicalPage@{MiReleasePhysicalPage}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MiReleasePhysicalPage()}{MiReleasePhysicalPage()}}
+{\footnotesize\ttfamily \label{pfn_8c_a5c45262799a0761469b19a5dd9810947} 
+void Mi\+Release\+Physical\+Page (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}}}]{Pfn\+Index}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00421}{421}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+\Hypertarget{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff}\index{pfn.c@{pfn.c}!MiRequestPhysicalPage@{MiRequestPhysicalPage}}
+\index{MiRequestPhysicalPage@{MiRequestPhysicalPage}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MiRequestPhysicalPage()}{MiRequestPhysicalPage()}}
+{\footnotesize\ttfamily \label{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff} 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} Mi\+Request\+Physical\+Page (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a2af3dbc8dfc6350d4c18c46bf3c92d2a}{PFN\+\_\+\+STATE}}}]{List\+Type}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00325}{325}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+\Hypertarget{pfn_8c_a2c570a4f0e97fa11887df60d7a1b502d}\index{pfn.c@{pfn.c}!MiUnlinkPageFromList@{MiUnlinkPageFromList}}
+\index{MiUnlinkPageFromList@{MiUnlinkPageFromList}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MiUnlinkPageFromList()}{MiUnlinkPageFromList()}}
+{\footnotesize\ttfamily \label{pfn_8c_a2c570a4f0e97fa11887df60d7a1b502d} 
+void Mi\+Unlink\+Page\+From\+List (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}}}]{pfn}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00486}{486}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{pfn_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{pfn_8c_a22803a09c3713dda1ef6f7ee637874dc}\index{pfn.c@{pfn.c}!MmHighestPfn@{MmHighestPfn}}
+\index{MmHighestPfn@{MmHighestPfn}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MmHighestPfn}{MmHighestPfn}}
+{\footnotesize\ttfamily \label{pfn_8c_a22803a09c3713dda1ef6f7ee637874dc} 
+\mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\+\_\+\+INDEX}} Mm\+Highest\+Pfn = 0}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00031}{31}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+\Hypertarget{pfn_8c_a751b1ff6046212e402e3ac873016e7ff}\index{pfn.c@{pfn.c}!MmPfnDatabaseInitialized@{MmPfnDatabaseInitialized}}
+\index{MmPfnDatabaseInitialized@{MmPfnDatabaseInitialized}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{MmPfnDatabaseInitialized}{MmPfnDatabaseInitialized}}
+{\footnotesize\ttfamily \label{pfn_8c_a751b1ff6046212e402e3ac873016e7ff} 
+bool Mm\+Pfn\+Database\+Initialized = false}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00030}{30}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+
+\Hypertarget{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}\index{pfn.c@{pfn.c}!PfnDatabase@{PfnDatabase}}
+\index{PfnDatabase@{PfnDatabase}!pfn.c@{pfn.c}}
+\doxysubsubsection{\texorpdfstring{PfnDatabase}{PfnDatabase}}
+{\footnotesize\ttfamily \label{pfn_8c_a838d2043c92e3267897ecdf7abe262f6} 
+\mbox{\hyperlink{mm_8h_a67864b7f6770308b692c66253a69e09d}{MM\+\_\+\+PFN\+\_\+\+DATABASE}} Pfn\+Database}
+
+
+
+Definition at line \mbox{\hyperlink{pfn_8c_source_l00029}{29}} of file \mbox{\hyperlink{pfn_8c_source}{pfn.\+c}}.
+

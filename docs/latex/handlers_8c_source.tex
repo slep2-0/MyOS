@@ -1,0 +1,490 @@
+\doxysection{handlers.\+c}
+\hypertarget{handlers_8c_source}{}\label{handlers_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/handlers.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/handlers.c}}
+\mbox{\hyperlink{handlers_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Implementation\ of\ handler\ functions\ for\ interrupts.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mh_8h}{../../includes/mh.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00011}00011\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{md_8h}{../../includes/md.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00013}\mbox{\hyperlink{handlers_8c_a81d51c722be3972efc6dafd68986b20f}{00013}}\ \textcolor{preprocessor}{\#define\ PRINT\_ALL\_REGS\_AND\_HALT(ctxptr,\ intfrptr)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00014}00014\ \textcolor{preprocessor}{\ \ \ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00015}00015\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ gop\_printf(COLOR\_RED,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00016}00016\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}RAX=\%p\ RBX=\%p\ RCX=\%p\ RDX=\%p\(\backslash\)n"{}\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00017}00017\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}RSI=\%p\ RDI=\%p\ RBP=\%p\ RSP=\%p\(\backslash\)n"{}\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00018}00018\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}R8\ =\%p\ R9\ =\%p\ R10=\%p\ R11=\%p\(\backslash\)n"{}\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00019}00019\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}R12=\%p\ R13=\%p\ R14=\%p\ R15=\%p\(\backslash\)n"{}\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00020}00020\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ "{}RIP=\%p\ RFLAGS=\%p\(\backslash\)n"{},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00021}00021\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (ctxptr)-\/>rax,\ (ctxptr)-\/>rbx,\ (ctxptr)-\/>rcx,\ (ctxptr)-\/>rdx,\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00022}00022\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (ctxptr)-\/>rsi,\ (ctxptr)-\/>rdi,\ (ctxptr)-\/>rbp,\ (intfrptr)-\/>rsp,\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00023}00023\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (ctxptr)-\/>r8,\ (ctxptr)-\/>r9,\ (ctxptr)-\/>r10,\ (ctxptr)-\/>r11,\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00024}00024\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (ctxptr)-\/>r12,\ (ctxptr)-\/>r13,\ (ctxptr)-\/>r14,\ (ctxptr)-\/>r15,\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00025}00025\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (intfrptr)-\/>rip,\ (intfrptr)-\/>rflags);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00026}00026\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_\_hlt();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00027}00027\ \textcolor{preprocessor}{\ \ \ \ \}\ while\ (0)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00029}00029\ \textcolor{comment}{//\ NOTE\ TO\ SELF:\ DO\ NOT\ PUT\ TRACELAST\_FUNC\ HERE,\ THESE\ ARE\ INTERRUPT/EXCEPTION\ HANDLERS!}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00032}00032\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_aed43839a3c8b74504a97930edbe8b735}{cursor\_x}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00033}00033\ \textcolor{keyword}{extern}\ uint32\_t\ \mbox{\hyperlink{bugcheck_8c_ad3e70ba50f805f295792f5dc66599d51}{cursor\_y}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00034}00034\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00035}00035\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00036}00036\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ MiHandleTimer(\textcolor{keywordtype}{bool}\ schedulerEnabled,\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00037}00037\ \ \ \ \ \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}\ cpu\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00038}00038\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00039}00039\ \ \ \ \ \textcolor{comment}{//\ Do\ not\ decrement\ if\ a\ schedule\ is\ already\ pending.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{if}\ (cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac655daa31afa0f77124f1b5c86b8a048}{schedulePending}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00041}00041\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00042}00042\ \ \ \ \ \textcolor{comment}{//\ If\ scheduler\ is\ locked\ or\ no\ thread\ is\ running,\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00043}00043\ \ \ \ \ \textcolor{keywordflow}{if}\ (!schedulerEnabled\ ||\ !cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{currentThread}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00045}00045\ \ \ \ \ \mbox{\hyperlink{core_8h_aa0a64d5bd95b62dc01f93f880483eed8}{PITHREAD}}\ currentThread\ =\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{currentThread}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00046}00046\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00047}00047\ \ \ \ \ \textcolor{comment}{//\ Atomic\ decrement,\ if\ there\ is\ still\ time,\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00048}00048\ \ \ \ \ \textcolor{keywordflow}{if}\ (\_\_sync\_sub\_and\_fetch(\&currentThread-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}},\ 1)\ >\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00050}00050\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00052}00052\ \ \ \ \ \textcolor{comment}{//\ Time\ slice\ has\ expired}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00053}00053\ \ \ \ \ \textcolor{comment}{//\ Reset\ Quantum}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00054}00054\ \ \ \ \ currentThread-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}}\ =\ currentThread-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ac82dc0f66693dda24c97ed90c0f899b7}{TimeSliceAllocated}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00055}00055\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00056}00056\ \ \ \ \ \textcolor{comment}{//\ Save\ the\ thread's\ context.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00057}00057\ \ \ \ \ currentThread-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}}\ =\ *trap;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00058}00058\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00059}00059\ \ \ \ \ \textcolor{comment}{//\ Request\ schedule.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00060}00060\ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac655daa31afa0f77124f1b5c86b8a048}{schedulePending}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00061}00061\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00063}00063\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\_eoi}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00064}00064\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00065}\mbox{\hyperlink{handlers_8c_aa1a90154eaea0af9608b87626497ad27}{00065}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_aa1a90154eaea0af9608b87626497ad27}{MiLapicInterrupt}}(\textcolor{keywordtype}{bool}\ schedulerEnabled,\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00066}00066\ \ \ \ \ MiHandleTimer(schedulerEnabled,\ trap);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00067}00067\ \ \ \ \ \mbox{\hyperlink{handlers_8c_a5c673232a19d0c4e78792208eb62f0cc}{lapic\_eoi}}();\ \textcolor{comment}{//\ Signal\ end\ of\ interrupt.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00068}00068\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00069}00069\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00070}\mbox{\hyperlink{handlers_8c_ae08944131b30ed5db94bdbfa32abacf0}{00070}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ae08944131b30ed5db94bdbfa32abacf0}{MiInterprocessorInterrupt}}\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00071}00071\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00072}00072\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00073}00073\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00074}00074\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00075}00075\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00076}00076\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ an\ interprocessor\ interupt.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00077}00077\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00078}00078\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00079}00079\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00080}00080\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ (arguments\ to\ IPI's\ are\ taken\ from\ the\ PROCESSOR\ struct,\ accessed\ in\ MeGetCurrentProcessor)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00081}00081\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00082}00082\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00083}00083\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00084}00084\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00085}00085\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00086}00086\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00087}00087\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00088}00088\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00089}00089\ \ \ \ \ \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}\ cpu\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00090}00090\ \ \ \ \ \mbox{\hyperlink{atomic_8h_afe9956d78545cd7f65642c4b40688593}{InterlockedOrU64}}(\&cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}{flags}},\ \mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbbabddc7b4f72dbfb34cff287bc5090dfaa}{CPU\_DOING\_IPI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00091}00091\ \ \ \ \ uint64\_t\ addr\ =\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_af5f4a8aa97cf682fb972dee7cd60d867}{debugRegs}}.\mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s_ab6b52376c1b9d81e6ea6f95a1225f832}{address}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00092}00092\ \ \ \ \ \mbox{\hyperlink{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}{CPU\_ACTION}}\ action\ =\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aa69959a4b611916dc14a67f87a0197f2}{IpiAction}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00093}00093\ \ \ \ \ \textcolor{keywordtype}{int}\ idx\ =\ \mbox{\hyperlink{debugfunctions_8c_a4ed5b57ae1d96ae6fd39aa792fc0c2e4}{find\_available\_debug\_reg}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00094}00094\ \ \ \ \ \textcolor{keywordflow}{switch}\ (action)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00095}00095\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a6289a15e21921fd97173954f608922ac}{CPU\_ACTION\_STOP}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ explicit\ action\ to\ halt,\ since\ we\ are\ in\ an\ interrupt,\ unless\ an\ NMI\ somehow\ comes,\ we\ will\ stay\ stopped.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ clear\ the\ flag\ before\ we\ halt\ so\ BSP\ can\ continue\ iterations}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00098}00098\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aa3721138f6c7e7e000ae66e2baccc189}{IpiSeq}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a69a25077688e3321b41c64ece6626df7}{MmFullBarrier}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{atomic_8h_a2cc78e18e91ef71b18aaa79d4121931b}{InterlockedAndU64}}(\&cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}{flags}},\ \string~\mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbbabddc7b4f72dbfb34cff287bc5090dfaa}{CPU\_DOING\_IPI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00101}00101\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00102}00102\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ae7955c572681f4b53f2cadcfa4ff1614}{CPU\_ACTION\_PERFORM\_TLB\_SHOOTDOWN}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a495c18530f70ecd7355445b11823b6da}{invlpg}}((\textcolor{keywordtype}{void}*)cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_a5dcd69c57621cf909bd6e66d4ef6f83e}{pageParams}}.\mbox{\hyperlink{struct___p_a_g_e___p_a_r_a_m_e_t_e_r_s_a54d43319c2217dc8ddef02e5a2c64d22}{addressToInvalidate}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00104}00104\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00105}00105\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4af9cf8e9011b7239708d34897f83e9342}{CPU\_ACTION\_PRINT\_ID}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00106}00106\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}[CPU-\/IPI]\ Hello\ from\ CPU\ ID:\ \%d\(\backslash\)n"{}},\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a65dfeadd7816e1e5230ca676607263c7}{lapic\_ID}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00108}00108\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a45aab8fb9fc3af5a44aaff5c08710649}{CPU\_ACTION\_WRITE\_DEBUG\_REGS}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (idx\ ==\ -\/1)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(7,\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_af5f4a8aa97cf682fb972dee7cd60d867}{debugRegs}}.\mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s_abd2f2465bea5b1173cb372c4e8a834f4}{dr7}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(idx,\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_af5f4a8aa97cf682fb972dee7cd60d867}{debugRegs}}.\mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s_ab6b52376c1b9d81e6ea6f95a1225f832}{address}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[idx].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_ae0cc8a5c23a59a178d241a27f12b1ef5}{Address}}\ =\ (\textcolor{keywordtype}{void}*)cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_af5f4a8aa97cf682fb972dee7cd60d867}{debugRegs}}.\mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s_ab6b52376c1b9d81e6ea6f95a1225f832}{address}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00113}00113\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[idx].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_a65bc266cb43a4bad87dadf0bc59bb039}{Callback}}\ =\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{IpiParameter}}.\mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s_af5f4a8aa97cf682fb972dee7cd60d867}{debugRegs}}.\mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s_af774e8ec9dc9fbc5084312994b3640c3}{callback}};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00115}00115\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ab2c5fef4a9580a4f57af3729b7e091ba}{CPU\_ACTION\_CLEAR\_DEBUG\_REGS}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ 4;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((uint64\_t)\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>DebugEntry[i].\mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}}\ ==\ addr)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(i,\ 0);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00119}00119\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Clear\ DR7\ bits\ for\ this\ index\ (local\ enable\ and\ RW/LEN\ group)\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ dr7\ =\ \mbox{\hyperlink{intrin_8h_a41b087e19c6e22ca6be38752af62688b}{\_\_read\_dr}}(7);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ clear\ local\ enable\ bit\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dr7\ \&=\ \string~(1ULL\ <<\ (i\ *\ 2));}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ clear\ RW/LEN\ 4-\/bit\ group\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ mask\ =\ 0xFULL\ <<\ (16\ +\ 4\ *\ i);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dr7\ \&=\ \string~mask;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(7,\ dr7);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00128}00128\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Clear\ status\ DR6\ too\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(6,\ 0);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00131}00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[i].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_ae0cc8a5c23a59a178d241a27f12b1ef5}{Address}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00132}00132\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[i].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_a65bc266cb43a4bad87dadf0bc59bb039}{Callback}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00133}00133\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00135}00135\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00136}00136\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a311acfa0a469c0ab9046f5a2576e5b23}{CPU\_ACTION\_DO\_DEFERRED\_ROUTINES}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00137}00137\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ is\ a\ NO-\/OP,\ since\ DPCs\ WILL\ be\ executed\ when\ we\ just\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ unused.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00140}00140\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ac578c2941a64b87824f028a67ff40ed4}{CPU\_ACTION\_FLUSH\_CR3}}:}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_ac8ff7db1c624708409696db48e2378a8}{\_\_write\_cr3}}(\mbox{\hyperlink{intrin_8h_af84468b325aa2ddc225df1b06b4a467b}{\_\_read\_cr3}}());}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00143}00143\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00144}00144\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00145}00145\ \ \ \ \ \mbox{\hyperlink{atomic_8h_a2cc78e18e91ef71b18aaa79d4121931b}{InterlockedAndU64}}(\&cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}{flags}},\ \string~\mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbbabddc7b4f72dbfb34cff287bc5090dfaa}{CPU\_DOING\_IPI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00146}00146\ \ \ \ \ \textcolor{keywordflow}{if}\ (action\ !=\ \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a6289a15e21921fd97173954f608922ac}{CPU\_ACTION\_STOP}})\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{atomic_8h_a2cc78e18e91ef71b18aaa79d4121931b}{InterlockedAndU64}}(\&cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}{flags}},\ \string~\mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbbabddc7b4f72dbfb34cff287bc5090dfaa}{CPU\_DOING\_IPI}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aa3721138f6c7e7e000ae66e2baccc189}{IpiSeq}}\ =\ 0;\ \textcolor{comment}{//\ Signal\ completion\ for\ non-\/halting\ actions.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00149}00149\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00150}00150\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00151}00151\ \ \ \ \ \textcolor{comment}{//\ End\ of\ Interrupt\ for\ LAPIC\ is\ signaled\ at\ function\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00152}00152\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00154}00154\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00155}\mbox{\hyperlink{handlers_8c_a8d50d37b7978b26e5fa59ca331097235}{00155}}\ \mbox{\hyperlink{handlers_8c_a8d50d37b7978b26e5fa59ca331097235}{MiPageFault}}\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00156}00156\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00157}00157\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00158}00158\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00159}00159\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00160}00160\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00161}00161\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ a\ page\ fault\ that\ occured\ in\ the\ current\ CPU.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00162}00162\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00163}00163\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00164}00164\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00165}00165\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00166}00166\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00167}00167\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00168}00168\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00169}00169\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ Function\ would\ bugcheck/return\ if\ conditions\ are\ met.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00170}00170\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00171}00171\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00172}00172\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00173}00173\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00174}00174\ \ \ \ \ uint64\_t\ fault\_addr;}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00175}00175\ \ \ \ \ \textcolor{comment}{//\ cr2\ holds\ the\ faulty\ address\ that\ caused\ the\ page\ fault.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00176}00176\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00177}00177\ \ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00178}00178\ \ \ \ \ \textcolor{stringliteral}{"{}movq\ \%\%cr2,\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00179}00179\ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(fault\_addr)}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00180}00180\ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00181}00181\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00182}00182\ \ \ \ \ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00183}00183\ \textcolor{comment}{\ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00184}00184\ \textcolor{comment}{\ \ \ \ Page\ fault\ bugcheck\ parameters:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00185}00185\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00186}00186\ \textcolor{comment}{\ \ \ \ Parameter\ 1:\ Memory\ address\ referenced.\ (CR2)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00187}00187\ \textcolor{comment}{\ \ \ \ Parameter\ 2:\ (decimal)\ 0\ -\/\ Read\ Operation,\ 2\ -\/\ Write\ Operation,\ 10\ -\/\ Execute\ operation\ (unused\ for\ now,\ NX\ hasn't\ been\ turned\ on\ for\ now)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00188}00188\ \textcolor{comment}{\ \ \ \ Parameter\ 3:\ Address\ that\ referenced\ memory\ (RIP)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00189}00189\ \textcolor{comment}{\ \ \ \ Parameter\ 4:\ CPU\ Error\ code\ pushed.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00190}00190\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00191}00191\ \textcolor{comment}{\ \ \ \ -\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00192}00192\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00193}00193\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00194}00194\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00195}00195\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ status\ =\ \mbox{\hyperlink{fault_8c_a11dcaf87aa4343d57b2e3230982626be}{MmAccessFault}}(trap-\/>error\_code,\ fault\_addr,\ \mbox{\hyperlink{me_8h_ae30905bc2b1698cc61860842a91b68de}{MeGetPreviousMode}}(),\ trap);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00196}00196\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00197}00197\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}I\ have\ returned\ from\ MmAccessFault\ with\ status\ \%x\(\backslash\)n"{}},\ status);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00198}00198\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00199}00199\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00200}00200\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00201}00201\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ MmAccessFault\ returned\ a\ failire\ (e.g\ MT\_ACCESS\_VIOLATION),\ but\ hasn't\ bugchecked,\ we\ check\ for\ exception\ handlers\ in\ the\ current\ thread}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00202}00202\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ there\ are\ no\ exceptions\ handlers\ (for\ SEH,\ we\ use\ the\ default\ one\ for\ user\ mode,\ TODO\ SEH\ USER\ MODE)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00203}00203\ \ \ \ \ \ \ \ \ \textcolor{comment}{//if\ (ExpIsExceptionHandlerPresent(PsGetCurrentThread()))\ \{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ ExpDispatchException(trap);}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ return;}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00206}00206\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00207}00207\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00208}00208\ \ \ \ \ \ \ \ \ \textcolor{comment}{//else\ \{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00209}00209\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ No\ kernel\ exception\ handler\ present,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00210}00210\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00211}00211\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a63c0f417a2f3a4f571a53a220f0963bc}{KMODE\_EXCEPTION\_NOT\_HANDLED}},}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00212}00212\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)status,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00213}00213\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)fault\_addr,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00214}00214\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)trap-\/>rip,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00215}00215\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)trap-\/>error\_code}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00216}00216\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00217}00217\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00218}00218\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00219}00219\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00220}00220\ \ \ \ \ \textcolor{comment}{//\ MmAccessFault\ returned\ MT\_SUCCESS,\ that\ means\ it\ handled\ the\ fault\ (filled\ the\ PTE,\ etc.),\ we\ return\ to\ original\ instruction\ and\ re-\/run.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00221}00221\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00222}00222\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00223}00223\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00224}00224\ \mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00225}00225\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00226}\mbox{\hyperlink{handlers_8c_a90834181d8dd59de70d4ffb713e223bb}{00226}}\ \mbox{\hyperlink{handlers_8c_a90834181d8dd59de70d4ffb713e223bb}{MiDoubleFault}}(}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00227}00227\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00228}00228\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00229}00229\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00230}00230\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00231}00231\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00232}00232\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ a\ double\ fault\ exception\ that\ has\ happened\ on\ the\ current\ CPU.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00233}00233\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00234}00234\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00235}00235\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00236}00236\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00237}00237\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00238}00238\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00239}00239\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00240}00240\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ This\ function\ will\ never\ return\ to\ caller.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00241}00241\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00242}00242\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00243}00243\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00244}00244\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00245}00245\ \ \ \ \ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00246}00246\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00247}00247\ \textcolor{comment}{\ \ \ \ Double\ Fault\ bugcheck\ parameters:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00248}00248\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00249}00249\ \textcolor{comment}{\ \ \ \ Parameter\ 1:\ Address\ at\ the\ time\ of\ the\ fault.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00250}00250\ \textcolor{comment}{\ \ \ \ Parameter\ 2,3,4:\ NULL.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00251}00251\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00252}00252\ \textcolor{comment}{\ \ \ \ -\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00253}00253\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00254}00254\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ac76cffed7f5a7cc73ae64eb0df1d4a83}{DOUBLE\_FAULT}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)trap-\/>rip,\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00255}00255\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00256}00256\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00257}00257\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00258}\mbox{\hyperlink{handlers_8c_aca5a6c43b04aa4cd89d066bcfa8dd4a0}{00258}}\ \mbox{\hyperlink{handlers_8c_aca5a6c43b04aa4cd89d066bcfa8dd4a0}{MiDivideByZero}}\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00259}00259\ \ \ \ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00260}00260\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00261}00261\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00262}00262\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00263}00263\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00264}00264\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ a\ divide\ by\ zero\ on\ the\ current\ CPU.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00265}00265\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00266}00266\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00267}00267\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00268}00268\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00269}00269\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00270}00270\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00271}00271\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00272}00272\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ This\ function\ currently\ does\ not\ return\ to\ caller.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00273}00273\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00274}00274\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00275}00275\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00276}00276\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00277}00277\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00278}00278\ \ \ \ \ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00279}00279\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00280}00280\ \textcolor{comment}{\ \ \ \ Divide\ By\ Zero\ bugcheck\ parameters:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00281}00281\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00282}00282\ \textcolor{comment}{\ \ \ \ Parameter\ 1:\ Address\ at\ the\ time\ of\ the\ fault.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00283}00283\ \textcolor{comment}{\ \ \ \ Parameter\ 2,3,4:\ NULL.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00284}00284\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00285}00285\ \textcolor{comment}{\ \ \ \ -\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00286}00286\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00287}00287\ \ \ \ \ \textcolor{comment}{//\ When\ user\ mode\ processes\ and\ threads\ are\ fully\ established,\ this\ should\ generate\ an\ ACCESS\_VIOLATION.\ TODO}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00288}00288\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{me_8h_ae30905bc2b1698cc61860842a91b68de}{MeGetPreviousMode}}()\ ==\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}})\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00289}00289\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ guard\ it\ for\ now.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00290}00290\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3}{ASSERTION\_FAILURE}},\ (\textcolor{keywordtype}{void}*)\textcolor{stringliteral}{"{}MiDivideByZero"{}},\ (\textcolor{keywordtype}{void}*)\textcolor{stringliteral}{"{}A\ Fault\ in\ user\ mode\ occured,\ division\ error,\ implement."{}},\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00291}00291\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00292}00292\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00293}00293\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a69d6cfabaf125c5b02337f57ec437944}{DIVIDE\_BY\_ZERO}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00294}00294\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00295}00295\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00296}00296\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00297}00297\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00298}\mbox{\hyperlink{handlers_8c_a4ec953818fe18c54ce5199caec55e1e3}{00298}}\ \mbox{\hyperlink{handlers_8c_a4ec953818fe18c54ce5199caec55e1e3}{MiDebugTrap}}\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00299}00299\ \ \ \ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00300}00300\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00301}00301\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00302}00302\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00303}00303\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00304}00304\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ a\ debug\ trap\ (either\ a\ single\ step\ from\ a\ debugger,\ or\ a\ debug\ register\ has\ been\ hit)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00305}00305\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00306}00306\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00307}00307\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00308}00308\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00309}00309\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00310}00310\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00311}00311\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00312}00312\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00313}00313\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00314}00314\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00315}00315\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00316}00316\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00317}00317\ \textcolor{preprocessor}{\#ifndef\ GDB}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00318}00318\ \ \ \ \ \textcolor{comment}{/*\ read\ debug\ status\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00319}00319\ \ \ \ \ uint64\_t\ dr6\ =\ \mbox{\hyperlink{intrin_8h_a41b087e19c6e22ca6be38752af62688b}{\_\_read\_dr}}(6);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00320}00320\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00321}00321\ \ \ \ \ \textcolor{keywordflow}{if}\ (dr6\ \&\ 0xF)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00322}00322\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ For\ each\ possible\ debug\ register\ 0..3\ check\ B0..B3\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00323}00323\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ 4;\ ++i)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00324}00324\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (dr6\ \&\ (1ULL\ <<\ i))\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00325}00325\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ If\ a\ callback\ is\ registered,\ call\ it.\ Provide\ both\ address\ and\ context.\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00326}00326\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>DebugEntry[i].Callback)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00327}00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a987ebc99f2a0d9173c1adecaa46a9609}{DBG\_CALLBACK\_INFO}}\ info\ =\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00328}00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .Address\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[i].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_ae0cc8a5c23a59a178d241a27f12b1ef5}{Address}},}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00329}00329\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .trap\ =\ trap,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00330}00330\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .BreakIdx\ =\ i,}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00331}00331\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .Dr6\ =\ dr6}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00332}00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00333}00333\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00334}00334\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Call\ the\ user-\/registered\ callback.\ It\ receives\ \&info\ (void*).\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00335}00335\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{DebugEntry}}[i].\mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y_a65bc266cb43a4bad87dadf0bc59bb039}{Callback}}(\&info);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00336}00336\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00337}00337\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00338}00338\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ no\ callback\ registered\ for\ this\ DRx:\ print\ for\ debug\ and\ continue\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00339}00339\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}DEBUG:\ DR\%d\ fired\ at\ addr\ \%p\ but\ no\ callback\(\backslash\)n"{}},\ i,\ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{intrin_8h_a41b087e19c6e22ca6be38752af62688b}{\_\_read\_dr}}(i));}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00340}00340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00341}00341\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00342}00342\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00343}00343\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00344}00344\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Clear\ the\ status\ bits\ in\ DR6\ so\ INT1\ won't\ fire\ again\ for\ the\ same\ event.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00345}00345\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ Writing\ zero\ clears\ B0..B3\ and\ other\ status\ bits\ per\ Intel\ spec.\ */}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00346}00346\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(6,\ 0);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00347}00347\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00348}00348\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00349}00349\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (dr6\ \&\ (1\ <<\ 14))\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00350}00350\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Single\ Step.\ -\/-\/\ Ignore\ for\ now,\ we\ don't\ have\ a\ custom\ debugger\ yet,\ and\ QEMU\ sets\ its\ own.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00351}00351\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00352}00352\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00353}00353\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00354}00354\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(trap);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00355}00355\ \ \ \ \ \_\_write\_DR(6,\ 0);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00356}00356\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00357}00357\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00358}00358\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00359}00359\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00360}00360\ \mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00361}00361\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00362}\mbox{\hyperlink{handlers_8c_a3a798c50f51be9ef287efb5ecce1895b}{00362}}\ \mbox{\hyperlink{handlers_8c_a3a798c50f51be9ef287efb5ecce1895b}{MiNonMaskableInterrupt}}\ (\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00363}00363\ \ \ \ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00364}00364\ )\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00365}00365\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00366}00366\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00367}00367\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00368}00368\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ an\ NMI\ (Non\ Maskable\ Interrupt),\ generated\ by\ the\ CPU.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00369}00369\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00370}00370\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00371}00371\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00372}00372\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00373}00373\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00374}00374\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00375}00375\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00376}00376\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ This\ function\ will\ never\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00377}00377\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00378}00378\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00379}00379\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00380}00380\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00381}00381\ \ \ \ \ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00382}00382\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00383}00383\ \textcolor{comment}{\ \ \ \ NMI\ bugcheck\ parameters:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00384}00384\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00385}00385\ \textcolor{comment}{\ \ \ \ No\ Parameters.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00386}00386\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00387}00387\ \textcolor{comment}{\ \ \ \ -\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00388}00388\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(trap);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00389}00389\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a87e52d2cb1f7eed8d18cc811445dc3d7}{NON\_MASKABLE\_INTERRUPT}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00390}00390\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00391}00391\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00392}\mbox{\hyperlink{handlers_8c_a054b492479f9476e325523c588d24bf0}{00392}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a054b492479f9476e325523c588d24bf0}{MiBreakpoint}}\ (}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00393}00393\ \ \ \ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00394}00394\ )}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00395}00395\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00396}00396\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00397}00397\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00398}00398\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Handles\ a\ breakpoint\ instruction\ (INT3)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00399}00399\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00400}00400\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00401}00401\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00402}00402\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ the\ current\ TRAP\_FRAME.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00403}00403\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00404}00404\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00405}00405\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00406}00406\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.\ This\ function\ will\ never\ return.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00407}00407\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00408}00408\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00409}00409\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00410}00410\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00411}00411\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00412}00412\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**INT3\ Breakpoint\ hit\ at:\ \%p\ -\/\ Halting.\(\backslash\)n"{}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00413}00413\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00414}00414\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00415}00415\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00416}\mbox{\hyperlink{handlers_8c_ade1c26a6731345f35bf1d1bd996d5637}{00416}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ade1c26a6731345f35bf1d1bd996d5637}{MiOverflow}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00417}00417\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a07df634c8cb7e4cafe8b14c4172e3de7}{OVERFLOW}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00418}00418\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00419}00419\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00420}\mbox{\hyperlink{handlers_8c_a21ece4d06870f2f50e1586a9865568a1}{00420}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a21ece4d06870f2f50e1586a9865568a1}{MiBoundsCheck}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00421}00421\ \ \ \ \ \textcolor{comment}{//\ bugcheck\ too,\ this\ is\ kernel\ mode.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00422}00422\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82aebcc435bdd66b726f1f9823509cc5809}{BOUNDS\_CHECK}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00423}00423\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00424}00424\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00425}\mbox{\hyperlink{handlers_8c_a66f06653ecb6fa64e6ece2b261156eaa}{00425}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a66f06653ecb6fa64e6ece2b261156eaa}{MiInvalidOpcode}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00426}00426\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a8da3fbe11c0dd6f9f693d6a9d08d26c4}{INVALID\_OPCODE}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00427}00427\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00428}00428\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00429}\mbox{\hyperlink{handlers_8c_a1047c22886d4bbf2a7e7caae7346f50d}{00429}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a1047c22886d4bbf2a7e7caae7346f50d}{MiNoCoprocessor}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00430}00430\ \ \ \ \ \textcolor{comment}{//\ rarely\ triggered,\ if\ a\ floating\ point\ chip\ is\ not\ integrated,\ or\ is\ not\ attached,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00431}00431\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a27d757891efbf8ddbaba31968b943ffc}{NO\_COPROCESSOR}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00432}00432\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00433}00433\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00434}\mbox{\hyperlink{handlers_8c_a85422129cf7529d518485445bb068847}{00434}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a85422129cf7529d518485445bb068847}{MiCoprocessorSegmentOverrun}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00435}00435\ \ \ \ \ \textcolor{comment}{//\ quite\ literally\ impossible\ in\ protected\ or\ long\ mode,\ since\ CPU's\ don't\ generate\ this\ exception\ on\ these\ modes,\ but\ if\ they\ did,\ bugcheck,\ severe\ code.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00436}00436\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a1a0ee5dd87418541502549cd7d87da92}{COPROCESSOR\_SEGMENT\_OVERRUN}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00437}00437\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00438}00438\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00439}\mbox{\hyperlink{handlers_8c_a636b9e3e1077c5143b6d589e88a062b0}{00439}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a636b9e3e1077c5143b6d589e88a062b0}{MiInvalidTss}}(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00440}00440\ \ \ \ \ \textcolor{comment}{//\ a\ tss\ is\ when\ the\ CPU\ hardware\ switches\ (usually\ does\ not\ happen,\ since\ OS'es\ implement\ switching\ in\ software,\ like\ process\ timer\ context\ switch,\ all\ in\ software)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00441}00441\ \ \ \ \ \textcolor{comment}{//\ if\ it\ did\ happen\ though,\ we\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00442}00442\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a97e80b6e5bb52587e0551b03d8a87070}{INVALID\_TSS}},\ (\textcolor{keywordtype}{void}*)trap-\/>rip,\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00443}00443\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00444}00444\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00445}\mbox{\hyperlink{handlers_8c_af62de2896e41a8218bb2f8f7822487ec}{00445}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_af62de2896e41a8218bb2f8f7822487ec}{MiSegmentSelectorNotPresent}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00446}00446\ \ \ \ \ \textcolor{comment}{//\ this\ happens\ when\ the\ CPU\ loads\ a\ segment\ that\ points\ to\ a\ valid\ descriptor,\ that\ is\ marked\ as\ "{}not\ present"{}\ (that\ the\ present\ bit\ is\ 0),\ which\ means\ it's\ swapped\ out\ to\ disk.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00447}00447\ \ \ \ \ \textcolor{comment}{//\ we\ don't\ have\ disk\ paging\ right\ now,\ we\ don't\ even\ have\ a\ current\ user\ mode\ or\ stable\ memory\ for\ now,\ so\ we\ just\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00448}00448\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82adb32eceeecfe855034f998ddefab5bde}{SEGMENT\_SELECTOR\_NOTPRESENT}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00449}00449\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00450}00450\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00451}\mbox{\hyperlink{handlers_8c_a6a79fb8170e3276d8dc65b34e7f3604b}{00451}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a6a79fb8170e3276d8dc65b34e7f3604b}{MiStackSegmentOverrun}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00452}00452\ \ \ \ \ \textcolor{comment}{//\ this\ happens\ when\ the\ stack\ pointer\ (esp,\ rsp,\ sp\ on\ 16\ bit)\ moves\ OUTSIDE\ the\ bounds\ of\ the\ current\ stack\ segment,\ this\ is\ different\ from\ a\ stack\ overflow\ at\ the\ software\ level,\ this\ is\ a\ hardware\ level\ exception.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00453}00453\ \ \ \ \ \textcolor{comment}{//\ segment\ limits\ on\ protected\ mode\ usually\ gets\ switched\ off,\ so\ if\ this\ happens\ just\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00454}00454\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82acbf56036797b0df791819f5480a1a466}{STACK\_SEGMENT\_OVERRUN}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00455}00455\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00456}00456\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00457}\mbox{\hyperlink{handlers_8c_abbb131baf26462fbcd50d9c004d14e7a}{00457}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_abbb131baf26462fbcd50d9c004d14e7a}{MiGeneralProtectionFault}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00458}00458\ \ \ \ \ \textcolor{comment}{//\ important\ exception,\ view\ error\ code\ and\ bugcheck\ with\ it}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00459}00459\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ad675d88011ac94b90d8ef65d628fc13b}{GENERAL\_PROTECTION\_FAULT}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_aa22cd6caed49b7b115b13d77a3990bb0}{error\_code}},\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00460}00460\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00461}00461\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00462}\mbox{\hyperlink{handlers_8c_ad93a9d1dc5b4b7e350832aebee57e9b3}{00462}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_ad93a9d1dc5b4b7e350832aebee57e9b3}{MiFloatingPointError}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00463}00463\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(trap);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00464}00464\ \ \ \ \ \textcolor{comment}{//\ this\ occurs\ when\ a\ floating\ point\ operation\ has\ an\ error,\ (even\ division\ by\ zero\ floating\ point\ will\ get\ here),\ or\ underflow/overflow}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00465}00465\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(0xFFFF0000,\ \textcolor{stringliteral}{"{}Error:\ Floating\ Point\ error,\ have\ you\ done\ a\ correct\ calculation?\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00466}00466\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00467}00467\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00468}\mbox{\hyperlink{handlers_8c_a47ea4d7744cfe039135ccd894de52f97}{00468}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a47ea4d7744cfe039135ccd894de52f97}{MiAlignmentCheck}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00469}00469\ \ \ \ \ \textcolor{comment}{//\ 3\ conditions\ must\ be\ met\ in-\/order\ for\ this\ to\ even\ reach.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00470}00470\ \ \ \ \ \textcolor{comment}{//\ CR0.AM\ (Alignment\ Mask)\ must\ be\ set\ to\ 1.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00471}00471\ \ \ \ \ \textcolor{comment}{//\ EFLAGS.AC\ (Alignment\ Check)\ must\ be\ set\ to\ 1.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00472}00472\ \ \ \ \ \textcolor{comment}{//\ CPL\ (user\ mode\ or\ kernel\ mode)\ must\ be\ set\ to\ 3.\ (user\ mode\ only)}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00473}00473\ \ \ \ \ \textcolor{comment}{//\ If\ all\ are\ 1\ and\ a\ stack\ alignment\ occurs\ (when\ doing\ char*\ ptr\ =\ kmalloc(64,\ 16);\ then\ writing\ like\ this\ *((uint32\_t*)ptr)\ =\ 0xdeadbeef;\ //\ It's\ an\ unaligned\ write,\ writing\ more\ than\ there\ is.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00474}00474\ \ \ \ \ \textcolor{comment}{//\ for\ now,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00475}00475\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a6e5b58ac1832f6e8c74c43b27992b3b0}{ALIGNMENT\_CHECK}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00476}00476\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00477}00477\ }
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00478}\mbox{\hyperlink{handlers_8c_a877b76ed3acfb98a78dc91c97fcf3b00}{00478}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{handlers_8c_a877b76ed3acfb98a78dc91c97fcf3b00}{MiMachineCheck}}(\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ trap)\ \{}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00479}00479\ \ \ \ \ \textcolor{comment}{//\ creepy.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00480}00480\ \ \ \ \ \textcolor{comment}{//\ This\ happens\ when\ the\ machine\ has\ a\ SEVERE\ problem,\ memory\ faults,\ CPU\ internal\ fault,\ all\ of\ that,\ the\ cpu\ registers\ this.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00481}00481\ \ \ \ \ \textcolor{comment}{//\ obviously\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00482}00482\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a12654d2e9be8ec0848207e887ece4442}{SEVERE\_MACHINE\_CHECK}},\ (\textcolor{keywordtype}{void}*)trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}},\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00483}00483\ \}}
+\DoxyCodeLine{\Hypertarget{handlers_8c_source_l00484}00484\ }
+
+\end{DoxyCode}

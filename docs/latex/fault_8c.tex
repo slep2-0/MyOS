@@ -1,0 +1,40 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/fault.c File Reference}
+\hypertarget{fault_8c}{}\label{fault_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/fault.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/fault.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fault_8c_a11dcaf87aa4343d57b2e3230982626be}{Mm\+Access\+Fault}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t Fault\+Bits, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t Virtual\+Address, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a77677400417c8f39bbed431515099ee7}{PRIVILEGE\+\_\+\+MODE}} Previous\+Mode, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} Trap\+Frame)
+\item 
+bool \mbox{\hyperlink{fault_8c_a30572888b6bb3047884dc69af557c939}{Mm\+Invalid\+Access\+Allowed}} (void)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{fault_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{fault_8c_a11dcaf87aa4343d57b2e3230982626be}\index{fault.c@{fault.c}!MmAccessFault@{MmAccessFault}}
+\index{MmAccessFault@{MmAccessFault}!fault.c@{fault.c}}
+\doxysubsubsection{\texorpdfstring{MmAccessFault()}{MmAccessFault()}}
+{\footnotesize\ttfamily \label{fault_8c_a11dcaf87aa4343d57b2e3230982626be} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mm\+Access\+Fault (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{Fault\+Bits}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{Virtual\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a77677400417c8f39bbed431515099ee7}{PRIVILEGE\+\_\+\+MODE}}}]{Previous\+Mode}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{Trap\+Frame}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{fault_8c_source_l00027}{27}} of file \mbox{\hyperlink{fault_8c_source}{fault.\+c}}.
+
+\Hypertarget{fault_8c_a30572888b6bb3047884dc69af557c939}\index{fault.c@{fault.c}!MmInvalidAccessAllowed@{MmInvalidAccessAllowed}}
+\index{MmInvalidAccessAllowed@{MmInvalidAccessAllowed}!fault.c@{fault.c}}
+\doxysubsubsection{\texorpdfstring{MmInvalidAccessAllowed()}{MmInvalidAccessAllowed()}}
+{\footnotesize\ttfamily \label{fault_8c_a30572888b6bb3047884dc69af557c939} 
+bool Mm\+Invalid\+Access\+Allowed (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{fault_8c_source_l00292}{292}} of file \mbox{\hyperlink{fault_8c_source}{fault.\+c}}.
+

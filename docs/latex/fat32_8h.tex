@@ -1,0 +1,447 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/filesystem/fat32/fat32.h File Reference}
+\hypertarget{fat32_8h}{}\label{fat32_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/fat32/fat32.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/fat32/fat32.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include "{}../../drivers/gop/gop.\+h"{}}\newline
+{\ttfamily \#include "{}../../mtstatus.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_f_a_t32___l_f_n___e_n_t_r_y}{FAT32\+\_\+\+LFN\+\_\+\+ENTRY}}
+\item 
+struct \mbox{\hyperlink{struct___f_a_t32___f_s_i_n_f_o}{\+\_\+\+FAT32\+\_\+\+FSINFO}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a01a4677c2b328cdba713cab62e32be98}{END\+\_\+\+OF\+\_\+\+DIRECTORY}}~0x00
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a13d53413ae07f492b97b8601defb7ded}{DELETED\+\_\+\+DIR\+\_\+\+ENTRY}}~0x\+E5
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a5ff4dc4c397826c78133ab3a0aef8a29}{FAT32\+\_\+\+FAT\+\_\+\+MASK}}~0x0\+FFFFFFFU
+\item 
+\#define \mbox{\hyperlink{fat32_8h_afe8fd55f0bfe3298617abf763e3d2b4e}{FAT32\+\_\+\+FREE\+\_\+\+CLUSTER}}~0x00000000U
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a4fbce46a65986c35ff2fa311a332e78f}{FAT32\+\_\+\+BAD\+\_\+\+CLUSTER}}~0x0\+FFFFFF7U
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a953c1f1fe3a6a422cdd94810ca7b3a57}{FAT32\+\_\+\+EOC\+\_\+\+MIN}}~0x0\+FFFFFF8U /\texorpdfstring{$\ast$}{*} inclusive \texorpdfstring{$\ast$}{*}/
+\item 
+\#define \mbox{\hyperlink{fat32_8h_a99149ec7c69bacef240eb2a711cd68cf}{FAT32\+\_\+\+EOC\+\_\+\+MAX}}~0x0\+FFFFFFFU /\texorpdfstring{$\ast$}{*} inclusive \texorpdfstring{$\ast$}{*}/
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___f_a_t32___f_s_i_n_f_o}{\+\_\+\+FAT32\+\_\+\+FSINFO}} \mbox{\hyperlink{fat32_8h_a73bda61a043f5e3e7c3a0d9894aab160}{FAT32\+\_\+\+FSINFO}}
+\item 
+typedef enum \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9}{\+\_\+\+FAT32\+\_\+\+ATTRIBUTES}} \mbox{\hyperlink{fat32_8h_a6f328ae0e81b19b3c985381adabaa6bd}{FAT32\+\_\+\+ATTRIBUTES}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9}{\+\_\+\+FAT32\+\_\+\+ATTRIBUTES}} \{ \newline
+\mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9aa62aa71a2614f75468eab045ecb01058}{ATTR\+\_\+\+READ\+\_\+\+ONLY}} = 0x01
+, \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9adba6b13cf372c3604ae08f82d1cec0cf}{ATTR\+\_\+\+HIDDEN}} = 0x02
+, \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a042322e39228b60dba114d89308f6f79}{ATTR\+\_\+\+SYSTEM}} = 0x04
+, \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9e0fbe74c774ea9eee50947567a5dc59}{ATTR\+\_\+\+VOLUME\+\_\+\+ID}} = 0x08
+, \newline
+\mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9acf549625a8c00e27507689cd3cbeeac6}{ATTR\+\_\+\+DIRECTORY}} = 0x10
+, \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9ae175dcdcbee800b5a346fc5c4365315b}{ATTR\+\_\+\+ARCHIVE}} = 0x20
+, \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9c788ada0bf37d73182045d699331050}{ATTR\+\_\+\+LONG\+\_\+\+NAME}} = 0x0F
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{fat32_8h_ae508953494a83c161d64cf4426195be5}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}} ((packed)) \+\_\+\+FAT32\+\_\+\+BPB
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a311ce2a795c9e78112568a0b90d4cbe8}{fat32\+\_\+init}} (int disk\+\_\+index)
+\item 
+void \mbox{\hyperlink{fat32_8h_adfca68a881df4fb301c3d55a00a781df}{fat32\+\_\+list\+\_\+root}} (void)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a71c6c7658a82c589657c4dc0a85e1e63}{fat32\+\_\+read\+\_\+file}} (const char \texorpdfstring{$\ast$}{*}filename, uint32\+\_\+t \texorpdfstring{$\ast$}{*}file\+\_\+size\+\_\+out, void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}buffer\+\_\+out)
+\begin{DoxyCompactList}\small\item\em A FAT32 Function that reads the file requested into a dynamically allocated buffer. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a400a63d664bec5e30b5713ff3cbf35a6}{fat32\+\_\+create\+\_\+directory}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em Creates a new directory (/testdir/ or /testdir are both allowed to create \textquotesingle{}testdir\textquotesingle{} inside of \textquotesingle{}root\textquotesingle{}) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a9e1098d6877aadbca830f6c469f62781}{fat32\+\_\+write\+\_\+file}} (const char \texorpdfstring{$\ast$}{*}path, const void \texorpdfstring{$\ast$}{*}data, uint32\+\_\+t size, uint32\+\_\+t file\+\_\+modification\+\_\+mode)
+\begin{DoxyCompactList}\small\item\em Creates a new file and writes data to it. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a467adde29b891f25a9e1cd2365a67197}{fat32\+\_\+list\+\_\+directory}} (const char \texorpdfstring{$\ast$}{*}path, char \texorpdfstring{$\ast$}{*}listings, size\+\_\+t max\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Lists the directory given. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_a60629b733e5b262b7367d972bf549ea9}{fat32\+\_\+delete\+\_\+directory}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function deletes the directory given to the function from the system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{fat32_8h_ac0fe70241ba5f3c709198b99d8c2b972}{fat32\+\_\+delete\+\_\+file}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function deletes the file given to the function from the system. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{fat32_8h_ae59b119946d406d4603400ae2e495700}{fat32\+\_\+directory\+\_\+is\+\_\+empty}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em This function returns if the directory given to the function is empty (e.\+g, has only \textquotesingle{}.\textquotesingle{} and \textquotesingle{}..\textquotesingle{} entries / deleted / nonexistent) \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{fat32_8h_a520b4af7b127966e48892bf842ca8ea8}{FAT32\+\_\+\+BPB}}
+\item 
+\mbox{\hyperlink{fat32_8h_a818bd287914bc3e1f740d86bc1631515}{FAT32\+\_\+\+DIR\+\_\+\+ENTRY}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{fat32_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{fat32_8h_a13d53413ae07f492b97b8601defb7ded}\index{fat32.h@{fat32.h}!DELETED\_DIR\_ENTRY@{DELETED\_DIR\_ENTRY}}
+\index{DELETED\_DIR\_ENTRY@{DELETED\_DIR\_ENTRY}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{DELETED\_DIR\_ENTRY}{DELETED\_DIR\_ENTRY}}
+{\footnotesize\ttfamily \label{fat32_8h_a13d53413ae07f492b97b8601defb7ded} 
+\#define DELETED\+\_\+\+DIR\+\_\+\+ENTRY~0x\+E5}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00017}{17}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a01a4677c2b328cdba713cab62e32be98}\index{fat32.h@{fat32.h}!END\_OF\_DIRECTORY@{END\_OF\_DIRECTORY}}
+\index{END\_OF\_DIRECTORY@{END\_OF\_DIRECTORY}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{END\_OF\_DIRECTORY}{END\_OF\_DIRECTORY}}
+{\footnotesize\ttfamily \label{fat32_8h_a01a4677c2b328cdba713cab62e32be98} 
+\#define END\+\_\+\+OF\+\_\+\+DIRECTORY~0x00}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00016}{16}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a4fbce46a65986c35ff2fa311a332e78f}\index{fat32.h@{fat32.h}!FAT32\_BAD\_CLUSTER@{FAT32\_BAD\_CLUSTER}}
+\index{FAT32\_BAD\_CLUSTER@{FAT32\_BAD\_CLUSTER}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_BAD\_CLUSTER}{FAT32\_BAD\_CLUSTER}}
+{\footnotesize\ttfamily \label{fat32_8h_a4fbce46a65986c35ff2fa311a332e78f} 
+\#define FAT32\+\_\+\+BAD\+\_\+\+CLUSTER~0x0\+FFFFFF7U}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00022}{22}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a99149ec7c69bacef240eb2a711cd68cf}\index{fat32.h@{fat32.h}!FAT32\_EOC\_MAX@{FAT32\_EOC\_MAX}}
+\index{FAT32\_EOC\_MAX@{FAT32\_EOC\_MAX}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_EOC\_MAX}{FAT32\_EOC\_MAX}}
+{\footnotesize\ttfamily \label{fat32_8h_a99149ec7c69bacef240eb2a711cd68cf} 
+\#define FAT32\+\_\+\+EOC\+\_\+\+MAX~0x0\+FFFFFFFU /\texorpdfstring{$\ast$}{*} inclusive \texorpdfstring{$\ast$}{*}/}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00024}{24}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a953c1f1fe3a6a422cdd94810ca7b3a57}\index{fat32.h@{fat32.h}!FAT32\_EOC\_MIN@{FAT32\_EOC\_MIN}}
+\index{FAT32\_EOC\_MIN@{FAT32\_EOC\_MIN}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_EOC\_MIN}{FAT32\_EOC\_MIN}}
+{\footnotesize\ttfamily \label{fat32_8h_a953c1f1fe3a6a422cdd94810ca7b3a57} 
+\#define FAT32\+\_\+\+EOC\+\_\+\+MIN~0x0\+FFFFFF8U /\texorpdfstring{$\ast$}{*} inclusive \texorpdfstring{$\ast$}{*}/}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00023}{23}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a5ff4dc4c397826c78133ab3a0aef8a29}\index{fat32.h@{fat32.h}!FAT32\_FAT\_MASK@{FAT32\_FAT\_MASK}}
+\index{FAT32\_FAT\_MASK@{FAT32\_FAT\_MASK}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_FAT\_MASK}{FAT32\_FAT\_MASK}}
+{\footnotesize\ttfamily \label{fat32_8h_a5ff4dc4c397826c78133ab3a0aef8a29} 
+\#define FAT32\+\_\+\+FAT\+\_\+\+MASK~0x0\+FFFFFFFU}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00020}{20}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_afe8fd55f0bfe3298617abf763e3d2b4e}\index{fat32.h@{fat32.h}!FAT32\_FREE\_CLUSTER@{FAT32\_FREE\_CLUSTER}}
+\index{FAT32\_FREE\_CLUSTER@{FAT32\_FREE\_CLUSTER}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_FREE\_CLUSTER}{FAT32\_FREE\_CLUSTER}}
+{\footnotesize\ttfamily \label{fat32_8h_afe8fd55f0bfe3298617abf763e3d2b4e} 
+\#define FAT32\+\_\+\+FREE\+\_\+\+CLUSTER~0x00000000U}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00021}{21}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{fat32_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{fat32_8h_a6f328ae0e81b19b3c985381adabaa6bd}\index{fat32.h@{fat32.h}!FAT32\_ATTRIBUTES@{FAT32\_ATTRIBUTES}}
+\index{FAT32\_ATTRIBUTES@{FAT32\_ATTRIBUTES}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_ATTRIBUTES}{FAT32\_ATTRIBUTES}}
+{\footnotesize\ttfamily \label{fat32_8h_a6f328ae0e81b19b3c985381adabaa6bd} 
+typedef enum \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9}{\+\_\+\+FAT32\+\_\+\+ATTRIBUTES}} \mbox{\hyperlink{fat32_8h_a6f328ae0e81b19b3c985381adabaa6bd}{FAT32\+\_\+\+ATTRIBUTES}}}
+
+\Hypertarget{fat32_8h_a73bda61a043f5e3e7c3a0d9894aab160}\index{fat32.h@{fat32.h}!FAT32\_FSINFO@{FAT32\_FSINFO}}
+\index{FAT32\_FSINFO@{FAT32\_FSINFO}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_FSINFO}{FAT32\_FSINFO}}
+{\footnotesize\ttfamily \label{fat32_8h_a73bda61a043f5e3e7c3a0d9894aab160} 
+typedef struct \mbox{\hyperlink{struct___f_a_t32___f_s_i_n_f_o}{\+\_\+\+FAT32\+\_\+\+FSINFO}} \mbox{\hyperlink{fat32_8h_a73bda61a043f5e3e7c3a0d9894aab160}{FAT32\+\_\+\+FSINFO}}}
+
+
+
+\label{doc-enum-members}
+\Hypertarget{fat32_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9}\index{fat32.h@{fat32.h}!\_FAT32\_ATTRIBUTES@{\_FAT32\_ATTRIBUTES}}
+\index{\_FAT32\_ATTRIBUTES@{\_FAT32\_ATTRIBUTES}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{\_FAT32\_ATTRIBUTES}{\_FAT32\_ATTRIBUTES}}
+{\footnotesize\ttfamily \label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9} 
+enum \mbox{\hyperlink{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9}{\+\_\+\+FAT32\+\_\+\+ATTRIBUTES}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_READ\_ONLY@{ATTR\_READ\_ONLY}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_READ\_ONLY@{ATTR\_READ\_ONLY}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9aa62aa71a2614f75468eab045ecb01058}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9aa62aa71a2614f75468eab045ecb01058} 
+ATTR\+\_\+\+READ\+\_\+\+ONLY&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_HIDDEN@{ATTR\_HIDDEN}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_HIDDEN@{ATTR\_HIDDEN}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9adba6b13cf372c3604ae08f82d1cec0cf}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9adba6b13cf372c3604ae08f82d1cec0cf} 
+ATTR\+\_\+\+HIDDEN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_SYSTEM@{ATTR\_SYSTEM}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_SYSTEM@{ATTR\_SYSTEM}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a042322e39228b60dba114d89308f6f79}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a042322e39228b60dba114d89308f6f79} 
+ATTR\+\_\+\+SYSTEM&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_VOLUME\_ID@{ATTR\_VOLUME\_ID}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_VOLUME\_ID@{ATTR\_VOLUME\_ID}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9e0fbe74c774ea9eee50947567a5dc59}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9e0fbe74c774ea9eee50947567a5dc59} 
+ATTR\+\_\+\+VOLUME\+\_\+\+ID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_DIRECTORY@{ATTR\_DIRECTORY}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_DIRECTORY@{ATTR\_DIRECTORY}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9acf549625a8c00e27507689cd3cbeeac6}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9acf549625a8c00e27507689cd3cbeeac6} 
+ATTR\+\_\+\+DIRECTORY&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_ARCHIVE@{ATTR\_ARCHIVE}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_ARCHIVE@{ATTR\_ARCHIVE}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9ae175dcdcbee800b5a346fc5c4365315b}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9ae175dcdcbee800b5a346fc5c4365315b} 
+ATTR\+\_\+\+ARCHIVE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATTR\_LONG\_NAME@{ATTR\_LONG\_NAME}!fat32.h@{fat32.h}}\index{fat32.h@{fat32.h}!ATTR\_LONG\_NAME@{ATTR\_LONG\_NAME}}}\Hypertarget{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9c788ada0bf37d73182045d699331050}\label{fat32_8h_a67216fc3fefe045f0a5a3accc9ee31f9a9c788ada0bf37d73182045d699331050} 
+ATTR\+\_\+\+LONG\+\_\+\+NAME&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00113}{113}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{fat32_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{fat32_8h_ae508953494a83c161d64cf4426195be5}\index{fat32.h@{fat32.h}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_()}{\_\_attribute\_\_()}}
+{\footnotesize\ttfamily \label{fat32_8h_ae508953494a83c161d64cf4426195be5} 
+struct \+\_\+\+\_\+attribute\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{(packed)}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00001}{1}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a400a63d664bec5e30b5713ff3cbf35a6}\index{fat32.h@{fat32.h}!fat32\_create\_directory@{fat32\_create\_directory}}
+\index{fat32\_create\_directory@{fat32\_create\_directory}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_create\_directory()}{fat32\_create\_directory()}}
+{\footnotesize\ttfamily \label{fat32_8h_a400a63d664bec5e30b5713ff3cbf35a6} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+create\+\_\+directory (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+Creates a new directory (/testdir/ or /testdir are both allowed to create \textquotesingle{}testdir\textquotesingle{} inside of \textquotesingle{}root\textquotesingle{}) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & The full path to the new directory\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01047}{1047}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_a60629b733e5b262b7367d972bf549ea9}\index{fat32.h@{fat32.h}!fat32\_delete\_directory@{fat32\_delete\_directory}}
+\index{fat32\_delete\_directory@{fat32\_delete\_directory}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_delete\_directory()}{fat32\_delete\_directory()}}
+{\footnotesize\ttfamily \label{fat32_8h_a60629b733e5b262b7367d972bf549ea9} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+delete\+\_\+directory (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function deletes the directory given to the function from the system. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to delete directory.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01922}{1922}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_ac0fe70241ba5f3c709198b99d8c2b972}\index{fat32.h@{fat32.h}!fat32\_delete\_file@{fat32\_delete\_file}}
+\index{fat32\_delete\_file@{fat32\_delete\_file}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_delete\_file()}{fat32\_delete\_file()}}
+{\footnotesize\ttfamily \label{fat32_8h_ac0fe70241ba5f3c709198b99d8c2b972} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+delete\+\_\+file (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function deletes the file given to the function from the system. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to delete file.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01954}{1954}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_ae59b119946d406d4603400ae2e495700}\index{fat32.h@{fat32.h}!fat32\_directory\_is\_empty@{fat32\_directory\_is\_empty}}
+\index{fat32\_directory\_is\_empty@{fat32\_directory\_is\_empty}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_directory\_is\_empty()}{fat32\_directory\_is\_empty()}}
+{\footnotesize\ttfamily \label{fat32_8h_ae59b119946d406d4603400ae2e495700} 
+bool fat32\+\_\+directory\+\_\+is\+\_\+empty (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+This function returns if the directory given to the function is empty (e.\+g, has only \textquotesingle{}.\textquotesingle{} and \textquotesingle{}..\textquotesingle{} entries / deleted / nonexistent) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Full path to dir\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True or false based if empty or not.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01663}{1663}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_a311ce2a795c9e78112568a0b90d4cbe8}\index{fat32.h@{fat32.h}!fat32\_init@{fat32\_init}}
+\index{fat32\_init@{fat32\_init}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_init()}{fat32\_init()}}
+{\footnotesize\ttfamily \label{fat32_8h_a311ce2a795c9e78112568a0b90d4cbe8} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+init (\begin{DoxyParamCaption}\item[{int}]{disk\+\_\+index}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l00745}{745}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_a467adde29b891f25a9e1cd2365a67197}\index{fat32.h@{fat32.h}!fat32\_list\_directory@{fat32\_list\_directory}}
+\index{fat32\_list\_directory@{fat32\_list\_directory}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_list\_directory()}{fat32\_list\_directory()}}
+{\footnotesize\ttfamily \label{fat32_8h_a467adde29b891f25a9e1cd2365a67197} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+list\+\_\+directory (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{char \texorpdfstring{$\ast$}{*}}]{listings}{, }\item[{size\+\_\+t}]{max\+\_\+len}{}\end{DoxyParamCaption})}
+
+
+
+Lists the directory given. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & Path to directory, e.\+g "{}mydir/"{} \\
+\hline
+{\em listings} & \mbox{[}OUT\mbox{]} Pointer to directory listing. (each seperated with a newline character)\\
+\hline
+{\em max\+\_\+len} & \mbox{[}IN\mbox{]} Max size of listings buffer.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01579}{1579}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_adfca68a881df4fb301c3d55a00a781df}\index{fat32.h@{fat32.h}!fat32\_list\_root@{fat32\_list\_root}}
+\index{fat32\_list\_root@{fat32\_list\_root}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_list\_root()}{fat32\_list\_root()}}
+{\footnotesize\ttfamily \label{fat32_8h_adfca68a881df4fb301c3d55a00a781df} 
+void fat32\+\_\+list\+\_\+root (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l00769}{769}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_a71c6c7658a82c589657c4dc0a85e1e63}\index{fat32.h@{fat32.h}!fat32\_read\_file@{fat32\_read\_file}}
+\index{fat32\_read\_file@{fat32\_read\_file}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_read\_file()}{fat32\_read\_file()}}
+{\footnotesize\ttfamily \label{fat32_8h_a71c6c7658a82c589657c4dc0a85e1e63} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+read\+\_\+file (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{filename}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{file\+\_\+size\+\_\+out}{, }\item[{void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{buffer\+\_\+out}{}\end{DoxyParamCaption})}
+
+
+
+A FAT32 Function that reads the file requested into a dynamically allocated buffer. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & The Filename to read, e.\+g "{}file.\+txt"{} or "{}tmp/folder/myfile.\+txt"{}\\
+\hline
+{\em file\+\_\+size\+\_\+out} & A pointer to put the file size in bytes\\
+\hline
+{\em buffer\+Out} & A pointer to put the file buffer in (doesn\textquotesingle{}t need to be dynamically allocated)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status Code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l00921}{921}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+\Hypertarget{fat32_8h_a9e1098d6877aadbca830f6c469f62781}\index{fat32.h@{fat32.h}!fat32\_write\_file@{fat32\_write\_file}}
+\index{fat32\_write\_file@{fat32\_write\_file}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{fat32\_write\_file()}{fat32\_write\_file()}}
+{\footnotesize\ttfamily \label{fat32_8h_a9e1098d6877aadbca830f6c469f62781} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} fat32\+\_\+write\+\_\+file (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{const void \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint32\+\_\+t}]{size}{, }\item[{uint32\+\_\+t}]{file\+\_\+modification\+\_\+mode}{}\end{DoxyParamCaption})}
+
+
+
+Creates a new file and writes data to it. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & The full path of the file to create\\
+\hline
+{\em data} & A pointer to the data to write.\\
+\hline
+{\em size} & The number of bytes to write\\
+\hline
+{\em file\+\_\+modification\+\_\+mode} & Whether to APPEND or REPLACE the file. (in \doxylink{vfs_8h_a65ee9505dc807970d2aadd68bcf218b6}{FS\+\_\+\+WRITE\+\_\+\+MODES} enum)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\doxylink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS} Status code.
+\end{DoxyReturn}
+
+
+Definition at line \mbox{\hyperlink{fat32_8c_source_l01275}{1275}} of file \mbox{\hyperlink{fat32_8c_source}{fat32.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{fat32_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{fat32_8h_a520b4af7b127966e48892bf842ca8ea8}\index{fat32.h@{fat32.h}!FAT32\_BPB@{FAT32\_BPB}}
+\index{FAT32\_BPB@{FAT32\_BPB}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_BPB}{FAT32\_BPB}}
+{\footnotesize\ttfamily \label{fat32_8h_a520b4af7b127966e48892bf842ca8ea8} 
+FAT32\+\_\+\+BPB}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00054}{54}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{fat32_8h_a818bd287914bc3e1f740d86bc1631515}\index{fat32.h@{fat32.h}!FAT32\_DIR\_ENTRY@{FAT32\_DIR\_ENTRY}}
+\index{FAT32\_DIR\_ENTRY@{FAT32\_DIR\_ENTRY}!fat32.h@{fat32.h}}
+\doxysubsubsection{\texorpdfstring{FAT32\_DIR\_ENTRY}{FAT32\_DIR\_ENTRY}}
+{\footnotesize\ttfamily \label{fat32_8h_a818bd287914bc3e1f740d86bc1631515} 
+FAT32\+\_\+\+DIR\+\_\+\+ENTRY}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00077}{77}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+

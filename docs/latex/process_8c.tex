@@ -1,0 +1,191 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ps/process.c File Reference}
+\hypertarget{process_8c}{}\label{process_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c}}
+{\ttfamily \#include "{}../../time.\+h"{}}\newline
+{\ttfamily \#include "{}../../filesystem/vfs/vfs.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ms.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{process_8c_af281218f4b838fc0bcb2dfdbef08316a}{MIN\+\_\+\+PID}}~4u
+\item 
+\#define \mbox{\hyperlink{process_8c_a36b11288ada38ae09b8033e32f738c3d}{MAX\+\_\+\+PID}}~0x\+FFFFFFFCUL
+\item 
+\#define \mbox{\hyperlink{process_8c_a31452d15206784935051c52d5a78ff03}{ALIGN\+\_\+\+DELTA}}~6u
+\item 
+\#define \mbox{\hyperlink{process_8c_a08150dd3f0ffc0e330a631dd728ea448}{MAX\+\_\+\+FREE\+\_\+\+POOL}}~1024u
+\item 
+\#define \mbox{\hyperlink{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f}{PML4\+\_\+\+INDEX}}(addr)
+\item 
+\#define \mbox{\hyperlink{process_8c_af04c99859f460cc79915a4ebb29b2261}{KERNEL\+\_\+\+PML4\+\_\+\+START}}~((size\+\_\+t)\mbox{\hyperlink{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f}{PML4\+\_\+\+INDEX}}(\mbox{\hyperlink{mm_8h_a4ecf752e3fbdc34c893043d0f3810986}{Kernel\+Va\+Start}}))
+\item 
+\#define \mbox{\hyperlink{process_8c_ad9dece005ad722afbde08f5df76a065a}{USER\+\_\+\+INITIAL\+\_\+\+STACK\+\_\+\+TOP}}~0x00007\+FFFFFFFFFFF
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{process_8c_af7ae7a3211790e443ecedc4d83a2e00b}{Ps\+Create\+Process}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}Executable\+Path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{ht_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} Process\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ht_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}} Desired\+Access, \mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\+\_\+\+In\+\_\+\+Opt}} \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Parent\+Process)
+\item 
+void \mbox{\hyperlink{process_8c_acb082c9ff12b913298f7f4e60fb17668}{Ps\+Terminate\+Process}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}} Process)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} \mbox{\hyperlink{process_8c_ab8b165b05e519217042b080d15ecd316}{System\+Process}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{process_8c_a31c9c1c3329977652467a6adbf5b77fc}{Mm\+System\+Range\+Start}} = \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{Physical\+Memory\+Offset}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}{Mm\+Highest\+User\+Address}} = \mbox{\hyperlink{mm_8h_a820eaf87fc49c007ebf206dbb7e58d0c}{USER\+\_\+\+VA\+\_\+\+END}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{process_8c_a6815bdedae56360940bf80736ac86cbb}{Mm\+User\+Probe\+Address}} = 0x00007\+FFFFFFF0000
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{process_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{process_8c_a31452d15206784935051c52d5a78ff03}\index{process.c@{process.c}!ALIGN\_DELTA@{ALIGN\_DELTA}}
+\index{ALIGN\_DELTA@{ALIGN\_DELTA}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{ALIGN\_DELTA}{ALIGN\_DELTA}}
+{\footnotesize\ttfamily \label{process_8c_a31452d15206784935051c52d5a78ff03} 
+\#define ALIGN\+\_\+\+DELTA~6u}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00018}{18}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_af04c99859f460cc79915a4ebb29b2261}\index{process.c@{process.c}!KERNEL\_PML4\_START@{KERNEL\_PML4\_START}}
+\index{KERNEL\_PML4\_START@{KERNEL\_PML4\_START}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{KERNEL\_PML4\_START}{KERNEL\_PML4\_START}}
+{\footnotesize\ttfamily \label{process_8c_af04c99859f460cc79915a4ebb29b2261} 
+\#define KERNEL\+\_\+\+PML4\+\_\+\+START~((size\+\_\+t)\mbox{\hyperlink{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f}{PML4\+\_\+\+INDEX}}(\mbox{\hyperlink{mm_8h_a4ecf752e3fbdc34c893043d0f3810986}{Kernel\+Va\+Start}}))}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00022}{22}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_a08150dd3f0ffc0e330a631dd728ea448}\index{process.c@{process.c}!MAX\_FREE\_POOL@{MAX\_FREE\_POOL}}
+\index{MAX\_FREE\_POOL@{MAX\_FREE\_POOL}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_FREE\_POOL}{MAX\_FREE\_POOL}}
+{\footnotesize\ttfamily \label{process_8c_a08150dd3f0ffc0e330a631dd728ea448} 
+\#define MAX\+\_\+\+FREE\+\_\+\+POOL~1024u}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00019}{19}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_a36b11288ada38ae09b8033e32f738c3d}\index{process.c@{process.c}!MAX\_PID@{MAX\_PID}}
+\index{MAX\_PID@{MAX\_PID}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_PID}{MAX\_PID}}
+{\footnotesize\ttfamily \label{process_8c_a36b11288ada38ae09b8033e32f738c3d} 
+\#define MAX\+\_\+\+PID~0x\+FFFFFFFCUL}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00017}{17}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_af281218f4b838fc0bcb2dfdbef08316a}\index{process.c@{process.c}!MIN\_PID@{MIN\_PID}}
+\index{MIN\_PID@{MIN\_PID}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MIN\_PID}{MIN\_PID}}
+{\footnotesize\ttfamily \label{process_8c_af281218f4b838fc0bcb2dfdbef08316a} 
+\#define MIN\+\_\+\+PID~4u}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00016}{16}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f}\index{process.c@{process.c}!PML4\_INDEX@{PML4\_INDEX}}
+\index{PML4\_INDEX@{PML4\_INDEX}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{PML4\_INDEX}{PML4\_INDEX}}
+{\footnotesize\ttfamily \label{process_8c_a4d73fc9c6a1ef15ef791e1db05a7df2f} 
+\#define PML4\+\_\+\+INDEX(\begin{DoxyParamCaption}\item[{}]{addr}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(((addr)\ >>\ 39)\ \&\ 0x1FFULL)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00021}{21}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_ad9dece005ad722afbde08f5df76a065a}\index{process.c@{process.c}!USER\_INITIAL\_STACK\_TOP@{USER\_INITIAL\_STACK\_TOP}}
+\index{USER\_INITIAL\_STACK\_TOP@{USER\_INITIAL\_STACK\_TOP}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{USER\_INITIAL\_STACK\_TOP}{USER\_INITIAL\_STACK\_TOP}}
+{\footnotesize\ttfamily \label{process_8c_ad9dece005ad722afbde08f5df76a065a} 
+\#define USER\+\_\+\+INITIAL\+\_\+\+STACK\+\_\+\+TOP~0x00007\+FFFFFFFFFFF}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00023}{23}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{process_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{process_8c_af7ae7a3211790e443ecedc4d83a2e00b}\index{process.c@{process.c}!PsCreateProcess@{PsCreateProcess}}
+\index{PsCreateProcess@{PsCreateProcess}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{PsCreateProcess()}{PsCreateProcess()}}
+{\footnotesize\ttfamily \label{process_8c_af7ae7a3211790e443ecedc4d83a2e00b} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ps\+Create\+Process (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}}]{Executable\+Path}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{ht_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{Process\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ht_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}}}]{Desired\+Access}{, }\item[{\mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\+\_\+\+In\+\_\+\+Opt}} \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Parent\+Process}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00050}{50}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_acb082c9ff12b913298f7f4e60fb17668}\index{process.c@{process.c}!PsTerminateProcess@{PsTerminateProcess}}
+\index{PsTerminateProcess@{PsTerminateProcess}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{PsTerminateProcess()}{PsTerminateProcess()}}
+{\footnotesize\ttfamily \label{process_8c_acb082c9ff12b913298f7f4e60fb17668} 
+void Ps\+Terminate\+Process (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}}]{Process}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00231}{231}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{process_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}\index{process.c@{process.c}!MmHighestUserAddress@{MmHighestUserAddress}}
+\index{MmHighestUserAddress@{MmHighestUserAddress}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MmHighestUserAddress}{MmHighestUserAddress}}
+{\footnotesize\ttfamily \label{process_8c_afac63eead7d3adaeaba9ac9eb6f08194} 
+uintptr\+\_\+t Mm\+Highest\+User\+Address = \mbox{\hyperlink{mm_8h_a820eaf87fc49c007ebf206dbb7e58d0c}{USER\+\_\+\+VA\+\_\+\+END}}}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00027}{27}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_a31c9c1c3329977652467a6adbf5b77fc}\index{process.c@{process.c}!MmSystemRangeStart@{MmSystemRangeStart}}
+\index{MmSystemRangeStart@{MmSystemRangeStart}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MmSystemRangeStart}{MmSystemRangeStart}}
+{\footnotesize\ttfamily \label{process_8c_a31c9c1c3329977652467a6adbf5b77fc} 
+uintptr\+\_\+t Mm\+System\+Range\+Start = \mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{Physical\+Memory\+Offset}}}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00026}{26}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_a6815bdedae56360940bf80736ac86cbb}\index{process.c@{process.c}!MmUserProbeAddress@{MmUserProbeAddress}}
+\index{MmUserProbeAddress@{MmUserProbeAddress}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{MmUserProbeAddress}{MmUserProbeAddress}}
+{\footnotesize\ttfamily \label{process_8c_a6815bdedae56360940bf80736ac86cbb} 
+uintptr\+\_\+t Mm\+User\+Probe\+Address = 0x00007\+FFFFFFF0000}
+
+
+
+Definition at line \mbox{\hyperlink{process_8c_source_l00028}{28}} of file \mbox{\hyperlink{process_8c_source}{process.\+c}}.
+
+\Hypertarget{process_8c_ab8b165b05e519217042b080d15ecd316}\index{process.c@{process.c}!SystemProcess@{SystemProcess}}
+\index{SystemProcess@{SystemProcess}!process.c@{process.c}}
+\doxysubsubsection{\texorpdfstring{SystemProcess}{SystemProcess}}
+{\footnotesize\ttfamily \label{process_8c_ab8b165b05e519217042b080d15ecd316} 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} System\+Process\hspace{0.3cm}{\ttfamily [extern]}}
+

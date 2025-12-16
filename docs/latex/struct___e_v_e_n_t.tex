@@ -1,0 +1,77 @@
+\doxysection{\+\_\+\+EVENT Struct Reference}
+\hypertarget{struct___e_v_e_n_t}{}\label{struct___e_v_e_n_t}\index{\_EVENT@{\_EVENT}}
+
+
+{\ttfamily \#include $<$ms.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{ms_8h_a4fd8d54f196d53e4f9494e1874200d9c}{\+\_\+\+EVENT\+\_\+\+TYPE}} \mbox{\hyperlink{struct___e_v_e_n_t_a0e122bb2b528e36bd393a9784f880371}{type}}
+\item 
+volatile bool \mbox{\hyperlink{struct___e_v_e_n_t_a884ab569241367f86eadb4b1790fdcdb}{signaled}}
+\item 
+struct \mbox{\hyperlink{struct___s_p_i_n_l_o_c_k}{\+\_\+\+SPINLOCK}} \mbox{\hyperlink{struct___e_v_e_n_t_ab462da4faf1cad120b4e70e1c0b3b5bc}{lock}}
+\item 
+struct \mbox{\hyperlink{struct___queue}{\+\_\+\+Queue}} \mbox{\hyperlink{struct___e_v_e_n_t_a40f5a17b501b9171bee082a0f807da0a}{waiting\+Queue}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\doxylink{ms_8h_ae808cb3c6c065959358615d369460fc8}{EVENT} -\/ kernel event object
+\begin{DoxyItemize}
+\item Embedded \doxylink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK} and \doxylink{ms_8h_aaa31d02f2b2876d12bb8f83900eacce6}{Queue} for waiting threads. 
+\end{DoxyItemize}
+
+Definition at line \mbox{\hyperlink{ms_8h_source_l00069}{69}} of file \mbox{\hyperlink{ms_8h_source}{ms.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___e_v_e_n_t_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___e_v_e_n_t_ab462da4faf1cad120b4e70e1c0b3b5bc}\index{\_EVENT@{\_EVENT}!lock@{lock}}
+\index{lock@{lock}!\_EVENT@{\_EVENT}}
+\doxysubsubsection{\texorpdfstring{lock}{lock}}
+{\footnotesize\ttfamily \label{struct___e_v_e_n_t_ab462da4faf1cad120b4e70e1c0b3b5bc} 
+struct \mbox{\hyperlink{struct___s_p_i_n_l_o_c_k}{\+\_\+\+SPINLOCK}} lock}
+
+
+
+Definition at line \mbox{\hyperlink{ms_8h_source_l00072}{72}} of file \mbox{\hyperlink{ms_8h_source}{ms.\+h}}.
+
+\Hypertarget{struct___e_v_e_n_t_a884ab569241367f86eadb4b1790fdcdb}\index{\_EVENT@{\_EVENT}!signaled@{signaled}}
+\index{signaled@{signaled}!\_EVENT@{\_EVENT}}
+\doxysubsubsection{\texorpdfstring{signaled}{signaled}}
+{\footnotesize\ttfamily \label{struct___e_v_e_n_t_a884ab569241367f86eadb4b1790fdcdb} 
+volatile bool signaled}
+
+
+
+Definition at line \mbox{\hyperlink{ms_8h_source_l00071}{71}} of file \mbox{\hyperlink{ms_8h_source}{ms.\+h}}.
+
+\Hypertarget{struct___e_v_e_n_t_a0e122bb2b528e36bd393a9784f880371}\index{\_EVENT@{\_EVENT}!type@{type}}
+\index{type@{type}!\_EVENT@{\_EVENT}}
+\doxysubsubsection{\texorpdfstring{type}{type}}
+{\footnotesize\ttfamily \label{struct___e_v_e_n_t_a0e122bb2b528e36bd393a9784f880371} 
+enum \mbox{\hyperlink{ms_8h_a4fd8d54f196d53e4f9494e1874200d9c}{\+\_\+\+EVENT\+\_\+\+TYPE}} type}
+
+
+
+Definition at line \mbox{\hyperlink{ms_8h_source_l00070}{70}} of file \mbox{\hyperlink{ms_8h_source}{ms.\+h}}.
+
+\Hypertarget{struct___e_v_e_n_t_a40f5a17b501b9171bee082a0f807da0a}\index{\_EVENT@{\_EVENT}!waitingQueue@{waitingQueue}}
+\index{waitingQueue@{waitingQueue}!\_EVENT@{\_EVENT}}
+\doxysubsubsection{\texorpdfstring{waitingQueue}{waitingQueue}}
+{\footnotesize\ttfamily \label{struct___e_v_e_n_t_a40f5a17b501b9171bee082a0f807da0a} 
+struct \mbox{\hyperlink{struct___queue}{\+\_\+\+Queue}} waiting\+Queue}
+
+
+
+Definition at line \mbox{\hyperlink{ms_8h_source_l00073}{73}} of file \mbox{\hyperlink{ms_8h_source}{ms.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{ms_8h}{ms.\+h}}\end{DoxyCompactItemize}

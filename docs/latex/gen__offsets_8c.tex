@@ -1,0 +1,119 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/gen\+\_\+offsets.c File Reference}
+\hypertarget{gen__offsets_8c}{}\label{gen__offsets_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/gen\_offsets.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/gen\_offsets.c}}
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include "{}includes/annotations.\+h"{}}\newline
+{\ttfamily \#include "{}includes/ms.\+h"{}}\newline
+{\ttfamily \#include "{}includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}includes/me.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{gen__offsets_8c_aa75e2d55ce15b65cdff73d8dcfc7553f}{\+\_\+\+\_\+\+OFFSET\+\_\+\+GENERATOR\+\_\+\+\_\+}}
+\item 
+\#define \mbox{\hyperlink{gen__offsets_8c_aabf1fba2d4bcfc3d5e792981886dad59}{GEN\+\_\+\+COMMENT}}(msg)
+\item 
+\#define \mbox{\hyperlink{gen__offsets_8c_a337319545a2ad9b458112b2bbaaab33b}{GEN\+\_\+\+DEFINE}}(name,  val)
+\item 
+\#define \mbox{\hyperlink{gen__offsets_8c_a16cdcfaa2f59ba898eff22db3ef7e9fa}{GEN\+\_\+\+OFFSET}}(struct\+\_\+name,  member)
+\item 
+\#define \mbox{\hyperlink{gen__offsets_8c_a8ba902d78f83e38654b6eb9dc2e65137}{GEN\+\_\+\+SIZE}}(struct\+\_\+name)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{gen__offsets_8c_a840291bc02cba5474a4cb46a9b9566fe}{main}} (void)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{gen__offsets_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{gen__offsets_8c_aa75e2d55ce15b65cdff73d8dcfc7553f}\index{gen\_offsets.c@{gen\_offsets.c}!\_\_OFFSET\_GENERATOR\_\_@{\_\_OFFSET\_GENERATOR\_\_}}
+\index{\_\_OFFSET\_GENERATOR\_\_@{\_\_OFFSET\_GENERATOR\_\_}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{\_\_OFFSET\_GENERATOR\_\_}{\_\_OFFSET\_GENERATOR\_\_}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_aa75e2d55ce15b65cdff73d8dcfc7553f} 
+\#define \+\_\+\+\_\+\+OFFSET\+\_\+\+GENERATOR\+\_\+\+\_\+}
+
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00007}{7}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+
+\Hypertarget{gen__offsets_8c_aabf1fba2d4bcfc3d5e792981886dad59}\index{gen\_offsets.c@{gen\_offsets.c}!GEN\_COMMENT@{GEN\_COMMENT}}
+\index{GEN\_COMMENT@{GEN\_COMMENT}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{GEN\_COMMENT}{GEN\_COMMENT}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_aabf1fba2d4bcfc3d5e792981886dad59} 
+\#define GEN\+\_\+\+COMMENT(\begin{DoxyParamCaption}\item[{}]{msg}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ printf(\textcolor{stringliteral}{"{}\(\backslash\)n;\ \%s\(\backslash\)n"{}},\ msg)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00024}{24}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+
+\Hypertarget{gen__offsets_8c_a337319545a2ad9b458112b2bbaaab33b}\index{gen\_offsets.c@{gen\_offsets.c}!GEN\_DEFINE@{GEN\_DEFINE}}
+\index{GEN\_DEFINE@{GEN\_DEFINE}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{GEN\_DEFINE}{GEN\_DEFINE}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_a337319545a2ad9b458112b2bbaaab33b} 
+\#define GEN\+\_\+\+DEFINE(\begin{DoxyParamCaption}\item[{}]{name}{, }\item[{}]{val}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ printf(\textcolor{stringliteral}{"{}\%\%define\ \%-\/40s\ 0x\%lX\(\backslash\)n"{}},\ \#name,\ (uint64\_t)(val))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00027}{27}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+
+\Hypertarget{gen__offsets_8c_a16cdcfaa2f59ba898eff22db3ef7e9fa}\index{gen\_offsets.c@{gen\_offsets.c}!GEN\_OFFSET@{GEN\_OFFSET}}
+\index{GEN\_OFFSET@{GEN\_OFFSET}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{GEN\_OFFSET}{GEN\_OFFSET}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_a16cdcfaa2f59ba898eff22db3ef7e9fa} 
+\#define GEN\+\_\+\+OFFSET(\begin{DoxyParamCaption}\item[{}]{struct\+\_\+name}{, }\item[{}]{member}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ printf(\textcolor{stringliteral}{"{}\%\%define\ \%-\/40s\ 0x\%lX\(\backslash\)n"{}},\ \#struct\_name\ \textcolor{stringliteral}{"{}\_"{}}\ \#member,\ offsetof(struct\_name,\ member))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00030}{30}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+
+\Hypertarget{gen__offsets_8c_a8ba902d78f83e38654b6eb9dc2e65137}\index{gen\_offsets.c@{gen\_offsets.c}!GEN\_SIZE@{GEN\_SIZE}}
+\index{GEN\_SIZE@{GEN\_SIZE}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{GEN\_SIZE}{GEN\_SIZE}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_a8ba902d78f83e38654b6eb9dc2e65137} 
+\#define GEN\+\_\+\+SIZE(\begin{DoxyParamCaption}\item[{}]{struct\+\_\+name}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ printf(\textcolor{stringliteral}{"{}\%\%define\ SIZEOF\_\%-\/33s\ 0x\%lX\(\backslash\)n"{}},\ \#struct\_name,\ \textcolor{keyword}{sizeof}(struct\_name))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00033}{33}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{gen__offsets_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{gen__offsets_8c_a840291bc02cba5474a4cb46a9b9566fe}\index{gen\_offsets.c@{gen\_offsets.c}!main@{main}}
+\index{main@{main}!gen\_offsets.c@{gen\_offsets.c}}
+\doxysubsubsection{\texorpdfstring{main()}{main()}}
+{\footnotesize\ttfamily \label{gen__offsets_8c_a840291bc02cba5474a4cb46a9b9566fe} 
+int main (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{gen__offsets_8c_source_l00036}{36}} of file \mbox{\hyperlink{gen__offsets_8c_source}{gen\+\_\+offsets.\+c}}.
+

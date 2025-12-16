@@ -1,0 +1,144 @@
+\doxysection{exception.\+h}
+\hypertarget{exception_8h_source}{}\label{exception_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h}}
+\mbox{\hyperlink{exception_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00001}00001\ \textcolor{preprocessor}{\#ifndef\ X86\_MATANEL\_EXCEPTION}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00002}00002\ \textcolor{preprocessor}{\#define\ X86\_MATANEL\_EXCEPTION}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00003}00003\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00004}00004\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00005}00005\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00006}00006\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00007}00007\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00008}00008\ \textcolor{comment}{\ \ \ \ exception.h}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00009}00009\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00010}00010\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00011}00011\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00012}00012\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ the\ header\ files\ \&\ prototypes\ required\ for\ runtime\ exception\ handling\ of\ the\ OS.}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00013}00013\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00014}00014\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00015}00015\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00016}00016\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00017}00017\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00018}00018\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00019}00019\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00020}00020\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00022}00022\ \textcolor{comment}{//\ Base\ includes}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00023}00023\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00024}00024\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00026}00026\ \textcolor{comment}{//\ Other\ file\ includes}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00027}00027\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00028}00028\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{core_8h}{core.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00030}00030\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ STRUCTURES\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00032}00032\ \textcolor{comment}{//struct\ \_CONTEXT;}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00033}00033\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00034}\mbox{\hyperlink{exception_8h_a3cd1c98b6babaa34a71c020782244ae2}{00034}}\ \textcolor{preprocessor}{\#define\ EXCEPTION\_MAXIMUM\_PARAMETERS\ 15}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00035}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{00035}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\_EXCEPTION\_RECORD}}\ \{}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00036}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_acecd77af163ce876033b50051886ea73}{00036}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_acecd77af163ce876033b50051886ea73}{ExceptionCode}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00037}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a3d228a18f10dafeba1ed09c9cc85deae}{00037}}\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a3d228a18f10dafeba1ed09c9cc85deae}{ExceptionFlags}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00038}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a5b4beae65e22c4e09c5a8fa434d0eac8}{00038}}\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\_EXCEPTION\_RECORD}}*\ \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a5b4beae65e22c4e09c5a8fa434d0eac8}{ExceptionRecord}};\ \textcolor{comment}{//\ For\ nested\ exceptions}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00039}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a566eb0091fc7debcfa5712ae9a898bc4}{00039}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_a566eb0091fc7debcfa5712ae9a898bc4}{ExceptionAddress}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RIP\ at\ time\ of\ fault}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00040}00040\ \ \ \ \ \textcolor{comment}{//struct\ \_CONTEXT\ ExceptionContext;}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00041}\mbox{\hyperlink{exception_8h_a59d5f4de22ac5d215d56754da8055aaf}{00041}}\ \}\ \mbox{\hyperlink{exception_8h_a59d5f4de22ac5d215d56754da8055aaf}{EXCEPTION\_RECORD}},\ *\ \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\_RECORD}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00043}\mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{00043}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}\ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\_EXCEPTION\_DISPOSITION}}\ \{}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00044}\mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c}{00044}}\ \ \ \ \ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c}{ExceptionContinueExecution}}\ =\ 0,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00045}\mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb}{00045}}\ \ \ \ \ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb}{ExceptionContinueSearch}}\ =\ 1,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00046}\mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a}{00046}}\ \ \ \ \ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a}{ExceptionNestedException}}\ =\ 2,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00047}\mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0}{00047}}\ \ \ \ \ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0}{ExceptionCollidedUnwind}}\ =\ 3}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00048}\mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{00048}}\ \}\ \mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\_DISPOSITION}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00049}00049\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00050}\mbox{\hyperlink{struct___c_o_n_t_e_x_t}{00050}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\_CONTEXT}}\ \{}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00051}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a82a303b6618fa2ede9528d636a72158a}{00051}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a82a303b6618fa2ede9528d636a72158a}{RFlags}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00052}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a2cccb5f4a4d546cad5533a7110e7e98b}{00052}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a2cccb5f4a4d546cad5533a7110e7e98b}{Dr0}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00053}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a877c0cdc8b7261f06dfbc1fcf0e4a0da}{00053}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a877c0cdc8b7261f06dfbc1fcf0e4a0da}{Dr1}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00054}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_aed5fc493051ef12e42e7b7e39c21f88a}{00054}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_aed5fc493051ef12e42e7b7e39c21f88a}{Dr2}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00055}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a5b679b283f5b16f263851e96324ed782}{00055}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a5b679b283f5b16f263851e96324ed782}{Dr3}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00056}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_ad4949b8cec7ef79635414c711f401ffd}{00056}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_ad4949b8cec7ef79635414c711f401ffd}{Dr6}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00057}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a920c1b3f286305f91c2ae61e4917c0dd}{00057}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a920c1b3f286305f91c2ae61e4917c0dd}{Dr7}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00058}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_ab5bec397e93605b161a3b37a39f8561d}{00058}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_ab5bec397e93605b161a3b37a39f8561d}{Rax}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00059}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_afb5c3844aa5930a47ea4bbb82834224d}{00059}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_afb5c3844aa5930a47ea4bbb82834224d}{Rcx}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00060}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_abff013fb3ee116048d02c9115ae6691c}{00060}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_abff013fb3ee116048d02c9115ae6691c}{Rdx}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00061}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_aed67656bbd3dc4d5765e77ce57bf1274}{00061}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_aed67656bbd3dc4d5765e77ce57bf1274}{Rbx}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00062}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a6935774b368daa889bc214a727b13d16}{00062}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a6935774b368daa889bc214a727b13d16}{Rsp}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00063}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_aa21eada1284bf7fd8d747724baac34f6}{00063}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_aa21eada1284bf7fd8d747724baac34f6}{Rbp}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00064}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_ae79c54b99fc3d6bbaa93afc293533b42}{00064}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_ae79c54b99fc3d6bbaa93afc293533b42}{Rsi}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00065}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a67e6f7008f0e5ffd903503440f199eba}{00065}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a67e6f7008f0e5ffd903503440f199eba}{Rdi}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00066}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_af16bfe38bca358340b1b32ab24ce4fe4}{00066}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_af16bfe38bca358340b1b32ab24ce4fe4}{R8}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00067}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a976bcda9a17338311f8c6d47f1c197c9}{00067}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a976bcda9a17338311f8c6d47f1c197c9}{R9}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00068}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a0f73e4e5473269acbcb957fa430fdca7}{00068}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a0f73e4e5473269acbcb957fa430fdca7}{R10}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00069}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_acd58d144e586f3e4f8046c2371ac1865}{00069}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_acd58d144e586f3e4f8046c2371ac1865}{R11}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00070}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_a15b20b009c82c22eaf87b460b329717c}{00070}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_a15b20b009c82c22eaf87b460b329717c}{R12}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00071}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_abef77fea472680dad14f6ee55bf0ce0b}{00071}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_abef77fea472680dad14f6ee55bf0ce0b}{R13}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00072}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_ae4c728b8a48413436ee33a27879c1f22}{00072}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_ae4c728b8a48413436ee33a27879c1f22}{R14}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00073}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_ac43f8947a3f04f259164971c636332fe}{00073}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_ac43f8947a3f04f259164971c636332fe}{R15}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00074}\mbox{\hyperlink{struct___c_o_n_t_e_x_t_abe7e1a2d4fb3efb78543f5676a58e994}{00074}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___c_o_n_t_e_x_t_abe7e1a2d4fb3efb78543f5676a58e994}{Rip}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00075}\mbox{\hyperlink{exception_8h_a373939ca181430b8ec42295650e6b99a}{00075}}\ \}\ \mbox{\hyperlink{exception_8h_a373939ca181430b8ec42295650e6b99a}{CONTEXT}},\ *\ \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00076}00076\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00077}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{00077}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{\_EXCEPTION\_REGISTRATION\_RECORD}}\ \{}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00078}\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d_a8ccf9e0c3c632a52fd006976924addf5}{00078}}\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{\_EXCEPTION\_REGISTRATION\_RECORD}}*\ \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d_a561f242f21a3bf676be5d4114f27a3d2}{Next}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00079}00079\ \ \ \ \ \textcolor{keyword}{enum}\ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\_EXCEPTION\_DISPOSITION}}(*\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d_a8ccf9e0c3c632a52fd006976924addf5}{Handler}})(\textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\_EXCEPTION\_RECORD}}*\ arg1,\ \textcolor{keywordtype}{void}*\ Frame,\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\_CONTEXT}}*\ arg2,\ \textcolor{keywordtype}{void}*\ DispCtx);}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00080}\mbox{\hyperlink{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}{00080}}\ \}\ \mbox{\hyperlink{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}{EXCEPTION\_REGISTRATION\_RECORD}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00082}\mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n}{00082}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n}{\_EX\_FRAME\_REGISTRATION}}\ \{}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00083}\mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_acfb01145d6aa2f7ef43741bd30757211}{00083}}\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ \mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_acfb01145d6aa2f7ef43741bd30757211}{Thread}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00084}\mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_a5026ff6f28b721ec0496f0e9ac5fee98}{00084}}\ \ \ \ \ \mbox{\hyperlink{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}{EXCEPTION\_REGISTRATION\_RECORD}}*\ \mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_a5026ff6f28b721ec0496f0e9ac5fee98}{RegistrationPointer}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00085}\mbox{\hyperlink{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af}{00085}}\ \}\ \mbox{\hyperlink{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af}{EX\_FRAME\_REGISTRATION}};}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00087}00087\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ FUNCTIONS\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00089}00089\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ \mbox{\hyperlink{exception_8h_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00090}\mbox{\hyperlink{exception_8h_ad6bb0ccaaf02d2d1620cc2e532f0f15a}{00090}}\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{exception_8h_ad6bb0ccaaf02d2d1620cc2e532f0f15a}{ExpCaptureContext}}(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}\ Context);}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00092}\mbox{\hyperlink{exception_8h_adeb5e1a7690ebae7f60daa59e7df38f2}{00092}}\ \mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\_DISPOSITION}}\ \mbox{\hyperlink{exception_8h_adeb5e1a7690ebae7f60daa59e7df38f2}{MeStandardHandler}}(}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00093}00093\ \ \ \ \ \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\_RECORD}}\ ExceptionRecord,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00094}00094\ \ \ \ \ \textcolor{keywordtype}{void}*\ EstablisherFrame,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00095}00095\ \ \ \ \ \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}\ ContextRecord,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00096}00096\ \ \ \ \ \textcolor{keywordtype}{void}*\ DispatcherContext}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00097}00097\ );}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00098}00098\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00099}00099\ \textcolor{comment}{//\ macros}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00100}\mbox{\hyperlink{exception_8h_a725ec12e237ed7b4dd1978a186afb949}{00100}}\ \textcolor{preprocessor}{\#define\ \_try\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00101}00101\ \textcolor{preprocessor}{\ \ \ \ \{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00102}00102\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ PETHREAD\ \_CurrentThread\ =\ PsGetCurrentThread();\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00103}00103\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ ME\_EXCEPTION\_FRAME\ \_MyFrame;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00104}00104\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_MyFrame.Next\ =\ (PME\_EXCEPTION\_FRAME)\_CurrentThread-\/>ExceptionList;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00105}00105\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_MyFrame.Handler\ =\ MeStandardHandler;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00106}00106\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_CurrentThread-\/>ExceptionList\ =\ \&\_MyFrame;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00107}00107\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ Save\ Context.\ Returns\ 0\ initially.\ Returns\ 1\ if\ we\ crashed.\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00108}00108\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ if\ (ExpCaptureContext(\&\_MyFrame)\ ==\ 0)\ \{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00109}00109\ \textcolor{preprocessor}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00110}\mbox{\hyperlink{exception_8h_abd4cff0ca8231e7634099220e3ef46b8}{00110}}\ \textcolor{preprocessor}{\#define\ \_except(FilterExpression)\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00111}00111\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ Success\ path:\ Unlink\ frame\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00112}00112\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \_CurrentThread-\/>ExceptionList\ =\ \_MyFrame.Next;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00113}00113\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \}\ else\ \{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00114}00114\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ Crash\ path:\ We\ just\ "{}landed"{}\ here\ from\ the\ handler!\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00115}00115\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ Unlink\ frame\ (safe\ to\ do\ again)\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00116}00116\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \_CurrentThread-\/>ExceptionList\ =\ \_MyFrame.Next;\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00117}00117\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ You\ can\ access\ \_MyFrame.ExceptionCode\ here\ if\ needed\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00118}00118\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \{\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00119}00119\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ User\ Code\ inside\ except\ block\ */}\textcolor{preprocessor}{}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00120}00120\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00121}\mbox{\hyperlink{exception_8h_a3e2d117c8ff6c4855462a5c0e4b33e58}{00121}}\ \textcolor{preprocessor}{\#define\ \_end\_except\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00122}00122\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \}\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00123}00123\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \}\ \(\backslash\)}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00124}00124\ \textcolor{preprocessor}{\ \ \ \ \}}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00125}00125\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00126}00126\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00127}00127\ \mbox{\hyperlink{exception_8h_a2dee8f10bb0d7be89909abb721626b2a}{ExpIsExceptionHandlerPresent}}(}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00128}00128\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ Thread}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00129}00129\ );}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00130}00130\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00131}00131\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00132}00132\ \mbox{\hyperlink{exception_8h_a899600fb60c845d2acfda420340e0fbe}{ExpDispatchException}}(}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00133}00133\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ TrapFrame,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00134}00134\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}\ ContextRecord,}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00135}00135\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\_RECORD}}\ ExceptionRecord}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00136}00136\ );}
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00137}00137\ }
+\DoxyCodeLine{\Hypertarget{exception_8h_source_l00138}00138\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

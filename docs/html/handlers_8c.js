@@ -1,0 +1,28 @@
+var handlers_8c =
+[
+    [ "PRINT_ALL_REGS_AND_HALT", "handlers_8c.html#a81d51c722be3972efc6dafd68986b20f", null ],
+    [ "lapic_eoi", "handlers_8c.html#a5c673232a19d0c4e78792208eb62f0cc", null ],
+    [ "MiAlignmentCheck", "handlers_8c.html#a47ea4d7744cfe039135ccd894de52f97", null ],
+    [ "MiBoundsCheck", "handlers_8c.html#a21ece4d06870f2f50e1586a9865568a1", null ],
+    [ "MiBreakpoint", "handlers_8c.html#a054b492479f9476e325523c588d24bf0", null ],
+    [ "MiCoprocessorSegmentOverrun", "handlers_8c.html#a85422129cf7529d518485445bb068847", null ],
+    [ "MiDebugTrap", "handlers_8c.html#a4ec953818fe18c54ce5199caec55e1e3", null ],
+    [ "MiDivideByZero", "handlers_8c.html#aca5a6c43b04aa4cd89d066bcfa8dd4a0", null ],
+    [ "MiDoubleFault", "handlers_8c.html#a90834181d8dd59de70d4ffb713e223bb", null ],
+    [ "MiFloatingPointError", "handlers_8c.html#ad93a9d1dc5b4b7e350832aebee57e9b3", null ],
+    [ "MiGeneralProtectionFault", "handlers_8c.html#abbb131baf26462fbcd50d9c004d14e7a", null ],
+    [ "MiInterprocessorInterrupt", "handlers_8c.html#ae08944131b30ed5db94bdbfa32abacf0", null ],
+    [ "MiInvalidOpcode", "handlers_8c.html#a66f06653ecb6fa64e6ece2b261156eaa", null ],
+    [ "MiInvalidTss", "handlers_8c.html#a636b9e3e1077c5143b6d589e88a062b0", null ],
+    [ "MiLapicInterrupt", "handlers_8c.html#aa1a90154eaea0af9608b87626497ad27", null ],
+    [ "MiMachineCheck", "handlers_8c.html#a877b76ed3acfb98a78dc91c97fcf3b00", null ],
+    [ "MiNoCoprocessor", "handlers_8c.html#a1047c22886d4bbf2a7e7caae7346f50d", null ],
+    [ "MiNonMaskableInterrupt", "handlers_8c.html#a3a798c50f51be9ef287efb5ecce1895b", null ],
+    [ "MiOverflow", "handlers_8c.html#ade1c26a6731345f35bf1d1bd996d5637", null ],
+    [ "MiPageFault", "handlers_8c.html#a8d50d37b7978b26e5fa59ca331097235", null ],
+    [ "MiSegmentSelectorNotPresent", "handlers_8c.html#af62de2896e41a8218bb2f8f7822487ec", null ],
+    [ "MiStackSegmentOverrun", "handlers_8c.html#a6a79fb8170e3276d8dc65b34e7f3604b", null ],
+    [ "cursor_x", "handlers_8c.html#aed43839a3c8b74504a97930edbe8b735", null ],
+    [ "cursor_y", "handlers_8c.html#ad3e70ba50f805f295792f5dc66599d51", null ],
+    [ "gop_local", "handlers_8c.html#ad8ca0be32b831aec9de80bcf0e22107e", null ]
+];

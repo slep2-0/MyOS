@@ -1,0 +1,98 @@
+\doxysection{rundown.\+c}
+\hypertarget{rundown_8c_source}{}\label{rundown_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/rundown.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/rundown.c}}
+\mbox{\hyperlink{rundown_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00002}00002\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00003}\mbox{\hyperlink{rundown_8c_a569e8c410301fbe83a386753e554cb2f}{00003}}\ \textcolor{preprocessor}{\#define\ TEARDOWN\_ACTIVE\ (1ULL\ <<\ 63)}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00004}\mbox{\hyperlink{rundown_8c_a10e6e0604fc8e0b86acd88f6d5bfff8b}{00004}}\ \textcolor{preprocessor}{\#define\ REFERENCE\_COUNT\ (0x7FFFFFFFFFFFFFFF)}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00005}00005\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00006}00006\ \textcolor{keywordtype}{bool}\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00007}\mbox{\hyperlink{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f}{00007}}\ \mbox{\hyperlink{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f}{MsAcquireRundownProtection}}\ (}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00008}00008\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \ \ \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\_REF}}\ rundown}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00009}00009\ )\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00011}00011\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Safely\ acquires\ rundown\ protection\ on\ a\ shared\ resource\ to\ prevent\ it\ from\ being\ deleted\ or\ "{}rundown"{}\ while\ in\ use.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00015}00015\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00017}00017\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ RUNDOWN\_REF\ Object.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00018}00018\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00019}00019\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00020}00020\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00021}00021\ \textcolor{comment}{\ \ \ \ \ \ \ \ True\ -\/\ The\ rundown\ protection\ acquisition\ has\ succeeded,\ the\ object\ is\ safe\ from\ memory\ deletion.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00022}00022\ \textcolor{comment}{\ \ \ \ \ \ \ \ False\ -\/\ Teardown\ has\ started\ on\ the\ object,\ handle\ gracefully.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00023}00023\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00024}00024\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00026}00026\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00027}00027\ \ \ \ \ uint64\_t\ old\_count,\ new\_count;}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00028}00028\ \ \ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ old\_count\ =\ rundown-\/>Count;}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (old\_count\ \&\ \mbox{\hyperlink{rundown_8c_a569e8c410301fbe83a386753e554cb2f}{TEARDOWN\_ACTIVE}})\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00031}00031\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Teardown\ has\ started,\ refuse\ to\ acquire.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00032}00032\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00033}00033\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00034}00034\ \ \ \ \ \ \ \ \ new\_count\ =\ old\_count\ +\ 1;}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00035}00035\ \ \ \ \ \}\ \textcolor{keywordflow}{while}\ (!\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&rundown-\/>Count,\ new\_count,\ old\_count));}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00037}00037\ \}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00038}00038\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00039}00039\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00040}\mbox{\hyperlink{rundown_8c_a83aff9858a03409861f6c210b508b012}{00040}}\ \mbox{\hyperlink{rundown_8c_a83aff9858a03409861f6c210b508b012}{MsReleaseRundownProtection}}\ (}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00041}00041\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \ \ \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\_REF}}\ rundown}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00042}00042\ )\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00043}00043\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00044}00044\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00045}00045\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00046}00046\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Releases\ rundown\ protection\ from\ the\ object.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00047}00047\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00048}00048\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00049}00049\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00050}00050\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ RUNDOWN\_REF\ Object.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00051}00051\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00052}00052\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00053}00053\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00054}00054\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00055}00055\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00056}00056\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00058}00058\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00059}00059\ \ \ \ \ \mbox{\hyperlink{atomic_8h_a7d3179efc4f0416b59ae569a96a33ba2}{InterlockedDecrementU64}}(\&rundown-\/>Count);}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00060}00060\ \}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00062}00062\ \textcolor{comment}{//\ Wait\ for\ rundown\ (teardown)}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00063}\mbox{\hyperlink{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6}{00063}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6}{MsWaitForRundownProtectionRelease}}\ (}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00064}00064\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \ \ \mbox{\hyperlink{ms_8h_a233f3e1f6c64a3591ad5952da0580b8d}{PRUNDOWN\_REF}}\ rundown}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00065}00065\ )\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00067}00067\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00068}00068\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00069}00069\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Waits\ until\ all\ rundown\ protections\ have\ been\ released\ from\ the\ object,\ then\ starts\ Teardown.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00070}00070\ \textcolor{comment}{\ \ \ \ Use\ this\ when\ you\ want\ to\ gurantee\ an\ object\ will\ not\ be\ used\ after\ free.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00071}00071\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00072}00072\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00073}00073\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00074}00074\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ RUNDOWN\_REF\ Object.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00075}00075\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00076}00076\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00077}00077\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00078}00078\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00079}00079\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00080}00080\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00082}00082\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00083}00083\ \ \ \ \ uint64\_t\ old\_count;}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00084}00084\ \ \ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00085}00085\ \ \ \ \ \ \ \ \ old\_count\ =\ rundown-\/>Count;}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00086}00086\ \ \ \ \ \}\ \textcolor{keywordflow}{while}\ (!\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&rundown-\/>Count,\ old\_count\ |\ \mbox{\hyperlink{rundown_8c_a569e8c410301fbe83a386753e554cb2f}{TEARDOWN\_ACTIVE}},\ old\_count));}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00087}00087\ }
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00088}00088\ \ \ \ \ \textcolor{comment}{//\ Spin\ until\ count\ reaches\ zero\ (TODO\ RUNDOWN\ REF\ WAKE\ SLEEP\ (use\ the\ 0-\/62\ bits\ for\ a\ pointer\ )}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00089}00089\ \ \ \ \ \textcolor{keywordflow}{while}\ ((rundown-\/>Count\ \&\ \mbox{\hyperlink{rundown_8c_a10e6e0604fc8e0b86acd88f6d5bfff8b}{REFERENCE\_COUNT}})\ !=\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a26e3a63842c3c5f7d7b97a5c2d786e41}{\_\_pause}}();}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00091}00091\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{rundown_8c_source_l00092}00092\ \}}
+
+\end{DoxyCode}

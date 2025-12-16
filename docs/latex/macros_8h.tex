@@ -1,0 +1,214 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/macros.h File Reference}
+\hypertarget{macros_8h}{}\label{macros_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/macros.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/macros.h}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{macros_8h_aad0775b806dea2a5529806f0e8d90cee}{CONTAINING\+\_\+\+RECORD}}(ptr,  type,  member)
+\item 
+\#define \mbox{\hyperlink{macros_8h_acfa3af56d5e0045c1d7a5682fd1d2853}{SIZE\+\_\+\+T\+\_\+\+MAX}}~(size\+\_\+t)-\/1
+\item 
+\#define \mbox{\hyperlink{macros_8h_ae67fce0de32a6e75b649711af83a0d6e}{UINT64\+\_\+\+T\+\_\+\+MAX}}~(uint64\+\_\+t)-\/1
+\item 
+\#define \mbox{\hyperlink{macros_8h_ad351cb3db8e29f239a36eeee2c0819f3}{LK\+\_\+\+KERNEL\+\_\+\+START}}~\&\mbox{\hyperlink{macros_8h_a3434331625aaebacdb2b110ebcad7974}{kernel\+\_\+start}}
+\item 
+\#define \mbox{\hyperlink{macros_8h_ab68be04e365e429bd8342e5f0f6c0377}{LK\+\_\+\+KERNEL\+\_\+\+END}}~\&\mbox{\hyperlink{macros_8h_aee0763743976908265c56bb03b8dfe2e}{kernel\+\_\+end}}
+\item 
+\#define \mbox{\hyperlink{macros_8h_a0dc31ee61f6ffb98c2b5c7e350ccf8bb}{LK\+\_\+\+KERNEL\+\_\+\+SIZE}}~(\mbox{\hyperlink{macros_8h_ab68be04e365e429bd8342e5f0f6c0377}{LK\+\_\+\+KERNEL\+\_\+\+END}} -\/ \mbox{\hyperlink{macros_8h_ad351cb3db8e29f239a36eeee2c0819f3}{LK\+\_\+\+KERNEL\+\_\+\+START}})
+\item 
+\#define \mbox{\hyperlink{macros_8h_afa99ec4acc4ecb2dc3c2d05da15d0e3f}{MAX}}(a,  b)
+\item 
+\#define \mbox{\hyperlink{macros_8h_ac404dd901aac7a34d882f63dfdfd0095}{RETADDR}}(level)
+\item 
+\#define \mbox{\hyperlink{macros_8h_a217a0bd562b98ae8c2ffce44935351e1}{likely}}(x)
+\item 
+\#define \mbox{\hyperlink{macros_8h_ac6c45889010c1bd68631771b64f18101}{unlikely}}(x)
+\item 
+\#define \mbox{\hyperlink{macros_8h_a8de835a37d1896b1f092a1e2a583e42b}{FREEZE}}()
+\item 
+\#define \mbox{\hyperlink{macros_8h_a770868c8a4f09c4abb048d60d9a36144}{FIELD\+\_\+\+OFFSET}}(t,  f)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{macros_8h_a3434331625aaebacdb2b110ebcad7974}{kernel\+\_\+start}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{macros_8h_aee0763743976908265c56bb03b8dfe2e}{kernel\+\_\+end}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{macros_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{macros_8h_aad0775b806dea2a5529806f0e8d90cee}\index{macros.h@{macros.h}!CONTAINING\_RECORD@{CONTAINING\_RECORD}}
+\index{CONTAINING\_RECORD@{CONTAINING\_RECORD}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{CONTAINING\_RECORD}{CONTAINING\_RECORD}}
+{\footnotesize\ttfamily \label{macros_8h_aad0775b806dea2a5529806f0e8d90cee} 
+\#define CONTAINING\+\_\+\+RECORD(\begin{DoxyParamCaption}\item[{}]{ptr}{, }\item[{}]{type}{, }\item[{}]{member}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ ((type\ *)((\textcolor{keywordtype}{char}\ *)(ptr)\ -\/\ offsetof(type,\ member)))}
+
+\end{DoxyCode}
+This example is using the legacy kernel structures. Usage\+: \doxylink{macros_8h_aad0775b806dea2a5529806f0e8d90cee}{CONTAINING\+\_\+\+RECORD(ptr, struct, ptr\+\_\+member)} Example\+: CTX\+\_\+\+FRAME\texorpdfstring{$\ast$}{*} ctxframeptr = 0x1234; // Hypothetical address of the pointer. Thread\texorpdfstring{$\ast$}{*} thread\+Associated = \doxylink{macros_8h_aad0775b806dea2a5529806f0e8d90cee}{CONTAINING\+\_\+\+RECORD(ctxframeptr, Thread, ctx)}; // Note that ctx is the member name for CTX\+\_\+\+FRAME in the Thread struct. 
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00011}{11}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_a770868c8a4f09c4abb048d60d9a36144}\index{macros.h@{macros.h}!FIELD\_OFFSET@{FIELD\_OFFSET}}
+\index{FIELD\_OFFSET@{FIELD\_OFFSET}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{FIELD\_OFFSET}{FIELD\_OFFSET}}
+{\footnotesize\ttfamily \label{macros_8h_a770868c8a4f09c4abb048d60d9a36144} 
+\#define FIELD\+\_\+\+OFFSET(\begin{DoxyParamCaption}\item[{}]{t}{, }\item[{}]{f}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{((uint32\_t)(uint32\_t*)\&(((t*)\ 0)-\/>f))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00052}{52}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_a8de835a37d1896b1f092a1e2a583e42b}\index{macros.h@{macros.h}!FREEZE@{FREEZE}}
+\index{FREEZE@{FREEZE}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{FREEZE}{FREEZE}}
+{\footnotesize\ttfamily \label{macros_8h_a8de835a37d1896b1f092a1e2a583e42b} 
+\#define FREEZE(\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();\ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}()}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00049}{49}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_a217a0bd562b98ae8c2ffce44935351e1}\index{macros.h@{macros.h}!likely@{likely}}
+\index{likely@{likely}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{likely}{likely}}
+{\footnotesize\ttfamily \label{macros_8h_a217a0bd562b98ae8c2ffce44935351e1} 
+\#define likely(\begin{DoxyParamCaption}\item[{}]{x}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\_\_builtin\_expect(!!(x),\ 1)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00043}{43}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_ab68be04e365e429bd8342e5f0f6c0377}\index{macros.h@{macros.h}!LK\_KERNEL\_END@{LK\_KERNEL\_END}}
+\index{LK\_KERNEL\_END@{LK\_KERNEL\_END}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{LK\_KERNEL\_END}{LK\_KERNEL\_END}}
+{\footnotesize\ttfamily \label{macros_8h_ab68be04e365e429bd8342e5f0f6c0377} 
+\#define LK\+\_\+\+KERNEL\+\_\+\+END~\&\mbox{\hyperlink{macros_8h_aee0763743976908265c56bb03b8dfe2e}{kernel\+\_\+end}}}
+
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00029}{29}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_a0dc31ee61f6ffb98c2b5c7e350ccf8bb}\index{macros.h@{macros.h}!LK\_KERNEL\_SIZE@{LK\_KERNEL\_SIZE}}
+\index{LK\_KERNEL\_SIZE@{LK\_KERNEL\_SIZE}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{LK\_KERNEL\_SIZE}{LK\_KERNEL\_SIZE}}
+{\footnotesize\ttfamily \label{macros_8h_a0dc31ee61f6ffb98c2b5c7e350ccf8bb} 
+\#define LK\+\_\+\+KERNEL\+\_\+\+SIZE~(\mbox{\hyperlink{macros_8h_ab68be04e365e429bd8342e5f0f6c0377}{LK\+\_\+\+KERNEL\+\_\+\+END}} -\/ \mbox{\hyperlink{macros_8h_ad351cb3db8e29f239a36eeee2c0819f3}{LK\+\_\+\+KERNEL\+\_\+\+START}})}
+
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00031}{31}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_ad351cb3db8e29f239a36eeee2c0819f3}\index{macros.h@{macros.h}!LK\_KERNEL\_START@{LK\_KERNEL\_START}}
+\index{LK\_KERNEL\_START@{LK\_KERNEL\_START}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{LK\_KERNEL\_START}{LK\_KERNEL\_START}}
+{\footnotesize\ttfamily \label{macros_8h_ad351cb3db8e29f239a36eeee2c0819f3} 
+\#define LK\+\_\+\+KERNEL\+\_\+\+START~\&\mbox{\hyperlink{macros_8h_a3434331625aaebacdb2b110ebcad7974}{kernel\+\_\+start}}}
+
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00026}{26}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_afa99ec4acc4ecb2dc3c2d05da15d0e3f}\index{macros.h@{macros.h}!MAX@{MAX}}
+\index{MAX@{MAX}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{MAX}{MAX}}
+{\footnotesize\ttfamily \label{macros_8h_afa99ec4acc4ecb2dc3c2d05da15d0e3f} 
+\#define MAX(\begin{DoxyParamCaption}\item[{}]{a}{, }\item[{}]{b}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(((a)\ >\ (b))\ ?\ (a)\ :\ (b))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00033}{33}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_ac404dd901aac7a34d882f63dfdfd0095}\index{macros.h@{macros.h}!RETADDR@{RETADDR}}
+\index{RETADDR@{RETADDR}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{RETADDR}{RETADDR}}
+{\footnotesize\ttfamily \label{macros_8h_ac404dd901aac7a34d882f63dfdfd0095} 
+\#define RETADDR(\begin{DoxyParamCaption}\item[{}]{level}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(void)(level)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00038}{38}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_acfa3af56d5e0045c1d7a5682fd1d2853}\index{macros.h@{macros.h}!SIZE\_T\_MAX@{SIZE\_T\_MAX}}
+\index{SIZE\_T\_MAX@{SIZE\_T\_MAX}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{SIZE\_T\_MAX}{SIZE\_T\_MAX}}
+{\footnotesize\ttfamily \label{macros_8h_acfa3af56d5e0045c1d7a5682fd1d2853} 
+\#define SIZE\+\_\+\+T\+\_\+\+MAX~(size\+\_\+t)-\/1}
+
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00017}{17}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_ae67fce0de32a6e75b649711af83a0d6e}\index{macros.h@{macros.h}!UINT64\_T\_MAX@{UINT64\_T\_MAX}}
+\index{UINT64\_T\_MAX@{UINT64\_T\_MAX}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{UINT64\_T\_MAX}{UINT64\_T\_MAX}}
+{\footnotesize\ttfamily \label{macros_8h_ae67fce0de32a6e75b649711af83a0d6e} 
+\#define UINT64\+\_\+\+T\+\_\+\+MAX~(uint64\+\_\+t)-\/1}
+
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00022}{22}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+\Hypertarget{macros_8h_ac6c45889010c1bd68631771b64f18101}\index{macros.h@{macros.h}!unlikely@{unlikely}}
+\index{unlikely@{unlikely}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{unlikely}{unlikely}}
+{\footnotesize\ttfamily \label{macros_8h_ac6c45889010c1bd68631771b64f18101} 
+\#define unlikely(\begin{DoxyParamCaption}\item[{}]{x}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\_\_builtin\_expect(!!(x),\ 0)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{macros_8h_source_l00047}{47}} of file \mbox{\hyperlink{macros_8h_source}{macros.\+h}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{macros_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{macros_8h_aee0763743976908265c56bb03b8dfe2e}\index{macros.h@{macros.h}!kernel\_end@{kernel\_end}}
+\index{kernel\_end@{kernel\_end}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{kernel\_end}{kernel\_end}}
+{\footnotesize\ttfamily \label{macros_8h_aee0763743976908265c56bb03b8dfe2e} 
+uint8\+\_\+t kernel\+\_\+end\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{macros_8h_a3434331625aaebacdb2b110ebcad7974}\index{macros.h@{macros.h}!kernel\_start@{kernel\_start}}
+\index{kernel\_start@{kernel\_start}!macros.h@{macros.h}}
+\doxysubsubsection{\texorpdfstring{kernel\_start}{kernel\_start}}
+{\footnotesize\ttfamily \label{macros_8h_a3434331625aaebacdb2b110ebcad7974} 
+uint8\+\_\+t kernel\+\_\+start\hspace{0.3cm}{\ttfamily [extern]}}
+

@@ -1,0 +1,174 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ps/thread.c File Reference}
+\hypertarget{thread_8c}{}\label{thread_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/thread.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/thread.c}}
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{thread_8c_a380e61f9be3a2721fd83a3a0b07f4132}{MIN\+\_\+\+TID}}~3u
+\item 
+\#define \mbox{\hyperlink{thread_8c_af6bea0442249039ac2b6b3c250938c0c}{MAX\+\_\+\+TID}}~0x\+FFFFFFFCu
+\item 
+\#define \mbox{\hyperlink{thread_8c_a31452d15206784935051c52d5a78ff03}{ALIGN\+\_\+\+DELTA}}~3u
+\item 
+\#define \mbox{\hyperlink{thread_8c_a08150dd3f0ffc0e330a631dd728ea448}{MAX\+\_\+\+FREE\+\_\+\+POOL}}~1024u
+\item 
+\#define \mbox{\hyperlink{thread_8c_a90b7a8cb7bc3fdbd98014a3e15ee6e9a}{THREAD\+\_\+\+STACK\+\_\+\+SIZE}}~(1024\texorpdfstring{$\ast$}{*}24)
+\item 
+\#define \mbox{\hyperlink{thread_8c_afa1d2c5ae9892cf06df19518092ad464}{THREAD\+\_\+\+ALIGNMENT}}~16
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{thread_8c_ab8403a27ef7d0d88a6ea3cd4b44bb97d}{Ps\+Create\+Thread}} (\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Process\+Handle, \mbox{\hyperlink{ht_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} Thread\+Handle, \mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{Thread\+Entry}} Entry\+Point, \mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\+\_\+\+PARAMETER}} Thread\+Parameter, \mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{Time\+Slice\+Ticks}} Time\+Slice)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{thread_8c_a07ad56c2b409d9a227ff6787d9f48643}{Ps\+Create\+System\+Thread}} (\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{Thread\+Entry}} entry, \mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\+\_\+\+PARAMETER}} parameter, \mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{Time\+Slice\+Ticks}} TIMESLICE)
+\item 
+\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{Ps\+Get\+Current\+Thread}} (void)
+\item 
+void \mbox{\hyperlink{thread_8c_a15e6e7020dd68d4ec91f0dee0cdae31a}{Ps\+Terminate\+Thread}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} Thread, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Exit\+Status)
+\item 
+void \mbox{\hyperlink{thread_8c_ace7d0ce52fd3242f29560caa1197ddc2}{Ps\+Delete\+Thread}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Object)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} \mbox{\hyperlink{thread_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{Ps\+Initial\+System\+Process}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{thread_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{thread_8c_a31452d15206784935051c52d5a78ff03}\index{thread.c@{thread.c}!ALIGN\_DELTA@{ALIGN\_DELTA}}
+\index{ALIGN\_DELTA@{ALIGN\_DELTA}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{ALIGN\_DELTA}{ALIGN\_DELTA}}
+{\footnotesize\ttfamily \label{thread_8c_a31452d15206784935051c52d5a78ff03} 
+\#define ALIGN\+\_\+\+DELTA~3u}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00008}{8}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_a08150dd3f0ffc0e330a631dd728ea448}\index{thread.c@{thread.c}!MAX\_FREE\_POOL@{MAX\_FREE\_POOL}}
+\index{MAX\_FREE\_POOL@{MAX\_FREE\_POOL}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_FREE\_POOL}{MAX\_FREE\_POOL}}
+{\footnotesize\ttfamily \label{thread_8c_a08150dd3f0ffc0e330a631dd728ea448} 
+\#define MAX\+\_\+\+FREE\+\_\+\+POOL~1024u}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00009}{9}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_af6bea0442249039ac2b6b3c250938c0c}\index{thread.c@{thread.c}!MAX\_TID@{MAX\_TID}}
+\index{MAX\_TID@{MAX\_TID}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_TID}{MAX\_TID}}
+{\footnotesize\ttfamily \label{thread_8c_af6bea0442249039ac2b6b3c250938c0c} 
+\#define MAX\+\_\+\+TID~0x\+FFFFFFFCu}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00007}{7}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_a380e61f9be3a2721fd83a3a0b07f4132}\index{thread.c@{thread.c}!MIN\_TID@{MIN\_TID}}
+\index{MIN\_TID@{MIN\_TID}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{MIN\_TID}{MIN\_TID}}
+{\footnotesize\ttfamily \label{thread_8c_a380e61f9be3a2721fd83a3a0b07f4132} 
+\#define MIN\+\_\+\+TID~3u}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00006}{6}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_afa1d2c5ae9892cf06df19518092ad464}\index{thread.c@{thread.c}!THREAD\_ALIGNMENT@{THREAD\_ALIGNMENT}}
+\index{THREAD\_ALIGNMENT@{THREAD\_ALIGNMENT}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{THREAD\_ALIGNMENT}{THREAD\_ALIGNMENT}}
+{\footnotesize\ttfamily \label{thread_8c_afa1d2c5ae9892cf06df19518092ad464} 
+\#define THREAD\+\_\+\+ALIGNMENT~16}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00012}{12}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_a90b7a8cb7bc3fdbd98014a3e15ee6e9a}\index{thread.c@{thread.c}!THREAD\_STACK\_SIZE@{THREAD\_STACK\_SIZE}}
+\index{THREAD\_STACK\_SIZE@{THREAD\_STACK\_SIZE}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{THREAD\_STACK\_SIZE}{THREAD\_STACK\_SIZE}}
+{\footnotesize\ttfamily \label{thread_8c_a90b7a8cb7bc3fdbd98014a3e15ee6e9a} 
+\#define THREAD\+\_\+\+STACK\+\_\+\+SIZE~(1024\texorpdfstring{$\ast$}{*}24)}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00011}{11}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{thread_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{thread_8c_a07ad56c2b409d9a227ff6787d9f48643}\index{thread.c@{thread.c}!PsCreateSystemThread@{PsCreateSystemThread}}
+\index{PsCreateSystemThread@{PsCreateSystemThread}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsCreateSystemThread()}{PsCreateSystemThread()}}
+{\footnotesize\ttfamily \label{thread_8c_a07ad56c2b409d9a227ff6787d9f48643} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ps\+Create\+System\+Thread (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{Thread\+Entry}}}]{entry}{, }\item[{\mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\+\_\+\+PARAMETER}}}]{parameter}{, }\item[{\mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{Time\+Slice\+Ticks}}}]{TIMESLICE}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00122}{122}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_ab8403a27ef7d0d88a6ea3cd4b44bb97d}\index{thread.c@{thread.c}!PsCreateThread@{PsCreateThread}}
+\index{PsCreateThread@{PsCreateThread}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsCreateThread()}{PsCreateThread()}}
+{\footnotesize\ttfamily \label{thread_8c_ab8403a27ef7d0d88a6ea3cd4b44bb97d} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Ps\+Create\+Thread (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Process\+Handle}{, }\item[{\mbox{\hyperlink{ht_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{Thread\+Handle}{, }\item[{\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{Thread\+Entry}}}]{Entry\+Point}{, }\item[{\mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\+\_\+\+PARAMETER}}}]{Thread\+Parameter}{, }\item[{\mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{Time\+Slice\+Ticks}}}]{Time\+Slice}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00034}{34}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_ace7d0ce52fd3242f29560caa1197ddc2}\index{thread.c@{thread.c}!PsDeleteThread@{PsDeleteThread}}
+\index{PsDeleteThread@{PsDeleteThread}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsDeleteThread()}{PsDeleteThread()}}
+{\footnotesize\ttfamily \label{thread_8c_ace7d0ce52fd3242f29560caa1197ddc2} 
+void Ps\+Delete\+Thread (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00220}{220}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}\index{thread.c@{thread.c}!PsGetCurrentThread@{PsGetCurrentThread}}
+\index{PsGetCurrentThread@{PsGetCurrentThread}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsGetCurrentThread()}{PsGetCurrentThread()}}
+{\footnotesize\ttfamily \label{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0} 
+\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} Ps\+Get\+Current\+Thread (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00191}{191}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+\Hypertarget{thread_8c_a15e6e7020dd68d4ec91f0dee0cdae31a}\index{thread.c@{thread.c}!PsTerminateThread@{PsTerminateThread}}
+\index{PsTerminateThread@{PsTerminateThread}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsTerminateThread()}{PsTerminateThread()}}
+{\footnotesize\ttfamily \label{thread_8c_a15e6e7020dd68d4ec91f0dee0cdae31a} 
+void Ps\+Terminate\+Thread (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}}]{Thread}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}]{Exit\+Status}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00196}{196}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{thread_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{thread_8c_ac6c835f9ef3163dba3826f22bf43b9d2}\index{thread.c@{thread.c}!PsInitialSystemProcess@{PsInitialSystemProcess}}
+\index{PsInitialSystemProcess@{PsInitialSystemProcess}!thread.c@{thread.c}}
+\doxysubsubsection{\texorpdfstring{PsInitialSystemProcess}{PsInitialSystemProcess}}
+{\footnotesize\ttfamily \label{thread_8c_ac6c835f9ef3163dba3826f22bf43b9d2} 
+\mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}} Ps\+Initial\+System\+Process\hspace{0.3cm}{\ttfamily [extern]}}
+
+The Stack Overflow check only checks for minor overflows, that don\textquotesingle{}t completely smash the stack, yet do change the canaries (since it only checks in function epilogue) Complete stack smashes are guarded with the guard page in Mi\+Create\+Kernel\+Stack. 
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00162}{162}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

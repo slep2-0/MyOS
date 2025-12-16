@@ -1,0 +1,41 @@
+\doxysection{block.\+c}
+\hypertarget{block_8c_source}{}\label{block_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.c}}
+\mbox{\hyperlink{block_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Block\ Device\ Abstraction\ Driver\ Implementation}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{block_8h}{block.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00011}\mbox{\hyperlink{block_8c_a216f603275b20145a8adae17f4c5435e}{00011}}\ \textcolor{preprocessor}{\#define\ MAX\_BLK\_DEV\ 32\ }\textcolor{comment}{//\ AHCI\ is\ a\ maximum\ of\ 32,\ anymore\ than\ that\ and\ we\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00013}00013\ \textcolor{keyword}{static}\ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ devices[\mbox{\hyperlink{block_8c_a216f603275b20145a8adae17f4c5435e}{MAX\_BLK\_DEV}}];}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00014}00014\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00015}00015\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ device\_count\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00016}00016\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00017}\mbox{\hyperlink{block_8c_a5907b72093bd3ea0bee7c7409d3a6090}{00017}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{block_8c_a5907b72093bd3ea0bee7c7409d3a6090}{register\_block\_device}}(\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ dev)\ \{}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00018}00018\ \ \ \ \ \textcolor{comment}{//\ print\ the\ index\ we’re\ about\ to\ use\ and\ the\ device\ pointer}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00019}00019\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00020}00020\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Registering\ block\ \#\%d\ at\ \%llx\(\backslash\)n"{}},\ device\_count,\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long})(uintptr\_t)dev);}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00021}00021\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00022}00022\ \ \ \ \ \textcolor{keywordflow}{if}\ (device\_count\ <\ \mbox{\hyperlink{block_8c_a216f603275b20145a8adae17f4c5435e}{MAX\_BLK\_DEV}})\ \{}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00023}00023\ \ \ \ \ \ \ \ \ devices[device\_count++]\ =\ dev;}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00024}00024\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00025}00025\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00026}00026\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ too\ many!}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00027}00027\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a86a0afc377d7467b59b6246828e04b1b}{BLOCK\_DEVICE\_LIMIT\_REACHED}});}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00028}00028\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00029}00029\ \}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00032}\mbox{\hyperlink{block_8c_ac7446440486f68f8b12119a25eb9740b}{00032}}\ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ \mbox{\hyperlink{block_8c_ac7446440486f68f8b12119a25eb9740b}{get\_block\_device}}(\textcolor{keywordtype}{int}\ index)\ \{}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00033}00033\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ <\ 0\ ||\ index\ >=\ device\_count)\ \{\ \textcolor{keywordflow}{return}\ NULL;\ \}}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00034}00034\ \ \ \ \ \textcolor{keywordflow}{return}\ devices[index];}
+\DoxyCodeLine{\Hypertarget{block_8c_source_l00035}00035\ \}}
+
+\end{DoxyCode}

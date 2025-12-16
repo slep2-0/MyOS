@@ -1,0 +1,86 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/me/irql.c File Reference}
+\hypertarget{irql_8c}{}\label{irql_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/irql.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/irql.c}}
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../intrinsics/atomic.\+h"{}}\newline
+{\ttfamily \#include "{}../../intrinsics/intrin.\+h"{}}\newline
+{\ttfamily \#include $<$stdatomic.\+h$>$}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf}{Me\+Raise\+Irql}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} New\+Irql, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}} Old\+Irql)
+\item 
+void \mbox{\hyperlink{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}{Me\+Lower\+Irql}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} New\+Irql)
+\item 
+void \mbox{\hyperlink{irql_8c_ac2693e834f0868b9b20355d551989dfe}{\+\_\+\+Me\+Set\+Irql}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} New\+Irql)
+\item 
+bool \mbox{\hyperlink{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}{Me\+Disable\+Interrupts}} (void)
+\item 
+void \mbox{\hyperlink{irql_8c_a8ed359ce36b3a1000c30116896fe20bb}{Me\+Enable\+Interrupts}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} bool Enabled\+Before)
+\item 
+bool \mbox{\hyperlink{irql_8c_a554f81fa12d240c84d378dae18ae4da6}{Me\+Are\+Interrupts\+Enabled}} (void)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{irql_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{irql_8c_ac2693e834f0868b9b20355d551989dfe}\index{irql.c@{irql.c}!\_MeSetIrql@{\_MeSetIrql}}
+\index{\_MeSetIrql@{\_MeSetIrql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{\_MeSetIrql()}{\_MeSetIrql()}}
+{\footnotesize\ttfamily \label{irql_8c_ac2693e834f0868b9b20355d551989dfe} 
+void \+\_\+\+Me\+Set\+Irql (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{New\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00153}{153}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a554f81fa12d240c84d378dae18ae4da6}\index{irql.c@{irql.c}!MeAreInterruptsEnabled@{MeAreInterruptsEnabled}}
+\index{MeAreInterruptsEnabled@{MeAreInterruptsEnabled}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MeAreInterruptsEnabled()}{MeAreInterruptsEnabled()}}
+{\footnotesize\ttfamily \label{irql_8c_a554f81fa12d240c84d378dae18ae4da6} 
+bool Me\+Are\+Interrupts\+Enabled (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00210}{210}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}\index{irql.c@{irql.c}!MeDisableInterrupts@{MeDisableInterrupts}}
+\index{MeDisableInterrupts@{MeDisableInterrupts}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MeDisableInterrupts()}{MeDisableInterrupts()}}
+{\footnotesize\ttfamily \label{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255} 
+bool Me\+Disable\+Interrupts (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00186}{186}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a8ed359ce36b3a1000c30116896fe20bb}\index{irql.c@{irql.c}!MeEnableInterrupts@{MeEnableInterrupts}}
+\index{MeEnableInterrupts@{MeEnableInterrupts}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MeEnableInterrupts()}{MeEnableInterrupts()}}
+{\footnotesize\ttfamily \label{irql_8c_a8ed359ce36b3a1000c30116896fe20bb} 
+void Me\+Enable\+Interrupts (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} bool}]{Enabled\+Before}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00199}{199}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}\index{irql.c@{irql.c}!MeLowerIrql@{MeLowerIrql}}
+\index{MeLowerIrql@{MeLowerIrql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MeLowerIrql()}{MeLowerIrql()}}
+{\footnotesize\ttfamily \label{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2} 
+void Me\+Lower\+Irql (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{New\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00097}{97}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+
+\Hypertarget{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf}\index{irql.c@{irql.c}!MeRaiseIrql@{MeRaiseIrql}}
+\index{MeRaiseIrql@{MeRaiseIrql}!irql.c@{irql.c}}
+\doxysubsubsection{\texorpdfstring{MeRaiseIrql()}{MeRaiseIrql()}}
+{\footnotesize\ttfamily \label{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf} 
+void Me\+Raise\+Irql (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{New\+Irql}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{irql_8c_source_l00057}{57}} of file \mbox{\hyperlink{irql_8c_source}{irql.\+c}}.
+

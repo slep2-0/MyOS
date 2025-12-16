@@ -1,0 +1,2845 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/mh.h File Reference}
+\hypertarget{mh_8h}{}\label{mh_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/mh.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/mh.h}}
+{\ttfamily \#include "{}core.\+h"{}}\newline
+{\ttfamily \#include "{}annotations.\+h"{}}\newline
+{\ttfamily \#include "{}macros.\+h"{}}\newline
+{\ttfamily \#include $<$cpuid.\+h$>$}\newline
+{\ttfamily \#include "{}mm.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}}
+\item 
+struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}}
+\item 
+struct \mbox{\hyperlink{struct___r_s_d_p___descriptor}{\+\_\+\+RSDP\+\_\+\+Descriptor}}
+\item 
+struct \mbox{\hyperlink{struct___a_c_p_i___s_d_t___h_e_a_d_e_r}{\+\_\+\+ACPI\+\_\+\+SDT\+\_\+\+HEADER}}
+\item 
+struct \mbox{\hyperlink{struct___x_s_d_t}{\+\_\+\+XSDT}}
+\item 
+struct \mbox{\hyperlink{struct___generic_address_structure}{\+\_\+\+Generic\+Address\+Structure}}
+\item 
+struct \mbox{\hyperlink{struct___f_a_d_t}{\+\_\+\+FADT}}
+\item 
+struct \mbox{\hyperlink{struct___m_a_d_t}{\+\_\+\+MADT}}
+\item 
+struct \mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}
+\item 
+struct \mbox{\hyperlink{struct___s_m_p___b_o_o_t_i_n_f_o}{\+\_\+\+SMP\+\_\+\+BOOTINFO}}
+\item 
+struct \mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s}{\+\_\+\+DEBUG\+\_\+\+REGISTERS}}
+\item 
+struct \mbox{\hyperlink{struct___p_a_g_e___p_a_r_a_m_e_t_e_r_s}{\+\_\+\+PAGE\+\_\+\+PARAMETERS}}
+\item 
+struct \mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s}{\+\_\+\+IPI\+\_\+\+PARAMS}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a2a59a505aa55f15c152f30f811fbd310}{IDT\+\_\+\+ENTRIES}}~256
+\item 
+\#define \mbox{\hyperlink{mh_8h_a8c392fd6c2a77907bc18931a1628d870}{IRQL\+\_\+\+VECTOR\+\_\+\+BASE}}~0x40
+\item 
+\#define \mbox{\hyperlink{mh_8h_adf055ef85f2ec5de15babebf0d76959e}{TPR\+\_\+\+PASSIVE}}~0
+\item 
+\#define \mbox{\hyperlink{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813}{TPR\+\_\+\+APC}}~3
+\item 
+\#define \mbox{\hyperlink{mh_8h_ade282b1992ed3a94c3709dff53bb479e}{TPR\+\_\+\+DPC}}~8
+\item 
+\#define \mbox{\hyperlink{mh_8h_a85f06393ed23aeedc830f1251c9c6ffb}{TPR\+\_\+\+PROFILE}}~10
+\item 
+\#define \mbox{\hyperlink{mh_8h_a8b4b91e9b1a79f9244951683044c941e}{TPR\+\_\+\+IPI}}~11
+\item 
+\#define \mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(pri)
+\item 
+\#define \mbox{\hyperlink{mh_8h_aa6389ca3cc6d1d118e8916b7df10af6e}{VECTOR\+\_\+\+DPC}}~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_ade282b1992ed3a94c3709dff53bb479e}{TPR\+\_\+\+DPC}})
+\item 
+\#define \mbox{\hyperlink{mh_8h_ac906ecc46d8ec7bff1a926611d4a7499}{VECTOR\+\_\+\+APC}}~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813}{TPR\+\_\+\+APC}})
+\item 
+\#define \mbox{\hyperlink{mh_8h_aa4698327d4b2a5ddf6533de46d57c49e}{VECTOR\+\_\+\+IPI}}~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_a8b4b91e9b1a79f9244951683044c941e}{TPR\+\_\+\+IPI}})
+\item 
+\#define \mbox{\hyperlink{mh_8h_abbc754a70b46c3db86e8013dbbe8a5f6}{LAPIC\+\_\+\+TIMER\+\_\+\+VECTOR}}~0x\+EF
+\item 
+\#define \mbox{\hyperlink{mh_8h_afd86178cd02478d2d6c015b87c636471}{AP\+\_\+\+TRAMP\+\_\+\+PHYS}}~0x7000\+ULL
+\item 
+\#define \mbox{\hyperlink{mh_8h_abe314999bbb14f3989ee748b4648fe81}{AP\+\_\+\+TRAMP\+\_\+\+SIZE}}~0x1000\+UL
+\item 
+\#define \mbox{\hyperlink{mh_8h_a6acd98173ceb92e7fe04be7130f33375}{AP\+\_\+\+TRAMP\+\_\+\+APMAIN\+\_\+\+OFFSET}}~0x1000\+ULL
+\item 
+\#define \mbox{\hyperlink{mh_8h_a2d4c9e06f4b860dfbe52483ee9934dd3}{AP\+\_\+\+TRAMP\+\_\+\+PML4\+\_\+\+OFFSET}}~0x2000\+ULL
+\item 
+\#define \mbox{\hyperlink{mh_8h_a3ffa2c0b01bd5dda94a8e74d37cc2692}{AP\+\_\+\+TRAMP\+\_\+\+CPUS\+\_\+\+OFFSET}}~0x2500\+ULL
+\item 
+\#define \mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\+\_\+\+CPUS}}~32
+\item 
+\#define \mbox{\hyperlink{mh_8h_acbec2fe1d70a92043a18d7b265ca5837}{LAPIC\+\_\+\+ID}}~0x020
+\item 
+\#define \mbox{\hyperlink{mh_8h_a92f49aaeeb06bbcc91eae1ca42b3ff78}{SMP\+\_\+\+MAGIC}}~0x4\+D4154414\+E454\+C00
+\item 
+\#define \mbox{\hyperlink{mh_8h_ab0ff8a4220fff635d59b9ac59520efa5}{IST\+\_\+\+SIZE}}~(16\texorpdfstring{$\ast$}{*}1024)
+\item 
+\#define \mbox{\hyperlink{mh_8h_aa35dfa5ea9b7af2a2791bf5f2fe44f03}{IST\+\_\+\+ALIGNMENT}}~16
+\item 
+\#define \mbox{\hyperlink{mh_8h_ad0ae9d4658eb6c019efbb66384005dab}{CPUID\+\_\+\+VENDOR\+\_\+\+AMD}}~"{}Authentic\+AMD"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a2a410c2c23e57b58d3bc00c0e78f6b77}{CPUID\+\_\+\+VENDOR\+\_\+\+AMD\+\_\+\+OLD}}~"{}AMDisbetter!"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a2252d4da61bc8e76df71f8af33a547a2}{CPUID\+\_\+\+VENDOR\+\_\+\+INTEL}}~"{}Genuine\+Intel"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a01a0d8aa43e830f78626c61e5e6e8f7d}{CPUID\+\_\+\+VENDOR\+\_\+\+VIA}}~"{}VIA VIA VIA "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a887c960f636a4dcc41ecaa6624adc59d}{CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA}}~"{}Genuine\+TMx86"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a562203242a7d2f0b61c903f124528129}{CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA\+\_\+\+OLD}}~"{}Transmeta\+CPU"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_ab044f1560728d8686fb1486afcf6b6ef}{CPUID\+\_\+\+VENDOR\+\_\+\+CYRIX}}~"{}Cyrix\+Instead"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_adf1e062a787c09bebb6624567aea1fff}{CPUID\+\_\+\+VENDOR\+\_\+\+CENTAUR}}~"{}Centaur\+Hauls"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a6c9020992dfe74959390a4b41f2fa71c}{CPUID\+\_\+\+VENDOR\+\_\+\+NEXGEN}}~"{}Nex\+Gen\+Driven"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a6b2b599ef09ec8629f294060c5cabe44}{CPUID\+\_\+\+VENDOR\+\_\+\+UMC}}~"{}UMC UMC UMC "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a4c65f683bafbe7ac750b02249275bcf3}{CPUID\+\_\+\+VENDOR\+\_\+\+SIS}}~"{}SiS SiS SiS "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a71ee70ea4a4803c3eb9644bf11970575}{CPUID\+\_\+\+VENDOR\+\_\+\+NSC}}~"{}Geode by NSC"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_ab27dfdb9bc3c2aa51ab380516e679d98}{CPUID\+\_\+\+VENDOR\+\_\+\+RISE}}~"{}Rise\+Rise\+Rise"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a55a2a1e1e52003f706869af4e71eddc8}{CPUID\+\_\+\+VENDOR\+\_\+\+VORTEX}}~"{}Vortex86 So\+C"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_ae6138d3bdeb94d4499217904767c57e5}{CPUID\+\_\+\+VENDOR\+\_\+\+AO486}}~"{}Mi\+STer AO486"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a98808464e9e6c98429996d4c3811d1be}{CPUID\+\_\+\+VENDOR\+\_\+\+AO486\+\_\+\+OLD}}~"{}Genuine\+AO486"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a5004b36fa5450cdf9be08dc1957d0a85}{CPUID\+\_\+\+VENDOR\+\_\+\+ZHAOXIN}}~"{}  Shanghai  "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a9928e1732754dc8767ff35483eae6f38}{CPUID\+\_\+\+VENDOR\+\_\+\+HYGON}}~"{}Hygon\+Genuine"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a9c883b77b32797a6122188618d4b0688}{CPUID\+\_\+\+VENDOR\+\_\+\+ELBRUS}}~"{}E2K MACHINE "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_aa1ea022493cda7c64ccd23c7005f74d2}{CPUID\+\_\+\+VENDOR\+\_\+\+QEMU}}~"{}TCGTCGTCGTCG"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a75f1171c2cf83b1977521d8f04206658}{CPUID\+\_\+\+VENDOR\+\_\+\+KVM}}~"{} KVMKVMKVM  "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_acd5893be73c6284b07f2fca012722dad}{CPUID\+\_\+\+VENDOR\+\_\+\+VMWARE}}~"{}VMware\+VMware"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_ad746604474e223142f61cc21cd09761c}{CPUID\+\_\+\+VENDOR\+\_\+\+VIRTUALBOX}}~"{}VBox\+VBox\+VBox"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a8e1446bf0448f6931d4f4e716a6774e1}{CPUID\+\_\+\+VENDOR\+\_\+\+XEN}}~"{}Xen\+VMMXen\+VMM"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_ae00c6b7080effbee62bb23af839af426}{CPUID\+\_\+\+VENDOR\+\_\+\+HYPERV}}~"{}Microsoft Hv"{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a500f49e94c2df9199c46fb326fc37eef}{CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS}}~"{} prl hyperv "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_aa50777207a8b31650f9d444332171d98}{CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS\+\_\+\+ALT}}~"{} lrpepyh vr "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_a660bd5d4a6b094100373ec135e357dcf}{CPUID\+\_\+\+VENDOR\+\_\+\+BHYVE}}~"{}bhyve bhyve "{}
+\item 
+\#define \mbox{\hyperlink{mh_8h_abe20636bc9fc4f7d6b5d40b3a854896c}{CPUID\+\_\+\+VENDOR\+\_\+\+QNX}}~"{} QNXQVMBSQG "{}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef enum \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \mbox{\hyperlink{mh_8h_a0dbafbab3ffb90922f14b0459e58d436}{CPU\+\_\+\+EXCEPTIONS}}
+\item 
+typedef enum \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \mbox{\hyperlink{mh_8h_a76b7711ec17f4936d64721895ff03c3e}{INTERRUPT\+\_\+\+LIST}}
+\item 
+typedef enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}} \mbox{\hyperlink{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}{CPU\+\_\+\+ACTION}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}} \mbox{\hyperlink{mh_8h_a0ccfaed6d3c9f76c4914c0174260953c}{IDT\+\_\+\+PTR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}} \mbox{\hyperlink{mh_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}{IDT\+\_\+\+ENTRY64}}
+\item 
+typedef struct \mbox{\hyperlink{struct___s_m_p___b_o_o_t_i_n_f_o}{\+\_\+\+SMP\+\_\+\+BOOTINFO}} \mbox{\hyperlink{mh_8h_a87e63255f41a0a5082f8b92b6cf16591}{SMP\+\_\+\+BOOTINFO}}
+\item 
+typedef void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mh_8h_a87af053432c9fa1831a72cd46386a83e}{Debug\+Callback}}) (void \texorpdfstring{$\ast$}{*})
+\item 
+typedef struct \mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s}{\+\_\+\+DEBUG\+\_\+\+REGISTERS}} \mbox{\hyperlink{mh_8h_aecfc4b514532596f5ffe5751c71c68e8}{DEBUG\+\_\+\+REGISTERS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___p_a_g_e___p_a_r_a_m_e_t_e_r_s}{\+\_\+\+PAGE\+\_\+\+PARAMETERS}} \mbox{\hyperlink{mh_8h_a0bd6e1cba71fb734bbf580ff3bde69d1}{PAGE\+\_\+\+PARAMETERS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s}{\+\_\+\+IPI\+\_\+\+PARAMS}} \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \{ \newline
+\mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824}{EXCEPTION\+\_\+\+DIVIDE\+\_\+\+BY\+\_\+\+ZERO}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2}{EXCEPTION\+\_\+\+SINGLE\+\_\+\+STEP}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629}{EXCEPTION\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77}{EXCEPTION\+\_\+\+BREAKPOINT}}
+, \newline
+\mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081}{EXCEPTION\+\_\+\+OVERFLOW}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3}{EXCEPTION\+\_\+\+BOUNDS\+\_\+\+CHECK}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91}{EXCEPTION\+\_\+\+INVALID\+\_\+\+OPCODE}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7}{EXCEPTION\+\_\+\+NO\+\_\+\+COPROCESSOR}}
+, \newline
+\mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12}{EXCEPTION\+\_\+\+DOUBLE\+\_\+\+FAULT}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56}{EXCEPTION\+\_\+\+COPROCESSOR\+\_\+\+SEGMENT\+\_\+\+OVERRUN}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791}{EXCEPTION\+\_\+\+INVALID\+\_\+\+TSS}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b}{EXCEPTION\+\_\+\+SEGMENT\+\_\+\+SELECTOR\+\_\+\+NOTPRESENT}}
+, \newline
+\mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb}{EXCEPTION\+\_\+\+STACK\+\_\+\+SEGMENT\+\_\+\+OVERRUN}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f}{EXCEPTION\+\_\+\+GENERAL\+\_\+\+PROTECTION\+\_\+\+FAULT}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81}{EXCEPTION\+\_\+\+PAGE\+\_\+\+FAULT}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99}{EXCEPTION\+\_\+\+RESERVED}}
+, \newline
+\mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a}{EXCEPTION\+\_\+\+FLOATING\+\_\+\+POINT\+\_\+\+ERROR}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723}{EXCEPTION\+\_\+\+ALIGNMENT\+\_\+\+CHECK}}
+, \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730}{EXCEPTION\+\_\+\+SEVERE\+\_\+\+MACHINE\+\_\+\+CHECK}}
+ \}
+\item 
+enum \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \{ \newline
+\mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa}{TIMER\+\_\+\+INTERRUPT}} = 32
+, \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff}{KEYBOARD\+\_\+\+INTERRUPT}} = 33
+, \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121}{ATA\+\_\+\+INTERRUPT}} = 46
+, \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf}{LAPIC\+\_\+\+INTERRUPT}} = 0x\+EF
+, \newline
+\mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41}{LAPIC\+\_\+\+SIV\+\_\+\+INTERRUPT}} = 0x\+FF
+ \}
+\item 
+enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}} \{ \newline
+\mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a6289a15e21921fd97173954f608922ac}{CPU\+\_\+\+ACTION\+\_\+\+STOP}} = 0
+, \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4af9cf8e9011b7239708d34897f83e9342}{CPU\+\_\+\+ACTION\+\_\+\+PRINT\+\_\+\+ID}} = 1
+, \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ae7955c572681f4b53f2cadcfa4ff1614}{CPU\+\_\+\+ACTION\+\_\+\+PERFORM\+\_\+\+TLB\+\_\+\+SHOOTDOWN}} = 2
+, \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a45aab8fb9fc3af5a44aaff5c08710649}{CPU\+\_\+\+ACTION\+\_\+\+WRITE\+\_\+\+DEBUG\+\_\+\+REGS}} = 3
+, \newline
+\mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ab2c5fef4a9580a4f57af3729b7e091ba}{CPU\+\_\+\+ACTION\+\_\+\+CLEAR\+\_\+\+DEBUG\+\_\+\+REGS}} = 4
+, \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4a311acfa0a469c0ab9046f5a2576e5b23}{CPU\+\_\+\+ACTION\+\_\+\+DO\+\_\+\+DEFERRED\+\_\+\+ROUTINES}} = 5
+, \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4ac578c2941a64b87824f028a67ff40ed4}{CPU\+\_\+\+ACTION\+\_\+\+FLUSH\+\_\+\+CR3}} = 6
+ \}
+\item 
+enum \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530}{MADT\+\_\+\+TYPES}} \{ \newline
+\mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530a5bffee31515e613a9370f89a5421fae2}{MADT\+\_\+\+LAPIC}} = 0
+, \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530a1114e4a4b89623dc59d36a1f2332c251}{MADT\+\_\+\+IOAPIC}} = 1
+, \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530a50224664f097b8f4af935e63192bc1d4}{MADT\+\_\+\+INTERUPT\+\_\+\+SOURCE\+\_\+\+OVERRIDE}} = 2
+, \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530afd6a46868f44aef70dd5f4d44d11c80b}{MADT\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT}} = 4
+, \newline
+\mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530ae1b0dc48a33d003c2eb6cc9389f0b82a}{MADT\+\_\+\+X2\+APIC}} = 9
+ \}
+\item 
+enum \{ \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca9ec1c52e0b19a9532baa8ce4f80add58}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE3}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 0
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaaa62b2a02d3829ace891eac7d1d8f746}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCLMUL}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 1
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaa84b899e336daf2d90cdab723a24d544}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DTES64}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 2
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca6ffa8cdde16327f47b6a49aa5d676ee5}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MONITOR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 3
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca1be0388c15db5d77facac96d2efddc4f}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DS\+\_\+\+CPL}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 4
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca714125fa31dd21e46e385b8dc340214f}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+VMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 5
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acab6deac61a50e0367b5475869e240ac06}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 6
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca150b3abab983011be08fc459b7b9b700}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+EST}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 7
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acacf4aa3ed6f11fc17b684281787f60949}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TM2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 8
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca5957647e74d0eaea90bdb316e578e579}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSSE3}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 9
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acafb8bce29e8cfd07070b596f3912f608b}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CID}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 10
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaf4cb88b61cd0daff24dd016b2aca7d9a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SDBG}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 11
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca9c1fd66e736f5d3d344e919b57483336}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+FMA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 12
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acad30be7d0797e3aad723013154aa733d2}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CX16}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 13
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca5dfdf86e2bc4ee8fdcd3fa7baf4399c1}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XTPR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 14
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca93ddbafd38f7a260286998ae9ddc8cad}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PDCM}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 15
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca56aa3578bd577b2ea29f0e224bef9534}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCID}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 17
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca2b75568ac85063fb0a96418fa0bfb29d}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DCA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 18
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca63ddf183b299d2fc7686dac65e1a555a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+1}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 19
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac35d5255d2ef4728b73348db7087c1c7}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 20
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca567f32d361128487193569f9ef177f77}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+X2\+APIC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 21
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac67b97fbc629b276f5c13dbf88c4f709}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MOVBE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 22
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca71e5348902e26fc6de23f4f5bd384f74}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+POPCNT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 23
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca0c644c82f246a9fb8bd489452c096017}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TSC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 24
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca8a62b9dd23a47562237c0370b8ed87a0}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AES}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 25
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca9c28569cd999d6cc2e9e0005b4fa6c9d}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XSAVE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 26
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca56478550836d5fa258b03e9fd9eb8116}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+OSXSAVE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 27
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca749d00516968a015a4d8e15235bf07e6}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AVX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 28
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca5367b88fac44977ce4bc466b143ad2a2}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+F16C}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 29
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca05f15dce448cb64b18439c6d2eb68865}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+RDRAND}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 30
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca21f722be79b1108cdbef6affda4cf96a}{CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+HYPERVISOR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 31
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac07d767d714117e48c453b752f799610}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FPU}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 0
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca5d32075fb1cfd95910c1eff1f0f3d056}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+VME}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 1
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca69236c580bf3feddd4a57b3072a7b521}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 2
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca59bc828bc43010ac71793759e8011335}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 3
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca2ae56cfb5a846822cc095b79bf74de10}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TSC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 4
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca6b8beb5908a936d7f00c848df0abe061}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MSR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 5
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca3a97eae0ba980bb5d9d9b10138d70aca}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 6
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acade0ff2978a54bc0c96dd71a7a7177d0f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 7
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca431ed484886fa29e4a7d16ab99523350}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CX8}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 8
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca7fa4170aae12fbc1642012ccba9855b0}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+APIC}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 9
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca674ec4ce4025c0f520a30d6e461ed47d}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SEP}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 11
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca5b30fec963effd4a0d2c8447028d0215}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MTRR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 12
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acafb0d4b99b2d0e98089be4ede2162eddf}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PGE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 13
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac9e7b8e9c0e19bfe48a4bcd749aaaa4e}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCA}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 14
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca9c90442380d5125737f106c44afce64f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CMOV}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 15
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac0e40c6f57efc979712596770aab9f8a}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 16
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca9718e0367b529df69ee7c9b7fd998b83}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE36}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 17
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaac23260b012a04ea25d113844c631d44}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSN}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 18
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca2041739ed2386501eab8636e1a6971ee}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CLFLUSH}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 19
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca160a42ab16256b365e2b82fdaf015e4b}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DS}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 21
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaec94ddf1825bdde32627d9149beec9dc}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+ACPI}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 22
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac8185eb6b47dd2ef97a44cbb759f8e52}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MMX}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 23
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca577b773d21178552d9d768da936479f6}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FXSR}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 24
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acab362f49f025f651238f57dcf8d5d281f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 25
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acab64ff1599bf88ab91782ee4f9152f3ce}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE2}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 26
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acaec6daa5351cf0b927f4fcbad3f0cfef1}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SS}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 27
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acac91c9cfc9f3165b25b10030ef82c491f}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+HTT}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 28
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca011b4b6541a2bb243222c0c33dfabcea}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TM}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 29
+, \mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227aca12ab79d3456f748b49340fa00e60c160}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+IA64}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 30
+, \newline
+\mbox{\hyperlink{mh_8h_a4edea782cc7b64a38c269123646227acae6cfc957052841ae578ddfb390f00a1a}{CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PBE}} = 1 \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 31
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___r_s_d_p___descriptor}{\+\_\+\+RSDP\+\_\+\+Descriptor}} \mbox{\hyperlink{mh_8h_ad6bff1bfa4dbdca70cd12be5cb0492b9}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}} ((packed)) RSDP\+\_\+\+Descriptor
+\item 
+void \mbox{\hyperlink{mh_8h_a2049adf962aa0a1fc2190ca06bc39efa}{APMain}} (void)
+\begin{DoxyCompactList}\small\item\em -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/--- FUNCTIONS -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/--- \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mh_8h_a95f447eff958333a652f64136b9e3cfc}{Mh\+Initialize\+SMP}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{apic\+\_\+list}}, uint32\+\_\+t \mbox{\hyperlink{kernel_8c_abd627bb6a327bec16cef23b42c63c657}{cpu\+\_\+count}}, uint32\+\_\+t \mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapic\+Address}})
+\item 
+void \mbox{\hyperlink{mh_8h_af16af21e540d45a136cbff3f1cd766f0}{Mh\+Send\+Action\+To\+Cpus\+And\+Wait}} (\mbox{\hyperlink{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}{CPU\+\_\+\+ACTION}} action, \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}} parameter)
+\item 
+void \mbox{\hyperlink{mh_8h_ac7278dd3d3ff45260343a73acacf6f40}{set\+\_\+idt\+\_\+gate}} (int n, unsigned long int handler)
+\item 
+void \mbox{\hyperlink{mh_8h_a38547209a989c35ae86fcd6f4aa72580}{install\+\_\+idt}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_a657e2cb18189e638d49a59d6472f91e1}{init\+\_\+interrupts}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_a91d3fbf4f7264d3456d0ca88f0b54a08}{lapic\+\_\+init\+\_\+cpu}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_ac7b59a78aea266f1c387e64bcae6cc51}{lapic\+\_\+enable}} (void)
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_af32890a8dcc4095270fc3c1398956f22}{lapic\+\_\+mmio\+\_\+read}} (uint32\+\_\+t off)
+\item 
+void \mbox{\hyperlink{mh_8h_a0dd32706f0be034ea2d462f691b7ca25}{lapic\+\_\+mmio\+\_\+write}} (uint32\+\_\+t off, uint32\+\_\+t val)
+\item 
+void \mbox{\hyperlink{mh_8h_a5c673232a19d0c4e78792208eb62f0cc}{lapic\+\_\+eoi}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_a7a06ac6a29d96de5b2fcacf7c18851aa}{lapic\+\_\+init\+\_\+siv}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_a54f251fa242c134d1db5108b5a564b42}{lapic\+\_\+send\+\_\+ipi}} (uint8\+\_\+t apic\+\_\+id, uint8\+\_\+t vector, uint32\+\_\+t \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}})
+\item 
+int \mbox{\hyperlink{mh_8h_a1e4c2eac6f54346ca8dd087e24ff420c}{init\+\_\+lapic\+\_\+timer}} (uint32\+\_\+t hz)
+\item 
+void \mbox{\hyperlink{mh_8h_a9ce3663b57d1010d886159f6ba120e37}{pit\+\_\+sleep\+\_\+ms}} (uint32\+\_\+t ms)
+\item 
+void \mbox{\hyperlink{mh_8h_a024a9a5a7e9ecdbe0359b4cae774c9cc}{lapic\+\_\+timer\+\_\+calibrate}} (void)
+\item 
+bool \mbox{\hyperlink{mh_8h_a07baaa0cfda9434c8ac886b455ca685f}{checkcpuid}} (void)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool \mbox{\hyperlink{mh_8h_a1eca5bb07aa31bb29d50315f2a713845}{check\+Apic}} (void)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} void \mbox{\hyperlink{mh_8h_ace79a1a944a5d4518e96b3135e07190f}{get\+Cpu\+Name}} (char \texorpdfstring{$\ast$}{*}name)
+\item 
+void \mbox{\hyperlink{mh_8h_adfc861821a705ac14f2526b6082e95ba}{Mh\+Handle\+Interrupt}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} int vec\+\_\+num, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_aa1a90154eaea0af9608b87626497ad27}{Mi\+Lapic\+Interrupt}} (bool scheduler\+Enabled, \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a054b492479f9476e325523c588d24bf0}{Mi\+Breakpoint}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void \mbox{\hyperlink{mh_8h_a3a798c50f51be9ef287efb5ecce1895b}{Mi\+Non\+Maskable\+Interrupt}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_aca5a6c43b04aa4cd89d066bcfa8dd4a0}{Mi\+Divide\+By\+Zero}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a4ec953818fe18c54ce5199caec55e1e3}{Mi\+Debug\+Trap}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void \mbox{\hyperlink{mh_8h_a90834181d8dd59de70d4ffb713e223bb}{Mi\+Double\+Fault}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_ae08944131b30ed5db94bdbfa32abacf0}{Mi\+Interprocessor\+Interrupt}} (void)
+\item 
+void \mbox{\hyperlink{mh_8h_a8d50d37b7978b26e5fa59ca331097235}{Mi\+Page\+Fault}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a636b9e3e1077c5143b6d589e88a062b0}{Mi\+Invalid\+Tss}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_ade1c26a6731345f35bf1d1bd996d5637}{Mi\+Overflow}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a21ece4d06870f2f50e1586a9865568a1}{Mi\+Bounds\+Check}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a66f06653ecb6fa64e6ece2b261156eaa}{Mi\+Invalid\+Opcode}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a1047c22886d4bbf2a7e7caae7346f50d}{Mi\+No\+Coprocessor}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a85422129cf7529d518485445bb068847}{Mi\+Coprocessor\+Segment\+Overrun}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_af62de2896e41a8218bb2f8f7822487ec}{Mi\+Segment\+Selector\+Not\+Present}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a6a79fb8170e3276d8dc65b34e7f3604b}{Mi\+Stack\+Segment\+Overrun}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_abbb131baf26462fbcd50d9c004d14e7a}{Mi\+General\+Protection\+Fault}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_ad93a9d1dc5b4b7e350832aebee57e9b3}{Mi\+Floating\+Point\+Error}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a47ea4d7744cfe039135ccd894de52f97}{Mi\+Alignment\+Check}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a877b76ed3acfb98a78dc91c97fcf3b00}{Mi\+Machine\+Check}} (\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} trap)
+\item 
+void \mbox{\hyperlink{mh_8h_a5fa8dc1090aac3d53a9468b21f95773c}{Mh\+Request\+Software\+Interrupt}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} Request\+Irql)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{mh_8h_aa5928db65d66f3ef1bd030cbd16bfc04}{Mh\+Initialize\+ACPI}} (void)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{mh_8h_a8e0e024a4c708b5bb008c7100841410e}{Mh\+Parse\+LAPICs}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}buffer, size\+\_\+t max\+CPUs, uint32\+\_\+t \texorpdfstring{$\ast$}{*}cpu\+Count, uint32\+\_\+t \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapic\+Address}})
+\item 
+void \mbox{\hyperlink{mh_8h_a5e6ead246838259df2f922ecfad72c85}{Mh\+Reboot\+Computer}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+typedef \mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}
+\item 
+char \mbox{\hyperlink{mh_8h_a1630123d7acfb024f41f27c94c0507ec}{Signature}} \mbox{[}8\mbox{]}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_ad98d5051c2e94669e746dd13771daac8}{Checksum}}
+\item 
+char \mbox{\hyperlink{mh_8h_a3a8d9cae8d76cf1cdcd107b441a3ae8d}{Oem\+Id}} \mbox{[}6\mbox{]}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a55eb3228cf0540a1e7ee4fa81453e29c}{Revision}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a58214123c08a44c6b63b2890d0d25db8}{Rsdt\+Address}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{mh_8h_a9b9a9e2994860f31d3f38248daa196d6}{Xsdt\+Address}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_aaafa048bfd677fb79ce5e6eb8369262f}{Extended\+Checksum}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a0ec9b7390bdadad883d9e67a1a44f759}{Reserved}} \mbox{[}3\mbox{]}
+\item 
+char \mbox{\hyperlink{mh_8h_a332c15f88ec8afa72844290d47418347}{Oem\+Table\+Id}} \mbox{[}8\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a7c0e7ba8f111e575dff476135da7d6ab}{Oem\+Revision}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a6272b1f1af76e8cf04cab46242645a5b}{Creator\+Id}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a9aa897a750a4e495a08b81458797dac7}{Creator\+Revision}}
+\item 
+struct \mbox{\hyperlink{struct___a_c_p_i___s_d_t___h_e_a_d_e_r}{\+\_\+\+ACPI\+\_\+\+SDT\+\_\+\+HEADER}} \mbox{\hyperlink{mh_8h_aa78b7e5ae96e539a1ddf315be3f59f67}{h}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{mh_8h_ae2d13c336a65d7e82d42f0f9f8bbf742}{Entries}} \mbox{[}$\,$\mbox{]}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a49f66bea52edd0c5df30b86ff352e57d}{Address\+Space}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a38681bbafb91226657bd64bb33830cb2}{Bit\+Width}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_aa5d0d10e48424ca558a29c03f43ffea8}{Bit\+Offset}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a86717164a1a019a14354d30ef42a6cff}{Access\+Size}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a2ec584bfc7825f672edd5c80682ffb7b}{Firmware\+Ctrl}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a7fa693fc4da6b03e0e1624ab1142fb9e}{Dsdt}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_afe03fa1f52580d2ab850d894baa2109e}{Preferred\+Power\+Management\+Profile}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_ab5b053f5985bff1b4c327b9c1b04a506}{SCI\+\_\+\+Interrupt}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a35e1367b88e4a8acd3545c9b6cecd80d}{SMI\+\_\+\+Command\+Port}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_adb98d626786bf90d532a3216b9984178}{Acpi\+Enable}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_ad7fcb88910fe5d840dc5068431020849}{Acpi\+Disable}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a8e5e27beeb23b6f4acc90d96d871105a}{S4\+BIOS\+\_\+\+REQ}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_ae2b1407ed48e29f527ed4d39dc0a9a0d}{PSTATE\+\_\+\+Control}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a1feb2f87b6456c949ea35a88e334b318}{PM1a\+Event\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_aa01de084cdf2a1b7d0be21a1e221e30d}{PM1b\+Event\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a9a826f8f6833baf87d6cdfde231b210c}{PM1a\+Control\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_acd7a988f5a68135705bce7b2d11974a2}{PM1b\+Control\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a63f883b09877d4a852e5a9b1ba25e8cc}{PM2\+Control\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a9e115c76284ffb3ea1b3b4e8125f8ebc}{PMTimer\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a9f86fc4d25bba8b1299096014dbb84db}{GPE0\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_ac145151b7be4ed0ea6a3504ca9390d63}{GPE1\+Block}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_afb7ffaf233571a91ac67167598a3c4f6}{PM1\+Event\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_adbab2efc1dd984fe6886ce40afca54b3}{PM1\+Control\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_ae30a5c4702b418a8cb9c175c7e853774}{PM2\+Control\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a1dc2a9915615bb7c462e648ccde0c6ac}{PMTimer\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_acbd5ed4314136649dcb1fb3ef9ee6172}{GPE0\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a4f18b267db2ef826cc0bb2cec582ea9a}{GPE1\+Length}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a6e806d0e3a20570a78577ad42f4c56fd}{GPE1\+Base}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a830cea8d95406fad7abe13d703131333}{CState\+Control}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_a3d07eb04e424a1c4e5807a8ba3ff603b}{Worst\+C2\+Latency}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_a8415185ea68f95991fd73b6e4681debc}{Worst\+C3\+Latency}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_a764903d3ce0d9d019c6ed852c4c56122}{Flush\+Size}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_a44baebc121415602ce209788e188f55a}{Flush\+Stride}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a316a100e8eab36f8697f4b2023d0aa54}{Duty\+Offset}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a19c33d74dc078d2f094aeb5ef059a9b0}{Duty\+Width}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a656489ba8dc19532b5ab37314909378c}{Day\+Alarm}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a4f39b8556d46229a6d7ef1fad720dc56}{Month\+Alarm}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a4b382e4a3f35abb01759f3b9bc148e1b}{Century}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mh_8h_ad107ba0d6038ab61be6e8caa68738f58}{Boot\+Architecture\+Flags}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_aad9cf2ef13b53ee603c033aed0c3b986}{Reserved2}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_ae91751449932fe1a8fe52092a2851b9e}{Flags}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_aee5ba26e9b3254f84c3c65ff36fa0e46}{Reset\+Reg}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_ad8097fc48ffb7320c83037d6c348aa91}{Reset\+Value}}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mh_8h_a1c94fa883b208631c0b49f8f031a1465}{Reserved3}} \mbox{[}3\mbox{]}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{mh_8h_af7f5f67616d83ec31a4e158d3825ebe2}{X\+\_\+\+Firmware\+Control}}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{mh_8h_a07482b1889986b36f97627520d8244be}{X\+\_\+\+Dsdt}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_a51c50ce35f904157ae77ca7e0c041ca9}{X\+\_\+\+PM1a\+Event\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_acdc48fe055e018d8ec2a122bccb69577}{X\+\_\+\+PM1b\+Event\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_a642c37a43a222ac1e1a06911c2bf3453}{X\+\_\+\+PM1a\+Control\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_a830bcc6493b1e0fe85a55ddfebab1ce8}{X\+\_\+\+PM1b\+Control\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_a1007272aadb2d3edb4c1a03d7c29a6a3}{X\+\_\+\+PM2\+Control\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_aa7865a490ddbe0a1fcf33b1ac6bfa8d7}{X\+\_\+\+PMTimer\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_a521241ecda0122e52f4edb31cf92f82a}{X\+\_\+\+GPE0\+Block}}
+\item 
+Generic\+Address\+Structure \mbox{\hyperlink{mh_8h_aa7df1eee0fdb4b871fb580091f046bef}{X\+\_\+\+GPE1\+Block}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapic\+Address}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}}
+\item 
+\mbox{\hyperlink{mh_8h_aeaba7a02b01846190738143a0f475818}{GDTEntry64}}
+\item 
+\mbox{\hyperlink{mh_8h_ad435a6099651c4ab9cdf6de836f491ab}{GDTPtr}}
+\item 
+\mbox{\hyperlink{mh_8h_a551bc8d7a0424e7bc3d995ba61440b22}{TSS}}
+\item 
+int \mbox{\hyperlink{mh_8h_a285eda0d627fa197281e464090d7df58}{smp\+\_\+cpu\+\_\+count}}
+\item 
+bool \mbox{\hyperlink{mh_8h_a34f4b05cf0ef8172c66bc051f624d3eb}{smp\+Initialized}}
+\item 
+bool \mbox{\hyperlink{mh_8h_a7824a23577849a6307c98674ea6ade79}{all\+Aps\+Initialized}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{mh_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{mh_8h_a6acd98173ceb92e7fe04be7130f33375}\index{mh.h@{mh.h}!AP\_TRAMP\_APMAIN\_OFFSET@{AP\_TRAMP\_APMAIN\_OFFSET}}
+\index{AP\_TRAMP\_APMAIN\_OFFSET@{AP\_TRAMP\_APMAIN\_OFFSET}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AP\_TRAMP\_APMAIN\_OFFSET}{AP\_TRAMP\_APMAIN\_OFFSET}}
+{\footnotesize\ttfamily \label{mh_8h_a6acd98173ceb92e7fe04be7130f33375} 
+\#define AP\+\_\+\+TRAMP\+\_\+\+APMAIN\+\_\+\+OFFSET~0x1000\+ULL}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00405}{405}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a3ffa2c0b01bd5dda94a8e74d37cc2692}\index{mh.h@{mh.h}!AP\_TRAMP\_CPUS\_OFFSET@{AP\_TRAMP\_CPUS\_OFFSET}}
+\index{AP\_TRAMP\_CPUS\_OFFSET@{AP\_TRAMP\_CPUS\_OFFSET}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AP\_TRAMP\_CPUS\_OFFSET}{AP\_TRAMP\_CPUS\_OFFSET}}
+{\footnotesize\ttfamily \label{mh_8h_a3ffa2c0b01bd5dda94a8e74d37cc2692} 
+\#define AP\+\_\+\+TRAMP\+\_\+\+CPUS\+\_\+\+OFFSET~0x2500\+ULL}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00407}{407}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_afd86178cd02478d2d6c015b87c636471}\index{mh.h@{mh.h}!AP\_TRAMP\_PHYS@{AP\_TRAMP\_PHYS}}
+\index{AP\_TRAMP\_PHYS@{AP\_TRAMP\_PHYS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AP\_TRAMP\_PHYS}{AP\_TRAMP\_PHYS}}
+{\footnotesize\ttfamily \label{mh_8h_afd86178cd02478d2d6c015b87c636471} 
+\#define AP\+\_\+\+TRAMP\+\_\+\+PHYS~0x7000\+ULL}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00403}{403}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2d4c9e06f4b860dfbe52483ee9934dd3}\index{mh.h@{mh.h}!AP\_TRAMP\_PML4\_OFFSET@{AP\_TRAMP\_PML4\_OFFSET}}
+\index{AP\_TRAMP\_PML4\_OFFSET@{AP\_TRAMP\_PML4\_OFFSET}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AP\_TRAMP\_PML4\_OFFSET}{AP\_TRAMP\_PML4\_OFFSET}}
+{\footnotesize\ttfamily \label{mh_8h_a2d4c9e06f4b860dfbe52483ee9934dd3} 
+\#define AP\+\_\+\+TRAMP\+\_\+\+PML4\+\_\+\+OFFSET~0x2000\+ULL}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00406}{406}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_abe314999bbb14f3989ee748b4648fe81}\index{mh.h@{mh.h}!AP\_TRAMP\_SIZE@{AP\_TRAMP\_SIZE}}
+\index{AP\_TRAMP\_SIZE@{AP\_TRAMP\_SIZE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AP\_TRAMP\_SIZE}{AP\_TRAMP\_SIZE}}
+{\footnotesize\ttfamily \label{mh_8h_abe314999bbb14f3989ee748b4648fe81} 
+\#define AP\+\_\+\+TRAMP\+\_\+\+SIZE~0x1000\+UL}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00404}{404}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}\index{mh.h@{mh.h}!CALC\_VECTOR@{CALC\_VECTOR}}
+\index{CALC\_VECTOR@{CALC\_VECTOR}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CALC\_VECTOR}{CALC\_VECTOR}}
+{\footnotesize\ttfamily \label{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe} 
+\#define CALC\+\_\+\+VECTOR(\begin{DoxyParamCaption}\item[{}]{pri}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(\mbox{\hyperlink{mh_8h_a8c392fd6c2a77907bc18931a1628d870}{IRQL\_VECTOR\_BASE}}\ +\ (pri\ <<\ 4))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00044}{44}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad0ae9d4658eb6c019efbb66384005dab}\index{mh.h@{mh.h}!CPUID\_VENDOR\_AMD@{CPUID\_VENDOR\_AMD}}
+\index{CPUID\_VENDOR\_AMD@{CPUID\_VENDOR\_AMD}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AMD}{CPUID\_VENDOR\_AMD}}
+{\footnotesize\ttfamily \label{mh_8h_ad0ae9d4658eb6c019efbb66384005dab} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AMD~"{}Authentic\+AMD"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00414}{414}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2a410c2c23e57b58d3bc00c0e78f6b77}\index{mh.h@{mh.h}!CPUID\_VENDOR\_AMD\_OLD@{CPUID\_VENDOR\_AMD\_OLD}}
+\index{CPUID\_VENDOR\_AMD\_OLD@{CPUID\_VENDOR\_AMD\_OLD}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AMD\_OLD}{CPUID\_VENDOR\_AMD\_OLD}}
+{\footnotesize\ttfamily \label{mh_8h_a2a410c2c23e57b58d3bc00c0e78f6b77} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AMD\+\_\+\+OLD~"{}AMDisbetter!"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00415}{415}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae6138d3bdeb94d4499217904767c57e5}\index{mh.h@{mh.h}!CPUID\_VENDOR\_AO486@{CPUID\_VENDOR\_AO486}}
+\index{CPUID\_VENDOR\_AO486@{CPUID\_VENDOR\_AO486}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AO486}{CPUID\_VENDOR\_AO486}}
+{\footnotesize\ttfamily \label{mh_8h_ae6138d3bdeb94d4499217904767c57e5} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AO486~"{}Mi\+STer AO486"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00428}{428}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a98808464e9e6c98429996d4c3811d1be}\index{mh.h@{mh.h}!CPUID\_VENDOR\_AO486\_OLD@{CPUID\_VENDOR\_AO486\_OLD}}
+\index{CPUID\_VENDOR\_AO486\_OLD@{CPUID\_VENDOR\_AO486\_OLD}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_AO486\_OLD}{CPUID\_VENDOR\_AO486\_OLD}}
+{\footnotesize\ttfamily \label{mh_8h_a98808464e9e6c98429996d4c3811d1be} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+AO486\+\_\+\+OLD~"{}Genuine\+AO486"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00429}{429}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a660bd5d4a6b094100373ec135e357dcf}\index{mh.h@{mh.h}!CPUID\_VENDOR\_BHYVE@{CPUID\_VENDOR\_BHYVE}}
+\index{CPUID\_VENDOR\_BHYVE@{CPUID\_VENDOR\_BHYVE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_BHYVE}{CPUID\_VENDOR\_BHYVE}}
+{\footnotesize\ttfamily \label{mh_8h_a660bd5d4a6b094100373ec135e357dcf} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+BHYVE~"{}bhyve bhyve "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00443}{443}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_adf1e062a787c09bebb6624567aea1fff}\index{mh.h@{mh.h}!CPUID\_VENDOR\_CENTAUR@{CPUID\_VENDOR\_CENTAUR}}
+\index{CPUID\_VENDOR\_CENTAUR@{CPUID\_VENDOR\_CENTAUR}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_CENTAUR}{CPUID\_VENDOR\_CENTAUR}}
+{\footnotesize\ttfamily \label{mh_8h_adf1e062a787c09bebb6624567aea1fff} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+CENTAUR~"{}Centaur\+Hauls"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00421}{421}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ab044f1560728d8686fb1486afcf6b6ef}\index{mh.h@{mh.h}!CPUID\_VENDOR\_CYRIX@{CPUID\_VENDOR\_CYRIX}}
+\index{CPUID\_VENDOR\_CYRIX@{CPUID\_VENDOR\_CYRIX}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_CYRIX}{CPUID\_VENDOR\_CYRIX}}
+{\footnotesize\ttfamily \label{mh_8h_ab044f1560728d8686fb1486afcf6b6ef} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+CYRIX~"{}Cyrix\+Instead"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00420}{420}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9c883b77b32797a6122188618d4b0688}\index{mh.h@{mh.h}!CPUID\_VENDOR\_ELBRUS@{CPUID\_VENDOR\_ELBRUS}}
+\index{CPUID\_VENDOR\_ELBRUS@{CPUID\_VENDOR\_ELBRUS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_ELBRUS}{CPUID\_VENDOR\_ELBRUS}}
+{\footnotesize\ttfamily \label{mh_8h_a9c883b77b32797a6122188618d4b0688} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+ELBRUS~"{}E2K MACHINE "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00432}{432}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9928e1732754dc8767ff35483eae6f38}\index{mh.h@{mh.h}!CPUID\_VENDOR\_HYGON@{CPUID\_VENDOR\_HYGON}}
+\index{CPUID\_VENDOR\_HYGON@{CPUID\_VENDOR\_HYGON}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_HYGON}{CPUID\_VENDOR\_HYGON}}
+{\footnotesize\ttfamily \label{mh_8h_a9928e1732754dc8767ff35483eae6f38} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+HYGON~"{}Hygon\+Genuine"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00431}{431}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae00c6b7080effbee62bb23af839af426}\index{mh.h@{mh.h}!CPUID\_VENDOR\_HYPERV@{CPUID\_VENDOR\_HYPERV}}
+\index{CPUID\_VENDOR\_HYPERV@{CPUID\_VENDOR\_HYPERV}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_HYPERV}{CPUID\_VENDOR\_HYPERV}}
+{\footnotesize\ttfamily \label{mh_8h_ae00c6b7080effbee62bb23af839af426} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+HYPERV~"{}Microsoft Hv"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00440}{440}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2252d4da61bc8e76df71f8af33a547a2}\index{mh.h@{mh.h}!CPUID\_VENDOR\_INTEL@{CPUID\_VENDOR\_INTEL}}
+\index{CPUID\_VENDOR\_INTEL@{CPUID\_VENDOR\_INTEL}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_INTEL}{CPUID\_VENDOR\_INTEL}}
+{\footnotesize\ttfamily \label{mh_8h_a2252d4da61bc8e76df71f8af33a547a2} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+INTEL~"{}Genuine\+Intel"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00416}{416}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a75f1171c2cf83b1977521d8f04206658}\index{mh.h@{mh.h}!CPUID\_VENDOR\_KVM@{CPUID\_VENDOR\_KVM}}
+\index{CPUID\_VENDOR\_KVM@{CPUID\_VENDOR\_KVM}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_KVM}{CPUID\_VENDOR\_KVM}}
+{\footnotesize\ttfamily \label{mh_8h_a75f1171c2cf83b1977521d8f04206658} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+KVM~"{} KVMKVMKVM  "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00436}{436}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a6c9020992dfe74959390a4b41f2fa71c}\index{mh.h@{mh.h}!CPUID\_VENDOR\_NEXGEN@{CPUID\_VENDOR\_NEXGEN}}
+\index{CPUID\_VENDOR\_NEXGEN@{CPUID\_VENDOR\_NEXGEN}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_NEXGEN}{CPUID\_VENDOR\_NEXGEN}}
+{\footnotesize\ttfamily \label{mh_8h_a6c9020992dfe74959390a4b41f2fa71c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+NEXGEN~"{}Nex\+Gen\+Driven"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00422}{422}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a71ee70ea4a4803c3eb9644bf11970575}\index{mh.h@{mh.h}!CPUID\_VENDOR\_NSC@{CPUID\_VENDOR\_NSC}}
+\index{CPUID\_VENDOR\_NSC@{CPUID\_VENDOR\_NSC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_NSC}{CPUID\_VENDOR\_NSC}}
+{\footnotesize\ttfamily \label{mh_8h_a71ee70ea4a4803c3eb9644bf11970575} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+NSC~"{}Geode by NSC"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00425}{425}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a500f49e94c2df9199c46fb326fc37eef}\index{mh.h@{mh.h}!CPUID\_VENDOR\_PARALLELS@{CPUID\_VENDOR\_PARALLELS}}
+\index{CPUID\_VENDOR\_PARALLELS@{CPUID\_VENDOR\_PARALLELS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_PARALLELS}{CPUID\_VENDOR\_PARALLELS}}
+{\footnotesize\ttfamily \label{mh_8h_a500f49e94c2df9199c46fb326fc37eef} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS~"{} prl hyperv "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00441}{441}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa50777207a8b31650f9d444332171d98}\index{mh.h@{mh.h}!CPUID\_VENDOR\_PARALLELS\_ALT@{CPUID\_VENDOR\_PARALLELS\_ALT}}
+\index{CPUID\_VENDOR\_PARALLELS\_ALT@{CPUID\_VENDOR\_PARALLELS\_ALT}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_PARALLELS\_ALT}{CPUID\_VENDOR\_PARALLELS\_ALT}}
+{\footnotesize\ttfamily \label{mh_8h_aa50777207a8b31650f9d444332171d98} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+PARALLELS\+\_\+\+ALT~"{} lrpepyh vr "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00442}{442}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa1ea022493cda7c64ccd23c7005f74d2}\index{mh.h@{mh.h}!CPUID\_VENDOR\_QEMU@{CPUID\_VENDOR\_QEMU}}
+\index{CPUID\_VENDOR\_QEMU@{CPUID\_VENDOR\_QEMU}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_QEMU}{CPUID\_VENDOR\_QEMU}}
+{\footnotesize\ttfamily \label{mh_8h_aa1ea022493cda7c64ccd23c7005f74d2} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+QEMU~"{}TCGTCGTCGTCG"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00435}{435}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_abe20636bc9fc4f7d6b5d40b3a854896c}\index{mh.h@{mh.h}!CPUID\_VENDOR\_QNX@{CPUID\_VENDOR\_QNX}}
+\index{CPUID\_VENDOR\_QNX@{CPUID\_VENDOR\_QNX}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_QNX}{CPUID\_VENDOR\_QNX}}
+{\footnotesize\ttfamily \label{mh_8h_abe20636bc9fc4f7d6b5d40b3a854896c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+QNX~"{} QNXQVMBSQG "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00444}{444}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ab27dfdb9bc3c2aa51ab380516e679d98}\index{mh.h@{mh.h}!CPUID\_VENDOR\_RISE@{CPUID\_VENDOR\_RISE}}
+\index{CPUID\_VENDOR\_RISE@{CPUID\_VENDOR\_RISE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_RISE}{CPUID\_VENDOR\_RISE}}
+{\footnotesize\ttfamily \label{mh_8h_ab27dfdb9bc3c2aa51ab380516e679d98} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+RISE~"{}Rise\+Rise\+Rise"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00426}{426}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a4c65f683bafbe7ac750b02249275bcf3}\index{mh.h@{mh.h}!CPUID\_VENDOR\_SIS@{CPUID\_VENDOR\_SIS}}
+\index{CPUID\_VENDOR\_SIS@{CPUID\_VENDOR\_SIS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_SIS}{CPUID\_VENDOR\_SIS}}
+{\footnotesize\ttfamily \label{mh_8h_a4c65f683bafbe7ac750b02249275bcf3} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+SIS~"{}SiS SiS SiS "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00424}{424}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a887c960f636a4dcc41ecaa6624adc59d}\index{mh.h@{mh.h}!CPUID\_VENDOR\_TRANSMETA@{CPUID\_VENDOR\_TRANSMETA}}
+\index{CPUID\_VENDOR\_TRANSMETA@{CPUID\_VENDOR\_TRANSMETA}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_TRANSMETA}{CPUID\_VENDOR\_TRANSMETA}}
+{\footnotesize\ttfamily \label{mh_8h_a887c960f636a4dcc41ecaa6624adc59d} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA~"{}Genuine\+TMx86"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00418}{418}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a562203242a7d2f0b61c903f124528129}\index{mh.h@{mh.h}!CPUID\_VENDOR\_TRANSMETA\_OLD@{CPUID\_VENDOR\_TRANSMETA\_OLD}}
+\index{CPUID\_VENDOR\_TRANSMETA\_OLD@{CPUID\_VENDOR\_TRANSMETA\_OLD}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_TRANSMETA\_OLD}{CPUID\_VENDOR\_TRANSMETA\_OLD}}
+{\footnotesize\ttfamily \label{mh_8h_a562203242a7d2f0b61c903f124528129} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+TRANSMETA\+\_\+\+OLD~"{}Transmeta\+CPU"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00419}{419}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a6b2b599ef09ec8629f294060c5cabe44}\index{mh.h@{mh.h}!CPUID\_VENDOR\_UMC@{CPUID\_VENDOR\_UMC}}
+\index{CPUID\_VENDOR\_UMC@{CPUID\_VENDOR\_UMC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_UMC}{CPUID\_VENDOR\_UMC}}
+{\footnotesize\ttfamily \label{mh_8h_a6b2b599ef09ec8629f294060c5cabe44} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+UMC~"{}UMC UMC UMC "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00423}{423}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a01a0d8aa43e830f78626c61e5e6e8f7d}\index{mh.h@{mh.h}!CPUID\_VENDOR\_VIA@{CPUID\_VENDOR\_VIA}}
+\index{CPUID\_VENDOR\_VIA@{CPUID\_VENDOR\_VIA}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VIA}{CPUID\_VENDOR\_VIA}}
+{\footnotesize\ttfamily \label{mh_8h_a01a0d8aa43e830f78626c61e5e6e8f7d} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VIA~"{}VIA VIA VIA "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00417}{417}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad746604474e223142f61cc21cd09761c}\index{mh.h@{mh.h}!CPUID\_VENDOR\_VIRTUALBOX@{CPUID\_VENDOR\_VIRTUALBOX}}
+\index{CPUID\_VENDOR\_VIRTUALBOX@{CPUID\_VENDOR\_VIRTUALBOX}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VIRTUALBOX}{CPUID\_VENDOR\_VIRTUALBOX}}
+{\footnotesize\ttfamily \label{mh_8h_ad746604474e223142f61cc21cd09761c} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VIRTUALBOX~"{}VBox\+VBox\+VBox"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00438}{438}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_acd5893be73c6284b07f2fca012722dad}\index{mh.h@{mh.h}!CPUID\_VENDOR\_VMWARE@{CPUID\_VENDOR\_VMWARE}}
+\index{CPUID\_VENDOR\_VMWARE@{CPUID\_VENDOR\_VMWARE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VMWARE}{CPUID\_VENDOR\_VMWARE}}
+{\footnotesize\ttfamily \label{mh_8h_acd5893be73c6284b07f2fca012722dad} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VMWARE~"{}VMware\+VMware"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00437}{437}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a55a2a1e1e52003f706869af4e71eddc8}\index{mh.h@{mh.h}!CPUID\_VENDOR\_VORTEX@{CPUID\_VENDOR\_VORTEX}}
+\index{CPUID\_VENDOR\_VORTEX@{CPUID\_VENDOR\_VORTEX}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_VORTEX}{CPUID\_VENDOR\_VORTEX}}
+{\footnotesize\ttfamily \label{mh_8h_a55a2a1e1e52003f706869af4e71eddc8} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+VORTEX~"{}Vortex86 So\+C"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00427}{427}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a8e1446bf0448f6931d4f4e716a6774e1}\index{mh.h@{mh.h}!CPUID\_VENDOR\_XEN@{CPUID\_VENDOR\_XEN}}
+\index{CPUID\_VENDOR\_XEN@{CPUID\_VENDOR\_XEN}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_XEN}{CPUID\_VENDOR\_XEN}}
+{\footnotesize\ttfamily \label{mh_8h_a8e1446bf0448f6931d4f4e716a6774e1} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+XEN~"{}Xen\+VMMXen\+VMM"{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00439}{439}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a5004b36fa5450cdf9be08dc1957d0a85}\index{mh.h@{mh.h}!CPUID\_VENDOR\_ZHAOXIN@{CPUID\_VENDOR\_ZHAOXIN}}
+\index{CPUID\_VENDOR\_ZHAOXIN@{CPUID\_VENDOR\_ZHAOXIN}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPUID\_VENDOR\_ZHAOXIN}{CPUID\_VENDOR\_ZHAOXIN}}
+{\footnotesize\ttfamily \label{mh_8h_a5004b36fa5450cdf9be08dc1957d0a85} 
+\#define CPUID\+\_\+\+VENDOR\+\_\+\+ZHAOXIN~"{}  Shanghai  "{}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00430}{430}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2a59a505aa55f15c152f30f811fbd310}\index{mh.h@{mh.h}!IDT\_ENTRIES@{IDT\_ENTRIES}}
+\index{IDT\_ENTRIES@{IDT\_ENTRIES}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_ENTRIES}{IDT\_ENTRIES}}
+{\footnotesize\ttfamily \label{mh_8h_a2a59a505aa55f15c152f30f811fbd310} 
+\#define IDT\+\_\+\+ENTRIES~256}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00026}{26}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a8c392fd6c2a77907bc18931a1628d870}\index{mh.h@{mh.h}!IRQL\_VECTOR\_BASE@{IRQL\_VECTOR\_BASE}}
+\index{IRQL\_VECTOR\_BASE@{IRQL\_VECTOR\_BASE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IRQL\_VECTOR\_BASE}{IRQL\_VECTOR\_BASE}}
+{\footnotesize\ttfamily \label{mh_8h_a8c392fd6c2a77907bc18931a1628d870} 
+\#define IRQL\+\_\+\+VECTOR\+\_\+\+BASE~0x40}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00030}{30}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa35dfa5ea9b7af2a2791bf5f2fe44f03}\index{mh.h@{mh.h}!IST\_ALIGNMENT@{IST\_ALIGNMENT}}
+\index{IST\_ALIGNMENT@{IST\_ALIGNMENT}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IST\_ALIGNMENT}{IST\_ALIGNMENT}}
+{\footnotesize\ttfamily \label{mh_8h_aa35dfa5ea9b7af2a2791bf5f2fe44f03} 
+\#define IST\+\_\+\+ALIGNMENT~16}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00412}{412}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ab0ff8a4220fff635d59b9ac59520efa5}\index{mh.h@{mh.h}!IST\_SIZE@{IST\_SIZE}}
+\index{IST\_SIZE@{IST\_SIZE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IST\_SIZE}{IST\_SIZE}}
+{\footnotesize\ttfamily \label{mh_8h_ab0ff8a4220fff635d59b9ac59520efa5} 
+\#define IST\+\_\+\+SIZE~(16\texorpdfstring{$\ast$}{*}1024)}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00411}{411}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_acbec2fe1d70a92043a18d7b265ca5837}\index{mh.h@{mh.h}!LAPIC\_ID@{LAPIC\_ID}}
+\index{LAPIC\_ID@{LAPIC\_ID}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{LAPIC\_ID}{LAPIC\_ID}}
+{\footnotesize\ttfamily \label{mh_8h_acbec2fe1d70a92043a18d7b265ca5837} 
+\#define LAPIC\+\_\+\+ID~0x020}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00409}{409}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_abbc754a70b46c3db86e8013dbbe8a5f6}\index{mh.h@{mh.h}!LAPIC\_TIMER\_VECTOR@{LAPIC\_TIMER\_VECTOR}}
+\index{LAPIC\_TIMER\_VECTOR@{LAPIC\_TIMER\_VECTOR}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{LAPIC\_TIMER\_VECTOR}{LAPIC\_TIMER\_VECTOR}}
+{\footnotesize\ttfamily \label{mh_8h_abbc754a70b46c3db86e8013dbbe8a5f6} 
+\#define LAPIC\+\_\+\+TIMER\+\_\+\+VECTOR~0x\+EF}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00050}{50}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}\index{mh.h@{mh.h}!MAX\_CPUS@{MAX\_CPUS}}
+\index{MAX\_CPUS@{MAX\_CPUS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MAX\_CPUS}{MAX\_CPUS}}
+{\footnotesize\ttfamily \label{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f} 
+\#define MAX\+\_\+\+CPUS~32}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00408}{408}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a92f49aaeeb06bbcc91eae1ca42b3ff78}\index{mh.h@{mh.h}!SMP\_MAGIC@{SMP\_MAGIC}}
+\index{SMP\_MAGIC@{SMP\_MAGIC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{SMP\_MAGIC}{SMP\_MAGIC}}
+{\footnotesize\ttfamily \label{mh_8h_a92f49aaeeb06bbcc91eae1ca42b3ff78} 
+\#define SMP\+\_\+\+MAGIC~0x4\+D4154414\+E454\+C00}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00410}{410}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813}\index{mh.h@{mh.h}!TPR\_APC@{TPR\_APC}}
+\index{TPR\_APC@{TPR\_APC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TPR\_APC}{TPR\_APC}}
+{\footnotesize\ttfamily \label{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813} 
+\#define TPR\+\_\+\+APC~3}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00038}{38}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ade282b1992ed3a94c3709dff53bb479e}\index{mh.h@{mh.h}!TPR\_DPC@{TPR\_DPC}}
+\index{TPR\_DPC@{TPR\_DPC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TPR\_DPC}{TPR\_DPC}}
+{\footnotesize\ttfamily \label{mh_8h_ade282b1992ed3a94c3709dff53bb479e} 
+\#define TPR\+\_\+\+DPC~8}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00039}{39}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a8b4b91e9b1a79f9244951683044c941e}\index{mh.h@{mh.h}!TPR\_IPI@{TPR\_IPI}}
+\index{TPR\_IPI@{TPR\_IPI}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TPR\_IPI}{TPR\_IPI}}
+{\footnotesize\ttfamily \label{mh_8h_a8b4b91e9b1a79f9244951683044c941e} 
+\#define TPR\+\_\+\+IPI~11}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00041}{41}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_adf055ef85f2ec5de15babebf0d76959e}\index{mh.h@{mh.h}!TPR\_PASSIVE@{TPR\_PASSIVE}}
+\index{TPR\_PASSIVE@{TPR\_PASSIVE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TPR\_PASSIVE}{TPR\_PASSIVE}}
+{\footnotesize\ttfamily \label{mh_8h_adf055ef85f2ec5de15babebf0d76959e} 
+\#define TPR\+\_\+\+PASSIVE~0}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00037}{37}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a85f06393ed23aeedc830f1251c9c6ffb}\index{mh.h@{mh.h}!TPR\_PROFILE@{TPR\_PROFILE}}
+\index{TPR\_PROFILE@{TPR\_PROFILE}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TPR\_PROFILE}{TPR\_PROFILE}}
+{\footnotesize\ttfamily \label{mh_8h_a85f06393ed23aeedc830f1251c9c6ffb} 
+\#define TPR\+\_\+\+PROFILE~10}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00040}{40}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ac906ecc46d8ec7bff1a926611d4a7499}\index{mh.h@{mh.h}!VECTOR\_APC@{VECTOR\_APC}}
+\index{VECTOR\_APC@{VECTOR\_APC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{VECTOR\_APC}{VECTOR\_APC}}
+{\footnotesize\ttfamily \label{mh_8h_ac906ecc46d8ec7bff1a926611d4a7499} 
+\#define VECTOR\+\_\+\+APC~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813}{TPR\+\_\+\+APC}})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00048}{48}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa6389ca3cc6d1d118e8916b7df10af6e}\index{mh.h@{mh.h}!VECTOR\_DPC@{VECTOR\_DPC}}
+\index{VECTOR\_DPC@{VECTOR\_DPC}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{VECTOR\_DPC}{VECTOR\_DPC}}
+{\footnotesize\ttfamily \label{mh_8h_aa6389ca3cc6d1d118e8916b7df10af6e} 
+\#define VECTOR\+\_\+\+DPC~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_ade282b1992ed3a94c3709dff53bb479e}{TPR\+\_\+\+DPC}})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00047}{47}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa4698327d4b2a5ddf6533de46d57c49e}\index{mh.h@{mh.h}!VECTOR\_IPI@{VECTOR\_IPI}}
+\index{VECTOR\_IPI@{VECTOR\_IPI}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{VECTOR\_IPI}{VECTOR\_IPI}}
+{\footnotesize\ttfamily \label{mh_8h_aa4698327d4b2a5ddf6533de46d57c49e} 
+\#define VECTOR\+\_\+\+IPI~\mbox{\hyperlink{mh_8h_a524a0fcb77b1dc91c39b4a95a3e1b4fe}{CALC\+\_\+\+VECTOR}}(\mbox{\hyperlink{mh_8h_a8b4b91e9b1a79f9244951683044c941e}{TPR\+\_\+\+IPI}})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00049}{49}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{mh_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}\index{mh.h@{mh.h}!CPU\_ACTION@{CPU\_ACTION}}
+\index{CPU\_ACTION@{CPU\_ACTION}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPU\_ACTION}{CPU\_ACTION}}
+{\footnotesize\ttfamily \label{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99} 
+typedef enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}} \mbox{\hyperlink{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}{CPU\+\_\+\+ACTION}}}
+
+\Hypertarget{mh_8h_a0dbafbab3ffb90922f14b0459e58d436}\index{mh.h@{mh.h}!CPU\_EXCEPTIONS@{CPU\_EXCEPTIONS}}
+\index{CPU\_EXCEPTIONS@{CPU\_EXCEPTIONS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CPU\_EXCEPTIONS}{CPU\_EXCEPTIONS}}
+{\footnotesize\ttfamily \label{mh_8h_a0dbafbab3ffb90922f14b0459e58d436} 
+typedef enum \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}} \mbox{\hyperlink{mh_8h_a0dbafbab3ffb90922f14b0459e58d436}{CPU\+\_\+\+EXCEPTIONS}}}
+
+\Hypertarget{mh_8h_aecfc4b514532596f5ffe5751c71c68e8}\index{mh.h@{mh.h}!DEBUG\_REGISTERS@{DEBUG\_REGISTERS}}
+\index{DEBUG\_REGISTERS@{DEBUG\_REGISTERS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{DEBUG\_REGISTERS}{DEBUG\_REGISTERS}}
+{\footnotesize\ttfamily \label{mh_8h_aecfc4b514532596f5ffe5751c71c68e8} 
+typedef struct \mbox{\hyperlink{struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s}{\+\_\+\+DEBUG\+\_\+\+REGISTERS}} \mbox{\hyperlink{mh_8h_aecfc4b514532596f5ffe5751c71c68e8}{DEBUG\+\_\+\+REGISTERS}}}
+
+\Hypertarget{mh_8h_a87af053432c9fa1831a72cd46386a83e}\index{mh.h@{mh.h}!DebugCallback@{DebugCallback}}
+\index{DebugCallback@{DebugCallback}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{DebugCallback}{DebugCallback}}
+{\footnotesize\ttfamily \label{mh_8h_a87af053432c9fa1831a72cd46386a83e} 
+typedef void(\texorpdfstring{$\ast$}{*} Debug\+Callback) (void \texorpdfstring{$\ast$}{*})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00385}{385}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}\index{mh.h@{mh.h}!IDT\_ENTRY64@{IDT\_ENTRY64}}
+\index{IDT\_ENTRY64@{IDT\_ENTRY64}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_ENTRY64}{IDT\_ENTRY64}}
+{\footnotesize\ttfamily \label{mh_8h_a11bac0c5bfc9929ec61fd9d1cf982f83} 
+typedef struct \mbox{\hyperlink{struct___i_d_t___e_n_t_r_y__64}{\+\_\+\+IDT\+\_\+\+ENTRY\+\_\+64}} \mbox{\hyperlink{mh_8h_a11bac0c5bfc9929ec61fd9d1cf982f83}{IDT\+\_\+\+ENTRY64}}}
+
+\Hypertarget{mh_8h_a0ccfaed6d3c9f76c4914c0174260953c}\index{mh.h@{mh.h}!IDT\_PTR@{IDT\_PTR}}
+\index{IDT\_PTR@{IDT\_PTR}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IDT\_PTR}{IDT\_PTR}}
+{\footnotesize\ttfamily \label{mh_8h_a0ccfaed6d3c9f76c4914c0174260953c} 
+typedef struct \mbox{\hyperlink{struct___i_d_t___p_t_r}{\+\_\+\+IDT\+\_\+\+PTR}} \mbox{\hyperlink{mh_8h_a0ccfaed6d3c9f76c4914c0174260953c}{IDT\+\_\+\+PTR}}}
+
+\Hypertarget{mh_8h_a76b7711ec17f4936d64721895ff03c3e}\index{mh.h@{mh.h}!INTERRUPT\_LIST@{INTERRUPT\_LIST}}
+\index{INTERRUPT\_LIST@{INTERRUPT\_LIST}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{INTERRUPT\_LIST}{INTERRUPT\_LIST}}
+{\footnotesize\ttfamily \label{mh_8h_a76b7711ec17f4936d64721895ff03c3e} 
+typedef enum \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}} \mbox{\hyperlink{mh_8h_a76b7711ec17f4936d64721895ff03c3e}{INTERRUPT\+\_\+\+LIST}}}
+
+Interrupt Definitions \Hypertarget{mh_8h_a31e6d7d3d740029297de19620af57ae4}\index{mh.h@{mh.h}!IPI\_PARAMS@{IPI\_PARAMS}}
+\index{IPI\_PARAMS@{IPI\_PARAMS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{IPI\_PARAMS}{IPI\_PARAMS}}
+{\footnotesize\ttfamily \label{mh_8h_a31e6d7d3d740029297de19620af57ae4} 
+typedef struct \mbox{\hyperlink{struct___i_p_i___p_a_r_a_m_s}{\+\_\+\+IPI\+\_\+\+PARAMS}} \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}}}
+
+\Hypertarget{mh_8h_a0bd6e1cba71fb734bbf580ff3bde69d1}\index{mh.h@{mh.h}!PAGE\_PARAMETERS@{PAGE\_PARAMETERS}}
+\index{PAGE\_PARAMETERS@{PAGE\_PARAMETERS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PAGE\_PARAMETERS}{PAGE\_PARAMETERS}}
+{\footnotesize\ttfamily \label{mh_8h_a0bd6e1cba71fb734bbf580ff3bde69d1} 
+typedef struct \mbox{\hyperlink{struct___p_a_g_e___p_a_r_a_m_e_t_e_r_s}{\+\_\+\+PAGE\+\_\+\+PARAMETERS}} \mbox{\hyperlink{mh_8h_a0bd6e1cba71fb734bbf580ff3bde69d1}{PAGE\+\_\+\+PARAMETERS}}}
+
+\Hypertarget{mh_8h_a87e63255f41a0a5082f8b92b6cf16591}\index{mh.h@{mh.h}!SMP\_BOOTINFO@{SMP\_BOOTINFO}}
+\index{SMP\_BOOTINFO@{SMP\_BOOTINFO}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{SMP\_BOOTINFO}{SMP\_BOOTINFO}}
+{\footnotesize\ttfamily \label{mh_8h_a87e63255f41a0a5082f8b92b6cf16591} 
+typedef struct \mbox{\hyperlink{struct___s_m_p___b_o_o_t_i_n_f_o}{\+\_\+\+SMP\+\_\+\+BOOTINFO}} \mbox{\hyperlink{mh_8h_a87e63255f41a0a5082f8b92b6cf16591}{SMP\+\_\+\+BOOTINFO}}}
+
+
+
+\label{doc-enum-members}
+\Hypertarget{mh_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227ac}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{mh_8h_a4edea782cc7b64a38c269123646227ac} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE3@{CPUID\_FEAT\_ECX\_SSE3}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SSE3@{CPUID\_FEAT\_ECX\_SSE3}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca9ec1c52e0b19a9532baa8ce4f80add58}\label{mh_8h_a4edea782cc7b64a38c269123646227aca9ec1c52e0b19a9532baa8ce4f80add58} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE3&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PCLMUL@{CPUID\_FEAT\_ECX\_PCLMUL}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_PCLMUL@{CPUID\_FEAT\_ECX\_PCLMUL}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaaa62b2a02d3829ace891eac7d1d8f746}\label{mh_8h_a4edea782cc7b64a38c269123646227acaaa62b2a02d3829ace891eac7d1d8f746} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCLMUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DTES64@{CPUID\_FEAT\_ECX\_DTES64}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_DTES64@{CPUID\_FEAT\_ECX\_DTES64}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaa84b899e336daf2d90cdab723a24d544}\label{mh_8h_a4edea782cc7b64a38c269123646227acaa84b899e336daf2d90cdab723a24d544} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DTES64&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_MONITOR@{CPUID\_FEAT\_ECX\_MONITOR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_MONITOR@{CPUID\_FEAT\_ECX\_MONITOR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca6ffa8cdde16327f47b6a49aa5d676ee5}\label{mh_8h_a4edea782cc7b64a38c269123646227aca6ffa8cdde16327f47b6a49aa5d676ee5} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MONITOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DS\_CPL@{CPUID\_FEAT\_ECX\_DS\_CPL}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_DS\_CPL@{CPUID\_FEAT\_ECX\_DS\_CPL}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca1be0388c15db5d77facac96d2efddc4f}\label{mh_8h_a4edea782cc7b64a38c269123646227aca1be0388c15db5d77facac96d2efddc4f} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DS\+\_\+\+CPL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_VMX@{CPUID\_FEAT\_ECX\_VMX}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_VMX@{CPUID\_FEAT\_ECX\_VMX}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca714125fa31dd21e46e385b8dc340214f}\label{mh_8h_a4edea782cc7b64a38c269123646227aca714125fa31dd21e46e385b8dc340214f} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+VMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SMX@{CPUID\_FEAT\_ECX\_SMX}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SMX@{CPUID\_FEAT\_ECX\_SMX}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acab6deac61a50e0367b5475869e240ac06}\label{mh_8h_a4edea782cc7b64a38c269123646227acab6deac61a50e0367b5475869e240ac06} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_EST@{CPUID\_FEAT\_ECX\_EST}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_EST@{CPUID\_FEAT\_ECX\_EST}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca150b3abab983011be08fc459b7b9b700}\label{mh_8h_a4edea782cc7b64a38c269123646227aca150b3abab983011be08fc459b7b9b700} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+EST&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_TM2@{CPUID\_FEAT\_ECX\_TM2}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_TM2@{CPUID\_FEAT\_ECX\_TM2}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acacf4aa3ed6f11fc17b684281787f60949}\label{mh_8h_a4edea782cc7b64a38c269123646227acacf4aa3ed6f11fc17b684281787f60949} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TM2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSSE3@{CPUID\_FEAT\_ECX\_SSSE3}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SSSE3@{CPUID\_FEAT\_ECX\_SSSE3}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca5957647e74d0eaea90bdb316e578e579}\label{mh_8h_a4edea782cc7b64a38c269123646227aca5957647e74d0eaea90bdb316e578e579} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSSE3&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_CID@{CPUID\_FEAT\_ECX\_CID}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_CID@{CPUID\_FEAT\_ECX\_CID}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acafb8bce29e8cfd07070b596f3912f608b}\label{mh_8h_a4edea782cc7b64a38c269123646227acafb8bce29e8cfd07070b596f3912f608b} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SDBG@{CPUID\_FEAT\_ECX\_SDBG}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SDBG@{CPUID\_FEAT\_ECX\_SDBG}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaf4cb88b61cd0daff24dd016b2aca7d9a}\label{mh_8h_a4edea782cc7b64a38c269123646227acaf4cb88b61cd0daff24dd016b2aca7d9a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SDBG&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_FMA@{CPUID\_FEAT\_ECX\_FMA}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_FMA@{CPUID\_FEAT\_ECX\_FMA}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca9c1fd66e736f5d3d344e919b57483336}\label{mh_8h_a4edea782cc7b64a38c269123646227aca9c1fd66e736f5d3d344e919b57483336} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+FMA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_CX16@{CPUID\_FEAT\_ECX\_CX16}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_CX16@{CPUID\_FEAT\_ECX\_CX16}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acad30be7d0797e3aad723013154aa733d2}\label{mh_8h_a4edea782cc7b64a38c269123646227acad30be7d0797e3aad723013154aa733d2} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+CX16&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_XTPR@{CPUID\_FEAT\_ECX\_XTPR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_XTPR@{CPUID\_FEAT\_ECX\_XTPR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca5dfdf86e2bc4ee8fdcd3fa7baf4399c1}\label{mh_8h_a4edea782cc7b64a38c269123646227aca5dfdf86e2bc4ee8fdcd3fa7baf4399c1} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XTPR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PDCM@{CPUID\_FEAT\_ECX\_PDCM}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_PDCM@{CPUID\_FEAT\_ECX\_PDCM}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca93ddbafd38f7a260286998ae9ddc8cad}\label{mh_8h_a4edea782cc7b64a38c269123646227aca93ddbafd38f7a260286998ae9ddc8cad} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PDCM&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_PCID@{CPUID\_FEAT\_ECX\_PCID}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_PCID@{CPUID\_FEAT\_ECX\_PCID}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca56aa3578bd577b2ea29f0e224bef9534}\label{mh_8h_a4edea782cc7b64a38c269123646227aca56aa3578bd577b2ea29f0e224bef9534} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+PCID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_DCA@{CPUID\_FEAT\_ECX\_DCA}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_DCA@{CPUID\_FEAT\_ECX\_DCA}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca2b75568ac85063fb0a96418fa0bfb29d}\label{mh_8h_a4edea782cc7b64a38c269123646227aca2b75568ac85063fb0a96418fa0bfb29d} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+DCA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE4\_1@{CPUID\_FEAT\_ECX\_SSE4\_1}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SSE4\_1@{CPUID\_FEAT\_ECX\_SSE4\_1}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca63ddf183b299d2fc7686dac65e1a555a}\label{mh_8h_a4edea782cc7b64a38c269123646227aca63ddf183b299d2fc7686dac65e1a555a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+1&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_SSE4\_2@{CPUID\_FEAT\_ECX\_SSE4\_2}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_SSE4\_2@{CPUID\_FEAT\_ECX\_SSE4\_2}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac35d5255d2ef4728b73348db7087c1c7}\label{mh_8h_a4edea782cc7b64a38c269123646227acac35d5255d2ef4728b73348db7087c1c7} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+SSE4\+\_\+2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_X2APIC@{CPUID\_FEAT\_ECX\_X2APIC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_X2APIC@{CPUID\_FEAT\_ECX\_X2APIC}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca567f32d361128487193569f9ef177f77}\label{mh_8h_a4edea782cc7b64a38c269123646227aca567f32d361128487193569f9ef177f77} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+X2\+APIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_MOVBE@{CPUID\_FEAT\_ECX\_MOVBE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_MOVBE@{CPUID\_FEAT\_ECX\_MOVBE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac67b97fbc629b276f5c13dbf88c4f709}\label{mh_8h_a4edea782cc7b64a38c269123646227acac67b97fbc629b276f5c13dbf88c4f709} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+MOVBE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_POPCNT@{CPUID\_FEAT\_ECX\_POPCNT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_POPCNT@{CPUID\_FEAT\_ECX\_POPCNT}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca71e5348902e26fc6de23f4f5bd384f74}\label{mh_8h_a4edea782cc7b64a38c269123646227aca71e5348902e26fc6de23f4f5bd384f74} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+POPCNT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_TSC@{CPUID\_FEAT\_ECX\_TSC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_TSC@{CPUID\_FEAT\_ECX\_TSC}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca0c644c82f246a9fb8bd489452c096017}\label{mh_8h_a4edea782cc7b64a38c269123646227aca0c644c82f246a9fb8bd489452c096017} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+TSC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_AES@{CPUID\_FEAT\_ECX\_AES}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_AES@{CPUID\_FEAT\_ECX\_AES}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca8a62b9dd23a47562237c0370b8ed87a0}\label{mh_8h_a4edea782cc7b64a38c269123646227aca8a62b9dd23a47562237c0370b8ed87a0} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AES&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_XSAVE@{CPUID\_FEAT\_ECX\_XSAVE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_XSAVE@{CPUID\_FEAT\_ECX\_XSAVE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca9c28569cd999d6cc2e9e0005b4fa6c9d}\label{mh_8h_a4edea782cc7b64a38c269123646227aca9c28569cd999d6cc2e9e0005b4fa6c9d} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+XSAVE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_OSXSAVE@{CPUID\_FEAT\_ECX\_OSXSAVE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_OSXSAVE@{CPUID\_FEAT\_ECX\_OSXSAVE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca56478550836d5fa258b03e9fd9eb8116}\label{mh_8h_a4edea782cc7b64a38c269123646227aca56478550836d5fa258b03e9fd9eb8116} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+OSXSAVE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_AVX@{CPUID\_FEAT\_ECX\_AVX}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_AVX@{CPUID\_FEAT\_ECX\_AVX}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca749d00516968a015a4d8e15235bf07e6}\label{mh_8h_a4edea782cc7b64a38c269123646227aca749d00516968a015a4d8e15235bf07e6} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+AVX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_F16C@{CPUID\_FEAT\_ECX\_F16C}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_F16C@{CPUID\_FEAT\_ECX\_F16C}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca5367b88fac44977ce4bc466b143ad2a2}\label{mh_8h_a4edea782cc7b64a38c269123646227aca5367b88fac44977ce4bc466b143ad2a2} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+F16C&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_RDRAND@{CPUID\_FEAT\_ECX\_RDRAND}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_RDRAND@{CPUID\_FEAT\_ECX\_RDRAND}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca05f15dce448cb64b18439c6d2eb68865}\label{mh_8h_a4edea782cc7b64a38c269123646227aca05f15dce448cb64b18439c6d2eb68865} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+RDRAND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_ECX\_HYPERVISOR@{CPUID\_FEAT\_ECX\_HYPERVISOR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_ECX\_HYPERVISOR@{CPUID\_FEAT\_ECX\_HYPERVISOR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca21f722be79b1108cdbef6affda4cf96a}\label{mh_8h_a4edea782cc7b64a38c269123646227aca21f722be79b1108cdbef6affda4cf96a} 
+CPUID\+\_\+\+FEAT\+\_\+\+ECX\+\_\+\+HYPERVISOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_FPU@{CPUID\_FEAT\_EDX\_FPU}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_FPU@{CPUID\_FEAT\_EDX\_FPU}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac07d767d714117e48c453b752f799610}\label{mh_8h_a4edea782cc7b64a38c269123646227acac07d767d714117e48c453b752f799610} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FPU&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_VME@{CPUID\_FEAT\_EDX\_VME}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_VME@{CPUID\_FEAT\_EDX\_VME}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca5d32075fb1cfd95910c1eff1f0f3d056}\label{mh_8h_a4edea782cc7b64a38c269123646227aca5d32075fb1cfd95910c1eff1f0f3d056} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+VME&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_DE@{CPUID\_FEAT\_EDX\_DE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_DE@{CPUID\_FEAT\_EDX\_DE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca69236c580bf3feddd4a57b3072a7b521}\label{mh_8h_a4edea782cc7b64a38c269123646227aca69236c580bf3feddd4a57b3072a7b521} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSE@{CPUID\_FEAT\_EDX\_PSE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PSE@{CPUID\_FEAT\_EDX\_PSE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca59bc828bc43010ac71793759e8011335}\label{mh_8h_a4edea782cc7b64a38c269123646227aca59bc828bc43010ac71793759e8011335} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_TSC@{CPUID\_FEAT\_EDX\_TSC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_TSC@{CPUID\_FEAT\_EDX\_TSC}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca2ae56cfb5a846822cc095b79bf74de10}\label{mh_8h_a4edea782cc7b64a38c269123646227aca2ae56cfb5a846822cc095b79bf74de10} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TSC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MSR@{CPUID\_FEAT\_EDX\_MSR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_MSR@{CPUID\_FEAT\_EDX\_MSR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca6b8beb5908a936d7f00c848df0abe061}\label{mh_8h_a4edea782cc7b64a38c269123646227aca6b8beb5908a936d7f00c848df0abe061} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MSR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PAE@{CPUID\_FEAT\_EDX\_PAE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PAE@{CPUID\_FEAT\_EDX\_PAE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca3a97eae0ba980bb5d9d9b10138d70aca}\label{mh_8h_a4edea782cc7b64a38c269123646227aca3a97eae0ba980bb5d9d9b10138d70aca} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MCE@{CPUID\_FEAT\_EDX\_MCE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_MCE@{CPUID\_FEAT\_EDX\_MCE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acade0ff2978a54bc0c96dd71a7a7177d0f}\label{mh_8h_a4edea782cc7b64a38c269123646227acade0ff2978a54bc0c96dd71a7a7177d0f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CX8@{CPUID\_FEAT\_EDX\_CX8}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_CX8@{CPUID\_FEAT\_EDX\_CX8}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca431ed484886fa29e4a7d16ab99523350}\label{mh_8h_a4edea782cc7b64a38c269123646227aca431ed484886fa29e4a7d16ab99523350} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CX8&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_APIC@{CPUID\_FEAT\_EDX\_APIC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_APIC@{CPUID\_FEAT\_EDX\_APIC}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca7fa4170aae12fbc1642012ccba9855b0}\label{mh_8h_a4edea782cc7b64a38c269123646227aca7fa4170aae12fbc1642012ccba9855b0} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+APIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SEP@{CPUID\_FEAT\_EDX\_SEP}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_SEP@{CPUID\_FEAT\_EDX\_SEP}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca674ec4ce4025c0f520a30d6e461ed47d}\label{mh_8h_a4edea782cc7b64a38c269123646227aca674ec4ce4025c0f520a30d6e461ed47d} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SEP&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MTRR@{CPUID\_FEAT\_EDX\_MTRR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_MTRR@{CPUID\_FEAT\_EDX\_MTRR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca5b30fec963effd4a0d2c8447028d0215}\label{mh_8h_a4edea782cc7b64a38c269123646227aca5b30fec963effd4a0d2c8447028d0215} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MTRR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PGE@{CPUID\_FEAT\_EDX\_PGE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PGE@{CPUID\_FEAT\_EDX\_PGE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acafb0d4b99b2d0e98089be4ede2162eddf}\label{mh_8h_a4edea782cc7b64a38c269123646227acafb0d4b99b2d0e98089be4ede2162eddf} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PGE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MCA@{CPUID\_FEAT\_EDX\_MCA}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_MCA@{CPUID\_FEAT\_EDX\_MCA}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac9e7b8e9c0e19bfe48a4bcd749aaaa4e}\label{mh_8h_a4edea782cc7b64a38c269123646227acac9e7b8e9c0e19bfe48a4bcd749aaaa4e} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MCA&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CMOV@{CPUID\_FEAT\_EDX\_CMOV}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_CMOV@{CPUID\_FEAT\_EDX\_CMOV}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca9c90442380d5125737f106c44afce64f}\label{mh_8h_a4edea782cc7b64a38c269123646227aca9c90442380d5125737f106c44afce64f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CMOV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PAT@{CPUID\_FEAT\_EDX\_PAT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PAT@{CPUID\_FEAT\_EDX\_PAT}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac0e40c6f57efc979712596770aab9f8a}\label{mh_8h_a4edea782cc7b64a38c269123646227acac0e40c6f57efc979712596770aab9f8a} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PAT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSE36@{CPUID\_FEAT\_EDX\_PSE36}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PSE36@{CPUID\_FEAT\_EDX\_PSE36}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca9718e0367b529df69ee7c9b7fd998b83}\label{mh_8h_a4edea782cc7b64a38c269123646227aca9718e0367b529df69ee7c9b7fd998b83} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSE36&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PSN@{CPUID\_FEAT\_EDX\_PSN}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PSN@{CPUID\_FEAT\_EDX\_PSN}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaac23260b012a04ea25d113844c631d44}\label{mh_8h_a4edea782cc7b64a38c269123646227acaac23260b012a04ea25d113844c631d44} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PSN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_CLFLUSH@{CPUID\_FEAT\_EDX\_CLFLUSH}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_CLFLUSH@{CPUID\_FEAT\_EDX\_CLFLUSH}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca2041739ed2386501eab8636e1a6971ee}\label{mh_8h_a4edea782cc7b64a38c269123646227aca2041739ed2386501eab8636e1a6971ee} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+CLFLUSH&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_DS@{CPUID\_FEAT\_EDX\_DS}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_DS@{CPUID\_FEAT\_EDX\_DS}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca160a42ab16256b365e2b82fdaf015e4b}\label{mh_8h_a4edea782cc7b64a38c269123646227aca160a42ab16256b365e2b82fdaf015e4b} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+DS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_ACPI@{CPUID\_FEAT\_EDX\_ACPI}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_ACPI@{CPUID\_FEAT\_EDX\_ACPI}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaec94ddf1825bdde32627d9149beec9dc}\label{mh_8h_a4edea782cc7b64a38c269123646227acaec94ddf1825bdde32627d9149beec9dc} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+ACPI&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_MMX@{CPUID\_FEAT\_EDX\_MMX}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_MMX@{CPUID\_FEAT\_EDX\_MMX}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac8185eb6b47dd2ef97a44cbb759f8e52}\label{mh_8h_a4edea782cc7b64a38c269123646227acac8185eb6b47dd2ef97a44cbb759f8e52} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+MMX&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_FXSR@{CPUID\_FEAT\_EDX\_FXSR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_FXSR@{CPUID\_FEAT\_EDX\_FXSR}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca577b773d21178552d9d768da936479f6}\label{mh_8h_a4edea782cc7b64a38c269123646227aca577b773d21178552d9d768da936479f6} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+FXSR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SSE@{CPUID\_FEAT\_EDX\_SSE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_SSE@{CPUID\_FEAT\_EDX\_SSE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acab362f49f025f651238f57dcf8d5d281f}\label{mh_8h_a4edea782cc7b64a38c269123646227acab362f49f025f651238f57dcf8d5d281f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SSE2@{CPUID\_FEAT\_EDX\_SSE2}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_SSE2@{CPUID\_FEAT\_EDX\_SSE2}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acab64ff1599bf88ab91782ee4f9152f3ce}\label{mh_8h_a4edea782cc7b64a38c269123646227acab64ff1599bf88ab91782ee4f9152f3ce} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SSE2&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_SS@{CPUID\_FEAT\_EDX\_SS}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_SS@{CPUID\_FEAT\_EDX\_SS}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acaec6daa5351cf0b927f4fcbad3f0cfef1}\label{mh_8h_a4edea782cc7b64a38c269123646227acaec6daa5351cf0b927f4fcbad3f0cfef1} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+SS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_HTT@{CPUID\_FEAT\_EDX\_HTT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_HTT@{CPUID\_FEAT\_EDX\_HTT}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acac91c9cfc9f3165b25b10030ef82c491f}\label{mh_8h_a4edea782cc7b64a38c269123646227acac91c9cfc9f3165b25b10030ef82c491f} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+HTT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_TM@{CPUID\_FEAT\_EDX\_TM}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_TM@{CPUID\_FEAT\_EDX\_TM}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca011b4b6541a2bb243222c0c33dfabcea}\label{mh_8h_a4edea782cc7b64a38c269123646227aca011b4b6541a2bb243222c0c33dfabcea} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+TM&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_IA64@{CPUID\_FEAT\_EDX\_IA64}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_IA64@{CPUID\_FEAT\_EDX\_IA64}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227aca12ab79d3456f748b49340fa00e60c160}\label{mh_8h_a4edea782cc7b64a38c269123646227aca12ab79d3456f748b49340fa00e60c160} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+IA64&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPUID\_FEAT\_EDX\_PBE@{CPUID\_FEAT\_EDX\_PBE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPUID\_FEAT\_EDX\_PBE@{CPUID\_FEAT\_EDX\_PBE}}}\Hypertarget{mh_8h_a4edea782cc7b64a38c269123646227acae6cfc957052841ae578ddfb390f00a1a}\label{mh_8h_a4edea782cc7b64a38c269123646227acae6cfc957052841ae578ddfb390f00a1a} 
+CPUID\+\_\+\+FEAT\+\_\+\+EDX\+\_\+\+PBE&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00109}{109}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4}\index{mh.h@{mh.h}!\_CPU\_ACTION@{\_CPU\_ACTION}}
+\index{\_CPU\_ACTION@{\_CPU\_ACTION}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{\_CPU\_ACTION}{\_CPU\_ACTION}}
+{\footnotesize\ttfamily \label{mh_8h_a1284f96951816db55a31764685872bb4} 
+enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_STOP@{CPU\_ACTION\_STOP}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_STOP@{CPU\_ACTION\_STOP}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4a6289a15e21921fd97173954f608922ac}\label{mh_8h_a1284f96951816db55a31764685872bb4a6289a15e21921fd97173954f608922ac} 
+CPU\+\_\+\+ACTION\+\_\+\+STOP&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_PRINT\_ID@{CPU\_ACTION\_PRINT\_ID}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_PRINT\_ID@{CPU\_ACTION\_PRINT\_ID}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4af9cf8e9011b7239708d34897f83e9342}\label{mh_8h_a1284f96951816db55a31764685872bb4af9cf8e9011b7239708d34897f83e9342} 
+CPU\+\_\+\+ACTION\+\_\+\+PRINT\+\_\+\+ID&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_PERFORM\_TLB\_SHOOTDOWN@{CPU\_ACTION\_PERFORM\_TLB\_SHOOTDOWN}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_PERFORM\_TLB\_SHOOTDOWN@{CPU\_ACTION\_PERFORM\_TLB\_SHOOTDOWN}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4ae7955c572681f4b53f2cadcfa4ff1614}\label{mh_8h_a1284f96951816db55a31764685872bb4ae7955c572681f4b53f2cadcfa4ff1614} 
+CPU\+\_\+\+ACTION\+\_\+\+PERFORM\+\_\+\+TLB\+\_\+\+SHOOTDOWN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_WRITE\_DEBUG\_REGS@{CPU\_ACTION\_WRITE\_DEBUG\_REGS}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_WRITE\_DEBUG\_REGS@{CPU\_ACTION\_WRITE\_DEBUG\_REGS}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4a45aab8fb9fc3af5a44aaff5c08710649}\label{mh_8h_a1284f96951816db55a31764685872bb4a45aab8fb9fc3af5a44aaff5c08710649} 
+CPU\+\_\+\+ACTION\+\_\+\+WRITE\+\_\+\+DEBUG\+\_\+\+REGS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_CLEAR\_DEBUG\_REGS@{CPU\_ACTION\_CLEAR\_DEBUG\_REGS}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_CLEAR\_DEBUG\_REGS@{CPU\_ACTION\_CLEAR\_DEBUG\_REGS}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4ab2c5fef4a9580a4f57af3729b7e091ba}\label{mh_8h_a1284f96951816db55a31764685872bb4ab2c5fef4a9580a4f57af3729b7e091ba} 
+CPU\+\_\+\+ACTION\+\_\+\+CLEAR\+\_\+\+DEBUG\+\_\+\+REGS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_DO\_DEFERRED\_ROUTINES@{CPU\_ACTION\_DO\_DEFERRED\_ROUTINES}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_DO\_DEFERRED\_ROUTINES@{CPU\_ACTION\_DO\_DEFERRED\_ROUTINES}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4a311acfa0a469c0ab9046f5a2576e5b23}\label{mh_8h_a1284f96951816db55a31764685872bb4a311acfa0a469c0ab9046f5a2576e5b23} 
+CPU\+\_\+\+ACTION\+\_\+\+DO\+\_\+\+DEFERRED\+\_\+\+ROUTINES&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CPU\_ACTION\_FLUSH\_CR3@{CPU\_ACTION\_FLUSH\_CR3}!mh.h@{mh.h}}\index{mh.h@{mh.h}!CPU\_ACTION\_FLUSH\_CR3@{CPU\_ACTION\_FLUSH\_CR3}}}\Hypertarget{mh_8h_a1284f96951816db55a31764685872bb4ac578c2941a64b87824f028a67ff40ed4}\label{mh_8h_a1284f96951816db55a31764685872bb4ac578c2941a64b87824f028a67ff40ed4} 
+CPU\+\_\+\+ACTION\+\_\+\+FLUSH\+\_\+\+CR3&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00091}{91}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214}\index{mh.h@{mh.h}!\_CPU\_EXCEPTIONS@{\_CPU\_EXCEPTIONS}}
+\index{\_CPU\_EXCEPTIONS@{\_CPU\_EXCEPTIONS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{\_CPU\_EXCEPTIONS}{\_CPU\_EXCEPTIONS}}
+{\footnotesize\ttfamily \label{mh_8h_a4852689eeafee74c009c94108fce7214} 
+enum \mbox{\hyperlink{mh_8h_a4852689eeafee74c009c94108fce7214}{\+\_\+\+CPU\+\_\+\+EXCEPTIONS}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_DIVIDE\_BY\_ZERO@{EXCEPTION\_DIVIDE\_BY\_ZERO}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_DIVIDE\_BY\_ZERO@{EXCEPTION\_DIVIDE\_BY\_ZERO}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824}\label{mh_8h_a4852689eeafee74c009c94108fce7214ac5d77cf2c3a1a05e98d1ca488f448824} 
+EXCEPTION\+\_\+\+DIVIDE\+\_\+\+BY\+\_\+\+ZERO&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SINGLE\_STEP@{EXCEPTION\_SINGLE\_STEP}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_SINGLE\_STEP@{EXCEPTION\_SINGLE\_STEP}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2}\label{mh_8h_a4852689eeafee74c009c94108fce7214a34437286a5ca69c483131c8ee5c563a2} 
+EXCEPTION\+\_\+\+SINGLE\+\_\+\+STEP&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_NON\_MASKABLE\_INTERRUPT@{EXCEPTION\_NON\_MASKABLE\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_NON\_MASKABLE\_INTERRUPT@{EXCEPTION\_NON\_MASKABLE\_INTERRUPT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629}\label{mh_8h_a4852689eeafee74c009c94108fce7214a5575f7b0beae8f5ed115245774a84629} 
+EXCEPTION\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_BREAKPOINT@{EXCEPTION\_BREAKPOINT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_BREAKPOINT@{EXCEPTION\_BREAKPOINT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77}\label{mh_8h_a4852689eeafee74c009c94108fce7214ad90595dbf7da7c1a90b1bb76cd426a77} 
+EXCEPTION\+\_\+\+BREAKPOINT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_OVERFLOW@{EXCEPTION\_OVERFLOW}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_OVERFLOW@{EXCEPTION\_OVERFLOW}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081}\label{mh_8h_a4852689eeafee74c009c94108fce7214acb5247bc169981abaf50b244e3ac7081} 
+EXCEPTION\+\_\+\+OVERFLOW&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_BOUNDS\_CHECK@{EXCEPTION\_BOUNDS\_CHECK}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_BOUNDS\_CHECK@{EXCEPTION\_BOUNDS\_CHECK}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3}\label{mh_8h_a4852689eeafee74c009c94108fce7214afd671ee236b6060386acc851ff037ae3} 
+EXCEPTION\+\_\+\+BOUNDS\+\_\+\+CHECK&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_INVALID\_OPCODE@{EXCEPTION\_INVALID\_OPCODE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_INVALID\_OPCODE@{EXCEPTION\_INVALID\_OPCODE}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91}\label{mh_8h_a4852689eeafee74c009c94108fce7214a28557d1f02680259d9ed8b1dd9f86c91} 
+EXCEPTION\+\_\+\+INVALID\+\_\+\+OPCODE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_NO\_COPROCESSOR@{EXCEPTION\_NO\_COPROCESSOR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_NO\_COPROCESSOR@{EXCEPTION\_NO\_COPROCESSOR}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7}\label{mh_8h_a4852689eeafee74c009c94108fce7214aa12c9ea7b6ded404e6d2084f1abbe4a7} 
+EXCEPTION\+\_\+\+NO\+\_\+\+COPROCESSOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_DOUBLE\_FAULT@{EXCEPTION\_DOUBLE\_FAULT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_DOUBLE\_FAULT@{EXCEPTION\_DOUBLE\_FAULT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12}\label{mh_8h_a4852689eeafee74c009c94108fce7214a6f0ec56ae735aee3ab6f847eaac35c12} 
+EXCEPTION\+\_\+\+DOUBLE\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN@{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN@{EXCEPTION\_COPROCESSOR\_SEGMENT\_OVERRUN}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56}\label{mh_8h_a4852689eeafee74c009c94108fce7214ab9c9591e09e612b99b1f4b3ed4baac56} 
+EXCEPTION\+\_\+\+COPROCESSOR\+\_\+\+SEGMENT\+\_\+\+OVERRUN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_INVALID\_TSS@{EXCEPTION\_INVALID\_TSS}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_INVALID\_TSS@{EXCEPTION\_INVALID\_TSS}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791}\label{mh_8h_a4852689eeafee74c009c94108fce7214a167bd7d866af5dcb76bf161e19289791} 
+EXCEPTION\+\_\+\+INVALID\+\_\+\+TSS&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT@{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT@{EXCEPTION\_SEGMENT\_SELECTOR\_NOTPRESENT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b}\label{mh_8h_a4852689eeafee74c009c94108fce7214aab7c1bc6a85b1bb7a169c4a9ec74fe1b} 
+EXCEPTION\+\_\+\+SEGMENT\+\_\+\+SELECTOR\+\_\+\+NOTPRESENT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_STACK\_SEGMENT\_OVERRUN@{EXCEPTION\_STACK\_SEGMENT\_OVERRUN}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_STACK\_SEGMENT\_OVERRUN@{EXCEPTION\_STACK\_SEGMENT\_OVERRUN}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb}\label{mh_8h_a4852689eeafee74c009c94108fce7214a21ffeea2fdf2f12613473fa7554afbdb} 
+EXCEPTION\+\_\+\+STACK\+\_\+\+SEGMENT\+\_\+\+OVERRUN&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_GENERAL\_PROTECTION\_FAULT@{EXCEPTION\_GENERAL\_PROTECTION\_FAULT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_GENERAL\_PROTECTION\_FAULT@{EXCEPTION\_GENERAL\_PROTECTION\_FAULT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f}\label{mh_8h_a4852689eeafee74c009c94108fce7214aabd2df61deb5496cb463a88a8191121f} 
+EXCEPTION\+\_\+\+GENERAL\+\_\+\+PROTECTION\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_PAGE\_FAULT@{EXCEPTION\_PAGE\_FAULT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_PAGE\_FAULT@{EXCEPTION\_PAGE\_FAULT}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81}\label{mh_8h_a4852689eeafee74c009c94108fce7214ade46737499822de31e31ff98231d0c81} 
+EXCEPTION\+\_\+\+PAGE\+\_\+\+FAULT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_RESERVED@{EXCEPTION\_RESERVED}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_RESERVED@{EXCEPTION\_RESERVED}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99}\label{mh_8h_a4852689eeafee74c009c94108fce7214aaa31477a0c9d066d153450fe17da1a99} 
+EXCEPTION\+\_\+\+RESERVED&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_FLOATING\_POINT\_ERROR@{EXCEPTION\_FLOATING\_POINT\_ERROR}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_FLOATING\_POINT\_ERROR@{EXCEPTION\_FLOATING\_POINT\_ERROR}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a}\label{mh_8h_a4852689eeafee74c009c94108fce7214a0bf33f61d31bd770d084aafaa448804a} 
+EXCEPTION\+\_\+\+FLOATING\+\_\+\+POINT\+\_\+\+ERROR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_ALIGNMENT\_CHECK@{EXCEPTION\_ALIGNMENT\_CHECK}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_ALIGNMENT\_CHECK@{EXCEPTION\_ALIGNMENT\_CHECK}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723}\label{mh_8h_a4852689eeafee74c009c94108fce7214ad4b5e8f2517bdaca4e4e1493ce8a8723} 
+EXCEPTION\+\_\+\+ALIGNMENT\+\_\+\+CHECK&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EXCEPTION\_SEVERE\_MACHINE\_CHECK@{EXCEPTION\_SEVERE\_MACHINE\_CHECK}!mh.h@{mh.h}}\index{mh.h@{mh.h}!EXCEPTION\_SEVERE\_MACHINE\_CHECK@{EXCEPTION\_SEVERE\_MACHINE\_CHECK}}}\Hypertarget{mh_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730}\label{mh_8h_a4852689eeafee74c009c94108fce7214a2e45e5a1b0d6c7808955edb00a32b730} 
+EXCEPTION\+\_\+\+SEVERE\+\_\+\+MACHINE\+\_\+\+CHECK&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00060}{60}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705f}\index{mh.h@{mh.h}!\_INTERRUPT\_LIST@{\_INTERRUPT\_LIST}}
+\index{\_INTERRUPT\_LIST@{\_INTERRUPT\_LIST}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{\_INTERRUPT\_LIST}{\_INTERRUPT\_LIST}}
+{\footnotesize\ttfamily \label{mh_8h_ab824659c51a6e5646465e02d7e50705f} 
+enum \mbox{\hyperlink{mh_8h_ab824659c51a6e5646465e02d7e50705f}{\+\_\+\+INTERRUPT\+\_\+\+LIST}}}
+
+Interrupt Definitions \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TIMER\_INTERRUPT@{TIMER\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!TIMER\_INTERRUPT@{TIMER\_INTERRUPT}}}\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa}\label{mh_8h_ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa} 
+TIMER\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{KEYBOARD\_INTERRUPT@{KEYBOARD\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!KEYBOARD\_INTERRUPT@{KEYBOARD\_INTERRUPT}}}\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff}\label{mh_8h_ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff} 
+KEYBOARD\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ATA\_INTERRUPT@{ATA\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!ATA\_INTERRUPT@{ATA\_INTERRUPT}}}\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121}\label{mh_8h_ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121} 
+ATA\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LAPIC\_INTERRUPT@{LAPIC\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!LAPIC\_INTERRUPT@{LAPIC\_INTERRUPT}}}\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf}\label{mh_8h_ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf} 
+LAPIC\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LAPIC\_SIV\_INTERRUPT@{LAPIC\_SIV\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!LAPIC\_SIV\_INTERRUPT@{LAPIC\_SIV\_INTERRUPT}}}\Hypertarget{mh_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41}\label{mh_8h_ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41} 
+LAPIC\+\_\+\+SIV\+\_\+\+INTERRUPT&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00083}{83}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530}\index{mh.h@{mh.h}!MADT\_TYPES@{MADT\_TYPES}}
+\index{MADT\_TYPES@{MADT\_TYPES}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MADT\_TYPES}{MADT\_TYPES}}
+{\footnotesize\ttfamily \label{mh_8h_a7dc384ee08893cee570d363e5c72e530} 
+enum \mbox{\hyperlink{mh_8h_a7dc384ee08893cee570d363e5c72e530}{MADT\+\_\+\+TYPES}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MADT\_LAPIC@{MADT\_LAPIC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!MADT\_LAPIC@{MADT\_LAPIC}}}\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530a5bffee31515e613a9370f89a5421fae2}\label{mh_8h_a7dc384ee08893cee570d363e5c72e530a5bffee31515e613a9370f89a5421fae2} 
+MADT\+\_\+\+LAPIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MADT\_IOAPIC@{MADT\_IOAPIC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!MADT\_IOAPIC@{MADT\_IOAPIC}}}\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530a1114e4a4b89623dc59d36a1f2332c251}\label{mh_8h_a7dc384ee08893cee570d363e5c72e530a1114e4a4b89623dc59d36a1f2332c251} 
+MADT\+\_\+\+IOAPIC&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MADT\_INTERUPT\_SOURCE\_OVERRIDE@{MADT\_INTERUPT\_SOURCE\_OVERRIDE}!mh.h@{mh.h}}\index{mh.h@{mh.h}!MADT\_INTERUPT\_SOURCE\_OVERRIDE@{MADT\_INTERUPT\_SOURCE\_OVERRIDE}}}\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530a50224664f097b8f4af935e63192bc1d4}\label{mh_8h_a7dc384ee08893cee570d363e5c72e530a50224664f097b8f4af935e63192bc1d4} 
+MADT\+\_\+\+INTERUPT\+\_\+\+SOURCE\+\_\+\+OVERRIDE&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MADT\_NON\_MASKABLE\_INTERRUPT@{MADT\_NON\_MASKABLE\_INTERRUPT}!mh.h@{mh.h}}\index{mh.h@{mh.h}!MADT\_NON\_MASKABLE\_INTERRUPT@{MADT\_NON\_MASKABLE\_INTERRUPT}}}\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530afd6a46868f44aef70dd5f4d44d11c80b}\label{mh_8h_a7dc384ee08893cee570d363e5c72e530afd6a46868f44aef70dd5f4d44d11c80b} 
+MADT\+\_\+\+NON\+\_\+\+MASKABLE\+\_\+\+INTERRUPT&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MADT\_X2APIC@{MADT\_X2APIC}!mh.h@{mh.h}}\index{mh.h@{mh.h}!MADT\_X2APIC@{MADT\_X2APIC}}}\Hypertarget{mh_8h_a7dc384ee08893cee570d363e5c72e530ae1b0dc48a33d003c2eb6cc9389f0b82a}\label{mh_8h_a7dc384ee08893cee570d363e5c72e530ae1b0dc48a33d003c2eb6cc9389f0b82a} 
+MADT\+\_\+\+X2\+APIC&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00101}{101}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{mh_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{mh_8h_ad6bff1bfa4dbdca70cd12be5cb0492b9}\index{mh.h@{mh.h}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_()}{\_\_attribute\_\_()}}
+{\footnotesize\ttfamily \label{mh_8h_ad6bff1bfa4dbdca70cd12be5cb0492b9} 
+struct \mbox{\hyperlink{struct___r_s_d_p___descriptor}{\+\_\+\+RSDP\+\_\+\+Descriptor}} \+\_\+\+\_\+attribute\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{(packed)}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00052}{52}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2049adf962aa0a1fc2190ca06bc39efa}\index{mh.h@{mh.h}!APMain@{APMain}}
+\index{APMain@{APMain}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{APMain()}{APMain()}}
+{\footnotesize\ttfamily \label{mh_8h_a2049adf962aa0a1fc2190ca06bc39efa} 
+void APMain (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/--- FUNCTIONS -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/--- 
+
+
+
+Definition at line \mbox{\hyperlink{ap__main_8c_source_l00035}{35}} of file \mbox{\hyperlink{ap__main_8c_source}{ap\+\_\+main.\+c}}.
+
+\Hypertarget{mh_8h_a1eca5bb07aa31bb29d50315f2a713845}\index{mh.h@{mh.h}!checkApic@{checkApic}}
+\index{checkApic@{checkApic}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{checkApic()}{checkApic()}}
+{\footnotesize\ttfamily \label{mh_8h_a1eca5bb07aa31bb29d50315f2a713845} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool check\+Apic (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00488}{488}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a07baaa0cfda9434c8ac886b455ca685f}\index{mh.h@{mh.h}!checkcpuid@{checkcpuid}}
+\index{checkcpuid@{checkcpuid}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{checkcpuid()}{checkcpuid()}}
+{\footnotesize\ttfamily \label{mh_8h_a07baaa0cfda9434c8ac886b455ca685f} 
+bool checkcpuid (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{mh_8h_ace79a1a944a5d4518e96b3135e07190f}\index{mh.h@{mh.h}!getCpuName@{getCpuName}}
+\index{getCpuName@{getCpuName}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{getCpuName()}{getCpuName()}}
+{\footnotesize\ttfamily \label{mh_8h_ace79a1a944a5d4518e96b3135e07190f} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} void get\+Cpu\+Name (\begin{DoxyParamCaption}\item[{char \texorpdfstring{$\ast$}{*}}]{name}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00495}{495}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a657e2cb18189e638d49a59d6472f91e1}\index{mh.h@{mh.h}!init\_interrupts@{init\_interrupts}}
+\index{init\_interrupts@{init\_interrupts}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{init\_interrupts()}{init\_interrupts()}}
+{\footnotesize\ttfamily \label{mh_8h_a657e2cb18189e638d49a59d6472f91e1} 
+void init\+\_\+interrupts (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00168}{168}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+
+\Hypertarget{mh_8h_a1e4c2eac6f54346ca8dd087e24ff420c}\index{mh.h@{mh.h}!init\_lapic\_timer@{init\_lapic\_timer}}
+\index{init\_lapic\_timer@{init\_lapic\_timer}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{init\_lapic\_timer()}{init\_lapic\_timer()}}
+{\footnotesize\ttfamily \label{mh_8h_a1e4c2eac6f54346ca8dd087e24ff420c} 
+int init\+\_\+lapic\+\_\+timer (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{hz}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00179}{179}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a38547209a989c35ae86fcd6f4aa72580}\index{mh.h@{mh.h}!install\_idt@{install\_idt}}
+\index{install\_idt@{install\_idt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{install\_idt()}{install\_idt()}}
+{\footnotesize\ttfamily \label{mh_8h_a38547209a989c35ae86fcd6f4aa72580} 
+void install\+\_\+idt (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8c_source_l00024}{24}} of file \mbox{\hyperlink{idt_8c_source}{idt.\+c}}.
+
+\Hypertarget{mh_8h_ac7b59a78aea266f1c387e64bcae6cc51}\index{mh.h@{mh.h}!lapic\_enable@{lapic\_enable}}
+\index{lapic\_enable@{lapic\_enable}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_enable()}{lapic\_enable()}}
+{\footnotesize\ttfamily \label{mh_8h_ac7b59a78aea266f1c387e64bcae6cc51} 
+void lapic\+\_\+enable (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00098}{98}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a5c673232a19d0c4e78792208eb62f0cc}\index{mh.h@{mh.h}!lapic\_eoi@{lapic\_eoi}}
+\index{lapic\_eoi@{lapic\_eoi}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_eoi()}{lapic\_eoi()}}
+{\footnotesize\ttfamily \label{mh_8h_a5c673232a19d0c4e78792208eb62f0cc} 
+void lapic\+\_\+eoi (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00136}{136}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a91d3fbf4f7264d3456d0ca88f0b54a08}\index{mh.h@{mh.h}!lapic\_init\_cpu@{lapic\_init\_cpu}}
+\index{lapic\_init\_cpu@{lapic\_init\_cpu}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_init\_cpu()}{lapic\_init\_cpu()}}
+{\footnotesize\ttfamily \label{mh_8h_a91d3fbf4f7264d3456d0ca88f0b54a08} 
+void lapic\+\_\+init\+\_\+cpu (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00113}{113}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a7a06ac6a29d96de5b2fcacf7c18851aa}\index{mh.h@{mh.h}!lapic\_init\_siv@{lapic\_init\_siv}}
+\index{lapic\_init\_siv@{lapic\_init\_siv}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_init\_siv()}{lapic\_init\_siv()}}
+{\footnotesize\ttfamily \label{mh_8h_a7a06ac6a29d96de5b2fcacf7c18851aa} 
+void lapic\+\_\+init\+\_\+siv (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00060}{60}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_af32890a8dcc4095270fc3c1398956f22}\index{mh.h@{mh.h}!lapic\_mmio\_read@{lapic\_mmio\_read}}
+\index{lapic\_mmio\_read@{lapic\_mmio\_read}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_mmio\_read()}{lapic\_mmio\_read()}}
+{\footnotesize\ttfamily \label{mh_8h_af32890a8dcc4095270fc3c1398956f22} 
+uint32\+\_\+t lapic\+\_\+mmio\+\_\+read (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{off}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00036}{36}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a0dd32706f0be034ea2d462f691b7ca25}\index{mh.h@{mh.h}!lapic\_mmio\_write@{lapic\_mmio\_write}}
+\index{lapic\_mmio\_write@{lapic\_mmio\_write}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_mmio\_write()}{lapic\_mmio\_write()}}
+{\footnotesize\ttfamily \label{mh_8h_a0dd32706f0be034ea2d462f691b7ca25} 
+void lapic\+\_\+mmio\+\_\+write (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{off}{, }\item[{uint32\+\_\+t}]{val}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00045}{45}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a54f251fa242c134d1db5108b5a564b42}\index{mh.h@{mh.h}!lapic\_send\_ipi@{lapic\_send\_ipi}}
+\index{lapic\_send\_ipi@{lapic\_send\_ipi}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_send\_ipi()}{lapic\_send\_ipi()}}
+{\footnotesize\ttfamily \label{mh_8h_a54f251fa242c134d1db5108b5a564b42} 
+void lapic\+\_\+send\+\_\+ipi (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{apic\+\_\+id}{, }\item[{uint8\+\_\+t}]{vector}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00129}{129}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_a024a9a5a7e9ecdbe0359b4cae774c9cc}\index{mh.h@{mh.h}!lapic\_timer\_calibrate@{lapic\_timer\_calibrate}}
+\index{lapic\_timer\_calibrate@{lapic\_timer\_calibrate}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapic\_timer\_calibrate()}{lapic\_timer\_calibrate()}}
+{\footnotesize\ttfamily \label{mh_8h_a024a9a5a7e9ecdbe0359b4cae774c9cc} 
+void lapic\+\_\+timer\+\_\+calibrate (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00171}{171}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_adfc861821a705ac14f2526b6082e95ba}\index{mh.h@{mh.h}!MhHandleInterrupt@{MhHandleInterrupt}}
+\index{MhHandleInterrupt@{MhHandleInterrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhHandleInterrupt()}{MhHandleInterrupt()}}
+{\footnotesize\ttfamily \label{mh_8h_adfc861821a705ac14f2526b6082e95ba} 
+void Mh\+Handle\+Interrupt (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} int}]{vec\+\_\+num}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{isr_8c_source_l00027}{27}} of file \mbox{\hyperlink{isr_8c_source}{isr.\+c}}.
+
+\Hypertarget{mh_8h_aa5928db65d66f3ef1bd030cbd16bfc04}\index{mh.h@{mh.h}!MhInitializeACPI@{MhInitializeACPI}}
+\index{MhInitializeACPI@{MhInitializeACPI}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhInitializeACPI()}{MhInitializeACPI()}}
+{\footnotesize\ttfamily \label{mh_8h_aa5928db65d66f3ef1bd030cbd16bfc04} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mh\+Initialize\+ACPI (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00164}{164}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{mh_8h_a95f447eff958333a652f64136b9e3cfc}\index{mh.h@{mh.h}!MhInitializeSMP@{MhInitializeSMP}}
+\index{MhInitializeSMP@{MhInitializeSMP}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhInitializeSMP()}{MhInitializeSMP()}}
+{\footnotesize\ttfamily \label{mh_8h_a95f447eff958333a652f64136b9e3cfc} 
+void Mh\+Initialize\+SMP (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{apic\+\_\+list}{, }\item[{uint32\+\_\+t}]{cpu\+\_\+count}{, }\item[{uint32\+\_\+t}]{lapic\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{smp_8c_source_l00132}{132}} of file \mbox{\hyperlink{smp_8c_source}{smp.\+c}}.
+
+\Hypertarget{mh_8h_a8e0e024a4c708b5bb008c7100841410e}\index{mh.h@{mh.h}!MhParseLAPICs@{MhParseLAPICs}}
+\index{MhParseLAPICs@{MhParseLAPICs}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhParseLAPICs()}{MhParseLAPICs()}}
+{\footnotesize\ttfamily \label{mh_8h_a8e0e024a4c708b5bb008c7100841410e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mh\+Parse\+LAPICs (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{size\+\_\+t}]{max\+CPUs}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{cpu\+Count}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{lapic\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00130}{130}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{mh_8h_a5e6ead246838259df2f922ecfad72c85}\index{mh.h@{mh.h}!MhRebootComputer@{MhRebootComputer}}
+\index{MhRebootComputer@{MhRebootComputer}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhRebootComputer()}{MhRebootComputer()}}
+{\footnotesize\ttfamily \label{mh_8h_a5e6ead246838259df2f922ecfad72c85} 
+void Mh\+Reboot\+Computer (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{acpi_8c_source_l00083}{83}} of file \mbox{\hyperlink{acpi_8c_source}{acpi.\+c}}.
+
+\Hypertarget{mh_8h_a5fa8dc1090aac3d53a9468b21f95773c}\index{mh.h@{mh.h}!MhRequestSoftwareInterrupt@{MhRequestSoftwareInterrupt}}
+\index{MhRequestSoftwareInterrupt@{MhRequestSoftwareInterrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhRequestSoftwareInterrupt()}{MhRequestSoftwareInterrupt()}}
+{\footnotesize\ttfamily \label{mh_8h_a5fa8dc1090aac3d53a9468b21f95773c} 
+void Mh\+Request\+Software\+Interrupt (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{Request\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{apic_8c_source_l00199}{199}} of file \mbox{\hyperlink{apic_8c_source}{apic.\+c}}.
+
+\Hypertarget{mh_8h_af16af21e540d45a136cbff3f1cd766f0}\index{mh.h@{mh.h}!MhSendActionToCpusAndWait@{MhSendActionToCpusAndWait}}
+\index{MhSendActionToCpusAndWait@{MhSendActionToCpusAndWait}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MhSendActionToCpusAndWait()}{MhSendActionToCpusAndWait()}}
+{\footnotesize\ttfamily \label{mh_8h_af16af21e540d45a136cbff3f1cd766f0} 
+void Mh\+Send\+Action\+To\+Cpus\+And\+Wait (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{mh_8h_af395e1ff60d51c8a8c94e709c9e82d99}{CPU\+\_\+\+ACTION}}}]{action}{, }\item[{\mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}}}]{parameter}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{smp_8c_source_l00212}{212}} of file \mbox{\hyperlink{smp_8c_source}{smp.\+c}}.
+
+\Hypertarget{mh_8h_a47ea4d7744cfe039135ccd894de52f97}\index{mh.h@{mh.h}!MiAlignmentCheck@{MiAlignmentCheck}}
+\index{MiAlignmentCheck@{MiAlignmentCheck}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiAlignmentCheck()}{MiAlignmentCheck()}}
+{\footnotesize\ttfamily \label{mh_8h_a47ea4d7744cfe039135ccd894de52f97} 
+void Mi\+Alignment\+Check (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00468}{468}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a21ece4d06870f2f50e1586a9865568a1}\index{mh.h@{mh.h}!MiBoundsCheck@{MiBoundsCheck}}
+\index{MiBoundsCheck@{MiBoundsCheck}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiBoundsCheck()}{MiBoundsCheck()}}
+{\footnotesize\ttfamily \label{mh_8h_a21ece4d06870f2f50e1586a9865568a1} 
+void Mi\+Bounds\+Check (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00420}{420}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a054b492479f9476e325523c588d24bf0}\index{mh.h@{mh.h}!MiBreakpoint@{MiBreakpoint}}
+\index{MiBreakpoint@{MiBreakpoint}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiBreakpoint()}{MiBreakpoint()}}
+{\footnotesize\ttfamily \label{mh_8h_a054b492479f9476e325523c588d24bf0} 
+void Mi\+Breakpoint (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00392}{392}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a85422129cf7529d518485445bb068847}\index{mh.h@{mh.h}!MiCoprocessorSegmentOverrun@{MiCoprocessorSegmentOverrun}}
+\index{MiCoprocessorSegmentOverrun@{MiCoprocessorSegmentOverrun}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiCoprocessorSegmentOverrun()}{MiCoprocessorSegmentOverrun()}}
+{\footnotesize\ttfamily \label{mh_8h_a85422129cf7529d518485445bb068847} 
+void Mi\+Coprocessor\+Segment\+Overrun (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00434}{434}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a4ec953818fe18c54ce5199caec55e1e3}\index{mh.h@{mh.h}!MiDebugTrap@{MiDebugTrap}}
+\index{MiDebugTrap@{MiDebugTrap}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiDebugTrap()}{MiDebugTrap()}}
+{\footnotesize\ttfamily \label{mh_8h_a4ec953818fe18c54ce5199caec55e1e3} 
+void Mi\+Debug\+Trap (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00298}{298}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_aca5a6c43b04aa4cd89d066bcfa8dd4a0}\index{mh.h@{mh.h}!MiDivideByZero@{MiDivideByZero}}
+\index{MiDivideByZero@{MiDivideByZero}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiDivideByZero()}{MiDivideByZero()}}
+{\footnotesize\ttfamily \label{mh_8h_aca5a6c43b04aa4cd89d066bcfa8dd4a0} 
+void Mi\+Divide\+By\+Zero (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00258}{258}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a90834181d8dd59de70d4ffb713e223bb}\index{mh.h@{mh.h}!MiDoubleFault@{MiDoubleFault}}
+\index{MiDoubleFault@{MiDoubleFault}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiDoubleFault()}{MiDoubleFault()}}
+{\footnotesize\ttfamily \label{mh_8h_a90834181d8dd59de70d4ffb713e223bb} 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void Mi\+Double\+Fault (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00226}{226}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_ad93a9d1dc5b4b7e350832aebee57e9b3}\index{mh.h@{mh.h}!MiFloatingPointError@{MiFloatingPointError}}
+\index{MiFloatingPointError@{MiFloatingPointError}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiFloatingPointError()}{MiFloatingPointError()}}
+{\footnotesize\ttfamily \label{mh_8h_ad93a9d1dc5b4b7e350832aebee57e9b3} 
+void Mi\+Floating\+Point\+Error (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00462}{462}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_abbb131baf26462fbcd50d9c004d14e7a}\index{mh.h@{mh.h}!MiGeneralProtectionFault@{MiGeneralProtectionFault}}
+\index{MiGeneralProtectionFault@{MiGeneralProtectionFault}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiGeneralProtectionFault()}{MiGeneralProtectionFault()}}
+{\footnotesize\ttfamily \label{mh_8h_abbb131baf26462fbcd50d9c004d14e7a} 
+void Mi\+General\+Protection\+Fault (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00457}{457}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_ae08944131b30ed5db94bdbfa32abacf0}\index{mh.h@{mh.h}!MiInterprocessorInterrupt@{MiInterprocessorInterrupt}}
+\index{MiInterprocessorInterrupt@{MiInterprocessorInterrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiInterprocessorInterrupt()}{MiInterprocessorInterrupt()}}
+{\footnotesize\ttfamily \label{mh_8h_ae08944131b30ed5db94bdbfa32abacf0} 
+void Mi\+Interprocessor\+Interrupt (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00070}{70}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a66f06653ecb6fa64e6ece2b261156eaa}\index{mh.h@{mh.h}!MiInvalidOpcode@{MiInvalidOpcode}}
+\index{MiInvalidOpcode@{MiInvalidOpcode}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiInvalidOpcode()}{MiInvalidOpcode()}}
+{\footnotesize\ttfamily \label{mh_8h_a66f06653ecb6fa64e6ece2b261156eaa} 
+void Mi\+Invalid\+Opcode (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00425}{425}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a636b9e3e1077c5143b6d589e88a062b0}\index{mh.h@{mh.h}!MiInvalidTss@{MiInvalidTss}}
+\index{MiInvalidTss@{MiInvalidTss}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiInvalidTss()}{MiInvalidTss()}}
+{\footnotesize\ttfamily \label{mh_8h_a636b9e3e1077c5143b6d589e88a062b0} 
+void Mi\+Invalid\+Tss (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00439}{439}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_aa1a90154eaea0af9608b87626497ad27}\index{mh.h@{mh.h}!MiLapicInterrupt@{MiLapicInterrupt}}
+\index{MiLapicInterrupt@{MiLapicInterrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiLapicInterrupt()}{MiLapicInterrupt()}}
+{\footnotesize\ttfamily \label{mh_8h_aa1a90154eaea0af9608b87626497ad27} 
+void Mi\+Lapic\+Interrupt (\begin{DoxyParamCaption}\item[{bool}]{scheduler\+Enabled}{, }\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00065}{65}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a877b76ed3acfb98a78dc91c97fcf3b00}\index{mh.h@{mh.h}!MiMachineCheck@{MiMachineCheck}}
+\index{MiMachineCheck@{MiMachineCheck}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiMachineCheck()}{MiMachineCheck()}}
+{\footnotesize\ttfamily \label{mh_8h_a877b76ed3acfb98a78dc91c97fcf3b00} 
+void Mi\+Machine\+Check (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00478}{478}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a1047c22886d4bbf2a7e7caae7346f50d}\index{mh.h@{mh.h}!MiNoCoprocessor@{MiNoCoprocessor}}
+\index{MiNoCoprocessor@{MiNoCoprocessor}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiNoCoprocessor()}{MiNoCoprocessor()}}
+{\footnotesize\ttfamily \label{mh_8h_a1047c22886d4bbf2a7e7caae7346f50d} 
+void Mi\+No\+Coprocessor (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00429}{429}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a3a798c50f51be9ef287efb5ecce1895b}\index{mh.h@{mh.h}!MiNonMaskableInterrupt@{MiNonMaskableInterrupt}}
+\index{MiNonMaskableInterrupt@{MiNonMaskableInterrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiNonMaskableInterrupt()}{MiNonMaskableInterrupt()}}
+{\footnotesize\ttfamily \label{mh_8h_a3a798c50f51be9ef287efb5ecce1895b} 
+\mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}} void Mi\+Non\+Maskable\+Interrupt (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00362}{362}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_ade1c26a6731345f35bf1d1bd996d5637}\index{mh.h@{mh.h}!MiOverflow@{MiOverflow}}
+\index{MiOverflow@{MiOverflow}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiOverflow()}{MiOverflow()}}
+{\footnotesize\ttfamily \label{mh_8h_ade1c26a6731345f35bf1d1bd996d5637} 
+void Mi\+Overflow (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00416}{416}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a8d50d37b7978b26e5fa59ca331097235}\index{mh.h@{mh.h}!MiPageFault@{MiPageFault}}
+\index{MiPageFault@{MiPageFault}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiPageFault()}{MiPageFault()}}
+{\footnotesize\ttfamily \label{mh_8h_a8d50d37b7978b26e5fa59ca331097235} 
+void Mi\+Page\+Fault (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00155}{155}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_af62de2896e41a8218bb2f8f7822487ec}\index{mh.h@{mh.h}!MiSegmentSelectorNotPresent@{MiSegmentSelectorNotPresent}}
+\index{MiSegmentSelectorNotPresent@{MiSegmentSelectorNotPresent}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiSegmentSelectorNotPresent()}{MiSegmentSelectorNotPresent()}}
+{\footnotesize\ttfamily \label{mh_8h_af62de2896e41a8218bb2f8f7822487ec} 
+void Mi\+Segment\+Selector\+Not\+Present (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00445}{445}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a6a79fb8170e3276d8dc65b34e7f3604b}\index{mh.h@{mh.h}!MiStackSegmentOverrun@{MiStackSegmentOverrun}}
+\index{MiStackSegmentOverrun@{MiStackSegmentOverrun}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MiStackSegmentOverrun()}{MiStackSegmentOverrun()}}
+{\footnotesize\ttfamily \label{mh_8h_a6a79fb8170e3276d8dc65b34e7f3604b} 
+void Mi\+Stack\+Segment\+Overrun (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{trap}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{handlers_8c_source_l00451}{451}} of file \mbox{\hyperlink{handlers_8c_source}{handlers.\+c}}.
+
+\Hypertarget{mh_8h_a9ce3663b57d1010d886159f6ba120e37}\index{mh.h@{mh.h}!pit\_sleep\_ms@{pit\_sleep\_ms}}
+\index{pit\_sleep\_ms@{pit\_sleep\_ms}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{pit\_sleep\_ms()}{pit\_sleep\_ms()}}
+{\footnotesize\ttfamily \label{mh_8h_a9ce3663b57d1010d886159f6ba120e37} 
+void pit\+\_\+sleep\+\_\+ms (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{ms}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pit_8c_source_l00019}{19}} of file \mbox{\hyperlink{pit_8c_source}{pit.\+c}}.
+
+\Hypertarget{mh_8h_ac7278dd3d3ff45260343a73acacf6f40}\index{mh.h@{mh.h}!set\_idt\_gate@{set\_idt\_gate}}
+\index{set\_idt\_gate@{set\_idt\_gate}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{set\_idt\_gate()}{set\_idt\_gate()}}
+{\footnotesize\ttfamily \label{mh_8h_ac7278dd3d3ff45260343a73acacf6f40} 
+void set\+\_\+idt\+\_\+gate (\begin{DoxyParamCaption}\item[{int}]{n}{, }\item[{unsigned long int}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{idt_8c_source_l00013}{13}} of file \mbox{\hyperlink{idt_8c_source}{idt.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{mh_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}\index{mh.h@{mh.h}!\_\_attribute\_\_@{\_\_attribute\_\_}}
+\index{\_\_attribute\_\_@{\_\_attribute\_\_}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{\_\_attribute\_\_}{\_\_attribute\_\_}}
+{\footnotesize\ttfamily \label{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27} 
+struct \+\_\+\+\_\+attribute\+\_\+\+\_\+}
+
+
+
+Definition at line \mbox{\hyperlink{fat32_8h_source_l00054}{54}} of file \mbox{\hyperlink{fat32_8h_source}{fat32.\+h}}.
+
+\Hypertarget{mh_8h_a86717164a1a019a14354d30ef42a6cff}\index{mh.h@{mh.h}!AccessSize@{AccessSize}}
+\index{AccessSize@{AccessSize}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AccessSize}{AccessSize}}
+{\footnotesize\ttfamily \label{mh_8h_a86717164a1a019a14354d30ef42a6cff} 
+uint8\+\_\+t Access\+Size}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00003}{3}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad7fcb88910fe5d840dc5068431020849}\index{mh.h@{mh.h}!AcpiDisable@{AcpiDisable}}
+\index{AcpiDisable@{AcpiDisable}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AcpiDisable}{AcpiDisable}}
+{\footnotesize\ttfamily \label{mh_8h_ad7fcb88910fe5d840dc5068431020849} 
+uint8\+\_\+t Acpi\+Disable}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00011}{11}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_adb98d626786bf90d532a3216b9984178}\index{mh.h@{mh.h}!AcpiEnable@{AcpiEnable}}
+\index{AcpiEnable@{AcpiEnable}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AcpiEnable}{AcpiEnable}}
+{\footnotesize\ttfamily \label{mh_8h_adb98d626786bf90d532a3216b9984178} 
+uint8\+\_\+t Acpi\+Enable}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00010}{10}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a910d8dd637ddefc515335aa801391980}\index{mh.h@{mh.h}!Address@{Address}}
+\index{Address@{Address}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Address}{Address}}
+{\footnotesize\ttfamily \label{mh_8h_a910d8dd637ddefc515335aa801391980} 
+uint64\+\_\+t Address}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00004}{4}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a49f66bea52edd0c5df30b86ff352e57d}\index{mh.h@{mh.h}!AddressSpace@{AddressSpace}}
+\index{AddressSpace@{AddressSpace}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{AddressSpace}{AddressSpace}}
+{\footnotesize\ttfamily \label{mh_8h_a49f66bea52edd0c5df30b86ff352e57d} 
+uint8\+\_\+t Address\+Space}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00000}{0}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a7824a23577849a6307c98674ea6ade79}\index{mh.h@{mh.h}!allApsInitialized@{allApsInitialized}}
+\index{allApsInitialized@{allApsInitialized}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{allApsInitialized}{allApsInitialized}}
+{\footnotesize\ttfamily \label{mh_8h_a7824a23577849a6307c98674ea6ade79} 
+bool all\+Aps\+Initialized\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00020}{20}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{mh_8h_aa5d0d10e48424ca558a29c03f43ffea8}\index{mh.h@{mh.h}!BitOffset@{BitOffset}}
+\index{BitOffset@{BitOffset}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{BitOffset}{BitOffset}}
+{\footnotesize\ttfamily \label{mh_8h_aa5d0d10e48424ca558a29c03f43ffea8} 
+uint8\+\_\+t Bit\+Offset}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00002}{2}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a38681bbafb91226657bd64bb33830cb2}\index{mh.h@{mh.h}!BitWidth@{BitWidth}}
+\index{BitWidth@{BitWidth}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{BitWidth}{BitWidth}}
+{\footnotesize\ttfamily \label{mh_8h_a38681bbafb91226657bd64bb33830cb2} 
+uint8\+\_\+t Bit\+Width}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00001}{1}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad107ba0d6038ab61be6e8caa68738f58}\index{mh.h@{mh.h}!BootArchitectureFlags@{BootArchitectureFlags}}
+\index{BootArchitectureFlags@{BootArchitectureFlags}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{BootArchitectureFlags}{BootArchitectureFlags}}
+{\footnotesize\ttfamily \label{mh_8h_ad107ba0d6038ab61be6e8caa68738f58} 
+uint16\+\_\+t Boot\+Architecture\+Flags}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00041}{41}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a4b382e4a3f35abb01759f3b9bc148e1b}\index{mh.h@{mh.h}!Century@{Century}}
+\index{Century@{Century}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Century}{Century}}
+{\footnotesize\ttfamily \label{mh_8h_a4b382e4a3f35abb01759f3b9bc148e1b} 
+uint8\+\_\+t Century}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00038}{38}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad98d5051c2e94669e746dd13771daac8}\index{mh.h@{mh.h}!Checksum@{Checksum}}
+\index{Checksum@{Checksum}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Checksum}{Checksum}}
+{\footnotesize\ttfamily \label{mh_8h_ad98d5051c2e94669e746dd13771daac8} 
+uint8\+\_\+t Checksum}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00001}{1}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a6272b1f1af76e8cf04cab46242645a5b}\index{mh.h@{mh.h}!CreatorId@{CreatorId}}
+\index{CreatorId@{CreatorId}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CreatorId}{CreatorId}}
+{\footnotesize\ttfamily \label{mh_8h_a6272b1f1af76e8cf04cab46242645a5b} 
+uint32\+\_\+t Creator\+Id}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00007}{7}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9aa897a750a4e495a08b81458797dac7}\index{mh.h@{mh.h}!CreatorRevision@{CreatorRevision}}
+\index{CreatorRevision@{CreatorRevision}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CreatorRevision}{CreatorRevision}}
+{\footnotesize\ttfamily \label{mh_8h_a9aa897a750a4e495a08b81458797dac7} 
+uint32\+\_\+t Creator\+Revision}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00008}{8}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a830cea8d95406fad7abe13d703131333}\index{mh.h@{mh.h}!CStateControl@{CStateControl}}
+\index{CStateControl@{CStateControl}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{CStateControl}{CStateControl}}
+{\footnotesize\ttfamily \label{mh_8h_a830cea8d95406fad7abe13d703131333} 
+uint8\+\_\+t CState\+Control}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00029}{29}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a656489ba8dc19532b5ab37314909378c}\index{mh.h@{mh.h}!DayAlarm@{DayAlarm}}
+\index{DayAlarm@{DayAlarm}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{DayAlarm}{DayAlarm}}
+{\footnotesize\ttfamily \label{mh_8h_a656489ba8dc19532b5ab37314909378c} 
+uint8\+\_\+t Day\+Alarm}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00036}{36}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a7fa693fc4da6b03e0e1624ab1142fb9e}\index{mh.h@{mh.h}!Dsdt@{Dsdt}}
+\index{Dsdt@{Dsdt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Dsdt}{Dsdt}}
+{\footnotesize\ttfamily \label{mh_8h_a7fa693fc4da6b03e0e1624ab1142fb9e} 
+uint32\+\_\+t Dsdt}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00002}{2}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a316a100e8eab36f8697f4b2023d0aa54}\index{mh.h@{mh.h}!DutyOffset@{DutyOffset}}
+\index{DutyOffset@{DutyOffset}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{DutyOffset}{DutyOffset}}
+{\footnotesize\ttfamily \label{mh_8h_a316a100e8eab36f8697f4b2023d0aa54} 
+uint8\+\_\+t Duty\+Offset}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00034}{34}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a19c33d74dc078d2f094aeb5ef059a9b0}\index{mh.h@{mh.h}!DutyWidth@{DutyWidth}}
+\index{DutyWidth@{DutyWidth}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{DutyWidth}{DutyWidth}}
+{\footnotesize\ttfamily \label{mh_8h_a19c33d74dc078d2f094aeb5ef059a9b0} 
+uint8\+\_\+t Duty\+Width}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00035}{35}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae2d13c336a65d7e82d42f0f9f8bbf742}\index{mh.h@{mh.h}!Entries@{Entries}}
+\index{Entries@{Entries}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Entries}{Entries}}
+{\footnotesize\ttfamily \label{mh_8h_ae2d13c336a65d7e82d42f0f9f8bbf742} 
+uint64\+\_\+t Entries\mbox{[}$\,$\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00001}{1}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aaafa048bfd677fb79ce5e6eb8369262f}\index{mh.h@{mh.h}!ExtendedChecksum@{ExtendedChecksum}}
+\index{ExtendedChecksum@{ExtendedChecksum}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{ExtendedChecksum}{ExtendedChecksum}}
+{\footnotesize\ttfamily \label{mh_8h_aaafa048bfd677fb79ce5e6eb8369262f} 
+uint8\+\_\+t Extended\+Checksum}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00008}{8}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a2ec584bfc7825f672edd5c80682ffb7b}\index{mh.h@{mh.h}!FirmwareCtrl@{FirmwareCtrl}}
+\index{FirmwareCtrl@{FirmwareCtrl}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{FirmwareCtrl}{FirmwareCtrl}}
+{\footnotesize\ttfamily \label{mh_8h_a2ec584bfc7825f672edd5c80682ffb7b} 
+uint32\+\_\+t Firmware\+Ctrl}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00001}{1}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae91751449932fe1a8fe52092a2851b9e}\index{mh.h@{mh.h}!Flags@{Flags}}
+\index{Flags@{Flags}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Flags}{Flags}}
+{\footnotesize\ttfamily \label{mh_8h_ae91751449932fe1a8fe52092a2851b9e} 
+uint32\+\_\+t Flags}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00044}{44}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a773b39d480759f67926cb18ae2219281}\index{mh.h@{mh.h}!flags@{flags}}
+\index{flags@{flags}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{flags}{flags}}
+{\footnotesize\ttfamily \label{mh_8h_a773b39d480759f67926cb18ae2219281} 
+uint32\+\_\+t flags}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00002}{2}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a764903d3ce0d9d019c6ed852c4c56122}\index{mh.h@{mh.h}!FlushSize@{FlushSize}}
+\index{FlushSize@{FlushSize}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{FlushSize}{FlushSize}}
+{\footnotesize\ttfamily \label{mh_8h_a764903d3ce0d9d019c6ed852c4c56122} 
+uint16\+\_\+t Flush\+Size}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00032}{32}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a44baebc121415602ce209788e188f55a}\index{mh.h@{mh.h}!FlushStride@{FlushStride}}
+\index{FlushStride@{FlushStride}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{FlushStride}{FlushStride}}
+{\footnotesize\ttfamily \label{mh_8h_a44baebc121415602ce209788e188f55a} 
+uint16\+\_\+t Flush\+Stride}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00033}{33}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aeaba7a02b01846190738143a0f475818}\index{mh.h@{mh.h}!GDTEntry64@{GDTEntry64}}
+\index{GDTEntry64@{GDTEntry64}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GDTEntry64}{GDTEntry64}}
+{\footnotesize\ttfamily \label{mh_8h_aeaba7a02b01846190738143a0f475818} 
+GDTEntry64}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00366}{366}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad435a6099651c4ab9cdf6de836f491ab}\index{mh.h@{mh.h}!GDTPtr@{GDTPtr}}
+\index{GDTPtr@{GDTPtr}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GDTPtr}{GDTPtr}}
+{\footnotesize\ttfamily \label{mh_8h_ad435a6099651c4ab9cdf6de836f491ab} 
+GDTPtr}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00371}{371}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9f86fc4d25bba8b1299096014dbb84db}\index{mh.h@{mh.h}!GPE0Block@{GPE0Block}}
+\index{GPE0Block@{GPE0Block}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GPE0Block}{GPE0Block}}
+{\footnotesize\ttfamily \label{mh_8h_a9f86fc4d25bba8b1299096014dbb84db} 
+uint32\+\_\+t GPE0\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00020}{20}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_acbd5ed4314136649dcb1fb3ef9ee6172}\index{mh.h@{mh.h}!GPE0Length@{GPE0Length}}
+\index{GPE0Length@{GPE0Length}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GPE0Length}{GPE0Length}}
+{\footnotesize\ttfamily \label{mh_8h_acbd5ed4314136649dcb1fb3ef9ee6172} 
+uint8\+\_\+t GPE0\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00026}{26}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a6e806d0e3a20570a78577ad42f4c56fd}\index{mh.h@{mh.h}!GPE1Base@{GPE1Base}}
+\index{GPE1Base@{GPE1Base}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GPE1Base}{GPE1Base}}
+{\footnotesize\ttfamily \label{mh_8h_a6e806d0e3a20570a78577ad42f4c56fd} 
+uint8\+\_\+t GPE1\+Base}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00028}{28}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ac145151b7be4ed0ea6a3504ca9390d63}\index{mh.h@{mh.h}!GPE1Block@{GPE1Block}}
+\index{GPE1Block@{GPE1Block}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GPE1Block}{GPE1Block}}
+{\footnotesize\ttfamily \label{mh_8h_ac145151b7be4ed0ea6a3504ca9390d63} 
+uint32\+\_\+t GPE1\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00021}{21}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a4f18b267db2ef826cc0bb2cec582ea9a}\index{mh.h@{mh.h}!GPE1Length@{GPE1Length}}
+\index{GPE1Length@{GPE1Length}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{GPE1Length}{GPE1Length}}
+{\footnotesize\ttfamily \label{mh_8h_a4f18b267db2ef826cc0bb2cec582ea9a} 
+uint8\+\_\+t GPE1\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00027}{27}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa78b7e5ae96e539a1ddf315be3f59f67}\index{mh.h@{mh.h}!h@{h}}
+\index{h@{h}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{h}{h}}
+{\footnotesize\ttfamily \label{mh_8h_aa78b7e5ae96e539a1ddf315be3f59f67} 
+struct \mbox{\hyperlink{struct___a_c_p_i___s_d_t___h_e_a_d_e_r}{\+\_\+\+ACPI\+\_\+\+SDT\+\_\+\+HEADER}} h}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00000}{0}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae2b7e438110e59abf98b568fedbbd749}\index{mh.h@{mh.h}!lapicAddress@{lapicAddress}}
+\index{lapicAddress@{lapicAddress}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{lapicAddress}{lapicAddress}}
+{\footnotesize\ttfamily \label{mh_8h_ae2b7e438110e59abf98b568fedbbd749} 
+uint32\+\_\+t lapic\+Address}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00001}{1}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}\index{mh.h@{mh.h}!Length@{Length}}
+\index{Length@{Length}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Length}{Length}}
+{\footnotesize\ttfamily \label{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0} 
+uint32\+\_\+t Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00006}{6}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a4f39b8556d46229a6d7ef1fad720dc56}\index{mh.h@{mh.h}!MonthAlarm@{MonthAlarm}}
+\index{MonthAlarm@{MonthAlarm}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{MonthAlarm}{MonthAlarm}}
+{\footnotesize\ttfamily \label{mh_8h_a4f39b8556d46229a6d7ef1fad720dc56} 
+uint8\+\_\+t Month\+Alarm}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00037}{37}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a3a8d9cae8d76cf1cdcd107b441a3ae8d}\index{mh.h@{mh.h}!OemId@{OemId}}
+\index{OemId@{OemId}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{OemId}{OemId}}
+{\footnotesize\ttfamily \label{mh_8h_a3a8d9cae8d76cf1cdcd107b441a3ae8d} 
+char Oem\+Id}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00002}{2}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a7c0e7ba8f111e575dff476135da7d6ab}\index{mh.h@{mh.h}!OemRevision@{OemRevision}}
+\index{OemRevision@{OemRevision}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{OemRevision}{OemRevision}}
+{\footnotesize\ttfamily \label{mh_8h_a7c0e7ba8f111e575dff476135da7d6ab} 
+uint32\+\_\+t Oem\+Revision}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00006}{6}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a332c15f88ec8afa72844290d47418347}\index{mh.h@{mh.h}!OemTableId@{OemTableId}}
+\index{OemTableId@{OemTableId}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{OemTableId}{OemTableId}}
+{\footnotesize\ttfamily \label{mh_8h_a332c15f88ec8afa72844290d47418347} 
+char Oem\+Table\+Id\mbox{[}8\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00005}{5}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9a826f8f6833baf87d6cdfde231b210c}\index{mh.h@{mh.h}!PM1aControlBlock@{PM1aControlBlock}}
+\index{PM1aControlBlock@{PM1aControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1aControlBlock}{PM1aControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a9a826f8f6833baf87d6cdfde231b210c} 
+uint32\+\_\+t PM1a\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00016}{16}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1feb2f87b6456c949ea35a88e334b318}\index{mh.h@{mh.h}!PM1aEventBlock@{PM1aEventBlock}}
+\index{PM1aEventBlock@{PM1aEventBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1aEventBlock}{PM1aEventBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a1feb2f87b6456c949ea35a88e334b318} 
+uint32\+\_\+t PM1a\+Event\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00014}{14}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_acd7a988f5a68135705bce7b2d11974a2}\index{mh.h@{mh.h}!PM1bControlBlock@{PM1bControlBlock}}
+\index{PM1bControlBlock@{PM1bControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1bControlBlock}{PM1bControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_acd7a988f5a68135705bce7b2d11974a2} 
+uint32\+\_\+t PM1b\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00017}{17}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa01de084cdf2a1b7d0be21a1e221e30d}\index{mh.h@{mh.h}!PM1bEventBlock@{PM1bEventBlock}}
+\index{PM1bEventBlock@{PM1bEventBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1bEventBlock}{PM1bEventBlock}}
+{\footnotesize\ttfamily \label{mh_8h_aa01de084cdf2a1b7d0be21a1e221e30d} 
+uint32\+\_\+t PM1b\+Event\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00015}{15}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_adbab2efc1dd984fe6886ce40afca54b3}\index{mh.h@{mh.h}!PM1ControlLength@{PM1ControlLength}}
+\index{PM1ControlLength@{PM1ControlLength}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1ControlLength}{PM1ControlLength}}
+{\footnotesize\ttfamily \label{mh_8h_adbab2efc1dd984fe6886ce40afca54b3} 
+uint8\+\_\+t PM1\+Control\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00023}{23}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_afb7ffaf233571a91ac67167598a3c4f6}\index{mh.h@{mh.h}!PM1EventLength@{PM1EventLength}}
+\index{PM1EventLength@{PM1EventLength}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM1EventLength}{PM1EventLength}}
+{\footnotesize\ttfamily \label{mh_8h_afb7ffaf233571a91ac67167598a3c4f6} 
+uint8\+\_\+t PM1\+Event\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00022}{22}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a63f883b09877d4a852e5a9b1ba25e8cc}\index{mh.h@{mh.h}!PM2ControlBlock@{PM2ControlBlock}}
+\index{PM2ControlBlock@{PM2ControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM2ControlBlock}{PM2ControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a63f883b09877d4a852e5a9b1ba25e8cc} 
+uint32\+\_\+t PM2\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00018}{18}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae30a5c4702b418a8cb9c175c7e853774}\index{mh.h@{mh.h}!PM2ControlLength@{PM2ControlLength}}
+\index{PM2ControlLength@{PM2ControlLength}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PM2ControlLength}{PM2ControlLength}}
+{\footnotesize\ttfamily \label{mh_8h_ae30a5c4702b418a8cb9c175c7e853774} 
+uint8\+\_\+t PM2\+Control\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00024}{24}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9e115c76284ffb3ea1b3b4e8125f8ebc}\index{mh.h@{mh.h}!PMTimerBlock@{PMTimerBlock}}
+\index{PMTimerBlock@{PMTimerBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PMTimerBlock}{PMTimerBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a9e115c76284ffb3ea1b3b4e8125f8ebc} 
+uint32\+\_\+t PMTimer\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00019}{19}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1dc2a9915615bb7c462e648ccde0c6ac}\index{mh.h@{mh.h}!PMTimerLength@{PMTimerLength}}
+\index{PMTimerLength@{PMTimerLength}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PMTimerLength}{PMTimerLength}}
+{\footnotesize\ttfamily \label{mh_8h_a1dc2a9915615bb7c462e648ccde0c6ac} 
+uint8\+\_\+t PMTimer\+Length}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00025}{25}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_afe03fa1f52580d2ab850d894baa2109e}\index{mh.h@{mh.h}!PreferredPowerManagementProfile@{PreferredPowerManagementProfile}}
+\index{PreferredPowerManagementProfile@{PreferredPowerManagementProfile}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PreferredPowerManagementProfile}{PreferredPowerManagementProfile}}
+{\footnotesize\ttfamily \label{mh_8h_afe03fa1f52580d2ab850d894baa2109e} 
+uint8\+\_\+t Preferred\+Power\+Management\+Profile}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00007}{7}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ae2b1407ed48e29f527ed4d39dc0a9a0d}\index{mh.h@{mh.h}!PSTATE\_Control@{PSTATE\_Control}}
+\index{PSTATE\_Control@{PSTATE\_Control}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{PSTATE\_Control}{PSTATE\_Control}}
+{\footnotesize\ttfamily \label{mh_8h_ae2b1407ed48e29f527ed4d39dc0a9a0d} 
+uint8\+\_\+t PSTATE\+\_\+\+Control}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00013}{13}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a0ec9b7390bdadad883d9e67a1a44f759}\index{mh.h@{mh.h}!Reserved@{Reserved}}
+\index{Reserved@{Reserved}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Reserved}{Reserved}}
+{\footnotesize\ttfamily \label{mh_8h_a0ec9b7390bdadad883d9e67a1a44f759} 
+uint8\+\_\+t Reserved}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00009}{9}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aad9cf2ef13b53ee603c033aed0c3b986}\index{mh.h@{mh.h}!Reserved2@{Reserved2}}
+\index{Reserved2@{Reserved2}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Reserved2}{Reserved2}}
+{\footnotesize\ttfamily \label{mh_8h_aad9cf2ef13b53ee603c033aed0c3b986} 
+uint8\+\_\+t Reserved2}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00043}{43}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1c94fa883b208631c0b49f8f031a1465}\index{mh.h@{mh.h}!Reserved3@{Reserved3}}
+\index{Reserved3@{Reserved3}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Reserved3}{Reserved3}}
+{\footnotesize\ttfamily \label{mh_8h_a1c94fa883b208631c0b49f8f031a1465} 
+uint8\+\_\+t Reserved3\mbox{[}3\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00050}{50}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aee5ba26e9b3254f84c3c65ff36fa0e46}\index{mh.h@{mh.h}!ResetReg@{ResetReg}}
+\index{ResetReg@{ResetReg}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{ResetReg}{ResetReg}}
+{\footnotesize\ttfamily \label{mh_8h_aee5ba26e9b3254f84c3c65ff36fa0e46} 
+Generic\+Address\+Structure Reset\+Reg}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00047}{47}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ad8097fc48ffb7320c83037d6c348aa91}\index{mh.h@{mh.h}!ResetValue@{ResetValue}}
+\index{ResetValue@{ResetValue}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{ResetValue}{ResetValue}}
+{\footnotesize\ttfamily \label{mh_8h_ad8097fc48ffb7320c83037d6c348aa91} 
+uint8\+\_\+t Reset\+Value}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00049}{49}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a55eb3228cf0540a1e7ee4fa81453e29c}\index{mh.h@{mh.h}!Revision@{Revision}}
+\index{Revision@{Revision}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Revision}{Revision}}
+{\footnotesize\ttfamily \label{mh_8h_a55eb3228cf0540a1e7ee4fa81453e29c} 
+uint8\+\_\+t Revision}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00003}{3}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a58214123c08a44c6b63b2890d0d25db8}\index{mh.h@{mh.h}!RsdtAddress@{RsdtAddress}}
+\index{RsdtAddress@{RsdtAddress}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{RsdtAddress}{RsdtAddress}}
+{\footnotesize\ttfamily \label{mh_8h_a58214123c08a44c6b63b2890d0d25db8} 
+uint32\+\_\+t Rsdt\+Address}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00004}{4}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a8e5e27beeb23b6f4acc90d96d871105a}\index{mh.h@{mh.h}!S4BIOS\_REQ@{S4BIOS\_REQ}}
+\index{S4BIOS\_REQ@{S4BIOS\_REQ}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{S4BIOS\_REQ}{S4BIOS\_REQ}}
+{\footnotesize\ttfamily \label{mh_8h_a8e5e27beeb23b6f4acc90d96d871105a} 
+uint8\+\_\+t S4\+BIOS\+\_\+\+REQ}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00012}{12}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_ab5b053f5985bff1b4c327b9c1b04a506}\index{mh.h@{mh.h}!SCI\_Interrupt@{SCI\_Interrupt}}
+\index{SCI\_Interrupt@{SCI\_Interrupt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{SCI\_Interrupt}{SCI\_Interrupt}}
+{\footnotesize\ttfamily \label{mh_8h_ab5b053f5985bff1b4c327b9c1b04a506} 
+uint16\+\_\+t SCI\+\_\+\+Interrupt}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00008}{8}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1630123d7acfb024f41f27c94c0507ec}\index{mh.h@{mh.h}!Signature@{Signature}}
+\index{Signature@{Signature}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{Signature}{Signature}}
+{\footnotesize\ttfamily \label{mh_8h_a1630123d7acfb024f41f27c94c0507ec} 
+char Signature}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00000}{0}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a35e1367b88e4a8acd3545c9b6cecd80d}\index{mh.h@{mh.h}!SMI\_CommandPort@{SMI\_CommandPort}}
+\index{SMI\_CommandPort@{SMI\_CommandPort}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{SMI\_CommandPort}{SMI\_CommandPort}}
+{\footnotesize\ttfamily \label{mh_8h_a35e1367b88e4a8acd3545c9b6cecd80d} 
+uint32\+\_\+t SMI\+\_\+\+Command\+Port}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00009}{9}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a285eda0d627fa197281e464090d7df58}\index{mh.h@{mh.h}!smp\_cpu\_count@{smp\_cpu\_count}}
+\index{smp\_cpu\_count@{smp\_cpu\_count}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{smp\_cpu\_count}{smp\_cpu\_count}}
+{\footnotesize\ttfamily \label{mh_8h_a285eda0d627fa197281e464090d7df58} 
+int smp\+\_\+cpu\+\_\+count\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{smp_8c_source_l00017}{17}} of file \mbox{\hyperlink{smp_8c_source}{smp.\+c}}.
+
+\Hypertarget{mh_8h_a34f4b05cf0ef8172c66bc051f624d3eb}\index{mh.h@{mh.h}!smpInitialized@{smpInitialized}}
+\index{smpInitialized@{smpInitialized}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{smpInitialized}{smpInitialized}}
+{\footnotesize\ttfamily \label{mh_8h_a34f4b05cf0ef8172c66bc051f624d3eb} 
+bool smp\+Initialized\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00146}{146}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+
+\Hypertarget{mh_8h_a551bc8d7a0424e7bc3d995ba61440b22}\index{mh.h@{mh.h}!TSS@{TSS}}
+\index{TSS@{TSS}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{TSS}{TSS}}
+{\footnotesize\ttfamily \label{mh_8h_a551bc8d7a0424e7bc3d995ba61440b22} 
+TSS}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00383}{383}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a3d07eb04e424a1c4e5807a8ba3ff603b}\index{mh.h@{mh.h}!WorstC2Latency@{WorstC2Latency}}
+\index{WorstC2Latency@{WorstC2Latency}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{WorstC2Latency}{WorstC2Latency}}
+{\footnotesize\ttfamily \label{mh_8h_a3d07eb04e424a1c4e5807a8ba3ff603b} 
+uint16\+\_\+t Worst\+C2\+Latency}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00030}{30}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a8415185ea68f95991fd73b6e4681debc}\index{mh.h@{mh.h}!WorstC3Latency@{WorstC3Latency}}
+\index{WorstC3Latency@{WorstC3Latency}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{WorstC3Latency}{WorstC3Latency}}
+{\footnotesize\ttfamily \label{mh_8h_a8415185ea68f95991fd73b6e4681debc} 
+uint16\+\_\+t Worst\+C3\+Latency}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00031}{31}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a07482b1889986b36f97627520d8244be}\index{mh.h@{mh.h}!X\_Dsdt@{X\_Dsdt}}
+\index{X\_Dsdt@{X\_Dsdt}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_Dsdt}{X\_Dsdt}}
+{\footnotesize\ttfamily \label{mh_8h_a07482b1889986b36f97627520d8244be} 
+uint64\+\_\+t X\+\_\+\+Dsdt}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00054}{54}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_af7f5f67616d83ec31a4e158d3825ebe2}\index{mh.h@{mh.h}!X\_FirmwareControl@{X\_FirmwareControl}}
+\index{X\_FirmwareControl@{X\_FirmwareControl}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_FirmwareControl}{X\_FirmwareControl}}
+{\footnotesize\ttfamily \label{mh_8h_af7f5f67616d83ec31a4e158d3825ebe2} 
+uint64\+\_\+t X\+\_\+\+Firmware\+Control}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00053}{53}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a521241ecda0122e52f4edb31cf92f82a}\index{mh.h@{mh.h}!X\_GPE0Block@{X\_GPE0Block}}
+\index{X\_GPE0Block@{X\_GPE0Block}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_GPE0Block}{X\_GPE0Block}}
+{\footnotesize\ttfamily \label{mh_8h_a521241ecda0122e52f4edb31cf92f82a} 
+Generic\+Address\+Structure X\+\_\+\+GPE0\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00062}{62}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa7df1eee0fdb4b871fb580091f046bef}\index{mh.h@{mh.h}!X\_GPE1Block@{X\_GPE1Block}}
+\index{X\_GPE1Block@{X\_GPE1Block}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_GPE1Block}{X\_GPE1Block}}
+{\footnotesize\ttfamily \label{mh_8h_aa7df1eee0fdb4b871fb580091f046bef} 
+Generic\+Address\+Structure X\+\_\+\+GPE1\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00063}{63}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a642c37a43a222ac1e1a06911c2bf3453}\index{mh.h@{mh.h}!X\_PM1aControlBlock@{X\_PM1aControlBlock}}
+\index{X\_PM1aControlBlock@{X\_PM1aControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PM1aControlBlock}{X\_PM1aControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a642c37a43a222ac1e1a06911c2bf3453} 
+Generic\+Address\+Structure X\+\_\+\+PM1a\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00058}{58}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a51c50ce35f904157ae77ca7e0c041ca9}\index{mh.h@{mh.h}!X\_PM1aEventBlock@{X\_PM1aEventBlock}}
+\index{X\_PM1aEventBlock@{X\_PM1aEventBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PM1aEventBlock}{X\_PM1aEventBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a51c50ce35f904157ae77ca7e0c041ca9} 
+Generic\+Address\+Structure X\+\_\+\+PM1a\+Event\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00056}{56}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a830bcc6493b1e0fe85a55ddfebab1ce8}\index{mh.h@{mh.h}!X\_PM1bControlBlock@{X\_PM1bControlBlock}}
+\index{X\_PM1bControlBlock@{X\_PM1bControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PM1bControlBlock}{X\_PM1bControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a830bcc6493b1e0fe85a55ddfebab1ce8} 
+Generic\+Address\+Structure X\+\_\+\+PM1b\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00059}{59}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_acdc48fe055e018d8ec2a122bccb69577}\index{mh.h@{mh.h}!X\_PM1bEventBlock@{X\_PM1bEventBlock}}
+\index{X\_PM1bEventBlock@{X\_PM1bEventBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PM1bEventBlock}{X\_PM1bEventBlock}}
+{\footnotesize\ttfamily \label{mh_8h_acdc48fe055e018d8ec2a122bccb69577} 
+Generic\+Address\+Structure X\+\_\+\+PM1b\+Event\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00057}{57}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a1007272aadb2d3edb4c1a03d7c29a6a3}\index{mh.h@{mh.h}!X\_PM2ControlBlock@{X\_PM2ControlBlock}}
+\index{X\_PM2ControlBlock@{X\_PM2ControlBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PM2ControlBlock}{X\_PM2ControlBlock}}
+{\footnotesize\ttfamily \label{mh_8h_a1007272aadb2d3edb4c1a03d7c29a6a3} 
+Generic\+Address\+Structure X\+\_\+\+PM2\+Control\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00060}{60}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_aa7865a490ddbe0a1fcf33b1ac6bfa8d7}\index{mh.h@{mh.h}!X\_PMTimerBlock@{X\_PMTimerBlock}}
+\index{X\_PMTimerBlock@{X\_PMTimerBlock}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{X\_PMTimerBlock}{X\_PMTimerBlock}}
+{\footnotesize\ttfamily \label{mh_8h_aa7865a490ddbe0a1fcf33b1ac6bfa8d7} 
+Generic\+Address\+Structure X\+\_\+\+PMTimer\+Block}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00061}{61}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+
+\Hypertarget{mh_8h_a9b9a9e2994860f31d3f38248daa196d6}\index{mh.h@{mh.h}!XsdtAddress@{XsdtAddress}}
+\index{XsdtAddress@{XsdtAddress}!mh.h@{mh.h}}
+\doxysubsubsection{\texorpdfstring{XsdtAddress}{XsdtAddress}}
+{\footnotesize\ttfamily \label{mh_8h_a9b9a9e2994860f31d3f38248daa196d6} 
+uint64\+\_\+t Xsdt\+Address}
+
+
+
+Definition at line \mbox{\hyperlink{mh_8h_source_l00007}{7}} of file \mbox{\hyperlink{mh_8h_source}{mh.\+h}}.
+

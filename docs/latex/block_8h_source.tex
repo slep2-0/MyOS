@@ -1,0 +1,35 @@
+\doxysection{block.\+h}
+\hypertarget{block_8h_source}{}\label{block_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/drivers/blk/block.h}}
+\mbox{\hyperlink{block_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00001}00001\ \textcolor{comment}{//\ kernel/drivers/blk/block.h}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00002}00002\ \textcolor{preprocessor}{\#ifndef\ X86\_KERNEL\_DRIVER\_BLK\_BLOCK\_H}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00003}00003\ \textcolor{preprocessor}{\#define\ X86\_KERNEL\_DRIVER\_BLK\_BLOCK\_H}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00004}00004\ }
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00005}00005\ \textcolor{comment}{//\ Standard\ headers,\ required.}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00006}00006\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00007}00007\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00008}00008\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mtstatus_8h}{../../mtstatus.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00011}\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{00011}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\_BLOCK\_DEVICE}}\ \{}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00012}\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a8e37cfed3f193b5e4a151570d4a9ec05}{00012}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a8e37cfed3f193b5e4a151570d4a9ec05}{read\_sector}})(\textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\_BLOCK\_DEVICE}}*\ dev,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00013}00013\ \ \ \ \ \ \ \ \ uint32\_t\ lba,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00014}00014\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ buf,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00015}00015\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ bytes);}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00016}\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_ac868ac234910b1a924bbdc3e931006a7}{00016}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_ac868ac234910b1a924bbdc3e931006a7}{write\_sector}})(\textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e}{\_BLOCK\_DEVICE}}*\ dev,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00017}00017\ \ \ \ \ \ \ \ \ uint32\_t\ lba,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00018}00018\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buf,}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00019}00019\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ bytes);}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00020}\mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a640bb2cf7d104dc9f801e9820d5526f8}{00020}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct___b_l_o_c_k___d_e_v_i_c_e_a640bb2cf7d104dc9f801e9820d5526f8}{dev\_data}};}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00021}\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{00021}}\ \}\ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}};}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00023}00023\ \textcolor{comment}{/*\ Register\ a\ block\ device\ so\ \`{}get\_block\_device()`\ can\ find\ it\ */}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00024}00024\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{block_8h_a5907b72093bd3ea0bee7c7409d3a6090}{register\_block\_device}}(\mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ dev);}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00026}00026\ \textcolor{comment}{/*\ Get\ the\ "{}n"{}\ registered\ device\ (0,\ 1,\ ...),\ or\ NULL\ if\ out\ of\ range.\ */}}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00027}00027\ \mbox{\hyperlink{block_8h_a1e03bdef1501e96036b676dc18e71787}{BLOCK\_DEVICE}}*\ \mbox{\hyperlink{block_8h_ac7446440486f68f8b12119a25eb9740b}{get\_block\_device}}(\textcolor{keywordtype}{int}\ index);}
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{block_8h_source_l00029}00029\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ X86\_KERNEL\_DRIVER\_BLK\_BLOCK\_H}}
+
+\end{DoxyCode}

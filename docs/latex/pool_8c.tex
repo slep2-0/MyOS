@@ -1,0 +1,150 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/pool.c File Reference}
+\hypertarget{pool_8c}{}\label{pool_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pool.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pool.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{pool_8c_a94d82461068fff0c39a4706512e69e16}{POOL\+\_\+\+TYPE\+\_\+\+GLOBAL}}~9999
+\item 
+\#define \mbox{\hyperlink{pool_8c_a17602c624b776a7d09ad2f2251f88413}{POOL\+\_\+\+TYPE\+\_\+\+PAGED}}~1234
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{pool_8c_a6f58ffe02bda12e8208613e52e80e4a0}{Mi\+Initialize\+Pool\+System}} (void)
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{Mm\+Allocate\+Pool\+With\+Tag}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} enum \mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bdd}{\+\_\+\+POOL\+\_\+\+TYPE}} Pool\+Type, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t Tag)
+\item 
+void \mbox{\hyperlink{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748}{Mm\+Free\+Pool}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}buf)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mm_8h_a61eb1fdc33ff0e8ba286ff833a6a0e8f}{POOL\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{pool_8c_ac0c30c6947e5272d49a853f69a6bb001}{Global\+Pool}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{pool_8c_a167345c073ad2870a9c535ae05b42a6c}{Mm\+Non\+Paged\+Pool\+Start}} = 0
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{pool_8c_a06958d3a08ad9a0333993918819978b8}{Mm\+Non\+Paged\+Pool\+End}} = 0
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{pool_8c_ac1a426153d364925600366b61092bc86}{Mm\+Paged\+Pool\+Start}} = 0
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{pool_8c_acb7eccaaa7f68d8904d713eeadebafdf}{Mm\+Paged\+Pool\+End}} = 0
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{pool_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{pool_8c_a94d82461068fff0c39a4706512e69e16}\index{pool.c@{pool.c}!POOL\_TYPE\_GLOBAL@{POOL\_TYPE\_GLOBAL}}
+\index{POOL\_TYPE\_GLOBAL@{POOL\_TYPE\_GLOBAL}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{POOL\_TYPE\_GLOBAL}{POOL\_TYPE\_GLOBAL}}
+{\footnotesize\ttfamily \label{pool_8c_a94d82461068fff0c39a4706512e69e16} 
+\#define POOL\+\_\+\+TYPE\+\_\+\+GLOBAL~9999}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00027}{27}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_a17602c624b776a7d09ad2f2251f88413}\index{pool.c@{pool.c}!POOL\_TYPE\_PAGED@{POOL\_TYPE\_PAGED}}
+\index{POOL\_TYPE\_PAGED@{POOL\_TYPE\_PAGED}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{POOL\_TYPE\_PAGED}{POOL\_TYPE\_PAGED}}
+{\footnotesize\ttfamily \label{pool_8c_a17602c624b776a7d09ad2f2251f88413} 
+\#define POOL\+\_\+\+TYPE\+\_\+\+PAGED~1234}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00028}{28}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{pool_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{pool_8c_a6f58ffe02bda12e8208613e52e80e4a0}\index{pool.c@{pool.c}!MiInitializePoolSystem@{MiInitializePoolSystem}}
+\index{MiInitializePoolSystem@{MiInitializePoolSystem}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MiInitializePoolSystem()}{MiInitializePoolSystem()}}
+{\footnotesize\ttfamily \label{pool_8c_a6f58ffe02bda12e8208613e52e80e4a0} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mi\+Initialize\+Pool\+System (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00036}{36}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}\index{pool.c@{pool.c}!MmAllocatePoolWithTag@{MmAllocatePoolWithTag}}
+\index{MmAllocatePoolWithTag@{MmAllocatePoolWithTag}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmAllocatePoolWithTag()}{MmAllocatePoolWithTag()}}
+{\footnotesize\ttfamily \label{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1} 
+void \texorpdfstring{$\ast$}{*} Mm\+Allocate\+Pool\+With\+Tag (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} enum \mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bdd}{\+\_\+\+POOL\+\_\+\+TYPE}}}]{Pool\+Type}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t}]{Tag}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00427}{427}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748}\index{pool.c@{pool.c}!MmFreePool@{MmFreePool}}
+\index{MmFreePool@{MmFreePool}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmFreePool()}{MmFreePool()}}
+{\footnotesize\ttfamily \label{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748} 
+void Mm\+Free\+Pool (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{buf}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00586}{586}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{pool_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{pool_8c_ac0c30c6947e5272d49a853f69a6bb001}\index{pool.c@{pool.c}!GlobalPool@{GlobalPool}}
+\index{GlobalPool@{GlobalPool}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{GlobalPool}{GlobalPool}}
+{\footnotesize\ttfamily \label{pool_8c_ac0c30c6947e5272d49a853f69a6bb001} 
+\mbox{\hyperlink{mm_8h_a61eb1fdc33ff0e8ba286ff833a6a0e8f}{POOL\+\_\+\+DESCRIPTOR}} Global\+Pool}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00025}{25}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_a06958d3a08ad9a0333993918819978b8}\index{pool.c@{pool.c}!MmNonPagedPoolEnd@{MmNonPagedPoolEnd}}
+\index{MmNonPagedPoolEnd@{MmNonPagedPoolEnd}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmNonPagedPoolEnd}{MmNonPagedPoolEnd}}
+{\footnotesize\ttfamily \label{pool_8c_a06958d3a08ad9a0333993918819978b8} 
+uintptr\+\_\+t Mm\+Non\+Paged\+Pool\+End = 0}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00031}{31}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_a167345c073ad2870a9c535ae05b42a6c}\index{pool.c@{pool.c}!MmNonPagedPoolStart@{MmNonPagedPoolStart}}
+\index{MmNonPagedPoolStart@{MmNonPagedPoolStart}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmNonPagedPoolStart}{MmNonPagedPoolStart}}
+{\footnotesize\ttfamily \label{pool_8c_a167345c073ad2870a9c535ae05b42a6c} 
+uintptr\+\_\+t Mm\+Non\+Paged\+Pool\+Start = 0}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00030}{30}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_acb7eccaaa7f68d8904d713eeadebafdf}\index{pool.c@{pool.c}!MmPagedPoolEnd@{MmPagedPoolEnd}}
+\index{MmPagedPoolEnd@{MmPagedPoolEnd}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmPagedPoolEnd}{MmPagedPoolEnd}}
+{\footnotesize\ttfamily \label{pool_8c_acb7eccaaa7f68d8904d713eeadebafdf} 
+uintptr\+\_\+t Mm\+Paged\+Pool\+End = 0}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00033}{33}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+
+\Hypertarget{pool_8c_ac1a426153d364925600366b61092bc86}\index{pool.c@{pool.c}!MmPagedPoolStart@{MmPagedPoolStart}}
+\index{MmPagedPoolStart@{MmPagedPoolStart}!pool.c@{pool.c}}
+\doxysubsubsection{\texorpdfstring{MmPagedPoolStart}{MmPagedPoolStart}}
+{\footnotesize\ttfamily \label{pool_8c_ac1a426153d364925600366b61092bc86} 
+uintptr\+\_\+t Mm\+Paged\+Pool\+Start = 0}
+
+
+
+Definition at line \mbox{\hyperlink{pool_8c_source_l00032}{32}} of file \mbox{\hyperlink{pool_8c_source}{pool.\+c}}.
+

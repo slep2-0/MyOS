@@ -1,0 +1,123 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/hypermap.c File Reference}
+\hypertarget{hypermap_8c}{}\label{hypermap_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/hypermap.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/hypermap.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mh.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{hypermap_8c_a9a030194aa32a92a3504947a77e44945}{HYPERMAP\+\_\+\+VIRTUAL\+\_\+\+ADDRESS}}~\mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{Physical\+Memory\+Offset}}
+\item 
+\#define \mbox{\hyperlink{hypermap_8c_a979672ff6f9bf90141b67720b4af82de}{LOCK\+\_\+\+HYPERSPACE}}(Ptr\+Old\+Irql)
+\item 
+\#define \mbox{\hyperlink{hypermap_8c_aee90cdec2325a1b7f647ac1af3de003d}{UNLOCK\+\_\+\+HYPERSPACE}}(Old\+Irql)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{hypermap_8c_a9e3de9aacb781db1acf2815ec071f30e}{Mi\+Map\+Page\+In\+Hyperspace}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t Pfn\+Index, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}} Old\+Irql)
+\item 
+void \mbox{\hyperlink{hypermap_8c_ad57ae3b2e037c15c00dfe55b252e7fc8}{Mi\+Unmap\+Hyper\+Space\+Map}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} Old\+Irql)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{hypermap_8c_addf2d8238e04aeae15f172f732d57bbd}{Hyper\+Lock}}
+\item 
+\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}} \mbox{\hyperlink{hypermap_8c_a1564f5593aaf0b20562692940b28ac3e}{g\+\_\+pfn\+In\+Use}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{hypermap_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{hypermap_8c_a9a030194aa32a92a3504947a77e44945}\index{hypermap.c@{hypermap.c}!HYPERMAP\_VIRTUAL\_ADDRESS@{HYPERMAP\_VIRTUAL\_ADDRESS}}
+\index{HYPERMAP\_VIRTUAL\_ADDRESS@{HYPERMAP\_VIRTUAL\_ADDRESS}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{HYPERMAP\_VIRTUAL\_ADDRESS}{HYPERMAP\_VIRTUAL\_ADDRESS}}
+{\footnotesize\ttfamily \label{hypermap_8c_a9a030194aa32a92a3504947a77e44945} 
+\#define HYPERMAP\+\_\+\+VIRTUAL\+\_\+\+ADDRESS~\mbox{\hyperlink{mm_8h_aa1cd9b3c456e6501f130ba4f13636192}{Physical\+Memory\+Offset}}}
+
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00024}{24}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+\Hypertarget{hypermap_8c_a979672ff6f9bf90141b67720b4af82de}\index{hypermap.c@{hypermap.c}!LOCK\_HYPERSPACE@{LOCK\_HYPERSPACE}}
+\index{LOCK\_HYPERSPACE@{LOCK\_HYPERSPACE}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{LOCK\_HYPERSPACE}{LOCK\_HYPERSPACE}}
+{\footnotesize\ttfamily \label{hypermap_8c_a979672ff6f9bf90141b67720b4af82de} 
+\#define LOCK\+\_\+\+HYPERSPACE(\begin{DoxyParamCaption}\item[{}]{Ptr\+Old\+Irql}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&\mbox{\hyperlink{hypermap_8c_addf2d8238e04aeae15f172f732d57bbd}{HyperLock}},\ PtrOldIrql)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00029}{29}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+\Hypertarget{hypermap_8c_aee90cdec2325a1b7f647ac1af3de003d}\index{hypermap.c@{hypermap.c}!UNLOCK\_HYPERSPACE@{UNLOCK\_HYPERSPACE}}
+\index{UNLOCK\_HYPERSPACE@{UNLOCK\_HYPERSPACE}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{UNLOCK\_HYPERSPACE}{UNLOCK\_HYPERSPACE}}
+{\footnotesize\ttfamily \label{hypermap_8c_aee90cdec2325a1b7f647ac1af3de003d} 
+\#define UNLOCK\+\_\+\+HYPERSPACE(\begin{DoxyParamCaption}\item[{}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&\mbox{\hyperlink{hypermap_8c_addf2d8238e04aeae15f172f732d57bbd}{HyperLock}},\ OldIrql)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00030}{30}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{hypermap_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{hypermap_8c_a9e3de9aacb781db1acf2815ec071f30e}\index{hypermap.c@{hypermap.c}!MiMapPageInHyperspace@{MiMapPageInHyperspace}}
+\index{MiMapPageInHyperspace@{MiMapPageInHyperspace}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{MiMapPageInHyperspace()}{MiMapPageInHyperspace()}}
+{\footnotesize\ttfamily \label{hypermap_8c_a9e3de9aacb781db1acf2815ec071f30e} 
+void \texorpdfstring{$\ast$}{*} Mi\+Map\+Page\+In\+Hyperspace (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{Pfn\+Index}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00033}{33}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+\Hypertarget{hypermap_8c_ad57ae3b2e037c15c00dfe55b252e7fc8}\index{hypermap.c@{hypermap.c}!MiUnmapHyperSpaceMap@{MiUnmapHyperSpaceMap}}
+\index{MiUnmapHyperSpaceMap@{MiUnmapHyperSpaceMap}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{MiUnmapHyperSpaceMap()}{MiUnmapHyperSpaceMap()}}
+{\footnotesize\ttfamily \label{hypermap_8c_ad57ae3b2e037c15c00dfe55b252e7fc8} 
+void Mi\+Unmap\+Hyper\+Space\+Map (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00083}{83}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{hypermap_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{hypermap_8c_a1564f5593aaf0b20562692940b28ac3e}\index{hypermap.c@{hypermap.c}!g\_pfnInUse@{g\_pfnInUse}}
+\index{g\_pfnInUse@{g\_pfnInUse}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{g\_pfnInUse}{g\_pfnInUse}}
+{\footnotesize\ttfamily \label{hypermap_8c_a1564f5593aaf0b20562692940b28ac3e} 
+\mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\+\_\+\+ENTRY}} g\+\_\+pfn\+In\+Use}
+
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00027}{27}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+
+\Hypertarget{hypermap_8c_addf2d8238e04aeae15f172f732d57bbd}\index{hypermap.c@{hypermap.c}!HyperLock@{HyperLock}}
+\index{HyperLock@{HyperLock}!hypermap.c@{hypermap.c}}
+\doxysubsubsection{\texorpdfstring{HyperLock}{HyperLock}}
+{\footnotesize\ttfamily \label{hypermap_8c_addf2d8238e04aeae15f172f732d57bbd} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Hyper\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{hypermap_8c_source_l00026}{26}} of file \mbox{\hyperlink{hypermap_8c_source}{hypermap.\+c}}.
+

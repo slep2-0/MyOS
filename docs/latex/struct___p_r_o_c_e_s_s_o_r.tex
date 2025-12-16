@@ -1,0 +1,506 @@
+\doxysection{\+\_\+\+PROCESSOR Struct Reference}
+\hypertarget{struct___p_r_o_c_e_s_s_o_r}{}\label{struct___p_r_o_c_e_s_s_o_r}\index{\_PROCESSOR@{\_PROCESSOR}}
+
+
+{\ttfamily \#include $<$me.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r}{\+\_\+\+PROCESSOR}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac32edc8b4163f7ec55a3da241918be46}{self}}
+\item 
+enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}{current\+Irql}}
+\item 
+volatile bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a18064996902c47642fa42faed7fbb9d5}{scheduler\+Enabled}}
+\item 
+struct \mbox{\hyperlink{struct___i_t_h_r_e_a_d}{\+\_\+\+ITHREAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}{current\+Thread}}
+\item 
+struct \mbox{\hyperlink{struct___queue}{\+\_\+\+Queue}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0e1bee91c77868b3b8fdbe7328e64374}{ready\+Queue}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a505f98fde467109a9b37b3c7e008df91}{ID}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a65dfeadd7816e1e5230ca676607263c7}{lapic\+\_\+\+ID}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aca1a50452c2a906b5a82e759ae124a8f}{Virt\+Stack\+Top}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a9da901146dc0bf13178be01a88b0dfdf}{tss}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a9a4ba49e4920492c871b275c69d39af0}{Rsp0}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_af1f7719875e520021a80bbffb388afed}{Ist\+PFStack\+Top}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_acaa9fe8e5da8274655948591264c29ae}{Ist\+DFStack\+Top}}
+\item 
+volatile uint64\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}{flags}}
+\item 
+bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac655daa31afa0f77124f1b5c86b8a048}{schedule\+Pending}}
+\item 
+uint64\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a844d9a19f07fc7c6a7d89c7ef4d7e689}{gdt}}
+\item 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0831e8262ba92e5998b1bec18f5f31e3}{Current\+Deferred\+Routine}}
+\item 
+struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}{idle\+Thread}}
+\item 
+volatile uint64\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aa3721138f6c7e7e000ae66e2baccc189}{Ipi\+Seq}}
+\item 
+enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aa69959a4b611916dc14a67f87a0197f2}{Ipi\+Action}}
+\item 
+volatile \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}{Ipi\+Parameter}}
+\item 
+volatile uint32\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}{Lapic\+Address\+Virt}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac8a16604f61ff001a4946acebaa4aafa}{Lapic\+Address\+Phys}}
+\item 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_aadbb4ebe13515cbf5ed04027255e9ef6}{Timer\+Expiration\+DPC}}
+\item 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a03b5efc308a6f0617ad6317476af9e44}{Reaper\+DPC}}
+\item 
+\mbox{\hyperlink{me_8h_ac6cb6b211f5ebac8676c48c5b4f9153a}{DPC\+\_\+\+DATA}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a8c3412414cd69fe255159c3ad61e6580}{Dpc\+Data}}
+\item 
+volatile bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a6bfb22756c90a50ccc04b2a86c40cfa7}{Dpc\+Routine\+Active}}
+\item 
+volatile uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a9c6caac8d54308792ee29f225b85b9f2}{Timer\+Request}}
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a5727b302d0d297235cacb13c811530c1}{Timer\+Hand}}
+\item 
+volatile bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac828a5c214e7a6f529d06e2d66255f59}{Apc\+Routine\+Active}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a7efcdb0e9d4fd1cdda3bf223b20f9b51}{Maximum\+Dpc\+Queue\+Depth}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a49b72fb0a308f5532159be01884177b2}{Minimum\+Dpc\+Rate}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a080b600f3ac4fe68c0d62feef16080e3}{Dpc\+Request\+Rate}}
+\item 
+volatile bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5}{Dpc\+Interrupt\+Requested}}
+\item 
+volatile bool \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb6d7827ddf35a32b4ea98ab78d344a}{Apc\+Interrupt\+Requested}}
+\item 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a446cf288f825ceefaae1023614778083}{Scheduler\+Lock}}
+\item 
+\mbox{\hyperlink{mm_8h_a61eb1fdc33ff0e8ba286ff833a6a0e8f}{POOL\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_abaf160a16f80fa54b0e56b64bfb92e1a}{Lookaside\+Pools}} \mbox{[}\mbox{\hyperlink{mm_8h_a17874476e17ae3296b37bbbc0662678a}{MAX\+\_\+\+POOL\+\_\+\+DESCRIPTORS}}\mbox{]}
+\item 
+struct \mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y}{\+\_\+\+DEBUG\+\_\+\+ENTRY}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}{Debug\+Entry}} \mbox{[}4\mbox{]}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a8f9f5d55b11f74fa8124697a240ca83b}{Ist\+Timer\+Stack\+Top}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a39e0e04a40871c069002a4a2fd2dc575}{Ist\+Ipi\+Stack\+Top}}
+\item 
+\mbox{\hyperlink{me_8h_a2d834bd4d32ac0b2687eb0a0e7c9642b}{PITHREAD}} \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}{Zombie\+Thread}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00274}{274}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_afeb6d7827ddf35a32b4ea98ab78d344a}\index{\_PROCESSOR@{\_PROCESSOR}!ApcInterruptRequested@{ApcInterruptRequested}}
+\index{ApcInterruptRequested@{ApcInterruptRequested}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{ApcInterruptRequested}{ApcInterruptRequested}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_afeb6d7827ddf35a32b4ea98ab78d344a} 
+volatile bool Apc\+Interrupt\+Requested}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00319}{319}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_ac828a5c214e7a6f529d06e2d66255f59}\index{\_PROCESSOR@{\_PROCESSOR}!ApcRoutineActive@{ApcRoutineActive}}
+\index{ApcRoutineActive@{ApcRoutineActive}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{ApcRoutineActive}{ApcRoutineActive}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_ac828a5c214e7a6f529d06e2d66255f59} 
+volatile bool Apc\+Routine\+Active}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00310}{310}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a0831e8262ba92e5998b1bec18f5f31e3}\index{\_PROCESSOR@{\_PROCESSOR}!CurrentDeferredRoutine@{CurrentDeferredRoutine}}
+\index{CurrentDeferredRoutine@{CurrentDeferredRoutine}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{CurrentDeferredRoutine}{CurrentDeferredRoutine}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a0831e8262ba92e5998b1bec18f5f31e3} 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}}\texorpdfstring{$\ast$}{*} Current\+Deferred\+Routine}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00290}{290}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}\index{\_PROCESSOR@{\_PROCESSOR}!currentIrql@{currentIrql}}
+\index{currentIrql@{currentIrql}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{currentIrql}{currentIrql}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920} 
+enum \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3e}{\+\_\+\+IRQL}} current\+Irql}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00276}{276}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460}\index{\_PROCESSOR@{\_PROCESSOR}!currentThread@{currentThread}}
+\index{currentThread@{currentThread}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{currentThread}{currentThread}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a72c283f2e250f09a8c30eed9bd218460} 
+struct \mbox{\hyperlink{struct___i_t_h_r_e_a_d}{\+\_\+\+ITHREAD}}\texorpdfstring{$\ast$}{*} current\+Thread}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00278}{278}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59}\index{\_PROCESSOR@{\_PROCESSOR}!DebugEntry@{DebugEntry}}
+\index{DebugEntry@{DebugEntry}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{DebugEntry}{DebugEntry}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a1b30347604d6b08a6d9e7f81efc72b59} 
+struct \mbox{\hyperlink{struct___d_e_b_u_g___e_n_t_r_y}{\+\_\+\+DEBUG\+\_\+\+ENTRY}} Debug\+Entry\mbox{[}4\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00327}{327}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a8c3412414cd69fe255159c3ad61e6580}\index{\_PROCESSOR@{\_PROCESSOR}!DpcData@{DpcData}}
+\index{DpcData@{DpcData}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{DpcData}{DpcData}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a8c3412414cd69fe255159c3ad61e6580} 
+\mbox{\hyperlink{me_8h_ac6cb6b211f5ebac8676c48c5b4f9153a}{DPC\+\_\+\+DATA}} Dpc\+Data}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00304}{304}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5}\index{\_PROCESSOR@{\_PROCESSOR}!DpcInterruptRequested@{DpcInterruptRequested}}
+\index{DpcInterruptRequested@{DpcInterruptRequested}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{DpcInterruptRequested}{DpcInterruptRequested}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5} 
+volatile bool Dpc\+Interrupt\+Requested}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00318}{318}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a080b600f3ac4fe68c0d62feef16080e3}\index{\_PROCESSOR@{\_PROCESSOR}!DpcRequestRate@{DpcRequestRate}}
+\index{DpcRequestRate@{DpcRequestRate}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{DpcRequestRate}{DpcRequestRate}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a080b600f3ac4fe68c0d62feef16080e3} 
+uint32\+\_\+t Dpc\+Request\+Rate}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00315}{315}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a6bfb22756c90a50ccc04b2a86c40cfa7}\index{\_PROCESSOR@{\_PROCESSOR}!DpcRoutineActive@{DpcRoutineActive}}
+\index{DpcRoutineActive@{DpcRoutineActive}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{DpcRoutineActive}{DpcRoutineActive}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a6bfb22756c90a50ccc04b2a86c40cfa7} 
+volatile bool Dpc\+Routine\+Active}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00305}{305}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004}\index{\_PROCESSOR@{\_PROCESSOR}!flags@{flags}}
+\index{flags@{flags}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{flags}{flags}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a76c58a9652dbd04b9c459247ea33b004} 
+volatile uint64\+\_\+t flags}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00287}{287}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a844d9a19f07fc7c6a7d89c7ef4d7e689}\index{\_PROCESSOR@{\_PROCESSOR}!gdt@{gdt}}
+\index{gdt@{gdt}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{gdt}{gdt}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a844d9a19f07fc7c6a7d89c7ef4d7e689} 
+uint64\+\_\+t\texorpdfstring{$\ast$}{*} gdt}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00289}{289}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a505f98fde467109a9b37b3c7e008df91}\index{\_PROCESSOR@{\_PROCESSOR}!ID@{ID}}
+\index{ID@{ID}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{ID}{ID}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a505f98fde467109a9b37b3c7e008df91} 
+uint32\+\_\+t ID}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00280}{280}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}\index{\_PROCESSOR@{\_PROCESSOR}!idleThread@{idleThread}}
+\index{idleThread@{idleThread}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{idleThread}{idleThread}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde} 
+struct \mbox{\hyperlink{struct___e_t_h_r_e_a_d}{\+\_\+\+ETHREAD}}\texorpdfstring{$\ast$}{*} idle\+Thread}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00291}{291}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_aa69959a4b611916dc14a67f87a0197f2}\index{\_PROCESSOR@{\_PROCESSOR}!IpiAction@{IpiAction}}
+\index{IpiAction@{IpiAction}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IpiAction}{IpiAction}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_aa69959a4b611916dc14a67f87a0197f2} 
+enum \mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4}{\+\_\+\+CPU\+\_\+\+ACTION}} Ipi\+Action}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00293}{293}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18}\index{\_PROCESSOR@{\_PROCESSOR}!IpiParameter@{IpiParameter}}
+\index{IpiParameter@{IpiParameter}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IpiParameter}{IpiParameter}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a0fa202ea68ae5a251dda6568ebdd2a18} 
+volatile \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\+\_\+\+PARAMS}} Ipi\+Parameter}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00294}{294}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_aa3721138f6c7e7e000ae66e2baccc189}\index{\_PROCESSOR@{\_PROCESSOR}!IpiSeq@{IpiSeq}}
+\index{IpiSeq@{IpiSeq}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IpiSeq}{IpiSeq}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_aa3721138f6c7e7e000ae66e2baccc189} 
+volatile uint64\+\_\+t Ipi\+Seq}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00292}{292}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_acaa9fe8e5da8274655948591264c29ae}\index{\_PROCESSOR@{\_PROCESSOR}!IstDFStackTop@{IstDFStackTop}}
+\index{IstDFStackTop@{IstDFStackTop}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IstDFStackTop}{IstDFStackTop}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_acaa9fe8e5da8274655948591264c29ae} 
+void\texorpdfstring{$\ast$}{*} Ist\+DFStack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00286}{286}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a39e0e04a40871c069002a4a2fd2dc575}\index{\_PROCESSOR@{\_PROCESSOR}!IstIpiStackTop@{IstIpiStackTop}}
+\index{IstIpiStackTop@{IstIpiStackTop}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IstIpiStackTop}{IstIpiStackTop}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a39e0e04a40871c069002a4a2fd2dc575} 
+void\texorpdfstring{$\ast$}{*} Ist\+Ipi\+Stack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00329}{329}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_af1f7719875e520021a80bbffb388afed}\index{\_PROCESSOR@{\_PROCESSOR}!IstPFStackTop@{IstPFStackTop}}
+\index{IstPFStackTop@{IstPFStackTop}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IstPFStackTop}{IstPFStackTop}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_af1f7719875e520021a80bbffb388afed} 
+void\texorpdfstring{$\ast$}{*} Ist\+PFStack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00285}{285}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a8f9f5d55b11f74fa8124697a240ca83b}\index{\_PROCESSOR@{\_PROCESSOR}!IstTimerStackTop@{IstTimerStackTop}}
+\index{IstTimerStackTop@{IstTimerStackTop}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{IstTimerStackTop}{IstTimerStackTop}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a8f9f5d55b11f74fa8124697a240ca83b} 
+void\texorpdfstring{$\ast$}{*} Ist\+Timer\+Stack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00328}{328}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a65dfeadd7816e1e5230ca676607263c7}\index{\_PROCESSOR@{\_PROCESSOR}!lapic\_ID@{lapic\_ID}}
+\index{lapic\_ID@{lapic\_ID}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{lapic\_ID}{lapic\_ID}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a65dfeadd7816e1e5230ca676607263c7} 
+uint32\+\_\+t lapic\+\_\+\+ID}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00281}{281}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_ac8a16604f61ff001a4946acebaa4aafa}\index{\_PROCESSOR@{\_PROCESSOR}!LapicAddressPhys@{LapicAddressPhys}}
+\index{LapicAddressPhys@{LapicAddressPhys}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{LapicAddressPhys}{LapicAddressPhys}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_ac8a16604f61ff001a4946acebaa4aafa} 
+uintptr\+\_\+t Lapic\+Address\+Phys}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00296}{296}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5}\index{\_PROCESSOR@{\_PROCESSOR}!LapicAddressVirt@{LapicAddressVirt}}
+\index{LapicAddressVirt@{LapicAddressVirt}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{LapicAddressVirt}{LapicAddressVirt}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_afeb5cf558eeb01bed5fa2e67da8851d5} 
+volatile uint32\+\_\+t\texorpdfstring{$\ast$}{*} Lapic\+Address\+Virt}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00295}{295}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_abaf160a16f80fa54b0e56b64bfb92e1a}\index{\_PROCESSOR@{\_PROCESSOR}!LookasidePools@{LookasidePools}}
+\index{LookasidePools@{LookasidePools}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{LookasidePools}{LookasidePools}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_abaf160a16f80fa54b0e56b64bfb92e1a} 
+\mbox{\hyperlink{mm_8h_a61eb1fdc33ff0e8ba286ff833a6a0e8f}{POOL\+\_\+\+DESCRIPTOR}} Lookaside\+Pools\mbox{[}\mbox{\hyperlink{mm_8h_a17874476e17ae3296b37bbbc0662678a}{MAX\+\_\+\+POOL\+\_\+\+DESCRIPTORS}}\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00325}{325}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a7efcdb0e9d4fd1cdda3bf223b20f9b51}\index{\_PROCESSOR@{\_PROCESSOR}!MaximumDpcQueueDepth@{MaximumDpcQueueDepth}}
+\index{MaximumDpcQueueDepth@{MaximumDpcQueueDepth}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{MaximumDpcQueueDepth}{MaximumDpcQueueDepth}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a7efcdb0e9d4fd1cdda3bf223b20f9b51} 
+uint32\+\_\+t Maximum\+Dpc\+Queue\+Depth}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00313}{313}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a49b72fb0a308f5532159be01884177b2}\index{\_PROCESSOR@{\_PROCESSOR}!MinimumDpcRate@{MinimumDpcRate}}
+\index{MinimumDpcRate@{MinimumDpcRate}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{MinimumDpcRate}{MinimumDpcRate}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a49b72fb0a308f5532159be01884177b2} 
+uint32\+\_\+t Minimum\+Dpc\+Rate}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00314}{314}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a0e1bee91c77868b3b8fdbe7328e64374}\index{\_PROCESSOR@{\_PROCESSOR}!readyQueue@{readyQueue}}
+\index{readyQueue@{readyQueue}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{readyQueue}{readyQueue}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a0e1bee91c77868b3b8fdbe7328e64374} 
+struct \mbox{\hyperlink{struct___queue}{\+\_\+\+Queue}} ready\+Queue}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00279}{279}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a03b5efc308a6f0617ad6317476af9e44}\index{\_PROCESSOR@{\_PROCESSOR}!ReaperDPC@{ReaperDPC}}
+\index{ReaperDPC@{ReaperDPC}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{ReaperDPC}{ReaperDPC}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a03b5efc308a6f0617ad6317476af9e44} 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}} Reaper\+DPC}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00300}{300}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a9a4ba49e4920492c871b275c69d39af0}\index{\_PROCESSOR@{\_PROCESSOR}!Rsp0@{Rsp0}}
+\index{Rsp0@{Rsp0}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{Rsp0}{Rsp0}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a9a4ba49e4920492c871b275c69d39af0} 
+void\texorpdfstring{$\ast$}{*} Rsp0}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00284}{284}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_ac655daa31afa0f77124f1b5c86b8a048}\index{\_PROCESSOR@{\_PROCESSOR}!schedulePending@{schedulePending}}
+\index{schedulePending@{schedulePending}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{schedulePending}{schedulePending}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_ac655daa31afa0f77124f1b5c86b8a048} 
+bool schedule\+Pending}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00288}{288}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a18064996902c47642fa42faed7fbb9d5}\index{\_PROCESSOR@{\_PROCESSOR}!schedulerEnabled@{schedulerEnabled}}
+\index{schedulerEnabled@{schedulerEnabled}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{schedulerEnabled}{schedulerEnabled}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a18064996902c47642fa42faed7fbb9d5} 
+volatile bool scheduler\+Enabled}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00277}{277}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a446cf288f825ceefaae1023614778083}\index{\_PROCESSOR@{\_PROCESSOR}!SchedulerLock@{SchedulerLock}}
+\index{SchedulerLock@{SchedulerLock}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{SchedulerLock}{SchedulerLock}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a446cf288f825ceefaae1023614778083} 
+\mbox{\hyperlink{ms_8h_adf17fb77fea5ef3f703733414efda5c4}{SPINLOCK}} Scheduler\+Lock}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00322}{322}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_ac32edc8b4163f7ec55a3da241918be46}\index{\_PROCESSOR@{\_PROCESSOR}!self@{self}}
+\index{self@{self}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{self}{self}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_ac32edc8b4163f7ec55a3da241918be46} 
+struct \mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r}{\+\_\+\+PROCESSOR}}\texorpdfstring{$\ast$}{*} self}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00275}{275}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_aadbb4ebe13515cbf5ed04027255e9ef6}\index{\_PROCESSOR@{\_PROCESSOR}!TimerExpirationDPC@{TimerExpirationDPC}}
+\index{TimerExpirationDPC@{TimerExpirationDPC}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{TimerExpirationDPC}{TimerExpirationDPC}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_aadbb4ebe13515cbf5ed04027255e9ef6} 
+struct \mbox{\hyperlink{struct___d_p_c}{\+\_\+\+DPC}} Timer\+Expiration\+DPC}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00299}{299}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a5727b302d0d297235cacb13c811530c1}\index{\_PROCESSOR@{\_PROCESSOR}!TimerHand@{TimerHand}}
+\index{TimerHand@{TimerHand}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{TimerHand}{TimerHand}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a5727b302d0d297235cacb13c811530c1} 
+uintptr\+\_\+t Timer\+Hand}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00307}{307}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a9c6caac8d54308792ee29f225b85b9f2}\index{\_PROCESSOR@{\_PROCESSOR}!TimerRequest@{TimerRequest}}
+\index{TimerRequest@{TimerRequest}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{TimerRequest}{TimerRequest}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a9c6caac8d54308792ee29f225b85b9f2} 
+volatile uint32\+\_\+t Timer\+Request}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00306}{306}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a9da901146dc0bf13178be01a88b0dfdf}\index{\_PROCESSOR@{\_PROCESSOR}!tss@{tss}}
+\index{tss@{tss}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{tss}{tss}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a9da901146dc0bf13178be01a88b0dfdf} 
+void\texorpdfstring{$\ast$}{*} tss}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00283}{283}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_aca1a50452c2a906b5a82e759ae124a8f}\index{\_PROCESSOR@{\_PROCESSOR}!VirtStackTop@{VirtStackTop}}
+\index{VirtStackTop@{VirtStackTop}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{VirtStackTop}{VirtStackTop}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_aca1a50452c2a906b5a82e759ae124a8f} 
+void\texorpdfstring{$\ast$}{*} Virt\+Stack\+Top}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00282}{282}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+\Hypertarget{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd}\index{\_PROCESSOR@{\_PROCESSOR}!ZombieThread@{ZombieThread}}
+\index{ZombieThread@{ZombieThread}!\_PROCESSOR@{\_PROCESSOR}}
+\doxysubsubsection{\texorpdfstring{ZombieThread}{ZombieThread}}
+{\footnotesize\ttfamily \label{struct___p_r_o_c_e_s_s_o_r_a1f9de65de6cb014bd36d63df91cb43cd} 
+\mbox{\hyperlink{me_8h_a2d834bd4d32ac0b2687eb0a0e7c9642b}{PITHREAD}} Zombie\+Thread}
+
+
+
+Definition at line \mbox{\hyperlink{me_8h_source_l00332}{332}} of file \mbox{\hyperlink{me_8h_source}{me.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{me_8h}{me.\+h}}\end{DoxyCompactItemize}

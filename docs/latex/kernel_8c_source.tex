@@ -13,274 +13,320 @@
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00009}00009\ \textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{void}*)\ ==\ 8,\ \textcolor{stringliteral}{"{}This\ Kernel\ is\ 64\ bit\ only!\ The\ 32bit\ version\ is\ deprecated."{}});}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00010}00010\ \textcolor{preprocessor}{\#endif}}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00011}00011\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00012}\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{00012}}\ \textcolor{preprocessor}{\#define\ MAX\_AHCI\_CONTROLLERS\ 32}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00013}\mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{00013}}\ uint64\_t\ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}}[\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\_AHCI\_CONTROLLERS}}];}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00014}00014\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00015}\mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{00015}}\ GOP\_PARAMS\ \mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00016}\mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{00016}}\ \mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}\ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00017}00017\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00018}00018\ \textcolor{comment}{//static\ MUTEX\ mutx;}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00019}00019\ \textcolor{comment}{//MUTEX*\ sharedMutex\ =\ \&mutx;}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00020}00020\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00021}00021\ \textcolor{comment}{/*}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00022}00022\ \textcolor{comment}{Global\ variables\ initialization}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00023}00023\ \textcolor{comment}{*/}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00024}\mbox{\hyperlink{kernel_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{00024}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{kernel_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}}\ =\ \textcolor{keyword}{false};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00025}\mbox{\hyperlink{kernel_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{00025}}\ \mbox{\hyperlink{struct_l_a_s_t_f_u_n_c___h_i_s_t_o_r_y}{LASTFUNC\_HISTORY}}\ \mbox{\hyperlink{kernel_8c_a84fdaa754c58bd3a02ef7e0c36cfff33}{lastfunc\_history}}\ =\ \{\ .current\_index\ =\ -\/1\ \};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00026}\mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{00026}}\ CPU\ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00027}00027\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00028}00028\ \textcolor{comment}{/*}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00029}00029\ \textcolor{comment}{Ended}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00030}00030\ \textcolor{comment}{*/}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00031}\mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{00031}}\ \textcolor{preprocessor}{\#define\ MAX\_MEMORY\_MAP\_SIZE\ 0x4000\ \ }\textcolor{comment}{//\ 16\ KB,\ enough\ for\ \string~256\ descriptors}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00032}00032\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00033}00033\ \textcolor{keyword}{static}\ EFI\_MEMORY\_DESCRIPTOR\ memory\_map\_copy[\mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\_MEMORY\_MAP\_SIZE}}\ /\ \textcolor{keyword}{sizeof}(EFI\_MEMORY\_DESCRIPTOR)];}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00015}00015\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00016}00016\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00017}00017\ \textcolor{comment}{Kernel\ Specific}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00018}00018\ \textcolor{comment}{*/}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00019}\mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{00019}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8c_a3e4cb7a3337aa00fccafe03c7b5a59fc}{isBugChecking}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00020}\mbox{\hyperlink{mh_8h_a7824a23577849a6307c98674ea6ade79}{00020}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{mh_8h_a7824a23577849a6307c98674ea6ade79}{allApsInitialized}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00021}\mbox{\hyperlink{smp_8c_a323756ac954e1592fafd741525e0ef6b}{00021}}\ \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}\ \mbox{\hyperlink{smp_8c_a323756ac954e1592fafd741525e0ef6b}{cpu0}};\ \textcolor{comment}{//\ In\ UP\ Mode\ -\/\ Will\ be\ the\ place\ the\ CPU\ struct\ lives\ permanently,\ however\ in\ SMP\ mode,\ the\ struct\ transfers\ to\ cpus[my\_lapic\_id]\ after\ initializing\ SMP.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00023}00023\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00024}00024\ \textcolor{comment}{Boot\ Parameters}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00025}00025\ \textcolor{comment}{*/}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00026}\mbox{\hyperlink{handlers_8c_ad8ca0be32b831aec9de80bcf0e22107e}{00026}}\ \mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\_PARAMS}}\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00027}\mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{00027}}\ \mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}\ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00029}00029\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00030}00030\ \textcolor{comment}{AHCI\ Specifications}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00031}00031\ \textcolor{comment}{*/}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00032}\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{00032}}\ \textcolor{preprocessor}{\#define\ MAX\_AHCI\_CONTROLLERS\ 32}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00033}\mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{00033}}\ uint64\_t\ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}}[\mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\_AHCI\_CONTROLLERS}}];}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00034}00034\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00035}\mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{00035}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\_memory\_map}}(\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info\ ||\ !boot\_info-\/>MemoryMap)\ \textcolor{keywordflow}{return};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00037}00037\ \ \ \ \ \textcolor{keywordflow}{if}\ (boot\_info-\/>MapSize\ >\ \mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\_MEMORY\_MAP\_SIZE}})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ handle\ error,\ memory\ map\ too\ big}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00039}00039\ \ \ \ \ \ \ \ \ MtBugcheck(NULL,\ NULL,\ MEMORY\_MAP\_SIZE\_OVERRUN,\ 0,\ \textcolor{keyword}{false});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00040}00040\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00041}00041\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00042}00042\ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ entire\ memory\ map\ into\ the\ static\ buffer}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00043}00043\ \ \ \ \ kmemcpy(memory\_map\_copy,\ boot\_info-\/>MemoryMap,\ boot\_info-\/>MapSize);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00035}00035\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00039}00039\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00041}\mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{00041}}\ \textcolor{preprocessor}{\#define\ MAX\_MEMORY\_MAP\_SIZE\ 0x8000\ \ }\textcolor{comment}{//\ 32\ KB,\ enough\ for\ \string~512\ descriptors\ (this\ shouldn't\ be\ used,\ since\ we\ init\ the\ PFN\ db\ with\ the\ ptr\ from\ original\ UEFI,\ but\ eh,\ whatevs)}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00043}00043\ \textcolor{keyword}{static}\ \mbox{\hyperlink{efi_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\_MEMORY\_DESCRIPTOR}}\ memory\_map\_copy[\mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\_MEMORY\_MAP\_SIZE}}\ /\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{efi_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\_MEMORY\_DESCRIPTOR}})];}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00044}00044\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00045}00045\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.MemoryMap\ =\ memory\_map\_copy;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00046}00046\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.MapSize\ =\ boot\_info-\/>MapSize;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00047}00047\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.DescriptorSize\ =\ boot\_info-\/>DescriptorSize;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00048}00048\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.DescriptorVersion\ =\ boot\_info-\/>DescriptorVersion;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00049}00049\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00050}00050\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00051}\mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{00051}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\_gop}}(\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00052}00052\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info\ ||\ !boot\_info-\/>Gop)\ \textcolor{keywordflow}{return};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00053}00053\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00054}00054\ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ GOP\ data\ to\ a\ local\ global\ variable}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00055}00055\ \ \ \ \ \mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}}\ =\ *(boot\_info-\/>Gop);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00056}00056\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00057}00057\ \ \ \ \ \textcolor{comment}{//\ Update\ all\ relevant\ pointers\ to\ point\ to\ the\ local\ copy}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00058}00058\ \ \ \ \ boot\_info-\/>Gop\ =\ \&\mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00059}00059\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.Gop\ =\ \&\mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00060}00060\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00061}00061\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00062}00062\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00063}\mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{00063}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\_boot\_info}}(\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00064}00064\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info)\ \textcolor{keywordflow}{return};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00065}00065\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00066}00066\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\_memory\_map}}(boot\_info);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00067}00067\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\_gop}}(boot\_info);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00068}00068\ \ \ \ \ \textcolor{keywordflow}{if}\ (boot\_info-\/>AhciCount\ >\ \mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\_AHCI\_CONTROLLERS}})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ MtBugcheck(NULL,\ NULL,\ BAD\_AHCI\_COUNT,\ 0,\ \textcolor{keyword}{false});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00070}00070\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00071}00071\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ boot\_info-\/>AhciCount;\ i++)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}}[i]\ =\ boot\_info-\/>AhciBarBases[i];}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00073}00073\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciBarBases\ =\ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00075}00075\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciCount\ =\ boot\_info-\/>AhciCount;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.KernelStackTop\ =\ boot\_info-\/>KernelStackTop;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00077}00077\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.Pml4Phys\ =\ boot\_info-\/>Pml4Phys;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00078}00078\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00079}00079\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00080}00080\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ InitialiseControlRegisters(\textcolor{keywordtype}{void})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00081}00081\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00082}00082\ \ \ \ \ \textcolor{comment}{/*\ CR0\ */}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00083}00083\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ cr0\ =\ \_\_read\_cr0();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00084}00084\ \ \ \ \ cr0\ |=\ (1UL\ <<\ 16);\ \textcolor{comment}{//\ Set\ bit\ 16\ (WRITE\ PROTECT),\ so\ when\ the\ kernel\ touches\ read\ only\ memory\ it\ would\ \#PF.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00085}00085\ \textcolor{preprocessor}{\#ifdef\ DISABLE\_CACHE}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00086}00086\ \ \ \ \ cr0\ |=\ (1UL\ <<\ 30);\ \textcolor{comment}{//\ Set\ bit\ 30\ (CACHE\ DISABLE).}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00087}00087\ \textcolor{preprocessor}{\#endif}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00088}00088\ \ \ \ \ \_\_write\_cr0(cr0);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00089}00089\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00090}00090\ \ \ \ \ \textcolor{comment}{/*\ CR4\ */}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00091}00091\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ cr4\ =\ \_\_read\_cr4();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00092}00092\ \ \ \ \ cr4\ |=\ (1UL\ <<\ 11);\ \textcolor{comment}{//\ Set\ bit\ 11\ -\/\ User\ Mode\ Instruction\ Prevention.\ This'll\ be\ useful\ against\ user\ mode\ attacks\ to\ locate\ IDT/GDT/LDT...}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00093}00093\ \ \ \ \ \_\_write\_cr4(cr4);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00094}00094\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00095}00095\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00096}\mbox{\hyperlink{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1}{00096}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1}{InitCPU}}(\textcolor{keywordtype}{void})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00097}00097\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentIrql\ =\ PASSIVE\_LEVEL;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00098}00098\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.schedulerEnabled\ =\ NULL;\ \textcolor{comment}{//\ since\ NULL\ is\ 0,\ it\ would\ be\ false.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00099}00099\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.currentThread\ =\ NULL;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00100}00100\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.readyQueue.head\ =\ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.readyQueue.tail\ =\ NULL;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00101}00101\ \ \ \ \ \_\_writemsr(IA32\_KERNEL\_GS\_BASE,\ (uint64\_t)\ \&\ \mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00102}00102\ \ \ \ \ spinlock\_init(\&\mbox{\hyperlink{kernel_8c_a0b2a3530e9a5998456be351b4251b878}{cpu}}.readyQueue.lock);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00103}00103\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00104}00104\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00105}00105\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ interrupts\_enabled(\textcolor{keywordtype}{void})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00106}00106\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ flags;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00107}00107\ \ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_(\textcolor{stringliteral}{"{}pushfq;\ popq\ \%0"{}}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(flags)}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ :}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}memory"{}},\ \textcolor{stringliteral}{"{}cc"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00111}00111\ \ \ \ \ \textcolor{keywordflow}{return}\ (flags\ \&\ (1UL\ <<\ 9))\ !=\ 0;\ \textcolor{comment}{//\ IF\ is\ bit\ 9}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00112}00112\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00113}00113\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00114}\mbox{\hyperlink{kernel_8c_a9ce2606c20ea524922906d7816228c26}{00114}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a9ce2606c20ea524922906d7816228c26}{kernel\_idle\_checks}}(\textcolor{keywordtype}{void})\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00115}00115\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}kernel\_idle\_checks\ -\/\ Thread"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00116}00116\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{volatile}\ \textcolor{keywordtype}{bool}\ first\_time\ =\ \textcolor{keyword}{true};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00117}00117\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00118}00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (first\_time)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ first\_time\ =\ \textcolor{keyword}{false};}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF000FF0,\ \textcolor{stringliteral}{"{}Reached\ the\ scheduler!\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{volatile}\ uint64\_t\ i\ =\ 0;\ i\ <\ 100000000ULL;\ ++i)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ delay\ loop\ */}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00124}00124\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF000FF0,\ \textcolor{stringliteral}{"{}**Ended\ Testing\ Thread\ Execution**\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00126}00126\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00127}00127\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((interrupts\_enabled())\ ==\ \textcolor{keyword}{true},\ \textcolor{stringliteral}{"{}Interrupts\ are\ not\ enabled..."{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00128}00128\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ \_\_hlt();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \textcolor{comment}{//Schedule();}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00131}00131\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00132}00132\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00133}00133\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00134}00134\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ test(MUTEX*\ mut)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00135}00135\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}test\ -\/\ Thread"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00136}00136\ \ \ \ \ Thread*\ currentThread\ =\ MtGetCurrentThread();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00137}00137\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF00FF00,\ \textcolor{stringliteral}{"{}Hit\ Test!\ test\ thread\ ptr:\ \%p\(\backslash\)n"{}},\ currentThread);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00138}00138\ \ \ \ \ gop\_printf(COLOR\_GREEN,\ \textcolor{stringliteral}{"{}(test)\ Acquiring\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00139}00139\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ status\ =\ MtAcquireMutexObject(mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00140}00140\ \ \ \ \ gop\_printf(COLOR\_GREEN,\ \textcolor{stringliteral}{"{}(test)\ status\ returned:\ \%p\(\backslash\)n"{}},\ status);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00141}00141\ \ \ \ \ \textcolor{keyword}{volatile}\ uint64\_t\ z\ =\ 0;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00142}00142\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint64\_t\ i\ =\ 0;\ i\ <\ 0xFFFFFFF;\ i++)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00143}00143\ \ \ \ \ \ \ \ \ z++;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00144}00144\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00145}00145\ \ \ \ \ gop\_printf(COLOR\_GREEN,\ \textcolor{stringliteral}{"{}(test)\ Releasing\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00146}00146\ \ \ \ \ MtReleaseMutexObject(mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00147}00147\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFA020F0,\ \textcolor{stringliteral}{"{}**Ended\ Test.**\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00148}00148\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00149}00149\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00150}00150\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ funcWithParam(MUTEX*\ mut)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00151}00151\ \ \ \ \ tracelast\_func(\textcolor{stringliteral}{"{}funcWithParam\ -\/\ Thread"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00152}00152\ \ \ \ \ \textcolor{comment}{//gop\_printf\_forced(COLOR\_OLIVE,\ "{}Hit\ funcWithParam,\ Integer:\ \%d\(\backslash\)n"{},\ *integer);}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00153}00153\ \ \ \ \ gop\_printf(COLOR\_OLIVE,\ \textcolor{stringliteral}{"{}Hit\ funcWithParam\ -\/\ funcWithParam\ threadptr:\ \%p\(\backslash\)n"{}},\ MtGetCurrentThread());}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00154}00154\ \ \ \ \ \textcolor{keywordtype}{char}\ buf[256];}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00155}00155\ \ \ \ \ ksnprintf(buf,\ \textcolor{keyword}{sizeof}(buf),\ \textcolor{stringliteral}{"{}In\ funcwithParam!\ -\/\ thread\ ptr:\ \%p,\ mutex\ ptr:\ \%p"{}},\ MtGetCurrentThread(),\ mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00156}00156\ \ \ \ \ vfs\_write(\textcolor{stringliteral}{"{}/test.txt"{}},\ buf,\ kstrlen(buf),\ WRITE\_MODE\_CREATE\_OR\_REPLACE);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00157}00157\ \ \ \ \ gop\_printf(COLOR\_OLIVE,\ \textcolor{stringliteral}{"{}(funcWithParam)\ Acquiring\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00158}00158\ \ \ \ \ MtAcquireMutexObject(mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00159}00159\ \ \ \ \ \textcolor{keyword}{volatile}\ uint64\_t\ z\ =\ 0;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00160}00160\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint64\_t\ i\ =\ 0;\ i\ <\ 0xFFFFFFF;\ i++)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00161}00161\ \ \ \ \ \ \ \ \ z++;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00162}00162\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00163}00163\ \ \ \ \ gop\_printf(COLOR\_OLIVE,\ \textcolor{stringliteral}{"{}(funcWithParam)\ Releasing\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00164}00164\ \ \ \ \ MtReleaseMutexObject(mut);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00165}00165\ \ \ \ \ Thread*\ currentThread\ =\ MtGetCurrentThread();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00166}00166\ \ \ \ \ gop\_printf(COLOR\_OLIVE,\ \textcolor{stringliteral}{"{}Current\ thread\ in\ funcWithParam:\ \%p\(\backslash\)n"{}},\ currentThread);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00167}00167\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(COLOR\_OLIVE,\ \textcolor{stringliteral}{"{}**Ended\ funcWithParam.**\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00168}00168\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00169}00169\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00171}\mbox{\hyperlink{kernel_8c_a290306ce314d46bd369c185b7b95db40}{00171}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a290306ce314d46bd369c185b7b95db40}{kernel\_main}}(\mbox{\hyperlink{kernel_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00172}00172\ \ \ \ \ \textcolor{comment}{//tracelast\_func("{}kernel\_main"{});}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00173}00173\ \ \ \ \ \textcolor{comment}{//\ 1.\ CORE\ SYSTEM\ INITIALIZATION}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00174}00174\ \ \ \ \ \_\_cli();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00175}00175\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ CR\ (Control\ Registers)\ registers\ to\ our\ settings.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00176}00176\ \ \ \ \ InitialiseControlRegisters();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00177}00177\ \ \ \ \ \textcolor{comment}{//\ Zero\ the\ BSS.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00178}00178\ \ \ \ \ zero\_bss();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00179}00179\ \ \ \ \ \textcolor{comment}{//\ Create\ the\ local\ boot\ struct.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00180}00180\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\_boot\_info}}(boot\_info);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00181}00181\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ global\ CPU\ struct.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00182}00182\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a4aa078dcf96e9f06ce620519a93593c1}{InitCPU}}();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00183}00183\ \ \ \ \ \textcolor{comment}{//\ Initialize\ interrupts\ \&\ exceptions.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00184}00184\ \ \ \ \ init\_interrupts();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00185}00185\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ frame\ bitmaps\ for\ dynamic\ frame\ allocation.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00186}00186\ \ \ \ \ frame\_bitmap\_init();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00187}00187\ \ \ \ \ \textcolor{comment}{//\ Finally,\ initialize\ our\ heap\ for\ memory\ allocation\ (like\ threads,\ processes,\ structs..)}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00188}00188\ \ \ \ \ init\_heap();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00189}00189\ \ \ \ \ \_MtSetIRQL(PASSIVE\_LEVEL);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00190}00190\ \ \ \ \ \textcolor{comment}{/*\ Initiate\ Scheduler\ and\ DPCs\ */}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00191}00191\ \ \ \ \ InitScheduler();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00192}00192\ \ \ \ \ init\_dpc\_system();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00193}00193\ \ \ \ \ gop\_clear\_screen(\&\mbox{\hyperlink{kernel_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}},\ 0);\ \textcolor{comment}{//\ 0\ is\ just\ black.\ (0x0000000)}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00194}00194\ \ \ \ \ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00195}00195\ \ \ \ \ \textcolor{comment}{//MemoryTestStable();}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00196}00196\ \ \ \ \ \textcolor{comment}{//\_\_cli();}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00197}00197\ \ \ \ \ \textcolor{comment}{//\_\_hlt();}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00198}00198\ \ \ \ \ \textcolor{keyword}{extern}\ uint32\_t\ cursor\_x,\ cursor\_y;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00199}00199\ \ \ \ \ cursor\_x\ =\ cursor\_y\ =\ 0;\ \textcolor{comment}{//\ set\ to\ 0,\ since\ it\ somehow\ decrements\ them.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00045}\mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{00045}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\_memory\_map}}(\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00046}00046\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info\ ||\ !boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a43e384015b713dc64d7f8a59ad452622}{MemoryMap}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00047}00047\ \ \ \ \ \textcolor{keywordflow}{if}\ (boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a9bec53c13537ffc17434fc3db3f36f0d}{MapSize}}\ >\ \mbox{\hyperlink{kernel_8c_ad6664187bc75188329b950c21f5f380a}{MAX\_MEMORY\_MAP\_SIZE}})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ handle\ error,\ memory\ map\ too\ big}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a4a2640e8c7cdd34c55bb095e68507dd5}{MEMORY\_MAP\_SIZE\_OVERRUN}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00050}00050\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00052}00052\ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ entire\ memory\ map\ into\ the\ static\ buffer}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00053}00053\ \ \ \ \ \mbox{\hyperlink{mm_8h_a6630c639a0df46de61c0bcde4097890d}{kmemcpy}}(memory\_map\_copy,\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a43e384015b713dc64d7f8a59ad452622}{MemoryMap}},\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a9bec53c13537ffc17434fc3db3f36f0d}{MapSize}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00055}00055\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.MemoryMap\ =\ memory\_map\_copy;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00056}00056\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.MapSize\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a9bec53c13537ffc17434fc3db3f36f0d}{MapSize}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00057}00057\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.DescriptorSize\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a8bc89261b88b97450ff261d153d0bbdb}{DescriptorSize}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00058}00058\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.DescriptorVersion\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a9bd937b7be27174d2dc8180375fec3b8}{DescriptorVersion}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00059}00059\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00060}00060\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00061}\mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{00061}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\_gop}}(\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00062}00062\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info\ ||\ !boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a95c676f8cba1cc231276133b1c24f842}{Gop}}.\mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s_a05f8bedf635802bfc7465973f17fea76}{FrameBufferBase}})\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00063}00063\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00064}00064\ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ GOP\ data\ to\ a\ local\ global\ variable}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00065}00065\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}}\ =\ (boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a95c676f8cba1cc231276133b1c24f842}{Gop}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00067}00067\ \ \ \ \ \textcolor{comment}{//\ Update\ all\ relevant\ pointers\ to\ point\ to\ the\ local\ copy}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00068}00068\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.Gop\ =\ \mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00069}00069\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00070}00070\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00072}\mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{00072}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\_boot\_info}}(\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00073}00073\ \ \ \ \ \textcolor{keywordflow}{if}\ (!boot\_info)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00074}00074\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00075}00075\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a26b7a33ce7ac27191c39745d6852acd1}{copy\_memory\_map}}(boot\_info);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a8bf2519b1a607ce677d092c706b92f00}{copy\_gop}}(boot\_info);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00077}00077\ \ \ \ \ \textcolor{keywordflow}{if}\ (boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a23b3867b03377e742e1537a995614d4a}{AhciCount}}\ >\ \mbox{\hyperlink{kernel_8c_a9fed467298b3e70426485013c0caf964}{MAX\_AHCI\_CONTROLLERS}})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a9ff084588ec0461c821ca07a6efbe62f}{BAD\_AHCI\_COUNT}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00079}00079\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00080}00080\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ i\ =\ 0;\ i\ <\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a23b3867b03377e742e1537a995614d4a}{AhciCount}};\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}}[i]\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a5df0322e1e041be1ab721a9bbc1d65c1}{AhciBarBases}}[i];}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00082}00082\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00083}00083\ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ local\ array\ into\ local\ boot\ info.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00084}00084\ \ \ \ \ \mbox{\hyperlink{mm_8h_a6630c639a0df46de61c0bcde4097890d}{kmemcpy}}(\mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciBarBases,\ \mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{kernel_8c_a3764ef588283aaa224d9dd8d89a35c52}{ahci\_bases\_local}}));}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00085}00085\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AhciCount\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a23b3867b03377e742e1537a995614d4a}{AhciCount}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00086}00086\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.KernelStackTop\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a61086e11b571ce7c7b87cc71149f142f}{KernelStackTop}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00087}00087\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.Pml4Phys\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a090449e0fb7c66ee9dbf612ea681ba07}{Pml4Phys}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00088}00088\ \ \ \ \ \mbox{\hyperlink{acpi_8c_a5f06053b8248ece91f68e4ae8da74ee4}{boot\_info\_local}}.AcpiRsdpPhys\ =\ boot\_info-\/>\mbox{\hyperlink{struct___b_o_o_t___i_n_f_o_a6dfeee4edf802acf9f7c713a7b3b6992}{AcpiRsdpPhys}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00089}00089\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00090}00090\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00091}00091\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ interrupts\_enabled(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00092}00092\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00093}00093\ \ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_(\textcolor{stringliteral}{"{}pushfq;\ popq\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}})}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ :}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}memory"{}},\ \textcolor{stringliteral}{"{}cc"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00097}00097\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}}\ \&\ (1UL\ <<\ 9))\ !=\ 0;\ \textcolor{comment}{//\ IF\ is\ bit\ 9}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00098}00098\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00099}00099\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00100}\mbox{\hyperlink{scheduler_8c_a9ce2606c20ea524922906d7816228c26}{00100}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8c_a9ce2606c20ea524922906d7816228c26}{kernel\_idle\_checks}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00101}00101\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(0xFF000FF0,\ \textcolor{stringliteral}{"{}Reached\ the\ scheduler!\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00102}00102\ \ \ \ \ \textcolor{comment}{//\ Reaching\ the\ idle\ thread\ with\ interrupts\ off\ means\ something\ did\ not\ have\ the\ RFLAGS\ IF\ Bit\ set.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00103}00103\ \ \ \ \ \textcolor{keywordflow}{if}\ (!interrupts\_enabled())\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00104}00104\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**Interrupts\ aren't\ enabled..\(\backslash\)n\ Stack\ Trace:\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{macros_8h_a8de835a37d1896b1f092a1e2a583e42b}{FREEZE}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00106}00106\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00107}00107\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>ZombieThread)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Delete\ the\ last\ thread.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00113}00113\ \ \ \ \ \ \ \ \ \textcolor{comment}{//Schedule();}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00114}00114\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00115}00115\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00116}00116\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00117}00117\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ test(\mbox{\hyperlink{ms_8h_ad3954e6faf0416b5cc918b91804f8e53}{MUTEX}}*\ mut)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00118}00118\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ currentThread\ =\ \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00119}00119\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF00FF00,\ \textcolor{stringliteral}{"{}Hit\ Test!\ test\ thread\ ptr:\ \%p\(\backslash\)n"{}},\ currentThread);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00120}00120\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}(test)\ Acquiring\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00121}00121\ \ \ \ \ \mbox{\hyperlink{mutex_8c_abf498741edb94310cef6584f57fc025e}{MsAcquireMutexObject}}(mut);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00122}00122\ \ \ \ \ \textcolor{keyword}{volatile}\ uint64\_t\ z\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00123}00123\ \textcolor{preprocessor}{\#ifdef\ GDB}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00124}00124\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint64\_t\ i\ =\ 0;\ i\ <\ 0xA;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00125}00125\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00126}00126\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint64\_t\ i\ =\ 0;\ i\ <\ 0xFFFFFFF;\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00127}00127\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ z++;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00129}00129\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00130}00130\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}(test)\ Releasing\ Mutex\ Object:\ \%p\(\backslash\)n"{}},\ mut);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00131}00131\ \ \ \ \ \mbox{\hyperlink{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734}{MsReleaseMutexObject}}(mut);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00132}00132\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFA020F0,\ \textcolor{stringliteral}{"{}**Ended\ Test.**\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00133}00133\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00134}00134\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00135}00135\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ MeCreateInitialUserModeProcess(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00136}00136\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_a3d28ef5dfbf3f7af50d52bff322a6c01}{COLOR\_OLIVE}},\ \textcolor{stringliteral}{"{}Starting\ initial\ user\ mode\ process.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00137}00137\ \ \ \ \ \mbox{\hyperlink{ht_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ hProcess;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00138}00138\ \ \ \ \ \mbox{\hyperlink{process_8c_af7ae7a3211790e443ecedc4d83a2e00b}{PsCreateProcess}}(\textcolor{stringliteral}{"{}loop.mtexe"{}},\ \&hProcess,\ \mbox{\hyperlink{ps_8h_ab18fde8b907fc8ecc339999db45be3f7}{MT\_PROCESS\_ALL\_ACCESS}},\ 0);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00139}00139\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(hProcess);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00140}00140\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00141}00141\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00142}00142\ \textcolor{comment}{//\ All\ CPUs}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00143}\mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{00143}}\ uint8\_t\ \mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{apic\_list}}[\mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\_CPUS}}];}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00144}\mbox{\hyperlink{kernel_8c_abd627bb6a327bec16cef23b42c63c657}{00144}}\ uint32\_t\ \mbox{\hyperlink{kernel_8c_abd627bb6a327bec16cef23b42c63c657}{cpu\_count}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00145}\mbox{\hyperlink{kernel_8c_ae2b7e438110e59abf98b568fedbbd749}{00145}}\ uint32\_t\ \mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapicAddress}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00146}\mbox{\hyperlink{bugcheck_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{00146}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{bugcheck_8c_a34f4b05cf0ef8172c66bc051f624d3eb}{smpInitialized}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00147}00147\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00150}00150\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00151}00151\ \textcolor{comment}{//\ Stack\ Canary\ GCC}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00152}00152\ \textcolor{keyword}{volatile}\ uintptr\_t\ \_\_stack\_chk\_guard;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00154}00154\ \mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\_\_attribute\_\_}}((noreturn))}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00155}00155\ \textcolor{keywordtype}{void}\ \_\_stack\_chk\_fail(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00156}00156\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00157}00157\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a6a642d04b6e0d6e8d311afaa217e9084}{KERNEL\_STACK\_OVERFLOWN}},\ (\textcolor{keywordtype}{void}*)\_\_builtin\_return\_address(0),\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00158}00158\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00159}00159\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00160}00160\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00161}00161\ \textcolor{comment}{//\ TODO\ allocate\ dynamically\ (use\ PsCreateProcess)}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00162}\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{00162}}\ \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}\ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00163}00163\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00164}00164\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ InitSystemProcess(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00165}00165\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.PID\ =\ 4;\ \textcolor{comment}{//\ Initial\ PID,\ reserved.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00166}00166\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ParentProcess\ =\ 0;\ \textcolor{comment}{//\ No\ creator\ process}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00167}00167\ \ \ \ \ \mbox{\hyperlink{gop_8c_a928767eb3d6af2e725d8be0b32bd4582}{kstrncpy}}(\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ImageName,\ \textcolor{stringliteral}{"{}mtoskrnl.mtexe"{}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ImageName));\ \textcolor{comment}{//\ Name\ for\ the\ process}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00168}00168\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.priority\ =\ 0;\ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00169}00169\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.InternalProcess.PageDirectoryPhysical\ =\ \mbox{\hyperlink{intrin_8h_af84468b325aa2ddc225df1b06b4a467b}{\_\_read\_cr3}}();\ \textcolor{comment}{//\ The\ PML4\ of\ the\ system\ process,\ is\ our\ kernel\ PML4.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00170}00170\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.CreationTime\ =\ MeGetEpoch();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00171}00171\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.MainThread\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a617c51e579907a9b7e0c98981bb64bde}{idleThread}};\ \textcolor{comment}{//\ The\ main\ thread\ for\ the\ SYSTEM\ process\ is\ the\ BSP's\ idle\ thread.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00172}00172\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.AllThreads);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00173}00173\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ObjectTable\ =\ \mbox{\hyperlink{handle_8c_a4248a71725a0d96cc5308d2711835c75}{HtCreateHandleTable}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00174}00174\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00175}00175\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00176}00176\ \textcolor{keyword}{extern}\ uint8\_t\ \mbox{\hyperlink{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445}{bss\_start}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00177}00177\ \textcolor{keyword}{extern}\ uint8\_t\ \mbox{\hyperlink{kernel_8c_a2c8bdc1125232c0a840c4b3f423d8b48}{bss\_end}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00178}00178\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00180}\mbox{\hyperlink{kernel_8c_a1b6824bfd4ec0404a4f875ed8db0274e}{00180}}\ \mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\_\_attribute\_\_}}((noreturn))}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00181}00181\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{kernel_8h_a290306ce314d46bd369c185b7b95db40}{kernel\_main}}(\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\_INFO}}*\ boot\_info)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00182}00182\ \ \ \ \ \textcolor{comment}{//\ 1.\ CORE\ SYSTEM\ INITIALIZATION}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00183}00183\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_aca24136529d67d645af8234fafc2371d}{IA32\_GS\_BASE}},\ (uint64\_t)\&\mbox{\hyperlink{smp_8c_a323756ac954e1592fafd741525e0ef6b}{cpu0}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00184}00184\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00185}00185\ \ \ \ \ \textcolor{comment}{//\ Zero\ the\ BSS.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00186}00186\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ \&\mbox{\hyperlink{kernel_8c_a2c8bdc1125232c0a840c4b3f423d8b48}{bss\_end}}\ -\/\ \&\mbox{\hyperlink{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445}{bss\_start}};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00187}00187\ \ \ \ \ \mbox{\hyperlink{rtl_8h_a28b5b497ec79c4caacd2c104ef3914f3}{RtlZeroMemory}}(\&\mbox{\hyperlink{kernel_8c_ad9f84c8ae582241d7b33c46a994b8445}{bss\_start}},\ len);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00188}00188\ \ \ \ \ \textcolor{comment}{//\ Create\ the\ local\ boot\ struct.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00189}00189\ \ \ \ \ \mbox{\hyperlink{kernel_8c_a1aeed12b2d6dcc95b0e4457dab2e891c}{init\_boot\_info}}(boot\_info);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00190}00190\ \ \ \ \ \mbox{\hyperlink{gop_8c_a99f29e094035e6b5420d63874004ed9f}{gop\_clear\_screen}}(\&\mbox{\hyperlink{bugcheck_8c_ad8ca0be32b831aec9de80bcf0e22107e}{gop\_local}},\ 0);\ \textcolor{comment}{//\ 0\ is\ just\ black.\ (0x0000000)}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00191}00191\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ global\ CPU\ struct.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00192}00192\ \ \ \ \ \mbox{\hyperlink{meinit_8c_aad9a7c5e27394530e661691231d854ae}{MeInitializeProcessor}}(\&\mbox{\hyperlink{smp_8c_a323756ac954e1592fafd741525e0ef6b}{cpu0}},\ \textcolor{keyword}{false},\ \textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00193}00193\ \ \ \ \ \textcolor{comment}{//\ Initialize\ interrupts\ \&\ exceptions.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00194}00194\ \ \ \ \ \mbox{\hyperlink{isr_8c_a88ada49c1954d38252049786595d9a5f}{init\_interrupts}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00195}00195\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ memory\ manager}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00196}00196\ \ \ \ \ \mbox{\hyperlink{mminit_8c_ab78f76010e4e8efa1b2817b67d54d4eb}{MmInitSystem}}(\mbox{\hyperlink{mm_8h_a30f20bd27b174a3c13e20ef088c79c0eabef7b214457b1fa86174c2adc75e80b9}{SYSTEM\_PHASE\_INITIALIZE\_ALL}},\ boot\_info);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00197}00197\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00198}00198\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ TSS\ \&\ GDT\ \&\ New\ IDT\ with\ TSS}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00199}00199\ \ \ \ \ \mbox{\hyperlink{meinit_8c_aad9a7c5e27394530e661691231d854ae}{MeInitializeProcessor}}(\&\mbox{\hyperlink{smp_8c_a323756ac954e1592fafd741525e0ef6b}{cpu0}},\ \textcolor{keyword}{true},\ \textcolor{keyword}{false});}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00200}00200\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00201}00201\ \ \ \ \ uint64\_t\ rip;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00202}00202\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00203}00203\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}lea\ 1f(\%\%rip),\ \%0\(\backslash\)n\(\backslash\)t"{}}\ \ \textcolor{comment}{//\ Calculate\ the\ address\ of\ label\ 1\ relative\ to\ RIP}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}1:"{}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ label\ whose\ address\ we\ want}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(rip)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Output\ to\ the\ 'rip'\ variable}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00206}00206\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00201}00201\ \ \ \ \ \textcolor{comment}{//\ Initialize\ ACPI\ after\ initializing\ Mm\ (since\ page\ faults\ will\ happen\ on\ pfn\ db\ if\ not).}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00202}00202\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ st\ =\ \mbox{\hyperlink{acpi_8c_aa5928db65d66f3ef1bd030cbd16bfc04}{MhInitializeACPI}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00203}00203\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(st))\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}InitializeACPI\ Failure:\ \%x\(\backslash\)n"{}},\ st);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00206}00206\ \ \ \ \ \}}
 \DoxyCodeLine{\Hypertarget{kernel_8c_source_l00207}00207\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00208}00208\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Current\ RIP:\ \%p\(\backslash\)n"{}},\ rip);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00209}00209\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00210}00210\ \ \ \ \ \textcolor{keywordflow}{if}\ (rip\ >=\ KERNEL\_VA\_START)\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00211}00211\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0x00FF00FF,\ \textcolor{stringliteral}{"{}**[+]\ Running\ in\ higher-\/half**\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00212}00212\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00213}00213\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00214}00214\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF0000FF,\ \textcolor{stringliteral}{"{}[-\/]\ Still\ identity-\/mapped\(\backslash\)n"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00215}00215\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00216}00216\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00217}00217\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf\ =\ MtAllocateVirtualMemory(64,\ 16);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00218}00218\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf\ addr:\ \%p\(\backslash\)n"{}},\ buf);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00219}00219\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf2\ =\ MtAllocateVirtualMemory(128,\ 16);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00220}00220\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf2\ addr:\ \%p\(\backslash\)n"{}},\ buf2);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00221}00221\ \ \ \ \ MtFreeVirtualMemory(buf2);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00222}00222\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf3\ =\ MtAllocateVirtualMemory(128,\ 16);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00223}00223\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf3\ addr\ (should\ be\ same\ as\ buf2):\ \%p\(\backslash\)n"{}},\ buf3);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00224}00224\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf4\ =\ MtAllocateVirtualMemory(2048,\ 16);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00225}00225\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF964B00,\ \textcolor{stringliteral}{"{}buf4\ addr\ (should\ reside\ after\ buf3,\ allocated\ 2048\ bytes):\ \%p\(\backslash\)n"{}},\ buf4);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00226}00226\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf5\ =\ MtAllocateVirtualMemory(64,\ 16);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00227}00227\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF964B00,\ \textcolor{stringliteral}{"{}buf5\ addr\ (should\ be\ a\ larger\ addr):\ \%p\(\backslash\)n"{}},\ buf5);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00228}00228\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf6\ =\ MtAllocateVirtualMemory(5000,\ 64);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00229}00229\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf6\ addr\ (should\ use\ dynamic\ memory):\ \%p\(\backslash\)n"{}},\ buf6);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00230}00230\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf7\ =\ MtAllocateVirtualMemory(10000,\ 128);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00231}00231\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf7\ addr\ (should\ use\ dynamic\ memory,\ extremely\ larger):\ \%p\(\backslash\)n"{}},\ buf7);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00232}00232\ \ \ \ \ \textcolor{comment}{//\ check}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00233}00233\ \ \ \ \ \textcolor{keywordtype}{void}*\ addr\ =\ 0;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00234}00234\ \ \ \ \ gop\_printf(COLOR\_ORANGE,\ \textcolor{stringliteral}{"{}Address:\ \%p\ is\ \%s\(\backslash\)n"{}},\ addr,\ MtIsAddressValid(addr)\ ?\ \textcolor{stringliteral}{"{}Valid"{}}\ :\ \textcolor{stringliteral}{"{}Invalid"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00235}00235\ \ \ \ \ gop\_printf(COLOR\_ORANGE,\ \textcolor{stringliteral}{"{}Address\ \%p\ (buf7)\ is\ \%s\(\backslash\)n"{}},\ buf7,\ MtIsAddressValid(buf7)\ ?\ \textcolor{stringliteral}{"{}Valid"{}}\ :\ \textcolor{stringliteral}{"{}Invalid"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00236}00236\ \ \ \ \ gop\_printf(COLOR\_MAGENTA,\ \textcolor{stringliteral}{"{}BUF7\ (VIRT):\ \%p\ |\ (PHYS):\ \%p\(\backslash\)n"{}},\ buf7,\ MtTranslateVirtualToPhysical(buf7));}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00237}00237\ \ \ \ \ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00238}00238\ \textcolor{preprocessor}{\#ifdef\ CAUSE\_BUGCHECK}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00239}00239\ \ \ \ \ \mbox{\hyperlink{kernel_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}\ regs;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00240}00240\ \ \ \ \ SAVE\_CTX\_FRAME(\&regs);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00241}00241\ \ \ \ \ MtBugcheck(\&regs,\ NULL,\ MANUALLY\_INITIATED\_CRASH,\ 0xDEADBEEF,\ \textcolor{keyword}{true});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00242}00242\ \textcolor{preprocessor}{\#endif}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00243}00243\ \ \ \ \ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00244}00244\ \ \ \ \ \textcolor{keywordflow}{if}\ (checkcpuid())\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00245}00245\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ str[256];}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00246}00246\ \ \ \ \ \ \ \ \ getCpuName(str);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00247}00247\ \ \ \ \ \ \ \ \ gop\_printf(COLOR\_GREEN,\ \textcolor{stringliteral}{"{}CPU\ Identified:\ \%s\(\backslash\)n"{}},\ str);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00248}00248\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00249}00249\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00250}00250\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ status;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00251}00251\ \ \ \ \ status\ =\ vfs\_init();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00252}00252\ \ \ \ \ gop\_printf(COLOR\_RED,\ \textcolor{stringliteral}{"{}vfs\_init\ returned:\ \%s\(\backslash\)n"{}},\ \mbox{\hyperlink{mtstatus_8h_ab1c4c30274cca0fd5c0920b0df2ad26c}{MT\_SUCCEEDED}}(status)\ ?\ \textcolor{stringliteral}{"{}Success"{}}\ :\ \textcolor{stringliteral}{"{}Unsuccessful"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00253}00253\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \{}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00254}00254\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_ac240bdf341c5e0ae333252cd5ecf0261}{CTX\_FRAME}}\ ctx;}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00255}00255\ \ \ \ \ \ \ \ \ SAVE\_CTX\_FRAME(\&ctx);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00256}00256\ \ \ \ \ \ \ \ \ MtBugcheck(\&ctx,\ NULL,\ FILESYSTEM\_PANIC,\ 0,\ \textcolor{keyword}{false});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00257}00257\ \ \ \ \ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00258}00258\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00259}00259\ \ \ \ \ \mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y}{TIME\_ENTRY}}\ currTime\ =\ get\_time();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00260}00260\ \textcolor{preprocessor}{\#define\ ISRAEL\_UTC\_OFFSET\ 3}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00261}00261\ \ \ \ \ gop\_printf(COLOR\_GREEN,\ \textcolor{stringliteral}{"{}Current\ Time:\ \%d/\%d/\%d\ |\ \%d:\%d:\%d\(\backslash\)n"{}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a57ca98d8f6d4baf0fe41c583c7dcb0d5}{year}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a3e00faf7fbf9805e9ec4d2edd6339050}{month}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a72369a1087b2aeffe374bb054cb97c12}{day}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_ae5af4ff48939d13d480f87e56a9385d6}{hour}}\ +\ \mbox{\hyperlink{kernel_8c_a2d000697316631e744359a19471179c9}{ISRAEL\_UTC\_OFFSET}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8ff981ec55c945940f4a0da7d8709b3c}{minute}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8459fc4e94de7eefc74991e41779c8fc}{second}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00262}00262\ }
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00263}00263\ \ \ \ \ \textcolor{keywordtype}{char}\ listings[256];}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00264}00264\ \ \ \ \ status\ =\ vfs\_listdir(\textcolor{stringliteral}{"{}/"{}},\ listings,\ \textcolor{keyword}{sizeof}(listings));}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00265}00265\ \ \ \ \ gop\_printf(COLOR\_RED,\ \textcolor{stringliteral}{"{}vfs\_listdir\ returned:\ \%p\(\backslash\)n"{}},\ status);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00266}00266\ \ \ \ \ gop\_printf(COLOR\_RED,\ \textcolor{stringliteral}{"{}root\ directory\ is:\ \%s\(\backslash\)n"{}},\ vfs\_is\_dir\_empty(\textcolor{stringliteral}{"{}/"{}})\ ?\ \textcolor{stringliteral}{"{}Empty"{}}\ :\ \textcolor{stringliteral}{"{}Not\ Empty"{}});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00267}00267\ \ \ \ \ gop\_printf(COLOR\_CYAN,\ \textcolor{stringliteral}{"{}\%s"{}},\ listings);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00268}00268\ \ \ \ \ MUTEX*\ sharedMutex\ =\ MtAllocateVirtualMemory(\textcolor{keyword}{sizeof}(MUTEX),\ \_Alignof(MUTEX));}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00269}00269\ \ \ \ \ \textcolor{keywordflow}{if}\ (!sharedMutex)\ \{\ gop\_printf(COLOR\_RED,\ \textcolor{stringliteral}{"{}It's\ null\(\backslash\)n"{}});\ \_\_hlt();\ \}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00270}00270\ \ \ \ \ status\ =\ MtInitializeMutexObject(sharedMutex);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00271}00271\ \ \ \ \ gop\_printf(COLOR\_RED,\ \textcolor{stringliteral}{"{}[MTSTATUS]\ MtInitializeObject\ Returned:\ \%p\(\backslash\)n"{}},\ status);}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00272}00272\ \ \ \ \ MtCreateThread((ThreadEntry)test,\ sharedMutex,\ DEFAULT\_TIMESLICE\_TICKS,\ \textcolor{keyword}{true});}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00273}00273\ \ \ \ \ \textcolor{comment}{//int\ integer\ =\ 1234;}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00274}00274\ \ \ \ \ MtCreateThread((ThreadEntry)funcWithParam,\ sharedMutex,\ DEFAULT\_TIMESLICE\_TICKS,\ \textcolor{keyword}{true});\ \textcolor{comment}{//\ I\ have\ tested\ 5+\ threads,\ works\ perfectly\ as\ it\ should.}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00275}00275\ \ \ \ \ \textcolor{comment}{/*\ Enable\ LAPIC\ Now.\ */}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00276}00276\ \ \ \ \ lapic\_init\_bsp();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00277}00277\ \ \ \ \ lapic\_enable();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00278}00278\ \ \ \ \ init\_lapic\_timer(100);\ \textcolor{comment}{//\ 10ms}}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00279}00279\ \ \ \ \ \_\_sti();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00280}00280\ \ \ \ \ Schedule();}
-\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00281}00281\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00208}00208\ \ \ \ \ \textcolor{comment}{//\ Move\ all\ UEFI\ Pointers\ to\ kernel\ higher\ half\ (after\ physical\ memory\ offset)}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00209}00209\ \ \ \ \ \textcolor{comment}{//\ To\ allow\ copying\ PML4\ of\ kernel\ to\ processes.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00210}00210\ \ \ \ \ \mbox{\hyperlink{mminit_8c_aa3ddf52b1627621526507a45cd2475e2}{MiMoveUefiDataToHigherHalf}}(boot\_info);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00212}00212\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ object\ manager\ subsystem.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00213}00213\ \ \ \ \ \mbox{\hyperlink{ob_8c_a09d0cedd77eee1c5d29fd57db0e00eaf}{ObInitialize}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00214}00214\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00215}00215\ \ \ \ \ \textcolor{comment}{//\ Initialize\ Ps\ subsystem.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00216}00216\ \ \ \ \ st\ =\ \mbox{\hyperlink{psmgr_8c_aa52aa0d409c0f3c8d7690d8f71866597}{PsInitializeSystem}}(\mbox{\hyperlink{ps_8h_a1657e0ab54e8351a9ef2aa756148695fa22c543960eb2995a408160304117f4c3}{PS\_PHASE\_INITIALIZE\_SYSTEM}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00217}00217\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(st))\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00218}00218\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a2fbe29ca89b7da5a648a46a28803b8d9}{PSMGR\_INIT\_FAILED}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)st,\ NULL,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00219}00219\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00220}00220\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00221}00221\ \ \ \ \ \textcolor{comment}{//\ And,\ initialize\ our\ system\ process.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00222}00222\ \ \ \ \ InitSystemProcess();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00223}00223\ \ \ \ \ \mbox{\hyperlink{irql_8c_ac2693e834f0868b9b20355d551989dfe}{\_MeSetIrql}}(\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f}{PASSIVE\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00224}00224\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00225}00225\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00226}00226\ \ \ \ \ \ \ \ \ uint64\_t\ temp\_canary\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00227}00227\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ rdrand\_ok\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00228}00228\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ n\ =\ 0;\ n\ <\ 64;\ n++)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00229}00229\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{intrin_8h_a349bbfb6e70df9420f3494c9ac662b88}{\_\_rdrand64}}(\&temp\_canary))\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00230}00230\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ rdrand\_ok\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00231}00231\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00232}00232\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00233}00233\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00234}00234\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00235}00235\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (rdrand\_ok)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00236}00236\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_stack\_chk\_guard\ =\ temp\_canary;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00237}00237\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00238}00238\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00239}00239\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ rdrand\ didnt\ give\ a\ value,\ use\ timestamp\ of\ CPU\ cycles.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00240}00240\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_stack\_chk\_guard\ =\ \mbox{\hyperlink{intrin_8h_a0a48fb771b42f6a1ee05a5a65a33c5a0}{\_\_rdtsc}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00241}00241\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00242}00242\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00243}00243\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ canary\ should\ never\ be\ zero.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00244}00244\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\_\_stack\_chk\_guard\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00245}00245\ \ \ \ \ \ \ \ \ \ \ \ \ \_\_stack\_chk\_guard\ =\ 0xDEADC0DEDEADC0DE;\ \textcolor{comment}{//\ fallback}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00246}00246\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00247}00247\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00248}00248\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00249}00249\ \ \ \ \ \textcolor{comment}{/*\ Initiate\ Scheduler\ */}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00250}00250\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}{InitScheduler}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00251}00251\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00252}00252\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00253}00253\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}lea\ 1f(\%\%rip),\ \%0\(\backslash\)n\(\backslash\)t"{}}\ \ \textcolor{comment}{//\ Calculate\ the\ address\ of\ label\ 1\ relative\ to\ RIP}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00254}00254\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}1:"{}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ label\ whose\ address\ we\ want}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00255}00255\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(rip)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Output\ to\ the\ 'rip'\ variable}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00256}00256\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00257}00257\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00258}00258\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}Current\ RIP:\ \%p\(\backslash\)n"{}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)rip);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00259}00259\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00260}00260\ \ \ \ \ \textcolor{keywordflow}{if}\ (rip\ >=\ \mbox{\hyperlink{mm_8h_a4ecf752e3fbdc34c893043d0f3810986}{KernelVaStart}})\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00261}00261\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0x00FF00FF,\ \textcolor{stringliteral}{"{}**[+]\ Running\ in\ higher-\/half**\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00262}00262\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00263}00263\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00264}00264\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF0000FF,\ \textcolor{stringliteral}{"{}[-\/]\ Still\ identity-\/mapped\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00265}00265\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00266}00266\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00267}00267\ \ \ \ \ \textcolor{comment}{//\ Initialize\ worker\ threads.\ (all\ thread\ creation\ must\ be\ after\ sched\ init)}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00268}00268\ \ \ \ \ \mbox{\hyperlink{psmgr_8c_aa52aa0d409c0f3c8d7690d8f71866597}{PsInitializeSystem}}(\mbox{\hyperlink{ps_8h_a1657e0ab54e8351a9ef2aa756148695fa6505c640325c476c3e4adf618b9ca7f2}{PS\_PHASE\_INITIALIZE\_WORKER\_THREADS}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00269}00269\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00270}00270\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 64,\ \textcolor{stringliteral}{'buf1'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00271}00271\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf\ addr:\ \%p\(\backslash\)n"{}},\ buf);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00272}00272\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf2\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 128,\ \textcolor{stringliteral}{'buf2'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00273}00273\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf2\ addr:\ \%p\(\backslash\)n"{}},\ buf2);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00274}00274\ \ \ \ \ \mbox{\hyperlink{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748}{MmFreePool}}(buf2);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00275}00275\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf3\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 128,\ \textcolor{stringliteral}{'buf3'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00276}00276\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf3\ addr\ (should\ be\ same\ as\ buf2):\ \%p\(\backslash\)n"{}},\ buf3);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00277}00277\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf4\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 2048,\ \textcolor{stringliteral}{'buf4'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00278}00278\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF964B00,\ \textcolor{stringliteral}{"{}buf4\ addr\ (should\ reside\ after\ buf3,\ allocated\ 2048\ bytes):\ \%p\(\backslash\)n"{}},\ buf4);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00279}00279\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf5\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 64,\ \textcolor{stringliteral}{'buf5'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00280}00280\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFF964B00,\ \textcolor{stringliteral}{"{}buf5\ addr\ (should\ be\ a\ larger\ addr):\ \%p\(\backslash\)n"{}},\ buf5);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00281}00281\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf6\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 5000,\ \textcolor{stringliteral}{'buf6'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00282}00282\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf6\ addr\ (should\ use\ dynamic\ memory):\ \%p\(\backslash\)n"{}},\ buf6);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00283}00283\ \ \ \ \ \textcolor{keywordtype}{void}*\ buf7\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ 10000,\ \textcolor{stringliteral}{'buf7'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00284}00284\ \ \ \ \ \mbox{\hyperlink{kernel_8h_a29f75e67ea1a76410256bf17f8226e05}{gop\_printf\_forced}}(0xFFFFFF00,\ \textcolor{stringliteral}{"{}buf7\ addr\ (should\ use\ dynamic\ memory,\ extremely\ larger):\ \%p\(\backslash\)n"{}},\ buf7);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00285}00285\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00286}00286\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mh_8h_a07baaa0cfda9434c8ac886b455ca685f}{checkcpuid}}())\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00287}00287\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ str[256];}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00288}00288\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mh_8h_ace79a1a944a5d4518e96b3135e07190f}{getCpuName}}(str);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00289}00289\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}CPU\ Identified:\ \%s\(\backslash\)n"{}},\ str);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00290}00290\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00291}00291\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00292}00292\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ status\ =\ \mbox{\hyperlink{vfs_8c_a90195d6c95683c2134cca9f87446be38}{vfs\_init}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00293}00293\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}vfs\_init\ returned:\ \%s\(\backslash\)n"{}},\ \mbox{\hyperlink{mtstatus_8h_ab1c4c30274cca0fd5c0920b0df2ad26c}{MT\_SUCCEEDED}}(status)\ ?\ \textcolor{stringliteral}{"{}Success"{}}\ :\ \textcolor{stringliteral}{"{}Unsuccessful"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00294}00294\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00295}00295\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a0f1a69904473988b332b7e0f24efbb45}{FILESYSTEM\_PANIC}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00296}00296\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00297}00297\ }
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00298}00298\ \ \ \ \ \mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y}{TIME\_ENTRY}}\ currTime\ =\ get\_time();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00299}00299\ \textcolor{preprocessor}{\#define\ ISRAEL\_UTC\_OFFSET\ 3}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00300}00300\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_afc9149f5de51bd9ac4f5ebbfa153f018}{COLOR\_GREEN}},\ \textcolor{stringliteral}{"{}Current\ Time:\ \%d/\%d/\%d\ |\ \%d:\%d:\%d\(\backslash\)n"{}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a57ca98d8f6d4baf0fe41c583c7dcb0d5}{year}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a3e00faf7fbf9805e9ec4d2edd6339050}{month}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a72369a1087b2aeffe374bb054cb97c12}{day}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_ae5af4ff48939d13d480f87e56a9385d6}{hour}}\ +\ \mbox{\hyperlink{kernel_8c_a2d000697316631e744359a19471179c9}{ISRAEL\_UTC\_OFFSET}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8ff981ec55c945940f4a0da7d8709b3c}{minute}},\ currTime.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8459fc4e94de7eefc74991e41779c8fc}{second}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00301}00301\ \ \ \ \ \textcolor{keywordtype}{char}\ listings[256];}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00302}00302\ \ \ \ \ status\ =\ \mbox{\hyperlink{vfs_8c_a49377ba7575cbad9c52cf142099215ce}{vfs\_listdir}}(\textcolor{stringliteral}{"{}/"{}},\ listings,\ \textcolor{keyword}{sizeof}(listings));}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00303}00303\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}vfs\_listdir\ returned:\ \%x\(\backslash\)n"{}},\ status);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00304}00304\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}root\ directory\ is:\ \%s\(\backslash\)n"{}},\ \mbox{\hyperlink{vfs_8c_a617bde009f0493ff340ab914aafc5b27}{vfs\_is\_dir\_empty}}(\textcolor{stringliteral}{"{}/"{}})\ ?\ \textcolor{stringliteral}{"{}Empty"{}}\ :\ \textcolor{stringliteral}{"{}Not\ Empty"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00305}00305\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_a82573859711fce56f1aa0a76b18a9b18}{COLOR\_CYAN}},\ \textcolor{stringliteral}{"{}\%s"{}},\ listings);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00306}00306\ \ \ \ \ \mbox{\hyperlink{ms_8h_ad3954e6faf0416b5cc918b91804f8e53}{MUTEX}}*\ sharedMutex\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ms_8h_ad3954e6faf0416b5cc918b91804f8e53}{MUTEX}}),\ \textcolor{stringliteral}{'\ TUM'});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00307}00307\ \ \ \ \ \textcolor{keywordflow}{if}\ (!sharedMutex)\ \{\ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}It's\ null\(\backslash\)n"{}});\ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();\ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00308}00308\ \ \ \ \ status\ =\ \mbox{\hyperlink{mutex_8c_a8ad3f7c22a372c800bef23af15a68356}{MsInitializeMutexObject}}(sharedMutex);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00309}00309\ \ \ \ \ \mbox{\hyperlink{thread_8c_a07ad56c2b409d9a227ff6787d9f48643}{PsCreateSystemThread}}((\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}})test,\ sharedMutex,\ \mbox{\hyperlink{me_8h_af17dae726e070657f87bb1702a5c9834afdd226f1a0c01fe52ac70683076a662e}{DEFAULT\_TIMESLICE\_TICKS}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00310}00310\ \ \ \ \ \mbox{\hyperlink{thread_8c_a07ad56c2b409d9a227ff6787d9f48643}{PsCreateSystemThread}}((\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}})MeCreateInitialUserModeProcess,\ NULL,\ \mbox{\hyperlink{me_8h_af17dae726e070657f87bb1702a5c9834afdd226f1a0c01fe52ac70683076a662e}{DEFAULT\_TIMESLICE\_TICKS}});\ \textcolor{comment}{//\ I\ have\ tested\ 5+\ threads,\ works\ perfectly\ as\ it\ should.\ (\ SMP\ UPDATED\ -\/\ Tested\ with\ 4\ threads,\ MUTEX\ and\ scheduling\ works\ perfectly\ :)\ )}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00311}00311\ \ \ \ \ \textcolor{comment}{/*\ Enable\ LAPIC\ \&\ SMP\ Now.\ */}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00312}00312\ \ \ \ \ \mbox{\hyperlink{apic_8c_a91d3fbf4f7264d3456d0ca88f0b54a08}{lapic\_init\_cpu}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00313}00313\ \ \ \ \ \mbox{\hyperlink{apic_8c_ac7b59a78aea266f1c387e64bcae6cc51}{lapic\_enable}}();\ \textcolor{comment}{//\ call\ again.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00314}00314\ \ \ \ \ \mbox{\hyperlink{apic_8c_a024a9a5a7e9ecdbe0359b4cae774c9cc}{lapic\_timer\_calibrate}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00315}00315\ \ \ \ \ \mbox{\hyperlink{apic_8c_a1e4c2eac6f54346ca8dd087e24ff420c}{init\_lapic\_timer}}(100);\ \textcolor{comment}{//\ 10ms,\ must\ be\ called\ before\ other\ APs}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00316}00316\ \textcolor{preprocessor}{\#ifndef\ MT\_UP}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00317}00317\ \ \ \ \ \textcolor{comment}{/*\ Enable\ SMP\ */}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00318}00318\ \ \ \ \ status\ =\ \mbox{\hyperlink{acpi_8c_a8e0e024a4c708b5bb008c7100841410e}{MhParseLAPICs}}((uint8\_t*)\mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{apic\_list}},\ \mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\_CPUS}},\ \&\mbox{\hyperlink{kernel_8c_abd627bb6a327bec16cef23b42c63c657}{cpu\_count}},\ \&\mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapicAddress}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00319}00319\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(status))\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00320}00320\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**[MTSTATUS-\/FAILURE]**\ ParseLAPICs\ status\ returned:\ \%x,\ continuing\ in\ UP\ mode.\(\backslash\)n"{}},\ status);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00321}00321\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00322}00322\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00323}00323\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{smp_8c_a95f447eff958333a652f64136b9e3cfc}{MhInitializeSMP}}(\mbox{\hyperlink{kernel_8c_a37abca752a84d2b41de4f960ff8926c1}{apic\_list}},\ 4,\ \mbox{\hyperlink{mh_8h_ae2b7e438110e59abf98b568fedbbd749}{lapicAddress}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00324}00324\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mh_8h_a31e6d7d3d740029297de19620af57ae4}{IPI\_PARAMS}}\ dummy\ =\ \{\ 0\ \};\ \textcolor{comment}{//\ zero-\/initialize\ the\ struct}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00325}00325\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{smp_8c_af16af21e540d45a136cbff3f1cd766f0}{MhSendActionToCpusAndWait}}(\mbox{\hyperlink{mh_8h_a1284f96951816db55a31764685872bb4af9cf8e9011b7239708d34897f83e9342}{CPU\_ACTION\_PRINT\_ID}},\ dummy);}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00326}00326\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mh_8h_a7824a23577849a6307c98674ea6ade79}{allApsInitialized}}\ =\ \textcolor{keyword}{true};\ \textcolor{comment}{//\ Toggle\ this\ flag\ after\ all\ CPUs\ printed\ their\ ID,\ since\ thats\ when\ it\ marks\ that\ all\ CPUs\ of\ the\ apic\ list\ have\ initialized\ fully.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00327}00327\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00328}00328\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00329}00329\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}System\ configured\ to\ run\ in\ UP\ mode.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00330}00330\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00331}00331\ \ \ \ \ \textcolor{comment}{//\ \_\_sti();\ STI\ Call\ commented\ out,\ this\ is\ what\ caused\ the\ scheduler\ assertion\ to\ fail,\ and\ guess\ how\ much\ time\ it\ took\ to\ debug?\ 2\ days}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00332}00332\ \ \ \ \ \textcolor{comment}{//\ Thread\ creations\ (including\ idle\ threads)\ must\ come\ with\ the\ IF\ flag\ set.}}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00333}00333\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00334}00334\ \ \ \ \ \_\_builtin\_unreachable();}
+\DoxyCodeLine{\Hypertarget{kernel_8c_source_l00335}00335\ \}}
 
 \end{DoxyCode}

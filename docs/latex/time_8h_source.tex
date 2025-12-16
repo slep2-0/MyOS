@@ -12,7 +12,7 @@
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00008}00008\ \textcolor{preprocessor}{\#define\ X86\_TIME\_H}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00009}00009\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00010}00010\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00011}00011\ \textcolor{preprocessor}{\#include\ "{}intrin/intrin.h"{}}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00011}00011\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{intrin_8h}{intrinsics/intrin.h}}"{}}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00012}00012\ }
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00013}00013\ \textcolor{comment}{//\ RTC\ CMOS\ ports}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00014}\mbox{\hyperlink{time_8h_aacb8fc8b7efa32c2381ebd467a2ad7d3}{00014}}\ \textcolor{preprocessor}{\#define\ CMOS\_ADDRESS\ 0x70}}
@@ -30,14 +30,14 @@
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00026}00026\ }
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00027}00027\ \textcolor{comment}{//\ Read\ from\ CMOS}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00028}00028\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint8\_t\ cmos\_read(uint8\_t\ reg)\ \{}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00029}00029\ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{time_8h_aacb8fc8b7efa32c2381ebd467a2ad7d3}{CMOS\_ADDRESS}},\ reg);}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00030}00030\ \ \ \ \ \textcolor{keywordflow}{return}\ \_\_inbyte(\mbox{\hyperlink{time_8h_a5554a9134430636bc1044eb72126fe32}{CMOS\_DATA}});}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00029}00029\ \ \ \ \ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(\mbox{\hyperlink{time_8h_aacb8fc8b7efa32c2381ebd467a2ad7d3}{CMOS\_ADDRESS}},\ reg);}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00030}00030\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{intrin_8h_ae8aae7032515082f6e2ff67cffa8daf5}{\_\_inbyte}}(\mbox{\hyperlink{time_8h_a5554a9134430636bc1044eb72126fe32}{CMOS\_DATA}});}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00031}00031\ \}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00032}00032\ }
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00033}00033\ \textcolor{comment}{//\ Check\ if\ RTC\ is\ updating}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00034}00034\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ rtc\_updating(\textcolor{keywordtype}{void})\ \{}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00035}00035\ \ \ \ \ \_\_outbyte(\mbox{\hyperlink{time_8h_aacb8fc8b7efa32c2381ebd467a2ad7d3}{CMOS\_ADDRESS}},\ 0x0A);}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{return}\ (\_\_inbyte(\mbox{\hyperlink{time_8h_a5554a9134430636bc1044eb72126fe32}{CMOS\_DATA}})\ \&\ 0x80)\ !=\ 0;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00035}00035\ \ \ \ \ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(\mbox{\hyperlink{time_8h_aacb8fc8b7efa32c2381ebd467a2ad7d3}{CMOS\_ADDRESS}},\ 0x0A);}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{intrin_8h_ae8aae7032515082f6e2ff67cffa8daf5}{\_\_inbyte}}(\mbox{\hyperlink{time_8h_a5554a9134430636bc1044eb72126fe32}{CMOS\_DATA}})\ \&\ 0x80)\ !=\ 0;}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00037}00037\ \}}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00038}00038\ }
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00039}00039\ \textcolor{comment}{//\ Convert\ BCD\ →\ binary}}
@@ -95,6 +95,34 @@
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00091}00091\ }
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00092}00092\ \ \ \ \ \textcolor{keywordflow}{return}\ t;}
 \DoxyCodeLine{\Hypertarget{time_8h_source_l00093}00093\ \}}
-\DoxyCodeLine{\Hypertarget{time_8h_source_l00094}00094\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00094}00094\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00095}00095\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ is\_leap\_year(uint16\_t\ year)\ \{}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00096}00096\ \ \ \ \ \textcolor{keywordflow}{return}\ (year\ \%\ 4\ ==\ 0\ \&\&\ (year\ \%\ 100\ !=\ 0\ ||\ year\ \%\ 400\ ==\ 0));}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00097}00097\ \}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00098}00098\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00099}00099\ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ days\_in\_month[12]\ =\ \{\ 31,28,31,30,31,30,31,31,30,31,30,31\ \};}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00101}00101\ \textcolor{keyword}{static}\ uint64\_t\ MeGetEpoch(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00102}00102\ \ \ \ \ \mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y}{TIME\_ENTRY}}\ t\ =\ get\_time();}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00103}00103\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00104}00104\ \ \ \ \ \textcolor{comment}{//\ 1.\ count\ total\ days\ since\ 1970}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00105}00105\ \ \ \ \ uint64\_t\ days\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint16\_t\ y\ =\ 1970;\ y\ <\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a57ca98d8f6d4baf0fe41c583c7dcb0d5}{year}};\ y++)}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00107}00107\ \ \ \ \ \ \ \ \ days\ +=\ 365\ +\ (is\_leap\_year(y)\ ?\ 1\ :\ 0);}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00108}00108\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00109}00109\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint8\_t\ m\ =\ 1;\ m\ <\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a3e00faf7fbf9805e9ec4d2edd6339050}{month}};\ m++)}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00110}00110\ \ \ \ \ \ \ \ \ days\ +=\ days\_in\_month[m\ -\/\ 1]\ +\ (m\ ==\ 2\ \&\&\ is\_leap\_year(t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a57ca98d8f6d4baf0fe41c583c7dcb0d5}{year}})\ ?\ 1\ :\ 0);}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00111}00111\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00112}00112\ \ \ \ \ days\ +=\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a72369a1087b2aeffe374bb054cb97c12}{day}}\ -\/\ 1;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00113}00113\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00114}00114\ \ \ \ \ \textcolor{comment}{//\ 2.\ convert\ to\ seconds}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00115}00115\ \ \ \ \ uint64\_t\ seconds\ =\ days\ *\ 86400ULL;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00116}00116\ \ \ \ \ seconds\ +=\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_ae5af4ff48939d13d480f87e56a9385d6}{hour}}\ *\ 3600ULL;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00117}00117\ \ \ \ \ seconds\ +=\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8ff981ec55c945940f4a0da7d8709b3c}{minute}}\ *\ 60ULL;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00118}00118\ \ \ \ \ seconds\ +=\ t.\mbox{\hyperlink{struct_t_i_m_e___e_n_t_r_y_a8459fc4e94de7eefc74991e41779c8fc}{second}};}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00119}00119\ }
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00120}00120\ \ \ \ \ \textcolor{keywordflow}{return}\ seconds;}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00121}00121\ \}}
+\DoxyCodeLine{\Hypertarget{time_8h_source_l00122}00122\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

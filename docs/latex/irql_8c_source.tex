@@ -1,0 +1,224 @@
+\doxysection{irql.\+c}
+\hypertarget{irql_8c_source}{}\label{irql_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/irql.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/me/irql.c}}
+\mbox{\hyperlink{irql_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ \ IRQL\ Implementation\ (Fixed\ with\ Dispatch\ Level\ scheduling\ toggle)}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{atomic_8h}{../../intrinsics/atomic.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{intrin_8h}{../../intrinsics/intrin.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ <stdatomic.h>}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00012}00012\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ interrupts\_enabled(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00013}00013\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00014}00014\ \ \ \ \ \_\_asm\_\_\ \_\_volatile\_\_(\textcolor{stringliteral}{"{}pushfq;\ popq\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}}));}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00015}00015\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}}\ \&\ (1UL\ <<\ 9))\ !=\ 0;\ \textcolor{comment}{//\ IF\ is\ bit\ 9}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00016}00016\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00018}00018\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ update\_apic\_irqs(\mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ newLevel)\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00019}00019\ \ \ \ \ uint8\_t\ tpr\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00021}00021\ \ \ \ \ \textcolor{keywordflow}{switch}\ (newLevel)\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00022}00022\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf}{HIGH\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00023}00023\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eae7135c89d9f73f43351bda695027836e}{POWER\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00024}00024\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea901304439d70b3e35dd6eaa57644f524}{IPI\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00025}00025\ \ \ \ \ \ \ \ \ tpr\ =\ 15;\ \textcolor{comment}{//\ block\ everything}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00026}00026\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00027}00027\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00028}00028\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea9562f0a4b039e529f5e7a949b6afc3fd}{CLOCK\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00029}00029\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea35055bf8ec0514e7e8afee9d4227c6d7}{PROFILE\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ tpr\ =\ \mbox{\hyperlink{mh_8h_a85f06393ed23aeedc830f1251c9c6ffb}{TPR\_PROFILE}};\ \textcolor{comment}{//\ 10}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00031}00031\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00033}00033\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00034}00034\ \ \ \ \ \ \ \ \ tpr\ =\ \mbox{\hyperlink{mh_8h_ade282b1992ed3a94c3709dff53bb479e}{TPR\_DPC}};\ \textcolor{comment}{//\ 6}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00035}00035\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00037}00037\ \ \ \ \ \ \ \ \ tpr\ =\ \mbox{\hyperlink{mh_8h_a73d9e5b85ebab8e2f58f4130a39ef813}{TPR\_APC}};\ \textcolor{comment}{//\ 3}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00039}00039\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{case}\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f}{PASSIVE\_LEVEL}}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00041}00041\ \ \ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00042}00042\ \ \ \ \ \ \ \ \ tpr\ =\ \mbox{\hyperlink{mh_8h_adf055ef85f2ec5de15babebf0d76959e}{TPR\_PASSIVE}};\ \textcolor{comment}{//\ allow\ everything.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00044}00044\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00045}00045\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00046}00046\ \ \ \ \ \mbox{\hyperlink{intrin_8h_ab3a1f32b83737b90c38a1650b17e6682}{\_\_write\_cr8}}((\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long})tpr);}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00047}00047\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00049}00049\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ toggle\_scheduler(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00050}00050\ \ \ \ \ \textcolor{comment}{//\ schedulerEnabled\ should\ be\ true\ only\ at\ IRQL\ <\ DISPATCH\_LEVEL}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00051}00051\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a18064996902c47642fa42faed7fbb9d5}{schedulerEnabled}}\ =\ (\mbox{\hyperlink{me_8h_a6abf254a525b635b6dc210cd370536d1}{MeGetCurrentIrql}}()\ <\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00052}00052\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00053}00053\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00054}00054\ \textcolor{comment}{//\ PUBLIC\ API}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00055}00055\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00056}00056\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00057}\mbox{\hyperlink{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf}{00057}}\ \mbox{\hyperlink{irql_8c_a42f92f7a0268fd7a4fab017deabb8fcf}{MeRaiseIrql}}\ (}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00058}00058\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ NewIrql,}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00059}00059\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}\ OldIrql}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00060}00060\ )\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00062}00062\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00063}00063\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00064}00064\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ This\ function\ raises\ the\ current\ IRQL\ of\ the\ CPU\ to\ the\ specified\ 'NewIrql',\ and\ updates\ IRQL\ rules\ along\ with\ it\ (scheduler,\ APIC\ masks...).}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00065}00065\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00066}00066\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00067}00067\ \textcolor{comment}{\ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00068}00068\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ IRQL\ NewIrql:\ The\ new\ IRQL\ to\ set.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00069}00069\ \textcolor{comment}{\ \ \ \ \ \ \ \ [OUT]\ \ \ PIRQL\ OldIrql:\ The\ old\ IRQL\ variable\ address.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00070}00070\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00071}00071\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00072}00072\ \textcolor{comment}{\ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00073}00073\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00074}00074\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00075}00075\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00076}00076\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00077}00077\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00078}00078\ \ \ \ \ \textcolor{keywordtype}{bool}\ prev\_if\ =\ interrupts\_enabled();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00079}00079\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00080}00080\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00081}00081\ \ \ \ \ \textcolor{keywordflow}{if}\ (OldIrql)\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ *OldIrql\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}{currentIrql}};}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00083}00083\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00084}00084\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00085}00085\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ curr\ =\ \mbox{\hyperlink{me_8h_a6abf254a525b635b6dc210cd370536d1}{MeGetCurrentIrql}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00086}00086\ \ \ \ \ \textcolor{keywordflow}{if}\ (NewIrql\ <\ curr)\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a3b7fe44dc36e8f57087d5ca08628a315}{IRQL\_NOT\_GREATER\_OR\_EQUAL}});}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00088}00088\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00089}00089\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00090}00090\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}{currentIrql}}\ =\ NewIrql;}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00091}00091\ \ \ \ \ toggle\_scheduler();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00092}00092\ \ \ \ \ update\_apic\_irqs(NewIrql);}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00093}00093\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\_if)\ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00094}00094\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00095}00095\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00096}00096\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00097}\mbox{\hyperlink{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}{00097}}\ \mbox{\hyperlink{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}{MeLowerIrql}}\ (}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00098}00098\ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ NewIrql}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00099}00099\ )\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00101}00101\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00102}00102\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00103}00103\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00104}00104\ \textcolor{comment}{\ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00105}00105\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ lowers\ the\ current\ IRQL\ of\ the\ CPU\ to\ the\ specified\ 'NewIrql',\ and\ updates\ IRQL\ rules\ along\ with\ it\ (scheduler,\ APIC\ masks...).}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00106}00106\ \textcolor{comment}{\ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00107}00107\ \textcolor{comment}{\ \ \ \ \ \ \ \ N.B:\ The\ function\ checks\ if\ a\ software\ interrupt\ is\ pending\ AND\ that\ the\ interrupt\ IRQL\ pending\ is\ LOWER\ or\ EQUAL\ to\ current\ IRQL,}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00108}00108\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ \ if\ so,\ it\ will\ generate\ the\ interrupt,\ even\ on\ interrupts\ disabled.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00109}00109\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00110}00110\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00111}00111\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00112}00112\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ IRQL\ NewIrql:\ The\ new\ IRQL\ to\ set.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00113}00113\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00114}00114\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00115}00115\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00116}00116\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00117}00117\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00118}00118\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00119}00119\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00120}00120\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00121}00121\ \ \ \ \ \textcolor{keywordtype}{bool}\ prev\_if\ =\ interrupts\_enabled();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00122}00122\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00123}00123\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00124}00124\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ curr\ =\ \mbox{\hyperlink{me_8h_a6abf254a525b635b6dc210cd370536d1}{MeGetCurrentIrql}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00125}00125\ \ \ \ \ \textcolor{keywordflow}{if}\ (NewIrql\ >\ curr)\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a2438a1a1e6b4c32346432c6974eeb2a9}{MeBugCheck}}(\mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ae3e824eb536b02e7941e6545b6979fc7}{IRQL\_NOT\_LESS\_OR\_EQUAL}});}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00127}00127\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00128}00128\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00129}00129\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}{currentIrql}}\ =\ NewIrql;}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00130}00130\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00131}00131\ \ \ \ \ toggle\_scheduler();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00132}00132\ \ \ \ \ update\_apic\_irqs(NewIrql);}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00133}00133\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00134}00134\ \ \ \ \ \mbox{\hyperlink{core_8h_a70c4f07737f0f901b6b34b4655c9ee42}{PPROCESSOR}}\ cpu\ =\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00135}00135\ \ \ \ \ \mbox{\hyperlink{mm_8h_a69a25077688e3321b41c64ece6626df7}{MmFullBarrier}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00136}00136\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00137}00137\ \ \ \ \ \textcolor{comment}{//\ First\ check\ for\ DPC\ Interrupts.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00138}00138\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00139}00139\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\_if\ \&\&\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a87c88a9cc221f31eb87ded1defa416e5}{DpcInterruptRequested}}\ \&\&\ !cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a6bfb22756c90a50ccc04b2a86c40cfa7}{DpcRoutineActive}}\ \&\&\ NewIrql\ <=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00140}00140\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{apic_8c_a5fa8dc1090aac3d53a9468b21f95773c}{MhRequestSoftwareInterrupt}}(\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00141}00141\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00142}00142\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00143}00143\ \ \ \ \ \textcolor{comment}{//\ Now\ APC\ Interrupts.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00144}00144\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\_if\ \&\&\ cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_afeb6d7827ddf35a32b4ea98ab78d344a}{ApcInterruptRequested}}\ \&\&\ !cpu-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_ac828a5c214e7a6f529d06e2d66255f59}{ApcRoutineActive}}\ \&\&\ NewIrql\ <=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{apic_8c_a5fa8dc1090aac3d53a9468b21f95773c}{MhRequestSoftwareInterrupt}}(\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea25b40dfad5453cd4c82cf386b1c6a3a2}{APC\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00146}00146\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00147}00147\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00148}00148\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\_if)\ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00149}00149\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00150}00150\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00151}00151\ \textcolor{comment}{//\ This\ function\ should\ be\ used\ sparingly,\ only\ during\ initialization.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00152}00152\ \textcolor{keywordtype}{void}\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00153}\mbox{\hyperlink{irql_8c_ac2693e834f0868b9b20355d551989dfe}{00153}}\ \mbox{\hyperlink{irql_8c_ac2693e834f0868b9b20355d551989dfe}{\_MeSetIrql}}\ (}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00154}00154\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ NewIrql}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00155}00155\ )}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00156}00156\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00157}00157\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00158}00158\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00159}00159\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ This\ function\ forcefully\ SETS\ (ignores\ bugcheck\ rules)\ the\ current\ IRQL\ of\ the\ CPU\ to\ the\ specified\ 'NewIrql',\ and\ updates\ IRQL\ rules\ along\ with\ it\ (scheduler,\ APIC\ masks...).}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00160}00160\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00161}00161\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00162}00162\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00163}00163\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ IRQL\ NewIrql:\ The\ new\ IRQL\ to\ set.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00164}00164\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00165}00165\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00166}00166\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00167}00167\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00168}00168\ \textcolor{comment}{\ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00169}00169\ \textcolor{comment}{\ \ \ \ Notes:\ }}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00170}00170\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00171}00171\ \textcolor{comment}{\ \ \ \ \ \ \ \ Use\ sparingly,\ this\ function\ ignores\ bugcheck\ IRQL\ rules.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00172}00172\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00173}00173\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00174}00174\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00175}00175\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00176}00176\ \ \ \ \ \textcolor{keywordtype}{bool}\ prev\_if\ =\ interrupts\_enabled();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00177}00177\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00178}00178\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00179}00179\ \ \ \ \ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>\mbox{\hyperlink{struct___p_r_o_c_e_s_s_o_r_a62b12cdf44de60be43549917d5b26920}{currentIrql}}\ =\ NewIrql;}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00180}00180\ \ \ \ \ toggle\_scheduler();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00181}00181\ \ \ \ \ update\_apic\_irqs(NewIrql);}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00182}00182\ \ \ \ \ \textcolor{keywordflow}{if}\ (prev\_if)\ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00183}00183\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00184}00184\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00185}00185\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00186}\mbox{\hyperlink{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}{00186}}\ \mbox{\hyperlink{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}{MeDisableInterrupts}}(}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00187}00187\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00188}00188\ )}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00189}00189\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00190}00190\ \textcolor{comment}{//\ Short\ Desc:\ Will\ disable\ interrupts,\ and\ returns\ if\ interrupts\ were\ enabled\ before.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00191}00191\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00192}00192\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00193}00193\ \ \ \ \ \textcolor{keywordtype}{bool}\ prev\_if\ =\ interrupts\_enabled();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00194}00194\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00195}00195\ \ \ \ \ \textcolor{keywordflow}{return}\ prev\_if;}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00196}00196\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00197}00197\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00198}00198\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00199}\mbox{\hyperlink{irql_8c_a8ed359ce36b3a1000c30116896fe20bb}{00199}}\ \mbox{\hyperlink{irql_8c_a8ed359ce36b3a1000c30116896fe20bb}{MeEnableInterrupts}}(}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00200}00200\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{bool}\ EnabledBefore}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00201}00201\ )}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00202}00202\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00203}00203\ \textcolor{comment}{//\ Short\ Desc:\ Will\ enable\ interrupts\ ONLY\ if\ EnabledBefore\ is\ true.\ (given\ from\ return\ value\ of\ MeDisableInterrupts)}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00204}00204\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00205}00205\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00206}00206\ \ \ \ \ \textcolor{keywordflow}{if}\ (EnabledBefore)\ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00207}00207\ \}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00208}00208\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00209}00209\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00210}\mbox{\hyperlink{irql_8c_a554f81fa12d240c84d378dae18ae4da6}{00210}}\ \mbox{\hyperlink{irql_8c_a554f81fa12d240c84d378dae18ae4da6}{MeAreInterruptsEnabled}}(}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00211}00211\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00212}00212\ )}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00213}00213\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00214}00214\ \textcolor{comment}{//\ Short\ Desc:\ Will\ return\ if\ interrupts\ are\ currently\ enabled\ on\ the\ processor.}}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00215}00215\ }
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00216}00216\ \{}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00217}00217\ \ \ \ \ \textcolor{keywordflow}{return}\ interrupts\_enabled();}
+\DoxyCodeLine{\Hypertarget{irql_8c_source_l00218}00218\ \}}
+
+\end{DoxyCode}
