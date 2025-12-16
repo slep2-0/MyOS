@@ -1,6 +1,30 @@
 var searchData=
 [
-  ['boot_5finfo_5flocal_0',['boot_info_local',['../kernel_8c.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'kernel.c']]],
-  ['bss_5fend_1',['bss_end',['../kernel_8c.html#a2c8bdc1125232c0a840c4b3f423d8b48',1,'kernel.c']]],
-  ['bss_5fstart_2',['bss_start',['../kernel_8c.html#ad9f84c8ae582241d7b33c46a994b8445',1,'kernel.c']]]
+  ['accessed_0',['Accessed',['../struct___m_m_p_t_e.html#a1432d86fa3877286b270c234acdbdc6d',1,'_MMPTE']]],
+  ['accesssize_1',['AccessSize',['../struct___generic_address_structure.html#a86717164a1a019a14354d30ef42a6cff',1,'_GenericAddressStructure::AccessSize'],['../mh_8h.html#a86717164a1a019a14354d30ef42a6cff',1,'AccessSize:&#160;mh.h']]],
+  ['acmd_2',['acmd',['../struct___h_b_a___c_m_d___t_b_l.html#ac9357952ae6c057602ffafb0e7bf943a',1,'_HBA_CMD_TBL']]],
+  ['acpidisable_3',['AcpiDisable',['../struct___f_a_d_t.html#ad7fcb88910fe5d840dc5068431020849',1,'_FADT::AcpiDisable'],['../mh_8h.html#ad7fcb88910fe5d840dc5068431020849',1,'AcpiDisable:&#160;mh.h']]],
+  ['acpienable_4',['AcpiEnable',['../struct___f_a_d_t.html#adb98d626786bf90d532a3216b9984178',1,'_FADT::AcpiEnable'],['../mh_8h.html#adb98d626786bf90d532a3216b9984178',1,'AcpiEnable:&#160;mh.h']]],
+  ['acpiprocessorid_5',['AcpiProcessorId',['../struct____attribute____.html#a4614de1d1f54dc7c8967c044cf449138',1,'__attribute__']]],
+  ['acpiprocessoruid_6',['AcpiProcessorUid',['../struct____attribute____.html#a1f6a6df171720ac905c9f7c638270e70',1,'__attribute__']]],
+  ['acpirsdpphys_7',['AcpiRsdpPhys',['../struct___b_o_o_t___i_n_f_o.html#a6dfeee4edf802acf9f7c713a7b3b6992',1,'_BOOT_INFO']]],
+  ['address_8',['Address',['../struct___d_e_b_u_g___e_n_t_r_y.html#ae0cc8a5c23a59a178d241a27f12b1ef5',1,'_DEBUG_ENTRY::Address'],['../struct___d_b_g___c_a_l_l_b_a_c_k___i_n_f_o.html#ae0cc8a5c23a59a178d241a27f12b1ef5',1,'_DBG_CALLBACK_INFO::Address'],['../struct___generic_address_structure.html#a910d8dd637ddefc515335aa801391980',1,'_GenericAddressStructure::Address'],['../mh_8h.html#a910d8dd637ddefc515335aa801391980',1,'Address:&#160;mh.h']]],
+  ['address_9',['address',['../struct___d_e_b_u_g___r_e_g_i_s_t_e_r_s.html#ab6b52376c1b9d81e6ea6f95a1225f832',1,'_DEBUG_REGISTERS']]],
+  ['addressspace_10',['AddressSpace',['../struct___generic_address_structure.html#a49f66bea52edd0c5df30b86ff352e57d',1,'_GenericAddressStructure::AddressSpace'],['../mh_8h.html#a49f66bea52edd0c5df30b86ff352e57d',1,'AddressSpace:&#160;mh.h']]],
+  ['addresstoinvalidate_11',['addressToInvalidate',['../struct___p_a_g_e___p_a_r_a_m_e_t_e_r_s.html#a54d43319c2217dc8ddef02e5a2c64d22',1,'_PAGE_PARAMETERS']]],
+  ['ahci_5fbases_5flocal_12',['ahci_bases_local',['../kernel_8c.html#a3764ef588283aaa224d9dd8d89a35c52',1,'kernel.c']]],
+  ['ahci_5finitialized_13',['ahci_initialized',['../ahci_8c.html#a1ed835aaf13aa614433110d49cfa556d',1,'ahci.c']]],
+  ['ahcibarbases_14',['AhciBarBases',['../struct___b_o_o_t___i_n_f_o.html#a5df0322e1e041be1ab721a9bbc1d65c1',1,'_BOOT_INFO']]],
+  ['ahcicount_15',['AhciCount',['../struct___b_o_o_t___i_n_f_o.html#a23b3867b03377e742e1537a995614d4a',1,'_BOOT_INFO']]],
+  ['allapsinitialized_16',['allApsInitialized',['../mh_8h.html#a7824a23577849a6307c98674ea6ade79',1,'allApsInitialized:&#160;kernel.c'],['../kernel_8c.html#a7824a23577849a6307c98674ea6ade79',1,'allApsInitialized:&#160;kernel.c']]],
+  ['allthreads_17',['AllThreads',['../struct___e_p_r_o_c_e_s_s.html#afa2bf092db11195fa0f0688767cd7baf',1,'_EPROCESS']]],
+  ['ap_5fentry_5fvirt_18',['ap_entry_virt',['../struct___s_m_p___b_o_o_t_i_n_f_o.html#aea019c770b224112dc687afac630e171',1,'_SMP_BOOTINFO']]],
+  ['apcinterruptrequested_19',['ApcInterruptRequested',['../struct___p_r_o_c_e_s_s_o_r.html#afeb6d7827ddf35a32b4ea98ab78d344a',1,'_PROCESSOR']]],
+  ['apcroutineactive_20',['ApcRoutineActive',['../struct___p_r_o_c_e_s_s_o_r.html#ac828a5c214e7a6f529d06e2d66255f59',1,'_PROCESSOR']]],
+  ['apcstate_21',['ApcState',['../struct___i_t_h_r_e_a_d.html#ae9e70a267dbbee57a023a480da6d34a9',1,'_ITHREAD']]],
+  ['apic_5flist_22',['apic_list',['../kernel_8c.html#a37abca752a84d2b41de4f960ff8926c1',1,'kernel.c']]],
+  ['apicid_23',['ApicId',['../struct____attribute____.html#a22e7930b6c5423a9a936717efc0412b5',1,'__attribute__']]],
+  ['attachedtoprocess_24',['AttachedToProcess',['../struct___a_p_c___s_t_a_t_e.html#a867830641a99405e6236bd768bd2d83a',1,'_APC_STATE']]],
+  ['attribute_25',['Attribute',['../struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r.html#a9d4056658b9710987f6359fb9d9596e6',1,'_EFI_MEMORY_DESCRIPTOR']]],
+  ['availablepages_26',['AvailablePages',['../struct___m_m___p_f_n___d_a_t_a_b_a_s_e.html#a2277cb07818c16afed410b3a6c3491d5',1,'_MM_PFN_DATABASE']]]
 ];

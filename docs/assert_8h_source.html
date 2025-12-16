@@ -105,29 +105,29 @@ $(function(){initNavTree('assert_8h_source.html','',''); });
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;stddef.h&gt;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;includes/me.h&quot;</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#include &quot;includes/mg.h&quot;</span></div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;<a class="code" href="me_8h.html">includes/me.h</a>&quot;</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#include &quot;<a class="code" href="mg_8h.html">includes/mg.h</a>&quot;</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><a class="code hl_function" href="kernel_8c.html#a1b6824bfd4ec0404a4f875ed8db0274e">__attribute__</a>((noreturn))</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><a class="code hl_variable" href="mh_8h.html#a720173e80c53ae6b5fa163fd6e81ad27">__attribute__</a>((noreturn))</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">static</span> <span class="keywordtype">void</span> assert_fail(<span class="keyword">const</span> <span class="keywordtype">char</span>* expr, <span class="keyword">const</span> <span class="keywordtype">char</span>* reason, <span class="keyword">const</span> <span class="keywordtype">char</span>* file, <span class="keyword">const</span> <span class="keywordtype">char</span>* func, <span class="keywordtype">int</span> line) {</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    <span class="comment">// Getting here means a runtime assertion has failed (assert())</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    (void)(func);</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="comment">// Check if expr is 0 or 1 (only) to make it true/false for readability.</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keywordflow">if</span> (!kstrcmp(expr, <span class="stringliteral">&quot;0&quot;</span>)) {</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    <span class="keywordflow">if</span> (!<a class="code hl_function" href="gop_8c.html#aeb9ae33be9fc0ba0f5380f9af0927176">kstrcmp</a>(expr, <span class="stringliteral">&quot;0&quot;</span>)) {</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>        expr = <span class="stringliteral">&quot;false&quot;</span>;</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    }</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keywordflow">if</span> (!kstrcmp(expr, <span class="stringliteral">&quot;1&quot;</span>)) {</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keywordflow">if</span> (!<a class="code hl_function" href="gop_8c.html#aeb9ae33be9fc0ba0f5380f9af0927176">kstrcmp</a>(expr, <span class="stringliteral">&quot;1&quot;</span>)) {</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>        expr = <span class="stringliteral">&quot;true&quot;</span>;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    }</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="comment">// It can be versatile, with a reason or not.</span></div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keywordflow">if</span> (reason) {</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>        MeBugCheckEx(ASSERTION_FAILURE, (<span class="keywordtype">void</span>*)expr, (<span class="keywordtype">void</span>*)reason, (<span class="keywordtype">void</span>*)file, (<span class="keywordtype">void</span>*)(uintptr_t)line);</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>        <a class="code hl_function" href="bugcheck_8c.html#a6ec4513aac495ad65f57eef09b218058">MeBugCheckEx</a>(<a class="code hl_enumvalue" href="me_8h.html#a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3">ASSERTION_FAILURE</a>, (<span class="keywordtype">void</span>*)expr, (<span class="keywordtype">void</span>*)reason, (<span class="keywordtype">void</span>*)file, (<span class="keywordtype">void</span>*)(uintptr_t)line);</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    }</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    <span class="keywordflow">else</span> {</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>        reason = <span class="stringliteral">&quot;NO_REASON_SPECIFIED&quot;</span>;</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>        MeBugCheckEx(ASSERTION_FAILURE, (<span class="keywordtype">void</span>*)expr, (<span class="keywordtype">void</span>*)reason, (<span class="keywordtype">void</span>*)file, (<span class="keywordtype">void</span>*)(uintptr_t)line);</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>        <a class="code hl_function" href="bugcheck_8c.html#a6ec4513aac495ad65f57eef09b218058">MeBugCheckEx</a>(<a class="code hl_enumvalue" href="me_8h.html#a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3">ASSERTION_FAILURE</a>, (<span class="keywordtype">void</span>*)expr, (<span class="keywordtype">void</span>*)reason, (<span class="keywordtype">void</span>*)file, (<span class="keywordtype">void</span>*)(uintptr_t)line);</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    }</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    __builtin_unreachable();</div>
@@ -152,7 +152,12 @@ $(function(){initNavTree('assert_8h_source.html','',''); });
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span> </div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="preprocessor">#endif</span></div>
-<div class="ttc" id="akernel_8c_html_a1b6824bfd4ec0404a4f875ed8db0274e"><div class="ttname"><a href="kernel_8c.html#a1b6824bfd4ec0404a4f875ed8db0274e">__attribute__</a></div><div class="ttdeci">__attribute__((noreturn))</div><div class="ttdef"><b>Definition</b> <a href="kernel_8c_source.html#l00180">kernel.c:180</a></div></div>
+<div class="ttc" id="abugcheck_8c_html_a6ec4513aac495ad65f57eef09b218058"><div class="ttname"><a href="bugcheck_8c.html#a6ec4513aac495ad65f57eef09b218058">MeBugCheckEx</a></div><div class="ttdeci">NORETURN void MeBugCheckEx(IN enum _BUGCHECK_CODES BugCheckCode, IN void *BugCheckParameter1, IN void *BugCheckParameter2, IN void *BugCheckParameter3, IN void *BugCheckParameter4)</div><div class="ttdef"><b>Definition</b> <a href="bugcheck_8c_source.html#l00305">bugcheck.c:305</a></div></div>
+<div class="ttc" id="agop_8c_html_aeb9ae33be9fc0ba0f5380f9af0927176"><div class="ttname"><a href="gop_8c.html#aeb9ae33be9fc0ba0f5380f9af0927176">kstrcmp</a></div><div class="ttdeci">int kstrcmp(const char *s1, const char *s2)</div><div class="ttdef"><b>Definition</b> <a href="gop_8c_source.html#l00657">gop.c:657</a></div></div>
+<div class="ttc" id="ame_8h_html"><div class="ttname"><a href="me_8h.html">me.h</a></div></div>
+<div class="ttc" id="ame_8h_html_a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3"><div class="ttname"><a href="me_8h.html#a3dd6c077b2422dcc0d05246537da5c82a45ca093bc0a8462b6bab2e01f16f46e3">ASSERTION_FAILURE</a></div><div class="ttdeci">@ ASSERTION_FAILURE</div><div class="ttdef"><b>Definition</b> <a href="me_8h_source.html#l00111">me.h:111</a></div></div>
+<div class="ttc" id="amg_8h_html"><div class="ttname"><a href="mg_8h.html">mg.h</a></div></div>
+<div class="ttc" id="amh_8h_html_a720173e80c53ae6b5fa163fd6e81ad27"><div class="ttname"><a href="mh_8h.html#a720173e80c53ae6b5fa163fd6e81ad27">__attribute__</a></div><div class="ttdeci">typedef __attribute__</div><div class="ttdef"><b>Definition</b> <a href="fat32_8h_source.html#l00054">fat32.h:63</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->

@@ -1,0 +1,28 @@
+var efi_8h =
+[
+    [ "_EFI_MEMORY_DESCRIPTOR", "struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r.html", "struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r" ],
+    [ "_GOP_PARAMS", "struct___g_o_p___p_a_r_a_m_s.html", "struct___g_o_p___p_a_r_a_m_s" ],
+    [ "_BOOT_INFO", "struct___b_o_o_t___i_n_f_o.html", "struct___b_o_o_t___i_n_f_o" ],
+    [ "EfiACPIMemoryNVS", "efi_8h.html#a719f76dff215b3b6e8ed43a558ad59fc", null ],
+    [ "EfiACPIReclaimMemory", "efi_8h.html#aa145045e76c9fc18cb5775d19b586dd3", null ],
+    [ "EfiBootServicesCode", "efi_8h.html#a4f64535d5504ac8f2ebf923f6d0ced08", null ],
+    [ "EfiBootServicesData", "efi_8h.html#aa4fa5f19b00f75592a5d1a5335409e28", null ],
+    [ "EfiConventionalMemory", "efi_8h.html#af095fe56818f3bd8a310206b8777bb1c", null ],
+    [ "EfiLoaderCode", "efi_8h.html#a90aae2e90363a29ad96d432a5f7f72dc", null ],
+    [ "EfiLoaderData", "efi_8h.html#a63d4f335cccc52962bc247c9001f0170", null ],
+    [ "EfiMemoryMappedIO", "efi_8h.html#a3d7d657c7f3837ab8ceba527830d28a7", null ],
+    [ "EfiMemoryMappedIOPort", "efi_8h.html#a5d5af70fef5ad675a0f9c0c6851945ed", null ],
+    [ "EfiPalCode", "efi_8h.html#a17945d63a42051783be91bb1e8139b6d", null ],
+    [ "EfiPersistentMemory", "efi_8h.html#a3a70b42e004b52c1cf297cc57c117c63", null ],
+    [ "EfiReservedMemoryType", "efi_8h.html#af4e9f34f6444eef713f1e6239642490d", null ],
+    [ "EfiRuntimeServicesCode", "efi_8h.html#af3cee49f9ec781299b538a17e9e02ff8", null ],
+    [ "EfiRuntimeServicesData", "efi_8h.html#a1f301de8ab02b899d7144cd4d2157789", null ],
+    [ "EfiUnusableMemory", "efi_8h.html#a40fb46933d0e21fc5daa48acbb82398c", null ],
+    [ "KERNEL_STACK_SIZE_IN_BYTES", "efi_8h.html#ae815d28705943c47ea8e2db5a63ea533", null ],
+    [ "BOOT_INFO", "efi_8h.html#aa7f93145770b2b55fa44fc8b9a2cf58d", null ],
+    [ "EFI_MEMORY_DESCRIPTOR", "efi_8h.html#ae2b15dcae1dcf3876131751b232dc591", null ],
+    [ "GOP_PARAMS", "efi_8h.html#a76f436ea56fd593cab07a6800d630828", null ],
+    [ "PBOOT_INFO", "efi_8h.html#a30603a4329e93f45c29e6988998e39b8", null ],
+    [ "PEFI_MEMORY_DESCRIPTOR", "efi_8h.html#aef521078a6a7d9bacb81e5cd18cf37b9", null ],
+    [ "boot_info_local", "efi_8h.html#a5f06053b8248ece91f68e4ae8da74ee4", null ]
+];

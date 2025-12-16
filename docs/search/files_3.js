@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['mtstatus_2eh_0',['mtstatus.h',['../mtstatus_8h.html',1,'']]]
+  ['debugfunctions_2ec_0',['debugfunctions.c',['../debugfunctions_8c.html',1,'']]],
+  ['dpc_2ec_1',['dpc.c',['../dpc_8c.html',1,'']]]
 ];

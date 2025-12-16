@@ -1,5 +1,19 @@
 var searchData=
 [
-  ['cpu0_0',['cpu0',['../kernel_8c.html#a323756ac954e1592fafd741525e0ef6b',1,'kernel.c']]],
-  ['cpu_5fcount_1',['cpu_count',['../kernel_8c.html#abd627bb6a327bec16cef23b42c63c657',1,'kernel.c']]]
+  ['badpagelist_0',['BadPageList',['../struct___m_m___p_f_n___d_a_t_a_b_a_s_e.html#a2345d2c3724afe77c18dde594ebe8b7c',1,'_MM_PFN_DATABASE']]],
+  ['base_1',['base',['../struct___i_d_t___p_t_r.html#aeca790c0426654358d031f8180e84aca',1,'_IDT_PTR']]],
+  ['bdev_2',['bdev',['../struct___a_h_c_i___p_o_r_t___c_t_x.html#a15eac7f722555054361c0c089ceb07f9',1,'_AHCI_PORT_CTX']]],
+  ['bitoffset_3',['BitOffset',['../struct___generic_address_structure.html#aa5d0d10e48424ca558a29c03f43ffea8',1,'_GenericAddressStructure::BitOffset'],['../mh_8h.html#aa5d0d10e48424ca558a29c03f43ffea8',1,'BitOffset:&#160;mh.h']]],
+  ['bitwidth_4',['BitWidth',['../struct___generic_address_structure.html#a38681bbafb91226657bd64bb33830cb2',1,'_GenericAddressStructure::BitWidth'],['../mh_8h.html#a38681bbafb91226657bd64bb33830cb2',1,'BitWidth:&#160;mh.h']]],
+  ['blink_5',['Blink',['../struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t.html#a0d08a6f276c5a25d9a16ae91a699d8b3',1,'_DOUBLY_LINKED_LIST']]],
+  ['blocksize_6',['BlockSize',['../struct___p_o_o_l___h_e_a_d_e_r.html#a0e325ffe4a98d1cbdf4d0fec7652d3f9',1,'_POOL_HEADER::BlockSize'],['../struct___p_o_o_l___d_e_s_c_r_i_p_t_o_r.html#a6683e8b88b028bd155c520eb1213ba03',1,'_POOL_DESCRIPTOR::BlockSize']]],
+  ['bohc_7',['bohc',['../struct___h_b_a___m_e_m.html#a057fe5fa63bf28c6a35ba8baa0865556',1,'_HBA_MEM']]],
+  ['boot_5finfo_5flocal_8',['boot_info_local',['../acpi_8c.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'boot_info_local:&#160;kernel.c'],['../mminit_8c.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'boot_info_local:&#160;kernel.c'],['../ahci_8c.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'boot_info_local:&#160;kernel.c'],['../efi_8h.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'boot_info_local:&#160;kernel.c'],['../kernel_8c.html#a5f06053b8248ece91f68e4ae8da74ee4',1,'boot_info_local:&#160;kernel.c']]],
+  ['bootarchitectureflags_9',['BootArchitectureFlags',['../struct___f_a_d_t.html#ad107ba0d6038ab61be6e8caa68738f58',1,'_FADT::BootArchitectureFlags'],['../mh_8h.html#ad107ba0d6038ab61be6e8caa68738f58',1,'BootArchitectureFlags:&#160;mh.h']]],
+  ['bootinfo_10',['bootInfo',['../ap__main_8c.html#acb583a197d96c0eb214171893f360e85',1,'bootInfo:&#160;smp.c'],['../smp_8c.html#acb583a197d96c0eb214171893f360e85',1,'bootInfo:&#160;smp.c']]],
+  ['breakidx_11',['BreakIdx',['../struct___d_b_g___c_a_l_l_b_a_c_k___i_n_f_o.html#a8ec139b6b754023fd40b9e098e73ace3',1,'_DBG_CALLBACK_INFO']]],
+  ['bss_5fend_12',['bss_end',['../kernel_8c.html#a2c8bdc1125232c0a840c4b3f423d8b48',1,'kernel.c']]],
+  ['bss_5fstart_13',['bss_start',['../kernel_8c.html#ad9f84c8ae582241d7b33c46a994b8445',1,'kernel.c']]],
+  ['bus_14',['Bus',['../struct____attribute____.html#a37d080a71b6d646028e734ee83fdea68',1,'__attribute__']]],
+  ['bytes_5fper_5fsector_15',['bytes_per_sector',['../struct___f_a_t32___f_s_i_n_f_o.html#a9c827b0f9825371a2853396b85e4579d',1,'_FAT32_FSINFO']]]
 ];

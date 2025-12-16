@@ -2,8 +2,6 @@ var kernel_8h =
 [
     [ "gop_printf_forced", "kernel_8h.html#a29f75e67ea1a76410256bf17f8226e05", null ],
     [ "UNREFERENCED_PARAMETER", "kernel_8h.html#a7b1a47a94be3cc9455621cecad58b168", null ],
-    [ "BLOCK_DEVICE", "kernel_8h.html#a1e03bdef1501e96036b676dc18e71787", null ],
-    [ "BOOT_INFO", "kernel_8h.html#aa7f93145770b2b55fa44fc8b9a2cf58d", null ],
     [ "__attribute__", "kernel_8h.html#a7b889edff24e621cf646bb9d0071a6ac", null ],
     [ "copy_gop", "kernel_8h.html#a8bf2519b1a607ce677d092c706b92f00", null ],
     [ "copy_memory_map", "kernel_8h.html#a26b7a33ce7ac27191c39745d6852acd1", null ],

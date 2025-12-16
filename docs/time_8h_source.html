@@ -102,7 +102,7 @@ $(function(){initNavTree('time_8h_source.html','',''); });
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#define X86_TIME_H</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &quot;intrinsics/intrin.h&quot;</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &quot;<a class="code" href="intrin_8h.html">intrinsics/intrin.h</a>&quot;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="comment">// RTC CMOS ports</span></div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno"><a class="line" href="time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3">   14</a></span><span class="preprocessor">#define CMOS_ADDRESS 0x70</span></div>
@@ -122,14 +122,14 @@ $(function(){initNavTree('time_8h_source.html','',''); });
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="comment">// Read from CMOS</span></div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="keyword">static</span> <span class="keyword">inline</span> uint8_t cmos_read(uint8_t reg) {</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    __outbyte(<a class="code hl_define" href="time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3">CMOS_ADDRESS</a>, reg);</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keywordflow">return</span> __inbyte(<a class="code hl_define" href="time_8h.html#a5554a9134430636bc1044eb72126fe32">CMOS_DATA</a>);</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <a class="code hl_function" href="intrin_8h.html#aaef83ee1b1d1480679b73d376c0dc15c">__outbyte</a>(<a class="code hl_define" href="time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3">CMOS_ADDRESS</a>, reg);</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="intrin_8h.html#ae8aae7032515082f6e2ff67cffa8daf5">__inbyte</a>(<a class="code hl_define" href="time_8h.html#a5554a9134430636bc1044eb72126fe32">CMOS_DATA</a>);</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>}</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span> </div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">// Check if RTC is updating</span></div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">bool</span> rtc_updating(<span class="keywordtype">void</span>) {</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    __outbyte(<a class="code hl_define" href="time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3">CMOS_ADDRESS</a>, 0x0A);</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="keywordflow">return</span> (__inbyte(<a class="code hl_define" href="time_8h.html#a5554a9134430636bc1044eb72126fe32">CMOS_DATA</a>) &amp; 0x80) != 0;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <a class="code hl_function" href="intrin_8h.html#aaef83ee1b1d1480679b73d376c0dc15c">__outbyte</a>(<a class="code hl_define" href="time_8h.html#aacb8fc8b7efa32c2381ebd467a2ad7d3">CMOS_ADDRESS</a>, 0x0A);</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="keywordflow">return</span> (<a class="code hl_function" href="intrin_8h.html#ae8aae7032515082f6e2ff67cffa8daf5">__inbyte</a>(<a class="code hl_define" href="time_8h.html#a5554a9134430636bc1044eb72126fe32">CMOS_DATA</a>) &amp; 0x80) != 0;</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>}</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">// Convert BCD → binary</span></div>
@@ -216,6 +216,9 @@ $(function(){initNavTree('time_8h_source.html','',''); });
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    <span class="keywordflow">return</span> seconds;</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>}</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aintrin_8h_html"><div class="ttname"><a href="intrin_8h.html">intrin.h</a></div></div>
+<div class="ttc" id="aintrin_8h_html_aaef83ee1b1d1480679b73d376c0dc15c"><div class="ttname"><a href="intrin_8h.html#aaef83ee1b1d1480679b73d376c0dc15c">__outbyte</a></div><div class="ttdeci">FORCEINLINE void __outbyte(unsigned short port, unsigned char val)</div><div class="ttdef"><b>Definition</b> <a href="intrin_8h_source.html#l00179">intrin.h:179</a></div></div>
+<div class="ttc" id="aintrin_8h_html_ae8aae7032515082f6e2ff67cffa8daf5"><div class="ttname"><a href="intrin_8h.html#ae8aae7032515082f6e2ff67cffa8daf5">__inbyte</a></div><div class="ttdeci">FORCEINLINE unsigned char __inbyte(unsigned short port)</div><div class="ttdef"><b>Definition</b> <a href="intrin_8h_source.html#l00172">intrin.h:172</a></div></div>
 <div class="ttc" id="astruct_t_i_m_e___e_n_t_r_y_html"><div class="ttname"><a href="struct_t_i_m_e___e_n_t_r_y.html">TIME_ENTRY</a></div><div class="ttdef"><b>Definition</b> <a href="#l00018">time.h:18</a></div></div>
 <div class="ttc" id="astruct_t_i_m_e___e_n_t_r_y_html_a3e00faf7fbf9805e9ec4d2edd6339050"><div class="ttname"><a href="struct_t_i_m_e___e_n_t_r_y.html#a3e00faf7fbf9805e9ec4d2edd6339050">TIME_ENTRY::month</a></div><div class="ttdeci">uint8_t month</div><div class="ttdef"><b>Definition</b> <a href="#l00023">time.h:23</a></div></div>
 <div class="ttc" id="astruct_t_i_m_e___e_n_t_r_y_html_a57ca98d8f6d4baf0fe41c583c7dcb0d5"><div class="ttname"><a href="struct_t_i_m_e___e_n_t_r_y.html#a57ca98d8f6d4baf0fe41c583c7dcb0d5">TIME_ENTRY::year</a></div><div class="ttdeci">uint16_t year</div><div class="ttdef"><b>Definition</b> <a href="#l00024">time.h:24</a></div></div>
