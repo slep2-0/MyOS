@@ -121,6 +121,7 @@ typedef int32_t MTSTATUS;
 // PROCESS MTSTATUS
 // ==========================
 #define MT_PROCESS_IS_TERMINATING ((MTSTATUS)0xC7000000L)
+#define MT_NOTHING_TO_TERMINATE ((MTSTATUS)0xC7000001L)
 
 //
 // ==========================
@@ -128,5 +129,6 @@ typedef int32_t MTSTATUS;
 // ==========================
 #define MT_ACCESS_VIOLATION ((MTSTATUS)0xC8000000L)
 #define MT_GUARD_PAGE_VIOLATION ((MTSTATUS)0xC8000001L)
+#define MT_ILLEGAL_INSTRUCTION ((MTSTATUS)0xC8000002L)
 
 #endif // MTSTATUS_H

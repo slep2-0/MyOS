@@ -19,6 +19,7 @@ static void ThreadExit(void) {
     // Terminate the thread.
     assert(&PsGetCurrentThread()->InternalThread == MeGetCurrentThread());
     PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
+    Schedule();
 }
 
 static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
@@ -90,6 +91,7 @@ PsCreateThread(
     ContextFrame.cs = USER_CS;
     ContextFrame.ss = USER_SS;
     Thread->InternalThread.TrapRegisters = ContextFrame;
+    Thread->SystemThread = false;
     
     // Set state
     Thread->InternalThread.ThreadState = THREAD_READY;
@@ -106,10 +108,15 @@ PsCreateThread(
     Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     
-    // Add to list of all threads in the parent process.
+    // Add to list of all threads in the parent process. (acquire its push lock)
+    MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
     InsertTailList(&ParentProcess->AllThreads, &Thread->ThreadListEntry);
+    MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
+
     InterlockedIncrementU32((volatile uint32_t*)&ParentProcess->NumThreads);
     Status = MT_SUCCESS;
+    // Insert thread to processor queue.
+    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
 CleanupWithRef:
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
     // If not, it would reach reference 0, and PspDeleteThread would execute.
@@ -120,7 +127,7 @@ Cleanup:
 }
 
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
-    if (!PsInitialSystemProcess.PID) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
+    if (unlikely(!PsInitialSystemProcess.PID)) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
 
     // First, allocate a new thread. (using our shiny and glossy new object manager!!!)
@@ -133,8 +140,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     InitializeListHead(&thread->ThreadListEntry);
 
-    // Zero it.
-    kmemset((void*)thread, 0, sizeof(ETHREAD));
+    // Create stack
     bool LargeStack = false;
     void* stackStart = MiCreateKernelStack(LargeStack);
 
@@ -178,12 +184,17 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->TID = PsAllocateThreadId(thread);
     thread->CurrentEvent = NULL;
     thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
+    thread->SystemThread = true;
 
     // Process stuffz
     thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
+    // Use the push lock to insert it into AllThreads.
+    MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
+    InsertTailList(&PsInitialSystemProcess.AllThreads, &thread->ThreadListEntry);
+    MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
+
+    // Enqueue it into processor. TODO START SUSPENDED?
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
-
-
     return MT_SUCCESS;
 }
 
@@ -212,8 +223,14 @@ PsTerminateThread(
     // the references have reached 0, the Ob will call PsDeleteThread.
     // The scheduler WILL NOT schedule this thread anymore due to its TERMINATION flag.
 
-    // Schedule away!
-    Schedule();
+    // TODO BLOCK APCs from being inserted on thread!
+
+    // The thread does not need to be force suspended, because until a forceful wait occurs (interrupt, syscall, yielding execution via preemption), it can continue running.
+    // Forceful termination does not mean we can stop the CPU mid instruction to terminate the thread, because thats stupid.
+
+    // We should queue an APC In the thread to do stuff.
+
+    // The thread would deference its parent thread (if its a user thread)
 }
 
 void
@@ -223,7 +240,7 @@ PsDeleteThread(
 
 {
     // This function is called when the reference count for this thread has reached 0 (e.g, it is no longer in use)
-    // (No need to call PsTerminateThread, it is the one that initiated the final dereference, since it set to terminated, and scheduler called dereference)
+    // (No need to call PsTerminateThread, since it set to terminated, and scheduler called dereference)
     // We free everything that the thread uses.
     // All though, before, we should wait for rundown release (so nobody is changing the fields to avoid UAF)
     PETHREAD Thread = (PETHREAD)Object;
@@ -239,7 +256,8 @@ PsDeleteThread(
         PsDeferKernelStackDeletion(Thread->InternalThread.StackBase, Thread->InternalThread.IsLargeStack);
     }
     else {
-        assert(false, "User mode threads are not supported yet.");
+        // Dereference the parent process.
+        ObDereferenceObject(Thread->ParentProcess);
     }
 
     // When we reach here, the function returns, and the ETHREAD is deleted.

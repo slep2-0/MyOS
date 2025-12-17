@@ -41,7 +41,7 @@ typedef struct _HANDLE_TABLE_ENTRY {
 typedef struct _HANDLE_TABLE {
     // Linked list of next table (if any)
     DOUBLY_LINKED_LIST TableList;
-    SPINLOCK TableLock;
+    PUSH_LOCK TableLock;
 
     // Storage
     uint64_t TableCode;     // Pointer | Level

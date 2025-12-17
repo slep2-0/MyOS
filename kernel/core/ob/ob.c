@@ -244,6 +244,29 @@ ObReferenceObjectByPointer(
 }
 
 MTSTATUS
+ObOpenObjectByPointer(
+    IN void* Object,
+    IN POBJECT_TYPE ObjectType,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE Handle
+)
+
+{
+    // Assume failure.
+    *Handle = 0;
+
+    // Reference the object.
+    MTSTATUS Status = ObReferenceObjectByPointer(Object, ObjectType);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Create handle.
+    Status = ObCreateHandleForObject(Object, DesiredAccess, Handle);
+    if (MT_FAILURE(Status)) ObDereferenceObject(Object);
+
+    return Status;
+}
+
+MTSTATUS
 ObReferenceObjectByHandle(
     IN HANDLE Handle,
     IN uint32_t DesiredAccess,
@@ -300,6 +323,9 @@ ObReferenceObjectByHandle(
         // Invalid type.
         return MT_TYPE_MISMATCH;
     }
+
+    // Remove the invalid access masks.
+    DesiredAccess = DesiredAccess & DesiredType->TypeInfo.ValidAccessRights;
 
     // Check access.
     if ((OutHandleEntry->GrantedAccess & DesiredAccess) != DesiredAccess) {

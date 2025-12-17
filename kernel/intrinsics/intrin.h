@@ -39,6 +39,16 @@ void __cli(void) {
     __asm__ volatile ("cli");
 }
 
+// Enable supervisor access to user memory (STAC)
+FORCEINLINE void __stac(void) {
+    __asm__ volatile("stac" ::: "memory");
+}
+
+// Disable supervisor access to user memory (CLAC)
+FORCEINLINE void __clac(void) {
+    __asm__ volatile("clac" ::: "memory");
+}
+
 // Enable interrupts (sti)
 FORCEINLINE
 void __sti(void) {

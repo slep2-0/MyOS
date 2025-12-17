@@ -135,4 +135,7 @@ ExpDispatchException(
     IN PEXCEPTION_RECORD ExceptionRecord
 );
 
+bool
+ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/);
+
 #endif

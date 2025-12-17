@@ -126,6 +126,14 @@ ObReferenceObjectByHandle(
     _Out_Opt PHANDLE_TABLE_ENTRY HandleInformation
 );
 
+MTSTATUS
+ObOpenObjectByPointer(
+    IN void* Object,
+    IN POBJECT_TYPE ObjectType,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE Handle
+);
+
 void ObDereferenceObject(
     IN  void* Object
 );

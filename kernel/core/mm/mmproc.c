@@ -298,3 +298,137 @@ MmCreateProcessAddressSpace(
 
     return MT_SUCCESS;
 }
+
+static
+void
+MiFreePageTableHierarchy(
+    IN PAGE_INDEX TablePfn,
+    IN int Level
+)
+
+/*++
+
+    Routine description:
+
+        Recursively deletes the page tables in hierarchial order (pml4,pdpt,pde,pt)
+
+    Arguments:
+
+        [IN] PAGE_INDEX TablePfn - The PML4 PFN to start from.
+        [IN] int Level - The level to start from (4 = PML4)
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    uint64_t* mapping;
+    IRQL oldIrql;
+    int limit = 512;
+    int start = 0;
+
+    // If this is the PML4:
+    // We set the limit of removal to the PhysicalMemoryOffset (like the limit in MmCreateProcessAddressSpace)
+    // So we dont remove kernel page tables, as we would cause a triple fault.
+    if (Level == 4) {
+        limit = MiConvertVaToPml4Offset(PhysicalMemoryOffset);
+    }
+
+    // Iterate through the indices.
+    for (int i = start; i < limit; i++) {
+
+        PAGE_INDEX childPfn = PFN_ERROR;
+        bool isPresent = false;
+        bool isLargePage = false;
+
+        // Map the table to read the entry at i
+        mapping = (uint64_t*)MiMapPageInHyperspace(TablePfn, &oldIrql);
+        MMPTE pte;
+        pte.Value = mapping[i];
+
+        if (pte.Hard.Present) {
+            isPresent = true;
+            childPfn = MiTranslatePteToPfn(&pte);
+
+            // We dont support large pages yet (or we do and I didnt update this comment)
+            // But we will scan for them anyway to prevent bugs in the future (faults and such)
+            if (Level > 1 && (pte.Value & PAGE_PS)) {
+                isLargePage = true;
+            }
+        }
+
+        // Unmap immediately so we can use Hyperspace in the recursion
+        MiUnmapHyperSpaceMap(oldIrql);
+
+        // Process the entry if it was valid
+        if (isPresent && childPfn != PFN_ERROR) {
+
+            if (Level > 1) {
+                if (isLargePage) {
+                    // It's a 2MB or 1GB user page. Release the physical memory directly.
+                    MiReleasePhysicalPage(childPfn);
+                }
+                else {
+                    // It's a pointer to a lower-level page table. Recurse.
+                    MiFreePageTableHierarchy(childPfn, Level - 1);
+                }
+            }
+            else {
+                // The PTs, the vad should have already freed them, but if it didnt, we do it.
+                if (pte.Hard.IsVadPte) {
+                    MiReleasePhysicalPage(childPfn);
+                }
+            }
+        }
+    }
+
+    // All children are freed, we can free the actual table now.
+    MiReleasePhysicalPage(TablePfn);
+}
+
+MTSTATUS
+MmDeleteProcessAddressSpace(
+    IN PEPROCESS Process,
+    IN uintptr_t PageDirectoryPhysical
+)
+
+/*++
+
+    Routine description:
+
+        Deletes a process address space.
+
+    Arguments:
+
+        [IN] PEPROCESS Process - The process to delete the address space from.
+        [IN] uintptr_T PageDirectoryPhysical - Physical address of the process's address space. (CR3)
+
+    Return Values:
+
+        MTSTATUS Status code.
+
+--*/
+
+{
+    // Parameter check.
+    if (!Process || !PageDirectoryPhysical) {
+        return MT_INVALID_PARAM;
+    }
+
+    // Convert the physical address to its index.
+    PAGE_INDEX pml4Pfn = PHYS_TO_INDEX(PageDirectoryPhysical);
+
+    if (pml4Pfn == PFN_ERROR || !MiIsValidPfn(pml4Pfn)) {
+        return MT_INVALID_PARAM;
+    }
+
+    // Recursively tear down the page table.
+    MiFreePageTableHierarchy(pml4Pfn, 4);
+
+    // Flush CR3 across all processors.
+    MiReloadTLBs();
+
+    return MT_SUCCESS;
+}

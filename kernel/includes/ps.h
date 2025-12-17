@@ -88,6 +88,12 @@ typedef enum _PS_PHASE_ROUTINE {
 
 #define MT_PROCESS_ALL_ACCESS         0x01FF  // Everything above
 
+typedef enum _PROCESS_FLAGS {
+    ProcessBreakOnTermination = (1 << 0),
+    ProcessBeingTerminated = (1 << 1),
+    ProcessBeingDeleted = (1 << 2),
+} PROCESS_FLAGS;
+
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
@@ -98,14 +104,15 @@ typedef struct _EPROCESS {
     // SID TODO. - User info as well, when users.
 
     // TODO PEB
-    void* FileBuffer; // TODO RemoveMe for sections.
     uint64_t ImageBase; // Base Pointer of loaded process memory.
 
     // Synchorinzation for internal functions.
-    struct _RUNDOWN_REF ProcessRundown; // A process rundown that is used to safely synchronize the teardown or deletion of a process, ensuring no threads are still accessing it.
+    struct _RUNDOWN_REF ProcessRundown; // A process rundown that is used to safely synchronize the teardown or deletion of a process, ensuring no pointer is still active & accessing it.
+    struct _PUSH_LOCK ProcessLock; // A process push lock that is used to mutually synchronize access to its locked objects, allowing 1 writer at a time, but multiple readers (if no writers)
 
     // Thread infos
     struct _ETHREAD* MainThread; // Pointer to the main thread created for the process.
+    PUSH_LOCK ThreadListLock; // Protects synchronization in AllThreads.
     DOUBLY_LINKED_LIST AllThreads; // A linked list of pointers to the current threads of the process. (inserted with each new creation)
     uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
     uint64_t NextStackTop; // A 64 bit value representing the next stack top for a newly created thread
@@ -113,9 +120,12 @@ typedef struct _EPROCESS {
     // Handle Table
     PHANDLE_TABLE ObjectTable;
 
+    // Special Flags.
+    enum _PROCESS_FLAGS Flags;
+
     // VAD
     struct _MMVAD* VadRoot; // The Root of the VAD for the process. (used to find free virtual addresses spaces in the process, and information about them)
-    SPINLOCK VadLock; // The spinlock to ensure VAD atomicity.
+    PUSH_LOCK VadLock; // The push lock to ensure VAD atomicity.
 } EPROCESS, *PEPROCESS;
 
 typedef struct _ETHREAD {
@@ -127,7 +137,9 @@ typedef struct _ETHREAD {
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
+    PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
+    bool SystemThread; // Is this thread a system thread?
     /* TODO: priority, affinity, wait list, etc. */
 } ETHREAD, *PETHREAD;
 
@@ -179,9 +191,10 @@ PsInitializeSystem(
 
 void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge);
 
-void
+MTSTATUS
 PsTerminateProcess(
-    IN PEPROCESS Process
+    IN PEPROCESS Process,
+    IN MTSTATUS ExitCode
 );
 
 void
@@ -193,6 +206,17 @@ PsTerminateThread(
 void
 PsDeleteThread(
     IN void* Object
+);
+
+void
+PsDeleteProcess(
+    IN void* ProcessObject
+);
+
+PETHREAD
+PsGetNextProcessThread(
+    IN PEPROCESS Process,
+    _In_Opt PETHREAD LastThread
 );
 
 PETHREAD
@@ -223,18 +247,6 @@ PsGetCurrentProcess(
 }
 
 FORCEINLINE
-void
-PsTerminateCurrentThread(void) {
-    return PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
-}
-
-FORCEINLINE
-void
-PsTerminateCurrentProcess(void) {
-    return PsTerminateProcess(PsGetCurrentProcess());
-}
-
-FORCEINLINE
 PETHREAD
 PsGetEThreadFromIThread(
     IN PITHREAD IThread
@@ -262,8 +274,7 @@ PsIsKernelThread(
 
 {
     // safety guard, can't believe i had to put it.
-    if (Thread == NULL) return true;
-    return (Thread->ParentProcess == &PsInitialSystemProcess);
+    return (Thread && Thread->SystemThread);
 }
 
 HANDLE

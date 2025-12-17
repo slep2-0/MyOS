@@ -132,6 +132,7 @@ typedef enum _BUGCHECK_CODES {
 	DPC_NOT_INITIALIZED,
 	CID_TABLE_NULL,
 	INVALID_PROCESS_ATTACH_ATTEMPT,
+	CRITICAL_PROCESS_DIED,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -253,7 +254,6 @@ typedef struct _APC_STATE {
 
 typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
-	uint64_t* PageDirectoryVirtual;			// Virtual Address of the PML4 of the process. (accessible in kernel pages)
 	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
 	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;

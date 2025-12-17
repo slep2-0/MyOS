@@ -184,15 +184,15 @@ do {                                                                        \
 #define MI_NONPAGED_BITMAP_BASE  ALIGN_UP(LK_KERNEL_END, VirtualPageSize)
 #define MI_NONPAGED_BITMAP_END   (MI_NONPAGED_BITMAP_BASE + MI_NONPAGED_BITMAP_PAGES_NEEDED * VirtualPageSize)
 
-#define MI_PAGED_BITMAP_BASE ALIGN_UP(MI_NONPAGED_BITMAP_END, VirtualPageSize)
-#define MI_PAGED_BITMAP_END (MI_PAGED_BITMAP_BASE + MI_PAGED_BITMAP_PAGES_NEEDED * VirtualPageSize)
+#define MI_PAGED_BITMAP_BASE     ALIGN_UP(MI_NONPAGED_BITMAP_END, VirtualPageSize)
+#define MI_PAGED_BITMAP_END      (MI_PAGED_BITMAP_BASE + MI_PAGED_BITMAP_PAGES_NEEDED * VirtualPageSize)
 
 // Pool virtual address ranges (page-aligned)
-#define MI_NONPAGED_POOL_BASE    ALIGN_UP(MI_NONPAGED_BITMAP_END, VirtualPageSize)
+#define MI_NONPAGED_POOL_BASE    ALIGN_UP(MI_PAGED_BITMAP_END, VirtualPageSize) 
 #define MI_NONPAGED_POOL_END     (MI_NONPAGED_POOL_BASE + MI_NONPAGED_POOL_SIZE)
 
-#define MI_PAGED_POOL_BASE ALIGN_UP(MI_NONPAGED_POOL_END, VirtualPageSize)
-#define MI_PAGED_POOL_END (MI_PAGED_POOL_BASE + MI_PAGED_POOL_SIZE)
+#define MI_PAGED_POOL_BASE       ALIGN_UP(MI_NONPAGED_POOL_END, VirtualPageSize)
+#define MI_PAGED_POOL_END        (MI_PAGED_POOL_BASE + MI_PAGED_POOL_SIZE)
 
 // Address Manipulation And Checks
 #define MI_IS_CANONICAL_ADDR(va) \
@@ -400,7 +400,7 @@ typedef struct _MMPTE
             uint64_t Global : 1;          // Global TLB entry
             uint64_t CopyOnWrite : 1;     // Software: copy-on-write
             uint64_t Prototype : 1;       // Software: prototype PTE (section)
-            uint64_t Reserved0 : 1;       // Unused or software-available
+            uint64_t IsVadPte : 1;       // VAD PTE?
             uint64_t PageFrameNumber : 40;// Physical page frame number
             uint64_t Reserved1 : 11;      // Reserved by hardware
             uint64_t NoExecute : 1;       // NX bit
@@ -419,11 +419,14 @@ typedef struct _MMPTE
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
             uint64_t Reserved : 7;           // i'm sorry, h.c
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
-            uint64_t SoftwareFlags : 20;     // e.g. protection mask, pool type
+            uint64_t SoftwareFlags : 19;     // e.g. protection mask, pool type
             uint64_t NoExecute : 1;          // NX still meaningful in software
         } Soft;
     };
 } MMPTE, * PMMPTE;
+// Guess why I had to put this here? Because the Soft struct took 65 bits, which made it take 16 bytes, overflowing to the next PTE.
+// fun, very fun..
+_Static_assert(sizeof(MMPTE) == 8, "The size of a PTE in a 64bit system is always 8 bytes");
 
 typedef struct _PFN_ENTRY {
     volatile uint32_t RefCount;     // Atomic Reference Count
@@ -792,6 +795,12 @@ MmCreateProcessAddressSpace(
     OUT void** DirectoryTable
 );
 
+MTSTATUS
+MmDeleteProcessAddressSpace(
+    IN PEPROCESS Process,
+    IN uintptr_t PageDirectoryPhysical
+);
+
 // module: vad.c
 
 MTSTATUS
@@ -811,7 +820,7 @@ MmFreeVirtualMemory(
 
 PMMVAD
 MiFindVad(
-    IN  PMMVAD Root,
+    IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
 );
 

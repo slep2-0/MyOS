@@ -132,14 +132,11 @@ static void test(MUTEX* mut) {
     gop_printf_forced(0xFFA020F0, "**Ended Test.**\n");
 }
 
-static void funcWithParam(MUTEX* mut) {
-    UNREFERENCED_PARAMETER(mut);
-    gop_printf(COLOR_OLIVE, "New funcWithParam, starting process.\n");
+static void MeCreateInitialUserModeProcess(void) {
+    gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     HANDLE hProcess;
     PsCreateProcess("loop.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
     UNREFERENCED_PARAMETER(hProcess);
-    for (int i = 0; i < 100000; i++) __pause();
-    gop_printf(COLOR_OLIVE, "FuncWithParam exit\n");
 }
 
 // All CPUs
@@ -310,7 +307,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
     PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
-    PsCreateSystemThread((ThreadEntry)funcWithParam, sharedMutex, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.

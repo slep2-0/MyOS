@@ -30,10 +30,6 @@ Revision History:
 POBJECT_TYPE PsProcessType;
 POBJECT_TYPE PsThreadType;
 
-static void PsTerminateProcessWrap(void* Object) {
-    PsTerminateProcess((PEPROCESS)Object);
-}
-
 static
 MTSTATUS
 PsInitializeProcessThreadManager(
@@ -71,7 +67,7 @@ PsInitializeProcessThreadManager(
 #else
     ObjectTypeInitializer.DumpProcedure = NULL;
 #endif
-    ObjectTypeInitializer.DeleteProcedure = NULL; // We will page fault, TODO PROCESS.
+    ObjectTypeInitializer.DeleteProcedure = &PsDeleteProcess;
     ObjectTypeInitializer.ValidAccessRights = MT_PROCESS_ALL_ACCESS;
     status = ObCreateObjectType(Name, &ObjectTypeInitializer, &PsProcessType);
     if (MT_FAILURE(status)) return status;

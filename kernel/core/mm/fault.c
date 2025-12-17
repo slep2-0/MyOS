@@ -121,7 +121,7 @@ MmAccessFault(
         MMPTE TempPte = *ReferencedPte;
 
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
-        if (TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
+        if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
             goto BugCheck;
         }
 
@@ -221,7 +221,7 @@ MmAccessFault(
         }
 
         // User mode fault on a user address, we check if there is a vad for it, if so, allocate the page.
-        PMMVAD vad = MiFindVad(PsGetCurrentProcess()->VadRoot, VirtualAddress);
+        PMMVAD vad = MiFindVad(PsGetCurrentProcess(), VirtualAddress);
         if (!vad) return MT_ACCESS_VIOLATION;
 
         // Looks like we have a valid vad, lets allocate.

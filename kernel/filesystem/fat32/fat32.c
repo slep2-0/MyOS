@@ -1045,7 +1045,7 @@ MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** b
 }
 
 MTSTATUS fat32_create_directory(const char* path) {
-	// 1. Check if an entry already exists at this path
+	// Check if an entry already exists at this path
 	if (fat32_find_entry(path, NULL, NULL)) {
 #ifdef DEBUG
 		gop_printf(0xFFFF0000, "Error: Path '%s' already exists.\n", path);
@@ -1053,27 +1053,27 @@ MTSTATUS fat32_create_directory(const char* path) {
 		return MT_FAT32_DIRECTORY_ALREADY_EXISTS;
 	}
 	MTSTATUS status = MT_GENERAL_FAILURE;
-	// 2. Separate parent path and new directory name
+	// Separate parent path and new directory name
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
 
 	char* new_dir_name = NULL;
 	char* parent_path = "/";
 
-	// 1. Remove trailing slashes (except if path is just "/")
+	// Remove trailing slashes (except if path is just "/")
 	int len = kstrlen(path_copy);
 	while (len > 1 && path_copy[len - 1] == '/') {
 		path_copy[len - 1] = '\0';
 		len--;
 	}
 
-	// 2. Find last slash
+	// Find last slash
 	int last_slash = -1;
 	for (int i = 0; path_copy[i] != '\0'; i++) {
 		if (path_copy[i] == '/') last_slash = i;
 	}
 
-	// 3. Split parent path and new directory name
+	// Split parent path and new directory name
 	if (last_slash != -1) {
 		new_dir_name = &path_copy[last_slash + 1];   // name after last slash
 		if (last_slash > 0) {
@@ -1088,7 +1088,7 @@ MTSTATUS fat32_create_directory(const char* path) {
 	}
 
 
-	// 3. Find the parent directory cluster
+	// Find the parent directory cluster
 	FAT32_DIR_ENTRY parent_entry;
 	uint32_t parent_cluster;
 	if (!fat32_find_entry(parent_path, &parent_entry, NULL)) {
@@ -1105,14 +1105,14 @@ MTSTATUS fat32_create_directory(const char* path) {
 	}
 	parent_cluster = (parent_entry.fst_clus_hi << 16) | parent_entry.fst_clus_lo;
 
-	// 4. Allocate a new cluster for this directory's contents
+	// Allocate a new cluster for this directory's contents
 	uint32_t new_cluster = fat32_find_free_cluster();
 	if (new_cluster == 0) return MT_FAT32_CLUSTERS_FULL;
 
 	fat32_write_fat(new_cluster, FAT32_EOC_MAX);
 	zero_cluster(new_cluster);
 
-	// 5. Create '.' and '..' entries in the new cluster
+	// Create '.' and '..' entries in the new cluster
 	void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fat');
 	if (!sector_buf) { /* handle error */ return MT_MEMORY_LIMIT; }
 	kmemset(sector_buf, 0, fs.bytes_per_sector);
@@ -1130,10 +1130,10 @@ MTSTATUS fat32_create_directory(const char* path) {
 
 	write_sector(first_sector_of_cluster(new_cluster), sector_buf);
 
-	// 6. Create the entry in the parent directory
-	// For simplicity, we'll use a simple SFN. A full implementation needs `fat32_generate_sfn`.
+	// Create the entry in the parent directory
+	// For simplicity, we'll use a simple SFN.
 	char sfn[11];
-	format_short_name(new_dir_name, sfn); // Using your existing simple formatter
+	format_short_name(new_dir_name, sfn);
 
 	// Decide whether we need LFN entries:
 	int name_len = kstrlen(new_dir_name);
@@ -1143,7 +1143,6 @@ MTSTATUS fat32_create_directory(const char* path) {
 		for (int i = 0; i < name_len; i++) {
 			char c = new_dir_name[i];
 			if (c >= 'a' && c <= 'z') { need_lfn = 1; break; }
-			/* optionally: detect characters not representable in SFN and set need_lfn = 1 */
 		}
 	}
 
@@ -1579,7 +1578,7 @@ locate_done:
 
 MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) {
 	MTSTATUS status;
-	// 1. Find the directory entry for the given path to get its starting cluster.
+	// Find the directory entry for the given path to get its starting cluster.
 	FAT32_DIR_ENTRY dir_entry;
 	if (!fat32_find_entry(path, &dir_entry, NULL) || !(dir_entry.attr & ATTR_DIRECTORY)) {
 		gop_printf(0xFFFF0000, "Error: Directory not found or path is not a directory: %s\n", path);

@@ -49,11 +49,15 @@ void InitScheduler(void) {
     idleThread->TID = 0; // Idle thread, TID is 0.
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
     idleThread->InternalThread.IsLargeStack = false;
+    idleThread->InternalThread.KernelStack = idleStack;
     MeGetCurrentProcessor()->currentThread = NULL; // The idle thread would be chosen
     idleThread->CurrentEvent = NULL; // No event.
     idleThread->ParentProcess = &PsInitialSystemProcess;
+    idleThread->SystemThread = true;
     PsInitialSystemProcess.MainThread = idleThread;
+    MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
     InsertHeadList(&PsInitialSystemProcess.AllThreads, &idleThread->ThreadListEntry);
+    MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
     // The ready queue starts empty
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
@@ -137,6 +141,9 @@ Schedule(void) {
     next->ThreadState = THREAD_RUNNING;
     MeGetCurrentProcessor()->currentThread = next;
     MeLowerIrql(oldIrql);
+    // Hi matanel, if you ever encounter failures here, like if it goes to restore_user_context as a system thread
+    // please check that you made the same changed to InitScheduler as you made in PsCreateSystemThread, for example, Thread->SystemThread was false in the idle thread, because I forgot to set
+    // that flag in its initilization, even though I was sure its on (for normal threads that is), because in PsCreateSystemThreads it was indeed = true.
     if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
         restore_context(&next->TrapRegisters);
     }

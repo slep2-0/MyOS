@@ -143,7 +143,6 @@ PsCreateProcess(
     uint32_t FileSize = 0;
     Status = vfs_read(ExecutablePath, &FileSize, &file_buffer);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    Process->FileBuffer = file_buffer;
     Process->ImageBase = USER_VA_START; // Dummy VA, FIXME Headers.
 
     // TODO ADD ADDRESS TO WORKING SET OF PROCESS!!
@@ -194,7 +193,7 @@ PsCreateProcess(
     // The VA has been filed with the executable's instructions, now we do handle creation and yada yada.
     // Detach from process address space.
     MeDetachProcess(&ApcState);
-
+    MmFreePool(file_buffer);
     // Create a handle for the process.
     HANDLE hProcess;
     Status = ObCreateHandleForObject(Process, DesiredAccess, &hProcess);
@@ -204,9 +203,6 @@ PsCreateProcess(
     HANDLE MainThreadHandle;
     Status = PsCreateThread(hProcess, &MainThreadHandle, (ThreadEntry)Process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-
-    // Insert main thread to processor queue.
-    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Process->MainThread);
 
     // We are, successful.
     *ProcessHandle = hProcess;
@@ -227,13 +223,145 @@ Cleanup:
     return Status;
 }
 
-void
+MTSTATUS
 PsTerminateProcess(
-    IN PEPROCESS Process
+    IN PEPROCESS Process,
+    IN MTSTATUS ExitCode
+)
+
+/*++
+
+    Routine description:
+
+        Terminates the process
+
+    Arguments:
+
+        [IN]    PEPROCESS Process - The process to terminate from the system.
+        [IN]    MTSTATUS ExitCode - The ExitCode that the process will exit in.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // Declarations
+    PETHREAD Thread = NULL;
+    UNREFERENCED_PARAMETER(Thread);
+    MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
+    if (Process->Flags & ProcessBreakOnTermination) {
+        // Attempted termination of a process that is critical to system stability,
+        // we bugcheck.
+        MeBugCheckEx(
+            CRITICAL_PROCESS_DIED,
+            (void*)(uintptr_t)Process,
+            (void*)(uintptr_t)ExitCode,
+#ifdef DEBUG
+            (void*)(uintptr_t)RETADDR(0),
+#else
+            NULL,
+#endif
+            NULL
+        );
+    }
+
+    // Set the process as terminating in its flags.
+    InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingTerminated);
+    Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
+
+    // Begin terminating all process threads.
+    Thread = PsGetNextProcessThread(Process, Thread);
+    while (Thread) {
+        // Exterminate the thread from this world (system32)
+        PsTerminateThread(Thread, ExitCode);
+        // Get the next victim for our massacre.
+        Thread = PsGetNextProcessThread(Process, Thread);
+
+        // One got exterminated, so we mark it a successful mission.
+        Status = MT_SUCCESS;
+    }
+
+    // Return if mission successful.
+    return Status;
+}
+
+void
+PsDeleteProcess(
+    IN void* ProcessObject
 )
 
 {
-    UNREFERENCED_PARAMETER(Process);
-    assert(false, "Unimplemented routine");
-    MeBugCheck(MANUALLY_INITIATED_CRASH2);
+    PEPROCESS Process = (PEPROCESS)ProcessObject;
+    // Wait for anything to stop holding the rundown protection.
+    MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
+
+    // Set flags
+    InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingDeleted);
+
+    // TODO (CRITICAL FIXME) (MEMORY LEAK) Working set list delete all active VADs.
+    // Should also delete process section objects, unless thats its own thing.
+    
+    // Delete its CID.
+    PsFreeCid(Process->PID);
+
+    // Delete its handle table.
+    if (Process->ObjectTable) {
+        // Attach to process so pagedpool inside of it are valid (even though they 100% should be valid now)
+        APC_STATE State;
+        MeAttachProcess(&Process->InternalProcess, &State);
+        HtDeleteHandleTable(Process->ObjectTable);
+        MeDetachProcess(&State);
+    }
+    // Delete its address space.
+    MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);
+
+    // EPROCESS Would be deleted after function return.
+}
+
+PETHREAD
+PsGetNextProcessThread(
+    IN PEPROCESS Process,
+    _In_Opt PETHREAD LastThread
+)
+
+{
+    PETHREAD FoundThread = NULL;
+    PDOUBLY_LINKED_LIST Entry, ListHead;
+    // Acquire thread list lock.
+    MsAcquirePushLockShared(&Process->ThreadListLock);
+
+    // Check if we are already starting in another thread list.
+    if (LastThread) {
+        Entry = LastThread->ThreadListEntry.Flink;
+    }
+    else {
+        // Start at beginnininng
+        Entry = Process->AllThreads.Flink;
+    }
+
+    // Set the list head and start the loop.
+    ListHead = Process->AllThreads.Flink;
+    while (ListHead != Entry) {
+        // While the pointers arent equal (we arent back the start), we enumerate for the next thread.
+        FoundThread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
+        // First use of MT_SUCCEEDED btw.
+        if (MT_SUCCEEDED(ObReferenceObjectByPointer(FoundThread, PsThreadType))) break;
+           
+        // Nothing found, keep loopin.
+        FoundThread = NULL;
+        Entry = Entry->Flink;
+    }
+
+    // Unlock process.
+    MsReleasePushLockShared(&Process->ThreadListLock);
+    if (LastThread) {
+        // If we had a starting thread we dereference it from the initial reference in the loop
+        // The whole point we did the reference is to keep the object alive that we give in the return value.
+        ObDereferenceObject(LastThread);
+    }
+
+    // Return if we found.
+    return FoundThread;
 }

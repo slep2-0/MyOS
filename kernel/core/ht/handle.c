@@ -21,10 +21,10 @@ Revision History:
 #include "../../assert.h"
 
 // ->>>>> The handle table handles are accessed in pageable memory, we cannot be at DISPATCH_LEVEL or above.
-// FIXME FIXME Implement Push locks to use in PASSIVE_LEVEL in order to use the handle table at Pageable memory, because using spinlocks raises to DISPATCH.
+// Since we also use push locks.
 
 DOUBLY_LINKED_LIST HandleTableList;
-SPINLOCK HandleTableLock;
+PUSH_LOCK HandleTableLock;
 
 static
 PHANDLE_TABLE_ENTRY
@@ -108,8 +108,12 @@ HtCreateHandleTable(
     PHANDLE_TABLE Table = MmAllocatePoolWithTag(NonPagedPool, sizeof(HANDLE_TABLE), 'bTtH'); // HtTb - Handle Table.
     
     // Allocate the first page of the entries (level 0) (switched to paged pool now)
-    PHANDLE_TABLE_ENTRY Level0 = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'egaP'); // Page
-
+    PHANDLE_TABLE_ENTRY Level0 = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'egaP'); // Page
+    if (!Level0) {
+        MmFreePool(Table);
+        return NULL;
+    }
+    
     // Initialize the free list in the new page.
     for (uint64_t i = 1; i < LOW_LEVEL_ENTRIES - 1; i++) {
         Level0[i].NextFreeTableEntry = (i + 1) * 4; // Store as a handle value.
@@ -121,6 +125,7 @@ HtCreateHandleTable(
     Table->TableCode = (uint64_t)Level0; // Level is 0, so bottom bits are 0
     Table->FirstFreeHandle = 4;
     Table->QuotaProcess = Process;
+    Table->TableLock.Value = 0;
 
     return Table;
 }
@@ -150,7 +155,7 @@ HtpAllocateAndInitHandlePage(
 --*/
 
 {
-    PHANDLE_TABLE_ENTRY NewPage = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'egaP');
+    PHANDLE_TABLE_ENTRY NewPage = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'egaP');
     if (!NewPage) return NULL;
 
     // Link all entries in this new page together
@@ -206,7 +211,7 @@ HtpExpandTable(
     //
     if (CurrentLevel == 0) {
         // Allocate the "Directory" page (holds pointers, not entries)
-        PHANDLE_TABLE_ENTRY* Directory = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'riD');
+        PHANDLE_TABLE_ENTRY* Directory = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'riD');
         if (!Directory) return; // OOM
 
         // The existing Level 0 page becomes the first entry in the directory
@@ -291,8 +296,9 @@ HtCreateHandle(
 --*/
 
 {
-    IRQL oldIrql;
-    MsAcquireSpinlock(&Table->TableLock, &oldIrql);
+    // Acquire exclusive push lock, we are modifying the table.
+    // Since we are in pageable memory, we can wait and access it even.
+    MsAcquirePushLockExclusive(&Table->TableLock);
 
     // Is there a free handle in the list?
     if (Table->FirstFreeHandle == 0)
@@ -303,7 +309,7 @@ HtCreateHandle(
 
         // Check again. If it is STILL 0, expansion failed (OOM).
         if (Table->FirstFreeHandle == 0) {
-            MsReleaseSpinlock(&Table->TableLock, oldIrql);
+            MsReleasePushLockExclusive(&Table->TableLock);
             return MT_INVALID_HANDLE; // Return NULL/0
         }
     }
@@ -314,7 +320,7 @@ HtCreateHandle(
 
     // Sanity check (Should never happen if FirstFreeHandle != 0)
     if (!Entry) {
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        MsReleasePushLockExclusive(&Table->TableLock);
         return MT_INVALID_HANDLE;
     }
 
@@ -324,7 +330,7 @@ HtCreateHandle(
     // Setup the Entry
     Entry->Object = Object;
     Entry->GrantedAccess = Access;
-    MsReleaseSpinlock(&Table->TableLock, oldIrql);
+    MsReleasePushLockExclusive(&Table->TableLock);
 
     return (HANDLE)FreeIndex;
 }
@@ -353,13 +359,12 @@ HtDeleteHandle(
 --*/
 
 {
-    IRQL oldIrql;
-    MsAcquireSpinlock(&Table->TableLock, &oldIrql);
+    MsAcquirePushLockExclusive(&Table->TableLock);
 
     // Validate Handle
     // Ensure it's not 0 (if 0 is invalid) and is a multiple of 4
     if (!Handle || ((uint64_t)Handle & 3)) {
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        MsReleasePushLockExclusive(&Table->TableLock);
         return;
     }
 
@@ -369,7 +374,7 @@ HtDeleteHandle(
     // Check if entry is actually in use
     if (!Entry || !Entry->Object) {
         // Handle is already free or invalid
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        MsReleasePushLockExclusive(&Table->TableLock);
         return;
     }
 
@@ -382,7 +387,7 @@ HtDeleteHandle(
     Entry->NextFreeTableEntry = Table->FirstFreeHandle;
     // This entry becomes the new head.
     Table->FirstFreeHandle = (uint32_t)Handle;
-    MsReleaseSpinlock(&Table->TableLock, oldIrql);
+    MsReleasePushLockExclusive(&Table->TableLock);
 }
 
 void* 
@@ -411,10 +416,10 @@ HtGetObject (
 --*/
 
 {
-    IRQL oldIrql;
     void* Object = NULL;
 
-    MsAcquireSpinlock(&Table->TableLock, &oldIrql);
+    // We can acquire a shareed push lock since we are strictly reading and not writing to the table contents.
+    MsAcquirePushLockShared(&Table->TableLock);
 
     PHANDLE_TABLE_ENTRY Entry = HtpLookupEntry(Table, Handle);
 
@@ -423,7 +428,7 @@ HtGetObject (
         Object = Entry->Object;
     }
 
-    MsReleaseSpinlock(&Table->TableLock, oldIrql);
+    MsReleasePushLockShared(&Table->TableLock);
     if (Entry) {
         if (OutEntry) *OutEntry = Entry;
     }
@@ -456,8 +461,7 @@ HtDeleteHandleTable(
     if (!Table) return;
 
     // Grab the table lock.
-    IRQL oldIrql;
-    MsAcquireSpinlock(&Table->TableLock, &oldIrql);
+    MsAcquirePushLockExclusive(&Table->TableLock);
 
     uint64_t TableCode = Table->TableCode;
     uint64_t Level = TableCode & TABLE_LEVEL_MASK;
@@ -478,7 +482,7 @@ HtDeleteHandleTable(
         }
 
         // No more live handles — release lock and free the page
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        MsReleasePushLockExclusive(&Table->TableLock);
         if (Entries) MmFreePool(Entries);
     }
 
@@ -504,15 +508,15 @@ HtDeleteHandleTable(
             }
         }
 
-        // Release spinlock and free the directory itself.
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        // Release push lock and free the directory itself.
+        MsReleasePushLockExclusive(&Table->TableLock);
         if (Directory) MmFreePool(Directory);
     }
 
     else {
         // Unsupported level, release lock and get out.
         assert(false, "Unsupported level encountered on handle table free.");
-        MsReleaseSpinlock(&Table->TableLock, oldIrql);
+        MsReleasePushLockExclusive(&Table->TableLock);
     }
 
     // Finally, free our table itself.

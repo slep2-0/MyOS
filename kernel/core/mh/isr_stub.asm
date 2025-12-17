@@ -119,8 +119,6 @@ isr_common_stub64:
     mov     rsi, rsp
 
 .begin_call
-    ; Save vector number for EOI logic (function call may clobber RDI)
-    mov     r10, rdi
     
     ; Call C interrupt handler
     sub     rsp, 8

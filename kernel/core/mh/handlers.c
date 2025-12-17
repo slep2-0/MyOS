@@ -9,6 +9,7 @@
 #include "../../includes/mg.h"
 #include "../../includes/ps.h"
 #include "../../includes/md.h"
+#include "../../includes/exception.h"
 
 #define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
     do {                                                             \
@@ -455,8 +456,33 @@ void MiStackSegmentOverrun(PTRAP_FRAME trap) {
 }
 
 void MiGeneralProtectionFault(PTRAP_FRAME trap) {
-    // important exception, view error code and bugcheck with it
-    MeBugCheckEx(GENERAL_PROTECTION_FAULT, (void*)trap->rip, (void*)(uintptr_t)trap->error_code, NULL, NULL);
+    PETHREAD Thread = PsGetCurrentThread();
+    if (PsIsKernelThread(Thread)) {
+        // important exception, view error code and bugcheck with it
+        // its also a very useless exception, as a general protection fault is the most
+        // general thing in the world, like the word general was made for this fault
+        // why? because it supplies 0 information at what could be a plathera of violations the thread could have done.
+        // we have to examine the RIP to actually see wtf did it.
+        // (hi guys im the cpu and i supply the segment where this happened, i hope its useful and all!!!)
+        MeBugCheckEx(GENERAL_PROTECTION_FAULT, (void*)(uintptr_t)trap->rip, (void*)(uintptr_t)trap->error_code, NULL, NULL);
+    }
+
+    // User thread, we send an exception.
+    // TODO Exceptions.
+    // For now, terminate the user thread.
+    MTSTATUS Status;
+
+    // Enable access to user mode memory so we dont page fault on accessing its RIP.
+    __stac();
+    if (ExpIsPrivilegedInstruction((uint8_t*)trap->rip)) {
+        Status = MT_ILLEGAL_INSTRUCTION;
+    }
+    else {
+        Status = MT_ACCESS_VIOLATION;
+    }
+    __clac();
+
+    PsTerminateThread(Thread, Status);
 }
 
 void MiFloatingPointError(PTRAP_FRAME trap) {
