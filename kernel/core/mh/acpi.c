@@ -65,7 +65,7 @@ static void* MiFindACPIHeader(XSDT* xsdt, const char* headerSignature) {
 		}
 #ifdef DEBUG
 		else {
-			gop_printf(COLOR_RED, "Signature for iteration %d isn't valid... Pointer (physical): %p\n", i, headerPhys);
+			gop_printf(COLOR_RED, "Signature for iteration %d isn't valid... Pointer (physical): %p\n", i, (void*)(uintptr_t)headerPhys);
 		}
 #endif
 	}

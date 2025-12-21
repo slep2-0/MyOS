@@ -19,9 +19,12 @@ Revision History:
 #include "../../includes/mm.h"
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
+#include "../../includes/ob.h"
 #include "../../assert.h"
 
 #define IA32_PAT 0x277
+
+POBJECT_TYPE MmSectionType = NULL;
 
 static
 bool
@@ -49,6 +52,25 @@ MiInitializePAT(void)
         (0x03ULL << 56);         // 7 = UC
 
     __writemsr(IA32_PAT, pat);
+}
+
+MTSTATUS
+MmInitSections(
+    void
+)
+
+{
+    OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
+    kmemset(&ObjectTypeInitializer, 0, sizeof(OBJECT_TYPE_INITIALIZER));
+
+    // Initiate types.
+    ObjectTypeInitializer.PoolType = NonPagedPool;
+    ObjectTypeInitializer.DeleteProcedure = MmpDeleteSection;
+    ObjectTypeInitializer.ValidAccessRights = MT_SECTION_ALL_ACCESS;
+    ObjectTypeInitializer.DumpProcedure = NULL; // TODO DUMP PROC!
+
+    MTSTATUS Status = ObCreateObjectType("Section", &ObjectTypeInitializer, &MmSectionType);
+    return Status;
 }
 
 bool
@@ -145,4 +167,67 @@ MmInitSystem(
         // Only phase 1 & 2 are supported currently.
         MeBugCheck(INVALID_INITIALIZATION_PHASE);
     }
+}
+
+extern GOP_PARAMS gop_local;
+extern BOOT_INFO boot_info_local;
+
+void
+MiMoveUefiDataToHigherHalf(
+    IN PBOOT_INFO BootInfo
+)
+
+
+/*++
+
+    Routine description:
+
+        Moves UEFI Memory that is mapped below the kernel half to the kernel half.
+
+    Arguments:
+
+        [IN]    PBOOT_INFO BootInformation - The boot information supplied by the UEFI Bootloader.
+
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Currently the only UEFI memory that is below the higher half is the GOP. (and RSDP, but that is processed during kernel startup, so its fine)
+
+--*/
+
+{
+    // Move GOP to higher half, luckily i developed this extremely advanced memory api (its just advancing pointers)
+    uintptr_t Virt = MiTranslateVirtualToPhysical((void*)gop_local.FrameBufferBase);
+
+#ifdef DEBUG
+    uint64_t oldBase = gop_local.FrameBufferBase;
+#endif
+
+    gop_local.FrameBufferBase = (uint64_t)MmMapIoSpace(Virt, gop_local.FrameBufferSize, MmCached);
+    assert(gop_local.FrameBufferBase != Virt);
+    assert((void*)gop_local.FrameBufferBase != NULL);
+
+    // Unmap the previous PTE.
+    MiUnmapPte(MiGetPtePointer(Virt));
+
+#ifdef DEBUG
+    assert(MmIsAddressValid((uintptr_t)oldBase) == false);
+#endif
+    uintptr_t BootInfoPhys = MiTranslateVirtualToPhysical((void*)BootInfo);
+
+    // Destroy the boot_info struct PTE.
+    // First, memory set it to 0 (just for good measure)
+    kmemset(BootInfo, 0, sizeof(BOOT_INFO));
+
+    // Great, unmap it now.
+    assert(sizeof(BOOT_INFO) <= VirtualPageSize); // If the size is larger, we would need to do a for loop.
+    MiUnmapPte(MiGetPtePointer((uintptr_t)BootInfo));
+    assert(MmIsAddressValid((uintptr_t)BootInfo) == false);
+
+    // Free its physical frame.
+    MiReleasePhysicalPage(PPFN_TO_INDEX(PHYSICAL_TO_PPFN(BootInfoPhys)));
 }

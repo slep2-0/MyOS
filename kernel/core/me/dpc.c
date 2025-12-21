@@ -9,34 +9,36 @@
 #include "../../includes/ps.h"
 #include "../../includes/mh.h"
 #include "../../assert.h"
+#include "../../includes/ob.h"
 
 //Statically made DPC Routines.
 
-void CleanStacks(DPC* dpc, void* DeferrredContext, void* SystemArgument1, void* SystemArgument2) {
+extern volatile void* ObpReaperList;
+
+void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2) {
     /*
     DeferredContext - Ignored
-    SystemArgument1 - Thread (ETHREAD)
-    SystemArgument2 - isStatic (asserted at scheduler, ignored for now)
+    SystemArgument1 - Ignored
+    SystemArgument2 - Ignored
     */
-    UNREFERENCED_PARAMETER(dpc);
-    UNREFERENCED_PARAMETER(DeferrredContext);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-    PETHREAD t = (PETHREAD)SystemArgument1;
 
-    // If the thread is a kernel thread (owned by the System process), we free its stack here.
-    if (PsIsKernelThread(t)) {
-        MiFreeKernelStack(t->InternalThread.StackBase, t->InternalThread.IsLargeStack);
+    POBJECT_HEADER head, cur;
+
+    UNREFERENCED_PARAMETER(DeferredContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+    UNREFERENCED_PARAMETER(dpc); // Switched to global, freeing this would cause in MEMORY_CORRUPT_HEADER.
+
+    // Atomically take the list
+    head = (POBJECT_HEADER)InterlockedExchangePointer(&ObpReaperList, NULL);
+
+    // Walk the captured chain and free each header
+    while (head) {
+        cur = head;
+        head = (POBJECT_HEADER)head->NextToFree;
+        MmFreePool(cur); // Free the header (frees object as well, header + sizeof(header) = object)
     }
 
-    extern uint32_t ManageTID(uint32_t freedTid);
-
-    // Free its thread ID from the global list.
-    ManageTID(t->TID);
-
-    // Free ETHREAD (contains ITHREAD)
-    MmFreePool(t);
-
-    return;
 }
 
 //End
@@ -55,6 +57,8 @@ MeInsertQueueDpc(
         This function inserts the DPC object into the DPC queue.
         If the DPC object is already in the queue, nothing is performed.
         Else, the DPC Object is inserted in the queue, and a software interrupt is generated based on the DPC priority & current depth.
+
+        For setting a certain CPU to run this DPC, use the MeSetTargetProcessorDpc function before calling this one.
 
     Arguments:
 
@@ -76,10 +80,34 @@ MeInsertQueueDpc(
     bool Inserted = false;
     IRQL OldIrql;
 
+    if (!Dpc->DeferredRoutine) {
+#ifdef DEBUG
+        MeBugCheckEx(DPC_NOT_INITIALIZED,
+            (void*)(uintptr_t)RETADDR(0),
+            (void*)Dpc,
+            NULL,
+            NULL
+        );
+#else
+        MeBugCheckEx(DPC_NOT_INITIALIZED,
+            (void*)Dpc,
+            NULL,
+            NULL,
+            NULL
+        );
+#endif
+    }
+
     // Raise IRQL to HIGH_LEVEL to prevent all interrupts while we touch the processor DPC queue. (prevent corruption)
     MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
-    Cpu = MeGetCurrentProcessor();
+    if (Dpc->CpuNumber < MeGetActiveProcessorCount()) {
+        Cpu = MeGetProcessorBlock(Dpc->CpuNumber);
+    }
+    else {
+        Cpu = MeGetCurrentProcessor();
+    }
+
     DpcData = &Cpu->DpcData;
 
     // Acquire the DpcData lock for the current processor.
@@ -216,6 +244,9 @@ MeRetireDPCs(
 --*/
 
 {
+#ifdef DEBUG
+    gop_printf(COLOR_WHITE, "Retiring DPCs!\n");
+#endif
     // Few assertions.
     assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
     assert(MeAreInterruptsEnabled() == false);
@@ -264,12 +295,14 @@ MeRetireDPCs(
                     // Remove from List
                     RemoveEntryList(Entry);
                     Dpc = CONTAINING_RECORD(Entry, DPC, DpcListEntry);
-
                     // Capture Context
                     DeferredRoutine = Dpc->DeferredRoutine;
                     DeferredContext = Dpc->DeferredContext;
                     SystemArgument1 = Dpc->SystemArgument1;
                     SystemArgument2 = Dpc->SystemArgument2;
+
+                    // Changes must be set before others can modify.
+                    MmFullBarrier();
 
                     // Clear DpcData so it can be re-queued inside its own routine
                     Dpc->DpcData = NULL;
@@ -283,6 +316,9 @@ MeRetireDPCs(
 
                     // Execute
                     Cpu->CurrentDeferredRoutine = Dpc;
+#ifdef DEBUG
+                    gop_printf(COLOR_WHITE, "I'm about to execute DPC %p | Routine: %p | SysArg1: %p | SysArg2: %p | Priority: %d\n", Dpc, Dpc->DeferredRoutine, Dpc->SystemArgument1, Dpc->SystemArgument2, Dpc->priority);
+#endif
                     DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
                     Cpu->CurrentDeferredRoutine = NULL;
 
@@ -308,6 +344,40 @@ MeRetireDPCs(
 
     // Return statement, assert that interrupts are disabled.
     assert(MeAreInterruptsEnabled() == false, "Interrupts must not enabled at DPC Retirement exit");
+}
+
+void
+MeSetTargetProcessorDpc(
+    IN PDPC Dpc,
+    IN uint32_t CpuNumber
+)
+
+/*++
+
+    Routine description:
+
+        This function ensures that the DPC executes only on the CPU
+        corresponding to the supplied LAPIC ID.
+
+    Arguments:
+
+        [IN] PDPC DpcAllocated - Pointer to DPC allocated in resident memory (e.g, pool alloc)
+        [IN] uint32_t CpuNumber - LAPIC ID Of the certain CPU Core to be ran on.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        This function call must be made before MeInsertQueueDpc.
+
+--*/
+
+{
+    assert(CpuNumber < MeGetActiveProcessorCount());
+
+    Dpc->CpuNumber = CpuNumber;
 }
 
 void
@@ -346,6 +416,9 @@ MeInitializeDpc(
     DpcAllocated->DeferredContext = DeferredContext;
     DpcAllocated->DpcData = NULL;
     
+    // Set to current CPU. (the driver can modify his CPU)
+    DpcAllocated->CpuNumber = DPC_TARGET_CURRENT;
+
     // Initialize list head for DPC.
     InitializeListHead(&DpcAllocated->DpcListEntry);
 }

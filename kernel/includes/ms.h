@@ -87,6 +87,42 @@ typedef struct _MUTEX {
     struct _ETHREAD* ownerThread; /* pointer to current thread that holds the mutex */
 } MUTEX, *PMUTEX;
 
+typedef struct _PUSH_LOCK {
+    union {
+        struct {
+            uint64_t Locked : 1;
+            uint64_t Waiting : 1;
+            uint64_t Waking : 1;
+            uint64_t MultipleShared : 1;
+            uint64_t Shared : 60;
+        };
+        uint64_t Value;
+        void* Pointer;
+    };
+} PUSH_LOCK;
+
+typedef struct _PUSH_LOCK_WAIT_BLOCK {
+    union {
+        struct _PUSH_LOCK_WAIT_BLOCK* Next; // Links to the next waiter in the stack
+        struct _PUSH_LOCK_WAIT_BLOCK* Last; // Only used if this is the Head node (optimization)
+    };
+
+    EVENT WakeEvent;     // The event the thread sleeps on
+    uint32_t Flags;      // 1 = Exclusive, 2 = Shared
+    uint32_t ShareCount; // If we interrupt readers, we save their count here
+    bool Signaled;       // Optimization to avoid touching the Event if not needed
+} PUSH_LOCK_WAIT_BLOCK, * PPUSH_LOCK_WAIT_BLOCK;
+
+#define PL_FLAGS_EXCLUSIVE 0x1
+#define PL_FLAGS_SHARED    0x2
+
+// Bit definitions for the PUSH_LOCK->Value
+#define PL_LOCK_BIT        0x1     // Bit 0: Locked Exclusive
+#define PL_WAIT_BIT        0x2     // Bit 1: There are waiters
+#define PL_WAKE_BIT        0x4     // Bit 2: Waking (optimization)
+#define PL_FLAG_MASK       0xF     // Bottom 4 bits are flags
+#define PL_SHARE_INC       0x10    // Shared count starts at Bit 4
+
 // ------------------ FUNCTIONS ------------------
 
 //#ifndef MT_UP
@@ -101,13 +137,13 @@ MsReleaseSpinlock(
     IN	PSPINLOCK lock,
     IN	IRQL OldIrql
 );
-/**
+/*
 #else
 #undef MsAcquireSpinlock
 #undef MsReleaseSpinlock
 
-#define MsAcquireSpinlock() // NO-OP
-#define MsReleaseSpinlock() // NO-OP
+#define MsAcquireSpinlock(x, y) (NULL) // NO-OP
+#define MsReleaseSpinlock(x, y) (NULL) // NO-OP
 #endif
 */
 
@@ -161,6 +197,26 @@ MsReleaseSpinlockFromDpcLevel(
     IN PSPINLOCK Lock
 );
 
+void
+MsAcquirePushLockExclusive(
+    IN PUSH_LOCK* Lock
+);
+
+void
+MsReleasePushLockExclusive(
+    IN PUSH_LOCK* Lock
+);
+
+void
+MsAcquirePushLockShared(
+    IN PUSH_LOCK* Lock
+);
+
+void
+MsReleasePushLockShared(
+    IN PUSH_LOCK* Lock
+);
+
 FORCEINLINE
 void
 InitializeListHead(
@@ -210,7 +266,6 @@ InsertHeadList(
     Head->Flink = Entry;  // head -> next = entry
 }
 
-
 FORCEINLINE
 PDOUBLY_LINKED_LIST
 RemoveHeadList(
@@ -251,6 +306,10 @@ RemoveEntryList(
     /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
     Blink->Flink = Flink;
     Flink->Blink = Blink;
+
+    // Sanitize the removed entry so it doesn't look valid
+    Entry->Flink = NULL;
+    Entry->Blink = NULL;
 }
 
 

@@ -5,12 +5,15 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 #include "behavior.h"
 #include "macros.h"
 #include "annotations.h"
+#include "../mtstatus.h"
 
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,
+	APC_LEVEL = 1,
 	DISPATCH_LEVEL = 2,
 	PROFILE_LEVEL = 27,
 	CLOCK_LEVEL = 28,
@@ -51,5 +54,8 @@ typedef EPROCESS* PEPROCESS;
 struct _TRAP_FRAME;
 typedef struct _TRAP_FRAME TRAP_FRAME;
 typedef TRAP_FRAME* PTRAP_FRAME;
+
+typedef int32_t HANDLE, * PHANDLE;
+typedef uint32_t ACCESS_MASK;
 
 #endif // MATANEL_CORE_H

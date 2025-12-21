@@ -2,6 +2,7 @@
 #define X86_MATANEL_MACROS_H
 #include <stdint.h>
 
+/// This example is using the legacy kernel structures.
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
 /// CTX_FRAME* ctxframeptr = 0x1234; // Hypothetical address of the pointer.
@@ -29,7 +30,22 @@ extern uint8_t kernel_end;
 
 #define LK_KERNEL_SIZE (LK_KERNEL_END - LK_KERNEL_START)
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#ifndef _MSC_VER
+#define MAX(a, b) ({ \
+    __typeof__(a) _a = (a); \
+    __typeof__(b) _b = (b); \
+    _a > _b ? _a : _b; \
+})
+
+#define MIN(a, b) ({ \
+    __typeof__(a) _a = (a); \
+    __typeof__(b) _b = (b); \
+    _a > _b ? _b : _a; \
+})
+#else
+#define MAX(a,b) (0)
+#define MIN(a,b) (0)
+#endif
 
 #if defined __GNUC__
 #define RETADDR(level) __builtin_return_address(level)

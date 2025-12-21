@@ -17,7 +17,7 @@ static int device_count = 0;
 void register_block_device(BLOCK_DEVICE* dev) {
     // print the index we’re about to use and the device pointer
 #ifdef DEBUG
-    gop_printf(0xFFFFFF00, "Registering block #%d at %x\n", device_count, (uintptr_t)dev);
+    gop_printf(0xFFFFFF00, "Registering block #%d at %llx\n", device_count, (unsigned long long)(uintptr_t)dev);
 #endif
     if (device_count < MAX_BLK_DEV) {
         devices[device_count++] = dev;

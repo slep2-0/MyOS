@@ -355,7 +355,11 @@ MiAllocateLargePool(
     newHeader->Metadata.BlockSize = neededPages * VirtualPageSize; // Store allocated size.
     newHeader->Metadata.PoolIndex = POOL_TYPE_GLOBAL;
 
-    return (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
+    void* UserAddress = (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
+    // Set to zero (to avoid kernel issues)
+    kmemset(UserAddress, 0, NumberOfBytes);
+    // Return the pointer (exclude metadata start).
+    return UserAddress;
 }
 
 static
@@ -431,7 +435,7 @@ MmAllocatePoolWithTag(
     Routine description:
 
         Allocates a pool block of the specified type and returns a pointer to allocated block.
-        The allocated block returned is zeroed, no exceptions.
+        On any allocation, the returned block(s) is/are zeroed, no exceptions.
 
     Arguments:
 
@@ -609,8 +613,11 @@ MmFreePool(
 {
     if (!buf) return;
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));
+
+    gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
 
     if (header->PoolCanary != 'BEKA') {
         MeBugCheckEx(
@@ -640,15 +647,17 @@ MmFreePool(
     }
 
     if (PoolIndex == POOL_TYPE_PAGED) {
+        assert(MeGetCurrentIrql() < DISPATCH_LEVEL); // I mean, this assertion is KINDA useless, as we cant get here in the first place, since we would IRQL_NOT_LESS_OR_EQUAL while acquiring the index.
         // For a paged pool allocation, we just free every PTE, then returned the VA space consumed.
         // The BlockSize field in a PagedPool allocation is how many bytes were requested + sizeof(POOL_HEADER)
         size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);
 
         // Loop over the amount, if the PTE is present, unmap it and clear the demand page.
-        uintptr_t CurrentVA = (uintptr_t)buf;
+        uintptr_t CurrentVA = (uintptr_t)header;
+
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
-            if (!pte) goto advance;
+            if (unlikely(!pte)) goto advance;
             assert(MM_IS_DEMAND_ZERO_PTE(*pte) == true);
 
             // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.

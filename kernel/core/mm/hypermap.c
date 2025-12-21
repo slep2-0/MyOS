@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 
 // The physical memory offset itself is the hypermap virtual address. This is ruled by not touching the 0x0 - 0x1000 physical addresses AT ALL (you may touch the physical addresses, but not map them with the PhysicalMemoryOffset virtual arithemtic.)
@@ -63,10 +64,11 @@ MiMapPageInHyperspace(
     LOCK_HYPERSPACE (OldIrql);
 
     // Map the PFN into the page.
+    // We do not send an IPI, as we are in a spinlock.
     PPFN_ENTRY pfn = INDEX_TO_PPFN (PfnIndex);
     uint64_t physAddr = PPFN_TO_PHYSICAL_ADDRESS (pfn);
     PMMPTE pte = MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS);
-    MI_WRITE_PTE(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
+    MI_WRITE_PTE_NO_IPI(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
 
     // Set PFN metadata.
     pfn->State = PfnStateActive;
@@ -108,9 +110,11 @@ MiUnmapHyperSpaceMap(
     assert((HyperLock.locked) == 1, "Double hypermap unlock");
     assert((g_pfnInUse) != 0, "No PFN when releasing hyperspace.");
     PPFN_ENTRY pfn = g_pfnInUse;
+
     // Clear the PTE present bit (to prevent use after free)
-    MiUnmapPte(MiGetPtePointer((uintptr_t)HYPERMAP_VIRTUAL_ADDRESS));
-    
+    MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS)->Hard.Present = 0;
+    invlpg((void*)HYPERMAP_VIRTUAL_ADDRESS);
+
     // After MiUnmapPte changed the pfn metadata, we change it once again to invalidate it.
     pfn->Descriptor.Mapping.PteAddress = NULL;
     pfn->Descriptor.Mapping.Vad = NULL;

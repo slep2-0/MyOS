@@ -352,7 +352,7 @@ MiCheckVadOverlap(
 
 PMMVAD
 MiFindVad(
-    IN  PMMVAD Root,
+    IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
 )
 
@@ -374,7 +374,10 @@ MiFindVad(
 --*/
 
 {
-    PMMVAD current = Root;
+    // Acquire the reading lock for the process.
+    MsAcquirePushLockShared(&Process->VadLock);
+
+    PMMVAD current = Process->VadRoot;
 
     while (current) {
         // Is the virtual address BEFORE this VAD
@@ -388,10 +391,14 @@ MiFindVad(
         }
 
         // Then, it must be inside of this VAD.
-        else return current;
+        else {
+            MsReleasePushLockShared(&Process->VadLock);
+            return current;
+        }
     }
 
     // Not found.
+    MsReleasePushLockShared(&Process->VadLock);
     return NULL;
 }
 
@@ -587,13 +594,11 @@ MiDeleteVadNode(
 }
 
 #define MAX_VAD_DEPTH 64 // Usually enough for a 64-bit tree
-PMMVAD vadStack[MAX_VAD_DEPTH];
-int stackTop = -1;
 
 static
 uintptr_t
 MiFindGap(
-    IN  PMMVAD Root,
+    IN  PEPROCESS Process,
     IN  size_t NumberOfBytes,
     IN  uintptr_t SearchStart,
     IN  uintptr_t SearchEnd    // exclusive
@@ -622,7 +627,13 @@ MiFindGap(
     if (NumberOfBytes == 0) return 0;                     // no zero-sized allocations
     if (SearchStart == 0) return 0;                       // defensive: we don't expect VA 0
 
-    PMMVAD current = Root;
+    PMMVAD vadStack[MAX_VAD_DEPTH];
+    int stackTop = -1;
+
+    // Acquire the reading lock.
+    MsAcquirePushLockShared(&Process->VadLock);
+
+    PMMVAD current = Process->VadRoot;
     size_t size_needed = ALIGN_UP(NumberOfBytes, VirtualPageSize);
 
     // Start from one byte before SearchStart so ALIGN_UP(lastEndVa + 1, page) == aligned SearchStart
@@ -635,6 +646,7 @@ MiFindGap(
         while (current != NULL) {
             if (stackTop + 1 >= MAX_VAD_DEPTH) {
                 // Tree is too deep (shouldn't happen if we balanced it though)
+                MsReleasePushLockShared(&Process->VadLock);
                 return 0;
             }
             vadStack[++stackTop] = current;
@@ -658,8 +670,12 @@ MiFindGap(
 
             // Overflow check: gapStart + size_needed must not wrap
             if (gapStart <= (uintptr_t)-1 - (size_needed - 1)) {
-                if (gapStart + size_needed <= SearchEnd) return gapStart;
+                if (gapStart + size_needed <= SearchEnd) {
+                    MsReleasePushLockShared(&Process->VadLock);
+                    return gapStart;
+                }
             }
+            MsReleasePushLockShared(&Process->VadLock);
             return 0;
         }
 
@@ -675,6 +691,7 @@ MiFindGap(
                 uintptr_t gapEndExclusive = gapStart + size_needed;
                 // must fit before current VAD and before SearchEnd (SearchEnd is exclusive)
                 if (gapEndExclusive <= current->StartVa && gapEndExclusive <= SearchEnd) {
+                    MsReleasePushLockShared(&Process->VadLock);
                     return gapStart;
                 }
             }
@@ -693,11 +710,13 @@ MiFindGap(
 
     if (finalGapStart <= (uintptr_t)-1 - (size_needed - 1)) {
         if (finalGapStart + size_needed <= SearchEnd) {
+            MsReleasePushLockShared(&Process->VadLock);
             return finalGapStart;
         }
     }
 
     // No gap found anywhere
+    MsReleasePushLockShared(&Process->VadLock);
     return 0;
 }
 
@@ -714,7 +733,7 @@ MmFindFreeAddressSpace(
 
 {
     if (Process && NumberOfBytes) {
-        return MiFindGap(Process->VadRoot, NumberOfBytes, SearchStart, SearchEnd);
+        return MiFindGap(Process, NumberOfBytes, SearchStart, SearchEnd);
     }
     return 0;
 }
@@ -748,7 +767,17 @@ MmAllocateVirtualMemory(
 
 {
     // Calculate pages needed
-    uintptr_t StartVa = (uintptr_t)*BaseAddress;
+
+    uintptr_t StartVa; 
+    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    if (BaseAddress) {
+        if (PreviousMode == UserMode) __stac();
+        StartVa = (uintptr_t)*BaseAddress;
+        if (PreviousMode == UserMode) __clac();
+    }
+    else {
+        return MT_INVALID_PARAM;
+    }
     size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
     MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
@@ -756,16 +785,17 @@ MmAllocateVirtualMemory(
 
     if (!StartVa) {
         // We need to determine if the allocation is for a system process or a user process.
-        bool KernelProcess = (Process->PID == 4) ? true : false;
-        if (unlikely(KernelProcess)) {
-            assert(false);
-            MeBugCheckEx(MANUALLY_INITIATED_CRASH, RETADDR(0), NULL, NULL, NULL);
-        }
-        else {
-            // User mode
-            StartVa = MiFindGap(Process->VadRoot, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
-        }
+        // Its + 1 because its exclusive (so we want the actual end of the page, not excluding the last one)
+        StartVa = MiFindGap(Process, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
         if (!StartVa) return MT_NOT_FOUND;
+        
+        // Update the newly found address.
+        if (BaseAddress) {
+            if (PreviousMode == UserMode) __stac();
+            *BaseAddress = (void*)StartVa;
+            if (PreviousMode == UserMode) __clac();
+        }
+        
         // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.
         checkForOverlap = false;
 
@@ -779,8 +809,7 @@ MmAllocateVirtualMemory(
     }
 
     // Acquire lock for this process VAD tree.
-    IRQL oldIrql;
-    MsAcquireSpinlock(&Process->VadLock, &oldIrql); 
+    MsAcquirePushLockExclusive(&Process->VadLock);
 
     // Check for overlap
     if (checkForOverlap && MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa)) {
@@ -809,8 +838,19 @@ MmAllocateVirtualMemory(
 
 cleanup:
     MsReleaseRundownProtection(&Process->ProcessRundown);
-    MsReleaseSpinlock(&Process->VadLock, oldIrql);
+    MsReleasePushLockExclusive(&Process->VadLock);
     return status;
+}
+
+MTSTATUS
+MmIsAddressRangeFree(
+    PEPROCESS Process,
+    uintptr_t StartVa,
+    uintptr_t EndVa
+)
+
+{
+    return MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa);
 }
 
 MTSTATUS
@@ -846,10 +886,9 @@ MmFreeVirtualMemory(
     }
 
     // Acquire VAD lock
-    IRQL oldIrql;
-    MsAcquireSpinlock(&Process->VadLock, &oldIrql);
+    MsAcquirePushLockExclusive(&Process->VadLock);
 
-    PMMVAD VadToFree = MiFindVad(Process->VadRoot, va);
+    PMMVAD VadToFree = MiFindVad(Process, va);
 
     // Check if its the valid VAD and if the base address is the start of the VAD region.
     if (VadToFree == NULL || VadToFree->StartVa != va) {
@@ -880,6 +919,6 @@ MmFreeVirtualMemory(
 
 cleanup:
     MsReleaseRundownProtection(&Process->ProcessRundown);
-    MsReleaseSpinlock(&Process->VadLock, oldIrql);
+    MsReleasePushLockExclusive(&Process->VadLock);
     return status;
 }

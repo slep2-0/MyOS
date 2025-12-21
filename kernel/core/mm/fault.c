@@ -17,10 +17,12 @@ Revision History:
 --*/
 
 #include "../../includes/mm.h"
+#include "../../includes/mh.h"
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../assert.h"
+#include "../../includes/fs.h"
 
 MTSTATUS
 MmAccessFault(
@@ -60,16 +62,24 @@ MmAccessFault(
             MT_ACCESS_VIOLATION -- User mode only (or kernel mode probing).
             MT_GUARD_PAGE_VIOLATION -- Bugchecks.
 
+        The function would bugcheck if an invalid kernel mode access occured (or in worst case, 0 memory is available to fill the VAD of the user mode process, but I want to change it to sleep instead..)
+
 --*/
 
 {
     // Declarations
+#ifdef DEBUG
+    PMMPTE ReferencedPml4e = MiGetPml4ePointer(VirtualAddress);
+    PMMPTE ReferencedPdpte = MiGetPdptePointer(VirtualAddress);
+    PMMPTE ReferencedPde = MiGetPdePointer(VirtualAddress);
+    UNREFERENCED_PARAMETER(ReferencedPml4e); UNREFERENCED_PARAMETER(ReferencedPdpte); UNREFERENCED_PARAMETER(ReferencedPde);
+#endif
     PMMPTE ReferencedPte = MiGetPtePointer(VirtualAddress);
     FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
     IRQL PreviousIrql = MeGetCurrentIrql();
 
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %x | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", FaultBits, VirtualAddress, PreviousMode, TrapFrame->rip, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, PreviousMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
     if (!ReferencedPte) {
@@ -96,10 +106,21 @@ MmAccessFault(
 
     // Check for NX. (NX on anywhere is invalid, no matter the range)
     if (OperationDone == ExecuteOperation) {
-        // Fault on NX bit set page.
-        if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
-        // Bugcheck, its kernel mode.
-        goto BugCheck;
+        // Check if the page has NoExecute.
+        if (ReferencedPte->Hard.NoExecute) {
+            // Execution is disallowed.
+            if (PreviousMode == UserMode) {
+                // UserMode executions get an access violation.
+                return MT_ACCESS_VIOLATION;
+            }
+            else {
+                // KernelMode violations are bugchecks.
+                goto BugCheck;
+            }
+        }
+
+        // The page is executable allowed, we check if we demand allocate (of if it is a VAD for user mode)
+        // Previously it returned an access violation for every time we executed wrong in user mode, which was bad.
     }
 
     // Now we check for each address in the system, and handle the request based on that.
@@ -112,7 +133,7 @@ MmAccessFault(
         MMPTE TempPte = *ReferencedPte;
 
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
-        if (TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
+        if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
             goto BugCheck;
         }
 
@@ -200,38 +221,113 @@ MmAccessFault(
     }
 
     // Address is below the kernel start, and above user address.
-    if (VirtualAddress > MmHighestUserAddress && VirtualAddress < MmSystemRangeStart) {
-        if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
-        goto BugCheck;
-    }
+    // This if statement should never pass, since these addresses are non canonical, and the first if statement checks for a non canonical adddres.
+    // basically kernel bloat at this point.
+    // i removed it, bye bye.
 
     // Address is in user range.
     if (VirtualAddress <= MmHighestUserAddress) {
-        if (PreviousMode == KernelMode) {
-            // Kernel mode dereference on a user address
-            goto BugCheck;
+        // Before any demand allocation, check IRQL.
+        if (PreviousIrql >= DISPATCH_LEVEL) {
+            // IRQL Isn't less than DISPATCH_LEVEL, so we cannot lazily allocate, since it would **block**.
+            MeBugCheckEx(
+                IRQL_NOT_LESS_OR_EQUAL,
+                (void*)VirtualAddress,
+                (void*)PreviousIrql,
+                (void*)OperationDone,
+                (void*)TrapFrame->rip
+            );
         }
 
         // User mode fault on a user address, we check if there is a vad for it, if so, allocate the page.
-        PMMVAD vad = MiFindVad(PsGetCurrentProcess()->VadRoot, VirtualAddress);
-        if (!vad) return MT_ACCESS_VIOLATION;
+        PMMVAD vad = MiFindVad(PsGetCurrentProcess(), VirtualAddress);
+        if (!vad) return MT_ACCESS_VIOLATION; // If kernel mode exception dispatcher should catch.
 
+        // Check if we are allowed to allocate.
+        if (vad->Flags & VAD_FLAG_RESERVED) {
+            // Allocation is forbidden, return access violation.
+            return MT_ACCESS_VIOLATION;
+        }
+
+        uint64_t PteFlags = PAGE_PRESENT | PAGE_NX | PAGE_USER;
+
+        // Apply flags.
+        if (vad->Flags & VAD_FLAG_WRITE) {
+            PteFlags |= PAGE_RW;
+        }
+
+        if (vad->Flags & VAD_FLAG_EXECUTE) {
+            PteFlags &= ~PAGE_NX;
+        }
+
+
+        // TODO COPY ON WRITE!!
         // Looks like we have a valid vad, lets allocate.
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
-        if (pfn == PFN_ERROR) goto BugCheck; // TODO OOM
+        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
+
+        if (pfn == PFN_ERROR) return MT_ACCESS_VIOLATION; // TODO OOM
 
         // Acquire the PTE for the faulty VA.
         PMMPTE pte = MiGetPtePointer(VirtualAddress);
 
+        // Now we check if the VAD has any file attached to it, if it does, we copy the contents of the file to the RAM
+        // This could be a process file (executable, dll), or even our pagefile.
+        if (vad->File) {
+            // Calculate file offset to load into VAD.
+            uint64_t AlignedAddress = (uint64_t)PAGE_ALIGN(VirtualAddress);
+            uint64_t PageOffsetWithinVad = AlignedAddress - (uint64_t)vad->StartVa;
+            uint64_t ActualFileOffset = vad->FileOffset + PageOffsetWithinVad;
+
+            // Determine how many bytes to read from file to the page.
+            PFILE_OBJECT FileObject = vad->File;
+            uint64_t FileLength = FileObject->FileSize;
+            size_t ToRead = 0;
+
+            if (ActualFileOffset < FileLength) {
+                ToRead = (size_t)MIN((uint64_t)VirtualPageSize, FileLength - ActualFileOffset);
+            }
+            else {
+                ToRead = 0;
+            }
+
+            // Allocate enough buffer size to hold the file.
+            void* Tmp = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'Fpmt'); // tmpF - Temporary Fault
+            if (!Tmp) return MT_ACCESS_VIOLATION;
+
+            // Read the file now.
+            if (ToRead > 0) {
+                MTSTATUS Status = FsReadFile(FileObject, ActualFileOffset, Tmp, ToRead, NULL);
+                if (MT_FAILURE(Status)) {
+                    MmFreePool(Tmp);
+                    return MT_ACCESS_VIOLATION;
+                }
+            }
+            if (ToRead < VirtualPageSize) {
+                // zero the rest of the page
+                kmemset((uint8_t*)Tmp + ToRead, 0, VirtualPageSize - ToRead);
+            }
+
+            // Copy data from the file to the new user Page
+            // We must not access the virtual address, as if this is a page without write access, we would fault (like the .text section)
+            // Speaking from exprience btw.
+            // So we operate on the physical address.
+            // This should be IRQL fine, since we filtered dispatch and above, above.
+            // As well as performed the read operation in PASSIVE_LEVEL (or APC)
+            IRQL oldIrql;
+            void* AddressToOperate = MiMapPageInHyperspace(pfn, &oldIrql);
+            kmemcpy(AddressToOperate, Tmp, VirtualPageSize);
+            MiUnmapHyperSpaceMap(oldIrql);
+        }
+
         // Write the PTE.
-        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PteFlags);
 
         // Return success.
         return MT_SUCCESS;
     }
 
     // Address, is, what... impossible!
-    // This comment means execution is impossible to reach here, as we sanitized all addresses in the 48bit paging hierarchy.
+    // This comment means execution is impossible to reach here, as we sanitized all (valid) addresses in the 48bit paging hierarchy.
     // If it does reach here, look below.
 
 BugCheck:

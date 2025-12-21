@@ -44,7 +44,6 @@ extern bool isBugChecking;
 #include "drivers/ahci/ahci.h"
 #include "drivers/gop/gop.h"
 #include "time.h"
-#include "filesystem/vfs/vfs.h"
 #include "includes/behavior.h"
 
 // Entry point in C
@@ -54,9 +53,6 @@ void kernel_main(BOOT_INFO* boot_info);
 void copy_memory_map(BOOT_INFO* boot_info);
 void copy_gop(BOOT_INFO* boot_info);
 void init_boot_info(BOOT_INFO* boot_info);
-
-// Initialize per CPU control registers (CR)
-void InitialiseControlRegisters(void);
 
 #define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
 

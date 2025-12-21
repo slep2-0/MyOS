@@ -21,17 +21,23 @@ static void update_apic_irqs(IRQL newLevel) {
     switch (newLevel) {
     case HIGH_LEVEL:
     case POWER_LEVEL:
+        tpr = TPR_HIGH; // 15
+        break;
+
     case IPI_LEVEL:
-        tpr = 15; // block everything
+        tpr = TPR_IPI; // 14
         break;
 
     case CLOCK_LEVEL:
-    case PROFILE_LEVEL:
-        tpr = TPR_PROFILE; // e.g. 10
+        tpr = TPR_CLOCK; // 13
         break;
 
     case DISPATCH_LEVEL:
-        tpr = TPR_DISPATCH; // numeric (e.g. 8)
+        tpr = TPR_DPC; // 4 - Blocks DPC (0x40) and APC (0x30)
+        break;
+
+    case APC_LEVEL:
+        tpr = TPR_APC; // 3 - Blocks APC (0x30)
         break;
 
     case PASSIVE_LEVEL:
@@ -97,7 +103,12 @@ MeLowerIrql (
 
 /*++
 
-    Routine description : This function lowers the current IRQL of the CPU to the specified 'NewIrql', and updates IRQL rules along with it (scheduler, APIC masks...).
+    Routine description : 
+    
+        This function lowers the current IRQL of the CPU to the specified 'NewIrql', and updates IRQL rules along with it (scheduler, APIC masks...).
+        
+        N.B: The function checks if a software interrupt is pending AND that the interrupt IRQL pending is LOWER or EQUAL to current IRQL,
+             if so, it will generate the interrupt, even on interrupts disabled.
 
     Arguments:
 
@@ -123,13 +134,21 @@ MeLowerIrql (
     toggle_scheduler();
     update_apic_irqs(NewIrql);
 
-    if (prev_if) __sti();
-
     PPROCESSOR cpu = MeGetCurrentProcessor();
     MmFullBarrier();
-    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+    
+    // First check for DPC Interrupts.
+
+    if (prev_if && cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
+
+    // Now APC Interrupts.
+    if (prev_if && cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+    }
+
+    if (prev_if) __sti();
 }
 
 // This function should be used sparingly, only during initialization.

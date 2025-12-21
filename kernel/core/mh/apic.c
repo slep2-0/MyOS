@@ -34,10 +34,16 @@ enum {
 
 // --- low-level mmio helpers (assumes lapic mapped to virtual memory) ---
 uint32_t lapic_mmio_read(uint32_t off) {
+    // Hi matanel, if you ever encounter enormous page faults in this area, with MmAccessFault not even bugchecking.
+    // It is because an IPI was sent from an AP that hasn't been fully initialized.
+    // Thus somehow in gods existence corrupting stuff.
+    // Like in the case of MI_WRITE_PTE, it sent an IPI when it was used in map_lapic, and caused like a chain reaction that formed into a black hole.
+    // So I added another flag allApsInitialized, so that MI_WRITE_PTE will not send an IPI if they are not init yet.
     return MeGetCurrentProcessor()->LapicAddressVirt[off / 4];
 }
 
 void lapic_mmio_write(uint32_t off, uint32_t val) {
+    // Read my lapic_mmio_read comment if page faults ever happen here.
     MeGetCurrentProcessor()->LapicAddressVirt[off / 4] = val;
     (void)MeGetCurrentProcessor()->LapicAddressVirt[0]; // Serializing read
 }
@@ -65,6 +71,7 @@ static void map_lapic(uint64_t lapicPhysicalAddr) {
 
     // Map the single LAPIC page (phys -> virt)
     PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
+    assert(pte != NULL);
     if (!pte) return;
     MI_WRITE_PTE(pte, virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 
@@ -183,7 +190,7 @@ int init_lapic_timer(uint32_t hz) {
     if (initial == 0) initial = 1;
 
     // Program THIS CPU's timer using the shared calibration value
-    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | 0xEF /* vector */);
+    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | VECTOR_CLOCK /* vector */);
     lapic_mmio_write(LAPIC_TIMER_INITCNT, (uint32_t)initial);
     return 0;
 }
@@ -199,6 +206,8 @@ MhRequestSoftwareInterrupt(
 
         This function is used to request a software interrupt to the current processor.
 
+        N.B: The function will 100% have the interrupt executed when it returns.
+
     Arguments:
 
         [IN]    IRQL RequstIrql - The IRQL value to request an interrupt for.
@@ -207,9 +216,11 @@ MhRequestSoftwareInterrupt(
 
         None.
 
-    Note:
+    Notes:
 
-        The only IRQL supported currently is DISPATCH_LEVEL
+        The only IRQLs supported currently are DISPATCH_LEVEL and APC_LEVEL
+
+        To have this function serviced for a DPC or an APC, set the flag in the CPU accordingly and wait for IRQL to be equal or below to IRQL requested.
 
 --*/
 
@@ -219,19 +230,31 @@ MhRequestSoftwareInterrupt(
     assert(cpu->DpcInterruptRequested == true);
 
     // We only support DISPATCH_LEVEL.
-    assert(RequestIrql == DISPATCH_LEVEL);
+    assert(RequestIrql == DISPATCH_LEVEL || RequestIrql == APC_LEVEL);
+    if (RequestIrql != DISPATCH_LEVEL && RequestIrql != APC_LEVEL) MeBugCheckEx(INVALID_INTERRUPT_REQUEST, (void*)RETADDR(0), (void*)RequestIrql, NULL, NULL);
 
     // Disable interrupts, and save IF flag.
     prev_if = MeDisableInterrupts();
 
     // Clear the flag.
-    cpu->DpcInterruptRequested = false;
+    if (RequestIrql == DISPATCH_LEVEL) {
+        cpu->DpcInterruptRequested = false;
+    }
+    else {
+        cpu->ApcInterruptRequested = false;
+    }
 
     // wait until previous ICR is not busy
     lapic_wait_icr();
 
     // For a self IPI we can use the destination shorthand
-    uint32_t icr_low = (uint32_t)VECTOR_DPC | (1U << 18);
+    uint32_t icr_low;
+    if (RequestIrql == DISPATCH_LEVEL) {
+        icr_low = (uint32_t)VECTOR_DPC | (1U << 18);
+    }
+    else {
+        icr_low = (uint32_t)VECTOR_APC | (1U << 18);
+    }
 
     // ICR high is ignored when shorthand is used, but zero it for clarity.
     lapic_mmio_write(LAPIC_ICR_HIGH, 0);

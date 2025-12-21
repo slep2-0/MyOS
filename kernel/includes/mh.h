@@ -29,28 +29,27 @@ Revision History:
 
 #define IRQL_VECTOR_BASE    0x40
 
-// Priority Levels (0-15)
-// With Base 0x40, the Max Priority allowed is 11 (0x40 + 11<<4 = 240).
-// If we need 12, we must lower IRQL_VECTOR_BASE to 0x20.
-// But we are good with 11 from now.
+// Valid IDT vectors range from 0x20 (32) to 0xFF (255).
+// We space them out to give them distinct Priority Classes (Upper 4 bits).
 
-#define TPR_PASSIVE         0
-#define TPR_APC             3
-#define TPR_DISPATCH        6   
-#define TPR_DPC             8   // Vector: 0x40 + 0x80 = 0xC0 (192)
-#define TPR_PROFILE         10
-#define TPR_IPI             11 
+#define VECTOR_APC          0x30    // Class 3  (Priority 3)
+#define VECTOR_DPC          0x40    // Class 4  (Priority 4)
+#define VECTOR_CLOCK        0xD0    // Class 13 (Priority 13)
+#define VECTOR_IPI          0xE0    // Class 14 (Priority 14)
 
-// The Math Macros
-#define CALC_VECTOR(pri)    (IRQL_VECTOR_BASE + (pri << 4))
+// Rule: TPR_X must be equal to (VECTOR_X >> 4) to mask that vector.
 
-// Calculated Vectors
-#define VECTOR_DPC          CALC_VECTOR(TPR_DPC)
-#define VECTOR_IPI          CALC_VECTOR(TPR_IPI)
+#define TPR_PASSIVE         0       // Blocks nothing
+#define TPR_APC             3       // Blocks Vectors 0x30-0x3F and below
+#define TPR_DPC             4       // Blocks Vectors 0x40-0x4F and below
+#define TPR_CLOCK           13      // Blocks Vectors 0xD0-0xDF and below
+#define TPR_IPI             14      // Blocks Vectors 0xE0-0xEF and below
+#define TPR_HIGH            15      // Blocks Everything (NMI is exception)
 
-static inline unsigned int priority_to_vector(uint8_t pri) {
-    if (pri > 15) pri = 15;
-    return CALC_VECTOR(pri);
+static inline unsigned int priority_to_vector(uint8_t priority_class) {
+    if (priority_class > 15) priority_class = 15;
+    // Maps class X to the base vector of that class (X << 4)
+    return (priority_class << 4);
 }
 
 // ------------------ ENUMERATORS ------------------
@@ -83,7 +82,6 @@ typedef enum _INTERRUPT_LIST {
 	TIMER_INTERRUPT = 32, // Unused, PIC.
 	KEYBOARD_INTERRUPT = 33, // Unused, PS/2 Keyboard
 	ATA_INTERRUPT = 46, // Might be used for driver, ATA.
-	LAPIC_INTERRUPT = 0xEF, // LAPIC Timer.
 	LAPIC_SIV_INTERRUPT = 0xFF, // LAPIC Spurious interrupt vector.
 } INTERRUPT_LIST;
 
@@ -94,6 +92,7 @@ typedef enum _CPU_ACTION {
 	CPU_ACTION_WRITE_DEBUG_REGS = 3,
 	CPU_ACTION_CLEAR_DEBUG_REGS = 4,
     CPU_ACTION_DO_DEFERRED_ROUTINES = 5,
+    CPU_ACTION_FLUSH_CR3 = 6,
 } CPU_ACTION;
 
 enum MADT_TYPES {
@@ -167,6 +166,10 @@ enum {
     CPUID_FEAT_EDX_TM = 1 << 29,
     CPUID_FEAT_EDX_IA64 = 1 << 30,
     CPUID_FEAT_EDX_PBE = 1 << 31
+};
+
+enum MSRs {
+    MSR_EFER = 0xC0000080,
 };
 
 // ------------------ STRUCTURES ------------------
@@ -448,6 +451,8 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter);
 
 extern int smp_cpu_count;
+extern bool smpInitialized;
+extern bool allApsInitialized;
 
 // Didn't get rename yet.
 void set_idt_gate(int n, unsigned long int handler);

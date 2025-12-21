@@ -10,6 +10,10 @@
 #include "mm.h"
 #include "md.h"
 #include "ps.h"
+#include "ob.h"
 #include "rtl.h"
+#include "ht.h"
+#include "fs.h"
+#include "mt.h"
 
 #endif

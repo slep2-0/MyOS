@@ -15,9 +15,4 @@
 #include "../../intrinsics/intrin.h"
 #include "../../includes/mg.h"
 #include "../../includes/ms.h"
-
-void gop_printf(uint32_t color, const char* fmt, ...);
-
-#define gop_printf_forced(color, fmt, ...) gop_printf(color, fmt, ##__VA_ARGS__)
-void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
 #endif // X86_GOP_DRIVER_H

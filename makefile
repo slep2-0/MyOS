@@ -12,10 +12,12 @@ ASMFLAGS_ELF = -f elf64 -Ibuild/
 ASMFLAGS_BIN = -f bin -Ibuild/
 
 # Base CFLAGS (no optimization level hardcoded here)
+# The -mgeneral-regs-only only restricts the compiler from our XMM Usage, but assembly will save it (future, or maybe now, didnt update ts)
 CFLAGS = -std=gnu11 \
          -m64 -ffreestanding -c \
          -fdiagnostics-color=always \
          -fdiagnostics-show-option \
+         -mgeneral-regs-only \
          -fno-omit-frame-pointer \
          -Wno-unused-function \
          -Wall -Wextra -Werror -Wmissing-prototypes \
@@ -29,12 +31,14 @@ SCHED_EXTRA = -fno-optimize-sibling-calls
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
     CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection -Wstack-usage=4096 # Larger than 4KiB and we will get a compile hard error.
+    HOST_CC += -DDEBUG # Had to add this, I remember there was a #define DEBUG in the include, and it miscounted the offset, and so SMP failed.
 else
     CFLAGS += -O2
 endif
 
 ifeq ($(GDB),1)
     CFLAGS += -DGDB -g
+    HOST_CC += -DGDB
 endif
 
 # $(SCHED_CFLAGS) means no optimizations will be applied on the C file.
@@ -200,6 +204,54 @@ build/mmproc.o: kernel/core/mm/mmproc.c
 build/meinit.o: kernel/core/me/meinit.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/ob.o: kernel/core/ob/ob.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/psmgr.o: kernel/core/ps/psmgr.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/pswork.o: kernel/core/ps/pswork.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+build/handle.o: kernel/core/ht/handle.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/cid.o: kernel/core/ps/cid.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/attach.o: kernel/core/me/attach.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+build/pushlock.o: kernel/core/ms/pushlock.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/instruction.o: kernel/core/exp/instruction.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/section.o: kernel/core/mm/section.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/syscall.o: kernel/core/mt/syscall.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/handler.o: kernel/core/mt/handler.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/systemcalls.o: kernel/core/mt/systemcalls.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Define the Offset generator
 build/gen_offsets: kernel/gen_offsets.c
@@ -218,11 +270,7 @@ build/kernel_entry.o: kernel/kernel_entry.asm build/offsets.inc
 build/isr_stub.o: kernel/core/mh/isr_stub.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
-build/capture_registers.o: kernel/intrinsics/capture_registers.asm build/offsets.inc
-	mkdir -p build
-	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
-
+	
 build/context.o: kernel/core/me/context.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
@@ -232,6 +280,10 @@ build/cpuid.o: kernel/core/mh/cpuid.asm build/offsets.inc
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 
 build/sleep.o: kernel/core/ms/sleep.asm build/offsets.inc
+	mkdir -p build
+	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
+	
+build/syscallAsm.o: kernel/core/mt/syscall.asm build/offsets.inc
 	mkdir -p build
 	$(ASM) $(ASMFLAGS_ELF) $< -o $@ >> log.txt 2>&1
 	
@@ -245,10 +297,10 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 		$< $@
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o \
-                      build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o \
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o build/attach.o build/pushlock.o build/instruction.o build/section.o build/syscall.o build/handler.o \
+                      build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o build/ob.o build/psmgr.o build/pswork.o build/handle.o build/cid.o build/syscallAsm.o build/systemcalls.o \
                       build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o build/mminit.o build/mmio.o build/mmproc.o \
-                      build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/capture_registers.o build/context.o build/cpuid.o \
+                      build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/context.o build/cpuid.o \
                       build/sleep.o
 	mkdir -p build
 	$(LD) $(LDFLAGS) -o $@ $^ >> log.txt 2>&1

@@ -8,10 +8,12 @@
 #include "../../assert.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ob.h"
 extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
 extern void restore_context(TRAP_FRAME* regs);
+extern void restore_user_context(PETHREAD thread);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
@@ -43,15 +45,19 @@ void InitScheduler(void) {
     idleThread->InternalThread.ThreadState = THREAD_READY;
     idleThread->InternalThread.TimeSlice = 1; // 1ms
     idleThread->InternalThread.TimeSliceAllocated = 1;
-    idleThread->InternalThread.NextThread.Next = NULL;
+    InitializeListHead(&idleThread->ThreadListEntry);
     idleThread->TID = 0; // Idle thread, TID is 0.
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
     idleThread->InternalThread.IsLargeStack = false;
+    idleThread->InternalThread.KernelStack = idleStack;
     MeGetCurrentProcessor()->currentThread = NULL; // The idle thread would be chosen
     idleThread->CurrentEvent = NULL; // No event.
     idleThread->ParentProcess = &PsInitialSystemProcess;
+    idleThread->SystemThread = true;
     PsInitialSystemProcess.MainThread = idleThread;
-    MeEnqueueThreadWithLock(&PsInitialSystemProcess.AllThreads, idleThread);
+    MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
+    InsertHeadList(&PsInitialSystemProcess.AllThreads, &idleThread->ThreadListEntry);
+    MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
     // The ready queue starts empty
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
@@ -105,10 +111,23 @@ Schedule(void) {
     IRQL oldIrql;
     MeRaiseIrql(DISPATCH_LEVEL, &oldIrql); // Prevents scheduling re-entrance.
 
+    PPROCESSOR cpu = MeGetCurrentProcessor();
     PITHREAD prev = MeGetCurrentProcessor()->currentThread;
+    PITHREAD IdleThread = &MeGetCurrentProcessor()->idleThread->InternalThread;
+
+    // Check if we need to delete another thread's (safe now, we are at a separate stack)
+    if (cpu->ZombieThread) {
+        // Drop the reference, we are on another thread's stack.
+        ObDereferenceObject((void*)cpu->ZombieThread);
+        cpu->ZombieThread = NULL;
+    }
 
     // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
-    if (prev && prev != &MeGetCurrentProcessor()->idleThread->InternalThread && prev->ThreadState == THREAD_RUNNING) {
+    if (prev && prev != IdleThread && prev->ThreadState == THREAD_TERMINATING) {
+        cpu->ZombieThread = prev;
+        prev = NULL;
+    }
+    else if (prev && prev != IdleThread && prev->ThreadState == THREAD_RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)
         enqueue_runnable(prev);
     }
@@ -116,12 +135,21 @@ Schedule(void) {
     PITHREAD next = MeAcquireNextScheduledThread();
 
     if (!next) {
-        next = &MeGetCurrentProcessor()->idleThread->InternalThread;
+        next = IdleThread;
     }
 
     next->ThreadState = THREAD_RUNNING;
     MeGetCurrentProcessor()->currentThread = next;
     MeLowerIrql(oldIrql);
-    restore_context(&next->TrapRegisters);
+    // Hi matanel, if you ever encounter failures here, like if it goes to restore_user_context as a system thread
+    // please check that you made the same changed to InitScheduler as you made in PsCreateSystemThread, for example, Thread->SystemThread was false in the idle thread, because I forgot to set
+    // that flag in its initilization, even though I was sure its on (for normal threads that is), because in PsCreateSystemThreads it was indeed = true.
+    if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
+        restore_context(&next->TrapRegisters);
+    }
+    else {
+        // User thread
+        restore_user_context(PsGetEThreadFromIThread(next));
+    }
     __builtin_unreachable();
 }

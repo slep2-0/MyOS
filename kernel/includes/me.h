@@ -19,6 +19,12 @@ Revision History:
 
 --*/
 
+#define MSR_IA32_DEBUGCTL   0x1D9
+#define MSR_LASTBRANCH_TOS  0x1C9
+#define MSR_LASTBRANCH_FROM0 0x680
+#define MSR_LASTBRANCH_TO0   0x6C0
+#define DPC_TARGET_CURRENT  0xFF
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "annotations.h"
@@ -119,6 +125,14 @@ typedef enum _BUGCHECK_CODES {
 	PAGE_FAULT_IN_FREED_NONPAGED_POOL,
 	PAGE_FAULT_IN_FREED_PAGED_POOL,
 	ATTEMPTED_SWITCH_FROM_DPC,
+	INVALID_INTERRUPT_REQUEST,
+	MANUALLY_INITIATED_CRASH2,
+	PSMGR_INIT_FAILED,
+	PSWORKER_INIT_FAILED,
+	DPC_NOT_INITIALIZED,
+	CID_TABLE_NULL,
+	INVALID_PROCESS_ATTACH_ATTEMPT,
+	CRITICAL_PROCESS_DIED,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -156,10 +170,10 @@ typedef enum _DEBUG_ACCESS_MODE {
 } DEBUG_ACCESS_MODE;
 
 typedef enum _DEBUG_LENGTH {
-	DEBUG_LEN_1 = 0b00,
-	DEBUG_LEN_2 = 0b01,
-	DEBUG_LEN_8 = 0b10, // Only valid in long mode
-	DEBUG_LEN_4 = 0b11
+	DEBUG_LEN_BYTE = 0b00,
+	DEBUG_LEN_WORD = 0b01,
+	DEBUG_LEN_QWORD = 0b10, // Only valid in long mode
+	DEBUG_LEN_DWORD = 0b11
 } DEBUG_LENGTH;
 
 typedef struct _DBG_CALLBACK_INFO {
@@ -197,6 +211,9 @@ typedef struct _DPC {
 
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
+
+	// Determines to which CPU this DPC is supposed to be executed on, this allows multiple re-entracy.
+	uint8_t CpuNumber; // 0xFF means current CPU, else its per lapic id.
 } DPC, *PDPC;
 
 typedef enum _CPU_FLAGS {
@@ -222,15 +239,21 @@ typedef struct _DPC_DATA {
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
 #define KERNEL_DS       0x10    // Entry 2: Kernel Data  
 #define KERNEL_SS       0x10    // Same as KERNEL_DS (data segment used for stack)
-#define USER_CS         0x1B    // Entry 3: User Code (for future)
-#define USER_DS         0x23    // Entry 4: User Data (for future)
-#define USER_SS         0x23    // Same as USER_DS (for future)
+#define USER_DS         0x1B    // Entry 3: User Data 
+#define USER_CS         0x23    // Entry 4: User Code (CPL=3)
+#define USER_SS         USER_DS    // Same as USER_DS 
 #define INITIAL_RFLAGS  0x202
-#define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
+#define USER_RFLAGS     0x246 // IF=1, IOPL=0
+
+typedef struct _APC_STATE {
+	uint64_t SavedCr3;
+	PEPROCESS SavedApcProcess;
+	bool AttachedToProcess;
+	IRQL PreviousIrql;
+} APC_STATE, *PAPC_STATE;
 
 typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
-	uint64_t* PageDirectoryVirtual;			// Virtual Address of the PML4 of the process. (accessible in kernel pages)
 	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
 	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;
@@ -238,17 +261,19 @@ typedef struct _IPROCESS {
 typedef struct _ITHREAD {
 	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
-	void* StackBase;									   // Base of the thread's stack, used for also freeing it by the memory manager (Mm).
-	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel Threads Only)
+	void* StackBase;									   // Base of the thread's stack (allocated), used for also freeing it by the memory manager (Mm).
+	bool IsLargeStack;									   // Indicates if the stack allocated to the thread is a LargeStack or not. (Kernel stack only)
+	void* KernelStack;									   // The threads stack when in kernel space.
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
-	struct _SINGLE_LINKED_LIST NextThread;				   // A singular linked list representing the next thread.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
+	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
 } ITHREAD, *PITHREAD;
 
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
+	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
 	enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which LAPIC & IOAPIC interrupts are masked
 	volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
@@ -257,6 +282,7 @@ typedef struct _PROCESSOR {
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
 	void* VirtStackTop; // Pointer to top of CPU Stack.
 	void* tss; // Task State Segment ptr.
+	void* Rsp0; // General RSP for interrupts & syscalls (entry only) & exceptions.
 	void* IstPFStackTop; // Page Fault IST Stack
 	void* IstDFStackTop; // Double Fault IST Stack
 	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
@@ -264,6 +290,7 @@ typedef struct _PROCESSOR {
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
 	struct _ETHREAD* idleThread; // Idle thread for the current CPU.
+	volatile uint64_t MailboxLock; // 0 = Free, 1 = Locked by a sender
 	volatile uint64_t IpiSeq;
 	volatile enum _CPU_ACTION IpiAction; // IPI Action specified in the function.
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
@@ -276,16 +303,25 @@ typedef struct _PROCESSOR {
 	/* End Statically Special Allocated DPCs */
 
 	// Additional DPC Fields
-	DPC_DATA DpcData;               // The main DPC queue
+	DPC_DATA DpcData;					 // The main DPC queue
 	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDPCs
-	volatile bool DpcInterruptRequested; // TRUE if we requested an APIC int but isnt active yet.
 	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)
 	uintptr_t TimerHand;                 // Context for timer expiration (unused)
+
+	// Additional APC Fields
+	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs
 
 	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;
 	uint32_t MinimumDpcRate;
 	uint32_t DpcRequestRate;
+
+	// Interrupt requests
+	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
+	volatile bool ApcInterruptRequested; // (Undeveloped yet) True if we requested an interrupt for APCs.
+
+	// Scheduler Lock
+	SPINLOCK SchedulerLock;
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -293,9 +329,32 @@ typedef struct _PROCESSOR {
 	struct _DEBUG_ENTRY DebugEntry[4]; // Per CPU Structure that contains debug entries for each debug register.
 	void* IstTimerStackTop;
 	void* IstIpiStackTop;
+
+	// Zombie Thread (for deferred reference deletion)
+	PITHREAD ZombieThread;
+
+	// Syscall data
+	uint64_t UserRsp; // User saved RSP during syscall handling.
 } PROCESSOR, *PPROCESSOR;
 
 // ------------------ FUNCTIONS ------------------
+
+
+NORETURN
+void
+MeBugCheck(
+	IN enum _BUGCHECK_CODES BugCheckCode
+);
+
+NORETURN
+void
+MeBugCheckEx(
+	IN enum _BUGCHECK_CODES	BugCheckCode,
+	IN void* BugCheckParameter1,
+	IN void* BugCheckParameter2,
+	IN void* BugCheckParameter3,
+	IN void* BugCheckParameter4
+);
 
 FORCEINLINE
 PPROCESSOR
@@ -304,6 +363,43 @@ MeGetCurrentProcessor (void)
 	// This function returns the current address of the PROCESSOR struct. - Note this should only be used in kernel mode with the appropriate GS value.
 {
 	return (PPROCESSOR)__readgsqword(0); // Only works because we have a self pointer at offset 0 in the struct.
+}
+
+FORCEINLINE
+void
+MeAcquireSchedulerLock(void)
+
+{
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+	// Acquire the spinlock. (FIXME MsAcquireSpinlockAtSynchLevel(&cpu->SchedulerLock)
+	while (__sync_lock_test_and_set(&cpu->SchedulerLock.locked, 1)) {
+		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+	}
+	// Memory barrier to prevent instruction reordering
+	__asm__ volatile("" ::: "memory");
+	cpu->schedulerEnabled = false;
+}
+
+FORCEINLINE
+void
+MeReleaseSchedulerLock(void)
+
+{
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+	cpu->schedulerEnabled = true;
+	// Release the spinlock. (FIXME MsReleaseSpinlockFromSynchLevel(&cpu->SchedulerLock)
+	__asm__ volatile("" ::: "memory");
+	__sync_lock_release(&cpu->SchedulerLock.locked);
+}
+
+extern uint32_t g_cpuCount;
+
+FORCEINLINE
+uint8_t
+MeGetActiveProcessorCount(void)
+
+{
+	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :) 
 }
 
 FORCEINLINE
@@ -325,8 +421,15 @@ MeGetCurrentIrql(void)
 --*/
 
 {
+#ifdef DEBUG
+	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
+	if (returningIrql > HIGH_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
+	return returningIrql;
+#else
 	return (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
+#endif
 }
+
 
 FORCEINLINE
 PITHREAD
@@ -360,23 +463,9 @@ MeIsExecutingDpc(void)
 
 void
 MeInitializeProcessor(
-	IN PPROCESSOR CPU
-);
-
-NORETURN
-void
-MeBugCheck(
-	IN enum _BUGCHECK_CODES BugCheckCode
-);
-
-NORETURN
-void 
-MeBugCheckEx(
-	IN enum _BUGCHECK_CODES	BugCheckCode,
-	IN void*	BugCheckParameter1,
-	IN void*	BugCheckParameter2,
-	IN void*	BugCheckParameter3,
-	IN void*	BugCheckParameter4
+	IN PPROCESSOR CPU,
+	IN bool InitializeStandardRoutine,
+	IN bool AreYouAP
 );
 
 void
@@ -393,6 +482,12 @@ MeLowerIrql(
 void
 _MeSetIrql(
 	IN IRQL NewIrql
+);
+
+void
+MeSetTargetProcessorDpc(
+	IN PDPC Dpc,
+	IN uint32_t CpuNumber
 );
 
 void
@@ -421,8 +516,19 @@ MeRetireDPCs(
 );
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4);
-void MeScheduleDPC(DPC* dpc, void* arg2, void* arg3, void* arg4);
+void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2);
 void InitScheduler(void);
+
+void
+MeAttachProcess(
+	IN PIPROCESS Process,
+	OUT PAPC_STATE ApcState
+);
+
+void
+MeDetachProcess(
+	IN PAPC_STATE ApcState
+);
 
 NORETURN
 void
@@ -459,5 +565,8 @@ bool
 MeAreInterruptsEnabled(
 	void
 );
+
+// smp.c
+PPROCESSOR MeGetProcessorBlock(uint8_t ProcessorNumber);
 
 #endif

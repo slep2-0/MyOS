@@ -5,69 +5,31 @@
  */
 
 #include "../../time.h"
-#include "../../filesystem/vfs/vfs.h"
+#include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../includes/ms.h"
+#include "../../includes/ob.h"
+#include "../../assert.h"
+#include "../../includes/fs.h"
 
 #define MIN_PID           4u
-#define MAX_PID           0xFFFFFFFCu
+#define MAX_PID           0xFFFFFFFCUL
 #define ALIGN_DELTA       6u
 #define MAX_FREE_POOL     1024u
 
 #define PML4_INDEX(addr)  (((addr) >> 39) & 0x1FFULL)
 #define KERNEL_PML4_START ((size_t)PML4_INDEX(KernelVaStart))
-#define USER_INITIAL_STACK_TOP 0x00007FFFFFFFFFFF
-
-static SPINLOCK g_pid_lock = { 0 };
+#define USER_INITIAL_STACK_TOP USER_VA_END
 extern EPROCESS SystemProcess;
 
-uintptr_t MmSystemRangeStart = KernelVaStart;
+uintptr_t MmSystemRangeStart = PhysicalMemoryOffset; // Changed to PhysicalMemoryOffset, since thats where actual stuff like hypermap, phys to virt, and more happen.
 uintptr_t MmHighestUserAddress = USER_VA_END;
 uintptr_t MmUserProbeAddress = 0x00007FFFFFFF0000;
 
-///
-// Call with freedPid == 0 ? allocate a new PID (returns 0 on failure)
-// Call with freedPid  > 0 ? release that PID back into the pool (always returns 0)
-///
-static uint32_t ManagePID(uint32_t freedPid)
-{
-    IRQL oldIrql;
-    MsAcquireSpinlock(&g_pid_lock, &oldIrql);
-    static uint32_t nextPID = MIN_PID;
-    static uint32_t freePool[MAX_FREE_POOL];
-    static uint32_t freeCount = 0;
-    uint32_t result = 0;
-
-    if (freedPid) {
-        // Release path: push into free pool if aligned & room
-        if ((freedPid % ALIGN_DELTA) == 0 && freeCount < MAX_FREE_POOL) {
-            freePool[freeCount++] = freedPid;
-        }
-    }
-    else {
-        // Allocate path:
-        if (freeCount > 0) {
-            // Reuse most-recently freed
-            result = freePool[--freeCount];
-        }
-        else {
-            // Hand out next aligned TID
-            result = nextPID;
-            nextPID += ALIGN_DELTA;
-
-            // Wrap/overflow check
-            if (nextPID < ALIGN_DELTA || result > MAX_PID) {
-                // Exhausted all TIDs
-                result = 0;
-            }
-        }
-    }
-    MsReleaseSpinlock(&g_pid_lock, oldIrql);
-    return result;
-}
-
-static bool GetBaseName(const char* fullpath, char* out, size_t outsz) {
+static 
+bool 
+GetBaseName(const char* fullpath, char* out, size_t outsz) {
     const char* ext = ".mtexe";
     size_t ext_len = kstrlen(ext);
     if (!fullpath || !out || outsz == 0) return false;
@@ -84,178 +46,307 @@ static bool GetBaseName(const char* fullpath, char* out, size_t outsz) {
     return true;
 }
 
-MTSTATUS PsCreateProcess(const char* path, PEPROCESS* outProcess, PEPROCESS ParentProcess) {
-    UNREFERENCED_PARAMETER(path); UNREFERENCED_PARAMETER(outProcess); UNREFERENCED_PARAMETER(ParentProcess);
-    return MT_NOT_IMPLEMENTED;
-    /*
-	// First, we must allocate the PROCESS structure, this is a kernel mode structure, so it is NOT allocated with PAGE_USER flags.
-    PEPROCESS process = MmAllocatePoolWithTag(NonPagedPool, sizeof(EPROCESS), 'PROC');
-    if (!process) return MT_NO_MEMORY;
+MTSTATUS
+PsCreateProcess(
+    IN const char* ExecutablePath,
+    OUT PHANDLE ProcessHandle,
+    IN ACCESS_MASK DesiredAccess,
+    _In_Opt HANDLE ParentProcess
+)
 
-    // Obtain a PID (Process Identifier), return no resources if we cannot obtain one from the pool.
-    uint32_t pid = ManagePID(0);
-    if (!pid) {
-        // Free the allocated process.
-        MtFreeVirtualMemory((void*)process);
-        return MT_NO_RESOURCES;
-    }
-    process->PID = pid;
+/*++
 
-    // Set its parent process, if NULL, the parent process must be the system process.
-    if (!ParentProcess) process->ParentProcess = &SystemProcess;
-    else process->ParentProcess = ParentProcess;
+    Routine description:
 
-    // Set it's image name, TODO PARSE HEADERS, for now, we use its executable name
-    char filename[256];
-    GetBaseName(path, filename, sizeof(filename));
-    if (filename[0] == '\0') {
-        // Free the PID and PROCESS.
-        MtFreeVirtualMemory((void*)process);
-        ManagePID(pid);
-        return MT_INVALID_PARAM;
-    }
-    // This gurantees null termination.
-    kstrncpy(process->ImageName, filename, sizeof(process->ImageName));
-    gop_printf(COLOR_RED, "Filename: %s\n", filename);
-    // Set it's initial state.
-    process->InternalProcess.ProcessState |= PROCESS_READY;
+       Creates a process, simple as that.
 
-    // PRIORITY TODO
-    // Setup the PML4 Of the process, and its whole virtual memory.
-    DebugBreak();
-    uint64_t* pml4 = MtAllocateVirtualMemory(4096, 4096);
-    if (!pml4) {
-        // Free all previous ones
-        MtFreeVirtualMemory((void*)process);
-        ManagePID(pid);
-        return MT_NO_MEMORY;
-    }
-    // Allocate PDPT,PD,PT
-    uint64_t* pdpt = MtAllocateVirtualMemory(4096, 4096);
-    if (!pdpt) {
-        MtFreeVirtualMemory((void*)process);
-        MtFreeVirtualMemory((void*)pml4);
-        ManagePID(pid);
-        return MT_NO_MEMORY;
-    }
-    uint64_t* pd = MtAllocateVirtualMemory(4096, 4096);
-    if (!pd) {
-        MtFreeVirtualMemory((void*)process);
-        MtFreeVirtualMemory((void*)pml4);
-        MtFreeVirtualMemory((void*)pdpt);
-        ManagePID(pid);
-        return MT_NO_MEMORY;
-    }
-    uint64_t* pt = MtAllocateVirtualMemory(4096, 4096);
-    if (!pt) {
-        MtFreeVirtualMemory((void*)process);
-        MtFreeVirtualMemory((void*)pml4);
-        MtFreeVirtualMemory((void*)pdpt);
-        MtFreeVirtualMemory((void*)pd);
-        ManagePID(pid);
-        return MT_NO_MEMORY;
-    }
+    Arguments:
 
-    // Finally, after all of that repetition, we setup its basic mapping, translate to physical, and continue with the final setup of the process.
-    uint64_t* cur_pml4 = pml4_from_recursive(); // Our kernel PML4
-    for (size_t i = KERNEL_PML4_START; i < 512; i++) {
-        // set the higher half.
-        pml4[i] = cur_pml4[i];
-    }
+        [IN]    const char* ExecutablePath - The process's main executable file.
+        [OUT]   PHANDLE ProcessHandle - Pointer to store the the process's created handle.
+        [IN]    ACCESS_MASK DesiredAccess - The maximum access the process should originally have.
+        [IN OPTIONAL]   HANDLE ParentProcess - Optionally supply a handle to the parent of this process.
 
-    // Install recursive entry for the process PML4.
-    uintptr_t phys_pml4 = MtTranslateVirtualToPhysical((void*)pml4);
-    pml4[RECURSIVE_INDEX] = phys_pml4 | PAGE_PRESENT | PAGE_RW; // This is kernel mode only, we cant let the user mode change their own mapping.
+    Return Values:
 
-    // Write the physical address with the appropriate flags.
-    uintptr_t phys_pdpt = MtTranslateVirtualToPhysical((void*)pdpt);
-    uintptr_t phys_pd = MtTranslateVirtualToPhysical((void*)pd);
-    uintptr_t phys_pt = MtTranslateVirtualToPhysical((void*)pt);
-    
-    pml4[0] = phys_pdpt | PAGE_PRESENT | PAGE_RW | PAGE_USER; // allow user translations.
-    pdpt[0] = phys_pd | PAGE_PRESENT | PAGE_RW | PAGE_USER;
-    pd[0] = phys_pt | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        Various MTSTATUS Status codes.
 
-    process->InternalProcess.PageDirectoryVirtual = pml4;
-    process->InternalProcess.PageDirectoryPhysical = phys_pml4;
+--*/
 
-    // Initializing the per process stack arithmetic and number of threads.
-    process->NextStackTop = USER_INITIAL_STACK_TOP;
-    process->NumThreads = 0;
+{
+    MTSTATUS Status;
+    PEPROCESS Process, Parent;
+    // If we have a parent process, attempt to see if the parent process has the access to create another process.
+    if (ParentProcess) {
+        Status = ObReferenceObjectByHandle(
+            ParentProcess,
+            MT_PROCESS_CREATE_PROCESS,
+            PsProcessType,
+            (void**)&Parent,
+            NULL
+        );
 
-    // Creation time, it is the epoch.
-    uint64_t timestamp = MtGetEpoch();
-    process->CreationTime = timestamp;
-
-    // SID TODO
-
-    // Setup its image base, which means, we finally load the file from disk, TODO parsing its headers when we load it.
-    void* file_buffer = NULL;
-    uint32_t file_size = 0;
-    MTSTATUS status = vfs_read(path, &file_size, &file_buffer);
-
-    if (MT_FAILURE(status) || file_size == 0) {
-        // Looks like we hit a failure, erase everything, unfortunately.
-        MtFreeVirtualMemory((void*)process);
-        MtFreeVirtualMemory((void*)pml4);
-        MtFreeVirtualMemory((void*)pdpt);
-        MtFreeVirtualMemory((void*)pd);
-        MtFreeVirtualMemory((void*)pt);
-        ManagePID(pid);
-        return status;
-    }
-
-    // Store the pointer for future freeing.
-    process->FileBuffer = file_buffer;
-
-    // Finally, map the buffer into the users PML4.
-    uint64_t imageBase = 0x00401000; // FIXME Dummy VA.
-
-    // Calculate the number of pages required to map the entire file.
-    // This also protects against files that are also below 4KB, which is what I had, so it underflowed...
-    size_t num_pages = (file_size + VirtualPageSize - 1) / VirtualPageSize;
-
-    for (size_t i = 0; i < num_pages; i++) {
-        uintptr_t file_offset = i * VirtualPageSize;
-        uintptr_t virtualaddr = (uintptr_t)imageBase + file_offset;
-        uintptr_t buf_va = (uintptr_t)file_buffer + file_offset;
-        uintptr_t buf_phys = MtTranslateVirtualToPhysical((void*)buf_va);
-        if (!buf_phys) MtBugcheck(NULL, NULL, MANUALLY_INITIATED_CRASH, 0, false);
-        status = MtMapPageInAddressSpace(pml4, (void*)virtualaddr, buf_phys, PAGE_PRESENT | PAGE_RW | PAGE_USER);
-
-        if (MT_FAILURE(status)) {
-            // Free.
-            MtFreeVirtualMemory((void*)process);
-            MtFreeVirtualMemory((void*)pml4);
-            MtFreeVirtualMemory((void*)pdpt);
-            MtFreeVirtualMemory((void*)pd);
-            MtFreeVirtualMemory((void*)pt);
-            MtFreeVirtualMemory((void*)file_buffer);
-            ManagePID(pid);
-            return status;
+        if (MT_FAILURE(Status)) {
+            return Status;
         }
     }
-
-    process->ImageBase = imageBase;
-
-    // End of the line, now setup its threads, and begin.
-    PETHREAD MainThread = NULL;
-    status = PsCreateThread(process, &MainThread, (ThreadEntry)process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
-    if (MT_FAILURE(status)) {
-        // Looks like a thread creation failed, we free, everything.
-        MtFreeVirtualMemory((void*)process);
-        MtFreeVirtualMemory((void*)pml4);
-        MtFreeVirtualMemory((void*)pdpt);
-        MtFreeVirtualMemory((void*)pd);
-        MtFreeVirtualMemory((void*)pt);
-        MtFreeVirtualMemory((void*)file_buffer);
-        ManagePID(pid);
-        return status;
+    else {
+        // We have no parent process.
+        Parent = NULL;
     }
-        
-    if (outProcess) *outProcess = process;
-    // Thread has been created yet not enqueued, we enqueue it now, and return success. (we dont put it in the struct, it already has been put by the createThread function)
-    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, MainThread);
-    return MT_SUCCESS;
-    */
+
+    // Create the EPROCESS Object.
+    Status = ObCreateObject(PsProcessType, sizeof(EPROCESS), (void*)&Process);
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // CleanupWithRef from now on.
+    // Assume failure status.
+    Status = MT_GENERAL_FAILURE;
+    // Setup the process now, create its PID.
+    Process->PID = PsAllocateProcessId(Process);
+
+    // Set its parent process handle.
+    Process->ParentProcess = ParentProcess;
+
+    // Set its image name.
+    char filename[24];
+    GetBaseName(ExecutablePath, filename, sizeof(filename));
+    if (filename[0] == '\0') goto CleanupWithRef;
+    kstrncpy(Process->ImageName, filename, sizeof(Process->ImageName));
+
+    // Set initial state
+    Process->InternalProcess.ProcessState |= PROCESS_READY;
+
+    // Create object table.
+    PHANDLE_TABLE HandleTable = HtCreateHandleTable(Process);
+    if (!HandleTable) goto CleanupWithRef;
+    Process->ObjectTable = HandleTable;
+
+    // Create address space.
+    void* DirectoryTablePhysical = NULL;
+    Status = MmCreateProcessAddressSpace(&DirectoryTablePhysical);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;    
+    Process->InternalProcess.PageDirectoryPhysical = (uintptr_t)DirectoryTablePhysical;
+    gop_printf(COLOR_RED, "Process CR3: %p\n", DirectoryTablePhysical);
+
+    // Per thread stack calculation.
+    Process->NextStackHint = USER_INITIAL_STACK_TOP;
+
+    // Creation time.
+    Process->CreationTime = MeGetEpoch();
+
+    // Initialize List heads.
+    InitializeListHead(&Process->AllThreads);
+
+    // Get the file handle.
+    HANDLE FileHandle;
+    Status = FsOpenFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+    PFILE_OBJECT FileObject;
+    // Reference the handle, and then close it so only the pointer reference remains (this)
+    ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
+    HtClose(FileHandle);
+    // TODO ADD ADDRESS TO WORKING SET OF PROCESS!!
+
+    // Create the sections for the process.
+    HANDLE SectionHandle;
+    Status = MmCreateSection(&SectionHandle, FileObject);
+    if (MT_FAILURE(Status)) {
+        // If file reference failed it would close the file handle.
+        goto CleanupWithRef;
+    }
+
+    // Set handle.
+    Process->SectionHandle = SectionHandle;
+
+    // Map them into address space.
+    void* StartAddress = NULL;
+    Status = MmMapViewOfSection(SectionHandle, Process, &StartAddress);
+    // MmpDeleteSection closes the file handle.
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // Set start address.
+    Process->ImageBase = (uint64_t)StartAddress;
+
+    // Create a handle for the process.
+    HANDLE hProcess;
+    Status = ObCreateHandleForObject(Process, DesiredAccess, &hProcess);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // Create a main thread for the process.
+    Process->NextStackHint = USER_INITIAL_STACK_TOP;
+    HANDLE MainThreadHandle;
+    Status = PsCreateThread(hProcess, &MainThreadHandle, (ThreadEntry)Process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
+    if (MT_FAILURE(Status)) {
+        // This is a failure, since there is not a handle to the process, we must close it.
+        // Destroy the handle.
+        HtClose(hProcess);
+        goto CleanupWithRef;
+    }
+    // We are, successful.
+    if (ProcessHandle) *ProcessHandle = hProcess;
+    Status = MT_SUCCESS;
+
+CleanupWithRef:
+#ifdef DEBUG
+    if (MT_FAILURE(Status)) {
+        assert(false, "Something went wrong.");
+    }
+#endif
+    // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
+    // If not, it would reach reference 0, and PspDeleteProcessd would execute.
+    ObDereferenceObject(Process);
+    // [[fallthrough]]
+Cleanup:
+    if (Parent) ObDereferenceObject(Parent);
+    return Status;
+}
+
+MTSTATUS
+PsTerminateProcess(
+    IN PEPROCESS Process,
+    IN MTSTATUS ExitCode
+)
+
+/*++
+
+    Routine description:
+
+        Terminates the process
+
+    Arguments:
+
+        [IN]    PEPROCESS Process - The process to terminate from the system.
+        [IN]    MTSTATUS ExitCode - The ExitCode that the process will exit in.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // Declarations
+    PETHREAD Thread = NULL;
+    UNREFERENCED_PARAMETER(Thread);
+    MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
+    if (Process->Flags & ProcessBreakOnTermination) {
+        // Attempted termination of a process that is critical to system stability,
+        // we bugcheck.
+        MeBugCheckEx(
+            CRITICAL_PROCESS_DIED,
+            (void*)(uintptr_t)Process,
+            (void*)(uintptr_t)ExitCode,
+#ifdef DEBUG
+            (void*)(uintptr_t)RETADDR(0),
+#else
+            NULL,
+#endif
+            NULL
+        );
+    }
+
+    // Set the process as terminating in its flags.
+    InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingTerminated);
+    Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
+
+    // Begin terminating all process threads.
+    Thread = PsGetNextProcessThread(Process, Thread);
+    while (Thread) {
+        // Exterminate the thread from this world (system32)
+        PsTerminateThread(Thread, ExitCode);
+        // Get the next victim for our massacre.
+        Thread = PsGetNextProcessThread(Process, Thread);
+
+        // One got exterminated, so we mark it a successful mission.
+        Status = MT_SUCCESS;
+    }
+
+    // Return if mission successful.
+    return Status;
+}
+
+void
+PsDeleteProcess(
+    IN void* ProcessObject
+)
+
+{
+    PEPROCESS Process = (PEPROCESS)ProcessObject;
+    // Wait for anything to stop holding the rundown protection.
+    MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
+
+    // Set flags
+    InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingDeleted);
+
+    // Delete section handles.
+    if (Process->SectionHandle) {
+        HtClose(Process->SectionHandle);
+    }
+
+    // TODO (CRITICAL FIXME) (MEMORY LEAK) Working set list delete all active VADs.
+    // VADs deletion would also close the FileObject HANDLE!
+    
+    // Delete its CID.
+    PsFreeCid(Process->PID);
+
+    // Delete its handle table.
+    if (Process->ObjectTable) {
+        // Attach to process so pagedpool inside of it are valid (even though they 100% should be valid now)
+        APC_STATE State;
+        MeAttachProcess(&Process->InternalProcess, &State);
+        HtDeleteHandleTable(Process->ObjectTable);
+        MeDetachProcess(&State);
+        Process->ObjectTable = NULL;
+    }
+    // Delete its address space.
+    MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);
+
+    // EPROCESS Would be deleted after function return.
+}
+
+PETHREAD
+PsGetNextProcessThread(
+    IN PEPROCESS Process,
+    _In_Opt PETHREAD LastThread
+)
+
+{
+    PETHREAD FoundThread = NULL;
+    PDOUBLY_LINKED_LIST Entry, ListHead;
+    // Acquire thread list lock.
+    MsAcquirePushLockShared(&Process->ThreadListLock);
+
+    // Check if we are already starting in another thread list.
+    if (LastThread) {
+        Entry = LastThread->ThreadListEntry.Flink;
+    }
+    else {
+        // Start at beginnininng
+        Entry = Process->AllThreads.Flink;
+    }
+
+    // Set the list head and start the loop.
+    ListHead = Process->AllThreads.Flink;
+    while (ListHead != Entry) {
+        // While the pointers arent equal (we arent back the start), we enumerate for the next thread.
+        FoundThread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
+        // First use of MT_SUCCEEDED btw.
+        if (MT_SUCCEEDED(ObReferenceObjectByPointer(FoundThread, PsThreadType))) break;
+           
+        // Nothing found, keep loopin.
+        FoundThread = NULL;
+        Entry = Entry->Flink;
+    }
+
+    // Unlock process.
+    MsReleasePushLockShared(&Process->ThreadListLock);
+    if (LastThread) {
+        // If we had a starting thread we dereference it from the initial reference in the loop
+        // The whole point we did the reference is to keep the object alive that we give in the return value.
+        ObDereferenceObject(LastThread);
+    }
+
+    // Return if we found.
+    return FoundThread;
 }

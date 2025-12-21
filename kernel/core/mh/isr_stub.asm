@@ -11,8 +11,6 @@ extern MhHandleInterrupt
 ; Extern the DPC handler.
 extern MeRetireDPCs
 
-%define DISPATCH_LEVEL 2
-
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
 ; Creates an ISR entry for exception vectors 0-31
@@ -47,6 +45,16 @@ irq%1:
 ; ISR Routines with names:
 
 ; ---------------------------------------------
+; APC ISR Stub
+; ---------------------------------------------
+global isr_apc
+isr_apc:
+    cli
+    push 0 ; Dummy Error Code
+    push VECTOR_APC ; This now expands to something something (statically)
+    jmp isr_common_stub64
+
+; ---------------------------------------------
 ; DPC ISR Stub
 ; ---------------------------------------------
 global isr_dpc
@@ -66,6 +74,16 @@ isr_ipi:
     push VECTOR_IPI     ; This now expands to 240 (0xF0) statically
     jmp isr_common_stub64
 
+; ---------------------------------------------
+; LAPIC_CLOCK ISR Stub
+; ---------------------------------------------
+global isr_clock
+isr_clock:
+    cli
+    push 0 ; Dummy
+    push VECTOR_CLOCK
+    jmp isr_common_stub64
+
 ;---------------------------------------------------------------------------
 ; Common stub for all ISRs and IRQs in 64-bit long mode
 ; Stack layout after entry:
@@ -74,14 +92,14 @@ isr_ipi:
 ; [rsp + 16]  = RIP (pushed by cpu)
 ; [rsp + 24]  = CS (pushed by cpu)
 ; [rsp + 32]  = RFLAGS (pushed by cpu)
-; [rsp + 40]  = RSP (pushed by cpu if privilege change)
-; [rsp + 48]  = SS (pushed by cpu if privilege change)
+; [rsp + 40]  = RSP (pushed always if x86-64)
+; [rsp + 48]  = SS (pushed always if x86-64)
 ;---------------------------------------------------------------------------
 global isr_common_stub64
 
 isr_common_stub64:
     ; Save all general purpose registers
-    ; Push in reverse order so CTX_FRAME struct matches
+    ; Push in reverse order so TRAP_FRAME struct matches
     push    rax
     push    rbx
     push    rcx
@@ -109,8 +127,6 @@ isr_common_stub64:
     mov     rsi, rsp
 
 .begin_call
-    ; Save vector number for EOI logic (function call may clobber RDI)
-    mov     r10, rdi
     
     ; Call C interrupt handler
     sub     rsp, 8
@@ -225,7 +241,6 @@ DEFINE_ISR 30
 DEFINE_ISR 31
 
 ; Custom ISR's
-DEFINE_ISR 239 ; LAPIC
 DEFINE_ISR 254 ; LAPIC Spurious Interrupt Vector
 
 ;---------------------------------------------------------------------------

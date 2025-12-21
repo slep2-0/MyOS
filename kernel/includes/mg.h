@@ -46,11 +46,12 @@ Revision History:
 #define COLOR_TEAL       0xFF008080
 #define COLOR_OLIVE      0xFF808000
 
-void gop_printf(uint32_t color, const char* fmt, ...);
+void __attribute__((format(printf, 2, 3)))
+gop_printf(uint32_t color, const char* fmt, ...);
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
 
 
-int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...);
+int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
 int kstrcmp(const char* s1, const char* s2);
 int kstrncmp(const char* s1, const char* s2, size_t length);
 size_t kstrlen(const char* str);

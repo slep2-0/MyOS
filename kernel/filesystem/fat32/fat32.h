@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include "../../drivers/gop/gop.h"
 #include "../../mtstatus.h"
+#include "../../includes/fs.h"
 
 #define END_OF_DIRECTORY 0x00
 #define DELETED_DIR_ENTRY 0xE5
@@ -143,14 +144,13 @@ static inline void fat32_decode_time(uint16_t time, uint8_t* hour, uint8_t* min,
 	*sec = (time & 0x1F) * 2;            // 5 bits for seconds (2-second resolution)
 }
 
-/// <summary>
-/// A FAT32 Function that reads the file requested into a dynamically allocated buffer.
-/// </summary>
-/// <param name="filename">The Filename to read, e.g "file.txt" or "tmp/folder/myfile.txt"</param>
-/// <param name="file_size_out">A pointer to put the file size in bytes</param>
-/// <param name="bufferOut">A pointer to put the file buffer in (doesn't need to be dynamically allocated)</param>
-/// <returns>MTSTATUS Status Code.</returns>
-MTSTATUS fat32_read_file(const char* filename, uint32_t* file_size_out, void** buffer_out);
+MTSTATUS fat32_read_file(
+	IN PFILE_OBJECT FileObject,
+	IN uint32_t FileOffset,
+	OUT void* Buffer,
+	IN size_t BufferSize,
+	_Out_Opt size_t* BytesRead
+);
 
 /// <summary>
 /// Creates a new directory (/testdir/ or /testdir are both allowed to create 'testdir' inside of 'root')
@@ -197,5 +197,10 @@ MTSTATUS fat32_delete_file(const char* path);
 /// <param name="path">Full path to dir</param>
 /// <returns>True or false based if empty or not.</returns>
 bool fat32_directory_is_empty(const char* path);
+
+MTSTATUS fat32_open_file(
+	IN const char* path,
+	OUT PFILE_OBJECT* FileObjectOut
+);
 
 #endif

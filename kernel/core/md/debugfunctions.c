@@ -26,9 +26,9 @@ static inline void write_dr6(uint64_t v) { __write_dr(6, v); }
 MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* BreakpointAddress, DEBUG_ACCESS_MODE AccessMode, DEBUG_LENGTH Length) {
     if (!CallbackFunction || !BreakpointAddress) return MT_INVALID_PARAM;
     if (AccessMode == DEBUG_ACCESS_IO) return MT_NOT_IMPLEMENTED; /* legacy / not handled */
-
+#ifdef DEBUG
     /* Validate length */
-    if (Length != DEBUG_LEN_1 && Length != DEBUG_LEN_2 && Length != DEBUG_LEN_4 && Length != DEBUG_LEN_8)
+    if (Length != DEBUG_LEN_BYTE && Length != DEBUG_LEN_DWORD && Length != DEBUG_LEN_WORD && Length != DEBUG_LEN_QWORD)
         return MT_INVALID_PARAM;
 
     int idx = find_available_debug_reg();
@@ -63,6 +63,7 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
     MeGetCurrentProcessor()->DebugEntry[idx].Callback = CallbackFunction;
 
     IPI_PARAMS params;
+    kmemset(&params, 0, sizeof(IPI_PARAMS));
     params.debugRegs.address = addr;
     params.debugRegs.dr7 = dr7;
     params.debugRegs.callback = CallbackFunction;
@@ -70,6 +71,9 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
     MhSendActionToCpusAndWait(CPU_ACTION_WRITE_DEBUG_REGS, params);
 
     return MT_SUCCESS;
+#else
+    return MT_NOT_IMPLEMENTED; // On release builds, this should be toggled off, as the system is in a controlled environment, plus this would corrupt user debug registers.
+#endif
 }
 
 MTSTATUS MdClearHardwareBreakpointByIndex(int index) {

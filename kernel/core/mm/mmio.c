@@ -300,7 +300,7 @@ MmMapIoSpace(
     assert(NumberOfBytes > 0);
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
 
-    // Get space reservation for amount of bytes. (we could also use PhysicalMemoryOffset, but the caller must adhere that the PhysicalAddress given is NOT mapped.)
+    // Get space reservation for amount of bytes. (we could also use PhysicalMemoryOffset, but the caller must adhere that the PhysicalAddress given is NOT mapped, and I dont have time for their shenangians)
     uintptr_t VA = MiAllocatePoolVa(NonPagedPool, NumberOfBytes);
     if (!VA) return NULL;
 

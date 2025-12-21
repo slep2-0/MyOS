@@ -93,24 +93,22 @@ MsAcquireMutexObject (
 --*/
 
 {
+    // Check parameter.
     if (!mut) return MT_INVALID_ADDRESS;
+    // Check if address is currently non pageable in memory.
+    if (!MmIsAddressPresent((uintptr_t)mut)) {
+        return MT_INVALID_ADDRESS;
+    }
 
+    IRQL mflags;
     assert((MeGetCurrentIrql() < DISPATCH_LEVEL), "Blocking code called at DISPATCH_LEVEL or higher IRQL.");
 
     for (;;) {
-        IRQL mflags;
         MsAcquireSpinlock(&mut->lock, &mflags);
-
-        bool isValid = MmIsAddressPresent((uintptr_t)mut);
-        if (!isValid) {
-            MsReleaseSpinlock(&mut->lock, mflags);
-            return MT_INVALID_ADDRESS;
-        }
-
         PETHREAD currThread = PsGetCurrentThread();
 
         if (!mut->locked) {
-            mut->locked = true; // note to self: no need to make this an atomic, as we acquire a spinlock, always re-read code better
+            mut->locked = true;
             mut->ownerTid = currThread->TID;
             mut->ownerThread = currThread;
             MsReleaseSpinlock(&mut->lock, mflags);

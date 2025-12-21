@@ -92,7 +92,7 @@ MiInitializePoolVaSpace(
         // Get the physical address of the PFN.
         uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
         // Map it.
-        MI_WRITE_PTE(pte, currNpgBitmapVa, phys, PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pte, currPgBitmapVa, phys, PAGE_PRESENT | PAGE_RW);
 
         // Set the PFNs states.
         PPFN_ENTRY pfnEntry = INDEX_TO_PPFN(pfn);
@@ -403,7 +403,6 @@ MiFreePoolVaContiguous(
         poolBase = MI_PAGED_POOL_BASE;
         poolEnd = MI_PAGED_POOL_END;
         bitmap = g_PagedPoolVaBitmap;
-        return;
     }
 
     if (va < poolBase || va >= poolEnd) return;

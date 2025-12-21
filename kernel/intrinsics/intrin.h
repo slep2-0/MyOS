@@ -19,6 +19,11 @@
 #define IA32_KERNEL_GS_BASE 0xC0000102
 #define IA32_GS_BASE 0xC0000101 /* used both in kernel mode and user mode */
 #define IA32_FS_BASE 0xC0000100
+#define IA32_EFER 0xC0000080
+#define IA32_STAR 0xC0000081
+#define IA32_LSTAR 0xC0000082
+#define IA32_CSTAR 0xC0000083
+#define IA32_FMASK 0xC0000084
 
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x) (void)(x)
@@ -37,6 +42,16 @@
 FORCEINLINE
 void __cli(void) {
     __asm__ volatile ("cli");
+}
+
+// Enable supervisor access to user memory (STAC)
+FORCEINLINE void __stac(void) {
+    __asm__ volatile("stac" ::: "memory");
+}
+
+// Disable supervisor access to user memory (CLAC)
+FORCEINLINE void __clac(void) {
+    __asm__ volatile("clac" ::: "memory");
 }
 
 // Enable interrupts (sti)
@@ -75,12 +90,12 @@ FORCEINLINE void __write_cr2(unsigned long val) {
 }
 
 // CR3 (Page table base address)
-FORCEINLINE unsigned long __read_cr3(void) {
-    unsigned long val;
+FORCEINLINE uint64_t __read_cr3(void) {
+    uint64_t val;
     __asm__ volatile("mov %%cr3, %0" : "=r"(val));
     return val;
 }
-FORCEINLINE void __write_cr3(unsigned long val) {
+FORCEINLINE void __write_cr3(uint64_t val) {
     __asm__ volatile("mov %0, %%cr3" :: "r"(val) : "memory");
 }
 
