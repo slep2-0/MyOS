@@ -125,7 +125,7 @@ typedef struct _PUSH_LOCK_WAIT_BLOCK {
 
 // ------------------ FUNCTIONS ------------------
 
-#ifndef MT_UP
+//#ifndef MT_UP
 void
 MsAcquireSpinlock(
     IN	PSPINLOCK lock,
@@ -137,7 +137,7 @@ MsReleaseSpinlock(
     IN	PSPINLOCK lock,
     IN	IRQL OldIrql
 );
-
+/*
 #else
 #undef MsAcquireSpinlock
 #undef MsReleaseSpinlock
@@ -145,7 +145,7 @@ MsReleaseSpinlock(
 #define MsAcquireSpinlock(x, y) (NULL) // NO-OP
 #define MsReleaseSpinlock(x, y) (NULL) // NO-OP
 #endif
-
+*/
 
 MTSTATUS
 MsInitializeMutexObject(

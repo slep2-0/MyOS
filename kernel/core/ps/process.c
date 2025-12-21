@@ -5,13 +5,13 @@
  */
 
 #include "../../time.h"
-#include "../../filesystem/vfs/vfs.h"
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../includes/ms.h"
 #include "../../includes/ob.h"
 #include "../../assert.h"
+#include "../../includes/fs.h"
 
 #define MIN_PID           4u
 #define MAX_PID           0xFFFFFFFCUL
@@ -20,7 +20,7 @@
 
 #define PML4_INDEX(addr)  (((addr) >> 39) & 0x1FFULL)
 #define KERNEL_PML4_START ((size_t)PML4_INDEX(KernelVaStart))
-#define USER_INITIAL_STACK_TOP 0x00007FFFFFFFFFFF
+#define USER_INITIAL_STACK_TOP USER_VA_END
 extern EPROCESS SystemProcess;
 
 uintptr_t MmSystemRangeStart = PhysicalMemoryOffset; // Changed to PhysicalMemoryOffset, since thats where actual stuff like hypermap, phys to virt, and more happen.
@@ -130,7 +130,7 @@ PsCreateProcess(
     gop_printf(COLOR_RED, "Process CR3: %p\n", DirectoryTablePhysical);
 
     // Per thread stack calculation.
-    Process->NextStackTop = USER_INITIAL_STACK_TOP;
+    Process->NextStackHint = USER_INITIAL_STACK_TOP;
 
     // Creation time.
     Process->CreationTime = MeGetEpoch();
@@ -138,74 +138,53 @@ PsCreateProcess(
     // Initialize List heads.
     InitializeListHead(&Process->AllThreads);
 
-    // Load file into memory (TODO Section objects)
-    void* file_buffer = NULL;
-    uint32_t FileSize = 0;
-    Status = vfs_read(ExecutablePath, &FileSize, &file_buffer);
+    // Get the file handle.
+    HANDLE FileHandle;
+    Status = FsOpenFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    Process->ImageBase = USER_VA_START; // Dummy VA, FIXME Headers.
-
+    PFILE_OBJECT FileObject;
+    // Reference the handle, and then close it so only the pointer reference remains (this)
+    ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
+    HtClose(FileHandle);
     // TODO ADD ADDRESS TO WORKING SET OF PROCESS!!
 
-    // Calculate the number of pages needed to map the entire file in.
-    size_t num_pages = (FileSize + VirtualPageSize - 1) / VirtualPageSize;
-
-    // Prepare for the copy loop
-    uintptr_t CurrentVA = Process->ImageBase;
-    uint8_t* SourcePtr = (uint8_t*)file_buffer; // Pointer to the data we read from disk
-    size_t BytesRemaining = FileSize;
-
-    // Attach to process to get corrent PTE pointer.
-    APC_STATE ApcState;
-    MeAttachProcess(&Process->InternalProcess, &ApcState);
-
-    for (size_t i = 0; i < num_pages; i++) {
-        // Allocate a physical page.
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) break;
-
-        // Now we change the actual physical address we got, and thats the physical address of CurrentVA.
-        IRQL oldIrql;
-        void* PhysicalAddressOfVa = MiMapPageInHyperspace(pfn, &oldIrql);
-
-        // Calculate how many bytes to copy for this specific iteration.
-        // It will be 4096 for every page except potentially the last one.
-        size_t BytesToCopy = (BytesRemaining > VirtualPageSize) ? VirtualPageSize : BytesRemaining;
-        
-        // Copy the data.
-        kmemcpy((void*)PhysicalAddressOfVa, SourcePtr, BytesToCopy);
-
-        // End hyperspace mapping for physical address.
-        MiUnmapHyperSpaceMap(oldIrql);
-
-        // Get the PTE pointer for the current address.
-        PMMPTE pte = MiGetPtePointer(CurrentVA);
-
-        // Write to it the physical address.
-        MI_WRITE_PTE(pte, CurrentVA, PFN_TO_PHYS(pfn), PAGE_PRESENT | PAGE_RW | PAGE_USER);
-
-        // Advance pointers and decrement counters
-        CurrentVA += VirtualPageSize;
-        SourcePtr += BytesToCopy;
-        BytesRemaining -= BytesToCopy;
+    // Create the sections for the process.
+    HANDLE SectionHandle;
+    Status = MmCreateSection(&SectionHandle, FileObject);
+    if (MT_FAILURE(Status)) {
+        // If file reference failed it would close the file handle.
+        goto CleanupWithRef;
     }
 
-    // The VA has been filed with the executable's instructions, now we do handle creation and yada yada.
-    // Detach from process address space.
-    MeDetachProcess(&ApcState);
-    MmFreePool(file_buffer);
+    // Set handle.
+    Process->SectionHandle = SectionHandle;
+
+    // Map them into address space.
+    void* StartAddress = NULL;
+    Status = MmMapViewOfSection(SectionHandle, Process, &StartAddress);
+    // MmpDeleteSection closes the file handle.
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // Set start address.
+    Process->ImageBase = (uint64_t)StartAddress;
+
     // Create a handle for the process.
     HANDLE hProcess;
     Status = ObCreateHandleForObject(Process, DesiredAccess, &hProcess);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Create a main thread for the process.
+    Process->NextStackHint = USER_INITIAL_STACK_TOP;
     HANDLE MainThreadHandle;
     Status = PsCreateThread(hProcess, &MainThreadHandle, (ThreadEntry)Process->ImageBase, NULL, DEFAULT_TIMESLICE_TICKS);
-    if (MT_FAILURE(Status)) goto CleanupWithRef;
-
+    if (MT_FAILURE(Status)) {
+        // This is a failure, since there is not a handle to the process, we must close it.
+        // Destroy the handle.
+        HtClose(hProcess);
+        goto CleanupWithRef;
+    }
     // We are, successful.
-    *ProcessHandle = hProcess;
+    if (ProcessHandle) *ProcessHandle = hProcess;
     Status = MT_SUCCESS;
 
 CleanupWithRef:
@@ -300,8 +279,13 @@ PsDeleteProcess(
     // Set flags
     InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingDeleted);
 
+    // Delete section handles.
+    if (Process->SectionHandle) {
+        HtClose(Process->SectionHandle);
+    }
+
     // TODO (CRITICAL FIXME) (MEMORY LEAK) Working set list delete all active VADs.
-    // Should also delete process section objects, unless thats its own thing.
+    // VADs deletion would also close the FileObject HANDLE!
     
     // Delete its CID.
     PsFreeCid(Process->PID);
@@ -313,6 +297,7 @@ PsDeleteProcess(
         MeAttachProcess(&Process->InternalProcess, &State);
         HtDeleteHandleTable(Process->ObjectTable);
         MeDetachProcess(&State);
+        Process->ObjectTable = NULL;
     }
     // Delete its address space.
     MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);

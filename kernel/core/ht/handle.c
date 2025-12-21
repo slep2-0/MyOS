@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/ht.h"
 #include "../../includes/ob.h"
+#include "../../includes/ps.h"
 #include "../../assert.h"
 
 // ->>>>> The handle table handles are accessed in pageable memory, we cannot be at DISPATCH_LEVEL or above.
@@ -392,9 +393,9 @@ HtDeleteHandle(
 
 void* 
 HtGetObject (
-    PHANDLE_TABLE Table, 
-    HANDLE Handle,
-    PHANDLE_TABLE_ENTRY* OutEntry
+    IN  PHANDLE_TABLE Table, 
+    IN  HANDLE Handle,
+    _Out_Opt PHANDLE_TABLE_ENTRY* OutEntry
 )
 
 /*++
@@ -476,6 +477,9 @@ HtDeleteHandleTable(
                 void* Object = Entries[i].Object;
                 if (Object) {
                     Entries[i].Object = NULL;
+                    // Decrement handle count atomically
+                    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+                    InterlockedDecrementIfNotZero((volatile uint64_t*)Header->HandleCount);
                     ObDereferenceObject(Object);
                 }
             }
@@ -499,6 +503,9 @@ HtDeleteHandleTable(
                     void* Object = Page[i].Object;
                     if (Object) {
                         Page[i].Object = NULL;
+                        // Decrement handle count atomically
+                        POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+                        InterlockedDecrementIfNotZero((volatile uint64_t*)Header->HandleCount);
                         ObDereferenceObject(Object);
                     }
                 }
@@ -521,4 +528,43 @@ HtDeleteHandleTable(
 
     // Finally, free our table itself.
     MmFreePool(Table);
+}
+
+void
+HtClose(
+    IN HANDLE Handle
+)
+
+/*++
+
+    Routine description:
+
+       Decrements handle count of object, Dereferences the object associated with the handle, then deletes the handle.
+
+    Arguments:
+
+        [IN]    HANDLE Handle - The handle to close.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    PHANDLE_TABLE Table = PsGetCurrentProcess()->ObjectTable;
+
+    // First get the object for the handle
+    void* Object = HtGetObject(Table, Handle, NULL);
+    if (!Object) return;
+
+    // Remove the handle from the table first
+    HtDeleteHandle(Table, Handle);
+
+    // Decrement handle count atomically
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    InterlockedDecrementU64((volatile uint64_t*)&Header->HandleCount);
+
+    // Dereference the object
+    ObDereferenceObject(Object);
 }

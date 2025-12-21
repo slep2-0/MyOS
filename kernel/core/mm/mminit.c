@@ -19,9 +19,12 @@ Revision History:
 #include "../../includes/mm.h"
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
+#include "../../includes/ob.h"
 #include "../../assert.h"
 
 #define IA32_PAT 0x277
+
+POBJECT_TYPE MmSectionType = NULL;
 
 static
 bool
@@ -49,6 +52,25 @@ MiInitializePAT(void)
         (0x03ULL << 56);         // 7 = UC
 
     __writemsr(IA32_PAT, pat);
+}
+
+MTSTATUS
+MmInitSections(
+    void
+)
+
+{
+    OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
+    kmemset(&ObjectTypeInitializer, 0, sizeof(OBJECT_TYPE_INITIALIZER));
+
+    // Initiate types.
+    ObjectTypeInitializer.PoolType = NonPagedPool;
+    ObjectTypeInitializer.DeleteProcedure = MmpDeleteSection;
+    ObjectTypeInitializer.ValidAccessRights = MT_SECTION_ALL_ACCESS;
+    ObjectTypeInitializer.DumpProcedure = NULL; // TODO DUMP PROC!
+
+    MTSTATUS Status = ObCreateObjectType("Section", &ObjectTypeInitializer, &MmSectionType);
+    return Status;
 }
 
 bool

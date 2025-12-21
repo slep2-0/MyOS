@@ -209,6 +209,24 @@ MeGetProcessorBlock(
 	return NULL;
 }
 
+static void MhSpinAndProcessIpis(void) {
+	uint64_t rflags;
+
+	// Get currnet RFLAGS
+	__asm__ volatile("pushfq; pop %0" : "=rm"(rflags) :: "memory");
+
+	// Let the CPU have a window to process an interrupt in the NOP.
+	__asm__ volatile("sti");
+	__asm__ volatile("nop");
+
+	// Restore original state, (interrupts off before = still off, on before = still on)
+	if (!(rflags & (1 << 9))) {
+		__asm__ volatile("cli");
+	}
+
+	__asm__ volatile("pause");
+}
+
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	if (!g_cpuCount || !smpInitialized) return;
 	uint8_t myid = my_lapic_id();
@@ -222,21 +240,29 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		if (cpus[i].lapic_ID == myid) continue;
 		if (!(cpus[i].flags & CPU_ONLINE)) continue;
 
+		while (InterlockedCompareExchangeU64(&cpus[i].MailboxLock, 1, 0) == 1) {
+			MhSpinAndProcessIpis();
+		}
+
 		cpus[i].IpiAction = action;
 		cpus[i].IpiParameter = parameter;
-
 		cpus[i].IpiSeq = seq; // assign sequence number
+
 		uint32_t LAPIC_ACTION_VECTOR = VECTOR_IPI;
 		lapic_send_ipi(cpus[i].lapic_ID, (uint8_t)LAPIC_ACTION_VECTOR, 0x0);
 	}
 
 	// wait for all CPUs to handle this exact IPI
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
-		if (cpus[i].lapic_ID == myid || !(cpus[i].flags & CPU_ONLINE))
-			continue;
-
+		if (cpus[i].lapic_ID == myid) continue;
+		if (!(cpus[i].flags & CPU_ONLINE)) continue;
+	
+		// Wait for completion while still processing incoming IPIs
 		while (*(volatile uint64_t*)&cpus[i].IpiSeq == seq) {
-			__pause(); // spin until they clear the seq
+			MhSpinAndProcessIpis();
 		}
+
+		// We let the other CPUs use this cpu mailbox.
+		InterlockedExchangeU64(&cpus[i].MailboxLock, 0);
 	}
 }

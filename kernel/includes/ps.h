@@ -97,13 +97,14 @@ typedef enum _PROCESS_FLAGS {
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
-    HANDLE PID; // Process Identifier, unique identifier to the process.
+    HANDLE PID; // Process Identifier, unique identifier to the process. (do not use HtClose on this, only PsDeleteCid)
     HANDLE ParentProcess; // Parent Process Handle
     uint32_t priority; // TODO
     uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
     // SID TODO. - User info as well, when users.
 
     // TODO PEB
+    HANDLE SectionHandle; // Handle for the process section view.
     uint64_t ImageBase; // Base Pointer of loaded process memory.
 
     // Synchorinzation for internal functions.
@@ -115,7 +116,8 @@ typedef struct _EPROCESS {
     PUSH_LOCK ThreadListLock; // Protects synchronization in AllThreads.
     DOUBLY_LINKED_LIST AllThreads; // A linked list of pointers to the current threads of the process. (inserted with each new creation)
     uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
-    uint64_t NextStackTop; // A 64 bit value representing the next stack top for a newly created thread
+    PUSH_LOCK AddressSpaceLock; // A push lock designed to protect synchronization in creating the next stack for another thread in the PROCESS.
+    uintptr_t NextStackHint; // Top down search for the next stack.
 
     // Handle Table
     PHANDLE_TABLE ObjectTable;
@@ -123,7 +125,7 @@ typedef struct _EPROCESS {
     // Special Flags.
     enum _PROCESS_FLAGS Flags;
 
-    // VAD
+    // VAD (todo process quota)
     struct _MMVAD* VadRoot; // The Root of the VAD for the process. (used to find free virtual addresses spaces in the process, and information about them)
     PUSH_LOCK VadLock; // The push lock to ensure VAD atomicity.
 } EPROCESS, *PEPROCESS;
@@ -161,8 +163,6 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 // ------------------ FUNCTIONS ------------------
 
 extern EPROCESS PsInitialSystemProcess;
-extern POBJECT_TYPE PsProcessType;
-extern POBJECT_TYPE PsThreadType;
 
 MTSTATUS
 PsCreateProcess(

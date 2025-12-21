@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/mh.h"
 #include "../../includes/mg.h"
 #include "../../assert.h"
+#include "../../includes/mt.h"
 
 /* Register Bit Definitions */
 #define CR0_MP              (1UL << 1)   // Monitor Coprocessor
@@ -98,6 +99,11 @@ static void InitialiseControlRegisters(void) {
             : : "m"(mxcsr) : "memory"
             );
     }
+
+    // Enable NX Bit.
+    uint64_t EFER = __readmsr(MSR_EFER);
+    EFER |= (1 << 11); // EFER.NXe
+    __writemsr(MSR_EFER, EFER);
 }
 
 static void MeInitGdtTssForCurrentProcessor(void) {
@@ -108,9 +114,8 @@ static void MeInitGdtTssForCurrentProcessor(void) {
     gdt[0] = 0;
     gdt[1] = 0x00AF9A000000FFFF;
     gdt[2] = 0x00CF92000000FFFF;
-    // user code & data
-    gdt[3] = 0x00AFFA000000FFFF;
-    gdt[4] = 0x00CFF2000000FFFF;
+    gdt[3] = 0x00CFF2000000FFFF; // User Data
+    gdt[4] = 0x00AFFA000000FFFF; // User Code
     uint64_t tss_base = (uint64_t)tss;
     uint32_t limit = sizeof(TSS) - 1;
 
@@ -209,6 +214,10 @@ MeInitializeProcessor(
     CPU->DpcRequestRate = 0; // Initialized to zero.
     CPU->DpcRoutineActive = false;
     CPU->DpcInterruptRequested = false;
+
+    // Initialize system calls.
+    MtSetupSyscall();
+
     if (!InitializeStandardRoutine && !AreYouAP) return; // If we are BSP, and we do not want to run the routines below, return. If we are AP, we run it none the less.
 
 StartInit: {
@@ -246,7 +255,7 @@ StartInit: {
     // ISTs
     IDT[14].ist = 1; // First one is page fault.
     IDT[8].ist = 2; // Second one is double fault.
-    IDT[LAPIC_TIMER_VECTOR].ist = 3; // Third one is the LAPIC Timer.
+    IDT[VECTOR_CLOCK].ist = 3; // Third one is the LAPIC Timer.
     IDT[VECTOR_IPI].ist = 4; // Fourth one is the LAPIC IPI.
 
     // Reload IDT with set stacks.

@@ -21,25 +21,28 @@ static void update_apic_irqs(IRQL newLevel) {
     switch (newLevel) {
     case HIGH_LEVEL:
     case POWER_LEVEL:
+        tpr = TPR_HIGH; // 15
+        break;
+
     case IPI_LEVEL:
-        tpr = 15; // block everything
+        tpr = TPR_IPI; // 14
         break;
 
     case CLOCK_LEVEL:
-    case PROFILE_LEVEL:
-        tpr = TPR_PROFILE; // 10
+        tpr = TPR_CLOCK; // 13
         break;
 
     case DISPATCH_LEVEL:
-        tpr = TPR_DPC; // 6
+        tpr = TPR_DPC; // 4 - Blocks DPC (0x40) and APC (0x30)
         break;
+
     case APC_LEVEL:
-        tpr = TPR_APC; // 3
-        break; 
+        tpr = TPR_APC; // 3 - Blocks APC (0x30)
+        break;
 
     case PASSIVE_LEVEL:
     default:
-        tpr = TPR_PASSIVE; // allow everything.
+        tpr = TPR_PASSIVE; // 0
         break;
     }
 

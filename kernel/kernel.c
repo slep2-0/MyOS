@@ -135,7 +135,7 @@ static void test(MUTEX* mut) {
 static void MeCreateInitialUserModeProcess(void) {
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     HANDLE hProcess;
-    PsCreateProcess("loop.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
     UNREFERENCED_PARAMETER(hProcess);
 }
 
@@ -218,6 +218,17 @@ void kernel_main(BOOT_INFO* boot_info) {
         MeBugCheckEx(PSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
     }
 
+    st = MmInitSections();
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(
+            MANUALLY_INITIATED_CRASH2,
+            (void*)(uintptr_t)st,
+            NULL,
+            NULL,
+            NULL
+        );
+    }
+
     // And, initialize our system process.
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);
@@ -267,6 +278,14 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize worker threads. (all thread creation must be after sched init)
     PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
 
+    MTSTATUS status = FsInitialize();
+    gop_printf(COLOR_RED, "FsInitialize returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
+    if (MT_FAILURE(status)) {
+        MeBugCheck(FILESYSTEM_PANIC);
+    }
+
+    /* SYSTEM IS FULLY INITIALIZED. */
+
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
     void* buf2 = MmAllocatePoolWithTag(NonPagedPool, 128, 'buf2');
@@ -289,20 +308,9 @@ void kernel_main(BOOT_INFO* boot_info) {
         gop_printf(COLOR_GREEN, "CPU Identified: %s\n", str);
     }
 
-    MTSTATUS status = vfs_init();
-    gop_printf(COLOR_RED, "vfs_init returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
-    if (MT_FAILURE(status)) {
-        MeBugCheck(FILESYSTEM_PANIC);
-    }
-
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
     gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
-    char listings[256];
-    status = vfs_listdir("/", listings, sizeof(listings));
-    gop_printf(COLOR_RED, "vfs_listdir returned: %x\n", status);
-    gop_printf(COLOR_RED, "root directory is: %s\n", vfs_is_dir_empty("/") ? "Empty" : "Not Empty");
-    gop_printf(COLOR_CYAN, "%s", listings);
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);

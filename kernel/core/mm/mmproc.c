@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/me.h"
 #include "../../assert.h"
 #include "../../includes/mg.h"
+#include "../../includes/ps.h"
 
 void*
 MiCreateKernelStack(
@@ -377,9 +378,7 @@ MiFreePageTableHierarchy(
             }
             else {
                 // The PTs, the vad should have already freed them, but if it didnt, we do it.
-                if (pte.Hard.IsVadPte) {
-                    MiReleasePhysicalPage(childPfn);
-                }
+                MiReleasePhysicalPage(childPfn);
             }
         }
     }
@@ -431,4 +430,70 @@ MmDeleteProcessAddressSpace(
     MiReloadTLBs();
 
     return MT_SUCCESS;
+}
+
+MTSTATUS
+MmCreateUserStack(
+    IN PEPROCESS Process,
+    OUT void** OutStackTop,
+    _In_Opt size_t StackReserveSize
+)
+
+/*++
+
+    Routine description:
+
+        Creates a stack for a user thread in the process address space (with a guard page below)
+
+    Arguments:
+
+        [IN] PEPROCESS Process - The thread's process.
+        [OUT] void** OutStackTop - Top of stack allocated if successful.
+        [IN OPTIONAL] size_t StackReserveSize - A value that indicates how much data to reserve for the stack. If not supplied, MI_DEFAULT_USER_STACK_SIZE is used.
+
+    Return Values:
+
+        MTSTATUS Status code.
+
+    Notes:
+
+        If a process allocated too much virtual memory, his next allocation could at Process->NextStackHint
+        Which means, the Status will return MT_CONFLICTING_ADDRESSES, which mean thread creation failure.
+--*/
+
+{
+    // If no stack reserve size, we use the default
+    if (!StackReserveSize) StackReserveSize = MI_DEFAULT_USER_STACK_SIZE;
+
+    // Acquire the exclusive push lock for the stack.
+    MsAcquirePushLockExclusive(&Process->AddressSpaceLock);
+
+    // Grab current hint.
+    uintptr_t CurrentStackHint = Process->NextStackHint;
+    
+    // Compute the end of the stack.
+    uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
+
+    // Allocate a VAD for the address space.
+    MTSTATUS Status = MmAllocateVirtualMemory(Process, (void**) & EndOfStack, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // Create a VAD for the guard page (reserved)
+
+    void* GuardPageEnd = (void*)(EndOfStack - VirtualPageSize);
+    Status = MmAllocateVirtualMemory(Process, (void**)&GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED);
+    if (MT_FAILURE(Status)) goto CleanupWithVad;
+
+    // The next hint should be the end of the guard page.
+    Process->NextStackHint = (uintptr_t)GuardPageEnd;
+    // Success.
+    if (OutStackTop) *OutStackTop = (void*)CurrentStackHint;
+    goto Cleanup;
+
+CleanupWithVad:
+    MmFreeVirtualMemory(Process, (void*)EndOfStack);
+
+Cleanup:
+    MsReleasePushLockExclusive(&Process->AddressSpaceLock);
+    return Status;
 }

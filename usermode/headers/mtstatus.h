@@ -1,7 +1,7 @@
 /*
- * PROJECT:      MatanelOS Kernel
+ * PROJECT:      MatanelOS User Mode
  * LICENSE:      GPLv3
- * PURPOSE:      MTStatus definitions per subsystem or kernel wide. (STATUS RETURNS)
+ * PURPOSE:      MTStatus definition (STATUS RETURNS)
  */
 
 #ifndef MTSTATUS_H
@@ -131,6 +131,5 @@ typedef int32_t MTSTATUS;
 #define MT_ACCESS_VIOLATION ((MTSTATUS)0xC8000000L)
 #define MT_GUARD_PAGE_VIOLATION ((MTSTATUS)0xC8000001L)
 #define MT_ILLEGAL_INSTRUCTION ((MTSTATUS)0xC8000002L)
-#define MT_PRIVILEGED_INSTRUCTION ((MTSTATUS)0xC8000003L)
 
 #endif // MTSTATUS_H

@@ -2,7 +2,7 @@
 
 Module Name:
 
-	me.h
+	behavior.h
 
 Purpose:
 

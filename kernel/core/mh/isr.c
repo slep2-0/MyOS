@@ -47,6 +47,7 @@ MhHandleInterrupt (
 {
 
     assert(MeAreInterruptsEnabled() == false);
+    assert(vec_num < 256, "An interrupt higher than 255 has been encountered, this usually means corruption in stub parameter moves.");
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
     IRQL oldIrql;
@@ -55,17 +56,27 @@ MhHandleInterrupt (
     bool schedulerEnabled = cpu->schedulerEnabled;
 
     // Save the PreviousMode to current thread.
-    PRIVILEGE_MODE PreviousMode;
+    PITHREAD currentThread = cpu->currentThread;
+    PRIVILEGE_MODE OldMode = KernelMode; // Default safety
 
+    if (currentThread) {
+        OldMode = currentThread->PreviousMode;
+    }
+
+    // Determine the mode for this interrupt context
+    // If we came from User land, we are now entering the kernel for the first time in this stack.
+    // If we came from Kernel land, we are just nesting.
+    PRIVILEGE_MODE TrapMode;
     if ((trap->cs & 0x3) == 0x3) {
-        PreviousMode = UserMode;
+        TrapMode = UserMode;
     }
     else {
-        PreviousMode = KernelMode;
+        TrapMode = KernelMode;
     }
-    
-    if (cpu->currentThread) {
-        cpu->currentThread->PreviousMode = PreviousMode;
+
+    // Set the mode for the duration of the ISR
+    if (currentThread) {
+        currentThread->PreviousMode = TrapMode;
     }
 
     switch (vec_num) {
@@ -126,7 +137,7 @@ MhHandleInterrupt (
         _MeSetIrql(HIGH_LEVEL); // machine check, like NMI, high irql.
         MiMachineCheck(trap);
         break;
-    case LAPIC_INTERRUPT:
+    case VECTOR_CLOCK:
         MeRaiseIrql(CLOCK_LEVEL, &oldIrql);
         MiLapicInterrupt(schedulerEnabled, trap);
         MeLowerIrql(oldIrql);
@@ -144,6 +155,7 @@ MhHandleInterrupt (
         MeRaiseIrql(DISPATCH_LEVEL, &oldIrql);
         // Drain DPCs while in DISPATCH
         MeRetireDPCs();
+        assert(MeAreInterruptsEnabled() == false);
         // Send EOI, this is called by the APIC Self BIT (so LAPIC)
         lapic_eoi();
         // Lower IRQL back.
@@ -158,6 +170,10 @@ MhHandleInterrupt (
         break;
     default:
         break;
+    }
+
+    if (currentThread) {
+        currentThread->PreviousMode = OldMode;
     }
 
     assert(MeAreInterruptsEnabled() == false);

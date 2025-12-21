@@ -594,8 +594,6 @@ MiDeleteVadNode(
 }
 
 #define MAX_VAD_DEPTH 64 // Usually enough for a 64-bit tree
-PMMVAD vadStack[MAX_VAD_DEPTH];
-int stackTop = -1;
 
 static
 uintptr_t
@@ -628,6 +626,9 @@ MiFindGap(
     if (SearchStart >= SearchEnd) return 0;                // invalid range
     if (NumberOfBytes == 0) return 0;                     // no zero-sized allocations
     if (SearchStart == 0) return 0;                       // defensive: we don't expect VA 0
+
+    PMMVAD vadStack[MAX_VAD_DEPTH];
+    int stackTop = -1;
 
     // Acquire the reading lock.
     MsAcquirePushLockShared(&Process->VadLock);
@@ -766,7 +767,17 @@ MmAllocateVirtualMemory(
 
 {
     // Calculate pages needed
-    uintptr_t StartVa = (uintptr_t)*BaseAddress;
+
+    uintptr_t StartVa; 
+    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    if (BaseAddress) {
+        if (PreviousMode == UserMode) __stac();
+        StartVa = (uintptr_t)*BaseAddress;
+        if (PreviousMode == UserMode) __clac();
+    }
+    else {
+        return MT_INVALID_PARAM;
+    }
     size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
     MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
@@ -774,8 +785,17 @@ MmAllocateVirtualMemory(
 
     if (!StartVa) {
         // We need to determine if the allocation is for a system process or a user process.
+        // Its + 1 because its exclusive (so we want the actual end of the page, not excluding the last one)
         StartVa = MiFindGap(Process, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
         if (!StartVa) return MT_NOT_FOUND;
+        
+        // Update the newly found address.
+        if (BaseAddress) {
+            if (PreviousMode == UserMode) __stac();
+            *BaseAddress = (void*)StartVa;
+            if (PreviousMode == UserMode) __clac();
+        }
+        
         // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.
         checkForOverlap = false;
 
@@ -820,6 +840,17 @@ cleanup:
     MsReleaseRundownProtection(&Process->ProcessRundown);
     MsReleasePushLockExclusive(&Process->VadLock);
     return status;
+}
+
+MTSTATUS
+MmIsAddressRangeFree(
+    PEPROCESS Process,
+    uintptr_t StartVa,
+    uintptr_t EndVa
+)
+
+{
+    return MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa);
 }
 
 MTSTATUS

@@ -64,9 +64,14 @@ typedef uint32_t ACCESS_MASK;
 
 void*
 HtGetObject(
-    PHANDLE_TABLE Table,
-    HANDLE Handle,
-    PHANDLE_TABLE_ENTRY* OutEntry
+    IN  PHANDLE_TABLE Table,
+    IN  HANDLE Handle,
+    _Out_Opt PHANDLE_TABLE_ENTRY* OutEntry
+);
+
+void
+HtClose(
+    IN HANDLE Handle
 );
 
 void

@@ -68,13 +68,14 @@ PsCreateThread(
 
     // Create a new stack for the thread's kernel environment.
     Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
+    Thread->InternalThread.IsLargeStack = false;
     if (!Thread->InternalThread.KernelStack) goto CleanupWithRef;
 
-    // Create user mode stack. (FIXME User mode stack creation like in ntdll, but how does it create the first user mode thread stack, helluva i know.)
-    void* BaseAddress = (void*)(USER_VA_END - 4096);
-    Status = MmAllocateVirtualMemory(ParentProcess, &BaseAddress, 4096, VAD_FLAG_WRITE | VAD_FLAG_READ);
+    // Create user mode stack. 
+    void* BaseAddress = NULL;
+    Status = MmCreateUserStack(ParentProcess, &BaseAddress, 0); // 0 to indicate default size.
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    Thread->InternalThread.StackBase = (void*)(USER_VA_END); // Stack grows downward.
+    Thread->InternalThread.StackBase = BaseAddress; // Stack grows downward.
 
     // Setup timeslice.
     Thread->InternalThread.TimeSlice = TimeSlice;
@@ -117,10 +118,14 @@ PsCreateThread(
     Status = MT_SUCCESS;
     // Insert thread to processor queue.
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
+
 CleanupWithRef:
-    // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
-    // If not, it would reach reference 0, and PspDeleteThread would execute.
-    ObDereferenceObject(Thread);
+    // If failure on status, we destroy the thread, if not.
+    // We are left with PointerCount == 2 and HandleCount == 1, why? Because if we access the thread and dereference it there still must be left HandleCount == 1 and PointerCount == 1 (the handles)
+    // With processes however, its different.
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Thread);
+    }
 Cleanup:
     MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
     return Status;
@@ -216,6 +221,10 @@ PsTerminateThread(
     Thread->InternalThread.ThreadState = THREAD_TERMINATING;
     Thread->ExitStatus = ExitStatus;
 
+    // We do not change its timeslice unless its a critical operation
+    // Look in MiGeneralProtectionFault, thats a case where we do change it.
+    // We let it continue until yielding or end of timeslice.
+
     // Signal all events that the thread is waiting on to execute immediately.
     // Todo parse waitblock.
 
@@ -253,10 +262,11 @@ PsDeleteThread(
 
     // Free its stack.
     if (IsKernelThread) {
-        PsDeferKernelStackDeletion(Thread->InternalThread.StackBase, Thread->InternalThread.IsLargeStack);
+        PsDeferKernelStackDeletion(Thread->InternalThread.KernelStack, Thread->InternalThread.IsLargeStack);
     }
     else {
-        // Dereference the parent process.
+        // Dereference the parent process, and free its kernel stack..
+        PsDeferKernelStackDeletion(Thread->InternalThread.KernelStack, Thread->InternalThread.IsLargeStack);
         ObDereferenceObject(Thread->ParentProcess);
     }
 

@@ -218,6 +218,26 @@ extern "C" {
        - For 8/16-bit atomics be careful about alignment; prefer natural alignment for the type.
        ------------------------------- */
 
+    FORCEINLINE bool InterlockedDecrementIfNotZero(volatile uint64_t* value)
+    {
+        uint64_t oldValue;
+        uint64_t newValue;
+
+        do {
+            oldValue = *value;
+
+            // If it's already 0, we can't decrement
+            if (oldValue == 0)
+                return false;
+
+            newValue = oldValue - 1;
+
+            // Attempt to swap oldValue -> newValue atomically
+        } while (InterlockedCompareExchangeU64((volatile uint64_t*)value, newValue, oldValue) != oldValue);
+
+        return true; // Successfully decremented
+    }
+
 #ifdef __cplusplus
 }
 #endif

@@ -147,6 +147,7 @@ ObCreateObject(
 
     Header->Type = ObjectType;
     Header->PointerCount = 1; // Start with 1 reference
+    Header->HandleCount = 0;
 
     // Update stats in the Type object
     InterlockedIncrementU32((volatile uint32_t*)&ObjectType->TotalNumberOfObjects);
@@ -261,7 +262,9 @@ ObOpenObjectByPointer(
 
     // Create handle.
     Status = ObCreateHandleForObject(Object, DesiredAccess, Handle);
-    if (MT_FAILURE(Status)) ObDereferenceObject(Object);
+
+    // Drop the temporary reference in all cases.
+    ObDereferenceObject(Object);
 
     return Status;
 }
@@ -373,16 +376,8 @@ ObCreateHandleForObject(
     PHANDLE_TABLE ObjectTable = PsGetCurrentProcess()->ObjectTable;
     if (!ObjectTable) return MT_INVALID_ADDRESS;
 
-    // Create the handle.
-    HANDLE Handle = HtCreateHandle(ObjectTable, Object, DesiredAccess);
-    if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
-
-    // Reference the object.
-    ObReferenceObject(Object);
-    
-    // Return success.
-    *ReturnedHandle = Handle;
-    return MT_SUCCESS;
+    // Use the extended function.
+    return ObCreateHandleForObjectEx(Object, DesiredAccess, ReturnedHandle, ObjectTable);
 }
 
 MTSTATUS
@@ -398,6 +393,7 @@ ObCreateHandleForObjectEx(
     Routine description:
 
        Creates a handle in the specified handle table for the specified Object.
+       This also references the object since a handle is created for it.
 
     Arguments:
 
@@ -417,10 +413,15 @@ ObCreateHandleForObjectEx(
 
 {
     if (!ObjectTable || !Object) return MT_INVALID_ADDRESS;
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
     // Create the handle.
     HANDLE Handle = HtCreateHandle(ObjectTable, Object, DesiredAccess);
     if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
+
+    // Increment handle count.
+    Header->HandleCount++;
+    Header->Type->TotalNumberOfHandles++;
 
     // Reference the object.
     ObReferenceObject(Object);
@@ -500,6 +501,8 @@ void ObDereferenceObject(
     uint64_t NewCount = InterlockedDecrementU64((volatile uint64_t*)&Header->PointerCount);
 
     if (NewCount == 0) {
+        // NO HANDLES Must be open if we delete the object, its a use after free.
+        assert(Header->HandleCount == 0);
         // Get the type initializer for the object.
         POBJECT_TYPE Type = Header->Type;
 

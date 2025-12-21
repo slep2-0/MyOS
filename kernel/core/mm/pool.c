@@ -657,7 +657,7 @@ MmFreePool(
 
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
-            if (!pte) goto advance;
+            if (unlikely(!pte)) goto advance;
             assert(MM_IS_DEMAND_ZERO_PTE(*pte) == true);
 
             // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.

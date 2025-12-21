@@ -12,5 +12,8 @@
 #include "ps.h"
 #include "ob.h"
 #include "rtl.h"
+#include "ht.h"
+#include "fs.h"
+#include "mt.h"
 
 #endif

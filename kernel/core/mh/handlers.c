@@ -99,6 +99,7 @@ void MiInterprocessorInterrupt (
         cpu->IpiSeq = 0;
         MmFullBarrier();
         InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+        __cli();
         for (;;) __hlt();
     case CPU_ACTION_PERFORM_TLB_SHOOTDOWN:
         invlpg((void*)cpu->IpiParameter.pageParams.addressToInvalidate);
@@ -143,11 +144,9 @@ void MiInterprocessorInterrupt (
         break;
     }
 
+    MmFullBarrier();
+    cpu->IpiSeq = 0;
     InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
-    if (action != CPU_ACTION_STOP) {
-        InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
-        cpu->IpiSeq = 0; // Signal completion for non-halting actions.
-    }
 
     // End of Interrupt for LAPIC is signaled at function return.
 }
@@ -404,14 +403,13 @@ void MiBreakpoint (
 
     Return Values:
 
-        None. This function will never return.
+        None.
 
 --*/
 
 
 {
-    gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p - Halting.\n", (void*)(uintptr_t)trap->rip);
-    __hlt();
+    gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p. PreviousMode: %d**\n", (void*)(uintptr_t)trap->rip, MeGetPreviousMode());
 }
 
 void MiOverflow(PTRAP_FRAME trap) {
@@ -457,7 +455,7 @@ void MiStackSegmentOverrun(PTRAP_FRAME trap) {
 
 void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     PETHREAD Thread = PsGetCurrentThread();
-    if (PsIsKernelThread(Thread)) {
+    if (MeGetPreviousMode() == KernelMode) {
         // important exception, view error code and bugcheck with it
         // its also a very useless exception, as a general protection fault is the most
         // general thing in the world, like the word general was made for this fault
@@ -467,21 +465,29 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
         MeBugCheckEx(GENERAL_PROTECTION_FAULT, (void*)(uintptr_t)trap->rip, (void*)(uintptr_t)trap->error_code, NULL, NULL);
     }
 
-    // User thread, we send an exception.
+    // User thread (and mode), we send an exception.
     // TODO Exceptions.
     // For now, terminate the user thread.
-    MTSTATUS Status;
+    MTSTATUS Status = MT_ACCESS_VIOLATION;
 
     // Enable access to user mode memory so we dont page fault on accessing its RIP.
-    __stac();
-    if (ExpIsPrivilegedInstruction((uint8_t*)trap->rip)) {
-        Status = MT_ILLEGAL_INSTRUCTION;
+    if (MI_IS_CANONICAL_ADDR((uintptr_t)trap->rip)) {
+        __stac();
+        if (ExpIsPrivilegedInstruction((uint8_t*)trap->rip)) {
+            Status = MT_PRIVILEGED_INSTRUCTION;
+        }
+        else {
+            Status = MT_ACCESS_VIOLATION; // Access violation, its probably a non canonical address.
+        }
+        __clac();
     }
-    else {
-        Status = MT_ACCESS_VIOLATION;
-    }
-    __clac();
 
+    // Terminate the thread, todo exp.
+    // We must not return to the thread, at all.
+    Thread->InternalThread.TimeSlice = 1;
+    Thread->InternalThread.TimeSliceAllocated = 1;
+    MeGetCurrentProcessor()->schedulePending = true;
+    gop_printf(COLOR_RED, "[TERMINATE] Terminating thread %p for %lx\n", Thread, (unsigned long)Status);
     PsTerminateThread(Thread, Status);
 }
 

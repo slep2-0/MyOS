@@ -85,7 +85,7 @@ do {                                                                        \
     invlpg((void*)(uintptr_t)(_Va));                                        \
 } while (0)
 
-#else /* MP / SMP build: include TLB shootdown via IPI */
+#else /* SMP build: include TLB shootdown via IPI */
 
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
@@ -112,6 +112,25 @@ do {                                                                        \
     }                                                                       \
 } while (0)
 
+#define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags)                  \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
+                                                                            \
+    /* Only set PFN->PTE link if PFN database is initialized */             \
+    if (MmPfnDatabaseInitialized) {                                         \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+        _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
+        _pfn->State = PfnStateActive;                                       \
+        _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
+    }                                                                       \
+                                                                            \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+                                                                            \
+} while (0)
+
 #endif
 #define PPFN_TO_INDEX(PPFN) ((size_t)((PPFN) - PfnDatabase.PfnEntries))
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) \
@@ -133,6 +152,7 @@ do {                                                                        \
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
+#define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags) ((void)0)
 #define PPFN_TO_INDEX(PPFN) (0)
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
 #define INDEX_TO_PPFN(Index) (NULL)
@@ -147,6 +167,9 @@ do {                                                                        \
 #define BYTES_TO_PAGES(Bytes) (((Bytes) + VirtualPageSize - 1) / VirtualPageSize)
 // Convert pages to bytes
 #define PAGES_TO_BYTES(Pages) ((Pages) * VirtualPageSize)
+
+// Align the page (down)
+#define PAGE_ALIGN(Va) ((void*)((uint64_t)(Va) & ~(VirtualPageSize - 1)))
 
 #define MAX_POOL_DESCRIPTORS 7 // Allows for: 32, 64, 128, 256, 512, 1024, 2048 Bytes Per pool
 #define _32KB_POOL 1
@@ -219,6 +242,7 @@ do {                                                                        \
 #define MI_STACK_SIZE 0x4000 // 16KiB
 #define MI_LARGE_STACK_SIZE 0xf000 // 60 KiB
 #define MI_GUARD_PAGE_PROTECTION (1ULL << 17)
+#define MI_DEFAULT_USER_STACK_SIZE 0x100000
 
 // Barriers
 
@@ -233,6 +257,19 @@ typedef uint64_t PAGE_INDEX;
 
 #define MmIsAddressValid(VirtualAddress) MmIsAddressPresent(VirtualAddress)
 
+// ------------------ ACCESS RIGHTS ------------------
+
+#define MT_SECTION_QUERY             0x0001  // Query section info (size, attributes)
+#define MT_SECTION_MAP_WRITE         0x0002  // Map section with write permissions
+#define MT_SECTION_MAP_READ          0x0004  // Map section with read permissions
+#define MT_SECTION_MAP_EXECUTE       0x0008  // Map section with execute permissions
+#define MT_SECTION_EXTEND_SIZE       0x0010  // Extend section size (file-backed sections)
+#define MT_SECTION_MAP_EXECUTE_EXPL  0x0020  // Explicit executable mapping (DEP / NX override)
+
+// All valid section rights
+#define MT_SECTION_ALL_ACCESS        0x003F
+
+typedef int32_t HANDLE, * PHANDLE;
 // ------------------ ENUMERATORS ------------------
 
 typedef enum _PFN_STATE {
@@ -261,7 +298,8 @@ typedef enum _VAD_FLAGS {
     VAD_FLAG_EXECUTE = (1U << 2),
     VAD_FLAG_PRIVATE = (1U << 3),     // Private (backed by swap file, like pagefile.mtsys)
     VAD_FLAG_MAPPED_FILE = (1U << 4), // Backed by a file (lets say data.mtdll)
-    VAD_FLAG_COPY_ON_WRITE = (1U << 5)
+    VAD_FLAG_COPY_ON_WRITE = (1U << 5),
+    VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
 } VAD_FLAGS;
 
 typedef enum _PAGE_FLAGS {
@@ -400,7 +438,7 @@ typedef struct _MMPTE
             uint64_t Global : 1;          // Global TLB entry
             uint64_t CopyOnWrite : 1;     // Software: copy-on-write
             uint64_t Prototype : 1;       // Software: prototype PTE (section)
-            uint64_t IsVadPte : 1;       // VAD PTE?
+            uint64_t Reserved0 : 1;       // VAD PTE?
             uint64_t PageFrameNumber : 40;// Physical page frame number
             uint64_t Reserved1 : 11;      // Reserved by hardware
             uint64_t NoExecute : 1;       // NX bit
@@ -445,7 +483,7 @@ typedef struct _PFN_ENTRY {
         } Mapping;
 
         // State: PfnStateStandby or PfnStateModified (for file backed pages) (Used when - SEMI-ACTIVE, PAGED TO DISK, NOT IN CURRENT USE)
-        uint64_t FileOffset; // Offset of 4KiB pages in pagefile.mtsys
+        uint64_t FileOffset; // Offset of bytes in pagefile.mtsys
 
     } Descriptor;
 } PFN_ENTRY, *PPFN_ENTRY;
@@ -487,8 +525,8 @@ typedef struct _MMVAD {
     int Height;
 
     // If VAD_FLAG_MAPPED_FILE bit is set.
-    struct _FILE_OBJECT* File;  // Pointer to file object.
-    uint64_t FileOffset;    // Offset into the file this region starts in.
+    struct _FILE_OBJECT* File;            // FILE_OBJECT Ptr.
+    uint64_t FileOffset;    // Offset into the file this region starts in. (in bytes, so compute arithemetic with addresses and not pages!!)
 
     // Pointer to owner process.
     struct _EPROCESS* OwningProcess;
@@ -520,8 +558,41 @@ typedef struct _POOL_DESCRIPTOR {
     SPINLOCK PoolLock;                  // Spinlock for this specific pool descriptor.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
 
-// ------------------ FUNCTIONS ------------------
+#pragma pack(push, 1)
+typedef struct {
+    uint8_t  Magic[4];
+    uint64_t PreferredImageBase; /* __image_base */
+    uint64_t EntryRVA;           /* __entry_rva */
+    uint64_t TextRVA;            /* __text_rva */
+    uint64_t TextSize;
+    uint64_t DataRVA;
+    uint64_t DataSize;
+    uint64_t BssSize;
+} MTE_HEADER;
+#pragma pack(pop)
 
+// Represents a section in the file (.text, .data)
+typedef struct _MM_SUBSECTION {
+    uint64_t FileOffset;    // Where in the file this data lives
+    uint64_t VirtualSize;   // How much RAM it needs
+    VAD_FLAGS Protection;    // VAD_FLAGS (Read, Write, Exec)
+    uint32_t IsDemandZero;  // 1 for .bss (no file backing), 0 for .text/.data
+} MM_SUBSECTION, * PMM_SUBSECTION;
+
+// Represents the loaded Executable/DLL
+typedef struct _MM_SECTION {
+    struct _FILE_OBJECT* FileObject;
+
+    // We have 3 distinct regions in our MTE format.
+    MM_SUBSECTION Text;
+    MM_SUBSECTION Data;
+    MM_SUBSECTION Bss;
+
+    uint64_t EntryPointOffset;
+    uint64_t ImageSize;     // Total size in Virtual Memory
+} MM_SECTION, * PMM_SECTION;
+
+// ------------------ FUNCTIONS ------------------
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
 // Global Declarations for signals & constants.
 extern bool MmPfnDatabaseInitialized;
@@ -801,6 +872,13 @@ MmDeleteProcessAddressSpace(
     IN uintptr_t PageDirectoryPhysical
 );
 
+MTSTATUS
+MmCreateUserStack(
+    IN PEPROCESS Process,
+    OUT void** OutStackTop,
+    _In_Opt size_t StackReserveSize
+);
+
 // module: vad.c
 
 MTSTATUS
@@ -824,17 +902,19 @@ MiFindVad(
     IN  uintptr_t VirtualAddress
 );
 
-void
-MiMoveUefiDataToHigherHalf(
-    IN PBOOT_INFO BootInfo
-);
-
 uintptr_t
 MmFindFreeAddressSpace(
     IN  PEPROCESS Process,
     IN  size_t NumberOfBytes,
     IN  uintptr_t SearchStart,
     IN  uintptr_t SearchEnd    // exclusive
+);
+
+MTSTATUS
+MmIsAddressRangeFree(
+    PEPROCESS Process,
+    uintptr_t StartVa,
+    uintptr_t EndVa
 );
 
 // module: va.c
@@ -905,6 +985,37 @@ bool
 MmInitSystem(
     IN uint8_t Phase,
     IN PBOOT_INFO BootInformation
+);
+
+void
+MiMoveUefiDataToHigherHalf(
+    IN PBOOT_INFO BootInfo
+);
+
+MTSTATUS
+MmInitSections(
+    void
+);
+
+// module: section.c
+
+MTSTATUS
+MmCreateSection(
+    OUT PHANDLE SectionHandle,
+    IN struct _FILE_OBJECT* FileObject
+);
+
+MTSTATUS
+MmMapViewOfSection(
+    IN HANDLE SectionHandle,
+    IN PEPROCESS Process,
+    OUT void** BaseAddress
+);
+
+// used by Ob, private.
+void
+MmpDeleteSection(
+    void* Object
 );
 
 // module: oom.c

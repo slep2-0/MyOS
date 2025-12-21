@@ -190,7 +190,7 @@ int init_lapic_timer(uint32_t hz) {
     if (initial == 0) initial = 1;
 
     // Program THIS CPU's timer using the shared calibration value
-    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | 0xEF /* vector */);
+    lapic_mmio_write(LAPIC_LVT_TIMER, APIC_LVT_TIMER_PERIODIC | VECTOR_CLOCK /* vector */);
     lapic_mmio_write(LAPIC_TIMER_INITCNT, (uint32_t)initial);
     return 0;
 }

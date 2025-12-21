@@ -59,6 +59,7 @@ int main(void) {
     GEN_OFFSET(PROCESSOR, schedulePending);
     GEN_OFFSET(PROCESSOR, LapicAddressVirt);
     GEN_OFFSET(PROCESSOR, TimerExpirationDPC);
+    GEN_OFFSET(PROCESSOR, UserRsp);
     GEN_SIZE(PROCESSOR);
 
     GEN_COMMENT("TRAP_FRAME Offsets (Context Saving/Restoring)");
@@ -92,6 +93,7 @@ int main(void) {
     GEN_OFFSET(ITHREAD, StackBase);
     GEN_OFFSET(ITHREAD, IsLargeStack);
     GEN_OFFSET(ITHREAD, PreviousMode);
+    GEN_OFFSET(ITHREAD, KernelStack);
 
     GEN_COMMENT("IPROCESS Offsets (Internal Process)");
     GEN_OFFSET(IPROCESS, PageDirectoryPhysical);
@@ -125,10 +127,11 @@ int main(void) {
     GEN_DEFINE(POWER_LEVEL, POWER_LEVEL);
     GEN_DEFINE(HIGH_LEVEL, HIGH_LEVEL);
 
-    GEN_COMMENT("TPR Levels");
+    GEN_COMMENT("TPR Levels and Vectors");
     GEN_DEFINE(VECTOR_APC, VECTOR_APC);
     GEN_DEFINE(VECTOR_DPC, VECTOR_DPC);
     GEN_DEFINE(VECTOR_IPI, VECTOR_IPI);
+    GEN_DEFINE(VECTOR_CLOCK, VECTOR_CLOCK);
 
     // ========================================================================
     // 2. PROCESS & THREAD (ps.h)
@@ -139,7 +142,7 @@ int main(void) {
     GEN_OFFSET(EPROCESS, ParentProcess);
     GEN_OFFSET(EPROCESS, MainThread);
     GEN_OFFSET(EPROCESS, VadRoot);
-    GEN_OFFSET(EPROCESS, NextStackTop);
+    GEN_OFFSET(EPROCESS, NextStackHint);
 
     GEN_COMMENT("ETHREAD Offsets");
     GEN_OFFSET(ETHREAD, InternalThread);

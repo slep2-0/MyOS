@@ -239,11 +239,11 @@ typedef struct _DPC_DATA {
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
 #define KERNEL_DS       0x10    // Entry 2: Kernel Data  
 #define KERNEL_SS       0x10    // Same as KERNEL_DS (data segment used for stack)
-#define USER_CS         0x1B    // Entry 3: User Code (for future)
-#define USER_DS         0x23    // Entry 4: User Data (for future)
-#define USER_SS         0x23    // Same as USER_DS (for future)
+#define USER_DS         0x1B    // Entry 3: User Data 
+#define USER_CS         0x23    // Entry 4: User Code (CPL=3)
+#define USER_SS         USER_DS    // Same as USER_DS 
 #define INITIAL_RFLAGS  0x202
-#define USER_RFLAGS     0x246 // IF=1, IOPL=0, CPL=3
+#define USER_RFLAGS     0x246 // IF=1, IOPL=0
 
 typedef struct _APC_STATE {
 	uint64_t SavedCr3;
@@ -273,6 +273,7 @@ typedef struct _ITHREAD {
 
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
+	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
 	enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which LAPIC & IOAPIC interrupts are masked
 	volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
@@ -289,6 +290,7 @@ typedef struct _PROCESSOR {
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
 	struct _ETHREAD* idleThread; // Idle thread for the current CPU.
+	volatile uint64_t MailboxLock; // 0 = Free, 1 = Locked by a sender
 	volatile uint64_t IpiSeq;
 	volatile enum _CPU_ACTION IpiAction; // IPI Action specified in the function.
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
@@ -330,6 +332,9 @@ typedef struct _PROCESSOR {
 
 	// Zombie Thread (for deferred reference deletion)
 	PITHREAD ZombieThread;
+
+	// Syscall data
+	uint64_t UserRsp; // User saved RSP during syscall handling.
 } PROCESSOR, *PPROCESSOR;
 
 // ------------------ FUNCTIONS ------------------

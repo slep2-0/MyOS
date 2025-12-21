@@ -352,7 +352,7 @@ MiRequestPhysicalPage(
     IRQL DbIrql;
     PPFN_ENTRY pfn = NULL;
     PFN_STATE oldState; // To know if we need to zero
-    
+
     // Acquire global PFN DB lock.
     MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
     

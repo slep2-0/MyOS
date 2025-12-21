@@ -56,7 +56,7 @@ typedef struct _OBJECT_TYPE {
 typedef struct _OBJECT_HEADER {
     uint64_t PointerCount; // Number of kernel pointers referencing this object.
     union {
-        uint64_t HandleCount;  // Number of user handles open (future)
+        uint64_t HandleCount;  // Number of user handles open
         volatile void* NextToFree; // If object is deferred for deletion, NextToFree is used instead of HandleCount.
     };
     POBJECT_TYPE Type;  // Pointer to type definition.
@@ -72,6 +72,10 @@ _Static_assert(sizeof(OBJECT_HEADER) % 16 == 0, "OBJECT_HEADER must be 16-byte a
     ((void*)((char*)(h) + sizeof(OBJECT_HEADER)))
 
 // --------------- FUNCTIONS ---------------
+
+extern POBJECT_TYPE PsProcessType;
+extern POBJECT_TYPE PsThreadType;
+extern POBJECT_TYPE MmSectionType;
 
 typedef uint32_t ACCESS_MASK;
 
