@@ -25,6 +25,7 @@ extern EPROCESS SystemProcess;
 
 uintptr_t MmSystemRangeStart = PhysicalMemoryOffset; // Changed to PhysicalMemoryOffset, since thats where actual stuff like hypermap, phys to virt, and more happen.
 uintptr_t MmHighestUserAddress = USER_VA_END;
+uintptr_t MmUserStartAddress = USER_VA_START;
 uintptr_t MmUserProbeAddress = 0x00007FFFFFFF0000;
 
 static 

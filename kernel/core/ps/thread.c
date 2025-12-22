@@ -14,14 +14,17 @@
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Reached ThreadExit, dereferencing object.\n");
+    // if you are asking why i dont print the tid, its because i (fucking) hate the gop function
+    // so many stack overflows, it makes my blood boil.
+    gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread.\n");
 #endif
     // Terminate the thread.
-    assert(&PsGetCurrentThread()->InternalThread == MeGetCurrentThread());
+    assert(PsIsKernelThread(PsGetCurrentThread()) == true, "A user thread has entered kernel thread termination.");
     PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
     Schedule();
 }
 
+// Kernel threads only.
 static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
     // thread_entry(parameters) -> void func(void*)
     thread_entry(parameter); // If thread entry takes no parameters, passing NULL is still fine.
@@ -65,6 +68,7 @@ PsCreateThread(
 
     // Create a TID for the thread.
     Thread->TID = PsAllocateThreadId(Thread);
+    if (Thread->TID == MT_INVALID_HANDLE) goto CleanupWithRef;
 
     // Create a new stack for the thread's kernel environment.
     Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
@@ -101,6 +105,13 @@ PsCreateThread(
     // Set process's thread properties.
     if (!ParentProcess->MainThread) {
         ParentProcess->MainThread = Thread;
+    }
+    else {
+        // There is a process main thread, this thread's return address must be to ExitThread(), since after the function return of
+        // EntryPoint (if it returns), it will POP an invalid value from the stack to return, and so a probable page fault and termination
+        // of thread (or process, havent decided yet, look at MiPageFault if it updated)
+        // FIXME.
+        // (main threads pop back to crt0 runtime, where ExitProcess is ran)
     }
 
     Thread->ParentProcess = ParentProcess;
@@ -187,6 +198,10 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->InternalThread.TrapRegisters = *cfm;
     thread->InternalThread.ThreadState = THREAD_READY;
     thread->TID = PsAllocateThreadId(thread);
+    if (thread->TID == MT_INVALID_HANDLE) {
+        ObDereferenceObject(thread);
+        return MT_INVALID_HANDLE;
+    }
     thread->CurrentEvent = NULL;
     thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
     thread->SystemThread = true;
@@ -220,6 +235,8 @@ PsTerminateThread(
     // with its work.
     Thread->InternalThread.ThreadState = THREAD_TERMINATING;
     Thread->ExitStatus = ExitStatus;
+    
+    // This should exit the thread with the ExitStatus as well (notifying it)
 
     // We do not change its timeslice unless its a critical operation
     // Look in MiGeneralProtectionFault, thats a case where we do change it.

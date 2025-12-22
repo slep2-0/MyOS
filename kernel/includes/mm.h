@@ -599,6 +599,7 @@ extern bool MmPfnDatabaseInitialized;
 extern PAGE_INDEX MmHighestPfn;
 extern uintptr_t MmSystemRangeStart;
 extern uintptr_t MmHighestUserAddress;
+extern uintptr_t MmUserStartAddress;
 extern uintptr_t MmUserProbeAddress;
 extern uintptr_t MmNonPagedPoolStart;
 extern uintptr_t MmNonPagedPoolEnd;

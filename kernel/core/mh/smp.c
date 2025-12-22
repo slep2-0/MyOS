@@ -205,8 +205,9 @@ MeGetProcessorBlock(
 		if (cpus[i].lapic_ID == ProcessorNumber) return &cpus[i];
 	}
 
-	// The CPU isn't found, we return NULL (would bugcheck though).
-	return NULL;
+	// The CPU isn't found, we return the current one.
+	assert(false, "DPC Inputted wrong LAPIC ID of target processor.");
+	return MeGetCurrentProcessor();
 }
 
 static void MhSpinAndProcessIpis(void) {

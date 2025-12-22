@@ -84,6 +84,19 @@ typedef struct _EX_FRAME_REGISTRATION {
     EXCEPTION_REGISTRATION_RECORD* RegistrationPointer;
 } EX_FRAME_REGISTRATION;
 
+typedef struct _EXCEPTION_RANGE {
+    uint64_t start_addr;
+    uint64_t end_addr;
+    uint64_t handler_addr;
+} EXCEPTION_RANGE, *PEXCEPTION_RANGE;
+
+// Symbols defined by the linker script
+extern EXCEPTION_RANGE __start_ex_table[];
+extern EXCEPTION_RANGE __stop_ex_table[];
+
+// Helper to search the table
+uint64_t MiSearchExceptionTable(uint64_t rip);
+
 // ------------------ FUNCTIONS ------------------
 
 extern PETHREAD PsGetCurrentThread(void);
@@ -97,32 +110,44 @@ EXCEPTION_DISPOSITION MeStandardHandler(
 );
 
 // macros
-#define _try \
-    { \
-        PETHREAD _CurrentThread = PsGetCurrentThread(); \
-        ME_EXCEPTION_FRAME _MyFrame; \
-        _MyFrame.Next = (PME_EXCEPTION_FRAME)_CurrentThread->ExceptionList; \
-        _MyFrame.Handler = MeStandardHandler; \
-        _CurrentThread->ExceptionList = &_MyFrame; \
-        /* Save Context. Returns 0 initially. Returns 1 if we crashed. */ \
-        if (ExpCaptureContext(&_MyFrame) == 0) { \
+#ifndef _MSC_VER
+#define try do { \
+    __label__ _try_start, _try_end, _except_label, _try_break;      \
+    /*  Emit the table entry linking this range to the handler */   \
+    __asm__ volatile (                                              \
+        ".section __ex_table,\"a\"\n\t"                             \
+        ".quad %P0, %P1, %P2\n\t"                                   \
+        ".previous\n\t"                                             \
+            :                                                       \
+        : "i" (&& _try_start), "i" (&& _try_end), "i" (&& _except_label)\
+    );                                                          \
+    /* Start of protected region */                                 \
+    _try_start:                                                     \
+    __asm__ volatile("" ::: "memory"); /* Prevent hoisting */       \
+    {
 
-#define _except(FilterExpression) \
-            /* Success path: Unlink frame */ \
-            _CurrentThread->ExceptionList = _MyFrame.Next; \
-        } else { \
-            /* Crash path: We just "landed" here from the handler! */ \
-            /* Unlink frame (safe to do again) */ \
-            _CurrentThread->ExceptionList = _MyFrame.Next; \
-            /* You can access _MyFrame.ExceptionCode here if needed */ \
-            { \
-               /* User Code inside except block */
+#define except                                          \
+    }                                                   \
+    __asm__ volatile("" ::: "memory");                  \
+    _try_end:                                          \
+    {                                                   \
+        int _volatile_true = 1;                         \
+        __asm__ volatile("" : "+r"(_volatile_true));    \
+        if (_volatile_true) goto _try_break;            \
+    }                                                   \
+    _except_label:                                      \
+    {                                                   \
+        /* The Page fault handler jumps here if we faulted */
 
-#define _end_except \
-            } \
-        } \
-    }
-
+#define end_try                                                     \
+    }                                                               \
+    _try_break:;                                                    \
+} while (0)
+#else
+#define try 
+#define except
+#define end_try
+#endif
 bool
 ExpIsExceptionHandlerPresent(
     IN PETHREAD Thread
@@ -135,7 +160,31 @@ ExpDispatchException(
     IN PEXCEPTION_RECORD ExceptionRecord
 );
 
+uint64_t
+ExpFindKernelModeExceptionHandler(
+    uint64_t Rip
+);
+
+// instruction.c
+
 bool
 ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/);
+
+// probe.c
+
+MTSTATUS
+ProbeForRead(
+    IN const void* Address,
+    IN size_t Length,
+    IN uint32_t Alignment
+);
+
+// raise.c
+// unused func.
+void
+ExpRaiseStatus(
+    IN MTSTATUS Status,
+    IN uint64_t Rip
+);
 
 #endif

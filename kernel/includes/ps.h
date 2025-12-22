@@ -141,6 +141,7 @@ typedef struct _ETHREAD {
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
+    MTSTATUS LastStatus; // The last status set by violations.
     bool SystemThread; // Is this thread a system thread?
     /* TODO: priority, affinity, wait list, etc. */
 } ETHREAD, *PETHREAD;
@@ -275,6 +276,18 @@ PsIsKernelThread(
 {
     // safety guard, can't believe i had to put it.
     return (Thread && Thread->SystemThread);
+}
+
+FORCEINLINE
+MTSTATUS
+GetExceptionCode(
+    void
+)
+
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    if (CurrentThread) return CurrentThread->LastStatus;
+    else return MT_GENERAL_FAILURE; // Fallback
 }
 
 HANDLE

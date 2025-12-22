@@ -632,7 +632,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     if (unlikely(owner && owner != MeGetCurrentProcessor())) return;
 
     bool prev_if = interrupts_enabled();
-    acquire_tmp_lock(&gop_lock);
+    acquire_tmp_lock(&gop_lock); // well if we get a page fault down there you can say bye bye to cpu execution (deadlock), more reason to hate this function, god can we move already to gui?
     __cli(); // Critical section
 
     GOP_PARAMS* gop = &gop_local;

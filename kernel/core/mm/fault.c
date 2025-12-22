@@ -69,6 +69,7 @@ MmAccessFault(
 {
     // Declarations
 #ifdef DEBUG
+    // These are used when I'm debugging.
     PMMPTE ReferencedPml4e = MiGetPml4ePointer(VirtualAddress);
     PMMPTE ReferencedPdpte = MiGetPdptePointer(VirtualAddress);
     PMMPTE ReferencedPde = MiGetPdePointer(VirtualAddress);
@@ -88,7 +89,14 @@ MmAccessFault(
             return MT_ACCESS_VIOLATION;
         }
 
-        goto BugCheck;
+        // Bugcheck here, operations in the Bugcheck label use the ReferencedPte pointer.
+        MeBugCheckEx(
+            PAGE_FAULT,
+            (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip,
+            (void*)FaultBits
+        );
     }
 
     // If the VA given isn't canonical (sign extended after bit 47, required by CPU MMU Laws), we return or bugcheck depending on the previous mode.
@@ -226,6 +234,9 @@ MmAccessFault(
     // i removed it, bye bye.
 
     // Address is in user range.
+    // Both kernel and user mode are allowed to fault in here, guranteeing there is a VAD backing it of course (and IRQL demands)
+    // If kernel faulted and no vad (Irql is good), then we search for exception handlers in return, if none we bugcheck.
+    // If a user faulted and no vad (Irql is good), then we search for exception handlers in return, if none we terminate the thread.
     if (VirtualAddress <= MmHighestUserAddress) {
         // Before any demand allocation, check IRQL.
         if (PreviousIrql >= DISPATCH_LEVEL) {
@@ -239,7 +250,7 @@ MmAccessFault(
             );
         }
 
-        // User mode fault on a user address, we check if there is a vad for it, if so, allocate the page.
+        // Fault on a user address, we check if there is a vad for it, if so, allocate the page.
         PMMVAD vad = MiFindVad(PsGetCurrentProcess(), VirtualAddress);
         if (!vad) return MT_ACCESS_VIOLATION; // If kernel mode exception dispatcher should catch.
 
@@ -261,7 +272,7 @@ MmAccessFault(
         }
 
 
-        // TODO COPY ON WRITE!!
+        // TODO COPY ON WRITE!! (process to process)
         // Looks like we have a valid vad, lets allocate.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
 

@@ -253,6 +253,18 @@ build/systemcalls.o: kernel/core/mt/systemcalls.c
 	mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
+build/probe.o: kernel/core/exp/probe.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+	
+build/raise.o: kernel/core/exp/raise.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
+build/exception.o: kernel/core/exp/exception.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
+
 # Define the Offset generator
 build/gen_offsets: kernel/gen_offsets.c
 	mkdir -p build
@@ -297,8 +309,8 @@ build/ap_trampoline.o: build/ap_trampoline.bin
 		$< $@
 
 # Link kernel
-build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o build/attach.o build/pushlock.o build/instruction.o build/section.o build/syscall.o build/handler.o \
-                      build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o build/ob.o build/psmgr.o build/pswork.o build/handle.o build/cid.o build/syscallAsm.o build/systemcalls.o \
+build/kernel.elf: build/kernel_entry.o build/kernel.o build/idt.o build/isr.o build/handlers.o build/pfn.o build/attach.o build/pushlock.o build/instruction.o build/section.o build/syscall.o build/handler.o build/exception.o \
+                      build/hypermap.o build/bugcheck.o build/map.o build/ahci.o build/block.o build/ob.o build/psmgr.o build/pswork.o build/handle.o build/cid.o build/syscallAsm.o build/systemcalls.o build/probe.o build/raise.o \
                       build/fat32.o build/gop.o build/irql.o build/process.o build/rundown.o build/scheduler.o build/dpc.o build/va.o build/vad.o build/pool.o build/spinlock.o build/fault.o build/mminit.o build/mmio.o build/mmproc.o \
                       build/meinit.o build/thread.o build/vfs.o build/pit.o build/apic.o build/events.o build/mutex.o build/smp.o build/ap_main.o build/acpi.o build/ap_trampoline.o build/debugfunctions.o build/isr_stub.o build/context.o build/cpuid.o \
                       build/sleep.o

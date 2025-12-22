@@ -221,6 +221,7 @@ MhRequestSoftwareInterrupt(
         The only IRQLs supported currently are DISPATCH_LEVEL and APC_LEVEL
 
         To have this function serviced for a DPC or an APC, set the flag in the CPU accordingly and wait for IRQL to be equal or below to IRQL requested.
+        (The flag is set in the MeInsertQueueDpc/Apc functions)
 
 --*/
 

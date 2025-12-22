@@ -180,15 +180,15 @@ MiRefillPool(
 
         // Map the page permanently.
         PMMPTE pte = MiGetPtePointer((uintptr_t)PageVa);
+        if (!pte) {
+            MiFreePoolVaContiguous(PageVa, VirtualPageSize, NonPagedPool);
+            MiReleasePhysicalPage(pfn);
+            return false;
+        }
         uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
         MI_WRITE_PTE(pte, PageVa, phys, PAGE_PRESENT | PAGE_RW);
 
-        // Update PFN metadata.
-        PPFN_ENTRY ppfn = INDEX_TO_PPFN(pfn);
-        ppfn->State = PfnStateActive;
-        ppfn->Flags = PFN_FLAG_NONPAGED;
-        ppfn->Descriptor.Mapping.PteAddress = pte;
-        ppfn->Descriptor.Mapping.Vad = NULL;
+        // Set block size.
         HeaderBlockSize = VirtualPageSize;
     }
 

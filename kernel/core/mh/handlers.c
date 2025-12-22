@@ -191,30 +191,50 @@ MiPageFault (
     --*/
 
     
-
-    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, MeGetPreviousMode(), trap);
+    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
-        // If there are no exceptions handlers (for SEH, we use the default one for user mode, TODO SEH USER MODE)
-        //if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
-        //    ExpDispatchException(trap);
-        //    return;
-        //}
+        // If there are no exceptions handlers (for SEH, we use the default one for user mode, TODO SEH USER MODE) (for kernel mode we check the section by linker script)
+        // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
+        PsGetCurrentThread()->LastStatus = status;
 
-        //else {
-            // No kernel exception handler present, bugcheck.
-            MeBugCheckEx(
-                KMODE_EXCEPTION_NOT_HANDLED,
-                (void*)(uintptr_t)status,
-                (void*)fault_addr,
-                (void*)trap->rip,
-                (void*)trap->error_code
-            );
-        //}
+        if (PreviousMode == UserMode) {
+            if (false);
+            /*
+            if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
+                ExpDispatchException(trap);
+                return;
+            }
+            */
+            else {
+                // Terminate thread that caused violation.
+                PsTerminateThread(PsGetCurrentThread(), status);
+                return;
+            }
+        }
+        else {
+            // Kernel mode, we see if we have an exception handler for this.
+            uint64_t HandlerAddress = ExpFindKernelModeExceptionHandler(trap->rip);
+            if (HandlerAddress != 0) {
+                // We found an exception handler! We return to it now.
+                trap->rip = HandlerAddress;
+                return;
+            }
+        }
+
+        // No handler found for the kernel mode violation, we bugcheck.
+        MeBugCheckEx(
+            KMODE_EXCEPTION_NOT_HANDLED,
+            (void*)(uintptr_t)status,
+            (void*)fault_addr,
+            (void*)trap->rip,
+            (void*)trap->error_code
+        );
     }
 
     // MmAccessFault returned MT_SUCCESS, that means it handled the fault (filled the PTE, etc.), we return to original instruction and re-run.

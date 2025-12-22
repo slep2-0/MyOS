@@ -11,6 +11,16 @@ SECTIONS
         *(.text)
         *(.text.*)
     }
+	
+	/* * The Exception Table Section 
+     * We align it to 8 bytes because it contains 64-bit pointers.
+     */
+    . = ALIGN(8);
+    __start_ex_table = .;
+    __ex_table : {
+        *(__ex_table)
+    }
+    __stop_ex_table = .;
 
     .rodata : {
         *(.rodata)

@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/ob.h"
 #include "../../includes/mm.h"
 #include "../../includes/ps.h"
+#include "../../includes/exception.h"
 
 MTSTATUS
 MtAllocateVirtualMemory(

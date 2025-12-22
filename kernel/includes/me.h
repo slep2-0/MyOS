@@ -233,8 +233,6 @@ typedef struct _DPC_DATA {
 
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
-// Default timeslice for a new thread.
-#define DEFAULT_TIMESLICE 1
 
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
 #define KERNEL_DS       0x10    // Entry 2: Kernel Data  

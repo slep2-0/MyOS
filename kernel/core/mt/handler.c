@@ -65,7 +65,7 @@ MtSyscallHandler(
     // >= because 256 is an invalid index in the array (0-255)
     if (SyscallNumber >= MAX_SYSCALLS || Ssdt[SyscallNumber] == NULL) {
         *ReturnValue = MT_INVALID_PARAM;
-        goto Return;
+        return;
     }
 
     // Arugments are in RDI RSI RDX R10 (not RCX in Syscalls, since CPU clobbers it for RIP) R8 R9
@@ -82,6 +82,4 @@ MtSyscallHandler(
     //uint64_t* UserStack = (uint64_t*)MeGetCurrentProcessor()->UserRsp;
     
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
-Return:
-    return;
 }

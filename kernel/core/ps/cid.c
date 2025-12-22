@@ -70,7 +70,7 @@ PsAllocateProcessId(
 
     Return Values:
 
-        The HANDLE (pid) for the process.
+        The HANDLE (pid) for the process, or MT_INVALID_HANDLE on failure.
 
 --*/
 
@@ -99,7 +99,7 @@ PsAllocateThreadId(
 
     Return Values:
 
-        The HANDLE (tid) for the thread.
+        The HANDLE (tid) for the thread, or MT_INVALID_HANDLE on failure.
 
 --*/
 

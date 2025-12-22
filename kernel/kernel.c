@@ -218,6 +218,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MeBugCheckEx(PSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
     }
 
+    // Initiate section type initializer (must be called after Ob)
     st = MmInitSections();
     if (MT_FAILURE(st)) {
         MeBugCheckEx(
