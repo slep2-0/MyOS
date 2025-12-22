@@ -26,8 +26,8 @@ extern MtSyscallHandler
 ; void MtSyscallEntry(void);
 global MtSyscallEntry
 MtSyscallEntry:
-    ; Switch GS to Kernel Base immediately. (todo)
-    ;swapgs
+    ; Switch GS to Kernel Base immediately.
+    swapgs
 
     ; Save the current user stack.
     mov [gs:PROCESSOR_UserRsp], rsp
@@ -89,8 +89,8 @@ MtSyscallEntry:
     ; Recover User Stack Pointer
     mov rsp, [gs:PROCESSOR_UserRsp]
 
-    ; Switch GS back to User Base (todo)
-    ;swapgs
+    ; Switch GS back to User Base
+    swapgs
 
     ; Return to User Mode
     ; If you are wondering why in the fuck did I put o64 in here and not sysretq??? Its because nasm doesnt support it, and its AT&T, in shorter words

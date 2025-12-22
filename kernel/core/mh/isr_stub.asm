@@ -98,6 +98,35 @@ isr_clock:
 global isr_common_stub64
 
 isr_common_stub64:
+    ; Execute SWAPGS if we came from user mode
+    test byte [rsp + 24], 3
+    jnz .do_swap
+
+    ; We came from kernel mode, check if IA32_KERNEL_GS_BASE holds a kernel pointer
+    ; If it does, it means we are in a GS gap, where the REAL gs is in there
+    ; And we are in the user ptr.
+    push rax
+    push rcx
+    push rdx
+
+    mov ecx, IA32_KERNEL_GS_BASE
+    rdmsr
+
+    ; If the high 32bits are non zero, it means KERNEL_GS_BASE holds a kernel ptr (our CPU ptr)
+    test edx, edx
+    jz .kernel_is_safe
+    swapgs
+
+.kernel_is_safe:
+    pop rdx
+    pop rcx
+    pop rax
+    jmp .skip_swapgs
+
+.do_swap:
+    swapgs    
+
+.skip_swapgs:
     ; Save all general purpose registers
     ; Push in reverse order so TRAP_FRAME struct matches
     push    rax
@@ -176,10 +205,12 @@ extern Schedule
     ; pop the 5 qwords the CPU pushed.
     add rsp, 40
 
+    ; Swapgs should be handled here by the scheduler routine, if we switch to another kernel thread, it wont execute swapgs, else it would (in restore_user_context)
     jmp Schedule ; Changed to jmp instruction, the function is a NORETURN
     int 8 ; Double Fault if we reached here, which we should never.
 
 .exit:
+    cli
     ; cleanup the IST stack (in older versions, it didnt and it could have overflown overtime, and probably would have with continuous thread use.)
     ; first pop all gprs
     pop    r15
@@ -201,6 +232,12 @@ extern Schedule
     ; remove vector and err code from the stack
     add rsp, 16
 
+    ; We must check if we came from user mode in order to execute swapgs.
+    test    qword [rsp + 8], 3    ; test low 2 bits (CS & 3)
+    jz      .no_swap_back
+    swapgs
+
+.no_swap_back:
     ; Return from interrupt. pops all CPU pushed regs from the stack back (5 qwords.)
     iretq
 

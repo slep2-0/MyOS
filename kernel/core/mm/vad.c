@@ -803,7 +803,6 @@ MmAllocateVirtualMemory(
     bool checkForOverlap = true;
 
     if (!StartVa) {
-        // We need to determine if the allocation is for a system process or a user process.
         // Its + 1 because its exclusive (so we want the actual end of the page, not excluding the last one)
         StartVa = MiFindGap(Process, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
         if (!StartVa) return MT_NOT_FOUND;

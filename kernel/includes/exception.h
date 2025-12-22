@@ -145,7 +145,7 @@ EXCEPTION_DISPOSITION MeStandardHandler(
 } while (0)
 #else
 #define try 
-#define except
+#define except /* */
 #define end_try
 #endif
 bool

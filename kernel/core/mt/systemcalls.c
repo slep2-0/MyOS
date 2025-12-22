@@ -30,6 +30,26 @@ MtAllocateVirtualMemory(
     IN uint8_t AllocationType
 )
 
+
+/*++
+
+    Routine description:
+
+        System call for user virtual memory allocation (VAD)
+
+    Arguments:
+
+        [IN]    HANDLE ProcessHandle - Handle to process that memory should be allocated for. (special handles supported, e.g MtCurrentProcess)
+        [IN OPTIONAL | OUT OPTIONAL] [PTR_TO_PTR]   void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *BaseAddress is set to the found start of gap.
+        [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
+        [IN]    uint8_t AllocationType - USER_ALLOCATION_TYPE Enum specifying which type of PTE flags the allocation should have. (executable, writable, none)
+
+    Return Values:
+
+        Various MTSTATUS Status codes.
+
+--*/
+
 {
     // We must allocate more than 0 bytes. (it will be page size anyway, so..)
     if (!NumberOfBytes) return MT_INVALID_PARAM;
@@ -40,7 +60,7 @@ MtAllocateVirtualMemory(
     if (ProcessHandle == MtCurrentProcess()) {
         // Current process allocation.
         Process = PsGetCurrentProcess();
-        // Reference it so it doesnt die.
+        // Reference it so it doesnt die. (is this really useful? I mean this is the current process thread, so..)
         ObReferenceObject(Process);
     }
     else {
@@ -57,14 +77,26 @@ MtAllocateVirtualMemory(
 
     // Sanitize AllocationType to VAD_FLAGS.
     VAD_FLAGS Flags = VAD_FLAG_NONE;
-    if (AllocationType == PAGE_EXECUTE_READWRITE) {
-        Flags = VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE;
-    }
-    else if (AllocationType == PAGE_EXECUTE_READ) {
-        Flags = VAD_FLAG_EXECUTE | VAD_FLAG_READ;
-    }
-    else if (AllocationType == PAGE_READWRITE) {
-        Flags = VAD_FLAG_READ | VAD_FLAG_WRITE;
+    switch (AllocationType) {
+        case PAGE_EXECUTE_READWRITE:
+            Flags = VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE;
+            break;
+
+        case PAGE_EXECUTE_READ:
+            Flags = VAD_FLAG_EXECUTE | VAD_FLAG_READ;
+            break;
+
+        case PAGE_READWRITE:
+            Flags = VAD_FLAG_READ | VAD_FLAG_WRITE;
+            break;
+
+        case PAGE_NOACCESS:
+            Flags = VAD_FLAG_RESERVED;
+            break;
+
+        default:
+            Flags = VAD_FLAG_NONE;
+            break;
     }
 
     if (Flags != VAD_FLAG_NONE) {
@@ -87,7 +119,7 @@ MtOpenProcess(
 )
 
 {
-    // Todo ProbeForWrite..
+    
     UNREFERENCED_PARAMETER(ProcessId); UNREFERENCED_PARAMETER(ProcessHandle); UNREFERENCED_PARAMETER(DesiredAccess);
     return MT_NOT_IMPLEMENTED;
 }

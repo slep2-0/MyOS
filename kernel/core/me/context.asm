@@ -50,6 +50,8 @@ global restore_user_context
 restore_user_context:
     ; We are in user mode, not only we restore registers, but we also switch CR3, and segments.
     ; First, switch into the process's CR3, since we are STILL in CPL 0, the kernel mapping will still hold true.
+    cli
+
     mov rax, [rdi + ETHREAD_ParentProcess]
     mov rax, [rax + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
@@ -83,5 +85,9 @@ restore_user_context:
 
     ; 4 - Finally restore RAX itself
     mov   rax, [rax + TRAP_FRAME_rax]      ; RAX <- saved RAX
-    ;swapgs
+
+    ; Swap back to user mode GS.
+    swapgs
+
+    ; Return to user mode.
     iretq
