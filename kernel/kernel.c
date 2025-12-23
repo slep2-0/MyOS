@@ -197,7 +197,6 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     // Initialize the TSS & GDT & New IDT with TSS
     MeInitializeProcessor(&cpu0, true, false);
-
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
     MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
@@ -315,8 +314,8 @@ void kernel_main(BOOT_INFO* boot_info) {
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
-    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
-    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, NULL);
+    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS, NULL); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.

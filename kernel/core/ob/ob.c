@@ -182,18 +182,20 @@ ObReferenceObject(
     if (!Object) return false;
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
-    uint64_t OldCount = Header->PointerCount;
-    while (1) {
-        if (OldCount == 0) return false; // Object is dying or dead
+    uint64_t expected = __atomic_load_n((volatile uint64_t*)&Header->PointerCount, __ATOMIC_SEQ_CST);
 
-        uint64_t NewCount = InterlockedCompareExchangeU64(
-            (volatile uint64_t*)&Header->PointerCount,
-            OldCount + 1,
-            OldCount
-        );
+    for (;;) {
+        if (expected == 0) {
+            // object is dying or dead
+            return false;
+        }
 
-        if (NewCount == OldCount) return true;
-        OldCount = NewCount;
+        uint64_t desired = expected + 1;
+        // attempt swap: if fail, expected is updated by the function with the new current value
+        if (InterlockedCompareExchangeU64_bool((volatile uint64_t*)&Header->PointerCount, desired, &expected)) {
+            return true;
+        }
+        // loop with updated expected
     }
 }
 

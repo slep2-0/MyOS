@@ -36,3 +36,16 @@ MtAllocateVirtualMemory(
     IN size_t NumberOfBytes,
     IN uint8_t AllocationType
 );
+
+MTSTATUS
+MtOpenProcess(
+    IN uint32_t ProcessId,
+    OUT PHANDLE ProcessHandle,
+    IN ACCESS_MASK DesiredAccess
+);
+
+MTSTATUS
+MtTerminateProcess(
+    IN HANDLE ProcessHandle,
+    IN MTSTATUS ExitStatus
+);

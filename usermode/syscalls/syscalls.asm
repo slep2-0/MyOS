@@ -34,3 +34,32 @@ MtAllocateVirtualMemory:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtOpenProcess(
+;     IN uint32_t ProcessId,
+;     OUT PHANDLE ProcessHandle,
+;     IN ACCESS_MASK DesiredAccess
+; );
+; Syscall number is 1.
+
+global MtOpenProcess
+MtOpenProcess:
+	mov rax, 1
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtTerminateProcess(
+;     IN HANDLE ProcessHandle,
+;     IN MTSTATUS ExitStatus
+; );
+; Syscall number is 2.
+
+global MtTerminateProcess
+MtTerminateProcess:
+	mov rax, 2
+	mov r10, rcx
+	syscall
+	ret

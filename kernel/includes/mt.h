@@ -62,4 +62,10 @@ MtOpenProcess(
     IN ACCESS_MASK DesiredAccess
 );
 
+MTSTATUS
+MtTerminateProcess(
+    IN HANDLE ProcessHandle,
+    IN MTSTATUS ExitStatus
+);
+
 #endif

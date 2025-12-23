@@ -59,7 +59,7 @@ PsCreateProcess(
 
     Routine description:
 
-       Creates a process, simple as that.
+       Creates a user mode process, simple as that.
 
     Arguments:
 
@@ -213,7 +213,7 @@ PsTerminateProcess(
 
     Routine description:
 
-        Terminates the process
+        Terminates the process, kills its threads.
 
     Arguments:
 
@@ -222,15 +222,17 @@ PsTerminateProcess(
 
     Return Values:
 
-        None.
+        MTSTATUS Status code representing if the process has terminated successfully.
+        Or a NORETURN if this is the current process.
 
 --*/
 
 {
     // Declarations
     PETHREAD Thread = NULL;
-    UNREFERENCED_PARAMETER(Thread);
     MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
+    bool SeenOurselves = false;
+    PETHREAD current = PsGetCurrentThread();
     if (Process->Flags & ProcessBreakOnTermination) {
         // Attempted termination of a process that is critical to system stability,
         // we bugcheck.
@@ -247,13 +249,24 @@ PsTerminateProcess(
         );
     }
 
+    // Acquire last process rundown.
+    MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
+    
     // Set the process as terminating in its flags.
-    InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingTerminated);
+    PROCESS_FLAGS FlagBefore = InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingTerminated);
+    if (FlagBefore & ProcessBeingTerminated) return MT_PROCESS_IS_TERMINATING;
+
     Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
 
     // Begin terminating all process threads.
     Thread = PsGetNextProcessThread(Process, Thread);
     while (Thread) {
+        if (Thread == current) {
+            SeenOurselves = true;
+            Thread = PsGetNextProcessThread(Process, Thread);
+            continue;
+        }
+
         // Exterminate the thread from this world (system32)
         PsTerminateThread(Thread, ExitCode);
         // Get the next victim for our massacre.
@@ -261,6 +274,11 @@ PsTerminateProcess(
 
         // One got exterminated, so we mark it a successful mission.
         Status = MT_SUCCESS;
+    }
+
+    if (SeenOurselves) {
+        // noreturn
+        PspExitThread(ExitCode);
     }
 
     // Return if mission successful.
@@ -274,8 +292,6 @@ PsDeleteProcess(
 
 {
     PEPROCESS Process = (PEPROCESS)ProcessObject;
-    // Wait for anything to stop holding the rundown protection.
-    MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
 
     // Set flags
     InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingDeleted);
@@ -314,7 +330,8 @@ PsGetNextProcessThread(
 
 {
     PETHREAD FoundThread = NULL;
-    PDOUBLY_LINKED_LIST Entry, ListHead;
+    PDOUBLY_LINKED_LIST Entry;
+    PDOUBLY_LINKED_LIST ListHead = &Process->AllThreads;
     // Acquire thread list lock.
     MsAcquirePushLockShared(&Process->ThreadListLock);
 
@@ -324,11 +341,14 @@ PsGetNextProcessThread(
     }
     else {
         // Start at beginnininng
-        Entry = Process->AllThreads.Flink;
+        Entry = ListHead->Flink;
+    }
+
+    if (Entry == NULL) {
+        goto Cleanup;
     }
 
     // Set the list head and start the loop.
-    ListHead = Process->AllThreads.Flink;
     while (ListHead != Entry) {
         // While the pointers arent equal (we arent back the start), we enumerate for the next thread.
         FoundThread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
@@ -340,6 +360,7 @@ PsGetNextProcessThread(
         Entry = Entry->Flink;
     }
 
+Cleanup:
     // Unlock process.
     MsReleasePushLockShared(&Process->ThreadListLock);
     if (LastThread) {

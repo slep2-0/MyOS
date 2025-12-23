@@ -776,7 +776,6 @@ MmAllocateVirtualMemory(
     if (BaseAddress) {
         try {
             if (PreviousMode == UserMode) {
-                __stac();
                 status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
 
                 if (MT_FAILURE(status)) {
@@ -787,10 +786,7 @@ MmAllocateVirtualMemory(
 
             // Dereference the address given to see if we are supplied with a starting virtual address.
             StartVa = (uintptr_t)*BaseAddress;
-
-            if (PreviousMode == UserMode) __clac();
         } except{
-            __clac();
             return GetExceptionCode();
         }
         end_try;
@@ -810,12 +806,9 @@ MmAllocateVirtualMemory(
         // Update the newly found address.
         if (BaseAddress) {
             try {
-                if (PreviousMode == UserMode) __stac();
                 *BaseAddress = (void*)StartVa;
-                if (PreviousMode == UserMode) __clac();
             }
             except{
-                __clac();
                 return GetExceptionCode();
             }
             end_try;

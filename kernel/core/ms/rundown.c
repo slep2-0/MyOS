@@ -1,4 +1,5 @@
 #include "../../includes/me.h"
+#include "../../intrinsics/atomic.h"
 
 #define TEARDOWN_ACTIVE (1ULL << 63)
 #define REFERENCE_COUNT (0x7FFFFFFFFFFFFFFF)
@@ -24,15 +25,15 @@ MsAcquireRundownProtection (
 --*/
 
 {
-	uint64_t old_count, new_count;
+	uint64_t expected, desired;
 	do {
-		old_count = rundown->Count;
-		if (old_count & TEARDOWN_ACTIVE) {
-			// Teardown has started, refuse to acquire.
-			return false;
-		}
-		new_count = old_count + 1;
-	} while (!InterlockedCompareExchangeU64(&rundown->Count, new_count, old_count));
+		expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+
+		// If teardown has started we refuse.
+		if (expected & TEARDOWN_ACTIVE) return false;
+
+		desired = expected + 1;
+	} while (!InterlockedCompareExchangeU64_bool(&rundown->Count, desired, &expected));
 	return true;
 }
 
@@ -80,13 +81,25 @@ void MsWaitForRundownProtectionRelease (
 --*/
 
 {
-	uint64_t old_count;
-	do {
-		old_count = rundown->Count;
-	} while (!InterlockedCompareExchangeU64(&rundown->Count, old_count | TEARDOWN_ACTIVE, old_count));
+	uint64_t expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+	for (;;) {
+		uint64_t desired = expected | TEARDOWN_ACTIVE;
 
-	// Spin until count reaches zero (TODO RUNDOWN REF WAKE SLEEP (use the 0-62 bits for a pointer )
-	while ((rundown->Count & REFERENCE_COUNT) != 0) {
+		// try to set TEARDOWN_ACTIVE while preserving the refcount bits
+		if (InterlockedCompareExchangeU64_bool(&rundown->Count, desired, &expected)) {
+			// success — we hold the TEARDOWN_ACTIVE marker now
+			break;
+		}
+
+		if (expected & TEARDOWN_ACTIVE) {
+			// Another thread set teardown already
+			break;
+		}
+		// otherwise loop and try again with updated expected
+	}
+
+	// Spin until no references remain 
+	while ((__atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST) & REFERENCE_COUNT) != 0) {
 		__pause();
 	}
 }

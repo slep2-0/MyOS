@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/ms.h"
 #include "../../intrinsics/atomic.h"
+#include "../../includes/mm.h"
 
 static
 void
@@ -85,10 +86,13 @@ MsAcquirePushLockExclusive(
         return;
     }
 
+    // Allocate a wait block.
+    PUSH_LOCK_WAIT_BLOCK* WaitBlock = (PUSH_LOCK_WAIT_BLOCK*)MmAllocatePoolWithTag(NonPagedPool, sizeof(PUSH_LOCK_WAIT_BLOCK), 'tiaw');
+    if (!WaitBlock) return; // idk what to do here to be honest.
+
     // An exclusive lock is owned.., we just push to the waitblock.
-    PUSH_LOCK_WAIT_BLOCK WaitBlock;
-    WaitBlock.Flags = PL_FLAGS_EXCLUSIVE;
-    MspSuspendPushLock(Lock, &WaitBlock, Lock->Value);
+    WaitBlock->Flags = PL_FLAGS_EXCLUSIVE;
+    MspSuspendPushLock(Lock, WaitBlock, Lock->Value);
 }
 
 void
@@ -133,6 +137,10 @@ MsReleasePushLockExclusive(
         if (InterlockedCompareExchangeU64(&Lock->Value, NewValue, Value) == Value) {
             // Wake the next waiter.
             MsSetEvent(&Head->WakeEvent);
+            
+            // Free the waiters memory allocated.
+            MmFreePool(Head);
+
             return;
         }
     }
@@ -151,9 +159,10 @@ MsAcquirePushLockShared(
         // If Locked (Bit 0) or Waiting (Bit 1) is set, we must wait.
         // We just sleep.
         if (Value & (PL_LOCK_BIT | PL_WAIT_BIT)) {
-            PUSH_LOCK_WAIT_BLOCK WaitBlock;
-            WaitBlock.Flags = PL_FLAGS_SHARED;
-            MspSuspendPushLock(Lock, &WaitBlock, Value);
+            PUSH_LOCK_WAIT_BLOCK* WaitBlock = (PUSH_LOCK_WAIT_BLOCK*)MmAllocatePoolWithTag(NonPagedPool, sizeof(PUSH_LOCK_WAIT_BLOCK), 'tiaw');
+            if (!WaitBlock) return; // idk what to do here to be honest.
+            WaitBlock->Flags = PL_FLAGS_SHARED;
+            MspSuspendPushLock(Lock, WaitBlock, Value);
             return;
         }
 

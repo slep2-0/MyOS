@@ -124,7 +124,7 @@ isr_common_stub64:
     jmp .skip_swapgs
 
 .do_swap:
-    swapgs    
+    swapgs
 
 .skip_swapgs:
     ; Save all general purpose registers

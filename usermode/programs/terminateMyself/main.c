@@ -3,7 +3,7 @@
 
 int main(void) {
     void* BaseAddress = NULL;
-    MTSTATUS Status = MtAllocateVirtualMemory(MtCurrentProcess(), (void**)0x1000, 512, PAGE_EXECUTE_READWRITE);
+    MTSTATUS Status = MtAllocateVirtualMemory(MtCurrentProcess(), &BaseAddress, 512, PAGE_EXECUTE_READWRITE);
     if (MT_FAILURE(Status)) {
         // what??? failure??? I DO NOT accept failure.. not in my book.
         // time to justify the name of my program!

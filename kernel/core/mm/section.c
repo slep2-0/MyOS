@@ -49,7 +49,6 @@ MmCreateSection(
     }
 
     // Allocate the actual section object (pool)
-    // TODO ObCreateObject(ObjectTypeInitializerOfFile)
     PMM_SECTION NewSection = NULL;
     Status = ObCreateObject(MmSectionType, sizeof(MM_SECTION), (void**)&NewSection);
     if (MT_FAILURE(Status)) return Status;

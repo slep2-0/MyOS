@@ -133,6 +133,7 @@ typedef enum _BUGCHECK_CODES {
 	CID_TABLE_NULL,
 	INVALID_PROCESS_ATTACH_ATTEMPT,
 	CRITICAL_PROCESS_DIED,
+	WORKER_THREAD_ATTEMPTED_TERMINATION,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -457,6 +458,16 @@ MeIsExecutingDpc(void)
 
 {
 	return (bool)__readgsqword(FIELD_OFFSET(PROCESSOR, DpcRoutineActive));
+}
+
+FORCEINLINE
+bool
+MeIsAttachedProcess(
+	void
+)
+
+{
+	return MeGetCurrentThread()->ApcState.AttachedToProcess;
 }
 
 void

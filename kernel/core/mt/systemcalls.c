@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/ob.h"
 #include "../../includes/mm.h"
 #include "../../includes/ps.h"
+#include "../../includes/mg.h"
 #include "../../includes/exception.h"
 
 MTSTATUS
@@ -60,8 +61,12 @@ MtAllocateVirtualMemory(
     if (ProcessHandle == MtCurrentProcess()) {
         // Current process allocation.
         Process = PsGetCurrentProcess();
-        // Reference it so it doesnt die. (is this really useful? I mean this is the current process thread, so..)
-        ObReferenceObject(Process);
+        // Reference it so it doesnt die. (and so the ObDereferenceObject at the end of the function doesnt decrement a reference by others)
+        if (!ObReferenceObject(Process)) {
+            // This shouldnt really be possible, as if someone called to terminate the process
+            // then this thread would have been dead. (or maybe not because we are in a syscall?)
+            return MT_PROCESS_IS_TERMINATING;
+        }
     }
     else {
         // Another process reference.
@@ -119,7 +124,65 @@ MtOpenProcess(
 )
 
 {
-    
-    UNREFERENCED_PARAMETER(ProcessId); UNREFERENCED_PARAMETER(ProcessHandle); UNREFERENCED_PARAMETER(DesiredAccess);
-    return MT_NOT_IMPLEMENTED;
+    // TODO SIDS, check if the user process is allowed to open another process handle.
+    // TODO PPL, check if the user proecss is allowed to a process handle to ProcessId, check if its protection level is higher or equal.
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_protection_level_information
+    // For now, we just disregard a process with PID 4 since its the system process.
+    MTSTATUS Status;
+    if (ProcessId == 4) return MT_ACCESS_DENIED;
+    Status = ProbeForRead(ProcessHandle, sizeof(PHANDLE), _Alignof(PHANDLE));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Retrieve the process.
+    PEPROCESS Process = PsLookupProcessByProcessId(ProcessId);
+    if (!Process) return MT_NOT_FOUND;
+
+    HANDLE OutHandleBefore;
+    Status = ObOpenObjectByPointer((void*)Process, PsProcessType, DesiredAccess, &OutHandleBefore);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Attempt to write to user memory
+    try {
+        *ProcessHandle = OutHandleBefore;
+    } except{
+        // User gave invalid pointer, we return failure 
+        HtClose(OutHandleBefore);
+        return GetExceptionCode();
+    }
+    end_try;
+
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+MtTerminateProcess(
+    IN HANDLE ProcessHandle,
+    IN MTSTATUS ExitStatus
+)
+
+{
+    PEPROCESS ProcessToTerminate;
+    MTSTATUS Status;
+    if (ProcessHandle == MtCurrentProcess()) {
+        ProcessToTerminate = PsGetCurrentProcess();
+        gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process %p called upon to terminate itself from this existence of the virtual world.\n", (void*)(uintptr_t)ProcessToTerminate);
+    }
+    else {
+        // Attempt reference of handle.
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_TERMINATE,
+            PsProcessType,
+            (void**)&ProcessToTerminate,
+            NULL
+        );
+        if (MT_FAILURE(Status)) return Status;
+        gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process %p called to be terminated.\n", (void*)(uintptr_t)ProcessToTerminate);
+    }
+
+    // Kill the process.
+    Status = PsTerminateProcess(ProcessToTerminate, ExitStatus);
+
+    // Return status, if it wasnt ourselves who were killed.
+    return Status;
 }

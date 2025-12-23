@@ -23,7 +23,7 @@ CFLAGS = -std=gnu11 \
          -Wall -Wextra -Werror -Wmissing-prototypes \
          -Wstrict-prototypes -Wno-multichar -Wshadow -Wcast-align \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
-         -mcmodel=large -mno-red-zone -fno-pie -fno-pic
+         -mcmodel=large -mno-red-zone -MMD -MP -fno-pie -fno-pic
 
 # Scheduler special flags (frame-pointer and no tail-call)
 SCHED_EXTRA = -fno-optimize-sibling-calls
@@ -329,3 +329,5 @@ build/os-image.img: build/kernel.bin
 	@echo "Created OS image successfully."
 
 .PHONY: all clean clearlog
+
+-include build/*.d

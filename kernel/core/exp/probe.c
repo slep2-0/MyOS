@@ -67,6 +67,7 @@ ProbeForRead(
         }
 
         // Check against Highest User Address
+        // This should not be the MmUserProbeAddress, as the stack lives above that address, and if a user gives something from his stack there, it would resolve in an MT_ACCESS_VIOLATION.
         if (End > (uint64_t)MmHighestUserAddress) {
             return MT_ACCESS_VIOLATION;
         }

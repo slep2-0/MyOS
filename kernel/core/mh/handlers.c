@@ -184,8 +184,8 @@ MiPageFault (
     Page fault bugcheck parameters:
 
     Parameter 1: Memory address referenced. (CR2)
-    Parameter 2: (decimal) 0 - Read Operation, 2 - Write Operation, 10 - Execute operation (unused for now, NX hasn't been turned on for now)
-    Parameter 3: Address that referenced memory (RIP)
+    Parameter 2: (decimal) 0 - Read Operation, 2 - Write Operation, 10 - Execute operation
+    Parameter 3: Address that referenced memory (RIP) 
     Parameter 4: CPU Error code pushed.
 
     --*/
@@ -199,23 +199,29 @@ MiPageFault (
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
-        // If there are no exceptions handlers (for SEH, we use the default one for user mode, TODO SEH USER MODE) (for kernel mode we check the section by linker script)
+        // If there are no exceptions handlers (for user mode, we check the FS exception (todo TEB)) (for kernel mode we check the section by linker script)
         // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
         PsGetCurrentThread()->LastStatus = status;
 
         if (PreviousMode == UserMode) {
+#if 0
             if (false);
-            /*
+            /* Unimplemented yet.
             if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
                 ExpDispatchException(trap);
                 return;
             }
             */
             else {
+#endif
                 // Terminate thread that caused violation.
                 PsTerminateThread(PsGetCurrentThread(), status);
+                // We arent allowed to continue.
+                MeGetCurrentProcessor()->schedulePending = true;
                 return;
+#if 0
             }
+#endif
         }
         else {
             // Kernel mode, we see if we have an exception handler for this.
@@ -306,8 +312,9 @@ MiDivideByZero (
     
     // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION. TODO
     if (MeGetPreviousMode() == UserMode) {
-        // guard it for now.
-        MeBugCheckEx(ASSERTION_FAILURE, (void*)"MiDivideByZero", (void*)"A Fault in user mode occured, division error, implement.", NULL, NULL);
+        PsTerminateThread(PsGetCurrentThread(), MT_INTEGER_DIVIDE_BY_ZERO);
+        // We arent allowed to continue.
+        MeGetCurrentProcessor()->schedulePending = true;
     }
 
     MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);

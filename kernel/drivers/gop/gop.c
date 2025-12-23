@@ -103,6 +103,8 @@ static void gop_scroll(GOP_PARAMS* gop) {
     uint32_t  w = gop->Width;
     uint32_t  lines = line_height();
 
+    if (gop->Height <= lines) return;
+
     size_t count = (h - lines) * (size_t)stride;
     fb_memmove32(&fb[0], &fb[lines * stride], count);
 
@@ -184,7 +186,7 @@ static void gop_print_udec(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
 }
 
 static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
-    char buf[19] = "0x0000000000000000"; // 64 bit addressing
+    char buf[32] = "0x0000000000000000"; // 64 bit addressing
     for (int i = 0; i < 16; i++) {
         unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
         buf[2 + i] = (nib < 10 ? '0' + nib : 'a' + nib - 10);
@@ -271,7 +273,7 @@ static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t v
 }
 
 static void buf_print_hex64(char* buf, size_t size, size_t* written, uint64_t value) {
-    char tmp[17];
+    char tmp[32];
     char* t = tmp + sizeof(tmp) - 1;
     const char* hex = "0123456789abcdef";
     *t = '\0';
@@ -625,7 +627,11 @@ static void release_tmp_lock(SPINLOCK* lock) {
     __sync_lock_release(&lock->locked);
 }
 
+#ifdef DISABLE_GOP
+USED static void gop_printfz(uint32_t color, const char* fmt, ...) {
+#else
 void gop_printf(uint32_t color, const char* fmt, ...) {
+#endif
     // Re-entrancy check: If we already own it, we are safe to print, 
     // but if another core owns it, we return to avoid deadlocks in high-IRQL.
     void* owner = InterlockedCompareExchangePointer((volatile void* volatile*)&ExclusiveOwnerShip, NULL, NULL);
@@ -641,7 +647,7 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
 
     // One buffer to rule them all. 
     // Large enough for binary(64) + null + slop.
-    char scratch[NUM_BUFFER_SIZE];
+    __attribute__((aligned(16))) char scratch[NUM_BUFFER_SIZE];
     size_t written = 0;
 
     for (const char* p = fmt; *p; p++) {

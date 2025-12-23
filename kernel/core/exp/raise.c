@@ -26,6 +26,12 @@ ExpRaiseStatus(
 )
 
 {
+    // This is unused, or atleast should be changed.
+    // Since the try except macros are expected to work within interrupts (like a page fault), since RBP,RSP are saved (and General Purpose Registers)
+    // So simply jumping to there WILL NOT work, we must restore all general registers (which would require support handling in the try try_end; macros, and not only linker support
+    // So for now, this should stay unused.
+    // This will be used (probably) for user mode SEH.
+
     PETHREAD CurrentThread = PsGetCurrentThread();
     // Set status.
     CurrentThread->LastStatus = Status;

@@ -89,6 +89,12 @@ extern "C" {
         return expected;
     }
 
+    FORCEINLINE bool InterlockedCompareExchangeU64_bool(volatile uint64_t* target, uint64_t value, uint64_t* expected) {
+        // returns true on success, and updates *expected with current value on failure
+        return __atomic_compare_exchange_n(target, expected, value, 0,
+            __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    }
+
     /* Pointer CompareExchange */
     FORCEINLINE void* InterlockedCompareExchangePtr(volatile void* volatile* target, void* value, void* comparand) {
         void* expected = comparand;

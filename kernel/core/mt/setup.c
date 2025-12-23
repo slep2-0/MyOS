@@ -40,7 +40,8 @@ typedef struct {
 SYSCALL_INIT_ENTRY SyscallTable[] = {
     // Syscalls are here.
     {.Num = 0, .Handler = MtAllocateVirtualMemory},
-    {.Num = 1, .Handler = MtOpenProcess}
+    {.Num = 1, .Handler = MtOpenProcess},
+    {.Num = 2, .Handler = MtTerminateProcess}
 };
 
 void

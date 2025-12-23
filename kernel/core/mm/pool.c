@@ -103,11 +103,12 @@ MiRefillPool(
 
 {
     // Before allocating a va or another PFN, lets check the global pool first, see if we have a free 4KiB block.
-    IRQL oldIrql;
+    //IRQL oldIrql;
     uintptr_t PageVa = 0;
     size_t HeaderBlockSize = 0;
-    size_t Iterations = 0;
-
+    //size_t Iterations = 0;
+    /* If I ever return back freeing to global pool, I should check that Desc->BlockSize == VirtualPageSize, else it wont use it.
+    * Since we have memory corruptions for larger block sizes..
     // Acquire the spinlock for atomicity.
     MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
 
@@ -164,7 +165,7 @@ MiRefillPool(
 
     // Release global pool lock.
     MsReleaseSpinlock(&GlobalPool.PoolLock, oldIrql);
-
+    */
     if (!PageVa) {
         // The global pool is empty... lets allocate.
         // Allocate a 4KiB virtual address.
@@ -244,16 +245,13 @@ MiAllocateLargePool(
 --*/
 
 {
-    // Large pool allocations are always popped / pushed into the global free list (since its the only one that holds more than 2048 bytes)
+    /*
     IRQL oldIrql;
-    MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
-
     // Compute the actual allocation size in bytes.
-    size_t RequiredSize = NumberOfBytes + sizeof(POOL_HEADER);
-
+    PPOOL_HEADER foundHeader = NULL;
+    MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
     PSINGLE_LINKED_LIST* PtrToPrevNext = &GlobalPool.FreeListHead.Next;
     PSINGLE_LINKED_LIST list = GlobalPool.FreeListHead.Next;
-    PPOOL_HEADER foundHeader = NULL;
 
     while (list) {
         PPOOL_HEADER header = CONTAINING_RECORD(list, POOL_HEADER, Metadata.FreeListEntry);
@@ -285,14 +283,15 @@ MiAllocateLargePool(
 
     // Release the lock.
     MsReleaseSpinlock(&GlobalPool.PoolLock, oldIrql);
-
     // Now lets check if we found a block or we didn't.
     if (foundHeader) {
         // Good, lets set metadata, and return it to the caller.
         foundHeader->PoolTag = Tag;
         return (void*)((uint8_t*)foundHeader + sizeof(POOL_HEADER));
     }
+    */
 
+    size_t RequiredSize = NumberOfBytes + sizeof(POOL_HEADER);
     // Looks like we didn't find a block that has the amount of bytes we need, allocate one.
     size_t neededPages = BYTES_TO_PAGES(RequiredSize);
 
@@ -633,16 +632,35 @@ MmFreePool(
     uint16_t PoolIndex = header->Metadata.PoolIndex;
 
     if (PoolIndex == POOL_TYPE_GLOBAL) {
-        // Big pool allocation, return it to the global pool.
-        IRQL oldIrql;
-        MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
+        // We destroy global pool allocations and free them back to main memory.
+        size_t BlockSize = header->Metadata.BlockSize;
+        size_t NumberOfPages = BYTES_TO_PAGES(BlockSize);
+        uintptr_t CurrentVA = (uintptr_t)header;
 
-        // Push the block back onto the global free list
-        header->Metadata.FreeListEntry.Next = GlobalPool.FreeListHead.Next;
-        GlobalPool.FreeListHead.Next = &header->Metadata.FreeListEntry;
-        GlobalPool.FreeCount++;
+        // 1. Release Physical Pages (PFNs) and Unmap PTEs
+        for (size_t i = 0; i < NumberOfPages; i++) {
+            PMMPTE pte = MiGetPtePointer(CurrentVA);
 
-        MsReleaseSpinlock(&GlobalPool.PoolLock, oldIrql);
+            // Check if PTE is present, it should be though.
+            if (pte && pte->Hard.Present) {
+                PAGE_INDEX Pfn = MiTranslatePteToPfn(pte);
+
+                // Invalidate PTE.
+                MiUnmapPte(pte);
+                // Free the PFN back to db.
+                MiReleasePhysicalPage(Pfn);
+            }
+            else {
+                MeBugCheckEx(MEMORY_CORRUPT_HEADER, (void*)CurrentVA, 0, 0, 0);
+            }
+
+            CurrentVA += VirtualPageSize;
+        }
+
+        // 2. Free the Contiguous Virtual Address space
+        // Assuming you have a function to free the VA range in your bitmap/tree
+        MiFreePoolVaContiguous((uintptr_t)header, BlockSize, NonPagedPool);
+
         return;
     }
 

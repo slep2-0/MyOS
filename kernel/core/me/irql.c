@@ -182,6 +182,18 @@ _MeSetIrql (
     MeGetCurrentProcessor()->currentIrql = NewIrql;
     toggle_scheduler();
     update_apic_irqs(NewIrql);
+
+    PPROCESSOR cpu = MeGetCurrentProcessor();
+    MmFullBarrier();
+    if (prev_if && cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+        MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+    }
+
+    // Now APC Interrupts.
+    if (prev_if && cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+    }
+
     if (prev_if) __sti();
 }
 

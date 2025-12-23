@@ -124,6 +124,7 @@ typedef struct _EPROCESS {
 
     // Special Flags.
     enum _PROCESS_FLAGS Flags;
+    MTSTATUS ExitStatus;
 
     // VAD (todo process quota)
     struct _MMVAD* VadRoot; // The Root of the VAD for the process. (used to find free virtual addresses spaces in the process, and information about them)
@@ -143,6 +144,7 @@ typedef struct _ETHREAD {
     MTSTATUS ExitStatus; // The status the thread exited in.
     MTSTATUS LastStatus; // The last status set by violations.
     bool SystemThread; // Is this thread a system thread?
+    bool WorkerThread; // is this thread a worker thread?
     /* TODO: priority, affinity, wait list, etc. */
 } ETHREAD, *PETHREAD;
 
@@ -183,7 +185,7 @@ PsCreateThread(
 );
 
 extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
-MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE);
+MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread);
 
 MTSTATUS
 PsInitializeSystem(
@@ -201,6 +203,12 @@ PsTerminateProcess(
 void
 PsTerminateThread(
     IN PETHREAD Thread,
+    IN MTSTATUS ExitStatus
+);
+
+NORETURN
+void
+PspExitThread(
     IN MTSTATUS ExitStatus
 );
 

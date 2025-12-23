@@ -113,6 +113,7 @@ EXCEPTION_DISPOSITION MeStandardHandler(
 #ifndef _MSC_VER
 #define try do { \
     __label__ _try_start, _try_end, _except_label, _try_break;      \
+    if (MeGetPreviousMode() == UserMode) __stac();                  \
     /*  Emit the table entry linking this range to the handler */   \
     __asm__ volatile (                                              \
         ".section __ex_table,\"a\"\n\t"                             \
@@ -137,11 +138,13 @@ EXCEPTION_DISPOSITION MeStandardHandler(
     }                                                   \
     _except_label:                                      \
     {                                                   \
+    if (MeGetPreviousMode() == UserMode) __clac();      \
         /* The Page fault handler jumps here if we faulted */
 
 #define end_try                                                     \
     }                                                               \
-    _try_break:;                                                    \
+    _try_break:                                                     \
+        if (MeGetPreviousMode() == UserMode) __clac();              \
 } while (0)
 #else
 #define try 
