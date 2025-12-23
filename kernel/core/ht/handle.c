@@ -479,7 +479,7 @@ HtDeleteHandleTable(
                     Entries[i].Object = NULL;
                     // Decrement handle count atomically
                     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
-                    InterlockedDecrementIfNotZero((volatile uint64_t*)Header->HandleCount);
+                    InterlockedDecrementIfNotZero((volatile uint64_t*)&Header->HandleCount);
                     ObDereferenceObject(Object);
                 }
             }

@@ -342,6 +342,12 @@ PspExitThread(
         );
     }
 
+    if (LastThread) {
+        // This is the last thread of the process, we clear its handle table.
+        HtDeleteHandleTable(CurrentProcess->ObjectTable);
+        CurrentProcess->ObjectTable = NULL;
+    }
+
     // Todo termination ports for a process (so when it dies the user process can like show a message to parent process or sum shit)
 
     // Todo process the thread's mutexes and waits (unwait all threads waiting on this), along with flushing its APCs.

@@ -676,23 +676,25 @@ MmFreePool(
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
             if (unlikely(!pte)) goto advance;
-            assert(MM_IS_DEMAND_ZERO_PTE(*pte) == true);
 
             // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.
             if (pte->Hard.Present) {
                 // It has a PFN.
                 PAGE_INDEX Pfn = MiTranslatePteToPfn(pte);
-
                 // Unmap PTE, free PFN.
                 MiUnmapPte(pte);
                 MiReleasePhysicalPage(Pfn);
             }
+            else {
+                // If the PTE isnt present, it still must contain a demand zero bit.
+                assert(MM_IS_DEMAND_ZERO_PTE(*pte) == true);
+                MMPTE TempPte = *pte;
+                MM_UNSET_DEMAND_ZERO_PTE(TempPte);
+                // Flip the demand zero bit.
+                MiAtomicExchangePte(pte, TempPte.Value);
+            }
 
-            // Flip the demand zero bit.
-            MMPTE TempPte = *pte;
-            MM_UNSET_DEMAND_ZERO_PTE(TempPte);
-            MiAtomicExchangePte(pte, TempPte.Value);
-            // Invalidate the VA.
+            // Invalidate the VA. (only necessary for else though, as in MiUnmapPte it does invalidate TLB, but im so scared of bugs ill leave this here)
             MiInvalidateTlbForVa((void*)CurrentVA);
 
             advance:

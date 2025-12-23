@@ -24,6 +24,7 @@ Revision History:
 #include <stdbool.h>
 #include "stdarg_myos.h"
 #include "efi.h"
+#include "behavior.h"
 
 /// Colors definitions for easier access
 #define COLOR_RED        0xFFFF0000

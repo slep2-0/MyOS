@@ -307,7 +307,7 @@ PsDeleteProcess(
     // Delete its CID.
     PsFreeCid(Process->PID);
 
-    // Delete its handle table.
+    // Delete its handle table, this if statement should only pass if the process has failed creation.
     if (Process->ObjectTable) {
         // Attach to process so pagedpool inside of it are valid (even though they 100% should be valid now)
         APC_STATE State;
