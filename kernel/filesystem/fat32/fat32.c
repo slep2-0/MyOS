@@ -741,7 +741,7 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 	return false;
 }
 
-static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_cluster) {
+static MTSTATUS fat32_update_file_entry(const char* path, uint32_t start_cluster, uint32_t new_size, bool update_cluster, bool update_size) {
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
 
@@ -751,7 +751,7 @@ static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_c
 	char* save_ptr = NULL;
 	char* token = kstrtok_r(path_copy, "/", &save_ptr);
 
-	// Buffer for 2 sectors to handle boundary spanning
+	// Buffer for 2 sectors
 	uint32_t buf_size = fs.bytes_per_sector * 2;
 	void* big_buf = MmAllocatePoolWithTag(NonPagedPool, buf_size, 'UPDT');
 	if (!big_buf) return MT_NO_MEMORY;
@@ -760,24 +760,17 @@ static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_c
 		char* next_token = kstrtok_r(NULL, "/", &save_ptr);
 		bool is_target_file = (next_token == NULL);
 		bool found_component = false;
-
 		uint32_t search_cluster = current_cluster;
 
 		do {
 			uint32_t sector_lba = first_sector_of_cluster(search_cluster);
 
-			// Loop through sectors, but read 2 at a time (sliding window could be better, but this is simpler)
-			// We iterate i += 1, effectively overlapping reads or just reading pairs.
-			// Simpler approach: Read 2 sectors, process, advance by 1 sector.
 			for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
-
 				// Read Current Sector
 				MTSTATUS st = read_sector(sector_lba + i, big_buf);
 				if (MT_FAILURE(st)) { MmFreePool(big_buf); return st; }
 
-				// Read Next Sector (if available in cluster) to capture spanning LFNs
-				// If we are at the last sector of a cluster, we can't easily read the next one 
-				// without traversing the FAT. For simplicity, we zero the second half if end of cluster.
+				// Read Next Sector for spanning LFNs
 				if (i < fs.sectors_per_cluster - 1) {
 					read_sector(sector_lba + i + 1, (uint8_t*)big_buf + fs.bytes_per_sector);
 				}
@@ -785,12 +778,8 @@ static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_c
 					kmemset((uint8_t*)big_buf + fs.bytes_per_sector, 0, fs.bytes_per_sector);
 				}
 
-				// Scan the buffer (now essentially treating it as one large sector)
 				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)big_buf;
-				// We only scan the FIRST sector's worth of entries as "start points"
-				// but read_lfn is allowed to look into the second sector part.
 				uint32_t num_entries_to_scan = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
-				// The buffer actually holds 2x entries
 				uint32_t total_entries_in_buf = buf_size / sizeof(FAT32_DIR_ENTRY);
 
 				for (uint32_t j = 0; j < num_entries_to_scan; ) {
@@ -799,31 +788,34 @@ static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_c
 
 					char lfn_buf[MAX_LFN_LEN];
 					uint32_t consumed = 0;
-
-					// Pass the total available entries so read_lfn can peek into the 2nd sector part
 					FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], total_entries_in_buf - j, lfn_buf, &consumed);
 
 					if (sfn) {
 						if (ci_equal(lfn_buf, token)) {
 							if (is_target_file) {
-								// Calculate where SFN is relative to the start of big_buf
+								// --- FOUND THE ENTRY, UPDATE IT ---
+
+								// 1. Update Cluster if requested
+								if (update_cluster) {
+									sfn->fst_clus_hi = (uint16_t)((start_cluster >> 16) & 0xFFFF);
+									sfn->fst_clus_lo = (uint16_t)(start_cluster & 0xFFFF);
+								}
+
+								// 2. Update Size if requested
+								if (update_size) {
+									sfn->file_size = new_size;
+								}
+
+								// Calculate offset and write back
 								uintptr_t offset = (uintptr_t)sfn - (uintptr_t)big_buf;
-
-								// Update SFN in memory
-								sfn->fst_clus_hi = (uint16_t)((new_cluster >> 16) & 0xFFFF);
-								sfn->fst_clus_lo = (uint16_t)(new_cluster & 0xFFFF);
-
-								// Determine which sector the SFN actually lives in
 								uint32_t target_sector = sector_lba + i;
 								void* write_source = big_buf;
 
 								if (offset >= fs.bytes_per_sector) {
-									// The SFN was actually in the second sector (i+1)
 									target_sector = sector_lba + i + 1;
 									write_source = (uint8_t*)big_buf + fs.bytes_per_sector;
 								}
 
-								// Write ONLY the sector containing the SFN
 								MTSTATUS wr_st = write_sector(target_sector, write_source);
 								MmFreePool(big_buf);
 								return wr_st;
@@ -1400,7 +1392,7 @@ MTSTATUS fat32_write_file(
 		zero_cluster(first_cluster);
 
 		// Update entry on disk so it points to new cluster.
-		MTSTATUS update_st = fat32_update_file_start_cluster(FileObject->FileName, first_cluster);
+		MTSTATUS update_st = fat32_update_file_entry(FileObject->FileName, first_cluster, 0, true, false);
 
 		if (MT_FAILURE(update_st)) {
 			// Cleanup: If we couldn't update the directory, we should free the allocated cluster
@@ -1508,6 +1500,9 @@ MTSTATUS fat32_write_file(
 	// If we extended the file we update the size in the object
 	if (current_file_offset > FileObject->FileSize) {
 		FileObject->FileSize = current_file_offset;
+
+		// Update the cluster info as well (we cast to uint32_t since this is FAT32)
+		fat32_update_file_entry(FileObject->FileName, 0, (uint32_t)FileObject->FileSize, false, true);
 	}
 
 	if (IntermediateBuffer) {

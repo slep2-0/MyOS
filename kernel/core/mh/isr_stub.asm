@@ -164,6 +164,7 @@ isr_common_stub64:
 
 extern Schedule
 
+%ifndef MT_NO_PREEMPTION
     ; DPC Revision, just check for schedule (DPC Retirement in MhHandleInterrupt)
     jmp .check_for_schedule
 
@@ -179,6 +180,10 @@ extern Schedule
 
     ; All DPCs retired, and a schedule is pending, Schedule. (and clear the pending flag, so we dont always re-enter)
     mov byte [gs:PROCESSOR_schedulePending], 0
+%else
+    ; Kernel compiled with no preemption, jump directly to exit.
+    jmp .exit
+%endif
 
 ; scheduler routine
 .linkinpark:

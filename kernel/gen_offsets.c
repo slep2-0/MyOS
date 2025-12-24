@@ -15,7 +15,8 @@
 #include "includes/ms.h"
 #include "includes/mm.h"
 #include "includes/ps.h"
-#include "includes/me.h" 
+#include "includes/me.h"
+#include "includes/behavior.h"
 
 // --------------------------------------------------------------------------
 // MACROS FOR GENERATION
@@ -182,6 +183,12 @@ int main(void) {
     GEN_OFFSET(MUTEX, locked);
     GEN_OFFSET(MUTEX, ownerThread);
 
+    // ========================================================================
+    // 5. BEHAVIOR (behavior.h)
+    // ========================================================================
+#ifdef MT_NO_PREEMPTION
+    GEN_DEFINE(MT_NO_PREEMPTION, 1);
+#endif
    
 
     return 0;

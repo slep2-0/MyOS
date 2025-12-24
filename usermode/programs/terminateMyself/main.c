@@ -6,13 +6,13 @@ int main(void) {
     // If at any point we fail we will terminate the program with the status that failed.
     volatile int counter = 0;
     HANDLE FileHandle;
-    MTSTATUS Status = MtCreateFile("usermode.txt", MT_FILE_ALL_ACCESS, &FileHandle);
+    MTSTATUS Status = MtCreateFile("akflame.txt", MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) {
         goto failure;
     }
 
     // Write.
-    char Hello[14] = "Hello, World!";
+    char Hello[] = "ascendz mcdonalds adiravraham ofirs";
     Status = MtWriteFile(FileHandle, 0, Hello, sizeof(Hello), NULL);
     if (MT_FAILURE(Status)) {
         goto failure;
@@ -35,9 +35,7 @@ int main(void) {
     goto success;
 
 failure:
-    if (MT_FAILURE(Status)) {
-        MtTerminateProcess(MtCurrentProcess(), Status);
-    }
+    MtTerminateProcess(MtCurrentProcess(), Status);
 success:
     while (true) {
         counter++;
