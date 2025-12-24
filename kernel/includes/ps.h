@@ -139,6 +139,7 @@ typedef struct _ETHREAD {
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
+    struct _DOUBLY_LINKED_LIST SchedulerListEntry; // Forward and backward links that the scheduler enqueues and dequeues threads from.
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
@@ -329,9 +330,6 @@ PsFreeCid(
 
 
 
-// End Of Ps API.
-
-// Executive Functions - Are in PS.H
 // Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE
 void
@@ -341,18 +339,18 @@ MeEnqueueThreadWithLock(
     IRQL flags;
     MsAcquireSpinlock(&queue->lock, &flags);
 
-    // Initialize the new node's links
-    thread->ThreadListEntry.Flink = NULL;
+    // Initialize the new node's links using the SCHEDULER entry
+    thread->SchedulerListEntry.Flink = NULL;
 
     if (queue->tail) {
         // Link new node to current tail
-        thread->ThreadListEntry.Blink = &queue->tail->ThreadListEntry;
+        thread->SchedulerListEntry.Blink = &queue->tail->SchedulerListEntry;
         // Link current tail to new node
-        queue->tail->ThreadListEntry.Flink = &thread->ThreadListEntry;
+        queue->tail->SchedulerListEntry.Flink = &thread->SchedulerListEntry;
     }
     else {
         // List was empty
-        thread->ThreadListEntry.Blink = NULL;
+        thread->SchedulerListEntry.Blink = NULL;
         queue->head = thread;
     }
 
@@ -377,12 +375,14 @@ MeDequeueThreadWithLock(Queue* q)
 
     PETHREAD t = q->head;
 
-    // Check if there is a next item
-    if (t->ThreadListEntry.Flink) {
+    // Check if there is a next item using the SCHEDULER entry
+    if (t->SchedulerListEntry.Flink) {
         // Get the ETHREAD from the generic list entry
-        q->head = CONTAINING_RECORD(t->ThreadListEntry.Flink, ETHREAD, ThreadListEntry);
+        // NOTE: We now use SchedulerListEntry for the CONTAINING_RECORD calculation
+        q->head = CONTAINING_RECORD(t->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
+
         // The new head has no previous item
-        q->head->ThreadListEntry.Blink = NULL;
+        q->head->SchedulerListEntry.Blink = NULL;
     }
     else {
         // Queue is now empty
@@ -391,8 +391,8 @@ MeDequeueThreadWithLock(Queue* q)
     }
 
     // Isolate the removed thread
-    t->ThreadListEntry.Flink = NULL;
-    t->ThreadListEntry.Blink = NULL;
+    t->SchedulerListEntry.Flink = NULL;
+    t->SchedulerListEntry.Blink = NULL;
 
     MsReleaseSpinlock(&q->lock, flags);
     return t;
@@ -403,17 +403,17 @@ FORCEINLINE
 void MeEnqueueThread(Queue* queue, PETHREAD thread)
 {
     // Initialize the new node's links
-    thread->ThreadListEntry.Flink = NULL;
+    thread->SchedulerListEntry.Flink = NULL;
 
     if (queue->tail) {
         // Link new node to current tail
-        thread->ThreadListEntry.Blink = &queue->tail->ThreadListEntry;
+        thread->SchedulerListEntry.Blink = &queue->tail->SchedulerListEntry;
         // Link current tail to new node
-        queue->tail->ThreadListEntry.Flink = &thread->ThreadListEntry;
+        queue->tail->SchedulerListEntry.Flink = &thread->SchedulerListEntry;
     }
     else {
         // List was empty
-        thread->ThreadListEntry.Blink = NULL;
+        thread->SchedulerListEntry.Blink = NULL;
         queue->head = thread;
     }
 
@@ -432,11 +432,12 @@ PETHREAD MeDequeueThread(Queue* q)
     PETHREAD t = q->head;
 
     // Check if there is a next item
-    if (t->ThreadListEntry.Flink) {
+    if (t->SchedulerListEntry.Flink) {
         // Get the ETHREAD from the generic list entry
-        q->head = CONTAINING_RECORD(t->ThreadListEntry.Flink, ETHREAD, ThreadListEntry);
+        q->head = CONTAINING_RECORD(t->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
+
         // The new head has no previous item
-        q->head->ThreadListEntry.Blink = NULL;
+        q->head->SchedulerListEntry.Blink = NULL;
     }
     else {
         // Queue is now empty
@@ -445,10 +446,9 @@ PETHREAD MeDequeueThread(Queue* q)
     }
 
     // Isolate the removed thread
-    t->ThreadListEntry.Flink = NULL;
-    t->ThreadListEntry.Blink = NULL;
+    t->SchedulerListEntry.Flink = NULL;
+    t->SchedulerListEntry.Blink = NULL;
 
     return t;
 }
-
 #endif

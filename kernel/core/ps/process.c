@@ -281,6 +281,11 @@ PsTerminateProcess(
         PspExitThread(ExitCode);
     }
 
+    // Should I create a PspExitProcess function as well? I mean it should only dereference stuff, check the ReactOS PspExitProcess
+    // So I dont think its REALLY needed, unless the pointers MUST NOT be dereferenced by other processes
+    // and I can imagine a case where thats needed, so TODO PspExitProcess for self term. (check comment below before taking action)
+    // PspDeleteProcess takes care of the actual dereference stuff too, so idk to be honest.
+
     // Return if mission successful.
     return Status;
 }
@@ -308,6 +313,7 @@ PsDeleteProcess(
     PsFreeCid(Process->PID);
 
     // Delete its handle table, this if statement should only pass if the process has failed creation.
+    // The other place where the process handle table is deleted, is in the last thread termination in PspExitThread.
     if (Process->ObjectTable) {
         // Attach to process so pagedpool inside of it are valid (even though they 100% should be valid now)
         APC_STATE State;
@@ -338,6 +344,11 @@ PsGetNextProcessThread(
     // Check if we are already starting in another thread list.
     if (LastThread) {
         Entry = LastThread->ThreadListEntry.Flink;
+        if (Entry == &LastThread->ThreadListEntry) {
+            // If the thread points to itself (it was removed) (even though this shouldnt happen as we acquire a shared push lock)
+            // We will set entry to NULL, which will go to cleanup.
+            Entry = NULL;
+        }
     }
     else {
         // Start at beginnininng

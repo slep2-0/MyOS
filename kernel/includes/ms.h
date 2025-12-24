@@ -308,8 +308,8 @@ RemoveEntryList(
     Flink->Blink = Blink;
 
     // Sanitize the removed entry so it doesn't look valid
-    Entry->Flink = NULL;
-    Entry->Blink = NULL;
+    Entry->Flink = Entry;
+    Entry->Blink = Entry;
 }
 
 

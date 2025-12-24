@@ -95,7 +95,7 @@ PsCreateThread(
     kmemset(&ContextFrame, 0, sizeof(TRAP_FRAME));
 
     ContextFrame.rsp = (uint64_t)Thread->InternalThread.StackBase;
-    ContextFrame.rip = (uint64_t)EntryPoint;
+    ContextFrame.rip = (uint64_t)EntryPoint; // Entry point parameter should be removed when mtdll comes around, as it should handle new thread creations
     ContextFrame.rdi = (uint64_t)ThreadParameter;
     ContextFrame.rflags = USER_RFLAGS;
     ContextFrame.cs = USER_CS;
@@ -162,6 +162,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
         return Status;
     }
 
+    // Initialize list head.
     InitializeListHead(&thread->ThreadListEntry);
 
     // Create stack
@@ -218,7 +219,10 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
     // Use the push lock to insert it into AllThreads.
     MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
+
     InsertTailList(&PsInitialSystemProcess.AllThreads, &thread->ThreadListEntry);
+    PsInitialSystemProcess.NumThreads++;
+    
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
     // Enqueue it into processor. TODO START SUSPENDED?
@@ -320,7 +324,7 @@ PspExitThread(
     MsWaitForRundownProtectionRelease(&Thread->ThreadRundown);
 
     // Acquire process lock before we modify thread entries.
-    MsAcquirePushLockExclusive(&CurrentProcess->ProcessLock);
+    MsAcquirePushLockExclusive(&CurrentProcess->ThreadListLock);
 
     // Decrease thread count and check if we are the last thread (if so, terminate process)
     // No need for interlocked decrement as we hold push lock
@@ -329,7 +333,26 @@ PspExitThread(
         LastThread = true;
     }
    
-    MsReleasePushLockExclusive(&CurrentProcess->ProcessLock);
+    // Remove us from the process thread list.
+    PDOUBLY_LINKED_LIST listHead = &CurrentProcess->AllThreads;
+    PDOUBLY_LINKED_LIST entry = listHead->Flink;
+
+    while (entry != listHead) {
+        PETHREAD iter = CONTAINING_RECORD(entry, ETHREAD, ThreadListEntry);
+        if (iter == Thread) {
+            // Remove entry
+            entry->Blink->Flink = entry->Flink;
+            entry->Flink->Blink = entry->Blink;
+
+            // Set entry to point at itself
+            InitializeListHead(&Thread->ThreadListEntry);
+            break;
+        }
+        entry = entry->Flink;
+    }
+
+    // Release it now.
+    MsReleasePushLockExclusive(&CurrentProcess->ThreadListLock);
 
     if (LastThread && (CurrentProcess->Flags & ProcessBreakOnTermination)) {
         // This is the last thread termination of a critical process, this MUST not happen.

@@ -153,13 +153,8 @@ Schedule(void) {
         // User thread - Check if we should execute swapgs, because if we will execute it when we return to kernel RIP (like in a syscall for example), then GS would point to user mode.
         // Check RIP, if its in kernel then WE DO NOT swap.
         // This works ONLY when there is a CLI call before doing swapgs, since we could prepare to return to user mode, and then we return with an opposite GS.
-        // TODO This is a very hacky and stupid way to fix this problem, the swapgs instruction should be used with tight security
-        // aka, when we switch to another user thread, the GS should be saved in their TRAP FRAME!!, so multiple threads dont share the same GS register
-        // This also means, that GS right now is shared across all threads, HOW STUPID IS THIS???
-        // if you see me, change my asap, why did i not change this while writing this you ask??
-        // because im lazy, yes the pinnacle of lone dev os development, imma work on this after i relax
-        // (if you read this comment it hasnt been removed since i haven't fixed the problem yet, and somehow made a commit)
-        // thank you for reading this comment, have a good day.
+        // ACTUALLY DO NOT create a trap frame GS, (only the offset), this should be handled carefully
+        // I do not know what the fuck do i do..
         if (next->TrapRegisters.rip >= KernelVaStart) {
             restore_user_context_withoutswapgs(PsGetEThreadFromIThread(next));
         }

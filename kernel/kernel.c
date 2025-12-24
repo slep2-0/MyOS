@@ -162,6 +162,8 @@ void __stack_chk_fail(void) {
 EPROCESS PsInitialSystemProcess;
 
 static void InitSystemProcess(void) {
+    // TODO Setup system process like PsCreateProcess, and modify the func.
+    kmemset(&PsInitialSystemProcess, 0, sizeof(EPROCESS));
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
     PsInitialSystemProcess.ParentProcess = 0; // No creator process
     kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
@@ -284,7 +286,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MeBugCheck(FILESYSTEM_PANIC);
     }
 
-    /* SYSTEM IS FULLY INITIALIZED. */
+    /* SYSTEM IS FULLY INITIALIZED. (except SMP and APIC) */
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
@@ -331,7 +333,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MhInitializeSMP(apic_list, 4, lapicAddress);
         IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
         MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
-        allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs of the apic list have initialized fully.
+        allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs in the apic list have initialized fully.
     }
 #else
     gop_printf(COLOR_RED, "System configured to run in UP mode.\n");
