@@ -58,7 +58,9 @@ static MTSTATUS fat32_fs_init(uint8_t device_id) {
 FS_DRIVER fat32_driver = {
 	.init = fat32_fs_init,
 	.ReadFile = fat32_read_file,
-	.OpenFile = fat32_open_file,
+	.WriteFile = fat32_write_file,
+	.CreateFile = fat32_create_file,
+	.DeleteObjectProcedure = fat32_deletion_routine,
 };
 
 static
@@ -114,7 +116,7 @@ MTSTATUS FsInitialize(void) {
 
 MTSTATUS FsReadFile(
 	IN PFILE_OBJECT FileObject,
-	IN uint32_t FileOffset,
+	IN uint64_t FileOffset,
 	OUT void* Buffer,
 	IN size_t BufferSize,
 	_Out_Opt size_t* BytesRead
@@ -129,16 +131,17 @@ MTSTATUS FsReadFile(
 
 MTSTATUS FsWriteFile(
 	IN PFILE_OBJECT FileObject,
-	IN uint32_t FileOffset,
-	IN const void* Buffer,
-	IN size_t BufferSize
+	IN uint64_t FileOffset,
+	IN void* Buffer,
+	IN size_t BufferSize,
+	_Out_Opt size_t* BytesWritten
 )
 
 {
 	MOUNTED_FS* fs = vfs_find_fs_for_path(FileObject->FileName);
 	if (!fs || !fs->driver || !fs->driver->WriteFile) return MT_NOT_IMPLEMENTED;
 
-	return fs->driver->WriteFile(FileObject, FileOffset, Buffer, BufferSize);
+	return fs->driver->WriteFile(FileObject, FileOffset, Buffer, BufferSize, BytesWritten);
 }
 
 MTSTATUS FsDeleteFile(
@@ -198,7 +201,7 @@ MTSTATUS FsRemoveDirectoryRecursive(
 	return fs->driver->RemoveDirectoryRecursive(DirectoryObject);
 }
 
-MTSTATUS FsOpenFile(
+MTSTATUS FsCreateFile(
 	IN const char* path,
 	IN ACCESS_MASK DesiredAccess,
 	OUT PHANDLE FileHandleOut
@@ -206,9 +209,9 @@ MTSTATUS FsOpenFile(
 
 {
 	MOUNTED_FS* fs = vfs_find_fs_for_path(path);
-	if (!fs || !fs->driver || !fs->driver->OpenFile) return MT_NOT_IMPLEMENTED;
+	if (!fs || !fs->driver || !fs->driver->CreateFile) return MT_NOT_IMPLEMENTED;
 	PFILE_OBJECT FileObject = NULL;
-	MTSTATUS Status = fs->driver->OpenFile(path, &FileObject);
+	MTSTATUS Status = fs->driver->CreateFile(path, &FileObject);
 	if (MT_FAILURE(Status)) return Status;
 
 	// File opened.

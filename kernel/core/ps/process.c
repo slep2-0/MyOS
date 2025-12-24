@@ -141,7 +141,7 @@ PsCreateProcess(
 
     // Get the file handle.
     HANDLE FileHandle;
-    Status = FsOpenFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
+    Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     PFILE_OBJECT FileObject;
     // Reference the handle, and then close it so only the pointer reference remains (this)

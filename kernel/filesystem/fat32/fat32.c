@@ -598,12 +598,12 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 	char* save_ptr = NULL;
 	char* token = kstrtok_r(path_copy, "/", &save_ptr);
 
+	void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'tecs');
+	if (!sector_buf) return false;
+
 	while (token != NULL) {
 		bool found_this_token = false;
 		parent_cluster_of_last_found = current_cluster;
-
-		void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'tecs');
-		if (!sector_buf) return false;
 
 		uint32_t search_cluster = current_cluster;
 		do {
@@ -739,6 +739,120 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 
 	MmFreePool(sector_buf);
 	return false;
+}
+
+static MTSTATUS fat32_update_file_start_cluster(const char* path, uint32_t new_cluster) {
+	char path_copy[260];
+	kstrncpy(path_copy, path, sizeof(path_copy));
+
+	if (kstrcmp(path_copy, "/") == 0 || path_copy[0] == '\0') return MT_INVALID_PARAM;
+
+	uint32_t current_cluster = fs.root_cluster;
+	char* save_ptr = NULL;
+	char* token = kstrtok_r(path_copy, "/", &save_ptr);
+
+	// Buffer for 2 sectors to handle boundary spanning
+	uint32_t buf_size = fs.bytes_per_sector * 2;
+	void* big_buf = MmAllocatePoolWithTag(NonPagedPool, buf_size, 'UPDT');
+	if (!big_buf) return MT_NO_MEMORY;
+
+	while (token != NULL) {
+		char* next_token = kstrtok_r(NULL, "/", &save_ptr);
+		bool is_target_file = (next_token == NULL);
+		bool found_component = false;
+
+		uint32_t search_cluster = current_cluster;
+
+		do {
+			uint32_t sector_lba = first_sector_of_cluster(search_cluster);
+
+			// Loop through sectors, but read 2 at a time (sliding window could be better, but this is simpler)
+			// We iterate i += 1, effectively overlapping reads or just reading pairs.
+			// Simpler approach: Read 2 sectors, process, advance by 1 sector.
+			for (uint32_t i = 0; i < fs.sectors_per_cluster; i++) {
+
+				// Read Current Sector
+				MTSTATUS st = read_sector(sector_lba + i, big_buf);
+				if (MT_FAILURE(st)) { MmFreePool(big_buf); return st; }
+
+				// Read Next Sector (if available in cluster) to capture spanning LFNs
+				// If we are at the last sector of a cluster, we can't easily read the next one 
+				// without traversing the FAT. For simplicity, we zero the second half if end of cluster.
+				if (i < fs.sectors_per_cluster - 1) {
+					read_sector(sector_lba + i + 1, (uint8_t*)big_buf + fs.bytes_per_sector);
+				}
+				else {
+					kmemset((uint8_t*)big_buf + fs.bytes_per_sector, 0, fs.bytes_per_sector);
+				}
+
+				// Scan the buffer (now essentially treating it as one large sector)
+				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)big_buf;
+				// We only scan the FIRST sector's worth of entries as "start points"
+				// but read_lfn is allowed to look into the second sector part.
+				uint32_t num_entries_to_scan = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
+				// The buffer actually holds 2x entries
+				uint32_t total_entries_in_buf = buf_size / sizeof(FAT32_DIR_ENTRY);
+
+				for (uint32_t j = 0; j < num_entries_to_scan; ) {
+					if (entries[j].name[0] == END_OF_DIRECTORY) goto cluster_done;
+					if ((uint8_t)entries[j].name[0] == DELETED_DIR_ENTRY) { j++; continue; }
+
+					char lfn_buf[MAX_LFN_LEN];
+					uint32_t consumed = 0;
+
+					// Pass the total available entries so read_lfn can peek into the 2nd sector part
+					FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], total_entries_in_buf - j, lfn_buf, &consumed);
+
+					if (sfn) {
+						if (ci_equal(lfn_buf, token)) {
+							if (is_target_file) {
+								// Calculate where SFN is relative to the start of big_buf
+								uintptr_t offset = (uintptr_t)sfn - (uintptr_t)big_buf;
+
+								// Update SFN in memory
+								sfn->fst_clus_hi = (uint16_t)((new_cluster >> 16) & 0xFFFF);
+								sfn->fst_clus_lo = (uint16_t)(new_cluster & 0xFFFF);
+
+								// Determine which sector the SFN actually lives in
+								uint32_t target_sector = sector_lba + i;
+								void* write_source = big_buf;
+
+								if (offset >= fs.bytes_per_sector) {
+									// The SFN was actually in the second sector (i+1)
+									target_sector = sector_lba + i + 1;
+									write_source = (uint8_t*)big_buf + fs.bytes_per_sector;
+								}
+
+								// Write ONLY the sector containing the SFN
+								MTSTATUS wr_st = write_sector(target_sector, write_source);
+								MmFreePool(big_buf);
+								return wr_st;
+							}
+							else {
+								current_cluster = ((uint32_t)sfn->fst_clus_hi << 16) | sfn->fst_clus_lo;
+								found_component = true;
+								goto token_next;
+							}
+						}
+					}
+					j += (consumed > 0) ? consumed : 1;
+				}
+			}
+			search_cluster = fat32_read_fat(search_cluster);
+		} while (search_cluster < FAT32_EOC_MIN);
+
+	cluster_done:
+		if (!found_component) {
+			MmFreePool(big_buf);
+			return MT_NOT_FOUND;
+		}
+
+	token_next:
+		token = next_token;
+	}
+
+	MmFreePool(big_buf);
+	return MT_NOT_FOUND;
 }
 
 #define BPB_SECTOR_START 2048
@@ -922,7 +1036,7 @@ static uint32_t extract_dir_cluster(const char* filename) {
 
 MTSTATUS fat32_read_file(
 	IN PFILE_OBJECT FileObject,
-	IN uint32_t FileOffset,
+	IN uint64_t FileOffset,
 	OUT void* Buffer,
 	IN size_t BufferSize,
 	_Out_Opt size_t* BytesRead
@@ -1255,308 +1369,331 @@ static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date)
 	return time;
 }
 
-MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t mode) {
-	// Safety check.
-	if (mode != WRITE_MODE_CREATE_OR_REPLACE && mode != WRITE_MODE_APPEND_EXISTING) {
-		return MT_FAT32_INVALID_WRITE_MODE;
-	}
-	MTSTATUS status = MT_GENERAL_FAILURE;
-	uint32_t first_cluster = 0;
+MTSTATUS fat32_write_file(
+	IN PFILE_OBJECT FileObject,
+	IN uint64_t FileOffset,
+	IN void* Buffer,
+	IN size_t BufferSize,
+	_Out_Opt size_t* BytesWritten
+)
+{
+	if (BytesWritten) *BytesWritten = 0;
+	if (BufferSize == 0) return MT_SUCCESS;
 
-	// --- Step 1: Safely parse parent path and filename ---
-	char parent_path_buf[260];
-	char filename_buf[260];
+	uint32_t bytes_per_sector = fs.bytes_per_sector;
+	uint32_t sectors_per_cluster = fs.sectors_per_cluster;
+	uint32_t cluster_size = bytes_per_sector * sectors_per_cluster;
+	MTSTATUS status = MT_SUCCESS;
+
+	// If we do not have a cluster for the file, we allocate it.
+	if (FileObject->FsContext == 0) {
+		// Allocate a new cluster
+		uint32_t first_cluster = fat32_find_free_cluster();
+		if (first_cluster == 0) {
+			return MT_FAT32_CLUSTERS_FULL;
+		}
+
+		// Mark it as End-of-Chain (EOC) immediately
+		fat32_write_fat(first_cluster, FAT32_EOC_MAX);
+
+		// Zero the cluster to avoid leaking old data
+		zero_cluster(first_cluster);
+
+		// Update entry on disk so it points to new cluster.
+		MTSTATUS update_st = fat32_update_file_start_cluster(FileObject->FileName, first_cluster);
+
+		if (MT_FAILURE(update_st)) {
+			// Cleanup: If we couldn't update the directory, we should free the allocated cluster
+			fat32_write_fat(first_cluster, FAT32_FREE_CLUSTER);
+			return update_st;
+		}
+
+		// 5. Update the File Object in memory
+		FileObject->FsContext = (void*)(uintptr_t)first_cluster;
+	}
+
+	// Seek to the correct cluster based on FileOffset
+	uint32_t current_cluster = (uint32_t)(uintptr_t)FileObject->FsContext;
+	uint32_t clusters_to_skip = FileOffset / cluster_size;
+
+	for (uint32_t i = 0; i < clusters_to_skip; i++) {
+		current_cluster = fat32_read_fat(current_cluster);
+
+		// Looks like we hit EOF.
+		if (current_cluster >= FAT32_EOC_MIN) {
+			return MT_FAT32_EOF;
+		}
+	}
+
+	// Intermediate buffer use exactly like in fat32_read_file
+	void* IntermediateBuffer = MmAllocatePoolWithTag(NonPagedPool, bytes_per_sector, 'BTAF');
+	if (!IntermediateBuffer) {
+		return MT_NO_MEMORY;
+	}
+
+	size_t total_bytes_written = 0;
+	size_t bytes_left = BufferSize;
+	uint32_t current_file_offset = FileOffset;
+	const uint8_t* src_buffer_ptr = (const uint8_t*)Buffer;
+
+	// Write loop
+	while (bytes_left > 0) {
+		// Calculate LBA for current position
+		uint32_t offset_in_cluster = current_file_offset % cluster_size;
+		uint32_t sector_index_in_cluster = offset_in_cluster / bytes_per_sector;
+		uint32_t lba = fs.first_data_sector + ((current_cluster - 2) * sectors_per_cluster) + sector_index_in_cluster;
+
+		// Determine offsets within this specific sector
+		uint32_t offset_in_sector = current_file_offset % bytes_per_sector;
+		uint32_t bytes_available_in_sector = bytes_per_sector - offset_in_sector;
+		size_t bytes_to_write = (bytes_left < bytes_available_in_sector) ? bytes_left : bytes_available_in_sector;
+
+		// If we are overwriting the ENTIRE sector, we don't need to read it first.
+		// Otherwise (partial write), we must read the existing sector data to preserve surrounding bytes.
+		bool full_sector_overwrite = (offset_in_sector == 0) && (bytes_to_write == bytes_per_sector);
+
+		if (full_sector_overwrite) {
+			// Looks like we can write directly from the user buffer!
+			status = write_sector(lba, (void*)src_buffer_ptr);
+		}
+		else {
+			// We have to read the sector and then modify it and write it back, since it is smaller than the user buffer.
+			status = read_sector(lba, IntermediateBuffer);
+			if (MT_FAILURE(status)) break;
+
+			// Modify buffer
+			kmemcpy((uint8_t*)IntermediateBuffer + offset_in_sector, src_buffer_ptr, bytes_to_write);
+
+			// Write back
+			status = write_sector(lba, IntermediateBuffer);
+		}
+
+		if (MT_FAILURE(status)) break;
+
+		// Advance pointers
+		total_bytes_written += bytes_to_write;
+		bytes_left -= bytes_to_write;
+		src_buffer_ptr += bytes_to_write;
+		current_file_offset += bytes_to_write;
+
+		// If we finished a cluster and still have data, we move to the next one.
+		if (bytes_left > 0 && (current_file_offset % cluster_size) == 0) {
+			uint32_t next_cluster = fat32_read_fat(current_cluster);
+
+			if (next_cluster >= FAT32_EOC_MIN) {
+				// We reached the end of the chain but still have data to write.
+				// Allocate a new cluster.
+				uint32_t new_c = fat32_find_free_cluster();
+				if (new_c == 0) {
+					status = MT_FAT32_CLUSTERS_FULL;
+					break;
+				}
+
+				zero_cluster(new_c);
+				fat32_write_fat(current_cluster, new_c); // Current = new
+				fat32_write_fat(new_c, FAT32_EOC_MAX);   // Mark new as EOC
+
+				current_cluster = new_c;
+			}
+			else {
+				// Just follow the existing chain (overwriting existing file data)
+				current_cluster = next_cluster;
+			}
+		}
+	}
+
+	// Update the file object state before return
+	FileObject->CurrentOffset = current_file_offset;
+
+	// If we extended the file we update the size in the object
+	if (current_file_offset > FileObject->FileSize) {
+		FileObject->FileSize = current_file_offset;
+	}
+
+	if (IntermediateBuffer) {
+		MmFreePool(IntermediateBuffer);
+	}
+
+	if (BytesWritten) {
+		*BytesWritten = total_bytes_written;
+	}
+
+	return status;
+}
+
+// forward
+static MTSTATUS fat32_open_file(
+	IN const char* path,
+	OUT PFILE_OBJECT* FileObjectOut
+);
+
+MTSTATUS fat32_create_file(
+	IN const char* path,
+	OUT PFILE_OBJECT* FileObjectOut
+)
+{
+	// First of all, we check if the file already exists
+	FAT32_DIR_ENTRY existing_entry;
+	uint32_t parent_cluster_check;
+
+	if (fat32_find_entry(path, &existing_entry, &parent_cluster_check)) {
+		// If its a directory we return.
+		if (existing_entry.attr & ATTR_DIRECTORY) {
+			return MT_FAT32_INVALID_FILENAME;
+		}
+
+		// It already exists, return fat32_open_file.
+		return fat32_open_file(path, FileObjectOut);
+	}
+
+	// Split the path into directory and filename
+	char parent_path[260];
+	char filename[260];
+	int len = kstrlen(path);
 	int last_slash = -1;
-	for (int len = 0; path[len] != '\0'; len++) {
-		if (path[len] == '/') {
-			last_slash = len;
+
+	// Manual split logic
+	for (int i = len - 1; i >= 0; i--) {
+		if (path[i] == '/') {
+			last_slash = i;
+			break;
 		}
 	}
 
 	if (last_slash == -1) {
-		// No slash, e.g., "file.txt". Parent is root.
-		kstrcpy(parent_path_buf, "/");
-		kstrncpy(filename_buf, path, sizeof(filename_buf) - 1);
-		filename_buf[sizeof(filename_buf) - 1] = '\0';
+		// No slash? It's in the root
+		kstrncpy(filename, path, 260);
+		parent_path[0] = '/';
+		parent_path[1] = '\0';
 	}
 	else {
-		// Slash found.
-		kstrncpy(filename_buf, &path[last_slash + 1], sizeof(filename_buf) - 1);
-		filename_buf[sizeof(filename_buf) - 1] = '\0';
-		if (last_slash == 0) {
-			// Path is "/file.txt". Parent is root.
-			kstrcpy(parent_path_buf, "/");
-		}
-		else {
-			// Path is "/testdir/file.txt". Copy the parent part.
-			size_t parent_len = last_slash;
-			if (parent_len >= sizeof(parent_path_buf)) {
-				parent_len = sizeof(parent_path_buf) - 1; // Truncate
-			}
-			kmemcpy(parent_path_buf, path, parent_len);
-			parent_path_buf[parent_len] = '\0';
-		}
+		// Copy parent path
+		int p_len = (last_slash == 0) ? 1 : last_slash; // Handle "/file.txt" vs "/A/file.txt"
+		for (int i = 0; i < p_len; i++) parent_path[i] = path[i];
+		parent_path[p_len] = '\0';
+
+		// Copy filename
+		kstrncpy(filename, &path[last_slash + 1], 260);
 	}
 
-	char* filename = filename_buf;
-	char* parent_path = parent_path_buf;
-
-	// --- Step 2: Find parent directory and check for existing file ---
+	// Find parent directory cluster
 	FAT32_DIR_ENTRY parent_entry;
-	if (!fat32_find_entry(parent_path, &parent_entry, NULL) || !(parent_entry.attr & ATTR_DIRECTORY)) {
-		return MT_FAT32_CLUSTER_NOT_FOUND;
+	uint32_t parent_dir_cluster;
+
+	// Check if root
+	if (kstrcmp(parent_path, "/") == 0) {
+		parent_dir_cluster = fs.root_cluster;
 	}
-	uint32_t parent_cluster = (parent_entry.fst_clus_hi << 16) | parent_entry.fst_clus_lo;
-
-	FAT32_DIR_ENTRY existing_entry;
-	bool exists = fat32_find_entry(path, &existing_entry, NULL);
-
-	// Helper: locate on-disk sector + index for the entry (so we can update SFN/LFN in-place)
-	uint32_t located_sector = 0;
-	uint32_t located_index = 0;
-	uint32_t located_consumed = 0;
-	bool located = false;
-	if (exists) {
-		void* buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fat');
-		if (!buf) return MT_NO_MEMORY;
-		uint32_t cluster = parent_cluster;
-		do {
-			uint32_t sector_lba = first_sector_of_cluster(cluster);
-			for (uint32_t s = 0; s < fs.sectors_per_cluster; ++s) {
-				status = read_sector(sector_lba + s, buf);
-				if (MT_FAILURE(status)) { MmFreePool(buf); return status; }
-				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)buf;
-				uint32_t entries_per_sector = fs.bytes_per_sector / sizeof(FAT32_DIR_ENTRY);
-
-				for (uint32_t j = 0; j < entries_per_sector; ) {
-					uint8_t first = (uint8_t)entries[j].name[0];
-					if (first == END_OF_DIRECTORY) { MmFreePool(buf); goto locate_done; }
-					if (first == DELETED_DIR_ENTRY) { j++; continue; }
-
-					char lfn_buf[MAX_LFN_LEN];
-					uint32_t consumed = 0;
-					FAT32_DIR_ENTRY* sfn = read_lfn(&entries[j], entries_per_sector - j, lfn_buf, &consumed);
-					if (sfn) {
-						if (ci_equal(lfn_buf, filename)) {
-							located_sector = sector_lba + s;
-							located_index = j;
-							located_consumed = consumed;
-							located = true;
-							MmFreePool(buf);
-							goto locate_done;
-						}
-						j += consumed;
-					}
-					else {
-						j++;
-					}
-				}
-			}
-			cluster = fat32_read_fat(cluster);
-		} while (cluster < FAT32_EOC_MIN);
-		MmFreePool(buf);
-	}
-locate_done:
-
-	// Step 3: Handle existing file based on write mode
-	if (exists) first_cluster = (existing_entry.fst_clus_hi << 16) | existing_entry.fst_clus_lo;
-
-	if (mode == WRITE_MODE_CREATE_OR_REPLACE) {
-		if (exists && first_cluster >= 2) {
-			if (!fat32_free_cluster_chain(first_cluster)) {
-				return MT_FAT32_INVALID_CLUSTER;
-			}
+	else {
+		if (!fat32_find_entry(parent_path, &parent_entry, &parent_dir_cluster)) {
+			return MT_NOT_FOUND; // Parent folder doesn't exist
 		}
-		first_cluster = 0;
+		parent_dir_cluster = get_dir_cluster(&parent_entry);
 	}
 
-	// Step 4: Allocate clusters and write file data
-	if (size > 0) {
-		uint32_t cluster_size = fs.sectors_per_cluster * fs.bytes_per_sector;
-		uint32_t clusters_needed = 0;
-		uint32_t last_cluster = 0;
-		uint32_t append_offset = 0;
-
-		if (mode == WRITE_MODE_APPEND_EXISTING && exists && first_cluster != 0) {
-			uint32_t cur = first_cluster;
-			if (existing_entry.file_size > 0) {
-				while (cur < FAT32_EOC_MIN) {
-					uint32_t next = fat32_read_fat(cur);
-					if (next >= FAT32_EOC_MIN) { last_cluster = cur; break; }
-					cur = next;
-				}
-				append_offset = existing_entry.file_size % cluster_size;
-			}
-		}
-
-		if (mode == WRITE_MODE_APPEND_EXISTING && exists && append_offset > 0) {
-			uint32_t bytes_fit = cluster_size - append_offset;
-			if (size > bytes_fit) {
-				clusters_needed = (size - bytes_fit + cluster_size - 1) / cluster_size;
-			}
-		}
-		else {
-			clusters_needed = (size + cluster_size - 1) / cluster_size;
-		}
-
-		uint32_t first_new = 0;
-		uint32_t prev_cluster = 0;
-		for (uint32_t i = 0; i < clusters_needed; ++i) {
-			uint32_t nc = fat32_find_free_cluster();
-			if (nc == 0) {
-				if (first_new) fat32_free_cluster_chain(first_new);
-				return MT_FAT32_CLUSTERS_FULL;
-			}
-			zero_cluster(nc);
-			if (first_new == 0) first_new = nc;
-			if (prev_cluster != 0) fat32_write_fat(prev_cluster, nc);
-			prev_cluster = nc;
-		}
-		if (prev_cluster != 0) fat32_write_fat(prev_cluster, FAT32_EOC_MAX);
-
-		if (mode == WRITE_MODE_APPEND_EXISTING && exists && first_new != 0) {
-			if (last_cluster == 0) {
-				first_cluster = first_new;
-			}
-			else {
-				fat32_write_fat(last_cluster, first_new);
-			}
-		}
-		else if (mode != WRITE_MODE_APPEND_EXISTING || !exists) {
-			if (first_new != 0) first_cluster = first_new;
-		}
-
-		void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fat');
-		if (!sector_buf) {
-			if (first_new) fat32_free_cluster_chain(first_new);
-			return MT_NO_MEMORY;
-		}
-
-		const uint8_t* src = (const uint8_t*)data;
-		uint32_t bytes_left = size;
-		uint32_t write_cluster = (mode == WRITE_MODE_APPEND_EXISTING && exists && append_offset > 0) ? last_cluster : first_cluster;
-
-		while (bytes_left > 0 && write_cluster < FAT32_EOC_MIN) {
-			uint32_t sector_lba = first_sector_of_cluster(write_cluster);
-			uint32_t start_offset_in_cluster = (write_cluster == last_cluster && append_offset > 0) ? append_offset : 0;
-
-			for (uint32_t s = start_offset_in_cluster / fs.bytes_per_sector; s < fs.sectors_per_cluster && bytes_left > 0; ++s) {
-				uint32_t off_in_sector = (s == start_offset_in_cluster / fs.bytes_per_sector) ? start_offset_in_cluster % fs.bytes_per_sector : 0;
-				uint32_t to_write = fs.bytes_per_sector - off_in_sector;
-				if (to_write > bytes_left) to_write = bytes_left;
-
-				if (off_in_sector > 0 || to_write < fs.bytes_per_sector) {
-					read_sector(sector_lba + s, sector_buf);
-				}
-				kmemcpy((uint8_t*)sector_buf + off_in_sector, src, to_write);
-				write_sector(sector_lba + s, sector_buf);
-
-				src += to_write;
-				bytes_left -= to_write;
-			}
-			append_offset = 0; // Only matters for the very first cluster write in an append op
-			write_cluster = fat32_read_fat(write_cluster);
-		}
-		MmFreePool(sector_buf);
-	}
-
-	// --- Step 5: Prepare directory entry data (LFN + SFN) ---
+	// Prepare SFN for the file.
 	char sfn[11];
 	format_short_name(filename, sfn);
+
+	// Append ~ to file.
+	if (sfn[6] == ' ') { sfn[6] = '~'; sfn[7] = '1'; }
+	else { sfn[6] = '~'; sfn[7] = '1'; } // Force overwrite for safety if name was long
+
 	uint8_t checksum = lfn_checksum((uint8_t*)sfn);
 
+	// Prepare LFN entries for file.
 	uint32_t lfn_count = (kstrlen(filename) + 12) / 13;
-	uint32_t total_entries = lfn_count + 1;
-	FAT32_LFN_ENTRY* entry_buf = (FAT32_LFN_ENTRY*)MmAllocatePoolWithTag(NonPagedPool, total_entries * sizeof(FAT32_LFN_ENTRY), 'fat');
-	if (!entry_buf) {
-		if (mode != WRITE_MODE_APPEND_EXISTING || !exists) {
-			if (first_cluster) fat32_free_cluster_chain(first_cluster);
-		}
-		return MT_NO_MEMORY;
-	}
+	uint32_t total_entries = lfn_count + 1; // LFNs + 1 SFN
+
+	FAT32_LFN_ENTRY* entry_buf = (FAT32_LFN_ENTRY*)MmAllocatePoolWithTag(NonPagedPool, total_entries * sizeof(FAT32_LFN_ENTRY), 'LFN');
+	if (!entry_buf) return MT_NO_MEMORY;
 
 	fat32_create_lfn_entries(entry_buf, filename, checksum);
 
+	// Configure the SFN entry (the last in the entry buffer)
 	FAT32_DIR_ENTRY* sfn_entry = (FAT32_DIR_ENTRY*)&entry_buf[lfn_count];
 	kmemset(sfn_entry, 0, sizeof(FAT32_DIR_ENTRY));
+
 	kmemcpy(sfn_entry->name, sfn, 11);
-	sfn_entry->attr = 0; // File attribute
-	uint32_t final_size = size;
-	if (mode == WRITE_MODE_APPEND_EXISTING && exists) final_size = existing_entry.file_size + size;
-	sfn_entry->file_size = final_size;
-	sfn_entry->fst_clus_lo = (uint16_t)first_cluster;
-	sfn_entry->fst_clus_hi = (uint16_t)(first_cluster >> 16);
+	sfn_entry->attr = ATTR_ARCHIVE;
+	sfn_entry->file_size = 0; // New file
+	sfn_entry->fst_clus_hi = 0;
+	sfn_entry->fst_clus_lo = 0;
+	// TODO Timestamps
 
-	// --- Step 6: Safely find space and write directory entries ---
+	// Allocate slots in parent directory to place the file there.
+	uint32_t sector_lba;
+	uint32_t entry_index;
 
-	// If the file existed before, we must mark its old directory entries as deleted.
-	if (exists && located) {
-		void* delete_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fat');
-		if (delete_buf) {
-			// This logic assumes old entries are in one sector. A more complex implementation
-			// would loop across sectors if located_consumed + located_index > entries_per_sector.
-			status = read_sector(located_sector, delete_buf);
-			if (MT_SUCCEEDED(status)) {
-				FAT32_DIR_ENTRY* entries = (FAT32_DIR_ENTRY*)delete_buf;
-				for (uint32_t k = 0; k < located_consumed; ++k) {
-					if ((located_index + k) < (fs.bytes_per_sector / 32)) {
-						entries[located_index + k].name[0] = DELETED_DIR_ENTRY;
-					}
-				}
-				write_sector(located_sector, delete_buf);
-			}
-			MmFreePool(delete_buf);
-		}
-	}
-
-	uint32_t entry_sector, entry_index;
-	if (!fat32_find_free_dir_slots(parent_cluster, total_entries, &entry_sector, &entry_index)) {
-		if (mode != WRITE_MODE_APPEND_EXISTING || !exists) {
-			if (first_cluster) fat32_free_cluster_chain(first_cluster);
-		}
+	if (!fat32_find_free_dir_slots(parent_dir_cluster, total_entries, &sector_lba, &entry_index)) {
+		// Directory is full.
 		MmFreePool(entry_buf);
 		return MT_FAT32_DIR_FULL;
 	}
 
-	void* write_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fat');
-	if (!write_buf) { MmFreePool(entry_buf); return MT_NO_MEMORY; }
-
-	uint32_t current_sector = entry_sector;
-	uint32_t current_index_in_sector = entry_index;
-	uint32_t entries_remaining = total_entries;
-	uint8_t* source_entry = (uint8_t*)entry_buf;
-	const uint32_t entries_per_sector = fs.bytes_per_sector / 32;
-
-	while (entries_remaining > 0) {
-		status = read_sector(current_sector, write_buf);
-		if (MT_FAILURE(status)) {
-			MmFreePool(write_buf);
-			MmFreePool(entry_buf);
-			return status;
-		}
-
-		uint32_t space_in_sector = entries_per_sector - current_index_in_sector;
-		uint32_t entries_to_write = (entries_remaining < space_in_sector) ? entries_remaining : space_in_sector;
-
-		kmemcpy((uint8_t*)write_buf + current_index_in_sector * 32, source_entry, entries_to_write * 32);
-
-		status = write_sector(current_sector, write_buf);
-		if (MT_FAILURE(status)) {
-			MmFreePool(write_buf);
-			MmFreePool(entry_buf);
-			return status;
-		}
-
-		entries_remaining -= entries_to_write;
-		source_entry += entries_to_write * 32;
-
-		current_sector++; // Assumes contiguous sectors within a cluster
-		current_index_in_sector = 0;
+	// Write the entries to disk now.
+	void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'wrte');
+	if (!sector_buf) {
+		MmFreePool(entry_buf);
+		return MT_NO_MEMORY;
 	}
 
-	MmFreePool(write_buf);
+	// FIX: Read the first sector where entries begin
+	MTSTATUS status = read_sector(sector_lba, sector_buf);
+	if (MT_FAILURE(status)) {
+		MmFreePool(sector_buf);
+		MmFreePool(entry_buf);
+		return status;
+	}
+
+	// FIX: Calculate offsets and check for sector boundary crossing
+	uint32_t entry_size = sizeof(FAT32_DIR_ENTRY);
+	uint32_t total_bytes_to_write = total_entries * entry_size;
+	uint32_t offset_in_sector = entry_index * entry_size;
+	uint32_t bytes_available_in_sector = fs.bytes_per_sector - offset_in_sector;
+
+	if (total_bytes_to_write <= bytes_available_in_sector) {
+		// All entries fit in the current sector ---
+		// Copy all entries to the correct offset
+		kmemcpy((uint8_t*)sector_buf + offset_in_sector, entry_buf, total_bytes_to_write);
+
+		// Write the single sector back
+		status = write_sector(sector_lba, sector_buf);
+	}
+	else {
+		// Write the first part to the current sector
+		kmemcpy((uint8_t*)sector_buf + offset_in_sector, entry_buf, bytes_available_in_sector);
+		status = write_sector(sector_lba, sector_buf);
+
+		if (MT_SUCCEEDED(status)) {
+			// We read the NEXT sector first to preserve any existing data in it
+			// This assumes sectors are contiguous.
+
+			uint32_t next_sector_lba = sector_lba + 1;
+
+			status = read_sector(next_sector_lba, sector_buf);
+			if (MT_SUCCEEDED(status)) {
+				// Calculate remaining bytes
+				uint32_t bytes_remaining = total_bytes_to_write - bytes_available_in_sector;
+
+				// Copy the rest of the entries to the START of the new sector buffer
+				kmemcpy(sector_buf, (uint8_t*)entry_buf + bytes_available_in_sector, bytes_remaining);
+
+				// Write the second sector
+				status = write_sector(next_sector_lba, sector_buf);
+			}
+		}
+	}
+
+	MmFreePool(sector_buf);
 	MmFreePool(entry_buf);
-	return status;
+
+	if (MT_FAILURE(status)) {
+		return status;
+	}
+
+	// Open the file now.
+	return fat32_open_file(path, FileObjectOut);
 }
 
 MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) {
@@ -1966,7 +2103,7 @@ MTSTATUS fat32_delete_file(const char* path) {
 	return MT_SUCCESS; // Success
 }
 
-MTSTATUS fat32_open_file(
+static MTSTATUS fat32_open_file(
 	IN const char* path,
 	OUT PFILE_OBJECT* FileObjectOut
 )
@@ -1994,7 +2131,10 @@ MTSTATUS fat32_open_file(
 
 	// Fill in fields.
 	// File name is the path.
-	FileObject->FileName = path;
+
+	size_t length = kstrlen(path) + 1;
+	FileObject->FileName = MmAllocatePoolWithTag(PagedPool, length, 'eman');
+	kstrncpy(FileObject->FileName, path, length);
 	// Offset starts at 0.
 	FileObject->CurrentOffset = 0;
 	// File size given from the entry.
@@ -2006,4 +2146,12 @@ MTSTATUS fat32_open_file(
 	FileObject->Flags = MT_FOF_NONE;
 	*FileObjectOut = FileObject;
 	return MT_SUCCESS;
+}
+
+void fat32_deletion_routine(void* Object)
+
+{
+	// We just delete the filename allocated.
+	PFILE_OBJECT FileObject = (PFILE_OBJECT)Object;
+	MmFreePool((void*)FileObject->FileName);
 }

@@ -52,6 +52,12 @@ MtSyscallHandler(
     // Set previous mode to user mode, this is a system call.
     MeGetCurrentThread()->PreviousMode = UserMode;
 
+    // Increment system call count (cool)
+    InterlockedIncrementU64((volatile uint64_t*)&MeGetCurrentProcessor()->SystemCallCount);
+
+    // Just for future incase. (this must be kept here since after interrupts are enabled UserRsp could very much change)
+    //uint64_t* UserStack = (uint64_t*)MeGetCurrentProcessor()->UserRsp;
+
     // Enable interrupts, its safe now.
     __sti();    
     // Grab arguments
@@ -64,7 +70,7 @@ MtSyscallHandler(
 
     // >= because 256 is an invalid index in the array (0-255)
     if (SyscallNumber >= MAX_SYSCALLS || Ssdt[SyscallNumber] == NULL) {
-        *ReturnValue = MT_INVALID_PARAM;
+        *ReturnValue = MT_INVALID_SYSTEM_SERVICE;
         return;
     }
 
@@ -77,9 +83,7 @@ MtSyscallHandler(
     uint64_t Arg4 = TrapFrame->r10;
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
-
-    // Just for future incase.
-    //uint64_t* UserStack = (uint64_t*)MeGetCurrentProcessor()->UserRsp;
     
+    // Todo regular SSDT.
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
 }

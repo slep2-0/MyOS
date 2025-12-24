@@ -22,6 +22,8 @@ Revision History:
 #include "../mtstatus.h"
 #include "ob.h"
 
+#define MAX_PATH 256
+
 #define MT_FILE_READ_DATA            0x0001  // file & pipe
 #define MT_FILE_LIST_DIRECTORY       0x0001  // directory
 
@@ -96,7 +98,7 @@ typedef enum _MT_FILE_OBJECT_FLAGS {
 
 typedef struct _FILE_OBJECT {
     // Name of the file. (full path)
-    const char* FileName;
+    char* FileName;
 
     // Filesystem-specific context (e. first cluster number of file/dir in our FAT32)
     void* FsContext;
@@ -115,16 +117,15 @@ typedef struct FS_DRIVER {
     // Initialize driver for a device
     MTSTATUS(*init)(uint8_t device_id);
     MTSTATUS(*ReadFile)(IN PFILE_OBJECT FileObject,
-        IN uint32_t FileOffset,
+        IN uint64_t FileOffset,
         OUT void* Buffer,
         IN size_t BufferSize,
         _Out_Opt size_t* BytesRead);
     MTSTATUS(*WriteFile)(IN PFILE_OBJECT FileObject,
-        IN uint32_t FileOffset,
-        IN const void* Buffer,
-        IN size_t BufferSize);
-    MTSTATUS(*OpenFile)(IN const char* path,
-        OUT PFILE_OBJECT* FileObjectOut);
+        IN uint64_t FileOffset,
+        IN void* Buffer,
+        IN size_t BufferSize,
+        _Out_Opt size_t* BytesWritten);
     MTSTATUS(*DeleteFile)(IN PFILE_OBJECT FileObject);
     MTSTATUS(*ListDirectory)(IN PFILE_OBJECT DirectoryObject,
         OUT char* listings,
@@ -134,6 +135,8 @@ typedef struct FS_DRIVER {
         IN  const char* path,
         OUT PFILE_OBJECT* OutDirectoryObject
         );
+    MTSTATUS(*CreateFile)(IN const char* path,
+        OUT PFILE_OBJECT* FileObjectOut);
     void(*DeleteObjectProcedure)(IN void* Object);
 
 } FS_DRIVER;
@@ -145,7 +148,7 @@ typedef uint32_t ACCESS_MASK;
 
 MTSTATUS FsInitialize(void);
 
-MTSTATUS FsOpenFile(
+MTSTATUS FsCreateFile(
     IN const char* path,
     IN ACCESS_MASK DesiredAccess,
     OUT PHANDLE FileHandleOut
@@ -153,7 +156,7 @@ MTSTATUS FsOpenFile(
 
 MTSTATUS FsReadFile(
     IN PFILE_OBJECT FileObject,
-    IN uint32_t FileOffset,
+    IN uint64_t FileOffset,
     OUT void* Buffer,
     IN size_t BufferSize,
     _Out_Opt size_t* BytesRead
@@ -161,9 +164,10 @@ MTSTATUS FsReadFile(
 
 MTSTATUS FsWriteFile(
     IN PFILE_OBJECT FileObject,
-    IN uint32_t FileOffset,
-    IN const void* Buffer,
-    IN size_t BufferSize
+    IN uint64_t FileOffset,
+    IN void* Buffer,
+    IN size_t BufferSize,
+    _Out_Opt size_t* BytesWritten
 );
 
 MTSTATUS FsDeleteFile(

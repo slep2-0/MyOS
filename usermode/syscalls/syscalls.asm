@@ -63,3 +63,52 @@ MtTerminateProcess:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtReadFile(
+;     IN HANDLE FileHandle,
+;     IN uint64_t FileOffset,
+;     OUT void* Buffer,
+;     IN size_t BufferSize,
+;     _Out_Opt size_t* BytesRead
+; );
+; Syscall number is 3.
+
+global MtReadFile
+MtReadFile:
+	mov rax, 3
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtWriteFile(
+;     IN HANDLE FileHandle,
+;     IN uint64_t FileOffset,
+;     IN void* Buffer,
+;     IN size_t BufferSize,
+;     _Out_Opt size_t* BytesWritten
+; );
+; Syscall number is 4.
+
+global MtWriteFile
+MtWriteFile:
+	mov rax, 4
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtCreateFile(
+;     IN const char* path,
+;     IN ACCESS_MASK DesiredAccess,
+;     OUT PHANDLE FileHandleOut
+; );
+; Syscall number is 5.
+
+global MtCreateFile
+MtCreateFile:
+	mov rax, 5
+	mov r10, rcx
+	syscall
+	ret

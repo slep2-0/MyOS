@@ -2,19 +2,46 @@
 #include "../../headers/MatanelOS.h"
 
 int main(void) {
-    void* BaseAddress = NULL;
-    MTSTATUS Status = MtAllocateVirtualMemory(MtCurrentProcess(), &BaseAddress, 512, PAGE_EXECUTE_READWRITE);
+    // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
+    // If at any point we fail we will terminate the program with the status that failed.
+    volatile int counter = 0;
+    HANDLE FileHandle;
+    MTSTATUS Status = MtCreateFile("usermode.txt", MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) {
-        // what??? failure??? I DO NOT accept failure.. not in my book.
-        // time to justify the name of my program!
-        __asm__ volatile ("hlt");
+        goto failure;
     }
 
-    // hooray
-    uint8_t* ptr = (uint8_t*)BaseAddress;
-    for (int i = 0; i < 512; i++) {
-        ptr[i] = 0xA;
+    // Write.
+    char Hello[14] = "Hello, World!";
+    Status = MtWriteFile(FileHandle, 0, Hello, sizeof(Hello), NULL);
+    if (MT_FAILURE(Status)) {
+        goto failure;
     }
 
+    // Allocate.
+    void* BaseAddress = NULL;
+    Status = MtAllocateVirtualMemory(MtCurrentProcess(), &BaseAddress, sizeof(Hello), PAGE_READWRITE);
+    if (MT_FAILURE(Status)) {
+        goto failure;
+    }
+
+    // Read
+    Status = MtReadFile(FileHandle, 0, BaseAddress, sizeof(Hello), NULL);
+    if (MT_FAILURE(Status)) {
+        goto failure;
+    }
+
+    // Done, infinite loop.
+    goto success;
+
+failure:
+    if (MT_FAILURE(Status)) {
+        MtTerminateProcess(MtCurrentProcess(), Status);
+    }
+success:
+    while (true) {
+        counter++;
+        __asm__ volatile ("pause");
+    }
     return 0;
 }

@@ -49,3 +49,28 @@ MtTerminateProcess(
     IN HANDLE ProcessHandle,
     IN MTSTATUS ExitStatus
 );
+
+MTSTATUS
+MtReadFile(
+    IN HANDLE FileHandle,
+    IN uint64_t FileOffset,
+    OUT void* Buffer,
+    IN size_t BufferSize,
+    _Out_Opt size_t* BytesRead
+);
+
+MTSTATUS
+MtWriteFile(
+    IN HANDLE FileHandle,
+    IN uint64_t FileOffset,
+    IN void* Buffer,
+    IN size_t BufferSize,
+    _Out_Opt size_t* BytesWritten
+);
+
+MTSTATUS
+MtCreateFile(
+    IN const char* path,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE FileHandleOut
+);

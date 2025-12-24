@@ -135,4 +135,10 @@ typedef int32_t MTSTATUS;
 #define MT_DATATYPE_MISALIGNMENT ((MTSTATUS)0xC8000004L)
 #define MT_INTEGER_DIVIDE_BY_ZERO ((MTSTATUS)0xC8000005L)
 
+//
+// ==========================
+// USER MODE MTSTATUS
+// ==========================
+#define MT_INVALID_SYSTEM_SERVICE ((MTSTATUS)0xC9000000L)
+
 #endif // MTSTATUS_H

@@ -23,6 +23,6 @@ Revision History:
 
 //#define DISABLE_CACHE // Uncomment to disable CPU Caching on ALL CPUs (if SMP, if not, only BSP)
 
-//#define DISABLE_GOP // Uncomment to disable gop framebuffer prints. (gop_printf)
+#define DISABLE_GOP // Uncomment to disable gop framebuffer prints. (gop_printf)
 
 #endif

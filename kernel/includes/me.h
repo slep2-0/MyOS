@@ -334,6 +334,7 @@ typedef struct _PROCESSOR {
 
 	// Syscall data
 	uint64_t UserRsp; // User saved RSP during syscall handling.
+	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
 } PROCESSOR, *PPROCESSOR;
 
 // ------------------ FUNCTIONS ------------------

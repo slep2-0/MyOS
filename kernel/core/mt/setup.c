@@ -41,7 +41,10 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     // Syscalls are here.
     {.Num = 0, .Handler = MtAllocateVirtualMemory},
     {.Num = 1, .Handler = MtOpenProcess},
-    {.Num = 2, .Handler = MtTerminateProcess}
+    {.Num = 2, .Handler = MtTerminateProcess},
+    {.Num = 3, .Handler = MtReadFile},
+    {.Num = 4, .Handler = MtWriteFile},
+    {.Num = 5, .Handler = MtCreateFile}
 };
 
 void

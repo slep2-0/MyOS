@@ -774,16 +774,15 @@ MmAllocateVirtualMemory(
     PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
     // messy code below, sorry.
     if (BaseAddress) {
-        try {
-            if (PreviousMode == UserMode) {
-                status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+        if (PreviousMode == UserMode) {
+            status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
 
-                if (MT_FAILURE(status)) {
-                    __clac();
-                    return status;
-                }
+            if (MT_FAILURE(status)) {
+                return status;
             }
+        }
 
+        try {
             // Dereference the address given to see if we are supplied with a starting virtual address.
             StartVa = (uintptr_t)*BaseAddress;
         } except{
