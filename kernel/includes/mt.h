@@ -93,4 +93,15 @@ MtCreateFile(
     OUT PHANDLE FileHandleOut
 );
 
+MTSTATUS
+MtClose(
+    IN HANDLE hObject
+);
+
+MTSTATUS
+MtTerminateThread(
+    IN HANDLE ThreadHandle,
+    IN MTSTATUS ExitStatus
+);
+
 #endif

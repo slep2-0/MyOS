@@ -504,3 +504,56 @@ MtCreateFile(
     // Successful.
     return MT_SUCCESS;
 }
+
+MTSTATUS
+MtClose(
+    IN HANDLE hObject
+)
+
+{
+    // Easiest syscall yet, just call internal function.
+    return HtClose(hObject);
+}
+
+MTSTATUS
+MtTerminateThread(
+    IN HANDLE ThreadHandle,
+    IN MTSTATUS ExitStatus
+)
+
+{
+    // Attempt to reference thread, or if it is ourselves use ourselves.
+    MTSTATUS Status;
+    PETHREAD Thread;
+    if (ThreadHandle == MtCurrentThread()) {
+        // Check if we are the last thread of the process.
+        if (PsGetCurrentProcess()->NumThreads == 1) {
+            // Illegal. (MtTerminateProcess(MtCurrentProcess(), status) must be called instead)
+            return MT_CANT_TERMINATE_SELF;
+        }
+
+        // Current Thread.
+        Thread = PsGetCurrentThread();
+
+        // Successful.
+        Status = MT_SUCCESS;
+    }
+    else {
+        // Remote Thread
+        Status = ObReferenceObjectByHandle(
+            ThreadHandle,
+            MT_THREAD_TERMINATE,
+            PsThreadType,
+            (void**)&Thread,
+            NULL
+        );
+    }
+
+    // Check if success.
+    if (MT_FAILURE(Status)) {
+        return Status;
+    }
+
+    // Call internal function.
+    return PsTerminateThread(Thread, ExitStatus);
+}

@@ -140,5 +140,6 @@ typedef int32_t MTSTATUS;
 // USER MODE MTSTATUS
 // ==========================
 #define MT_INVALID_SYSTEM_SERVICE ((MTSTATUS)0xC9000000L)
+#define MT_CANT_TERMINATE_SELF	  ((MTSTATUS)0xC9000001L)
 
 #endif // MTSTATUS_H

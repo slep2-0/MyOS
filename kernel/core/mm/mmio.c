@@ -62,7 +62,7 @@ MiCheckForContigiousMemory(
     PAGE_INDEX StartPfn = MiTranslatePteToPfn(CurrentPte);
     if (StartPfn == PFN_ERROR) return false;
 
-    // 3. Loop from i = 1 (we already checked the first page)
+    // Loop from i = 1 (we already checked the first page)
     for (size_t i = 1; i < AmtPages; i++) {
 
         // Advance VA.
@@ -112,7 +112,7 @@ MmAllocateContigiousMemory(
 
 {
     // According to MSDN this must be satisfied (this isnt NT compatible, but it follows its rules)
-    if (MeGetCurrentIrql() > DISPATCH_LEVEL) return NULL;
+    if (MeGetCurrentIrql() > APC_LEVEL) return NULL;
 
     // Declarations
     size_t pageCount = BYTES_TO_PAGES(NumberOfBytes);
@@ -329,4 +329,50 @@ failure:
     }
 
     return NULL;
+}
+
+void
+MmUnmapIoSpace(
+    IN void* VirtualAddress,
+    IN size_t NumberOfBytes
+)
+
+/*++
+
+    Routine description:
+
+        Unmaps the given physical address range by the kernel.
+
+    Arguments:
+
+        [IN]    void* VirtualAddress - The VirtualAddress given by the MmMapIoSpace routine.
+        [IN]    size_t NumberOfBytes - The amount of bytes allocated by the kernel.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    // The VirtualAddress given by the kernel is a retval of MiAllocatePoolVa
+    // Haven't worked on the kernel in about 2 months, so I need a refresher.
+    // Runtime Assertions
+    assert(NumberOfBytes > 0);
+    assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+
+    uintptr_t CurrentVA = (uintptr_t)VirtualAddress;
+    size_t NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
+
+    // Loop over the range given (by pages)
+    for (size_t i = 0; i < NumberOfPages; i++) {
+        // Unmap the virtual address.
+        MiUnmapPte(MiGetPtePointer(CurrentVA));
+
+        // Advance to next 4KiB.
+        CurrentVA += VirtualPageSize;
+    }
+
+    // Free the pool given by the kernel.
+    MiFreePoolVaContiguous((uintptr_t)VirtualAddress, NumberOfBytes, NonPagedPool);
 }

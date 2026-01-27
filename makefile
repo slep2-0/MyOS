@@ -14,7 +14,7 @@ ASMFLAGS_BIN = -f bin -Ibuild/
 # Base CFLAGS (no optimization level hardcoded here)
 # The -mgeneral-regs-only only restricts the compiler from our XMM Usage, but assembly will save it (future, or maybe now, didnt update ts)
 CFLAGS = -std=gnu11 \
-         -m64 -ffreestanding -c \
+         -m64 -fno-inline -ffreestanding -c \
          -fdiagnostics-color=always \
          -fdiagnostics-show-option \
          -mgeneral-regs-only \

@@ -24,14 +24,6 @@ void __stack_chk_fail(void);
 // Standard globals
 extern bool isBugChecking;
 
-/* Definitions that change kernel behaviour below */
-
-/* Uncomment to trigger a bugcheck on entry */
-///#define CAUSE_BUGCHECK
-
-/* Uncomment to show all reminders in a static assertion */
-///#define REMINDER
-
 /* To define DEBUG globally, use a compiler flag. I removed this since I now transitioned each header to iself and others instead of relying on kernel.h that caused circular includes. */
 
 #define UNREFERENCED_PARAMETER(x) (void)(x)

@@ -51,7 +51,9 @@ static void update_apic_irqs(IRQL newLevel) {
 
 static inline void toggle_scheduler(void) {
     // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL
-    MeGetCurrentProcessor()->schedulerEnabled = (MeGetCurrentIrql() < DISPATCH_LEVEL);
+    if (!InterlockedFetchU32(&MeGetCurrentProcessor()->SchedulerLock.locked)) {
+        MeGetCurrentProcessor()->schedulerEnabled = (MeGetCurrentIrql() < DISPATCH_LEVEL);
+    }
 }
 
 // PUBLIC API

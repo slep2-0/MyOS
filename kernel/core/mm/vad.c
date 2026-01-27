@@ -132,9 +132,6 @@ MiAllocateVad(
     // Allocate the VAD.
     PMMVAD vad = (PMMVAD)MmAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD), ' daV'); // Little endian tag.
     if (!vad) return NULL;
-    
-    // Initialize to zero. (including height)
-    kmemset(vad, 0, sizeof(MMVAD));
 
     return vad;
 }
@@ -775,7 +772,7 @@ MmAllocateVirtualMemory(
     // messy code below, sorry.
     if (BaseAddress) {
         if (PreviousMode == UserMode) {
-            status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+            status = ProbeForRead(BaseAddress, sizeof(void*), 1);
 
             if (MT_FAILURE(status)) {
                 return status;

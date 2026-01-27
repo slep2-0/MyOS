@@ -514,7 +514,7 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     Thread->InternalThread.TimeSlice = 1;
     Thread->InternalThread.TimeSliceAllocated = 1;
     MeGetCurrentProcessor()->schedulePending = true;
-    gop_printf(COLOR_RED, "[TERMINATE] Terminating thread %p for %lx\n", Thread, (unsigned long)Status);
+    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating thread (%s) %p for %lx | RIP: %p\n", (Thread->SystemThread) ? "Kernel Mode" : "User Mode", Thread, (unsigned long)Status, (void*)(uintptr_t)trap->rip);
     PsTerminateThread(Thread, Status);
 }
 

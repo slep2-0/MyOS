@@ -296,8 +296,8 @@ MiInvalidateTlbForVa(
 
 {
     invlpg(VirtualAddress);
-    // If SMP is initialized, send IPI.
 #ifndef MT_UP
+    // If SMP is initialized, send IPI.
     if (smpInitialized) {
         IPI_PARAMS Param;
         Param.pageParams.addressToInvalidate = (uint64_t)VirtualAddress;
@@ -502,6 +502,11 @@ MmIsAddressPresent(
     Return Values:
 
         True if the address is valid and in memory, false otherwise.
+
+    Notes:
+
+        This function shouldn't be used in low IRQL situations, as addresses can very well be paged out to disk.
+        (In IRQL equal or higher than DISPATCH_LEVEL, this function is safe, as blocking operations are forbidden, which means memory cannot be paged out)
 
 --*/
 

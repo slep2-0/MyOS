@@ -242,7 +242,7 @@ do {                                                                        \
 #define MI_STACK_SIZE 0x4000 // 16KiB
 #define MI_LARGE_STACK_SIZE 0xf000 // 60 KiB
 #define MI_GUARD_PAGE_PROTECTION (1ULL << 17)
-#define MI_DEFAULT_USER_STACK_SIZE 0x100000
+#define MI_DEFAULT_USER_STACK_SIZE 0x100000 // 1 MiB
 
 // Barriers
 
@@ -300,6 +300,7 @@ typedef enum _VAD_FLAGS {
     VAD_FLAG_MAPPED_FILE = (1U << 4), // Backed by a file (lets say data.mtdll)
     VAD_FLAG_COPY_ON_WRITE = (1U << 5),
     VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
+    VAD_FLAG_GUARD_PAGE = (1U << 7), // This allocation signifies a guard page, if a memory operation is performed on this page, an MT_GUARD_PAGE_VIOLATION exception is raised, and the page turns to a normal stack page.
 } VAD_FLAGS;
 
 typedef enum _PAGE_FLAGS {
@@ -558,6 +559,14 @@ typedef struct _POOL_DESCRIPTOR {
     SPINLOCK PoolLock;                  // Spinlock for this specific pool descriptor.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
 
+typedef struct {
+    uint64_t r_offset; /* Address (RVA) */
+    uint64_t r_info;   /* Relocation type and symbol index */
+    int64_t  r_addend; /* Addend */
+} Rela;
+
+#define R_X86_64_RELATIVE 8
+
 #pragma pack(push, 1)
 typedef struct {
     uint8_t  Magic[4];
@@ -568,8 +577,28 @@ typedef struct {
     uint64_t DataRVA;
     uint64_t DataSize;
     uint64_t BssSize;
+    uint64_t exports_rva;
+    uint64_t exports_size;
+    uint64_t reloc_rva;
+    uint64_t reloc_size;
+    uint64_t imports_rva; // RVA To import array, then absolute addresses.
+    uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
+    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
+
+// Exports are RVA
+typedef struct {
+    uint64_t name_rva;
+    uint64_t func_rva;
+} MT_EXPORT_ENTRY;
+
+// Imports are absolutes.
+typedef struct {
+    uint64_t lib_name_absolute;   // RVA to string "kernel32.dll"
+    uint64_t func_name_absolute;  // RVA to string "PrintString"
+    uint64_t iat_addr_absolute;   // RVA to the function pointer to be patched
+} MT_IMPORT_ENTRY;
 
 // Represents a section in the file (.text, .data)
 typedef struct _MM_SUBSECTION {
@@ -582,6 +611,8 @@ typedef struct _MM_SUBSECTION {
 // Represents the loaded Executable/DLL
 typedef struct _MM_SECTION {
     struct _FILE_OBJECT* FileObject;
+    uintptr_t PreferredBase;
+    MM_SUBSECTION WholeFileSection;
 
     // We have 3 distinct regions in our MTE format.
     MM_SUBSECTION Text;
@@ -880,6 +911,19 @@ MmCreateUserStack(
     _In_Opt size_t StackReserveSize
 );
 
+MTSTATUS
+MmCreatePeb(
+    IN PEPROCESS Process,
+    OUT void** OutPeb,
+    OUT void** OutBasicMtdllTypes
+);
+
+MTSTATUS
+MmCreateTeb(
+    IN PETHREAD Thread,
+    OUT void** OutTeb
+);
+
 // module: vad.c
 
 MTSTATUS
@@ -980,6 +1024,11 @@ MmMapIoSpace(
     IN MEMORY_CACHING_TYPE CacheType
 );
 
+void
+MmUnmapIoSpace(
+    IN void* VirtualAddress
+);
+
 // module: mminit.c
 
 bool
@@ -1010,6 +1059,7 @@ MTSTATUS
 MmMapViewOfSection(
     IN HANDLE SectionHandle,
     IN PEPROCESS Process,
+    OUT void** EntryPointAddress,
     OUT void** BaseAddress
 );
 

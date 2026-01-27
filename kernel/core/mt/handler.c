@@ -56,6 +56,8 @@ MtSyscallHandler(
     InterlockedIncrementU64((volatile uint64_t*)&MeGetCurrentProcessor()->SystemCallCount);
 
     // Just for future incase. (this must be kept here since after interrupts are enabled UserRsp could very much change)
+    // DO NOT Access the RSP in PTRAP_FRAME, it does not exist.
+    // And DO NOT grab the UserRsp after this sti call, as it may change immediately even, save it to a local.
     //uint64_t* UserStack = (uint64_t*)MeGetCurrentProcessor()->UserRsp;
 
     // Enable interrupts, its safe now.

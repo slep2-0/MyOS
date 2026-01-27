@@ -147,4 +147,8 @@ void ObDereferenceObject(
     IN  void* Object
 );
 
+void ObDeleteObject(
+    IN POBJECT_HEADER Header
+);
+
 #endif

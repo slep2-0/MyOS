@@ -112,3 +112,30 @@ MtCreateFile:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtClose(
+;     IN HANDLE hObject
+; );
+; Syscall number is 6.
+
+global MtClose
+MtClose:
+	mov rax, 6
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtTerminateThread(
+;     IN HANDLE ThreadHandle,
+;     IN MTSTATUS ExitStatus
+; );
+; Syscall number is 7.
+
+global MtTerminateThread
+MtTerminateThread:
+	mov rax, 7
+	mov r10, rcx
+	syscall
+	ret

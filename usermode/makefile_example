@@ -1,0 +1,129 @@
+# ==============================================================================
+# MTEXE / MTDLL Build System
+# Replaces build_mtexe.sh
+# ==============================================================================
+
+# --- Configuration ------------------------------------------------------------
+
+# 1. Define the build type: MTEXE (default) or MTDLL
+# Usage: make TYPE=MTDLL
+TYPE ?= MTEXE
+
+# 2. Define your source files here
+# (Example: programs/main.c src/game.c)
+SRCS = programs/main.c
+
+# 3. Output Name
+PROJ_NAME = program
+
+# --- Toolchain & Paths --------------------------------------------------------
+
+TOOLCHAIN_PATH = tools64/bin
+BUILD_DIR = build/user
+
+CC      = $(TOOLCHAIN_PATH)/x86_64-elf-gcc
+LD      = $(TOOLCHAIN_PATH)/x86_64-elf-ld
+OBJCOPY = $(TOOLCHAIN_PATH)/x86_64-elf-objcopy
+NASM    = nasm
+AS      = $(TOOLCHAIN_PATH)/x86_64-elf-as
+XXD     = xxd
+
+# --- Logic: Select Linker Script based on TYPE --------------------------------
+
+ifeq ($(TYPE),MTEXE)
+    LDSCRIPT = mtexe.ld
+    OUT_EXT  = mtexe
+    $(info [BUILD-MODE] Building Executable (MTEXE))
+else ifeq ($(TYPE),MTDLL)
+    LDSCRIPT = mtdll.ld
+    OUT_EXT  = mtdll
+    $(info [BUILD-MODE] Building Library (MTDLL))
+else
+    $(error Invalid TYPE specified. Use TYPE=MTEXE or TYPE=MTDLL)
+endif
+
+FINAL_OUT = $(BUILD_DIR)/$(PROJ_NAME).$(OUT_EXT)
+
+# --- Flags --------------------------------------------------------------------
+
+# Compiler Flags (Adapted from Kernel Makefile + Script requirements)
+CFLAGS = -std=gnu11 \
+         -m64 -ffreestanding -nostdlib -fno-builtin -c \
+         -fdiagnostics-color=always \
+         -Wall -Wextra -Wno-unused-function \
+         -mno-red-zone -fno-pie -fno-pic
+
+# Linker Flags
+# We construct the linker arguments manually in the rule to ensure order
+LDFLAGS = -T $(LDSCRIPT) -m elf_x86_64
+
+# Assembly Flags
+ASMFLAGS = -f elf64
+
+# --- Bootstrapping Files ------------------------------------------------------
+
+HEADER_SRC = header.S
+CRT0_SRC   = crt0.S
+
+HEADER_OBJ = $(BUILD_DIR)/header.o
+CRT0_OBJ   = $(BUILD_DIR)/crt0.o
+
+# --- Object Calculation -------------------------------------------------------
+
+# Convert source list to object list in build dir
+OBJS = $(SRCS:%=$(BUILD_DIR)/%.o)
+
+# --- Targets ------------------------------------------------------------------
+
+.PHONY: all clean dump
+
+all: $(FINAL_OUT)
+
+# 1. Create Build Directory
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $(OBJS))
+
+# 2. Compile/Assemble Header & CRT0 (Must be linked first)
+$(HEADER_OBJ): $(HEADER_SRC) | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@$(AS) -o $@ $<
+
+$(CRT0_OBJ): $(CRT0_SRC) | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@$(AS) -o $@ $<
+
+# 3. Compile C Sources
+$(BUILD_DIR)/%.c.o: %.c | $(BUILD_DIR)
+	@echo "  [CC]  $<"
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $< -o $@
+
+# 4. Assemble NASM Sources (.asm)
+$(BUILD_DIR)/%.asm.o: %.asm | $(BUILD_DIR)
+	@echo "  [NASM] $<"
+	@mkdir -p $(dir $@)
+	@$(NASM) $(ASMFLAGS) -o $@ $<
+
+# 5. Assemble GAS Sources (.S)
+$(BUILD_DIR)/%.S.o: %.S | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@mkdir -p $(dir $@)
+	@$(AS) -o $@ $<
+
+# 6. Link & Convert
+# Note: $(HEADER_OBJ) and $(CRT0_OBJ) are explicitly placed FIRST, just like the script.
+$(FINAL_OUT): $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
+	@echo "  [LD]  Linking -> $(BUILD_DIR)/temp.elf"
+	@$(LD) $(LDFLAGS) -o $(BUILD_DIR)/temp.elf $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
+	@echo "  [OBJ] Converting -> $@"
+	@$(OBJCOPY) -O binary $(BUILD_DIR)/temp.elf $@
+	@echo "Build succeeded: $@"
+
+# Utility: Hex dump first 8 lines (like the script did)
+dump: $(FINAL_OUT)
+	@echo "Header bytes:"
+	@$(XXD) -g 1 $< | head -n 8
+
+clean:
+	rm -rf $(BUILD_DIR)

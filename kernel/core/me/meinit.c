@@ -84,6 +84,9 @@ static void InitialiseControlRegisters(void) {
     if (ebx & CPUID_7_EBX_SMAP) cr4 |= CR4_SMAP;
     else gop_printf(COLOR_YELLOW, "SMAP not available.\n");
 
+    // Add FSGSBASE to CR4
+    cr4 |= CR4_FSGSBASE;
+
     // COMMIT REGISTERS TO CPU
     // We MUST write these before executing LDMXCSR below.
     __write_cr0(cr0);
@@ -233,8 +236,10 @@ StartInit: {
     void* IstDf = MiCreateKernelStack(true);
     void* IstIpi = MiCreateKernelStack(false);
     void* IstTimer = MiCreateKernelStack(false);
+#ifdef DEBUG
     bool exists = (IstTimer && IstIpi && IstDf && IstPf && Rsp0) != 0;
     assert(exists == true);
+#endif
     CPU->Rsp0 = Rsp0;
     CPU->IstPFStackTop = IstPf;
     CPU->IstDFStackTop = IstDf;

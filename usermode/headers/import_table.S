@@ -1,0 +1,55 @@
+/* imports_table.S */
+
+.macro MT_IMPORT lib, func
+    /* --- 1. The Strings --- */
+    .section .mtimports.str, "a"
+    __str_mod_\func:
+        .asciz "\lib"
+    __str_func_\func:
+        .asciz "\func"
+
+    /* --- 2. The Function Pointer Variable --- */
+    .section .data
+    .global \func
+    .align 8
+    \func:
+        .quad 0  /* Loader will overwrite this with the real address */
+
+    /* --- 3. The Import Table Entry --- */
+    /* struct MT_IMPORT_ENTRY { const char* lib_name_absolute; const char* func_name_absolute; void** iat_addr_absolute; } */
+    .section .mtimports, "a"
+    .align 8
+    __import_entry_\func:
+        .quad __str_mod_\func   /* module_name */
+        .quad __str_func_\func  /* function_name */
+        .quad \func             /* func_ptr_addr (Address of the variable above) */
+.endm
+
+/* ========================== */
+/* IMPORTS LIST               */
+/* ========================== */
+
+/* String Ops */
+MT_IMPORT "mtdll.mtdll", strchr
+MT_IMPORT "mtdll.mtdll", strncat
+MT_IMPORT "mtdll.mtdll", strncmp
+MT_IMPORT "mtdll.mtdll", strcmp
+MT_IMPORT "mtdll.mtdll", strncpy
+MT_IMPORT "mtdll.mtdll", strcpy
+MT_IMPORT "mtdll.mtdll", strlen
+
+/* Threading */
+MT_IMPORT "mtdll.mtdll", TerminateThread
+
+/* Processes */
+MT_IMPORT "mtdll.mtdll", OpenProcess
+MT_IMPORT "mtdll.mtdll", TerminateProcess
+
+/* Memory */
+MT_IMPORT "mtdll.mtdll", VirtualAlloc
+MT_IMPORT "mtdll.mtdll", VirtualAllocEx
+
+/* File I/O */
+MT_IMPORT "mtdll.mtdll", CreateFile
+MT_IMPORT "mtdll.mtdll", WriteFile
+MT_IMPORT "mtdll.mtdll", ReadFile

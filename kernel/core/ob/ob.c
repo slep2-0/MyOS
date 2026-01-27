@@ -21,6 +21,7 @@ Revision History:
 #include "../../includes/md.h"
 #include "../../assert.h"
 #include "../../includes/ps.h"
+#include "../../includes/mt.h"
 
 // Global list of types (for debugging/enumeration)
 DOUBLY_LINKED_LIST ObTypeDirectoryList;
@@ -310,6 +311,58 @@ ObReferenceObjectByHandle(
 {
     // Set initially to NULL. (to overwrite stack default if uninitialized)
     *Object = NULL;
+    MTSTATUS Status = MT_INVALID_HANDLE;
+
+    // Check for special handles
+    if (Handle < 0) {
+        if (Handle == MtCurrentProcess()) {
+            if (DesiredType == PsProcessType) {
+                PEPROCESS CurrentProcess = PsGetCurrentProcess();
+
+                // Check if caller wants handle information
+                if (HandleInformation) {
+                    HandleInformation->GrantedAccess = MT_PROCESS_ALL_ACCESS;
+                    HandleInformation->Object = CurrentProcess;
+                }
+
+                // Reference ourselves
+                ObReferenceObject(CurrentProcess);
+
+                // Return pointer.
+                *Object = CurrentProcess;
+                Status = MT_SUCCESS;
+            }
+            else {
+                Status = MT_TYPE_MISMATCH;
+            }
+        }
+        else if (Handle == MtCurrentThread()) {
+            if (DesiredType == PsThreadType) {
+                PETHREAD CurrentThread = PsGetCurrentThread();
+
+                // Check if caller wants handle information
+                if (HandleInformation) {
+                    HandleInformation->GrantedAccess = MT_THREAD_ALL_ACCESS;
+                    HandleInformation->Object = CurrentThread;
+                }
+
+                // Reference ourselves
+                ObReferenceObject(CurrentThread);
+
+                // Return pointer.
+                *Object = CurrentThread;
+                Status = MT_SUCCESS;
+            }
+            else {
+                Status = MT_TYPE_MISMATCH;
+            }
+        }
+
+        if (MT_FAILURE(Status)) {
+            return Status;
+        }
+    }
+
 
     // Get the handle table from current process (requesting process)
     PEPROCESS Process = PsGetCurrentProcess();
@@ -472,6 +525,31 @@ ObpDeferObjectDeletion(
     }
 }
 
+void ObDeleteObject(
+    IN POBJECT_HEADER Header
+)
+
+{
+    // Pointers and handles must be 0.
+    assert(Header->HandleCount == 0 && Header->PointerCount == 0);
+    // Get the type initializer for the object.
+    POBJECT_TYPE Type = Header->Type;
+
+#ifdef DEBUG
+    // First call debug callback if exists
+    if (Type->TypeInfo.DumpProcedure) Type->TypeInfo.DumpProcedure(OBJECT_HEADER_TO_OBJECT(Header));
+#endif
+
+    // Call Delete Callback if it exists
+    if (Type->TypeInfo.DeleteProcedure) Type->TypeInfo.DeleteProcedure(OBJECT_HEADER_TO_OBJECT(Header));
+
+    // Update Stats
+    InterlockedDecrementU32((volatile uint32_t*)&Type->TotalNumberOfObjects);
+    // Free Memory
+    gop_printf(COLOR_RED, "Freeing the header\n");
+    MmFreePool(Header);
+}
+
 void ObDereferenceObject(
     IN  void* Object
 ) 
@@ -505,22 +583,10 @@ void ObDereferenceObject(
     if (NewCount == 0) {
         // NO HANDLES Must be open if we delete the object, its a use after free.
         assert(Header->HandleCount == 0);
-        // Get the type initializer for the object.
-        POBJECT_TYPE Type = Header->Type;
-
-#ifdef DEBUG
-        // First call debug callback if exists
-        if (Type->TypeInfo.DumpProcedure) Type->TypeInfo.DumpProcedure(Object);
-#endif
-
-        // Call Delete Callback if it exists
-        if (Type->TypeInfo.DeleteProcedure) Type->TypeInfo.DeleteProcedure(Object);
-
-        // Update Stats
-        InterlockedDecrementU32((volatile uint32_t*)&Type->TotalNumberOfObjects);
-        // Free Memory
-        gop_printf(COLOR_RED, "Freeing the header\n");
+        // Free Memory (defer it)
         //ObpDeferObjectDeletion(Header);
-        MmFreePool(Header);
+        // Until I can figure out what overwrites the processor DpcData, we immediately free
+        // GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..
+        ObDeleteObject(Header);
     }
 }

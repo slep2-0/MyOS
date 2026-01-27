@@ -20,7 +20,7 @@ Revision History:
 #include "../../includes/mg.h"
 #include "../../assert.h"
 // globals
-volatile void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
+void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
 EVENT g_StackReaperEvent;
 
 // atomically pop all entries (returns head or NULL)

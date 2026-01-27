@@ -146,14 +146,12 @@ MsWaitForEvent (
         if (event->type == SynchronizationEvent) {
             // consume the single-signaled state
             event->signaled = false;
-            goto Continue;
         }
         // For NotificationEvent, leave event->signaled = true (notification persists)
         MsReleaseSpinlock(&event->lock, flags);
         return MT_SUCCESS;
     }
 
-    Continue:
     // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
     curr->InternalThread.ThreadState = THREAD_BLOCKED;
     curr->CurrentEvent = event;

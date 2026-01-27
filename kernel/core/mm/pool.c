@@ -575,8 +575,12 @@ MmAllocatePoolWithTag(
     // Release spinlock.
     MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
     void* UserAddress = (void*)((uint8_t*)header + sizeof(POOL_HEADER));
+
     // Set to zero (to avoid kernel issues)
+    // If this is ever removed, massive kernel bugs will appear with uninitialized memory.
+    // So we kinda depend on it now.
     kmemset(UserAddress, 0, NumberOfBytes);
+
     // Return the pointer (exclude metadata start).
     return UserAddress;
 }

@@ -39,6 +39,9 @@ MtSyscallEntry:
     ; RSP - PITHREAD
     mov rsp, [rsp + ITHREAD_KernelStack]
 
+    ; First of all we push the user stack into the trap frame.
+    push qword [gs:PROCESSOR_UserRsp]
+
     ; We now push the registers onto the stack.
     ; We must push how the TRAP frame expects.
     push    rax ; Syscall Number
@@ -87,7 +90,9 @@ MtSyscallEntry:
     pop    rax
 
     ; Recover User Stack Pointer
-    mov rsp, [gs:PROCESSOR_UserRsp]
+    ; Even though the kernel stack doesnt get incremented, it still switched and restored from its base at KernelStack in the mov rsp, at the top.
+    ; So its like we are resetting the stack at each run.
+    pop rsp
 
     ; Switch GS back to User Base
     swapgs

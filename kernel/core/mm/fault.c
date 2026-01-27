@@ -256,8 +256,16 @@ MmAccessFault(
 
         // Check if we are allowed to allocate.
         if (vad->Flags & VAD_FLAG_RESERVED) {
-            // Allocation is forbidden, return access violation.
-            return MT_ACCESS_VIOLATION;
+            // Check if this is a guard page.
+            if (vad->Flags & VAD_FLAG_GUARD_PAGE) {
+                // Raise an guard page violation status and allocate the page.
+                //ExpRaiseStatus()
+                vad->Flags = VAD_FLAG_WRITE | VAD_FLAG_READ;
+            }
+            else {
+                // Allocation is forbidden, return access violation.
+                return MT_ACCESS_VIOLATION;
+            }
         }
 
         uint64_t PteFlags = PAGE_PRESENT | PAGE_NX | PAGE_USER;

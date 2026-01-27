@@ -40,7 +40,8 @@ PsCreateThread(
     PHANDLE ThreadHandle,
     ThreadEntry EntryPoint,
     THREAD_PARAMETER ThreadParameter,
-    TimeSliceTicks TimeSlice
+    TimeSliceTicks TimeSlice,
+    ThreadEntry MtdllEntrypoint
 )
 
 {
@@ -68,12 +69,18 @@ PsCreateThread(
         goto Cleanup;
     }
 
+    // Set parent process.
+    Thread->ParentProcess = ParentProcess;
+
     // Initialize list head.
     InitializeListHead(&Thread->ThreadListEntry);
 
     // Create a TID for the thread.
     Thread->TID = PsAllocateThreadId(Thread);
     if (Thread->TID == MT_INVALID_HANDLE) goto CleanupWithRef;
+
+    // Write the PID into the thread.
+    Thread->PID = ParentProcess->PID;
 
     // Create a new stack for the thread's kernel environment.
     Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
@@ -82,7 +89,8 @@ PsCreateThread(
 
     // Create user mode stack. 
     void* BaseAddress = NULL;
-    Status = MmCreateUserStack(ParentProcess, &BaseAddress, 0); // 0 to indicate default size.
+    size_t StackSize = MI_DEFAULT_USER_STACK_SIZE;
+    Status = MmCreateUserStack(ParentProcess, &BaseAddress, StackSize);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     Thread->InternalThread.StackBase = BaseAddress; // Stack grows downward.
 
@@ -107,9 +115,46 @@ PsCreateThread(
     Thread->InternalThread.ThreadState = THREAD_READY;
     Thread->InternalThread.ApcState.SavedApcProcess = ParentProcess;
 
+    // Get TEB.
+    PTEB Teb = NULL;
+    Status = MmCreateTeb(Thread, (void**) & Teb);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    APC_STATE ApcState;
+    MeAttachProcess(&ParentProcess->InternalProcess, &ApcState);
+
+    // Write some basic information to TEB.
+    try {
+        Teb->UniqueThreadId = Thread->TID;
+        Teb->UniqueProcessId = ParentProcess->PID;
+        Teb->MtTib.StackBase = Thread->InternalThread.StackBase;
+        Teb->MtTib.StackLimit = (void*)(((uintptr_t)Thread->InternalThread.StackBase - StackSize));
+        Status = MT_SUCCESS;
+    } except{
+        // Page fault on user addr.
+        Status = GetExceptionCode();
+    } end_try;
+
+    // Detach
+    MeDetachProcess(&ApcState);
+
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
     // Set process's thread properties.
     if (!ParentProcess->MainThread) {
         ParentProcess->MainThread = Thread;
+
+        // Main thread means ThreadParameter is actually the 3rd argument to LdrInitializeProcess in mtdll
+        // RDI - Pointer to PEB.
+        // RSI - Pointer to TEB.
+        // RDX - Thread entry point.
+        // RCX - Pointer to MTDLL_BASIC_TYPES.
+        PTRAP_FRAME Trap = &Thread->InternalThread.TrapRegisters;
+        Trap->rdi = (uint64_t)ParentProcess->Peb;
+        Trap->rsi = (uint64_t)Teb;
+        Trap->rdx = (uint64_t)EntryPoint;
+        Trap->rcx = (uint64_t)ThreadParameter;
+        Trap->rip = (uint64_t)MtdllEntrypoint;
     }
     else {
         // There is a process main thread, this thread's return address must be to ExitThread(), since after the function return of
@@ -119,8 +164,6 @@ PsCreateThread(
         // (main threads pop back to crt0 runtime, where ExitProcess is ran)
         // So TODO MTDLL.
     }
-
-    Thread->ParentProcess = ParentProcess;
 
     // Create a handle for the thread (and place it in the process's handle table).
     Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
@@ -213,6 +256,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     }
     thread->CurrentEvent = NULL;
     thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
+    thread->InternalThread.ApcState.AttachedToProcess = false;
     thread->SystemThread = true;
 
     // Process stuffz
@@ -236,7 +280,7 @@ PsGetCurrentThread (void) {
     return CONTAINING_RECORD(MeGetCurrentThread(), ETHREAD, InternalThread);
 }
 
-void
+MTSTATUS
 PsTerminateThread(
     IN PETHREAD Thread,
     IN MTSTATUS ExitStatus
@@ -248,9 +292,11 @@ PsTerminateThread(
     if (Thread == PsGetCurrentThread()) {
         // Exit current thread.
         PspExitThread(ExitStatus);
+        return MT_SUCCESS;
     }
 
     assert(false, "Termination called upon remote thread, unimplemented. Need APCs");
+    return MT_NOT_IMPLEMENTED;
 }
 
 void

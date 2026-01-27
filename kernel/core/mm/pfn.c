@@ -487,7 +487,7 @@ MiUnlinkPageFromList(
     PPFN_ENTRY pfn
 )
 
-// Link a specified PPFN_ENTRY from its PfnDb list.
+// Unlink a specified PPFN_ENTRY from its PfnDb list.
 
 {
     IRQL oldIrql;

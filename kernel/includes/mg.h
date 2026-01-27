@@ -83,6 +83,21 @@ char* kstrncpy(char* dst, const char* src, size_t n);
 char* kstrtok_r(char* str, const char* delim, char** save_ptr);
 char* kstrncat(char* dest, const char* src, size_t max_len);
 
+static
+void*
+kmemchr(const void* buf, int c, size_t n)
+{
+    const unsigned char* p = (const unsigned char*)buf;
+    unsigned char uc = (unsigned char)c;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (p[i] == uc) {
+            return (void*)(p + i);
+        }
+    }
+    return NULL;
+}
+
 
 void MgAcquireExclusiveGopOwnerShip(void);
 void MgReleaseExclusiveGopOwnerShip(void);

@@ -249,6 +249,7 @@ typedef struct _APC_STATE {
 	PEPROCESS SavedApcProcess;
 	bool AttachedToProcess;
 	IRQL PreviousIrql;
+	bool SavedThreadAttached;
 } APC_STATE, *PAPC_STATE;
 
 typedef struct _IPROCESS {

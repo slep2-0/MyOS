@@ -173,6 +173,7 @@ static void InitSystemProcess(void) {
     PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
     InitializeListHead(&PsInitialSystemProcess.AllThreads);
     PsInitialSystemProcess.ObjectTable = HtCreateHandleTable(&PsInitialSystemProcess);
+    PsInitialSystemProcess.Flags |= ProcessBreakOnTermination;
 }
 
 extern uint8_t bss_start;

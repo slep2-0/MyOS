@@ -69,7 +69,7 @@ HtGetObject(
     _Out_Opt PHANDLE_TABLE_ENTRY* OutEntry
 );
 
-void
+MTSTATUS
 HtClose(
     IN HANDLE Handle
 );
