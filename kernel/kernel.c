@@ -18,7 +18,7 @@ Kernel Specific
 */
 bool isBugChecking = false;
 bool allApsInitialized = false;
-PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_lapic_id] after initializing SMP.
+PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_id] after initializing SMP.
 
 /*
 Boot Parameters

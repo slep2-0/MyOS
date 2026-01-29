@@ -55,6 +55,7 @@ void ObInitialize (
     ObGlobalLock.locked = false;
     InitializeListHead(&ObTypeDirectoryList);
     // Initialize the DPC here, not at the ObpDefer function, as it would overwrite.
+    /// FIXME, This is currently unused.
     MeInitializeDpc(&ObpReaperDpc, ReapOb, NULL, MEDIUM_PRIORITY);
 }
 
@@ -585,6 +586,7 @@ void ObDereferenceObject(
         assert(Header->HandleCount == 0);
         // Free Memory (defer it)
         //ObpDeferObjectDeletion(Header);
+        /// FIXME below.
         // Until I can figure out what overwrites the processor DpcData, we immediately free
         // GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..
         ObDeleteObject(Header);

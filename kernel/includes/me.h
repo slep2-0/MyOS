@@ -472,6 +472,17 @@ MeIsAttachedProcess(
 	return MeGetCurrentThread()->ApcState.AttachedToProcess;
 }
 
+FORCEINLINE
+uint32_t
+MeGetCurrentProcessorNumber(
+	void
+)
+
+{
+	// Return the Index of the CPUs array, stored in the ID field of the current Processor block.
+	return (uint32_t)__readgsqword(FIELD_OFFSET(PROCESSOR, ID));
+}
+
 void
 MeInitializeProcessor(
 	IN PPROCESSOR CPU,

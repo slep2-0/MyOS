@@ -366,8 +366,11 @@ MmUnmapIoSpace(
 
     // Loop over the range given (by pages)
     for (size_t i = 0; i < NumberOfPages; i++) {
+        PMMPTE Pte = MiGetPtePointer(CurrentVA);
+        assert(Pte != NULL);
+
         // Unmap the virtual address.
-        MiUnmapPte(MiGetPtePointer(CurrentVA));
+        MiUnmapPte(Pte);
 
         // Advance to next 4KiB.
         CurrentVA += VirtualPageSize;

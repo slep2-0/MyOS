@@ -1026,7 +1026,8 @@ MmMapIoSpace(
 
 void
 MmUnmapIoSpace(
-    IN void* VirtualAddress
+    IN void* VirtualAddress,
+    IN size_t NumberOfBytes
 );
 
 // module: mminit.c
