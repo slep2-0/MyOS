@@ -62,6 +62,7 @@ typedef int32_t HANDLE, * PHANDLE;
 
 typedef uint32_t ACCESS_MASK;
 
+MUST_USE_RESULT
 void*
 HtGetObject(
     IN  PHANDLE_TABLE Table,

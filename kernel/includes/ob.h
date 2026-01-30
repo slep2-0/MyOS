@@ -49,7 +49,7 @@ typedef struct _OBJECT_TYPE {
     char Name[32];                   // "Process", "Thread", "Mutant"
     uint32_t TotalNumberOfObjects;   // Statistics
     uint32_t TotalNumberOfHandles;   // Statistics
-    OBJECT_TYPE_INITIALIZER TypeInfo; // Routine (init & del & dbg) information for this object
+    OBJECT_TYPE_INITIALIZER TypeInfo; // Routine (init & del & dbg) information for this object, along with which pool type is it for allocations, and valid access rights for a handle for this object. 
 } OBJECT_TYPE, * POBJECT_TYPE;
 
 // Object header (it is aligned to 16 bytes, to avoid bugs)

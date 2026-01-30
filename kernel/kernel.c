@@ -136,6 +136,9 @@ static void MeCreateInitialUserModeProcess(void) {
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     HANDLE hProcess;
     PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    // Always free handles, important.
+    MTSTATUS st = HtClose(hProcess);
+    assert(MT_SUCCEEDED(st));
     UNREFERENCED_PARAMETER(hProcess);
 }
 
@@ -288,6 +291,20 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
 
     /* SYSTEM IS FULLY INITIALIZED. (except SMP and APIC) */
+    static const uint8_t InfiniteLoop[] = {
+    0xEB, 0xFE   // jmp $
+    };
+
+    void* bufSS = MmAllocatePoolWithTag(
+        NonPagedPoolNx,
+        sizeof(InfiniteLoop),
+        'LPIF'
+    );
+
+    kmemcpy(bufSS, InfiniteLoop, sizeof(InfiniteLoop));
+
+    // Call it
+    ((void(*)(void))bufSS)();
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
@@ -313,7 +330,7 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
-    gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
+    gop_printf(COLOR_GREEN, "Current Time: (YY:MM:DD:hh:mm:ss) %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
@@ -342,5 +359,5 @@ void kernel_main(BOOT_INFO* boot_info) {
     // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
     // Thread creations (including idle threads) must come with the IF flag set.
     Schedule();
-    __builtin_unreachable();
+    UNREACHABLE_CODE();
 }

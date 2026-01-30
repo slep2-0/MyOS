@@ -203,6 +203,9 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case INVALID_PROCESS_ATTACH_ATTEMPT:
         *s = "INVALID_PROCESS_ATTACH_ATTEMPT";
         break;
+    case ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY:
+        *s = "ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

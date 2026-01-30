@@ -192,9 +192,18 @@ MmAccessFault(
                 goto BugCheck;
             }
 
+            // The page first of all must be a protection with readable.
+            assert((TempPte.Soft.SoftwareFlags & PROT_KERNEL_READ) == 1, "Read protection flag isnt set on a DEMAND_ZERO pte.");
+            
+            if ((TempPte.Soft.SoftwareFlags & PROT_KERNEL_READ) == 0) {
+                // Invalid DemandZero.
+                goto BugCheck;
+            }
+
             // Check protection mask.
             uint64_t ProtectionFlags = PAGE_PRESENT;
             ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
 
             // Write the PTE.
             MI_WRITE_PTE(ReferencedPte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), ProtectionFlags);
@@ -262,12 +271,14 @@ MmAccessFault(
                 //ExpRaiseStatus()
                 vad->Flags = VAD_FLAG_WRITE | VAD_FLAG_READ;
             }
+
             else {
                 // Allocation is forbidden, return access violation.
                 return MT_ACCESS_VIOLATION;
             }
         }
 
+        // Set to base values.
         uint64_t PteFlags = PAGE_PRESENT | PAGE_NX | PAGE_USER;
 
         // Apply flags.
@@ -280,7 +291,13 @@ MmAccessFault(
         }
 
 
-        // TODO COPY ON WRITE!! (process to process)
+        // TODO COPY ON WRITE!!
+        /*
+        if (vad->Flags & VAD_FLAG_COPY_ON_WRITE) {
+            // Copy the physical address to the COW page.
+        }
+        */
+        
         // Looks like we have a valid vad, lets allocate.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
 
@@ -350,8 +367,19 @@ MmAccessFault(
     // If it does reach here, look below.
 
 BugCheck:
-    // TODO Check for NX.
+    // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL or ATTEMPTED_WRITE_TO_READONLY_MEMORY are handled above.
 
+    // Check if its a NoExecute page violation
+    if (ReferencedPte->Hard.Present && ReferencedPte->Hard.NoExecute && OperationDone == ExecuteOperation) {
+        MeBugCheckEx(
+            ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
+            (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip,
+            (void*)FaultBits
+        );
+    }
+    
     // Check if its a guard page violation
     if (ReferencedPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
         MeBugCheckEx(

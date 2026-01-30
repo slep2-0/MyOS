@@ -422,7 +422,7 @@ CleanupWithRef:
     }
 #endif
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
-    // If not, it would reach reference 0, and PspDeleteProcessd would execute.
+    // If not, it would reach reference 0, and PspDeleteProcess would execute.
     ObDereferenceObject(Process);
     // [[fallthrough]]
 Cleanup:
@@ -581,7 +581,7 @@ PsGetNextProcessThread(
         }
     }
     else {
-        // Start at beginnininng
+        // Start at beginnininng -- that shit made me laugh (29/01/2026 5:00:04 PM)
         Entry = ListHead->Flink;
     }
 

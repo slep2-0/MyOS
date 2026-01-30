@@ -235,7 +235,7 @@ ObReferenceObjectByPointer(
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
     // If the caller expects a process but gets a thread or a file, we say no no bye bye.
-    if (DesiredType != NULL && Header->Type != DesiredType) {
+    if (Header->Type != DesiredType) {
         return MT_TYPE_MISMATCH;
     }
 
@@ -586,9 +586,10 @@ void ObDereferenceObject(
         assert(Header->HandleCount == 0);
         // Free Memory (defer it)
         //ObpDeferObjectDeletion(Header);
-        /// FIXME below.
-        // Until I can figure out what overwrites the processor DpcData, we immediately free
-        // GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..
+        /// FIXME below. If we are above DISPATCH_LEVEL we queue a DPC
+        /// Else, we just delete it immediately.
+        /// Until I can figure out what overwrites the processor DpcData, we immediately free
+        /// GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..
         ObDeleteObject(Header);
     }
 }

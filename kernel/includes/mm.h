@@ -231,8 +231,9 @@ do {                                                                        \
 #define PFN_ERROR UINT64_T_MAX
 
 // Lazy allocations macros
-#define PROT_KERNEL_READ  0x1
-#define PROT_KERNEL_WRITE 0x2
+#define PROT_KERNEL_READ  (1ULL << 0)
+#define PROT_KERNEL_WRITE (1ULL << 1)
+#define PROT_KERNEL_NOEXECUTE (1ULL < 2)
 #define MI_DEMAND_ZERO_BIT   (1ULL << 16)
 
 // Tags
@@ -352,12 +353,11 @@ typedef enum _PAGE_FLAGS {
 // NonPagedPools - Allocations occur at max DISPATCH_LEVEL (inclusive). (e.g assert(IRQL == DISPATCH/PASSIVE/APC_LEVEL)
 // PagedPools - Allocations occur at max DISPATCH_LEVEL (exclusive) (e.g assert(IRQL == PASSIVE/APC_LEVEL)
 typedef enum _POOL_TYPE {
-    NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs)
-    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL).
+    NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs) (IMPLEMENTED)
+    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL). (IMPLEMENTED) (NOEXECUTE)
     NonPagedPoolCacheAligned = 2,     // Non-paged, cache-aligned (UNIMPLEMENTED)
     PagedPoolCacheAligned = 3,        // Paged, cache-aligned (UNIMPLEMENTED)
-    NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (UNIMPLEMENTED)
-    PagedPoolNx = 5,                  // Paged, non-executable (UNIMPLEMENTED)
+    NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (IMPLEMENTED)
     // No MustSucceeds, these are a bad concept, handle errors gracefully.
 } POOL_TYPE;
 
@@ -557,6 +557,7 @@ typedef struct _POOL_DESCRIPTOR {
     volatile uint64_t FreeCount;        // Number of blocks on the free list
     volatile uint64_t TotalBlocks;      // Total blocks ever allocated (statistics)
     SPINLOCK PoolLock;                  // Spinlock for this specific pool descriptor.
+    enum _POOL_TYPE PoolType;           // The type of the pools this descriptor holds.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
 
 typedef struct {
@@ -729,6 +730,7 @@ MiRetrieveOperationFromErrorCode(
 {
     FAULT_OPERATION operation;
 
+    // Any of the operations below can also occur not only because of a non-present page (PTE), but a non-present page directory (or above)
     if (ErrorCode & (1 << 4)) {
         operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.)
     }
@@ -785,6 +787,8 @@ MiInitializePfnDatabase(
     IN  PBOOT_INFO BootInfo
 );
 
+MUST_USE_RESULT
+HOT
 PAGE_INDEX
 MiRequestPhysicalPage(
     IN  PFN_STATE ListType
@@ -849,6 +853,7 @@ MmIsAddressPresent(
 
 // module: hypermap.c
 
+MUST_USE_RESULT
 void*
 MiMapPageInHyperspace(
     IN  uint64_t PfnIndex,
@@ -868,6 +873,8 @@ MiInitializePoolSystem(
 );
 
 // Only NonPagedPool and PagedPool are implemented out of the POOL_TYPE enumerator.
+MUST_USE_RESULT
+HOT
 void*
 MmAllocatePoolWithTag(
     IN enum _POOL_TYPE PoolType,
@@ -882,6 +889,7 @@ MmFreePool(
 
 // module: mmproc.c
 
+MUST_USE_RESULT
 void*
 MiCreateKernelStack(
     IN  bool LargeStack
@@ -941,12 +949,14 @@ MmFreeVirtualMemory(
     IN void* BaseAddress
 );
 
+MUST_USE_RESULT
 PMMVAD
 MiFindVad(
     IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
 );
 
+MUST_USE_RESULT
 uintptr_t
 MmFindFreeAddressSpace(
     IN  PEPROCESS Process,
@@ -955,6 +965,7 @@ MmFindFreeAddressSpace(
     IN  uintptr_t SearchEnd    // exclusive
 );
 
+MUST_USE_RESULT
 MTSTATUS
 MmIsAddressRangeFree(
     PEPROCESS Process,
@@ -969,6 +980,7 @@ MiInitializePoolVaSpace(
     void
 );
 
+MUST_USE_RESULT
 uintptr_t
 MiAllocatePoolVa(
     IN  POOL_TYPE PoolType,
@@ -992,6 +1004,7 @@ MmAccessFault(
     IN  PTRAP_FRAME TrapFrame
 );
 
+MUST_USE_RESULT
 bool
 MmInvalidAccessAllowed(
     void
@@ -1005,6 +1018,7 @@ MiCheckForContigiousMemory(
     IN size_t NumberOfBytes
 );
 
+MUST_USE_RESULT
 void*
 MmAllocateContigiousMemory(
     IN  size_t NumberOfBytes,
@@ -1017,6 +1031,7 @@ MmFreeContigiousMemory(
     IN  size_t NumberOfBytes
 );
 
+MUST_USE_RESULT
 void*
 MmMapIoSpace(
     IN uintptr_t PhysicalAddress,

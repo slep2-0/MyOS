@@ -56,8 +56,9 @@ MiInitializePoolSystem(
 {
     PPROCESSOR cpu = MeGetCurrentProcessor();
     if (!cpu) return MT_NOT_FOUND;
-
     size_t base = 32; // Start size
+
+    // Initialize normal NonPagedPool.
     for (int i = 0; i < MAX_POOL_DESCRIPTORS; i++) {
         PPOOL_DESCRIPTOR desc = &cpu->LookasidePools[i];
 
@@ -68,8 +69,24 @@ MiInitializePoolSystem(
         desc->FreeListHead.Next = NULL;
         desc->TotalBlocks = 0;
         desc->PoolLock.locked = 0;
+        desc->PoolType = NonPagedPool;
     }
 
+    // Initialize NonPagedPoolNx (no-execute)
+    base = 32;
+    for (int i = 0; i < MAX_POOL_DESCRIPTORS; i++) {
+        PPOOL_DESCRIPTOR desc = &cpu->LookasidePoolsNx[i];
+
+        size_t blockSize = (base << i) + sizeof(POOL_HEADER);
+        desc->BlockSize = blockSize;
+        desc->FreeCount = 0;
+        desc->FreeListHead.Next = NULL;
+        desc->TotalBlocks = 0;
+        desc->PoolLock.locked = 0;
+        desc->PoolType = NonPagedPoolNx;
+    }
+
+    // NPG and NPGNx pools reside in the same VA space.
     MmNonPagedPoolStart = MI_NONPAGED_POOL_BASE;
     MmNonPagedPoolEnd = MI_NONPAGED_POOL_END;
     MmPagedPoolStart = MI_PAGED_POOL_BASE;
@@ -186,8 +203,18 @@ MiRefillPool(
             MiReleasePhysicalPage(pfn);
             return false;
         }
+
+        uint64_t PteFlags = PAGE_PRESENT | PAGE_RW;
+
+        // If the descriptor is a NonPagedPoolNx type, we add the NX bit.
+        if (Desc->PoolType == NonPagedPoolNx) {
+            PteFlags |= PAGE_NX;
+        }
+
+        // Get the PFN Physical address.
         uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
-        MI_WRITE_PTE(pte, PageVa, phys, PAGE_PRESENT | PAGE_RW);
+
+        MI_WRITE_PTE(pte, PageVa, phys, PteFlags);
 
         // Set block size.
         HeaderBlockSize = VirtualPageSize;
@@ -223,6 +250,7 @@ MiRefillPool(
 static
 void*
 MiAllocateLargePool(
+    enum _POOL_TYPE PoolType,
     size_t NumberOfBytes,
     uint32_t Tag
 )
@@ -231,10 +259,11 @@ MiAllocateLargePool(
 
     Routine description:
 
-        Allocates a NonPagedPool pool, and returns a pointer to start of region.
+        Allocates a PoolType pool, and returns a pointer to start of region.
 
     Arguments:
 
+        [IN]    enum _POOL_TYPE PoolType - The type of pool to allocate for. (must be NonPagedXXX variant)
         [IN]    size_t NumberOfBytes - Number of bytes needed to allocate.
         [IN]    uint32_t Tag - A 4 byte integer that signifies the current allocation, in little endian (e.g 'TSET' -> 'TEST')
 
@@ -245,7 +274,7 @@ MiAllocateLargePool(
 --*/
 
 {
-    /*
+    /* look at MiRefillPool
     IRQL oldIrql;
     // Compute the actual allocation size in bytes.
     PPOOL_HEADER foundHeader = NULL;
@@ -323,6 +352,14 @@ MiAllocateLargePool(
         // Map the page.
         PMMPTE pte = MiGetPtePointer((uintptr_t)currVa);
         uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
+
+        uint64_t PteFlags = PAGE_PRESENT | PAGE_RW;
+
+        // If its NX pool, we add the NX bit.
+        if (PoolType == NonPagedPoolNx) {
+            PteFlags |= PAGE_NX;
+        }
+
         MI_WRITE_PTE(pte, currVa, phys, PAGE_PRESENT | PAGE_RW);
         
         // Update PFN metadata.
@@ -404,7 +441,7 @@ MiAllocatePagedPool(
         if (!tmpPte) continue; // TODO Unroll.
         MMPTE TempPte = *tmpPte;
         // Set the PTE as demand zero.
-        MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE, false);
+        MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE | PROT_KERNEL_NOEXECUTE, false);
         // Atomically exchange new value.
         MiAtomicExchangePte(tmpPte, TempPte.Value);
         // Invalidate the VA.
@@ -513,10 +550,21 @@ MmAllocatePoolWithTag(
     cpu = MeGetCurrentProcessor();
 
 
-    // It's NonPagedPool. Find the correct slab.
+    // It's NonPagedPool OR NonPagedPooLNx. Find the correct slab.
+    PPOOL_DESCRIPTOR TypeDescriptor = NULL;
+
+    if (PoolType == NonPagedPool) {
+        // Normal
+        TypeDescriptor = cpu->LookasidePools;
+    }
+    else {
+        // Nx
+        TypeDescriptor = cpu->LookasidePoolsNx;
+    }
+
     Desc = NULL;
     for (int i = 0; i < MAX_POOL_DESCRIPTORS; i++) {
-        PPOOL_DESCRIPTOR currentSlab = &cpu->LookasidePools[i];
+        PPOOL_DESCRIPTOR currentSlab = &TypeDescriptor[i];
         if (ActualSize <= currentSlab->BlockSize) {
             Desc = currentSlab;
             Index = i;
@@ -526,7 +574,7 @@ MmAllocatePoolWithTag(
 
     if (Desc == NULL) {
         // Allocation is larger than 2048 bytes, use the large pool allocator.
-        return MiAllocateLargePool(NumberOfBytes, Tag);
+        return MiAllocateLargePool(PoolType, NumberOfBytes, Tag);
     }
     
     MsAcquireSpinlock(&Desc->PoolLock, &oldIrql);

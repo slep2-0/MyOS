@@ -134,6 +134,7 @@ typedef enum _BUGCHECK_CODES {
 	INVALID_PROCESS_ATTACH_ATTEMPT,
 	CRITICAL_PROCESS_DIED,
 	WORKER_THREAD_ATTEMPTED_TERMINATION,
+	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -271,6 +272,7 @@ typedef struct _ITHREAD {
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
 } ITHREAD, *PITHREAD;
 
+// Note to self: Re-organize this to match more of the KPRCB style, that style is way more consistent across the board (Separates between scheduler and Processor, yada yada)
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
@@ -325,6 +327,7 @@ typedef struct _PROCESSOR {
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
+	POOL_DESCRIPTOR LookasidePoolsNx[MAX_POOL_DESCRIPTORS];
 
 	struct _DEBUG_ENTRY DebugEntry[4]; // Per CPU Structure that contains debug entries for each debug register.
 	void* IstTimerStackTop;

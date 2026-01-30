@@ -201,6 +201,8 @@ MiPageFault (
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
         // If there are no exceptions handlers (for user mode, we check the FS exception (todo TEB)) (for kernel mode we check the section by linker script)
         // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
+
+        // Set thread last exception status.
         PsGetCurrentThread()->LastStatus = status;
 
         if (PreviousMode == UserMode) {

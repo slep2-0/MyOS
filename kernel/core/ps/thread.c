@@ -287,7 +287,7 @@ PsTerminateThread(
 )
 
 {
-    // Non complete function, this should queue a thread Apc to call MtTerminateThread on itself.
+    // Non complete function, this should queue a thread Apc to call MtTerminateThread (PspExitThread) on itself.
     // Or if it is the current thread, we just terminate ourselves.
     if (Thread == PsGetCurrentThread()) {
         // Exit current thread.
@@ -296,6 +296,8 @@ PsTerminateThread(
     }
 
     assert(false, "Termination called upon remote thread, unimplemented. Need APCs");
+    MeBugCheckEx((BUGCHECK_CODES)MT_NOT_IMPLEMENTED, (void*)(uintptr_t)Thread, (void*)(uintptr_t)ExitStatus, NULL, NULL);
+
     return MT_NOT_IMPLEMENTED;
 }
 

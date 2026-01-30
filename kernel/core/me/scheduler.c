@@ -141,8 +141,13 @@ Schedule(void) {
 
     next->ThreadState = THREAD_RUNNING;
     MeGetCurrentProcessor()->currentThread = next;
-    __cli();
+
+    // Disable interrupts, we must not scheduled away now.
+    MeDisableInterrupts();
+    
+    // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);
+
     // Hi matanel, if you ever encounter failures here, like if it goes to restore_user_context as a system thread
     // please check that you made the same changed to InitScheduler as you made in PsCreateSystemThread, for example, Thread->SystemThread was false in the idle thread, because I forgot to set
     // that flag in its initilization, even though I was sure its on (for normal threads that is), because in PsCreateSystemThreads it was indeed = true.

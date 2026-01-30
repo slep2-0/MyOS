@@ -51,7 +51,6 @@ typedef struct _RUNDOWN_REF {
 typedef struct _Queue {
     PETHREAD head;
     PETHREAD tail;
-    struct _SPINLOCK lock; /* embedded spinlock (do not change from embedded) */
 } Queue;
 
 /**

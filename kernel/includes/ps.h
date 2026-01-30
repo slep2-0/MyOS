@@ -375,19 +375,15 @@ PsFreeCid(
 );
 
 
-
-
-
-
-
 // Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE
 void
 MeEnqueueThreadWithLock(
     Queue* queue, PETHREAD thread)
 {
-    IRQL flags;
-    MsAcquireSpinlock(&queue->lock, &flags);
+    /// FIXME CRITICAL, Remove the Queue struct from the Processor block, instead just have 3 fields (IdleThread,CurrentThread,NextThread), all are ITHREAD.
+    /// FOR NOW - We acquire scheduler lock and not queue lock.
+    MeAcquireSchedulerLock();
 
     // Initialize the new node's links using the SCHEDULER entry
     thread->SchedulerListEntry.Flink = NULL;
@@ -407,7 +403,7 @@ MeEnqueueThreadWithLock(
     // Update tail to be the new thread
     queue->tail = thread;
 
-    MsReleaseSpinlock(&queue->lock, flags);
+    MeReleaseSchedulerLock();
 }
 
 // Dequeues the head thread from the queue with spinlock protection.
@@ -415,11 +411,10 @@ FORCEINLINE
 PETHREAD
 MeDequeueThreadWithLock(Queue* q)
 {
-    IRQL flags;
-    MsAcquireSpinlock(&q->lock, &flags);
+    MeAcquireSchedulerLock();
 
     if (!q->head) {
-        MsReleaseSpinlock(&q->lock, flags);
+        MeReleaseSchedulerLock();
         return NULL;
     }
 
@@ -444,7 +439,7 @@ MeDequeueThreadWithLock(Queue* q)
     t->SchedulerListEntry.Flink = NULL;
     t->SchedulerListEntry.Blink = NULL;
 
-    MsReleaseSpinlock(&q->lock, flags);
+    MeReleaseSchedulerLock();
     return t;
 }
 
