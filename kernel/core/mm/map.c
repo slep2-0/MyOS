@@ -390,7 +390,7 @@ MiUnmapPte (
 
     Routine description:
 
-        Unmaps the pte from the current address pace.
+        Unmaps the pte from the current address space.
 
     Arguments:
 
@@ -398,11 +398,7 @@ MiUnmapPte (
 
     Return Values:
 
-        None.
-
-    Notes:
-
-        This function RELEASES the PFN associated with the page to the PFN Database (as a standby pfn)        
+        None.       
 
 --*/
 
@@ -420,6 +416,11 @@ MiUnmapPte (
     // Zero out newPte
     kmemset(&newPte, 0, sizeof(MMPTE));
 
+    // Keep only the protection flags. (so transition function set know which flags it had)
+    newPte.Hard.Write = pte->Hard.Write;
+    newPte.Hard.User = pte->Hard.User;
+    newPte.Hard.NoExecute = pte->Hard.NoExecute;
+
     // Setting a transition PTE is at another function.
     
     // Exchange now.
@@ -431,6 +432,66 @@ MiUnmapPte (
 
     // Return.
     return;
+}
+
+bool
+MiAtomicSetTransitionPte(
+    IN PMMPTE Pte,
+    IN PAGE_INDEX Pfn
+)
+
+/*++
+
+    Routine description:
+
+        Atomically sets the Pte given to a transition PTE if it did not change while setting.
+
+    Arguments:
+
+        [IN]  PMMPTE Pte - Pointer to MMPTE PTE in memory to set as transition.
+        [IN]  PAGE_INDEX Pfn - The PFN number to set this PTE as a transition for.
+
+    Return Values:
+
+        None.
+
+    Note:
+
+        This function must always be called ONLY from MiReleasePhysicalPage. 
+
+--*/
+
+{
+    // Assertion that the return address is within the bounds of MiReleasePhysicalPage, as this function MUST ONLY be called from there.
+    // Why didnt I make it there? Because I MIGHT plan that this function can be called somewhere else, we'll see.
+    assert(MiIsWithinBoundsOfReleasePhysicalPage(RETADDR(0)));
+
+    // Set the baseline expected.
+    MMPTE Expected = *Pte;
+
+    // Runtime assertions to verify its a valid unmapped PTE before continuing.
+    assert(Expected.Hard.Present == 0);
+    assert(Expected.Soft.Transition == 0);
+
+    char buf[256];
+    ksnprintf(buf, sizeof(buf), "Address of PTE: %p", Pte);
+    assert(Expected.Hard.Prototype == 0, buf);
+    
+    // Set the transition page properties.
+    MMPTE Transition = Expected;
+    Transition.Soft.Transition = 1;
+    Transition.Soft.PageFrameNumber = Pfn;
+
+    // Set the protection flags, this is so the page fault handler knows the properties of the pte.
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.Write) ? PROT_KERNEL_WRITE : 0;
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.NoExecute) ? PROT_KERNEL_NOEXECUTE : 0;
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.User) ? PROT_KERNEL_USER : 0;
+
+    // Atomic compare exchange, if the PTE changed within the exchange, we do not set the value, and abort.
+    if (!InterlockedCompareExchangeU64((volatile uint64_t*)Pte, Transition.Value, Expected.Value)) return false;
+
+    // Exchange successful!
+    return true;
 }
 
 // Reloads CR3 to flush all TLBs (slow flush)

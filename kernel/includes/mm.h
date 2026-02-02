@@ -231,7 +231,8 @@ do {                                                                        \
 // Lazy allocations macros
 #define PROT_KERNEL_READ  (1ULL << 0)
 #define PROT_KERNEL_WRITE (1ULL << 1)
-#define PROT_KERNEL_NOEXECUTE (1ULL < 2)
+#define PROT_KERNEL_NOEXECUTE (1ULL << 2)
+#define PROT_KERNEL_USER (1ULL << 3)
 #define MI_DEMAND_ZERO_BIT   (1ULL << 16)
 
 // Tags
@@ -454,7 +455,7 @@ typedef struct _MMPTE
             uint64_t Transition : 1;         // 1 = Page is in transition (has PFN) (used for StandBy List)
             uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
-            uint64_t Reserved : 7;           // i'm sorry, h.c
+            uint64_t Reserved : 7;           // i'm sorry, h.c (sorry for cringing out whoever sees this)
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
             uint64_t SoftwareFlags : 19;     // e.g. protection mask, pool type
             uint64_t NoExecute : 1;          // NX still meaningful in software
@@ -795,9 +796,19 @@ MiRequestPhysicalPage(
     IN  PFN_STATE ListType
 );
 
+bool
+MiIsWithinBoundsOfReleasePhysicalPage(
+    void* VirtualAddress
+);
+
 void
 MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
+);
+
+void
+MiUnlinkPageFromList(
+    PPFN_ENTRY pfn
 );
 
 void
@@ -835,6 +846,12 @@ MiTranslatePteToVa(
 PAGE_INDEX
 MiTranslatePteToPfn(
     IN  PMMPTE pte
+);
+
+bool
+MiAtomicSetTransitionPte(
+    IN PMMPTE Pte,
+    IN PAGE_INDEX Pfn
 );
 
 uintptr_t

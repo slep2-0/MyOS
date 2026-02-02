@@ -142,6 +142,7 @@ MmAccessFault(
 
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
         if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
+            // Guard pages for kernel mode do not raise an exception and fill in the PTE, this is only for user mode.
             goto BugCheck;
         }
 
@@ -211,23 +212,39 @@ MmAccessFault(
             return MT_SUCCESS;
         }
 
-        // PTE Isn't present, and its a transition
+        // PTE Isn't present, and its a transition (KERNEL MODE PATH)
         if (TempPte.Soft.Transition == 1) {
             // Retrieve the PFN Number written in the transition page.
             PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
             if (!MiIsValidPfn(pfn)) goto BugCheck;
 
+            // Acquire Standby PFN DB List lock. (acquiring spinlock is okay, IRQL detection was checked above)
+            IRQL oldIrql;
+            MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
+
             // Check the PFN, it has to be in the StandBy list and be equal to our PTE, if not, bugcheck.
             PPFN_ENTRY PPfn = INDEX_TO_PPFN(pfn);
-            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) goto BugCheck;
-
-            // PFN Is matching to this pte, now we can allocate, finally.
+            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) {
+                // Release spinlock.
+                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+                goto BugCheck;
+            }
+            // PFN Is matching to this pte, now we can set the PTE.
             // Check protection mask.
             uint64_t ProtectionFlags = PAGE_PRESENT;
             ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
 
+            // Release this PFN from the list.
+            MiUnlinkPageFromList(PPfn);
+
+            // Atomically set PTE.
             MI_WRITE_PTE(ReferencedPte, VirtualAddress, PFN_TO_PHYS(pfn), ProtectionFlags);
 
+            // Release PFN Standby list lock.
+            MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+
+            // Return success.
             return MT_SUCCESS;
         }
 
@@ -243,7 +260,7 @@ MmAccessFault(
     // i removed it, bye bye.
 
     // Address is in user range.
-    // Both kernel and user mode are allowed to fault in here, guranteeing there is a VAD backing it of course (and IRQL demands)
+    // Both kernel and user mode are allowed to fault in here, guranteing there is a VAD backing it of course (and IRQL demands)
     // If kernel faulted and no vad (Irql is good), then we search for exception handlers in return, if none we bugcheck.
     // If a user faulted and no vad (Irql is good), then we search for exception handlers in return, if none we terminate the thread.
     if (VirtualAddress <= MmHighestUserAddress) {
@@ -268,7 +285,7 @@ MmAccessFault(
             // Check if this is a guard page.
             if (vad->Flags & VAD_FLAG_GUARD_PAGE) {
                 // Raise an guard page violation status and allocate the page.
-                //ExpRaiseStatus()
+                //ExpRaiseStatus() TODO
                 vad->Flags = VAD_FLAG_WRITE | VAD_FLAG_READ;
             }
 
@@ -276,6 +293,56 @@ MmAccessFault(
                 // Allocation is forbidden, return access violation.
                 return MT_ACCESS_VIOLATION;
             }
+        }
+
+        MMPTE TempPte = *ReferencedPte;
+
+        // Now check for transition PTE (after checking reserved vad flag)
+        // PTE Isn't present, and its a transition (USER MODE PATH) (ACCESS VIOLATION RETURN)
+        // If the previous mode is kernel mode and an access violation is returned, KMODE_EXCEPTION_NOT_HANDLED bugcheck comes
+        // unless the kernel has a try except handler set in the VA (checked in return path)
+        if (TempPte.Soft.Transition == 1) {
+            // Retrieve the PFN Number written in the transition page.
+            PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
+            if (!MiIsValidPfn(pfn)) return MT_ACCESS_VIOLATION;
+
+            // Acquire Standby PFN DB List lock. (acquiring spinlock is okay, IRQL detection was checked above)
+            IRQL oldIrql;
+            MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
+
+            // Check the PFN, it has to be in the StandBy list and be equal to our PTE, if not, bugcheck.
+            PPFN_ENTRY PPfn = INDEX_TO_PPFN(pfn);
+            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) {
+                // Release spinlock.
+                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+                return MT_ACCESS_VIOLATION;
+            }
+
+            // PFN Is matching to this pte, now we can set the PTE.
+            // Check protection mask.
+            uint64_t ProtectionFlags = PAGE_PRESENT;
+
+            // Writable
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
+            
+            // User accessible.
+            assert((TempPte.Soft.SoftwareFlags & PROT_KERNEL_USER) != 0);
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_USER) ? PAGE_USER : 0; // This should always be valid for user mode paths.
+            
+            // NoExecute.
+            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
+
+            // Release this PFN from the list.
+            MiUnlinkPageFromList(PPfn);
+
+            // Atomically set PTE.
+            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PFN_TO_PHYS(pfn), ProtectionFlags);
+
+            // Release PFN Standby list lock.
+            MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+
+            // Return success.
+            return MT_SUCCESS;
         }
 
         // Set to base values.
