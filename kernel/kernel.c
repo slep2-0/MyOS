@@ -291,20 +291,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
 
     /* SYSTEM IS FULLY INITIALIZED. (except SMP and APIC) */
-    static const uint8_t InfiniteLoop[] = {
-    0xEB, 0xFE   // jmp $
-    };
-
-    void* bufSS = MmAllocatePoolWithTag(
-        NonPagedPoolNx,
-        sizeof(InfiniteLoop),
-        'LPIF'
-    );
-
-    kmemcpy(bufSS, InfiniteLoop, sizeof(InfiniteLoop));
-
-    // Call it
-    ((void(*)(void))bufSS)();
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);

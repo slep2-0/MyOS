@@ -455,7 +455,6 @@ MiReleasePhysicalPage(
                 IRQL oldIrql;
                 pfn->State = PfnStateModified;
                 MsAcquireSpinlock(&PfnDatabase.ModifiedPageList.PfnListLock, &oldIrql);
-                // TODO SET FILE OFFSET PAGING
                 InsertTailList(&PfnDatabase.ModifiedPageList.ListEntry, &pfn->Descriptor.ListEntry);
                 
                 // Increment the counters
@@ -469,7 +468,6 @@ MiReleasePhysicalPage(
                 IRQL oldIrql;
                 pfn->State = PfnStateStandby;
                 MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
-                // TODO SET FILE OFFSET PAGING
                 InsertTailList(&PfnDatabase.StandbyPageList.ListEntry, &pfn->Descriptor.ListEntry);
 
                 // Increment the counters

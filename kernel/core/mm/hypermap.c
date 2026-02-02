@@ -113,7 +113,7 @@ MiUnmapHyperSpaceMap(
 
     // Clear the PTE present bit (to prevent use after free)
     MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS)->Hard.Present = 0;
-    invlpg((void*)HYPERMAP_VIRTUAL_ADDRESS);
+    invlpg((void*)HYPERMAP_VIRTUAL_ADDRESS); // No need to call the MiInvalidateTlb (IPI) as this addr is spinlock protected (and next access rewrites the PTE and does invplg in MI_WRITE_PTE)
 
     // After MiUnmapPte changed the pfn metadata, we change it once again to invalidate it.
     pfn->Descriptor.Mapping.PteAddress = NULL;

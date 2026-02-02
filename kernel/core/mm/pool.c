@@ -21,7 +21,7 @@ Revision History:
 #include "../../includes/mg.h"
 #include "../../assert.h"
 
-// Can hold any size.
+// Can hold any size. (NonPaged)
 POOL_DESCRIPTOR GlobalPool;
 
 #define POOL_TYPE_GLOBAL 9999
@@ -274,54 +274,10 @@ MiAllocateLargePool(
 --*/
 
 {
-    /* look at MiRefillPool
-    IRQL oldIrql;
-    // Compute the actual allocation size in bytes.
-    PPOOL_HEADER foundHeader = NULL;
-    MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
-    PSINGLE_LINKED_LIST* PtrToPrevNext = &GlobalPool.FreeListHead.Next;
-    PSINGLE_LINKED_LIST list = GlobalPool.FreeListHead.Next;
-
-    while (list) {
-        PPOOL_HEADER header = CONTAINING_RECORD(list, POOL_HEADER, Metadata.FreeListEntry);
-
-        if (header->PoolCanary != 'BEKA') {
-            MeBugCheckEx(
-                MEMORY_CORRUPT_HEADER,
-                (void*)header,
-                (void*)__read_rip(),
-                NULL,
-                NULL
-            );
-        }
-
-        if (header->Metadata.BlockSize >= RequiredSize) {
-            // Found a block that holds the amount of bytes we need!
-            foundHeader = header;
-            
-            // Unlink it from the list.
-            *PtrToPrevNext = list->Next;
-            GlobalPool.FreeCount--;
-            break;
-        }
-
-        // Didn't find an appropriate block, move to next.
-        PtrToPrevNext = &list->Next;
-        list = list->Next;
-    }
-
-    // Release the lock.
-    MsReleaseSpinlock(&GlobalPool.PoolLock, oldIrql);
-    // Now lets check if we found a block or we didn't.
-    if (foundHeader) {
-        // Good, lets set metadata, and return it to the caller.
-        foundHeader->PoolTag = Tag;
-        return (void*)((uint8_t*)foundHeader + sizeof(POOL_HEADER));
-    }
-    */
-
+    // Calculate required size.
     size_t RequiredSize = NumberOfBytes + sizeof(POOL_HEADER);
-    // Looks like we didn't find a block that has the amount of bytes we need, allocate one.
+
+    // Convert to pages.
     size_t neededPages = BYTES_TO_PAGES(RequiredSize);
 
     // Allocate contiguous VAs.
@@ -436,17 +392,41 @@ MiAllocatePagedPool(
     // Set each page to be a demand lazy allocation.
     size_t NumberOfPages = BYTES_TO_PAGES(ActualSize);
     size_t currVa = PagedVa;
-    for (size_t i = 0; i < NumberOfPages; i++) {
+
+    size_t i = 0;
+    bool failure = false;
+    for (; i < NumberOfPages; i++) {
         PMMPTE tmpPte = MiGetPtePointer(currVa);
-        if (!tmpPte) continue; // TODO Unroll.
+        if (!tmpPte) { failure = true; break; }
         MMPTE TempPte = *tmpPte;
-        // Set the PTE as demand zero.
+        // Set the PTE as demand zero. (paged pool is also NoExecute)
         MM_SET_DEMAND_ZERO_PTE(TempPte, PROT_KERNEL_READ | PROT_KERNEL_WRITE | PROT_KERNEL_NOEXECUTE, false);
         // Atomically exchange new value.
         MiAtomicExchangePte(tmpPte, TempPte.Value);
         // Invalidate the VA.
         MiInvalidateTlbForVa((void*)currVa);
         currVa += VirtualPageSize;
+    }
+
+    // Check if we failed getting a PTE, if so, unroll loop.
+    if (failure) {
+        while (i-- > 0) {
+            // Go back to the page we processed before.
+            currVa -= VirtualPageSize;
+
+            // Acquire its PTE.
+            PMMPTE Pte = MiGetPtePointer(currVa);
+            if (!Pte) {
+                assert(false, "Acquiring PTE pointer after it was valid before resulted in NULL, severe bug.");
+                break;
+            }
+
+            // Clear PTE.
+            MiUnmapPte(Pte);
+        }
+
+        // Return NULL, allocation failure.
+        return NULL;
     }
 
     // Set metadata. (header should get paged in now).
@@ -487,6 +467,12 @@ MmAllocatePoolWithTag(
 
         PagedPool allocations CANNOT happen at IRQL => DISPATCH_LEVEL.
         NonPagedPool allocations CANNOT happen at IRQL > DISPATCH_LEVEL.
+
+        NonPagedPoolCachedXxX pool allocations are not supported.
+
+    Todos:
+
+        Implement POOL_TAGGING (global doubly linked list of all pool allocs, so we can have a poolmon of our own!)
 
 --*/
 
@@ -557,9 +543,13 @@ MmAllocatePoolWithTag(
         // Normal
         TypeDescriptor = cpu->LookasidePools;
     }
-    else {
+    else if (PoolType == NonPagedPoolNx) {
         // Nx
         TypeDescriptor = cpu->LookasidePoolsNx;
+    }
+    else {
+        // Pool type is not supported.
+        return NULL;
     }
 
     Desc = NULL;
@@ -588,6 +578,7 @@ MmAllocatePoolWithTag(
             // If we failed allocation, act on failure.
             return NULL;
         }
+
         // Retry allocation.
         return MmAllocatePoolWithTag(PoolType, NumberOfBytes, Tag);
     }
@@ -627,6 +618,10 @@ MmAllocatePoolWithTag(
     // Set to zero (to avoid kernel issues)
     // If this is ever removed, massive kernel bugs will appear with uninitialized memory.
     // So we kinda depend on it now.
+    // brilliant engineering, brilliant (its sarcasm)
+    // (NOTE: If pool is allocated freshly by MiRefillPool (needed loop to find out) (or double counters),
+    // it usually (USUALLY, maybe it changed) came from acquiring a physical page with a zeroed pfn state value
+    // so the page comes zeroed, which means the memset below can be skipped) (PERFORMANCE TODO)
     kmemset(UserAddress, 0, NumberOfBytes);
 
     // Return the pointer (exclude metadata start).
@@ -689,7 +684,7 @@ MmFreePool(
         size_t NumberOfPages = BYTES_TO_PAGES(BlockSize);
         uintptr_t CurrentVA = (uintptr_t)header;
 
-        // 1. Release Physical Pages (PFNs) and Unmap PTEs
+        // Release physical pages and unmap PTEs.
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
 
@@ -709,15 +704,13 @@ MmFreePool(
             CurrentVA += VirtualPageSize;
         }
 
-        // 2. Free the Contiguous Virtual Address space
-        // Assuming you have a function to free the VA range in your bitmap/tree
+        // Free VA space given.
         MiFreePoolVaContiguous((uintptr_t)header, BlockSize, NonPagedPool);
 
         return;
     }
 
     if (PoolIndex == POOL_TYPE_PAGED) {
-        assert(MeGetCurrentIrql() < DISPATCH_LEVEL); // I mean, this assertion is KINDA useless, as we cant get here in the first place, since we would IRQL_NOT_LESS_OR_EQUAL while acquiring the index.
         // For a paged pool allocation, we just free every PTE, then returned the VA space consumed.
         // The BlockSize field in a PagedPool allocation is how many bytes were requested + sizeof(POOL_HEADER)
         size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);

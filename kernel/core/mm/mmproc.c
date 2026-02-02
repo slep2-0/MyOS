@@ -519,6 +519,8 @@ MmCreatePeb(
         return Status;
     }
 
+    // Set Process->Peb (TODO)
+
     BaseAddress = NULL;
     Status = MmAllocateVirtualMemory(Process, &BaseAddress, sizeof(MTDLL_BASIC_TYPES), VAD_FLAG_WRITE | VAD_FLAG_READ);
 
@@ -545,6 +547,8 @@ MmCreateTeb(
     if (MT_SUCCEEDED(Status)) {
         *Teb = BaseAddress;
     }
+
+    // Set Thread->InternalThread->Teb (TODO)
 
     return Status;
 }

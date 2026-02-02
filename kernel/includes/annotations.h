@@ -37,7 +37,7 @@
 // Function / Object is signaled as used, even though it is not used in any translation unit.
 #define USED __attribute__((used))
 
-// Caller MUST use return value (e.g., kmalloc, status codes)
+// Caller MUST use return value (e.g., pool allocation, status codes)
 #define MUST_USE_RESULT __attribute__((warn_unused_result))
 
 // Function is cold (unlikely to be executed)
@@ -69,5 +69,11 @@
 
 // Execution must never reach this point, reaching it is undefined behavior.
 #define UNREACHABLE_CODE() __builtin_unreachable()
+
+// Ensures the size of struct 'struc' must be 'size' size in bytes.
+#define VALIDATE_SIZE(struc, size) static_assert(sizeof(struc) == size, "Invalid structure size of " #struc)
+
+// Ensures the offset of 'member' field in the struct 'struc', must be 'offset' bytes from the start.
+#define VALIDATE_OFFSET(struc, member, offset) static_assert(offsetof(struc, member) == offset, "The offset of " #member " in " #struc " is not " #offset "...")
 
 #endif

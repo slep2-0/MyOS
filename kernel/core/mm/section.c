@@ -85,6 +85,7 @@ MmCreateSection(
     // It starts at FileOffset 0 (so we can see the Header) and goes up to the end of Data.
     NewSection->WholeFileSection.FileOffset = 0;
     NewSection->WholeFileSection.VirtualSize = FileEndRVA;
+
     // We default to RWX here to simplify loading; permissions should be refined later via VirtualProtect.
     NewSection->WholeFileSection.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE | VAD_FLAG_EXECUTE | VAD_FLAG_MAPPED_FILE;
     NewSection->WholeFileSection.IsDemandZero = 0;

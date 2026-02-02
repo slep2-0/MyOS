@@ -333,7 +333,7 @@ MiTranslatePteToPfn (
     return PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
 }
 
-uint64_t
+uintptr_t
 MiTranslatePteToVa(
     IN PMMPTE pte
 )
@@ -402,7 +402,7 @@ MiUnmapPte (
 
     Notes:
 
-        This function DOES NOT release the PFN associated with the PTE back to the database, you must do so yourself.
+        This function RELEASES the PFN associated with the page to the PFN Database (as a standby pfn)        
 
 --*/
 
@@ -412,7 +412,7 @@ MiUnmapPte (
     PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
     if (!pfn) return;
     // Get the PTE's original VA.
-    uint64_t origVa = MiTranslatePteToVa(pte);
+    uintptr_t origVa = MiTranslatePteToVa(pte);
 
     // Atomically exchange old info with new info to avoid races.
     MMPTE newPte;
@@ -420,12 +420,8 @@ MiUnmapPte (
     // Zero out newPte
     kmemset(&newPte, 0, sizeof(MMPTE));
 
-    // Write new values.
-    newPte.Soft.PageFrameNumber = pfn;
+    // Setting a transition PTE is at another function.
     
-    // I removed the transition set here, even though it has a PFN assigned to it (to track last good PFN), we don't mark it as transition.
-    // Instead, when we put it in the standby list, there should be a unique function for it. TODO
-
     // Exchange now.
     InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
 
@@ -436,7 +432,6 @@ MiUnmapPte (
     // Return.
     return;
 }
-
 
 // Reloads CR3 to flush all TLBs (slow flush)
 void

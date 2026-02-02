@@ -192,7 +192,10 @@ typedef struct _ETHREAD {
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
-    MTSTATUS LastStatus; // The last status set by violations.
+
+    // Note that LastStatus and LastError should be stored in the TEB, by the way, the TEB is already established
+    // But until I dont finish MTDLL I wont include a ptr to the TEB here.
+    MTSTATUS LastStatus; // The last status set by violation.
     bool SystemThread; // Is this thread a system thread?
     bool WorkerThread; // is this thread a worker thread?
     /* TODO: priority, affinity, wait list, etc. */

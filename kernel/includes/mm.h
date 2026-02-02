@@ -172,16 +172,14 @@ do {                                                                        \
 #define PAGE_ALIGN(Va) ((void*)((uint64_t)(Va) & ~(VirtualPageSize - 1)))
 
 #define MAX_POOL_DESCRIPTORS 7 // Allows for: 32, 64, 128, 256, 512, 1024, 2048 Bytes Per pool
-#define _32KB_POOL 1
-#define _64KB_POOL 2
-#define _128KB_POOL 3
-#define _256KB_POOL 4
-#define _512KB_POOL 5
-#define _1024KB_POOL 6
-#define _2048KB_POOL 7
-#define POOL_MIN_ALLOC 32
-#define USER_VA_END 0x00007FFFFFFFFFFF
-#define USER_VA_START 0x10000
+#define _32B_POOL 1
+#define _64B_POOL 2
+#define _128B_POOL 3
+#define _256B_POOL 4
+#define _512B_POOL 5
+#define _1024B_POOL 6
+#define _2048B_POOL 7
+#define POOL_MIN_ALLOC 32 // Bytes
 // You are allowed to request bytes above max allocation, the global pool would be used.
 #define POOL_MAX_ALLOC 2048
 // Pool sizes
@@ -293,13 +291,13 @@ typedef enum _PFN_FLAGS {
 } PFN_FLAGS;
 
 typedef enum _VAD_FLAGS {
-    VAD_FLAG_NONE = 0,
-    VAD_FLAG_READ = (1U << 0),
-    VAD_FLAG_WRITE = (1U << 1),
-    VAD_FLAG_EXECUTE = (1U << 2),
+    VAD_FLAG_NONE = 0, // No flags, base value.
+    VAD_FLAG_READ = (1U << 0),  // Allowed to read from this address.
+    VAD_FLAG_WRITE = (1U << 1),    // Allowed to write to this address
+    VAD_FLAG_EXECUTE = (1U << 2),   // Instruction execution is permitted on the address.
     VAD_FLAG_PRIVATE = (1U << 3),     // Private (backed by swap file, like pagefile.mtsys)
     VAD_FLAG_MAPPED_FILE = (1U << 4), // Backed by a file (lets say data.mtdll)
-    VAD_FLAG_COPY_ON_WRITE = (1U << 5),
+    VAD_FLAG_COPY_ON_WRITE = (1U << 5), // Allocation comes from a shared physical memory address(s), this can be shared between executables.
     VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
     VAD_FLAG_GUARD_PAGE = (1U << 7), // This allocation signifies a guard page, if a memory operation is performed on this page, an MT_GUARD_PAGE_VIOLATION exception is raised, and the page turns to a normal stack page.
 } VAD_FLAGS;
@@ -638,6 +636,9 @@ extern uintptr_t MmNonPagedPoolEnd;
 extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
 
+#define USER_VA_END 0x00007FFFFFFFFFFF
+#define USER_VA_START 0x10000
+
 // general functions
 uint64_t* pml4_from_recursive(void);
 
@@ -826,7 +827,7 @@ MiGetPtePointer(
     IN  uintptr_t va
 );
 
-uint64_t
+uintptr_t
 MiTranslatePteToVa(
     IN PMMPTE pte
 );
@@ -1084,9 +1085,5 @@ void
 MmpDeleteSection(
     void* Object
 );
-
-// module: oom.c
-
-// TODO OOM KILLER, TO USE WHEN 0 PHYSICAL MEMORY IS AVAILABLE, AND PAGING TO DISK EVEN FAILED.
 
 #endif

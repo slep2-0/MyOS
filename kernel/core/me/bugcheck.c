@@ -24,6 +24,9 @@ extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
 // switched to uint64_t and not BUGCHECK_CODES since the custom ones arent in that enum, and compiler throws an error.
+/// Note that this is bad, even though a switch statement is great and all with a jump table (all though this does not have one because its not a dense switch)
+/// this still exposes to reverse engineers an easy way to get to the bugcheck code (even though this is open source!), and also it is bloat, since we should just
+/// store it all in the resource section and grab the code from there
 static void resolveStopCode(char** s, uint64_t stopcode) {
     switch (stopcode) {
     case DIVIDE_BY_ZERO:
@@ -233,73 +236,7 @@ MeBugCheck(
 --*/
 
 {
-    // Critical system error, instead of triple faulting, we hang the system with specified error codes.
-    if (smpInitialized) {
-        // If all other cores are online, we obviously want to stop them.
-        IPI_PARAMS dummy = { 0 };
-        MhSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
-    }
-    // Disable interrupts if they werent disabled before.
-    __cli();
-
-    // atomically check & set isBugChecking
-    bool prev = InterlockedExchangeBool(&isBugChecking, true);
-
-    if (prev == 1) {
-        __hlt();   // someone set isBugChecking before us, we just halt, let em do their thing.
-    }
-
-    // Acquire exclusive ownership to this processor for framebuffer access.
-    MgAcquireExclusiveGopOwnerShip();
-
-#ifdef DEBUG
-    IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
-#endif
-    // Force to be redrawn from the top, instead of last place.
-    cursor_x = 0;
-    cursor_y = 0;
-    _MeSetIrql(HIGH_LEVEL); // SET the irql to high level (not raise) (we could raise, but this takes less cycles and so is faster) (previous comment was setting an IRQL to each CPU Core, instead, we send an IPI up top)
-
-    // Clear the screen to blue (bsod windows style)
-    gop_clear_screen(&gop_local, 0xFF0035b8);
-    // Write some debugging and an error message
-    gop_printf(0xFFFFFFFF, "FATAL ERROR: Your system has encountered a fatal error.\n\n");
-    gop_printf(0xFFFFFFFF, "Your system has been stopped for safety.\n\n");
-    char* stopCodeToStr = ""; // empty at first.
-    resolveStopCode(&stopCodeToStr, BugCheckCode);
-    gop_printf(0xFFFFFFFF, "**STOP CODE: ");
-    gop_printf(0xFF8B0000, "%s", stopCodeToStr);
-    gop_printf(0xFF00FF00, " (numerical: %d)**\n", BugCheckCode);
-#ifdef DEBUG
-    gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
-    gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
-#endif
-    HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
-    gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
-    if (smpInitialized) {
-        gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
-        gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
-    }
-#ifdef DEBUG
-    // Thread information
-    PETHREAD CurrentThread = PsGetCurrentThread();
-    if (CurrentThread) {
-        // Display thread debug info
-        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.StackBase; // high address
-        uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
-        uintptr_t StackLimit = StackBase - StackSize; // low address (bottom of stack)
-        uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
-        gop_printf(COLOR_WHITE, "Thread Stack Range | %p - %p | Last saved top: %p\n", (void*)StackLimit, (void*)StackBase, (void*)ThreadTop);
-        gop_printf(COLOR_YELLOW, "PreviousMode: %s\n", (MeGetPreviousMode() == KernelMode) ? "KernelMode" : "UserMode");
-    }
-#endif
-    gop_printf(COLOR_YELLOW, "Current CR3: %p\n", (void*)(uintptr_t)__read_cr3());
-    gop_printf(COLOR_YELLOW, "Current stack top: %p\n", (void*)(uintptr_t)__read_rsp());
-    __cli();
-    while (1) {
-        __hlt();
-        __pause();
-    }
+    MeBugCheckEx(BugCheckCode, NULL, NULL, NULL, NULL);
 }
 
 

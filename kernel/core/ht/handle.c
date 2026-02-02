@@ -53,6 +53,7 @@ HtpLookupEntry(
 --*/
 
 {
+    // Reject NULL Table, Handles, and handles that are 1/2/3 (must start with 4)
     if (!Table || !Handle || ((uint64_t)Handle & 3)) return NULL;
 
     uint64_t TableCode = Table->TableCode;
