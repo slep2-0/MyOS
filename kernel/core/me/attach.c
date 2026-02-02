@@ -66,6 +66,7 @@ MeAttachProcess(
 	ApcState->SavedApcProcess = CurrentThread->ApcState.SavedApcProcess;
 	ApcState->SavedCr3 = __read_cr3();
 	ApcState->AttachedToProcess = true;
+	ApcState->SavedThreadAttached = CurrentThread->ApcState.AttachedToProcess;
 
 	// Raise to SYNCH and lock scheduler.
 	// TODO SYNCH
@@ -116,7 +117,7 @@ MeDetachProcess(
 
 	// Restore thread's identity to original process.
 	CurrentThread->ApcState.SavedApcProcess = ApcState->SavedApcProcess;
-	CurrentThread->ApcState.AttachedToProcess = ApcState->AttachedToProcess;
+	CurrentThread->ApcState.AttachedToProcess = ApcState->SavedThreadAttached;
 
 	// Restore scheduler lock / IRQL.
 	// TODO SYNCH LEVEL

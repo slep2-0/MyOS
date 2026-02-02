@@ -72,6 +72,7 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
 
     return MT_SUCCESS;
 #else
+    UNREFERENCED_PARAMETER(Length);
     return MT_NOT_IMPLEMENTED; // On release builds, this should be toggled off, as the system is in a controlled environment, plus this would corrupt user debug registers.
 #endif
 }

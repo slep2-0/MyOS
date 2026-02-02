@@ -146,7 +146,7 @@ static inline void fat32_decode_time(uint16_t time, uint8_t* hour, uint8_t* min,
 
 MTSTATUS fat32_read_file(
 	IN PFILE_OBJECT FileObject,
-	IN uint32_t FileOffset,
+	IN uint64_t FileOffset,
 	OUT void* Buffer,
 	IN size_t BufferSize,
 	_Out_Opt size_t* BytesRead
@@ -159,15 +159,18 @@ MTSTATUS fat32_read_file(
 /// <returns>MTSTATUS Status code.</returns>
 MTSTATUS fat32_create_directory(const char* path);
 
-/// <summary>
-/// Creates a new file and writes data to it.
-/// </summary>
-/// <param name="path">The full path of the file to create</param>
-/// <param name="data">A pointer to the data to write.</param>
-/// <param name="size">The number of bytes to write</param>
-/// <param name="file_modification_mode">Whether to APPEND or REPLACE the file. (in FS_WRITE_MODES enum)</param>
-/// <returns>MTSTATUS Status code.</returns>
-MTSTATUS fat32_write_file(const char* path, const void* data, uint32_t size, uint32_t file_modification_mode);
+MTSTATUS fat32_create_file(
+	IN const char* path,
+	OUT PFILE_OBJECT* FileObjectOut
+);
+
+MTSTATUS fat32_write_file(
+	IN PFILE_OBJECT FileObject,
+	IN uint64_t FileOffset,
+	IN void* Buffer,
+	IN size_t BufferSize,
+	_Out_Opt size_t* BytesWritten
+);
 
 /// <summary>
 /// Lists the directory given.
@@ -198,9 +201,6 @@ MTSTATUS fat32_delete_file(const char* path);
 /// <returns>True or false based if empty or not.</returns>
 bool fat32_directory_is_empty(const char* path);
 
-MTSTATUS fat32_open_file(
-	IN const char* path,
-	OUT PFILE_OBJECT* FileObjectOut
-);
+void fat32_deletion_routine(void* Object);
 
 #endif

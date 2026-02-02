@@ -22,6 +22,7 @@ Revision History:
 #include "../../includes/mm.h"
 #include "../../includes/ps.h"
 #include "../../assert.h"
+#include "../../includes/exception.h"
 
 FORCEINLINE
 int
@@ -131,9 +132,6 @@ MiAllocateVad(
     // Allocate the VAD.
     PMMVAD vad = (PMMVAD)MmAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD), ' daV'); // Little endian tag.
     if (!vad) return NULL;
-    
-    // Initialize to zero. (including height)
-    kmemset(vad, 0, sizeof(MMVAD));
 
     return vad;
 }
@@ -769,31 +767,47 @@ MmAllocateVirtualMemory(
     // Calculate pages needed
 
     uintptr_t StartVa; 
+    MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
     PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    // messy code below, sorry.
     if (BaseAddress) {
-        if (PreviousMode == UserMode) __stac();
-        StartVa = (uintptr_t)*BaseAddress;
-        if (PreviousMode == UserMode) __clac();
+        if (PreviousMode == UserMode) {
+            status = ProbeForRead(BaseAddress, sizeof(void*), 1);
+
+            if (MT_FAILURE(status)) {
+                return status;
+            }
+        }
+
+        try {
+            // Dereference the address given to see if we are supplied with a starting virtual address.
+            StartVa = (uintptr_t)*BaseAddress;
+        } except{
+            return GetExceptionCode();
+        }
+        end_try;
     }
     else {
         return MT_INVALID_PARAM;
     }
     size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
-    MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
     bool checkForOverlap = true;
 
     if (!StartVa) {
-        // We need to determine if the allocation is for a system process or a user process.
         // Its + 1 because its exclusive (so we want the actual end of the page, not excluding the last one)
         StartVa = MiFindGap(Process, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
         if (!StartVa) return MT_NOT_FOUND;
         
         // Update the newly found address.
         if (BaseAddress) {
-            if (PreviousMode == UserMode) __stac();
-            *BaseAddress = (void*)StartVa;
-            if (PreviousMode == UserMode) __clac();
+            try {
+                *BaseAddress = (void*)StartVa;
+            }
+            except{
+                return GetExceptionCode();
+            }
+            end_try;
         }
         
         // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.

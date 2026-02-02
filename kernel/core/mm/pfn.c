@@ -417,6 +417,15 @@ found:
     return pfnIndex;
 }
 
+extern char MiReleasePhysicalPage_start;
+extern char MiReleasePhysicalPage_end;
+
+#ifndef _MSC_VER
+asm(".global MiReleasePhysicalPage_start\n"
+    "MiReleasePhysicalPage_start:\n");
+#endif
+
+NOINLINE
 void
 MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
@@ -455,12 +464,14 @@ MiReleasePhysicalPage(
                 IRQL oldIrql;
                 pfn->State = PfnStateModified;
                 MsAcquireSpinlock(&PfnDatabase.ModifiedPageList.PfnListLock, &oldIrql);
-                // TODO SET FILE OFFSET PAGING
                 InsertTailList(&PfnDatabase.ModifiedPageList.ListEntry, &pfn->Descriptor.ListEntry);
                 
                 // Increment the counters
                 InterlockedIncrementU64(&PfnDatabase.ModifiedPageList.Count);
-                InterlockedIncrementU64(&PfnDatabase.AvailablePages);
+
+                // Available pages is not incremented for the modified page list, as they should not be available just yet (need to be flushed to disk)
+                // 
+                //InterlockedIncrementU64(&PfnDatabase.AvailablePages);
                 
                 MsReleaseSpinlock(&PfnDatabase.ModifiedPageList.PfnListLock, oldIrql);
             }
@@ -469,12 +480,15 @@ MiReleasePhysicalPage(
                 IRQL oldIrql;
                 pfn->State = PfnStateStandby;
                 MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
-                // TODO SET FILE OFFSET PAGING
                 InsertTailList(&PfnDatabase.StandbyPageList.ListEntry, &pfn->Descriptor.ListEntry);
 
                 // Increment the counters
                 InterlockedIncrementU64(&PfnDatabase.StandbyPageList.Count);
                 InterlockedIncrementU64(&PfnDatabase.AvailablePages);
+
+                // Set PTE as transition (compare-exchange)
+                bool ok = MiAtomicSetTransitionPte(pfn->Descriptor.Mapping.PteAddress, PPFN_TO_INDEX(pfn));
+                UNREFERENCED_PARAMETER(ok);
 
                 MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
             }
@@ -482,12 +496,31 @@ MiReleasePhysicalPage(
     }
 }
 
+#ifndef _MSC_VER
+asm(".global MiReleasePhysicalPage_end\n"
+    "MiReleasePhysicalPage_end:\n");
+#endif
+
+bool
+MiIsWithinBoundsOfReleasePhysicalPage(
+    void* VirtualAddress
+)
+
+// Self explanatory function, this is only used for debugging.
+
+{
+    uintptr_t a = (uintptr_t)VirtualAddress;
+    uintptr_t s = (uintptr_t)&MiReleasePhysicalPage_start;
+    uintptr_t e = (uintptr_t)&MiReleasePhysicalPage_end;
+    return (a >= s) && (a < e);
+}
+
 void
 MiUnlinkPageFromList(
     PPFN_ENTRY pfn
 )
 
-// Link a specified PPFN_ENTRY from its PfnDb list.
+// Unlink a specified PPFN_ENTRY from its PfnDb list.
 
 {
     IRQL oldIrql;

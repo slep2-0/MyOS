@@ -281,4 +281,18 @@ FORCEINLINE uint64_t __rdtsc(void) {
     return ((uint64_t)hi << 32) | lo;
 }
 
+#ifdef DEBUG
+
+// GDB Func to CLI and STI
+
+static void gcli(void) {
+    __cli();
+}
+
+static void gsti(void) {
+    __sti();
+}
+
+#endif
+
 #endif // X86_INTRINSICS_H

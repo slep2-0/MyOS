@@ -458,7 +458,8 @@ MmCreateUserStack(
     Notes:
 
         If a process allocated too much virtual memory, his next allocation could at Process->NextStackHint
-        Which means, the Status will return MT_CONFLICTING_ADDRESSES, which mean thread creation failure.
+        Which means, the Status will return MT_CONFLICTING_ADDRESSES, which means thread creation failure.
+
 --*/
 
 {
@@ -479,9 +480,8 @@ MmCreateUserStack(
     if (MT_FAILURE(Status)) goto Cleanup;
 
     // Create a VAD for the guard page (reserved)
-
     void* GuardPageEnd = (void*)(EndOfStack - VirtualPageSize);
-    Status = MmAllocateVirtualMemory(Process, (void**)&GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED);
+    Status = MmAllocateVirtualMemory(Process, (void**)&GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
     if (MT_FAILURE(Status)) goto CleanupWithVad;
 
     // The next hint should be the end of the guard page.
@@ -495,5 +495,60 @@ CleanupWithVad:
 
 Cleanup:
     MsReleasePushLockExclusive(&Process->AddressSpaceLock);
+    return Status;
+}
+
+MTSTATUS
+MmCreatePeb(
+    IN PEPROCESS Process,
+    OUT void** OutPeb,
+    OUT void** OutBasicMtdllTypes
+)
+
+{
+    // For now all this does is allocate memory really.
+    void* BaseAddress = NULL;
+    MTSTATUS Status = MmAllocateVirtualMemory(Process, &BaseAddress, sizeof(PEB), VAD_FLAG_WRITE | VAD_FLAG_READ);
+
+    // Kernel mode memory (struct), no need for try and attaching.
+    PPEB* Peb = (PPEB*)OutPeb;
+    if (MT_SUCCEEDED(Status)) {
+        *Peb = BaseAddress;
+    }
+    else {
+        return Status;
+    }
+
+    // Set Process->Peb (TODO)
+
+    BaseAddress = NULL;
+    Status = MmAllocateVirtualMemory(Process, &BaseAddress, sizeof(MTDLL_BASIC_TYPES), VAD_FLAG_WRITE | VAD_FLAG_READ);
+
+    PMTDLL_BASIC_TYPES* PBasictypes = (PMTDLL_BASIC_TYPES*)OutBasicMtdllTypes;
+    if (MT_SUCCEEDED(Status)) {
+        *PBasictypes = BaseAddress;
+    }
+
+    return Status;
+}
+
+MTSTATUS
+MmCreateTeb(
+    IN PETHREAD Thread,
+    OUT void** OutTeb
+)
+
+{
+    // Allocate memory for the TEB.
+    void* BaseAddress = NULL;
+    MTSTATUS Status = MmAllocateVirtualMemory(Thread->ParentProcess, &BaseAddress, sizeof(TEB), VAD_FLAG_WRITE | VAD_FLAG_READ);
+
+    PTEB* Teb = (PTEB*)OutTeb;
+    if (MT_SUCCEEDED(Status)) {
+        *Teb = BaseAddress;
+    }
+
+    // Set Thread->InternalThread->Teb (TODO)
+
     return Status;
 }

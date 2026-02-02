@@ -51,7 +51,6 @@ typedef struct _RUNDOWN_REF {
 typedef struct _Queue {
     PETHREAD head;
     PETHREAD tail;
-    struct _SPINLOCK lock; /* embedded spinlock (do not change from embedded) */
 } Queue;
 
 /**
@@ -308,8 +307,8 @@ RemoveEntryList(
     Flink->Blink = Blink;
 
     // Sanitize the removed entry so it doesn't look valid
-    Entry->Flink = NULL;
-    Entry->Blink = NULL;
+    Entry->Flink = Entry;
+    Entry->Blink = Entry;
 }
 
 

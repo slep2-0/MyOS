@@ -19,6 +19,7 @@ Revision History:
 #include "../../includes/ht.h"
 #include "../../includes/ob.h"
 #include "../../includes/ps.h"
+#include "../../includes/mt.h"
 #include "../../assert.h"
 
 // ->>>>> The handle table handles are accessed in pageable memory, we cannot be at DISPATCH_LEVEL or above.
@@ -52,6 +53,7 @@ HtpLookupEntry(
 --*/
 
 {
+    // Reject NULL Table, Handles, and handles that are 1/2/3 (must start with 4)
     if (!Table || !Handle || ((uint64_t)Handle & 3)) return NULL;
 
     uint64_t TableCode = Table->TableCode;
@@ -419,7 +421,7 @@ HtGetObject (
 {
     void* Object = NULL;
 
-    // We can acquire a shareed push lock since we are strictly reading and not writing to the table contents.
+    // We can acquire a shared push lock since we are strictly reading and not writing to the table contents.
     MsAcquirePushLockShared(&Table->TableLock);
 
     PHANDLE_TABLE_ENTRY Entry = HtpLookupEntry(Table, Handle);
@@ -479,7 +481,7 @@ HtDeleteHandleTable(
                     Entries[i].Object = NULL;
                     // Decrement handle count atomically
                     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
-                    InterlockedDecrementIfNotZero((volatile uint64_t*)Header->HandleCount);
+                    InterlockedDecrementIfNotZero((volatile uint64_t*)&Header->HandleCount);
                     ObDereferenceObject(Object);
                 }
             }
@@ -530,7 +532,7 @@ HtDeleteHandleTable(
     MmFreePool(Table);
 }
 
-void
+MTSTATUS
 HtClose(
     IN HANDLE Handle
 )
@@ -552,11 +554,13 @@ HtClose(
 --*/
 
 {
+    if (Handle == MtCurrentProcess() || Handle == MtCurrentThread() || !Handle) return MT_INVALID_HANDLE;
+
     PHANDLE_TABLE Table = PsGetCurrentProcess()->ObjectTable;
 
     // First get the object for the handle
     void* Object = HtGetObject(Table, Handle, NULL);
-    if (!Object) return;
+    if (!Object) return MT_INVALID_HANDLE;
 
     // Remove the handle from the table first
     HtDeleteHandle(Table, Handle);
@@ -567,4 +571,6 @@ HtClose(
 
     // Dereference the object
     ObDereferenceObject(Object);
+
+    return MT_SUCCESS;
 }

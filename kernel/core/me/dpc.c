@@ -10,6 +10,7 @@
 #include "../../includes/mh.h"
 #include "../../assert.h"
 #include "../../includes/ob.h"
+#include "../../includes/md.h"
 
 //Statically made DPC Routines.
 
@@ -36,7 +37,7 @@ void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* System
     while (head) {
         cur = head;
         head = (POBJECT_HEADER)head->NextToFree;
-        MmFreePool(cur); // Free the header (frees object as well, header + sizeof(header) = object)
+        ObDeleteObject(cur);
     }
 
 }
@@ -68,7 +69,7 @@ MeInsertQueueDpc(
 
     Return Values:
 
-        If the DPC objeect is already in the queue, false is returned.
+        If the DPC object is already in the queue, false is returned.
         Otherwise, true is returned.
 
 --*/
@@ -83,8 +84,8 @@ MeInsertQueueDpc(
     if (!Dpc->DeferredRoutine) {
 #ifdef DEBUG
         MeBugCheckEx(DPC_NOT_INITIALIZED,
-            (void*)(uintptr_t)RETADDR(0),
             (void*)Dpc,
+            (void*)(uintptr_t)RETADDR(0),
             NULL,
             NULL
         );
@@ -101,7 +102,7 @@ MeInsertQueueDpc(
     // Raise IRQL to HIGH_LEVEL to prevent all interrupts while we touch the processor DPC queue. (prevent corruption)
     MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
-    if (Dpc->CpuNumber < MeGetActiveProcessorCount()) {
+    if (Dpc->CpuNumber < MeGetActiveProcessorCount() && Dpc->CpuNumber != DPC_TARGET_CURRENT) {
         Cpu = MeGetProcessorBlock(Dpc->CpuNumber);
     }
     else {

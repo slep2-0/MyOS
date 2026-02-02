@@ -43,7 +43,7 @@ extern "C" {
 
     /* Pointer exchange */
     FORCEINLINE void* InterlockedExchangePtr(volatile void* volatile* target, void* value) {
-        return __atomic_exchange_n((void* volatile*)target, value, ATOMIC_ORDER);
+        return __atomic_exchange_n((void* volatile*)target, value, __ATOMIC_ACQUIRE);
     }
 
     /* CompareExchange (returns initial value that was at target) */
@@ -87,6 +87,12 @@ extern "C" {
         uint64_t expected = comparand;
         __atomic_compare_exchange_n(target, &expected, value, 0, ATOMIC_ORDER, ATOMIC_ORDER);
         return expected;
+    }
+
+    FORCEINLINE bool InterlockedCompareExchangeU64_bool(volatile uint64_t* target, uint64_t value, uint64_t* expected) {
+        // returns true on success, and updates *expected with current value on failure
+        return __atomic_compare_exchange_n(target, expected, value, 0,
+            __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     }
 
     /* Pointer CompareExchange */
@@ -169,7 +175,9 @@ extern "C" {
     /* Pointer convenience wrappers */
     FORCEINLINE void* InterlockedExchangePointer(volatile void* volatile* target, void* value) { return InterlockedExchangePtr(target, value); }
     FORCEINLINE void* InterlockedCompareExchangePointer(volatile void* volatile* target, void* value, void* comparand) { return InterlockedCompareExchangePtr(target, value, comparand); }
-    FORCEINLINE void* InterlockedFetchPointer(volatile void* volatile* target) { return InterlockedCompareExchangePtr(target, NULL, NULL); }
+    FORCEINLINE void* InterlockedFetchPointer(volatile void* volatile* target) {
+        return __atomic_load_n((void* volatile*)target, ATOMIC_ORDER);
+    }
 
     /* -------------------------------
        Utility: test-and-set style helpers

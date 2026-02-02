@@ -133,6 +133,8 @@ typedef enum _BUGCHECK_CODES {
 	CID_TABLE_NULL,
 	INVALID_PROCESS_ATTACH_ATTEMPT,
 	CRITICAL_PROCESS_DIED,
+	WORKER_THREAD_ATTEMPTED_TERMINATION,
+	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -233,8 +235,6 @@ typedef struct _DPC_DATA {
 
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
-// Default timeslice for a new thread.
-#define DEFAULT_TIMESLICE 1
 
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
 #define KERNEL_DS       0x10    // Entry 2: Kernel Data  
@@ -250,6 +250,7 @@ typedef struct _APC_STATE {
 	PEPROCESS SavedApcProcess;
 	bool AttachedToProcess;
 	IRQL PreviousIrql;
+	bool SavedThreadAttached;
 } APC_STATE, *PAPC_STATE;
 
 typedef struct _IPROCESS {
@@ -271,6 +272,7 @@ typedef struct _ITHREAD {
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
 } ITHREAD, *PITHREAD;
 
+// Note to self: Re-organize this to match more of the KPRCB style, that style is way more consistent across the board (Separates between scheduler and Processor, yada yada)
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
@@ -325,6 +327,7 @@ typedef struct _PROCESSOR {
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
+	POOL_DESCRIPTOR LookasidePoolsNx[MAX_POOL_DESCRIPTORS];
 
 	struct _DEBUG_ENTRY DebugEntry[4]; // Per CPU Structure that contains debug entries for each debug register.
 	void* IstTimerStackTop;
@@ -335,6 +338,7 @@ typedef struct _PROCESSOR {
 
 	// Syscall data
 	uint64_t UserRsp; // User saved RSP during syscall handling.
+	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
 } PROCESSOR, *PPROCESSOR;
 
 // ------------------ FUNCTIONS ------------------
@@ -459,6 +463,27 @@ MeIsExecutingDpc(void)
 
 {
 	return (bool)__readgsqword(FIELD_OFFSET(PROCESSOR, DpcRoutineActive));
+}
+
+FORCEINLINE
+bool
+MeIsAttachedProcess(
+	void
+)
+
+{
+	return MeGetCurrentThread()->ApcState.AttachedToProcess;
+}
+
+FORCEINLINE
+uint32_t
+MeGetCurrentProcessorNumber(
+	void
+)
+
+{
+	// Return the Index of the CPUs array, stored in the ID field of the current Processor block.
+	return (uint32_t)__readgsqword(FIELD_OFFSET(PROCESSOR, ID));
 }
 
 void

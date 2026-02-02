@@ -13,7 +13,8 @@ extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
 extern void restore_context(TRAP_FRAME* regs);
-extern void restore_user_context(PETHREAD thread);
+extern void restore_user_context_withswapgs(PETHREAD thread);
+extern void restore_user_context_withoutswapgs(PETHREAD thread);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
@@ -140,7 +141,13 @@ Schedule(void) {
 
     next->ThreadState = THREAD_RUNNING;
     MeGetCurrentProcessor()->currentThread = next;
+
+    // Disable interrupts, we must not scheduled away now.
+    MeDisableInterrupts();
+    
+    // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);
+
     // Hi matanel, if you ever encounter failures here, like if it goes to restore_user_context as a system thread
     // please check that you made the same changed to InitScheduler as you made in PsCreateSystemThread, for example, Thread->SystemThread was false in the idle thread, because I forgot to set
     // that flag in its initilization, even though I was sure its on (for normal threads that is), because in PsCreateSystemThreads it was indeed = true.
@@ -148,8 +155,17 @@ Schedule(void) {
         restore_context(&next->TrapRegisters);
     }
     else {
-        // User thread
-        restore_user_context(PsGetEThreadFromIThread(next));
+        // User thread - Check if we should execute swapgs, because if we will execute it when we return to kernel RIP (like in a syscall for example), then GS would point to user mode.
+        // Check RIP, if its in kernel then WE DO NOT swap.
+        // This works ONLY when there is a CLI call before doing swapgs, since we could prepare to return to user mode, and then we return with an opposite GS.
+        // ACTUALLY DO NOT create a trap frame GS, (only the offset), this should be handled carefully
+        // I do not know what the fuck do i do..
+        if (next->TrapRegisters.rip >= KernelVaStart) {
+            restore_user_context_withoutswapgs(PsGetEThreadFromIThread(next));
+        }
+        else {
+            restore_user_context_withswapgs(PsGetEThreadFromIThread(next));
+        }
     }
     __builtin_unreachable();
 }

@@ -184,37 +184,65 @@ MiPageFault (
     Page fault bugcheck parameters:
 
     Parameter 1: Memory address referenced. (CR2)
-    Parameter 2: (decimal) 0 - Read Operation, 2 - Write Operation, 10 - Execute operation (unused for now, NX hasn't been turned on for now)
-    Parameter 3: Address that referenced memory (RIP)
+    Parameter 2: (decimal) 0 - Read Operation, 2 - Write Operation, 10 - Execute operation
+    Parameter 3: Address that referenced memory (RIP) 
     Parameter 4: CPU Error code pushed.
 
     --*/
 
     
-
-    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, MeGetPreviousMode(), trap);
+    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
-        // If there are no exceptions handlers (for SEH, we use the default one for user mode, TODO SEH USER MODE)
-        //if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
-        //    ExpDispatchException(trap);
-        //    return;
-        //}
+        // If there are no exceptions handlers (for user mode, we check the FS exception (todo TEB)) (for kernel mode we check the section by linker script)
+        // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
 
-        //else {
-            // No kernel exception handler present, bugcheck.
-            MeBugCheckEx(
-                KMODE_EXCEPTION_NOT_HANDLED,
-                (void*)(uintptr_t)status,
-                (void*)fault_addr,
-                (void*)trap->rip,
-                (void*)trap->error_code
-            );
-        //}
+        // Set thread last exception status.
+        PsGetCurrentThread()->LastStatus = status;
+
+        if (PreviousMode == UserMode) {
+#if 0
+            if (false);
+            /* Unimplemented yet.
+            if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
+                ExpDispatchException(trap);
+                return;
+            }
+            */
+            else {
+#endif
+                // Terminate thread that caused violation.
+                PsTerminateThread(PsGetCurrentThread(), status);
+                // We arent allowed to continue.
+                MeGetCurrentProcessor()->schedulePending = true;
+                return;
+#if 0
+            }
+#endif
+        }
+        else {
+            // Kernel mode, we see if we have an exception handler for this.
+            uint64_t HandlerAddress = ExpFindKernelModeExceptionHandler(trap->rip);
+            if (HandlerAddress != 0) {
+                // We found an exception handler! We return to it now.
+                trap->rip = HandlerAddress;
+                return;
+            }
+        }
+
+        // No handler found for the kernel mode violation, we bugcheck.
+        MeBugCheckEx(
+            KMODE_EXCEPTION_NOT_HANDLED,
+            (void*)(uintptr_t)status,
+            (void*)fault_addr,
+            (void*)trap->rip,
+            (void*)trap->error_code
+        );
     }
 
     // MmAccessFault returned MT_SUCCESS, that means it handled the fault (filled the PTE, etc.), we return to original instruction and re-run.
@@ -286,8 +314,9 @@ MiDivideByZero (
     
     // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION. TODO
     if (MeGetPreviousMode() == UserMode) {
-        // guard it for now.
-        MeBugCheckEx(ASSERTION_FAILURE, (void*)"MiDivideByZero", (void*)"A Fault in user mode occured, division error, implement.", NULL, NULL);
+        PsTerminateThread(PsGetCurrentThread(), MT_INTEGER_DIVIDE_BY_ZERO);
+        // We arent allowed to continue.
+        MeGetCurrentProcessor()->schedulePending = true;
     }
 
     MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
@@ -487,7 +516,7 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     Thread->InternalThread.TimeSlice = 1;
     Thread->InternalThread.TimeSliceAllocated = 1;
     MeGetCurrentProcessor()->schedulePending = true;
-    gop_printf(COLOR_RED, "[TERMINATE] Terminating thread %p for %lx\n", Thread, (unsigned long)Status);
+    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating thread (%s) %p for %lx | RIP: %p\n", (Thread->SystemThread) ? "Kernel Mode" : "User Mode", Thread, (unsigned long)Status, (void*)(uintptr_t)trap->rip);
     PsTerminateThread(Thread, Status);
 }
 

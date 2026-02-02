@@ -10,5 +10,17 @@ mtheader:
     .quad   __data_size         /* Data Size */
     .quad   __bss_size          /* Bss Size */
 
-    /* pad to 64 bytes */
-    .space  (64 - (.-mtheader))
+    /* Exports */
+    .quad   __mtexports_rva
+    .quad   __mtexports_table_size  /* ARRAY size, not total size */
+
+    /* Relocations */
+    .quad   __reloc_rva
+    .quad   __reloc_size
+
+    /* Imports */
+    .quad   __mtimports_rva
+    .quad   __mtimports_size
+
+    /* pad to 80 bytes */
+    .space  (128 - (.-mtheader))

@@ -32,11 +32,24 @@ typedef struct {
     void* Handler;
 } SYSCALL_INIT_ENTRY;
 
+// TODO Proper SSDT with offsets to handlers from SSDT base instead of raw pointers (for security)
+// Along with validating that the handler is in the .text section of the kernel
+// and idk implement patchguard on the way
+// patchguard works by queuing DPCs and KTIMERs, not by making a system thread
+// (so its always hidden), honestly microsoft engineers are brilliant.
 SYSCALL_INIT_ENTRY SyscallTable[] = {
     // Syscalls are here.
     {.Num = 0, .Handler = MtAllocateVirtualMemory},
-    {.Num = 1, .Handler = MtOpenProcess}
+    {.Num = 1, .Handler = MtOpenProcess},
+    {.Num = 2, .Handler = MtTerminateProcess},
+    {.Num = 3, .Handler = MtReadFile},
+    {.Num = 4, .Handler = MtWriteFile},
+    {.Num = 5, .Handler = MtCreateFile},
+    {.Num = 6, .Handler = MtClose},
+    {.Num = 7, .Handler = MtTerminateThread},
 };
+
+bool SyscallsAlreadyInitialized = false;
 
 void
 MtSetupSyscall(
@@ -54,11 +67,16 @@ MtSetupSyscall(
     // Write the FMASK (flag mask) MSR to flag IF and TF.
     __writemsr(IA32_FMASK, (1 << 8) | (1 << 9));
 
-    // TODO FIXME (critical) Init the IA32_KERNEL_GS_BASE so swapgs changes to that.
+    // Write the current processor to IA32_KERNEL_GS_BASE for swapgs
+    __writemsr(IA32_KERNEL_GS_BASE, 0);
 
     // Setup list of syscalls.
-    for (size_t i = 0; i < sizeof(SyscallTable) / sizeof(SyscallTable[0]); i++) {
-        Ssdt[SyscallTable[i].Num] = SyscallTable[i].Handler;
+    if (!InterlockedFetch8((volatile int8_t*) & SyscallsAlreadyInitialized)) {
+        for (size_t i = 0; i < sizeof(SyscallTable) / sizeof(SyscallTable[0]); i++) {
+            Ssdt[SyscallTable[i].Num] = SyscallTable[i].Handler;
+        }
+        // BSP Should run this first, no need for interlocked.
+        SyscallsAlreadyInitialized = true;
     }
 
     // Enable SysCallEnable (SCE) in EFER.

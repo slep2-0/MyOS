@@ -3,33 +3,97 @@ ENTRY(_start)
 
 SECTIONS
 {
+  /* Define the Image Base (Virtual Memory Address) */
   PROVIDE(__image_base = 0x10000);
 
+  /* Set the Virtual Address Counter to the Image Base */
   . = __image_base;
+  
+  /* Capture the 'File Start' VMA for RVA math */
   __file_start = .;
 
-  /* Header */
-  .mtheader : { KEEP(*(.mtheader)) }
+  /* --- HEADER --- */
+  /* VMA = 0x10000. LMA = 0x10000 - 0x10000 = 0 */
+  .mtheader : AT(ADDR(.mtheader) - __image_base)
+  { 
+    KEEP(*(.mtheader)) 
+  }
   __header_end = .;
 
-  /* Align Text to Page Boundary */
+  /* --- TEXT --- */
   . = ALIGN(0x1000);
-
   __text_start = .;
-  /* Merge .rodata here so string literals are loaded with code */
-  .text : { *(.text) *(.rodata*) } 
+  .text : AT(ADDR(.text) - __image_base)
+  { 
+    *(.text) *(.text.*) 
+    *(.rodata) *(.rodata*) 
+  } 
   __text_end = .;
 
-  /* Align Data to Page Boundary */
+  /* --- DATA --- */
   . = ALIGN(0x1000);
-
   __data_start = .;
-  .data : { *(.data) }
+  .data : AT(ADDR(.data) - __image_base)
+  { 
+    *(.data) *(.data.*)
+  }
   __data_end = .;
 
-  /* BSS */
+  /* --- EXPORTS --- */
+  . = ALIGN(8);
+  __mtexports_start = .;
+  .mtexports : AT(ADDR(.mtexports) - __image_base)
+  {
+      KEEP(*(.mtexports))
+  }
+  __mtexports_arr_end = .;
+  
+  .mtexports.str : AT(ADDR(.mtexports.str) - __image_base)
+  {
+      KEEP(*(.mtexports.str))
+  }
+  __mtexports_end = .;
+  
+  /* Export logic */
+  PROVIDE(__mtexports_table_size = __mtexports_arr_end - __mtexports_start);
+  PROVIDE(__mtexports_rva  = __mtexports_start - __file_start);
+
+  /* --- RELOCATIONS --- */
+  . = ALIGN(8);
+  __reloc_start = .;
+  .reloc : AT(ADDR(.reloc) - __image_base)
+  {
+      *(.rela.dyn)
+      *(.rela.data)
+  }
+  __reloc_end = .;
+  
+  PROVIDE(__reloc_size = __reloc_end - __reloc_start);
+  PROVIDE(__reloc_rva  = __reloc_start - __file_start);
+
+  /* --- IMPORTS --- */
+  . = ALIGN(8);
+  __mtimports_start = .; /* Define directly, avoid PROVIDE for safety here */
+  
+  .mtimports : AT(ADDR(.mtimports) - __image_base)
+  {
+      KEEP(*(.mtimports))
+      KEEP(*(.mtimports.str))
+  }
+  
+  __mtimports_end = .;
+
+  /* Calculate RVA and Size */
+  /* e.g. 0x12000 - 0x10000 = 0x2000 */
+  PROVIDE(__mtimports_rva  = __mtimports_start - __file_start);
+  PROVIDE(__mtimports_size = __mtimports_end - __mtimports_start);
+
+  /* --- BSS --- */
   __bss_start = .;
-  .bss : { *(.bss) }
+  .bss : AT(ADDR(.bss) - __image_base)
+  { 
+    *(.bss) 
+  }
   __bss_end = .;
 
   __file_end = .;
@@ -40,5 +104,5 @@ SECTIONS
   PROVIDE(__bss_size   = __bss_end  - __bss_start);
   PROVIDE(__entry_rva  = _start - __file_start);
   PROVIDE(__text_rva   = __text_start - __file_start);
-  PROVIDE(__data_rva   = __data_start - __file_start); /* ADDED */
+  PROVIDE(__data_rva   = __data_start - __file_start);
 }

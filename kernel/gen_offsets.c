@@ -15,7 +15,8 @@
 #include "includes/ms.h"
 #include "includes/mm.h"
 #include "includes/ps.h"
-#include "includes/me.h" 
+#include "includes/me.h"
+#include "includes/behavior.h"
 
 // --------------------------------------------------------------------------
 // MACROS FOR GENERATION
@@ -106,6 +107,8 @@ int main(void) {
     GEN_DEFINE(INITIAL_RFLAGS, INITIAL_RFLAGS);
     GEN_DEFINE(USER_RFLAGS, USER_RFLAGS);
     GEN_DEFINE(MAX_CPUS, MAX_CPUS);
+    GEN_DEFINE(IA32_KERNEL_GS_BASE, IA32_KERNEL_GS_BASE);
+    GEN_DEFINE(IA32_GS_BASE, IA32_GS_BASE);
 
     GEN_COMMENT("Bugcheck Codes");
     GEN_DEFINE(IRQL_NOT_LESS_OR_EQUAL, IRQL_NOT_LESS_OR_EQUAL);
@@ -179,6 +182,14 @@ int main(void) {
     GEN_OFFSET(MUTEX, ownerTid);
     GEN_OFFSET(MUTEX, locked);
     GEN_OFFSET(MUTEX, ownerThread);
+
+    // ========================================================================
+    // 5. BEHAVIOR (behavior.h)
+    // ========================================================================
+#ifdef MT_NO_PREEMPTION
+    GEN_DEFINE(MT_NO_PREEMPTION, 1);
+#endif
+   
 
     return 0;
 }

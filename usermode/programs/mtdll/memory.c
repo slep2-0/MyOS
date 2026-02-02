@@ -1,0 +1,97 @@
+/*++
+
+Module Name:
+
+    memory.c
+
+Purpose:
+
+    This translation unit contains the standard library functions involving memory allocation and deallocation.
+
+Author:
+
+    slep (Matanel) 2025.
+
+Revision History:
+
+--*/
+
+#include "includes/mtdll.h"
+#include "includes/exports.h"
+
+void*
+VirtualAlloc(
+    _In_Opt _Out_Opt void** BaseAddress,
+    IN size_t AllocationSize,
+    IN USER_ALLOCATION_TYPE AllocationType
+)
+
+/*++
+
+    Routine description:
+
+        Allocates memory.
+
+    Arguments:
+
+        [IN OPTIONAL | OUT OPTIONAL] [PTR_TO_PTR]   void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *BaseAddress is set to the found start of gap.
+        [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
+        [IN]    uint8_t AllocationType - USER_ALLOCATION_TYPE Enum specifying which type of PTE flags the allocation should have. (executable, writable, none)
+
+    Return Values:
+
+        Base virtual address to allocated memory, or NULL on failure.
+
+--*/
+
+{
+    // Call Ex version with current process handle.
+    return VirtualAllocEx(MtCurrentProcess(), BaseAddress, AllocationSize, AllocationType);
+}
+
+void* VirtualAllocEx(
+    IN HANDLE ProcessHandle,
+    _In_Opt _Out_Opt void** BaseAddress,
+    IN size_t AllocationSize,
+    IN USER_ALLOCATION_TYPE AllocationType
+)
+
+/*++
+
+    Routine description:
+
+        Allocates memory in a remote process.
+
+    Arguments:
+
+        [IN]    HANDLE ProcessHandle - The process handle to allocate memory for (special handles allowed).
+        [IN OPTIONAL | OUT OPTIONAL] [PTR_TO_PTR]   void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *BaseAddress is set to the found start of gap.
+        [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
+        [IN]    uint8_t AllocationType - USER_ALLOCATION_TYPE Enum specifying which type of PTE flags the allocation should have. (executable, writable, none)
+
+    Return Values:
+
+        Base virtual address to allocated memory, or NULL on failure.
+
+--*/
+
+
+{
+    void* Address = NULL;
+    MTSTATUS Status;
+    // Call kernel.
+    if (!BaseAddress) {
+        void* TmpAddr = NULL;
+        Status = MtAllocateVirtualMemory(ProcessHandle, &TmpAddr, AllocationSize, AllocationType);
+        Address = TmpAddr;
+    }
+    else {
+        Status = MtAllocateVirtualMemory(ProcessHandle, BaseAddress, AllocationSize, AllocationType);
+    }
+
+    if (MT_SUCCEEDED(Status)) {
+        return Address;
+    }
+
+    return NULL;
+}

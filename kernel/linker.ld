@@ -11,6 +11,16 @@ SECTIONS
         *(.text)
         *(.text.*)
     }
+	
+	/* * The Exception Table Section 
+     * We align it to 8 bytes because it contains 64-bit pointers.
+     */
+    . = ALIGN(8);
+    __start_ex_table = .;
+    __ex_table : {
+        *(__ex_table)
+    }
+    __stop_ex_table = .;
 
     .rodata : {
         *(.rodata)
@@ -34,23 +44,6 @@ SECTIONS
         *(COMMON)
     }
     PROVIDE(bss_end = .);
-
-    /* — PML4 (4 KiB) — */
-    . = ALIGN(0x1000);
-    PROVIDE(__pml4_start = .);
-    .pml4 (NOLOAD) : ALIGN(0x1000) {
-        . = . + 4096;
-    }
-
-    /* — Page directory and tables are now a single pool — */
-    . = ALIGN(0x1000);
-    PROVIDE(__pt_start = .);
-    .page_tables (NOLOAD) : ALIGN(0x1000) {
-        /* Reserve space for PDs and PTs. e.g., 128 KiB */
-        . = . + (32 * 4096);
-    }
-    /* --- IMPORTANT: End the page table pool HERE --- */
-    PROVIDE(__pt_end = .);
 
     /DISCARD/ : {
         *(.comment)

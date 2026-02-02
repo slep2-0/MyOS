@@ -86,7 +86,9 @@ MhRebootComputer (
 
 /*++
 
-	Routine description : This function cold resets the computer, it does not return. Call appropriate cleanup functions before calling this function.
+	Routine description : 
+	
+		This function cold resets the computer, it does not return. Call appropriate cleanup functions before calling this function.
 
 	Arguments:
 
@@ -158,7 +160,8 @@ MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint
 		*cpuCount = count;
 		return MT_SUCCESS;
 	}
-	else return MT_GENERAL_FAILURE;
+
+	else return MT_NOT_FOUND;
 }
 
 MTSTATUS MhInitializeACPI(void) {

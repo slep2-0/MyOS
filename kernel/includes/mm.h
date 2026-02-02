@@ -172,16 +172,14 @@ do {                                                                        \
 #define PAGE_ALIGN(Va) ((void*)((uint64_t)(Va) & ~(VirtualPageSize - 1)))
 
 #define MAX_POOL_DESCRIPTORS 7 // Allows for: 32, 64, 128, 256, 512, 1024, 2048 Bytes Per pool
-#define _32KB_POOL 1
-#define _64KB_POOL 2
-#define _128KB_POOL 3
-#define _256KB_POOL 4
-#define _512KB_POOL 5
-#define _1024KB_POOL 6
-#define _2048KB_POOL 7
-#define POOL_MIN_ALLOC 32
-#define USER_VA_END 0x00007FFFFFFFFFFF
-#define USER_VA_START 0x10000
+#define _32B_POOL 1
+#define _64B_POOL 2
+#define _128B_POOL 3
+#define _256B_POOL 4
+#define _512B_POOL 5
+#define _1024B_POOL 6
+#define _2048B_POOL 7
+#define POOL_MIN_ALLOC 32 // Bytes
 // You are allowed to request bytes above max allocation, the global pool would be used.
 #define POOL_MAX_ALLOC 2048
 // Pool sizes
@@ -231,8 +229,10 @@ do {                                                                        \
 #define PFN_ERROR UINT64_T_MAX
 
 // Lazy allocations macros
-#define PROT_KERNEL_READ  0x1
-#define PROT_KERNEL_WRITE 0x2
+#define PROT_KERNEL_READ  (1ULL << 0)
+#define PROT_KERNEL_WRITE (1ULL << 1)
+#define PROT_KERNEL_NOEXECUTE (1ULL << 2)
+#define PROT_KERNEL_USER (1ULL << 3)
 #define MI_DEMAND_ZERO_BIT   (1ULL << 16)
 
 // Tags
@@ -242,7 +242,7 @@ do {                                                                        \
 #define MI_STACK_SIZE 0x4000 // 16KiB
 #define MI_LARGE_STACK_SIZE 0xf000 // 60 KiB
 #define MI_GUARD_PAGE_PROTECTION (1ULL << 17)
-#define MI_DEFAULT_USER_STACK_SIZE 0x100000
+#define MI_DEFAULT_USER_STACK_SIZE 0x100000 // 1 MiB
 
 // Barriers
 
@@ -292,14 +292,15 @@ typedef enum _PFN_FLAGS {
 } PFN_FLAGS;
 
 typedef enum _VAD_FLAGS {
-    VAD_FLAG_NONE = 0,
-    VAD_FLAG_READ = (1U << 0),
-    VAD_FLAG_WRITE = (1U << 1),
-    VAD_FLAG_EXECUTE = (1U << 2),
+    VAD_FLAG_NONE = 0, // No flags, base value.
+    VAD_FLAG_READ = (1U << 0),  // Allowed to read from this address.
+    VAD_FLAG_WRITE = (1U << 1),    // Allowed to write to this address
+    VAD_FLAG_EXECUTE = (1U << 2),   // Instruction execution is permitted on the address.
     VAD_FLAG_PRIVATE = (1U << 3),     // Private (backed by swap file, like pagefile.mtsys)
     VAD_FLAG_MAPPED_FILE = (1U << 4), // Backed by a file (lets say data.mtdll)
-    VAD_FLAG_COPY_ON_WRITE = (1U << 5),
+    VAD_FLAG_COPY_ON_WRITE = (1U << 5), // Allocation comes from a shared physical memory address(s), this can be shared between executables.
     VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
+    VAD_FLAG_GUARD_PAGE = (1U << 7), // This allocation signifies a guard page, if a memory operation is performed on this page, an MT_GUARD_PAGE_VIOLATION exception is raised, and the page turns to a normal stack page.
 } VAD_FLAGS;
 
 typedef enum _PAGE_FLAGS {
@@ -351,12 +352,11 @@ typedef enum _PAGE_FLAGS {
 // NonPagedPools - Allocations occur at max DISPATCH_LEVEL (inclusive). (e.g assert(IRQL == DISPATCH/PASSIVE/APC_LEVEL)
 // PagedPools - Allocations occur at max DISPATCH_LEVEL (exclusive) (e.g assert(IRQL == PASSIVE/APC_LEVEL)
 typedef enum _POOL_TYPE {
-    NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs)
-    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL).
+    NonPagedPool = 0,                 // Non-pageable kernel pool (instant map, available at all IRQLs) (IMPLEMENTED)
+    PagedPool = 1,                    // Pageable pool (can only be used when IRQL < DISPATCH_LEVEL). (IMPLEMENTED) (NOEXECUTE)
     NonPagedPoolCacheAligned = 2,     // Non-paged, cache-aligned (UNIMPLEMENTED)
     PagedPoolCacheAligned = 3,        // Paged, cache-aligned (UNIMPLEMENTED)
-    NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (UNIMPLEMENTED)
-    PagedPoolNx = 5,                  // Paged, non-executable (UNIMPLEMENTED)
+    NonPagedPoolNx = 4,               // Non-paged, non-executable (NX) (IMPLEMENTED)
     // No MustSucceeds, these are a bad concept, handle errors gracefully.
 } POOL_TYPE;
 
@@ -455,7 +455,7 @@ typedef struct _MMPTE
             uint64_t Transition : 1;         // 1 = Page is in transition (has PFN) (used for StandBy List)
             uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
-            uint64_t Reserved : 7;           // i'm sorry, h.c
+            uint64_t Reserved : 7;           // i'm sorry, h.c (sorry for cringing out whoever sees this)
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
             uint64_t SoftwareFlags : 19;     // e.g. protection mask, pool type
             uint64_t NoExecute : 1;          // NX still meaningful in software
@@ -556,7 +556,16 @@ typedef struct _POOL_DESCRIPTOR {
     volatile uint64_t FreeCount;        // Number of blocks on the free list
     volatile uint64_t TotalBlocks;      // Total blocks ever allocated (statistics)
     SPINLOCK PoolLock;                  // Spinlock for this specific pool descriptor.
+    enum _POOL_TYPE PoolType;           // The type of the pools this descriptor holds.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
+
+typedef struct {
+    uint64_t r_offset; /* Address (RVA) */
+    uint64_t r_info;   /* Relocation type and symbol index */
+    int64_t  r_addend; /* Addend */
+} Rela;
+
+#define R_X86_64_RELATIVE 8
 
 #pragma pack(push, 1)
 typedef struct {
@@ -568,8 +577,28 @@ typedef struct {
     uint64_t DataRVA;
     uint64_t DataSize;
     uint64_t BssSize;
+    uint64_t exports_rva;
+    uint64_t exports_size;
+    uint64_t reloc_rva;
+    uint64_t reloc_size;
+    uint64_t imports_rva; // RVA To import array, then absolute addresses.
+    uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
+    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
+
+// Exports are RVA
+typedef struct {
+    uint64_t name_rva;
+    uint64_t func_rva;
+} MT_EXPORT_ENTRY;
+
+// Imports are absolutes.
+typedef struct {
+    uint64_t lib_name_absolute;   // RVA to string "kernel32.dll"
+    uint64_t func_name_absolute;  // RVA to string "PrintString"
+    uint64_t iat_addr_absolute;   // RVA to the function pointer to be patched
+} MT_IMPORT_ENTRY;
 
 // Represents a section in the file (.text, .data)
 typedef struct _MM_SUBSECTION {
@@ -582,6 +611,8 @@ typedef struct _MM_SUBSECTION {
 // Represents the loaded Executable/DLL
 typedef struct _MM_SECTION {
     struct _FILE_OBJECT* FileObject;
+    uintptr_t PreferredBase;
+    MM_SUBSECTION WholeFileSection;
 
     // We have 3 distinct regions in our MTE format.
     MM_SUBSECTION Text;
@@ -599,11 +630,15 @@ extern bool MmPfnDatabaseInitialized;
 extern PAGE_INDEX MmHighestPfn;
 extern uintptr_t MmSystemRangeStart;
 extern uintptr_t MmHighestUserAddress;
+extern uintptr_t MmUserStartAddress;
 extern uintptr_t MmUserProbeAddress;
 extern uintptr_t MmNonPagedPoolStart;
 extern uintptr_t MmNonPagedPoolEnd;
 extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
+
+#define USER_VA_END 0x00007FFFFFFFFFFF
+#define USER_VA_START 0x10000
 
 // general functions
 uint64_t* pml4_from_recursive(void);
@@ -697,6 +732,7 @@ MiRetrieveOperationFromErrorCode(
 {
     FAULT_OPERATION operation;
 
+    // Any of the operations below can also occur not only because of a non-present page (PTE), but a non-present page directory (or above)
     if (ErrorCode & (1 << 4)) {
         operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.)
     }
@@ -753,14 +789,26 @@ MiInitializePfnDatabase(
     IN  PBOOT_INFO BootInfo
 );
 
+MUST_USE_RESULT
+HOT
 PAGE_INDEX
 MiRequestPhysicalPage(
     IN  PFN_STATE ListType
 );
 
+bool
+MiIsWithinBoundsOfReleasePhysicalPage(
+    void* VirtualAddress
+);
+
 void
 MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
+);
+
+void
+MiUnlinkPageFromList(
+    PPFN_ENTRY pfn
 );
 
 void
@@ -790,7 +838,7 @@ MiGetPtePointer(
     IN  uintptr_t va
 );
 
-uint64_t
+uintptr_t
 MiTranslatePteToVa(
     IN PMMPTE pte
 );
@@ -798,6 +846,12 @@ MiTranslatePteToVa(
 PAGE_INDEX
 MiTranslatePteToPfn(
     IN  PMMPTE pte
+);
+
+bool
+MiAtomicSetTransitionPte(
+    IN PMMPTE Pte,
+    IN PAGE_INDEX Pfn
 );
 
 uintptr_t
@@ -817,6 +871,7 @@ MmIsAddressPresent(
 
 // module: hypermap.c
 
+MUST_USE_RESULT
 void*
 MiMapPageInHyperspace(
     IN  uint64_t PfnIndex,
@@ -836,6 +891,8 @@ MiInitializePoolSystem(
 );
 
 // Only NonPagedPool and PagedPool are implemented out of the POOL_TYPE enumerator.
+MUST_USE_RESULT
+HOT
 void*
 MmAllocatePoolWithTag(
     IN enum _POOL_TYPE PoolType,
@@ -850,6 +907,7 @@ MmFreePool(
 
 // module: mmproc.c
 
+MUST_USE_RESULT
 void*
 MiCreateKernelStack(
     IN  bool LargeStack
@@ -879,6 +937,19 @@ MmCreateUserStack(
     _In_Opt size_t StackReserveSize
 );
 
+MTSTATUS
+MmCreatePeb(
+    IN PEPROCESS Process,
+    OUT void** OutPeb,
+    OUT void** OutBasicMtdllTypes
+);
+
+MTSTATUS
+MmCreateTeb(
+    IN PETHREAD Thread,
+    OUT void** OutTeb
+);
+
 // module: vad.c
 
 MTSTATUS
@@ -896,12 +967,14 @@ MmFreeVirtualMemory(
     IN void* BaseAddress
 );
 
+MUST_USE_RESULT
 PMMVAD
 MiFindVad(
     IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
 );
 
+MUST_USE_RESULT
 uintptr_t
 MmFindFreeAddressSpace(
     IN  PEPROCESS Process,
@@ -910,6 +983,7 @@ MmFindFreeAddressSpace(
     IN  uintptr_t SearchEnd    // exclusive
 );
 
+MUST_USE_RESULT
 MTSTATUS
 MmIsAddressRangeFree(
     PEPROCESS Process,
@@ -924,6 +998,7 @@ MiInitializePoolVaSpace(
     void
 );
 
+MUST_USE_RESULT
 uintptr_t
 MiAllocatePoolVa(
     IN  POOL_TYPE PoolType,
@@ -947,6 +1022,7 @@ MmAccessFault(
     IN  PTRAP_FRAME TrapFrame
 );
 
+MUST_USE_RESULT
 bool
 MmInvalidAccessAllowed(
     void
@@ -960,6 +1036,7 @@ MiCheckForContigiousMemory(
     IN size_t NumberOfBytes
 );
 
+MUST_USE_RESULT
 void*
 MmAllocateContigiousMemory(
     IN  size_t NumberOfBytes,
@@ -972,11 +1049,18 @@ MmFreeContigiousMemory(
     IN  size_t NumberOfBytes
 );
 
+MUST_USE_RESULT
 void*
 MmMapIoSpace(
     IN uintptr_t PhysicalAddress,
     IN size_t NumberOfBytes,
     IN MEMORY_CACHING_TYPE CacheType
+);
+
+void
+MmUnmapIoSpace(
+    IN void* VirtualAddress,
+    IN size_t NumberOfBytes
 );
 
 // module: mminit.c
@@ -1009,6 +1093,7 @@ MTSTATUS
 MmMapViewOfSection(
     IN HANDLE SectionHandle,
     IN PEPROCESS Process,
+    OUT void** EntryPointAddress,
     OUT void** BaseAddress
 );
 
@@ -1017,9 +1102,5 @@ void
 MmpDeleteSection(
     void* Object
 );
-
-// module: oom.c
-
-// TODO OOM KILLER, TO USE WHEN 0 PHYSICAL MEMORY IS AVAILABLE, AND PAGING TO DISK EVEN FAILED.
 
 #endif

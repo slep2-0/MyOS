@@ -14,14 +14,17 @@
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Reached ThreadExit, dereferencing object.\n");
+    // if you are asking why i dont print the tid, its because i (fucking) hate the gop function
+    // so many stack overflows, it makes my blood boil.
+    gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread.\n");
 #endif
     // Terminate the thread.
-    assert(&PsGetCurrentThread()->InternalThread == MeGetCurrentThread());
+    assert(PsIsKernelThread(PsGetCurrentThread()) == true, "A user thread has entered kernel thread termination.");
     PsTerminateThread(PsGetCurrentThread(), MT_SUCCESS);
     Schedule();
 }
 
+// Kernel threads only.
 static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
     // thread_entry(parameters) -> void func(void*)
     thread_entry(parameter); // If thread entry takes no parameters, passing NULL is still fine.
@@ -37,7 +40,8 @@ PsCreateThread(
     PHANDLE ThreadHandle,
     ThreadEntry EntryPoint,
     THREAD_PARAMETER ThreadParameter,
-    TimeSliceTicks TimeSlice
+    TimeSliceTicks TimeSlice,
+    ThreadEntry MtdllEntrypoint
 )
 
 {
@@ -52,19 +56,31 @@ PsCreateThread(
     // Acquire process rundown protection.
     if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
         // Process is, being terminated?
+        ObDereferenceObject(ParentProcess);
         return MT_PROCESS_IS_TERMINATING;
     }
 
     // Create a new thread.
     PETHREAD Thread;
     Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**) & Thread);
-    if (MT_FAILURE(Status)) goto Cleanup;
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(ParentProcess);
+        MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
+        goto Cleanup;
+    }
+
+    // Set parent process.
+    Thread->ParentProcess = ParentProcess;
 
     // Initialize list head.
     InitializeListHead(&Thread->ThreadListEntry);
 
     // Create a TID for the thread.
     Thread->TID = PsAllocateThreadId(Thread);
+    if (Thread->TID == MT_INVALID_HANDLE) goto CleanupWithRef;
+
+    // Write the PID into the thread.
+    Thread->PID = ParentProcess->PID;
 
     // Create a new stack for the thread's kernel environment.
     Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
@@ -73,7 +89,8 @@ PsCreateThread(
 
     // Create user mode stack. 
     void* BaseAddress = NULL;
-    Status = MmCreateUserStack(ParentProcess, &BaseAddress, 0); // 0 to indicate default size.
+    size_t StackSize = MI_DEFAULT_USER_STACK_SIZE;
+    Status = MmCreateUserStack(ParentProcess, &BaseAddress, StackSize);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     Thread->InternalThread.StackBase = BaseAddress; // Stack grows downward.
 
@@ -86,7 +103,7 @@ PsCreateThread(
     kmemset(&ContextFrame, 0, sizeof(TRAP_FRAME));
 
     ContextFrame.rsp = (uint64_t)Thread->InternalThread.StackBase;
-    ContextFrame.rip = (uint64_t)EntryPoint;
+    ContextFrame.rip = (uint64_t)EntryPoint; // Entry point parameter should be removed when mtdll comes around, as it should handle new thread creations
     ContextFrame.rdi = (uint64_t)ThreadParameter;
     ContextFrame.rflags = USER_RFLAGS;
     ContextFrame.cs = USER_CS;
@@ -98,12 +115,55 @@ PsCreateThread(
     Thread->InternalThread.ThreadState = THREAD_READY;
     Thread->InternalThread.ApcState.SavedApcProcess = ParentProcess;
 
+    // Get TEB.
+    PTEB Teb = NULL;
+    Status = MmCreateTeb(Thread, (void**) & Teb);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    APC_STATE ApcState;
+    MeAttachProcess(&ParentProcess->InternalProcess, &ApcState);
+
+    // Write some basic information to TEB.
+    try {
+        Teb->UniqueThreadId = Thread->TID;
+        Teb->UniqueProcessId = ParentProcess->PID;
+        Teb->MtTib.StackBase = Thread->InternalThread.StackBase;
+        Teb->MtTib.StackLimit = (void*)(((uintptr_t)Thread->InternalThread.StackBase - StackSize));
+        Status = MT_SUCCESS;
+    } except{
+        // Page fault on user addr.
+        Status = GetExceptionCode();
+    } end_try;
+
+    // Detach
+    MeDetachProcess(&ApcState);
+
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
     // Set process's thread properties.
     if (!ParentProcess->MainThread) {
         ParentProcess->MainThread = Thread;
-    }
 
-    Thread->ParentProcess = ParentProcess;
+        // Main thread means ThreadParameter is actually the 3rd argument to LdrInitializeProcess in mtdll
+        // RDI - Pointer to PEB.
+        // RSI - Pointer to TEB.
+        // RDX - Thread entry point.
+        // RCX - Pointer to MTDLL_BASIC_TYPES.
+        PTRAP_FRAME Trap = &Thread->InternalThread.TrapRegisters;
+        Trap->rdi = (uint64_t)ParentProcess->Peb;
+        Trap->rsi = (uint64_t)Teb;
+        Trap->rdx = (uint64_t)EntryPoint;
+        Trap->rcx = (uint64_t)ThreadParameter;
+        Trap->rip = (uint64_t)MtdllEntrypoint;
+    }
+    else {
+        // There is a process main thread, this thread's return address must be to ExitThread(), since after the function return of
+        // EntryPoint (if it returns), it will POP an invalid value from the stack to return, and so a probable page fault and termination
+        // of thread (or process, havent decided yet, look at MiPageFault if it updated)
+        // FIXME.
+        // (main threads pop back to crt0 runtime, where ExitProcess is ran)
+        // So TODO MTDLL.
+    }
 
     // Create a handle for the thread (and place it in the process's handle table).
     Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
@@ -111,10 +171,11 @@ PsCreateThread(
     
     // Add to list of all threads in the parent process. (acquire its push lock)
     MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
-    InsertTailList(&ParentProcess->AllThreads, &Thread->ThreadListEntry);
-    MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
 
-    InterlockedIncrementU32((volatile uint32_t*)&ParentProcess->NumThreads);
+    InsertTailList(&ParentProcess->AllThreads, &Thread->ThreadListEntry);
+    ParentProcess->NumThreads++;
+
+    MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
     Status = MT_SUCCESS;
     // Insert thread to processor queue.
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
@@ -123,15 +184,16 @@ CleanupWithRef:
     // If failure on status, we destroy the thread, if not.
     // We are left with PointerCount == 2 and HandleCount == 1, why? Because if we access the thread and dereference it there still must be left HandleCount == 1 and PointerCount == 1 (the handles)
     // With processes however, its different.
+    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
     if (MT_FAILURE(Status)) {
         ObDereferenceObject(Thread);
+        ObDereferenceObject(ParentProcess);
     }
 Cleanup:
-    MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
     return Status;
 }
 
-MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE) {
+MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread) {
     if (unlikely(!PsInitialSystemProcess.PID)) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
 
@@ -143,6 +205,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
         return Status;
     }
 
+    // Initialize list head.
     InitializeListHead(&thread->ThreadListEntry);
 
     // Create stack
@@ -187,19 +250,28 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     thread->InternalThread.TrapRegisters = *cfm;
     thread->InternalThread.ThreadState = THREAD_READY;
     thread->TID = PsAllocateThreadId(thread);
+    if (thread->TID == MT_INVALID_HANDLE) {
+        ObDereferenceObject(thread);
+        return MT_INVALID_HANDLE;
+    }
     thread->CurrentEvent = NULL;
     thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
+    thread->InternalThread.ApcState.AttachedToProcess = false;
     thread->SystemThread = true;
 
     // Process stuffz
     thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
     // Use the push lock to insert it into AllThreads.
     MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
+
     InsertTailList(&PsInitialSystemProcess.AllThreads, &thread->ThreadListEntry);
+    PsInitialSystemProcess.NumThreads++;
+    
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
     // Enqueue it into processor. TODO START SUSPENDED?
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
+    if (OutThread) *OutThread = thread;
     return MT_SUCCESS;
 }
 
@@ -208,38 +280,25 @@ PsGetCurrentThread (void) {
     return CONTAINING_RECORD(MeGetCurrentThread(), ETHREAD, InternalThread);
 }
 
-void
+MTSTATUS
 PsTerminateThread(
     IN PETHREAD Thread,
     IN MTSTATUS ExitStatus
 )
 
 {
-    // On thread terminations, we only unlink them from global list, delete stacks, and other
-    // BUT WE DO NOT - Delete the ETHREAD, since thats up to the object manager to do so, we do not interfere
-    // with its work.
-    Thread->InternalThread.ThreadState = THREAD_TERMINATING;
-    Thread->ExitStatus = ExitStatus;
+    // Non complete function, this should queue a thread Apc to call MtTerminateThread (PspExitThread) on itself.
+    // Or if it is the current thread, we just terminate ourselves.
+    if (Thread == PsGetCurrentThread()) {
+        // Exit current thread.
+        PspExitThread(ExitStatus);
+        return MT_SUCCESS;
+    }
 
-    // We do not change its timeslice unless its a critical operation
-    // Look in MiGeneralProtectionFault, thats a case where we do change it.
-    // We let it continue until yielding or end of timeslice.
+    assert(false, "Termination called upon remote thread, unimplemented. Need APCs");
+    MeBugCheckEx((BUGCHECK_CODES)MT_NOT_IMPLEMENTED, (void*)(uintptr_t)Thread, (void*)(uintptr_t)ExitStatus, NULL, NULL);
 
-    // Signal all events that the thread is waiting on to execute immediately.
-    // Todo parse waitblock.
-
-    // Since this is marked as TERMINATING, the scheduler will dereference the thread in Ob, and from that if
-    // the references have reached 0, the Ob will call PsDeleteThread.
-    // The scheduler WILL NOT schedule this thread anymore due to its TERMINATION flag.
-
-    // TODO BLOCK APCs from being inserted on thread!
-
-    // The thread does not need to be force suspended, because until a forceful wait occurs (interrupt, syscall, yielding execution via preemption), it can continue running.
-    // Forceful termination does not mean we can stop the CPU mid instruction to terminate the thread, because thats stupid.
-
-    // We should queue an APC In the thread to do stuff.
-
-    // The thread would deference its parent thread (if its a user thread)
+    return MT_NOT_IMPLEMENTED;
 }
 
 void
@@ -249,11 +308,9 @@ PsDeleteThread(
 
 {
     // This function is called when the reference count for this thread has reached 0 (e.g, it is no longer in use)
-    // (No need to call PsTerminateThread, since it set to terminated, and scheduler called dereference)
-    // We free everything that the thread uses.
-    // All though, before, we should wait for rundown release (so nobody is changing the fields to avoid UAF)
+    // (it is called after thread termination)
+    // We free everything that the ETHREAD uses.
     PETHREAD Thread = (PETHREAD)Object;
-    MsWaitForRundownProtectionRelease(&Thread->ThreadRundown);
 
     bool IsKernelThread = PsIsKernelThread(Thread);
 
@@ -271,4 +328,106 @@ PsDeleteThread(
     }
 
     // When we reach here, the function returns, and the ETHREAD is deleted.
+}
+
+NORETURN
+void
+PspExitThread(
+    IN MTSTATUS ExitStatus
+)
+
+{
+    // This exits the current running thread on the processor.
+    PETHREAD Thread = PsGetCurrentThread();
+    PEPROCESS CurrentProcess = Thread->InternalThread.ApcState.SavedApcProcess;
+
+    // Cannot terminate this thread if we are attached to a different process (since we would use another process fields)
+    if (MeIsAttachedProcess()) {
+        MeBugCheckEx(
+            INVALID_PROCESS_ATTACH_ATTEMPT,
+            (void*)(uintptr_t)CurrentProcess,
+            (void*)(uintptr_t)Thread->InternalThread.ApcState.SavedApcProcess,
+            (void*)(uintptr_t)Thread,
+            NULL
+        );
+    }
+
+    // Lower IRQL to passive level.
+    MeLowerIrql(PASSIVE_LEVEL);
+
+    // We cannot terminate a worker thread.
+    if (Thread->WorkerThread) {
+        MeBugCheckEx(
+            WORKER_THREAD_ATTEMPTED_TERMINATION,
+            (void*)(uintptr_t)Thread,
+            NULL,
+            NULL,
+            NULL
+        );
+    }
+
+    // Todo check for pending APCs, if so bugcheck.
+
+    // Wait for rundown protection release
+    MsWaitForRundownProtectionRelease(&Thread->ThreadRundown);
+
+    // Acquire process lock before we modify thread entries.
+    MsAcquirePushLockExclusive(&CurrentProcess->ThreadListLock);
+
+    // Decrease thread count and check if we are the last thread (if so, terminate process)
+    // No need for interlocked decrement as we hold push lock
+    bool LastThread = false;
+    if (!(--CurrentProcess->NumThreads)) {
+        LastThread = true;
+    }
+   
+    // Remove us from the process thread list.
+    PDOUBLY_LINKED_LIST listHead = &CurrentProcess->AllThreads;
+    PDOUBLY_LINKED_LIST entry = listHead->Flink;
+
+    while (entry != listHead) {
+        PETHREAD iter = CONTAINING_RECORD(entry, ETHREAD, ThreadListEntry);
+        if (iter == Thread) {
+            // Remove entry
+            entry->Blink->Flink = entry->Flink;
+            entry->Flink->Blink = entry->Blink;
+
+            // Set entry to point at itself
+            InitializeListHead(&Thread->ThreadListEntry);
+            break;
+        }
+        entry = entry->Flink;
+    }
+
+    // Release it now.
+    MsReleasePushLockExclusive(&CurrentProcess->ThreadListLock);
+
+    if (LastThread && (CurrentProcess->Flags & ProcessBreakOnTermination)) {
+        // This is the last thread termination of a critical process, this MUST not happen.
+        MeBugCheckEx(
+            CRITICAL_PROCESS_DIED,
+            (void*)(uintptr_t)CurrentProcess,
+            NULL,
+            NULL,
+            NULL
+        );
+    }
+
+    if (LastThread) {
+        // This is the last thread of the process, we clear its handle table.
+        HtDeleteHandleTable(CurrentProcess->ObjectTable);
+        CurrentProcess->ObjectTable = NULL;
+    }
+
+    // Todo termination ports for a process (so when it dies the user process can like show a message to parent process or sum shit)
+
+    // Todo process the thread's mutexes and waits (unwait all threads waiting on this), along with flushing its APCs.
+
+    // Finally, terminate this thread from the scheduler.
+    MeDisableInterrupts();
+    Thread->ExitStatus = ExitStatus;
+    Thread->InternalThread.ThreadState = THREAD_TERMINATING;
+
+    // Schedule away.
+    Schedule();
 }

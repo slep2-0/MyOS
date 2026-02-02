@@ -26,7 +26,6 @@ MmCreateSection(
     OUT PHANDLE SectionHandle,
     IN struct _FILE_OBJECT* FileObject
 )
-
 {
     MTE_HEADER Header;
     MTSTATUS Status;
@@ -49,7 +48,6 @@ MmCreateSection(
     }
 
     // Allocate the actual section object (pool)
-    // TODO ObCreateObject(ObjectTypeInitializerOfFile)
     PMM_SECTION NewSection = NULL;
     Status = ObCreateObject(MmSectionType, sizeof(MM_SECTION), (void**)&NewSection);
     if (MT_FAILURE(Status)) return Status;
@@ -57,6 +55,9 @@ MmCreateSection(
     // Set fields
     NewSection->FileObject = FileObject;
     NewSection->EntryPointOffset = Header.EntryRVA;
+    NewSection->PreferredBase = Header.PreferredImageBase;
+
+    // Create subsections
 
     // Setup .text - Read | Execute
     NewSection->Text.FileOffset = Header.TextRVA;
@@ -71,115 +72,132 @@ MmCreateSection(
     NewSection->Data.IsDemandZero = 0;
 
     // Setup .bss (uninit) - Read | Write | DemandZero
-    NewSection->Bss.FileOffset = 0; // Irrelevant
+    NewSection->Bss.FileOffset = 0; // Irrelevant for BSS
     NewSection->Bss.VirtualSize = Header.BssSize;
     NewSection->Bss.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE;
     NewSection->Bss.IsDemandZero = 1;
 
-    // Calculate total size of sections.
-    // This is a rough estimate (aligns up)
-    // We could also not align it up, and the receiver does, but i dont trust myself.
-    NewSection->ImageSize = ALIGN_UP(Header.TextSize + Header.DataSize + Header.BssSize, VirtualPageSize);
+    // The file end RVA is just the file size.
+    uintptr_t FileEndRVA = FileObject->FileSize;
+
+    // Configure the WholeFileSection.
+    // This represents the chunk of virtual memory that maps directly to the file.
+    // It starts at FileOffset 0 (so we can see the Header) and goes up to the end of Data.
+    NewSection->WholeFileSection.FileOffset = 0;
+    NewSection->WholeFileSection.VirtualSize = FileEndRVA;
+
+    // We default to RWX here to simplify loading; permissions should be refined later via VirtualProtect.
+    NewSection->WholeFileSection.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE | VAD_FLAG_EXECUTE | VAD_FLAG_MAPPED_FILE;
+    NewSection->WholeFileSection.IsDemandZero = 0;
+
+    // Calculate total size of the image in memory.
+    // This includes the file part + the BSS part.
+    NewSection->ImageSize = ALIGN_UP(FileEndRVA + Header.BssSize, VirtualPageSize);
 
     // Create a handle for the section.
     Status = ObCreateHandleForObject(NewSection, MT_SECTION_ALL_ACCESS, SectionHandle);
 
     // Successful!
-    // If success on ObCreateHandleForObject it would dereference the pointer count created by ObCreateObject (cancel out the reference made by ObCreateHandleForObject)
-    // And so HandleCount == PointerCount
-    // Else, it would destroy the section (along with the file handle)
+    // If success on ObCreateHandleForObject it would dereference the pointer count created by ObCreateObject 
+    // (cancel out the reference made by ObCreateHandleForObject).
+    // And so HandleCount == PointerCount.
+    // Else, it would destroy the section (along with the file handle).
     ObDereferenceObject(NewSection);
     return MT_SUCCESS;
 }
 
-MTSTATUS 
+MTSTATUS
 MmMapViewOfSection(
     IN HANDLE SectionHandle,
     IN PEPROCESS Process,
+    OUT void** EntryPointAddress,
     OUT void** BaseAddress
 )
-
 {
-    MTSTATUS Status;
-    uintptr_t load_base = 0;
-    uintptr_t mapped_text_va = 0;
-    uintptr_t DataVa = 0;
-
-    PMM_SECTION Section; 
-    Status = ObReferenceObjectByHandle(SectionHandle, MT_SECTION_ALL_ACCESS, MmSectionType, (void**)&Section, NULL);
+    PMM_SECTION Section;
+    MTSTATUS Status = ObReferenceObjectByHandle(SectionHandle, MT_SECTION_ALL_ACCESS, MmSectionType, (void**)&Section, NULL);
     if (MT_FAILURE(Status)) return Status;
 
-    // Map .text
-    if (Section->Text.VirtualSize > 0) {
-        // Request a VA from the gap, if this is in the initial process executable, it should be at 0x10000
-        // If this is a DLL, it would return a VA for us, anywhere.
+    uintptr_t load_base = Section->PreferredBase;
+
+    // Map the whole file, header + text + data.
+
+    // We attempt to map the file content at the preferred base.
+    Status = MmAllocateVirtualMemory(
+        Process,
+        (void**)&load_base,
+        Section->WholeFileSection.VirtualSize,
+        Section->WholeFileSection.Protection
+    );
+
+    if (MT_FAILURE(Status)) {
+        // Preferred image base is taken. Let the VAD allocator pick an address.
+        // Relocation tables (mapped inside this chunk) will be needed to fix addresses.
+        load_base = 0;
         Status = MmAllocateVirtualMemory(
             Process,
-            (void**)&mapped_text_va,
-            Section->Text.VirtualSize,
-            Section->Text.Protection
+            (void**)&load_base,
+            Section->WholeFileSection.VirtualSize,
+            Section->WholeFileSection.Protection
         );
-        if (MT_FAILURE(Status)) return Status;
-        // Store the file and fileoffset into the vad we just got.
-        PMMVAD Vad = MiFindVad(Process, mapped_text_va);
-        if (Vad) {
-            Vad->File = Section->FileObject;
-            Vad->FileOffset = Section->Text.FileOffset;
-        }
     }
 
-    load_base = mapped_text_va - Section->Text.FileOffset;
+    if (MT_FAILURE(Status)) goto Cleanup;
 
-    // Map .data
-    if (Section->Data.VirtualSize > 0) {
-        DataVa = load_base + Section->Data.FileOffset;
-        Status = MmAllocateVirtualMemory(
-            Process,
-            (void**)&DataVa,
-            Section->Data.VirtualSize,
-            Section->Data.Protection
-        );
-        if (MT_FAILURE(Status)) {
-            MmFreeVirtualMemory(Process, (void*)mapped_text_va);
-            return Status;
-        }
-        // Store the file and fileoffset into the vad we just got.
-        PMMVAD Vad = MiFindVad(Process, DataVa);
-        if (Vad) {
-            Vad->File = Section->FileObject;
-            Vad->FileOffset = Section->Data.FileOffset;
-        }
+    // Store the file and fileoffset into the vad we just got.
+    // IMPORTANT: We map from FileOffset 0. This exposes the MTE Header in memory.
+    PMMVAD Vad = MiFindVad(Process, load_base);
+    if (Vad) {
+        Vad->File = Section->FileObject;
+        Vad->FileOffset = Section->WholeFileSection.FileOffset; // 0
     }
 
-    // Map .bss
-    // We do not have a file for .bss since its demand zero.
+    // .bss lives immediately after the file data in Virtual Memory.
     if (Section->Bss.VirtualSize > 0) {
-        uintptr_t BssVa = DataVa + Section->Data.VirtualSize;
-        Status = MmAllocateVirtualMemory(
-            Process,
-            (void**)&BssVa,
-            Section->Bss.VirtualSize,
-            Section->Bss.Protection
-        );
-        if (MT_FAILURE(Status)) {
-            MmFreeVirtualMemory(Process, (void*)mapped_text_va);
-            MmFreeVirtualMemory(Process, (void*)DataVa);
-            return Status;
+        // The RVA where BSS logically starts
+        uintptr_t BssStartVa = load_base + Section->WholeFileSection.VirtualSize;
+        // The RVA where BSS ends
+        uintptr_t BssEndVa = BssStartVa + Section->Bss.VirtualSize;
+
+        // The start of the NEXT page after the file data
+        uintptr_t NextPageVa = ALIGN_UP(BssStartVa, VirtualPageSize);
+
+        // 2. Allocate the overflow
+        // Only if BSS is large enough to cross into the next page
+        if (BssEndVa > NextPageVa) {
+            uintptr_t OverflowSize = BssEndVa - NextPageVa;
+            uintptr_t AllocBase = NextPageVa;
+
+            Status = MmAllocateVirtualMemory(
+                Process,
+                (void**)&AllocBase, // Must be page aligned
+                OverflowSize,
+                Section->Bss.Protection
+            );
+
+            if (MT_FAILURE(Status)) {
+                MmFreeVirtualMemory(Process, (void*)load_base);
+                goto Cleanup;
+            }
         }
     }
 
-    // Compute RIP
-    uintptr_t RipAddress = load_base + Section->EntryPointOffset;
-    *BaseAddress = (void*)RipAddress;
+    // The true base address is at load_base
+    *BaseAddress = (void*)load_base;
 
-    return MT_SUCCESS;
+    // Compute RIP based on where we actually loaded
+    uintptr_t RipAddress = load_base + Section->EntryPointOffset;
+    *EntryPointAddress = (void*)RipAddress;
+
+Cleanup:
+    ObDereferenceObject(Section);
+    return Status;
 }
 
-void 
+void
 MmpDeleteSection(
     void* Object
 )
-
 {
     PMM_SECTION Section = (PMM_SECTION)Object;
 

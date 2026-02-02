@@ -296,8 +296,8 @@ MiInvalidateTlbForVa(
 
 {
     invlpg(VirtualAddress);
-    // If SMP is initialized, send IPI.
 #ifndef MT_UP
+    // If SMP is initialized, send IPI.
     if (smpInitialized) {
         IPI_PARAMS Param;
         Param.pageParams.addressToInvalidate = (uint64_t)VirtualAddress;
@@ -333,7 +333,7 @@ MiTranslatePteToPfn (
     return PPFN_TO_INDEX(PHYSICAL_TO_PPFN(phys));
 }
 
-uint64_t
+uintptr_t
 MiTranslatePteToVa(
     IN PMMPTE pte
 )
@@ -390,7 +390,7 @@ MiUnmapPte (
 
     Routine description:
 
-        Unmaps the pte from the current address pace.
+        Unmaps the pte from the current address space.
 
     Arguments:
 
@@ -398,11 +398,7 @@ MiUnmapPte (
 
     Return Values:
 
-        None.
-
-    Notes:
-
-        This function DOES NOT release the PFN associated with the PTE back to the database, you must do so yourself.
+        None.       
 
 --*/
 
@@ -412,7 +408,7 @@ MiUnmapPte (
     PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
     if (!pfn) return;
     // Get the PTE's original VA.
-    uint64_t origVa = MiTranslatePteToVa(pte);
+    uintptr_t origVa = MiTranslatePteToVa(pte);
 
     // Atomically exchange old info with new info to avoid races.
     MMPTE newPte;
@@ -420,12 +416,13 @@ MiUnmapPte (
     // Zero out newPte
     kmemset(&newPte, 0, sizeof(MMPTE));
 
-    // Write new values.
-    newPte.Soft.PageFrameNumber = pfn;
-    
-    // I removed the transition set here, even though it has a PFN assigned to it (to track last good PFN), we don't mark it as transition.
-    // Instead, when we put it in the standby list, there should be a unique function for it. TODO
+    // Keep only the protection flags. (so transition function set know which flags it had)
+    newPte.Hard.Write = pte->Hard.Write;
+    newPte.Hard.User = pte->Hard.User;
+    newPte.Hard.NoExecute = pte->Hard.NoExecute;
 
+    // Setting a transition PTE is at another function.
+    
     // Exchange now.
     InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
 
@@ -437,6 +434,65 @@ MiUnmapPte (
     return;
 }
 
+bool
+MiAtomicSetTransitionPte(
+    IN PMMPTE Pte,
+    IN PAGE_INDEX Pfn
+)
+
+/*++
+
+    Routine description:
+
+        Atomically sets the Pte given to a transition PTE if it did not change while setting.
+
+    Arguments:
+
+        [IN]  PMMPTE Pte - Pointer to MMPTE PTE in memory to set as transition.
+        [IN]  PAGE_INDEX Pfn - The PFN number to set this PTE as a transition for.
+
+    Return Values:
+
+        None.
+
+    Note:
+
+        This function must always be called ONLY from MiReleasePhysicalPage. 
+
+--*/
+
+{
+    // Assertion that the return address is within the bounds of MiReleasePhysicalPage, as this function MUST ONLY be called from there.
+    // Why didnt I make it there? Because I MIGHT plan that this function can be called somewhere else, we'll see.
+    assert(MiIsWithinBoundsOfReleasePhysicalPage(RETADDR(0)));
+
+    // Set the baseline expected.
+    MMPTE Expected = *Pte;
+
+    // Runtime assertions to verify its a valid unmapped PTE before continuing.
+    assert(Expected.Hard.Present == 0);
+    assert(Expected.Soft.Transition == 0);
+
+    char buf[256];
+    ksnprintf(buf, sizeof(buf), "Address of PTE: %p", Pte);
+    assert(Expected.Hard.Prototype == 0, buf);
+    
+    // Set the transition page properties.
+    MMPTE Transition = Expected;
+    Transition.Soft.Transition = 1;
+    Transition.Soft.PageFrameNumber = Pfn;
+
+    // Set the protection flags, this is so the page fault handler knows the properties of the pte.
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.Write) ? PROT_KERNEL_WRITE : 0;
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.NoExecute) ? PROT_KERNEL_NOEXECUTE : 0;
+    Transition.Soft.SoftwareFlags |= (Pte->Hard.User) ? PROT_KERNEL_USER : 0;
+
+    // Atomic compare exchange, if the PTE changed within the exchange, we do not set the value, and abort.
+    if (!InterlockedCompareExchangeU64((volatile uint64_t*)Pte, Transition.Value, Expected.Value)) return false;
+
+    // Exchange successful!
+    return true;
+}
 
 // Reloads CR3 to flush all TLBs (slow flush)
 void
@@ -502,6 +558,11 @@ MmIsAddressPresent(
     Return Values:
 
         True if the address is valid and in memory, false otherwise.
+
+    Notes:
+
+        This function shouldn't be used in low IRQL situations, as addresses can very well be paged out to disk.
+        (In IRQL equal or higher than DISPATCH_LEVEL, this function is safe, as blocking operations are forbidden, which means memory cannot be paged out)
 
 --*/
 

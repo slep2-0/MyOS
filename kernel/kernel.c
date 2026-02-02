@@ -18,7 +18,7 @@ Kernel Specific
 */
 bool isBugChecking = false;
 bool allApsInitialized = false;
-PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_lapic_id] after initializing SMP.
+PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_id] after initializing SMP.
 
 /*
 Boot Parameters
@@ -136,6 +136,9 @@ static void MeCreateInitialUserModeProcess(void) {
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     HANDLE hProcess;
     PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    // Always free handles, important.
+    MTSTATUS st = HtClose(hProcess);
+    assert(MT_SUCCEEDED(st));
     UNREFERENCED_PARAMETER(hProcess);
 }
 
@@ -162,6 +165,8 @@ void __stack_chk_fail(void) {
 EPROCESS PsInitialSystemProcess;
 
 static void InitSystemProcess(void) {
+    // TODO Setup system process like PsCreateProcess, and modify the func.
+    kmemset(&PsInitialSystemProcess, 0, sizeof(EPROCESS));
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
     PsInitialSystemProcess.ParentProcess = 0; // No creator process
     kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
@@ -171,6 +176,7 @@ static void InitSystemProcess(void) {
     PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
     InitializeListHead(&PsInitialSystemProcess.AllThreads);
     PsInitialSystemProcess.ObjectTable = HtCreateHandleTable(&PsInitialSystemProcess);
+    PsInitialSystemProcess.Flags |= ProcessBreakOnTermination;
 }
 
 extern uint8_t bss_start;
@@ -197,7 +203,6 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     // Initialize the TSS & GDT & New IDT with TSS
     MeInitializeProcessor(&cpu0, true, false);
-
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
     MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
@@ -218,6 +223,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MeBugCheckEx(PSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
     }
 
+    // Initiate section type initializer (must be called after Ob)
     st = MmInitSections();
     if (MT_FAILURE(st)) {
         MeBugCheckEx(
@@ -284,7 +290,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MeBugCheck(FILESYSTEM_PANIC);
     }
 
-    /* SYSTEM IS FULLY INITIALIZED. */
+    /* SYSTEM IS FULLY INITIALIZED. (except SMP and APIC) */
 
     void* buf = MmAllocatePoolWithTag(NonPagedPool, 64, 'buf1');
     gop_printf_forced(0xFFFFFF00, "buf addr: %p\n", buf);
@@ -310,12 +316,12 @@ void kernel_main(BOOT_INFO* boot_info) {
 
     TIME_ENTRY currTime = get_time();
 #define ISRAEL_UTC_OFFSET 3
-    gop_printf(COLOR_GREEN, "Current Time: %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
+    gop_printf(COLOR_GREEN, "Current Time: (YY:MM:DD:hh:mm:ss) %d/%d/%d | %d:%d:%d\n", currTime.year, currTime.month, currTime.day, currTime.hour + ISRAEL_UTC_OFFSET, currTime.minute, currTime.second);
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
-    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS);
-    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, NULL);
+    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS, NULL); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
@@ -331,7 +337,7 @@ void kernel_main(BOOT_INFO* boot_info) {
         MhInitializeSMP(apic_list, 4, lapicAddress);
         IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
         MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
-        allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs of the apic list have initialized fully.
+        allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs in the apic list have initialized fully.
     }
 #else
     gop_printf(COLOR_RED, "System configured to run in UP mode.\n");
@@ -339,5 +345,5 @@ void kernel_main(BOOT_INFO* boot_info) {
     // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
     // Thread creations (including idle threads) must come with the IF flag set.
     Schedule();
-    __builtin_unreachable();
+    UNREACHABLE_CODE();
 }

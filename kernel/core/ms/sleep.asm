@@ -49,8 +49,7 @@ MsYieldExecution:
     ; scheduler must not return to this code; it should context-switch away.
     sub rsp, 8 ; RSP %16 == 0
     call    Schedule
-    add rsp, 8 ; I mean, it shouldn't return, but do it anyways.
-
+    
     ; never returns here
     int 18 ; Machine Check Exception.
 

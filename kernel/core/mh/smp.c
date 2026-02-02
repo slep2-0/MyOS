@@ -194,7 +194,7 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 
 PPROCESSOR 
 MeGetProcessorBlock(
-	uint8_t ProcessorNumber
+	uint8_t ProcessorNumber // ID, not lapic_ID.
 )
 
 {
@@ -202,11 +202,12 @@ MeGetProcessorBlock(
 
 	// SMP Is on, we iterate over the cpus list until we find the lapic for the processor.
 	for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
-		if (cpus[i].lapic_ID == ProcessorNumber) return &cpus[i];
+		if (cpus[i].ID == ProcessorNumber) return &cpus[i];
 	}
 
-	// The CPU isn't found, we return NULL (would bugcheck though).
-	return NULL;
+	// The CPU isn't found, we return the current one.
+	assert(false, "DPC Inputted wrong INDEX ID of target processor.");
+	return MeGetCurrentProcessor();
 }
 
 static void MhSpinAndProcessIpis(void) {

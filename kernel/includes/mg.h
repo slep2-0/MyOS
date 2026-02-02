@@ -24,6 +24,7 @@ Revision History:
 #include <stdbool.h>
 #include "stdarg_myos.h"
 #include "efi.h"
+#include "behavior.h"
 
 /// Colors definitions for easier access
 #define COLOR_RED        0xFFFF0000
@@ -46,8 +47,29 @@ Revision History:
 #define COLOR_TEAL       0xFF008080
 #define COLOR_OLIVE      0xFF808000
 
+/*
 void __attribute__((format(printf, 2, 3)))
 gop_printf(uint32_t color, const char* fmt, ...);
+*/
+
+#ifdef DISABLE_GOP
+static inline void __gop_mark_used(void* dummy, ...) {
+    (void)dummy; /* silence unused-param warning for the first arg */
+}
+
+/* no-op gop_printf that still marks variables as used */
+#define gop_printf(color, fmt, ...) \
+    do { \
+        (void)(color); \
+        (void)(fmt); \
+        __gop_mark_used(NULL, ##__VA_ARGS__); \
+    } while (0)
+#else
+void __attribute__((format(printf, 2, 3)))
+gop_printf(uint32_t color, const char* fmt, ...);
+#endif
+
+
 void gop_clear_screen(GOP_PARAMS* gop, uint32_t color);
 
 
@@ -60,6 +82,21 @@ char* kstrcpy(char* dst, const char* src);
 char* kstrncpy(char* dst, const char* src, size_t n);
 char* kstrtok_r(char* str, const char* delim, char** save_ptr);
 char* kstrncat(char* dest, const char* src, size_t max_len);
+
+static
+void*
+kmemchr(const void* buf, int c, size_t n)
+{
+    const unsigned char* p = (const unsigned char*)buf;
+    unsigned char uc = (unsigned char)c;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (p[i] == uc) {
+            return (void*)(p + i);
+        }
+    }
+    return NULL;
+}
 
 
 void MgAcquireExclusiveGopOwnerShip(void);

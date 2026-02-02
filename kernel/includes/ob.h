@@ -49,7 +49,7 @@ typedef struct _OBJECT_TYPE {
     char Name[32];                   // "Process", "Thread", "Mutant"
     uint32_t TotalNumberOfObjects;   // Statistics
     uint32_t TotalNumberOfHandles;   // Statistics
-    OBJECT_TYPE_INITIALIZER TypeInfo; // Routine (init & del & dbg) information for this object
+    OBJECT_TYPE_INITIALIZER TypeInfo; // Routine (init & del & dbg) information for this object, along with which pool type is it for allocations, and valid access rights for a handle for this object. 
 } OBJECT_TYPE, * POBJECT_TYPE;
 
 // Object header (it is aligned to 16 bytes, to avoid bugs)
@@ -87,6 +87,11 @@ MTSTATUS ObCreateObjectType(
     OUT POBJECT_TYPE* ObjectType
 );
 
+
+// TODO SIDS FOR AccessMode FOR PRIVILEGE MODE
+// IF ITS KERNEL MODE - WE SKIP ACCESS CHECK
+// IF ITS USER MODE - WE CHECK SID FOR THE OBJECT TYPE, LIKE IS THIS SID ALLOWED TO OPEN THE OBJECT IN ObOpenObjectByPointer?
+// sorry caps :)
 MTSTATUS
 ObCreateObject(
     IN POBJECT_TYPE ObjectType,
@@ -140,6 +145,10 @@ ObOpenObjectByPointer(
 
 void ObDereferenceObject(
     IN  void* Object
+);
+
+void ObDeleteObject(
+    IN POBJECT_HEADER Header
 );
 
 #endif

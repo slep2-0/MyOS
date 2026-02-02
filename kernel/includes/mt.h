@@ -32,7 +32,8 @@ typedef enum _USER_ALLOCATION_TYPE {
     PAGE_EXECUTE_READ = 0x10, // PRESENT
     PAGE_EXECUTE_READWRITE = 0x20, // PRESENT | RW
     PAGE_READWRITE = 0x30, // PRESENT | RW | NX
-    PAGE_READONLY = 0x40 // PRESENT | NX
+    PAGE_READONLY = 0x40, // PRESENT | NX
+    PAGE_NOACCESS = 0x50 // NONE.
 } USER_ALLOCATION_TYPE;
 
 void
@@ -59,6 +60,48 @@ MtOpenProcess(
     IN uint32_t ProcessId,
     OUT PHANDLE ProcessHandle,
     IN ACCESS_MASK DesiredAccess
+);
+
+MTSTATUS
+MtTerminateProcess(
+    IN HANDLE ProcessHandle,
+    IN MTSTATUS ExitStatus
+);
+
+MTSTATUS
+MtReadFile(
+    IN HANDLE FileHandle,
+    IN uint64_t FileOffset,
+    OUT void* Buffer,
+    IN size_t BufferSize,
+    _Out_Opt size_t* BytesRead
+);
+
+MTSTATUS
+MtWriteFile(
+    IN HANDLE FileHandle,
+    IN uint64_t FileOffset,
+    IN void* Buffer,
+    IN size_t BufferSize,
+    _Out_Opt size_t* BytesWritten
+);
+
+MTSTATUS
+MtCreateFile(
+    IN const char* path,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PHANDLE FileHandleOut
+);
+
+MTSTATUS
+MtClose(
+    IN HANDLE hObject
+);
+
+MTSTATUS
+MtTerminateThread(
+    IN HANDLE ThreadHandle,
+    IN MTSTATUS ExitStatus
 );
 
 #endif

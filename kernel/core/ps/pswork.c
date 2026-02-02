@@ -20,7 +20,7 @@ Revision History:
 #include "../../includes/mg.h"
 #include "../../assert.h"
 // globals
-volatile void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
+void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
 EVENT g_StackReaperEvent;
 
 // atomically pop all entries (returns head or NULL)
@@ -94,7 +94,8 @@ void PsInitializeWorkerThreads(void) {
     g_StackReaperEvent.waitingQueue.head = g_StackReaperEvent.waitingQueue.tail = NULL;
 
     // We just create a system thread for freeing stacks.
-    MTSTATUS status = PsCreateSystemThread((ThreadEntry)PsStackDeleterThread, NULL, LOW_TIMESLICE_TICKS);
+    PETHREAD StackThread = NULL;
+    MTSTATUS status = PsCreateSystemThread((ThreadEntry)PsStackDeleterThread, NULL, LOW_TIMESLICE_TICKS, &StackThread);
 
     if (MT_FAILURE(status)) {
         MeBugCheckEx(
@@ -105,5 +106,8 @@ void PsInitializeWorkerThreads(void) {
             NULL
         );
     }
+
+    // Set it as a worker thread.
+    StackThread->WorkerThread = true;
 }
 
