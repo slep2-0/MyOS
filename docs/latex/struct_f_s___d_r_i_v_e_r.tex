@@ -1,0 +1,134 @@
+\doxysection{FS\+\_\+\+DRIVER Struct Reference}
+\hypertarget{struct_f_s___d_r_i_v_e_r}{}\label{struct_f_s___d_r_i_v_e_r}\index{FS\_DRIVER@{FS\_DRIVER}}
+
+
+{\ttfamily \#include $<$fs.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9568163230f1d9237005fca89075407e}{init}} )(uint8\+\_\+t device\+\_\+id)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a2d074675c8343128fa3c8038f489574b}{Read\+File}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Read)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_aa5493352372dc79f066c990a1c497b34}{Write\+File}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Written)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_ac5a4c29bd4aec05bb352c01f2ebd67ef}{Delete\+File}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a56cf535f9ead4aed3955e6952cbe0331}{List\+Directory}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} char \texorpdfstring{$\ast$}{*}listings, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t max\+\_\+len)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a716d7be92793beb60fac8961d39231a7}{Remove\+Directory\+Recursive}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9f29406f06ef5d65615a16ec47b1273b}{Create\+Directory}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}Out\+Directory\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a574115d6952cbd6724012c2b7e674535}{Create\+File}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}File\+Object\+Out)
+\item 
+void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a3b2a2db9984d81ade57fd2bcc8a8dbaa}{Delete\+Object\+Procedure}} )(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Object)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00116}{116}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+
+
+\label{doc-variable-members}
+\Hypertarget{struct_f_s___d_r_i_v_e_r_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a9f29406f06ef5d65615a16ec47b1273b}\index{FS\_DRIVER@{FS\_DRIVER}!CreateDirectory@{CreateDirectory}}
+\index{CreateDirectory@{CreateDirectory}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{CreateDirectory}{CreateDirectory}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a9f29406f06ef5d65615a16ec47b1273b} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Create\+Directory) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}Out\+Directory\+Object)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00134}{134}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a574115d6952cbd6724012c2b7e674535}\index{FS\_DRIVER@{FS\_DRIVER}!CreateFile@{CreateFile}}
+\index{CreateFile@{CreateFile}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{CreateFile}{CreateFile}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a574115d6952cbd6724012c2b7e674535} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Create\+File) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}File\+Object\+Out)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00138}{138}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_ac5a4c29bd4aec05bb352c01f2ebd67ef}\index{FS\_DRIVER@{FS\_DRIVER}!DeleteFile@{DeleteFile}}
+\index{DeleteFile@{DeleteFile}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{DeleteFile}{DeleteFile}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_ac5a4c29bd4aec05bb352c01f2ebd67ef} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Delete\+File) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00129}{129}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a3b2a2db9984d81ade57fd2bcc8a8dbaa}\index{FS\_DRIVER@{FS\_DRIVER}!DeleteObjectProcedure@{DeleteObjectProcedure}}
+\index{DeleteObjectProcedure@{DeleteObjectProcedure}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{DeleteObjectProcedure}{DeleteObjectProcedure}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a3b2a2db9984d81ade57fd2bcc8a8dbaa} 
+void(\texorpdfstring{$\ast$}{*} Delete\+Object\+Procedure) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Object)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00140}{140}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a9568163230f1d9237005fca89075407e}\index{FS\_DRIVER@{FS\_DRIVER}!init@{init}}
+\index{init@{init}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a9568163230f1d9237005fca89075407e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} init) (uint8\+\_\+t device\+\_\+id)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00118}{118}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a56cf535f9ead4aed3955e6952cbe0331}\index{FS\_DRIVER@{FS\_DRIVER}!ListDirectory@{ListDirectory}}
+\index{ListDirectory@{ListDirectory}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{ListDirectory}{ListDirectory}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a56cf535f9ead4aed3955e6952cbe0331} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} List\+Directory) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} char \texorpdfstring{$\ast$}{*}listings, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t max\+\_\+len)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00130}{130}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a2d074675c8343128fa3c8038f489574b}\index{FS\_DRIVER@{FS\_DRIVER}!ReadFile@{ReadFile}}
+\index{ReadFile@{ReadFile}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{ReadFile}{ReadFile}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a2d074675c8343128fa3c8038f489574b} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Read\+File) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Read)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00119}{119}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_a716d7be92793beb60fac8961d39231a7}\index{FS\_DRIVER@{FS\_DRIVER}!RemoveDirectoryRecursive@{RemoveDirectoryRecursive}}
+\index{RemoveDirectoryRecursive@{RemoveDirectoryRecursive}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{RemoveDirectoryRecursive}{RemoveDirectoryRecursive}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_a716d7be92793beb60fac8961d39231a7} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Remove\+Directory\+Recursive) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00133}{133}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+\Hypertarget{struct_f_s___d_r_i_v_e_r_aa5493352372dc79f066c990a1c497b34}\index{FS\_DRIVER@{FS\_DRIVER}!WriteFile@{WriteFile}}
+\index{WriteFile@{WriteFile}!FS\_DRIVER@{FS\_DRIVER}}
+\doxysubsubsection{\texorpdfstring{WriteFile}{WriteFile}}
+{\footnotesize\ttfamily \label{struct_f_s___d_r_i_v_e_r_aa5493352372dc79f066c990a1c497b34} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(\texorpdfstring{$\ast$}{*} Write\+File) (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Written)}
+
+
+
+Definition at line \mbox{\hyperlink{fs_8h_source_l00124}{124}} of file \mbox{\hyperlink{fs_8h_source}{fs.\+h}}.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/\mbox{\hyperlink{fs_8h}{fs.\+h}}\end{DoxyCompactItemize}

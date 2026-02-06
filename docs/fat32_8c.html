@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/fat32/fat32.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/fat32/fat32.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -99,6 +98,8 @@ $(function(){initNavTree('fat32_8c.html','',''); });
 <code>#include &quot;<a class="el" href="atomic_8h_source.html">../../intrinsics/atomic.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="mg_8h_source.html">../../includes/mg.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="mm_8h_source.html">../../includes/mm.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="fs_8h_source.html">../../includes/fs.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="ob_8h_source.html">../../includes/ob.h</a>&quot;</code><br />
 </div>
 <p><a href="fat32_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -120,12 +121,11 @@ Macros</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:a311ce2a795c9e78112568a0b90d4cbe8" id="r_a311ce2a795c9e78112568a0b90d4cbe8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a311ce2a795c9e78112568a0b90d4cbe8">fat32_init</a> (int disk_index)</td></tr>
 <tr class="memitem:adfca68a881df4fb301c3d55a00a781df" id="r_adfca68a881df4fb301c3d55a00a781df"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adfca68a881df4fb301c3d55a00a781df">fat32_list_root</a> (void)</td></tr>
-<tr class="memitem:a71c6c7658a82c589657c4dc0a85e1e63" id="r_a71c6c7658a82c589657c4dc0a85e1e63"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a71c6c7658a82c589657c4dc0a85e1e63">fat32_read_file</a> (const char *filename, uint32_t *file_size_out, void **buffer_out)</td></tr>
-<tr class="memdesc:a71c6c7658a82c589657c4dc0a85e1e63"><td class="mdescLeft">&#160;</td><td class="mdescRight">A FAT32 Function that reads the file requested into a dynamically allocated buffer.  <br /></td></tr>
+<tr class="memitem:a8106339705a284783b1d03fc8ddac410" id="r_a8106339705a284783b1d03fc8ddac410"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8106339705a284783b1d03fc8ddac410">fat32_read_file</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesRead)</td></tr>
 <tr class="memitem:a400a63d664bec5e30b5713ff3cbf35a6" id="r_a400a63d664bec5e30b5713ff3cbf35a6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a400a63d664bec5e30b5713ff3cbf35a6">fat32_create_directory</a> (const char *path)</td></tr>
 <tr class="memdesc:a400a63d664bec5e30b5713ff3cbf35a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new directory (/testdir/ or /testdir are both allowed to create 'testdir' inside of 'root')  <br /></td></tr>
-<tr class="memitem:ac039880198105828d484f919b1de2e59" id="r_ac039880198105828d484f919b1de2e59"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac039880198105828d484f919b1de2e59">fat32_write_file</a> (const char *path, const void *data, uint32_t size, uint32_t mode)</td></tr>
-<tr class="memdesc:ac039880198105828d484f919b1de2e59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new file and writes data to it.  <br /></td></tr>
+<tr class="memitem:aa2142d4aa71e0caeaf37561623ca7f89" id="r_aa2142d4aa71e0caeaf37561623ca7f89"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa2142d4aa71e0caeaf37561623ca7f89">fat32_write_file</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesWritten)</td></tr>
+<tr class="memitem:a29aee6bc2f7e9d2717373aba650393e7" id="r_a29aee6bc2f7e9d2717373aba650393e7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a29aee6bc2f7e9d2717373aba650393e7">fat32_create_file</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *path, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *FileObjectOut)</td></tr>
 <tr class="memitem:a467adde29b891f25a9e1cd2365a67197" id="r_a467adde29b891f25a9e1cd2365a67197"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a467adde29b891f25a9e1cd2365a67197">fat32_list_directory</a> (const char *path, char *listings, size_t max_len)</td></tr>
 <tr class="memdesc:a467adde29b891f25a9e1cd2365a67197"><td class="mdescLeft">&#160;</td><td class="mdescRight">Lists the directory given.  <br /></td></tr>
 <tr class="memitem:ae59b119946d406d4603400ae2e495700" id="r_ae59b119946d406d4603400ae2e495700"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae59b119946d406d4603400ae2e495700">fat32_directory_is_empty</a> (const char *path)</td></tr>
@@ -134,6 +134,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:a60629b733e5b262b7367d972bf549ea9"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function deletes the directory given to the function from the system.  <br /></td></tr>
 <tr class="memitem:ac0fe70241ba5f3c709198b99d8c2b972" id="r_ac0fe70241ba5f3c709198b99d8c2b972"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac0fe70241ba5f3c709198b99d8c2b972">fat32_delete_file</a> (const char *path)</td></tr>
 <tr class="memdesc:ac0fe70241ba5f3c709198b99d8c2b972"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function deletes the file given to the function from the system.  <br /></td></tr>
+<tr class="memitem:ac6b4c0e8dfaec41380abbc4a649e32c3" id="r_ac6b4c0e8dfaec41380abbc4a649e32c3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac6b4c0e8dfaec41380abbc4a649e32c3">fat32_deletion_routine</a> (void *Object)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -154,7 +155,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00742">742</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00850">850</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -170,7 +171,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00041">41</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00043">43</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -190,7 +191,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">(x)</div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00021">21</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00023">23</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -206,7 +207,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00035">35</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00037">37</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -222,7 +223,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00036">36</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00038">38</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -238,7 +239,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00015">15</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00017">17</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -254,7 +255,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00016">16</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00018">18</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -283,7 +284,30 @@ Variables</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status code.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01047">1047</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01136">1136</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+
+</div>
+</div>
+<a id="a29aee6bc2f7e9d2717373aba650393e7" name="a29aee6bc2f7e9d2717373aba650393e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a29aee6bc2f7e9d2717373aba650393e7">&#9670;&#160;</a></span>fat32_create_file()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> fat32_create_file </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *</td>          <td class="paramname"><span class="paramname"><em>path</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *</td>          <td class="paramname"><span class="paramname"><em>FileObjectOut</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01525">1525</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -311,7 +335,7 @@ Variables</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status code.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01922">1922</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l02037">2037</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -339,7 +363,26 @@ Variables</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status code.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01954">1954</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l02069">2069</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+
+</div>
+</div>
+<a id="ac6b4c0e8dfaec41380abbc4a649e32c3" name="ac6b4c0e8dfaec41380abbc4a649e32c3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac6b4c0e8dfaec41380abbc4a649e32c3">&#9670;&#160;</a></span>fat32_deletion_routine()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void fat32_deletion_routine </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>Object</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l02146">2146</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -367,7 +410,7 @@ Variables</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True or false based if empty or not.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01663">1663</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01778">1778</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -386,7 +429,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00745">745</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00853">853</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -425,7 +468,7 @@ Variables</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status code.</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01579">1579</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01694">1694</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -444,12 +487,12 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00769">769</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00877">877</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
-<a id="a71c6c7658a82c589657c4dc0a85e1e63" name="a71c6c7658a82c589657c4dc0a85e1e63"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a71c6c7658a82c589657c4dc0a85e1e63">&#9670;&#160;</a></span>fat32_read_file()</h2>
+<a id="a8106339705a284783b1d03fc8ddac410" name="a8106339705a284783b1d03fc8ddac410"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8106339705a284783b1d03fc8ddac410">&#9670;&#160;</a></span>fat32_read_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -457,38 +500,37 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> fat32_read_file </td>
           <td>(</td>
-          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>filename</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a></td>          <td class="paramname"><span class="paramname"><em>FileObject</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t *</td>          <td class="paramname"><span class="paramname"><em>file_size_out</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t</td>          <td class="paramname"><span class="paramname"><em>FileOffset</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">void **</td>          <td class="paramname"><span class="paramname"><em>buffer_out</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void *</td>          <td class="paramname"><span class="paramname"><em>Buffer</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t</td>          <td class="paramname"><span class="paramname"><em>BufferSize</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *</td>          <td class="paramname"><span class="paramname"><em>BytesRead</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>A FAT32 Function that reads the file requested into a dynamically allocated buffer. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">filename</td><td>The Filename to read, e.g "file.txt" or "tmp/folder/myfile.txt"</td></tr>
-    <tr><td class="paramname">file_size_out</td><td>A pointer to put the file size in bytes</td></tr>
-    <tr><td class="paramname">bufferOut</td><td>A pointer to put the file buffer in (doesn't need to be dynamically allocated)</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status Code.</dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00921">921</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01029">1029</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
-<a id="ac039880198105828d484f919b1de2e59" name="ac039880198105828d484f919b1de2e59"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac039880198105828d484f919b1de2e59">&#9670;&#160;</a></span>fat32_write_file()</h2>
+<a id="aa2142d4aa71e0caeaf37561623ca7f89" name="aa2142d4aa71e0caeaf37561623ca7f89"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa2142d4aa71e0caeaf37561623ca7f89">&#9670;&#160;</a></span>fat32_write_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -496,39 +538,32 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> fat32_write_file </td>
           <td>(</td>
-          <td class="paramtype">const char *</td>          <td class="paramname"><span class="paramname"><em>path</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a></td>          <td class="paramname"><span class="paramname"><em>FileObject</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const void *</td>          <td class="paramname"><span class="paramname"><em>data</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t</td>          <td class="paramname"><span class="paramname"><em>FileOffset</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t</td>          <td class="paramname"><span class="paramname"><em>size</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *</td>          <td class="paramname"><span class="paramname"><em>Buffer</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t</td>          <td class="paramname"><span class="paramname"><em>file_modification_mode</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t</td>          <td class="paramname"><span class="paramname"><em>BufferSize</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *</td>          <td class="paramname"><span class="paramname"><em>BytesWritten</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Creates a new file and writes data to it. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">path</td><td>The full path of the file to create</td></tr>
-    <tr><td class="paramname">data</td><td>A pointer to the data to write.</td></tr>
-    <tr><td class="paramname">size</td><td>The number of bytes to write</td></tr>
-    <tr><td class="paramname">file_modification_mode</td><td>Whether to APPEND or REPLACE the file. (in <a class="el" href="vfs_8h.html#a65ee9505dc807970d2aadd68bcf218b6">FS_WRITE_MODES</a> enum)</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status code.</dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01275">1275</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l01364">1364</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -545,7 +580,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00038">38</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00040">40</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>
@@ -561,7 +596,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00032">32</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fat32_8c_source.html#l00034">34</a> of file <a class="el" href="fat32_8c_source.html">fat32.c</a>.</p>
 
 </div>
 </div>

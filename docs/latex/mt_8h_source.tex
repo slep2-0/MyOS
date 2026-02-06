@@ -1,0 +1,113 @@
+\doxysection{mt.\+h}
+\hypertarget{mt_8h_source}{}\label{mt_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/mt.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/mt.h}}
+\mbox{\hyperlink{mt_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00005}00005\ \textcolor{comment}{\ \ \ \ mt.h}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ the\ header\ files\ \&\ prototypes\ required\ for\ user\ mode\ interactions\ with\ kernel\ services.\ (System\ Calls)}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00019}00019\ \textcolor{preprocessor}{\#ifndef\ X86\_MATANEL\_MT\_H}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00020}00020\ \textcolor{preprocessor}{\#define\ X86\_MATANEL\_MT\_H}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{core_8h}{core.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00024}00024\ \textcolor{comment}{//\ Maximum\ number\ of\ syscalls}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00025}\mbox{\hyperlink{mt_8h_a88ef3d98617b4673404cd57e1fa4e516}{00025}}\ \textcolor{preprocessor}{\#define\ MAX\_SYSCALLS\ 256}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00026}\mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{00026}}\ \textcolor{keyword}{typedef}\ uint64\_t(*\mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{SyscallHandler}})(uint64\_t,\ uint64\_t,\ uint64\_t,\ uint64\_t,\ uint64\_t,\ uint64\_t);}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00027}00027\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00028}\mbox{\hyperlink{mt_8h_aef7a57516118bc947f301596f5728c0d}{00028}}\ \textcolor{preprocessor}{\#define\ MtCurrentProcess()\ -\/1}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00029}\mbox{\hyperlink{mt_8h_acf6a337262e880be5be59edf88553049}{00029}}\ \textcolor{preprocessor}{\#define\ MtCurrentThread()\ -\/2}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00031}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727}{00031}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}\ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727}{\_USER\_ALLOCATION\_TYPE}}\ \{}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00032}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a19aeddc4fae132c0614834bd642458af}{00032}}\ \ \ \ \ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a19aeddc4fae132c0614834bd642458af}{PAGE\_EXECUTE\_READ}}\ =\ 0x10,\ \textcolor{comment}{//\ PRESENT}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00033}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a59a046284931ff8794c8a628372d5e24}{00033}}\ \ \ \ \ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a59a046284931ff8794c8a628372d5e24}{PAGE\_EXECUTE\_READWRITE}}\ =\ 0x20,\ \textcolor{comment}{//\ PRESENT\ |\ RW}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00034}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a8f73f94c0e7a444a4be567f4fc758800}{00034}}\ \ \ \ \ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727a8f73f94c0e7a444a4be567f4fc758800}{PAGE\_READWRITE}}\ =\ 0x30,\ \textcolor{comment}{//\ PRESENT\ |\ RW\ |\ NX}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00035}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727add370636e4571ed6ff9443b741ef37a1}{00035}}\ \ \ \ \ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727add370636e4571ed6ff9443b741ef37a1}{PAGE\_READONLY}}\ =\ 0x40,\ \textcolor{comment}{//\ PRESENT\ |\ NX}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00036}\mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727ac104782a80358405b266129759139e90}{00036}}\ \ \ \ \ \mbox{\hyperlink{mt_8h_a3cdb2c82cf7e2a969de5821d77e76727ac104782a80358405b266129759139e90}{PAGE\_NOACCESS}}\ =\ 0x50\ \textcolor{comment}{//\ NONE.}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00037}\mbox{\hyperlink{mt_8h_a73b9dda53251e1e7124d234004ce928b}{00037}}\ \}\ \mbox{\hyperlink{mt_8h_a73b9dda53251e1e7124d234004ce928b}{USER\_ALLOCATION\_TYPE}};}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00038}00038\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00039}00039\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00040}00040\ \mbox{\hyperlink{mt_8h_a17a99247d353e2255edfc047fb70bb5a}{MtSetupSyscall}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00041}00041\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00042}00042\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00043}00043\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00044}00044\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00045}00045\ \mbox{\hyperlink{mt_8h_a4e7e66088a62cd9e8a33feb588c57395}{MtSyscallHandler}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00046}00046\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ TrapFrame}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00047}00047\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00049}00049\ \textcolor{comment}{//\ System\ calls}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00050}00050\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00051}00051\ \mbox{\hyperlink{mt_8h_abc686be8596b1a691a85a9c531dc7f41}{MtAllocateVirtualMemory}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00052}00052\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ Process,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00053}00053\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\_In\_Opt}}\ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{void}**\ BaseAddress,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00054}00054\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ NumberOfBytes,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00055}00055\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint8\_t\ AllocationType}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00056}00056\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00058}00058\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00059}00059\ \mbox{\hyperlink{mt_8h_a9fd86d68a6adfabee49c53a0d7528162}{MtOpenProcess}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00060}00060\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint32\_t\ ProcessId,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00061}00061\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ ProcessHandle,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00062}00062\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\_MASK}}\ DesiredAccess}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00063}00063\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00064}00064\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00065}00065\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00066}00066\ \mbox{\hyperlink{mt_8h_a65caa5dd8cf04ae279ae55f031dd766e}{MtTerminateProcess}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00067}00067\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ ProcessHandle,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00068}00068\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ ExitStatus}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00069}00069\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00070}00070\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00071}00071\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00072}00072\ \mbox{\hyperlink{mt_8h_a57ecc9016ed353a1597b1180aa6c8664}{MtReadFile}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00073}00073\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ FileHandle,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00075}00075\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00077}00077\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesRead}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00078}00078\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00079}00079\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00080}00080\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00081}00081\ \mbox{\hyperlink{mt_8h_ae908c4a8c8db9e5207c37eba9b042dcf}{MtWriteFile}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00082}00082\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ FileHandle,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00083}00083\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00084}00084\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00085}00085\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00086}00086\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesWritten}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00087}00087\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00089}00089\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00090}00090\ \mbox{\hyperlink{mt_8h_af44bd5e6a14e18423569874dca148c2c}{MtCreateFile}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00091}00091\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00092}00092\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\_MASK}}\ DesiredAccess,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00093}00093\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ FileHandleOut}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00094}00094\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00095}00095\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00096}00096\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00097}00097\ \mbox{\hyperlink{mt_8h_a81fd47039e90b10e72c8ce8d0c992b8b}{MtClose}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00098}00098\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ hObject}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00099}00099\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00101}00101\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00102}00102\ \mbox{\hyperlink{mt_8h_aba51dd68cc66e18a67961dadc44454d1}{MtTerminateThread}}(}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00103}00103\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ ThreadHandle,}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00104}00104\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ ExitStatus}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00105}00105\ );}
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00106}00106\ }
+\DoxyCodeLine{\Hypertarget{mt_8h_source_l00107}00107\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

@@ -1,0 +1,50 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/section.c File Reference}
+\hypertarget{section_8c}{}\label{section_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/section.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/section.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/fs.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{section_8c_afb1da43424543da15183d28612f5fce3}{Mm\+Create\+Section}} (\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} Section\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} struct \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t}{\+\_\+\+FILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}File\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{section_8c_a3a067893b5ed6b29fa0619a8901792b7}{Mm\+Map\+View\+Of\+Section}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Section\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}} Process, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}Entry\+Point\+Address, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}Base\+Address)
+\item 
+void \mbox{\hyperlink{section_8c_a3f894062f08e6619cc01283ae76e4f23}{Mmp\+Delete\+Section}} (void \texorpdfstring{$\ast$}{*}Object)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{section_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{section_8c_afb1da43424543da15183d28612f5fce3}\index{section.c@{section.c}!MmCreateSection@{MmCreateSection}}
+\index{MmCreateSection@{MmCreateSection}!section.c@{section.c}}
+\doxysubsubsection{\texorpdfstring{MmCreateSection()}{MmCreateSection()}}
+{\footnotesize\ttfamily \label{section_8c_afb1da43424543da15183d28612f5fce3} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mm\+Create\+Section (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{Section\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} struct \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t}{\+\_\+\+FILE\+\_\+\+OBJECT}} \texorpdfstring{$\ast$}{*}}]{File\+Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{section_8c_source_l00025}{25}} of file \mbox{\hyperlink{section_8c_source}{section.\+c}}.
+
+\Hypertarget{section_8c_a3a067893b5ed6b29fa0619a8901792b7}\index{section.c@{section.c}!MmMapViewOfSection@{MmMapViewOfSection}}
+\index{MmMapViewOfSection@{MmMapViewOfSection}!section.c@{section.c}}
+\doxysubsubsection{\texorpdfstring{MmMapViewOfSection()}{MmMapViewOfSection()}}
+{\footnotesize\ttfamily \label{section_8c_a3a067893b5ed6b29fa0619a8901792b7} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mm\+Map\+View\+Of\+Section (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Section\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}}]{Process}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{Entry\+Point\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{Base\+Address}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{section_8c_source_l00110}{110}} of file \mbox{\hyperlink{section_8c_source}{section.\+c}}.
+
+\Hypertarget{section_8c_a3f894062f08e6619cc01283ae76e4f23}\index{section.c@{section.c}!MmpDeleteSection@{MmpDeleteSection}}
+\index{MmpDeleteSection@{MmpDeleteSection}!section.c@{section.c}}
+\doxysubsubsection{\texorpdfstring{MmpDeleteSection()}{MmpDeleteSection()}}
+{\footnotesize\ttfamily \label{section_8c_a3f894062f08e6619cc01283ae76e4f23} 
+void Mmp\+Delete\+Section (\begin{DoxyParamCaption}\item[{void \texorpdfstring{$\ast$}{*}}]{Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{section_8c_source_l00198}{198}} of file \mbox{\hyperlink{section_8c_source}{section.\+c}}.
+

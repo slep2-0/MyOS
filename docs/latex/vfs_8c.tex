@@ -1,0 +1,207 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/filesystem/vfs/vfs.c File Reference}
+\hypertarget{vfs_8c}{}\label{vfs_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/vfs.c}}
+{\ttfamily \#include "{}../../includes/fs.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+{\ttfamily \#include "{}../../drivers/ahci/ahci.\+h"{}}\newline
+{\ttfamily \#include "{}../fat32/fat32.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/macros.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_m_o_u_n_t_e_d___f_s}{MOUNTED\+\_\+\+FS}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{vfs_8c_a066ba4cb5f7cb431eaf26a66e34a1b5d}{MAX\+\_\+\+MOUNTS}}~4
+\item 
+\#define \mbox{\hyperlink{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911}{MAIN\+\_\+\+FS\+\_\+\+DEVICE}}~0
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct MOUNTED\+\_\+\+FS \mbox{\hyperlink{vfs_8c_ac832aea006aea62c2d1c8c5e75a1b8ee}{MOUNTED\+\_\+\+FS}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_a491d9a7c9928c23736b71bc732d606c7}{Fs\+Initialize}} (void)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_a466e424d556a0a662d6c0beb0f3e4b86}{Fs\+Read\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Read)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_aac3a6cf6660acfe864f485811abdad92}{Fs\+Write\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Written)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_ab8d8224afc1c4aa017512bf0aa661d21}{Fs\+Delete\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} File\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_a7b539cbf98aa4cee994e8c6a9c22fb4f}{Fs\+List\+Directory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} char \texorpdfstring{$\ast$}{*}listings, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t max\+\_\+len)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_a1b5f35421e87d63d585b8cb85820c430}{Fs\+Create\+Directory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} Out\+Directory\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_ac5b8c0bafa031885851110c585806e44}{Fs\+Remove\+Directory\+Recursive}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}} Directory\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{vfs_8c_a5e0463f87cdbe0ddea92556533b64945}{Fs\+Create\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}} Desired\+Access, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} File\+Handle\+Out)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{ob_8h_a1090c1618ef4082635e12605b8832a46}{POBJECT\+\_\+\+TYPE}} \mbox{\hyperlink{vfs_8c_a2a10a29c3c62bbb8a2dc92a482e27d9b}{Fs\+File\+Type}} = NULL
+\item 
+\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\+\_\+\+DRIVER}} \mbox{\hyperlink{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}{fat32\+\_\+driver}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{vfs_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911}\index{vfs.c@{vfs.c}!MAIN\_FS\_DEVICE@{MAIN\_FS\_DEVICE}}
+\index{MAIN\_FS\_DEVICE@{MAIN\_FS\_DEVICE}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{MAIN\_FS\_DEVICE}{MAIN\_FS\_DEVICE}}
+{\footnotesize\ttfamily \label{vfs_8c_a3bf8891329d8ad3c011639fb80a5c911} 
+\#define MAIN\+\_\+\+FS\+\_\+\+DEVICE~0}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00024}{24}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a066ba4cb5f7cb431eaf26a66e34a1b5d}\index{vfs.c@{vfs.c}!MAX\_MOUNTS@{MAX\_MOUNTS}}
+\index{MAX\_MOUNTS@{MAX\_MOUNTS}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_MOUNTS}{MAX\_MOUNTS}}
+{\footnotesize\ttfamily \label{vfs_8c_a066ba4cb5f7cb431eaf26a66e34a1b5d} 
+\#define MAX\+\_\+\+MOUNTS~4}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00020}{20}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{vfs_8c_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{vfs_8c_ac832aea006aea62c2d1c8c5e75a1b8ee}\index{vfs.c@{vfs.c}!MOUNTED\_FS@{MOUNTED\_FS}}
+\index{MOUNTED\_FS@{MOUNTED\_FS}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{MOUNTED\_FS}{MOUNTED\_FS}}
+{\footnotesize\ttfamily \label{vfs_8c_ac832aea006aea62c2d1c8c5e75a1b8ee} 
+typedef struct MOUNTED\+\_\+\+FS MOUNTED\+\_\+\+FS}
+
+
+
+\label{doc-func-members}
+\Hypertarget{vfs_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{vfs_8c_a1b5f35421e87d63d585b8cb85820c430}\index{vfs.c@{vfs.c}!FsCreateDirectory@{FsCreateDirectory}}
+\index{FsCreateDirectory@{FsCreateDirectory}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsCreateDirectory()}{FsCreateDirectory()}}
+{\footnotesize\ttfamily \label{vfs_8c_a1b5f35421e87d63d585b8cb85820c430} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Create\+Directory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{Out\+Directory\+Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00171}{171}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a5e0463f87cdbe0ddea92556533b64945}\index{vfs.c@{vfs.c}!FsCreateFile@{FsCreateFile}}
+\index{FsCreateFile@{FsCreateFile}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsCreateFile()}{FsCreateFile()}}
+{\footnotesize\ttfamily \label{vfs_8c_a5e0463f87cdbe0ddea92556533b64945} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Create\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}}}]{Desired\+Access}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{File\+Handle\+Out}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00204}{204}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_ab8d8224afc1c4aa017512bf0aa661d21}\index{vfs.c@{vfs.c}!FsDeleteFile@{FsDeleteFile}}
+\index{FsDeleteFile@{FsDeleteFile}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsDeleteFile()}{FsDeleteFile()}}
+{\footnotesize\ttfamily \label{vfs_8c_ab8d8224afc1c4aa017512bf0aa661d21} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Delete\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}}}]{File\+Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00147}{147}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a491d9a7c9928c23736b71bc732d606c7}\index{vfs.c@{vfs.c}!FsInitialize@{FsInitialize}}
+\index{FsInitialize@{FsInitialize}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsInitialize()}{FsInitialize()}}
+{\footnotesize\ttfamily \label{vfs_8c_a491d9a7c9928c23736b71bc732d606c7} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Initialize (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00081}{81}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a7b539cbf98aa4cee994e8c6a9c22fb4f}\index{vfs.c@{vfs.c}!FsListDirectory@{FsListDirectory}}
+\index{FsListDirectory@{FsListDirectory}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsListDirectory()}{FsListDirectory()}}
+{\footnotesize\ttfamily \label{vfs_8c_a7b539cbf98aa4cee994e8c6a9c22fb4f} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+List\+Directory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}}}]{Directory\+Object}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} char \texorpdfstring{$\ast$}{*}}]{listings}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{max\+\_\+len}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00158}{158}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a466e424d556a0a662d6c0beb0f3e4b86}\index{vfs.c@{vfs.c}!FsReadFile@{FsReadFile}}
+\index{FsReadFile@{FsReadFile}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsReadFile()}{FsReadFile()}}
+{\footnotesize\ttfamily \label{vfs_8c_a466e424d556a0a662d6c0beb0f3e4b86} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Read\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}}}]{File\+Object}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{File\+Offset}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}}]{Buffer}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Buffer\+Size}{, }\item[{\mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}}]{Bytes\+Read}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00117}{117}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_ac5b8c0bafa031885851110c585806e44}\index{vfs.c@{vfs.c}!FsRemoveDirectoryRecursive@{FsRemoveDirectoryRecursive}}
+\index{FsRemoveDirectoryRecursive@{FsRemoveDirectoryRecursive}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsRemoveDirectoryRecursive()}{FsRemoveDirectoryRecursive()}}
+{\footnotesize\ttfamily \label{vfs_8c_ac5b8c0bafa031885851110c585806e44} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Remove\+Directory\+Recursive (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}}}]{Directory\+Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00193}{193}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_aac3a6cf6660acfe864f485811abdad92}\index{vfs.c@{vfs.c}!FsWriteFile@{FsWriteFile}}
+\index{FsWriteFile@{FsWriteFile}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsWriteFile()}{FsWriteFile()}}
+{\footnotesize\ttfamily \label{vfs_8c_aac3a6cf6660acfe864f485811abdad92} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Fs\+Write\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\+\_\+\+OBJECT}}}]{File\+Object}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{File\+Offset}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Buffer}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Buffer\+Size}{, }\item[{\mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}}]{Bytes\+Written}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00132}{132}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{vfs_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{vfs_8c_abcdd2684200c5085b9321f7f004a38e3}\index{vfs.c@{vfs.c}!fat32\_driver@{fat32\_driver}}
+\index{fat32\_driver@{fat32\_driver}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{fat32\_driver}{fat32\_driver}}
+{\footnotesize\ttfamily \label{vfs_8c_abcdd2684200c5085b9321f7f004a38e3} 
+\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\+\_\+\+DRIVER}} fat32\+\_\+driver}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{}
+\DoxyCodeLine{\ \ \ \ .init\ =\ fat32\_fs\_init,}
+\DoxyCodeLine{\ \ \ \ .ReadFile\ =\ \mbox{\hyperlink{fat32_8c_a8106339705a284783b1d03fc8ddac410}{fat32\_read\_file}},}
+\DoxyCodeLine{\ \ \ \ .WriteFile\ =\ \mbox{\hyperlink{fat32_8c_aa2142d4aa71e0caeaf37561623ca7f89}{fat32\_write\_file}},}
+\DoxyCodeLine{\ \ \ \ .CreateFile\ =\ \mbox{\hyperlink{fat32_8c_a29aee6bc2f7e9d2717373aba650393e7}{fat32\_create\_file}},}
+\DoxyCodeLine{\ \ \ \ .DeleteObjectProcedure\ =\ \mbox{\hyperlink{fat32_8c_ac6b4c0e8dfaec41380abbc4a649e32c3}{fat32\_deletion\_routine}},}
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00058}{58}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+
+\Hypertarget{vfs_8c_a2a10a29c3c62bbb8a2dc92a482e27d9b}\index{vfs.c@{vfs.c}!FsFileType@{FsFileType}}
+\index{FsFileType@{FsFileType}!vfs.c@{vfs.c}}
+\doxysubsubsection{\texorpdfstring{FsFileType}{FsFileType}}
+{\footnotesize\ttfamily \label{vfs_8c_a2a10a29c3c62bbb8a2dc92a482e27d9b} 
+\mbox{\hyperlink{ob_8h_a1090c1618ef4082635e12605b8832a46}{POBJECT\+\_\+\+TYPE}} Fs\+File\+Type = NULL}
+
+
+
+Definition at line \mbox{\hyperlink{vfs_8c_source_l00026}{26}} of file \mbox{\hyperlink{vfs_8c_source}{vfs.\+c}}.
+

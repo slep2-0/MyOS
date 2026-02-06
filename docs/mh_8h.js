@@ -18,7 +18,6 @@ var mh_8h =
     [ "AP_TRAMP_PHYS", "mh_8h.html#afd86178cd02478d2d6c015b87c636471", null ],
     [ "AP_TRAMP_PML4_OFFSET", "mh_8h.html#a2d4c9e06f4b860dfbe52483ee9934dd3", null ],
     [ "AP_TRAMP_SIZE", "mh_8h.html#abe314999bbb14f3989ee748b4648fe81", null ],
-    [ "CALC_VECTOR", "mh_8h.html#a524a0fcb77b1dc91c39b4a95a3e1b4fe", null ],
     [ "CPUID_VENDOR_AMD", "mh_8h.html#ad0ae9d4658eb6c019efbb66384005dab", null ],
     [ "CPUID_VENDOR_AMD_OLD", "mh_8h.html#a2a410c2c23e57b58d3bc00c0e78f6b77", null ],
     [ "CPUID_VENDOR_AO486", "mh_8h.html#ae6138d3bdeb94d4499217904767c57e5", null ],
@@ -53,15 +52,16 @@ var mh_8h =
     [ "IST_ALIGNMENT", "mh_8h.html#aa35dfa5ea9b7af2a2791bf5f2fe44f03", null ],
     [ "IST_SIZE", "mh_8h.html#ab0ff8a4220fff635d59b9ac59520efa5", null ],
     [ "LAPIC_ID", "mh_8h.html#acbec2fe1d70a92043a18d7b265ca5837", null ],
-    [ "LAPIC_TIMER_VECTOR", "mh_8h.html#abbc754a70b46c3db86e8013dbbe8a5f6", null ],
     [ "MAX_CPUS", "mh_8h.html#a87cbc7cff225b4ad63d67d47c21f933f", null ],
     [ "SMP_MAGIC", "mh_8h.html#a92f49aaeeb06bbcc91eae1ca42b3ff78", null ],
     [ "TPR_APC", "mh_8h.html#a73d9e5b85ebab8e2f58f4130a39ef813", null ],
+    [ "TPR_CLOCK", "mh_8h.html#ab3ce8928e7a131be52d143114dc6daed", null ],
     [ "TPR_DPC", "mh_8h.html#ade282b1992ed3a94c3709dff53bb479e", null ],
+    [ "TPR_HIGH", "mh_8h.html#a1a18f2752f98407819667f4465d40a27", null ],
     [ "TPR_IPI", "mh_8h.html#a8b4b91e9b1a79f9244951683044c941e", null ],
     [ "TPR_PASSIVE", "mh_8h.html#adf055ef85f2ec5de15babebf0d76959e", null ],
-    [ "TPR_PROFILE", "mh_8h.html#a85f06393ed23aeedc830f1251c9c6ffb", null ],
     [ "VECTOR_APC", "mh_8h.html#ac906ecc46d8ec7bff1a926611d4a7499", null ],
+    [ "VECTOR_CLOCK", "mh_8h.html#a804baf8ec58ccd648f1a8acbd4b0cdc8", null ],
     [ "VECTOR_DPC", "mh_8h.html#aa6389ca3cc6d1d118e8916b7df10af6e", null ],
     [ "VECTOR_IPI", "mh_8h.html#aa4698327d4b2a5ddf6533de46d57c49e", null ],
     [ "CPU_ACTION", "mh_8h.html#af395e1ff60d51c8a8c94e709c9e82d99", null ],
@@ -108,7 +108,6 @@ var mh_8h =
       [ "TIMER_INTERRUPT", "mh_8h.html#ab824659c51a6e5646465e02d7e50705faca22c345d67f3efd687f1866504a0bfa", null ],
       [ "KEYBOARD_INTERRUPT", "mh_8h.html#ab824659c51a6e5646465e02d7e50705fa2e43c0d2a9868a0b1734e2c4dbfddaff", null ],
       [ "ATA_INTERRUPT", "mh_8h.html#ab824659c51a6e5646465e02d7e50705fa7b0d7bf4b6fc181a992ed90d929a8121", null ],
-      [ "LAPIC_INTERRUPT", "mh_8h.html#ab824659c51a6e5646465e02d7e50705faf382444ac68b3772041ec70af01a46bf", null ],
       [ "LAPIC_SIV_INTERRUPT", "mh_8h.html#ab824659c51a6e5646465e02d7e50705fa69438209e687b8cdc26f5c31aa2e2e41", null ]
     ] ],
     [ "MADT_TYPES", "mh_8h.html#a7dc384ee08893cee570d363e5c72e530", [
@@ -117,6 +116,9 @@ var mh_8h =
       [ "MADT_INTERUPT_SOURCE_OVERRIDE", "mh_8h.html#a7dc384ee08893cee570d363e5c72e530a50224664f097b8f4af935e63192bc1d4", null ],
       [ "MADT_NON_MASKABLE_INTERRUPT", "mh_8h.html#a7dc384ee08893cee570d363e5c72e530afd6a46868f44aef70dd5f4d44d11c80b", null ],
       [ "MADT_X2APIC", "mh_8h.html#a7dc384ee08893cee570d363e5c72e530ae1b0dc48a33d003c2eb6cc9389f0b82a", null ]
+    ] ],
+    [ "MSRs", "mh_8h.html#a0a1b2c46c1424eb03b3270bd4befcb03", [
+      [ "MSR_EFER", "mh_8h.html#a0a1b2c46c1424eb03b3270bd4befcb03aea7bb78183d473a07ffdf11d8b8818bf", null ]
     ] ],
     [ "__attribute__", "mh_8h.html#ad6bff1bfa4dbdca70cd12be5cb0492b9", null ],
     [ "APMain", "mh_8h.html#a2049adf962aa0a1fc2190ca06bc39efa", null ],

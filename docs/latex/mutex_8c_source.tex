@@ -1,0 +1,185 @@
+\doxysection{mutex.\+c}
+\hypertarget{mutex_8c_source}{}\label{mutex_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/mutex.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/mutex.c}}
+\mbox{\hyperlink{mutex_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ GPLv3}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Mutex\ Implementation.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00006}00006\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00007}00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00008}00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00009}00009\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00010}00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00012}00012\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00013}\mbox{\hyperlink{mutex_8c_a8ad3f7c22a372c800bef23af15a68356}{00013}}\ \mbox{\hyperlink{mutex_8c_a8ad3f7c22a372c800bef23af15a68356}{MsInitializeMutexObject}}\ (}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00014}00014\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}\ mut}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00015}00015\ )\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00016}00016\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00017}00017\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00018}00018\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00019}00019\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ }}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00020}00020\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00021}00021\ \textcolor{comment}{\ \ \ \ \ \ \ \ Initializes\ a\ MUTEX\ object,\ the\ MUTEX\ must\ be\ in\ resident\ memory.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00022}00022\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00023}00023\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00024}00024\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00025}00025\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ MUTEX\ object.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00026}00026\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00027}00027\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00028}00028\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00029}00029\ \textcolor{comment}{\ \ \ \ \ \ \ \ Various\ MTSTATUS\ Codes.\ }}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00030}00030\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00031}00031\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00033}00033\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00035}00035\ \ \ \ \ \textcolor{comment}{//\ Start\ of\ function}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00036}00036\ \ \ \ \ \textcolor{keywordflow}{if}\ (!mut)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00037}00037\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00038}00038\ \ \ \ \ \textcolor{keywordtype}{bool}\ isValid\ =\ \mbox{\hyperlink{map_8c_ab2c1d72decad25f1eba4f9d1fbb9089a}{MmIsAddressPresent}}((uintptr\_t)mut);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00039}00039\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((isValid)\ ==\ 1,\ \textcolor{stringliteral}{"{}MUTEX\ Pointer\ given\ to\ function\ isn't\ paged\ in."{}});}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00040}00040\ \ \ \ \ \textcolor{keywordflow}{if}\ (!isValid)\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00041}00041\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00042}00042\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00043}00043\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00044}00044\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldirql;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00045}00045\ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&mut-\/>lock,\ \&oldirql);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00046}00046\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00047}00047\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((mut-\/>ownerTid)\ ==\ 0,\ \textcolor{stringliteral}{"{}Mutex\ must\ not\ be\ owned\ already\ in\ initialization."{}});}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00048}00048\ \ \ \ \ \textcolor{keywordflow}{if}\ (mut-\/>ownerTid)\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ oldirql);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3df925a7b46542f58c8ea285919feb0c}{MT\_MUTEX\_ALREADY\_OWNED}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00051}00051\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00052}00052\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00053}00053\ \ \ \ \ mut-\/>ownerTid\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00054}00054\ \ \ \ \ mut-\/>locked\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00055}00055\ \ \ \ \ mut-\/>ownerThread\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00057}00057\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ event\ state\ (event-\/>lock\ is\ separate\ and\ must\ be\ preallocated)}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00058}00058\ \ \ \ \ \textcolor{comment}{//\ Initialize\ waiting\ queue\ under\ event\ lock\ for\ safety}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00059}00059\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ eflags;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00061}00061\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&mut-\/>SynchEvent.lock,\ \&eflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ mut-\/>SynchEvent.type\ =\ \mbox{\hyperlink{ms_8h_a4fd8d54f196d53e4f9494e1874200d9ca8861427ef720dbbb2dd458be833e390d}{SynchronizationEvent}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ mut-\/>SynchEvent.signaled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00064}00064\ \ \ \ \ \ \ \ \ mut-\/>SynchEvent.waitingQueue.head\ =\ mut-\/>SynchEvent.waitingQueue.tail\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>SynchEvent.lock,\ eflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00066}00066\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00067}00067\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00068}00068\ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ oldirql);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00069}00069\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00070}00070\ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00072}00072\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00073}\mbox{\hyperlink{mutex_8c_abf498741edb94310cef6584f57fc025e}{00073}}\ \mbox{\hyperlink{mutex_8c_abf498741edb94310cef6584f57fc025e}{MsAcquireMutexObject}}\ (}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}\ mut}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00075}00075\ )\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00076}00076\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00077}00077\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00078}00078\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00079}00079\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Acquires\ a\ MUTEX\ for\ the\ current\ thread.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00080}00080\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00081}00081\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00082}00082\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00083}00083\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ MUTEX\ object.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00084}00084\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00085}00085\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00086}00086\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00087}00087\ \textcolor{comment}{\ \ \ \ \ \ \ \ MTSTATUS\ Code.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00088}00088\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00089}00089\ \textcolor{comment}{\ \ \ \ Note:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00090}00090\ \textcolor{comment}{\ \ \ \ \ \ \ \ }}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00091}00091\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ MUST\ NOT\ be\ called\ when\ IRQL\ is\ equal\ or\ higher\ than\ DISPATCH\_LEVEL.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00092}00092\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00093}00093\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00094}00094\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00095}00095\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00096}00096\ \ \ \ \ \textcolor{comment}{//\ Check\ parameter.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00097}00097\ \ \ \ \ \textcolor{keywordflow}{if}\ (!mut)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00098}00098\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ address\ is\ currently\ non\ pageable\ in\ memory.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00099}00099\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{map_8c_ab2c1d72decad25f1eba4f9d1fbb9089a}{MmIsAddressPresent}}((uintptr\_t)mut))\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00101}00101\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00102}00102\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00103}00103\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ mflags;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00104}00104\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((\mbox{\hyperlink{me_8h_a6abf254a525b635b6dc210cd370536d1}{MeGetCurrentIrql}}()\ <\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}}),\ \textcolor{stringliteral}{"{}Blocking\ code\ called\ at\ DISPATCH\_LEVEL\ or\ higher\ IRQL."{}});}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00105}00105\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&mut-\/>lock,\ \&mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ currThread\ =\ \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}();}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00109}00109\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!mut-\/>locked)\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \ \ \ \ mut-\/>locked\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \ \ \ \ mut-\/>ownerTid\ =\ currThread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00113}00113\ \ \ \ \ \ \ \ \ \ \ \ \ mut-\/>ownerThread\ =\ currThread;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00115}00115\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}[MUTEX-\/DEBUG]\ Mutex\ successfully\ acquired\ by:\ \%p.\ MUT:\ \%p\(\backslash\)n"{}},\ currThread,\ mut);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00117}00117\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00120}00120\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ mutex\ is\ locked\ -\/>\ enqueue/wait\ */}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00122}00122\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}[MUTEX-\/DEBUG]\ Mutex\ busy,\ enqueuing:\ MUT:\ \%p\(\backslash\)n"{}},\ mut);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00124}00124\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Enqueue\ under\ the\ event\ lock\ inside\ MsWaitForEvent;\ release\ mut-\/>lock\ first\ */}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00127}00127\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{events_8c_a254e9c853c7dd615f3cdb9e97e91f233}{MsWaitForEvent}}(\&mut-\/>SynchEvent);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00129}00129\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ When\ MsWaitForEvent\ returns\ we\ loop\ and\ try\ again\ atomically\ */}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00131}00131\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00132}00132\ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00133}00133\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00134}00134\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00135}\mbox{\hyperlink{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734}{00135}}\ \mbox{\hyperlink{mutex_8c_a4824b7bb4bb14189cf70c9c8ef546734}{MsReleaseMutexObject}}\ (}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00136}00136\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{ms_8h_a37a5c9196b8f6b571254ec5543618b8e}{PMUTEX}}\ mut}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00137}00137\ )\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00138}00138\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00139}00139\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00140}00140\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00141}00141\ \textcolor{comment}{\ \ \ \ Routine\ description\ :\ Releases\ a\ MUTEX\ object,\ wakes\ all\ threads\ waiting\ on\ it\ (nonblocking).}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00142}00142\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00143}00143\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00144}00144\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00145}00145\ \textcolor{comment}{\ \ \ \ \ \ \ \ Pointer\ to\ MUTEX\ object.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00146}00146\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00147}00147\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00148}00148\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00149}00149\ \textcolor{comment}{\ \ \ \ \ \ \ \ MTSTATUS\ Code.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00150}00150\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00151}00151\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00152}00152\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00153}00153\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00154}00154\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00155}00155\ \ \ \ \ \textcolor{comment}{//\ Start\ of\ function}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00156}00156\ \ \ \ \ \textcolor{keywordflow}{if}\ (!mut)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a4bba88197d1ce048dc3d8755222b7373}{MT\_INVALID\_ADDRESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00157}00157\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00158}00158\ \ \ \ \ \textcolor{comment}{//\ FOLLOW\ LOCK\ ORDER:\ acquire\ mut-\/>lock\ then\ event-\/>lock}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00159}00159\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ mflags;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00160}00160\ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&mut-\/>lock,\ \&mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00161}00161\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00162}00162\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((mut-\/>ownerTid)\ !=\ 0,\ \textcolor{stringliteral}{"{}Attempted\ release\ of\ mutex\ when\ it\ has\ no\ owner."{}});}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00163}00163\ \ \ \ \ \textcolor{keywordflow}{if}\ (!mut-\/>ownerTid)\ \{}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a5016c4db772945f5edac9d50784d7153}{MT\_MUTEX\_NOT\_OWNED}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00166}00166\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00167}00167\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00168}00168\ \ \ \ \ \textcolor{comment}{//\ Clear\ ownership\ while\ still\ holding\ the\ spinlock}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00169}00169\ \ \ \ \ mut-\/>ownerTid\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00170}00170\ \ \ \ \ mut-\/>locked\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00171}00171\ \ \ \ \ mut-\/>ownerThread\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00172}00172\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00173}00173\ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&mut-\/>lock,\ mflags);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00174}00174\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00175}00175\ \ \ \ \ \textcolor{comment}{//\ Wake\ the\ selected\ thread\ by\ setting\ an\ event.}}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00176}00176\ \ \ \ \ \mbox{\hyperlink{events_8c_a94fb2b29c7dc6c3f542b1ed3cafc3270}{MsSetEvent}}(\&mut-\/>SynchEvent);}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00177}00177\ }
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00178}00178\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{mutex_8c_source_l00179}00179\ \}}
+
+\end{DoxyCode}

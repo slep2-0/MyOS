@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/kernel.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -105,7 +104,6 @@ $(function(){initNavTree('kernel_8h.html','',''); });
 <code>#include &quot;<a class="el" href="ahci_8h_source.html">drivers/ahci/ahci.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="gop_8h_source.html">drivers/gop/gop.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="time_8h_source.html">time.h</a>&quot;</code><br />
-<code>#include &quot;<a class="el" href="vfs_8h_source.html">filesystem/vfs/vfs.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="behavior_8h_source.html">includes/behavior.h</a>&quot;</code><br />
 </div>
 <p><a href="kernel_8h_source.html">Go to the source code of this file.</a></p>
@@ -113,8 +111,7 @@ $(function(){initNavTree('kernel_8h.html','',''); });
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:a7b1a47a94be3cc9455621cecad58b168" id="r_a7b1a47a94be3cc9455621cecad58b168"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7b1a47a94be3cc9455621cecad58b168">UNREFERENCED_PARAMETER</a>(x)</td></tr>
-<tr class="memdesc:a7b1a47a94be3cc9455621cecad58b168"><td class="mdescLeft">&#160;</td><td class="mdescRight">#define CAUSE_BUGCHECK  <br /></td></tr>
-<tr class="memitem:a29f75e67ea1a76410256bf17f8226e05" id="r_a29f75e67ea1a76410256bf17f8226e05"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a29f75e67ea1a76410256bf17f8226e05">gop_printf_forced</a>(color,  fmt, ...)</td></tr>
+<tr class="memitem:a29f75e67ea1a76410256bf17f8226e05" id="r_a29f75e67ea1a76410256bf17f8226e05"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a29f75e67ea1a76410256bf17f8226e05">gop_printf_forced</a>(color,  <a class="el" href="mg_8h.html#adf68afc8085d4aeb4c638870f9bae8a4">fmt</a>, ...)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -144,7 +141,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"></td>          <td class="paramname"><span class="paramname"><em>fmt</em></span>, </td>
+          <td class="paramtype"></td>          <td class="paramname"><span class="paramname"><em><a class="el" href="mg_8h.html#adf68afc8085d4aeb4c638870f9bae8a4">fmt</a></em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -153,10 +150,11 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line"><a class="code hl_function" href="gop_8c.html#a41ff1165c1969706dadb5b409ae082e9">gop_printf</a>(color, fmt, ##__VA_ARGS__)</div>
-<div class="ttc" id="agop_8c_html_a41ff1165c1969706dadb5b409ae082e9"><div class="ttname"><a href="gop_8c.html#a41ff1165c1969706dadb5b409ae082e9">gop_printf</a></div><div class="ttdeci">void gop_printf(uint32_t color, const char *fmt,...)</div><div class="ttdef"><b>Definition</b> <a href="gop_8c_source.html#l00694">gop.c:694</a></div></div>
+<b>Value:</b><div class="fragment"><div class="line"><a class="code hl_function" href="gop_8c.html#a41ff1165c1969706dadb5b409ae082e9">gop_printf</a>(color, <a class="code hl_variable" href="mg_8h.html#adf68afc8085d4aeb4c638870f9bae8a4">fmt</a>, ##__VA_ARGS__)</div>
+<div class="ttc" id="agop_8c_html_a41ff1165c1969706dadb5b409ae082e9"><div class="ttname"><a href="gop_8c.html#a41ff1165c1969706dadb5b409ae082e9">gop_printf</a></div><div class="ttdeci">void gop_printf(uint32_t color, const char *fmt,...)</div><div class="ttdef"><b>Definition</b> <a href="gop_8c_source.html#l00633">gop.c:633</a></div></div>
+<div class="ttc" id="amg_8h_html_adf68afc8085d4aeb4c638870f9bae8a4"><div class="ttname"><a href="mg_8h.html#adf68afc8085d4aeb4c638870f9bae8a4">fmt</a></div><div class="ttdeci">void const char * fmt</div><div class="ttdef"><b>Definition</b> <a href="mg_8h_source.html#l00069">mg.h:69</a></div></div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="kernel_8h_source.html#l00058">58</a> of file <a class="el" href="kernel_8h_source.html">kernel.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="kernel_8h_source.html#l00049">49</a> of file <a class="el" href="kernel_8h_source.html">kernel.h</a>.</p>
 
 </div>
 </div>
@@ -176,10 +174,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">(void)(x)</div>
 </div><!-- fragment -->
-<p>#define CAUSE_BUGCHECK </p>
-<p>#define REMINDER </p>
-
-<p class="definition">Definition at line <a class="el" href="kernel_8h_source.html#l00037">37</a> of file <a class="el" href="kernel_8h_source.html">kernel.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="kernel_8h_source.html#l00029">29</a> of file <a class="el" href="kernel_8h_source.html">kernel.h</a>.</p>
 
 </div>
 </div>
@@ -200,7 +195,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <p>Remember that paging is on when this is called, as UEFI turned it on. </p>
 
-<p class="definition">Definition at line <a class="el" href="kernel_8c_source.html#l00180">180</a> of file <a class="el" href="kernel_8c_source.html">kernel.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="kernel_8c_source.html#l00186">186</a> of file <a class="el" href="kernel_8c_source.html">kernel.c</a>.</p>
 
 </div>
 </div>

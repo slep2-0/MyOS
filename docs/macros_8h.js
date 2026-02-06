@@ -8,6 +8,7 @@ var macros_8h =
     [ "LK_KERNEL_SIZE", "macros_8h.html#a0dc31ee61f6ffb98c2b5c7e350ccf8bb", null ],
     [ "LK_KERNEL_START", "macros_8h.html#ad351cb3db8e29f239a36eeee2c0819f3", null ],
     [ "MAX", "macros_8h.html#afa99ec4acc4ecb2dc3c2d05da15d0e3f", null ],
+    [ "MIN", "macros_8h.html#a3acffbd305ee72dcd4593c0d8af64a4f", null ],
     [ "RETADDR", "macros_8h.html#ac404dd901aac7a34d882f63dfdfd0095", null ],
     [ "SIZE_T_MAX", "macros_8h.html#acfa3af56d5e0045c1d7a5682fd1d2853", null ],
     [ "UINT64_T_MAX", "macros_8h.html#ae67fce0de32a6e75b649711af83a0d6e", null ],

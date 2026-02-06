@@ -1,0 +1,161 @@
+\doxysection{instruction.\+c}
+\hypertarget{instruction_8c_source}{}\label{instruction_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/exp/instruction.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/exp/instruction.c}}
+\mbox{\hyperlink{instruction_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{exception_8h}{../../includes/exception.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00002}00002\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00003}00003\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00004}\mbox{\hyperlink{instruction_8c_a7417917e35bc105788b32e7505bd169b}{00004}}\ \mbox{\hyperlink{instruction_8c_a7417917e35bc105788b32e7505bd169b}{ExpIsPrivilegedInstruction}}(uint8\_t*\ Ip\ \textcolor{comment}{/*,\ bool\ Wow64*/})}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00005}00005\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00006}00006\ \textcolor{comment}{//\ Desc:\ This\ will\ check\ if\ the\ instruction\ ran\ in\ the\ instruction\ pointer\ from\ user\ mode\ (or\ from\ anywhere\ really)}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00007}00007\ \textcolor{comment}{//\ Is\ a\ privileged\ instruction\ or\ not\ (meaning,\ it\ could\ only\ be\ executed\ in\ KernelMode\ (CPL\ ==\ 0)}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00009}00009\ \textcolor{comment}{//\ This\ is\ taken\ DIRECTLY\ from\ ReactOS,\ why?\ Because\ I\ dont\ really\ want\ to\ make\ my\ own\ parser\ right\ now.}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00010}00010\ \textcolor{comment}{//\ And\ they\ are\ already\ brilliant\ people\ so\ I\ trust\ them}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00011}00011\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00012}00012\ \textcolor{comment}{//\ Link\ to\ code:\ https://github.com/reactos/reactos/blob/5047e62e3dde76635a46516b289968b951348f74/ntoskrnl/ke/amd64/except.c\#L446}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00013}00013\ \textcolor{comment}{//\ Thanks\ Timo\ Kreuzer\ and\ Alex\ Ionescu}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00014}00014\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00015}00015\ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00016}00016\ \ \ \ \ uint32\_t\ i;}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00018}00018\ \ \ \ \ \textcolor{comment}{/*\ Handle\ prefixes\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00019}00019\ \ \ \ \ \textcolor{keywordflow}{for}\ (i\ =\ 0;\ i\ <\ 15;\ i++)}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00020}00020\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00021}00021\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00022}00022\ \textcolor{comment}{\ \ \ \ \ \ \ \ if\ (!Wow64)}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00023}00023\ \textcolor{comment}{\ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00024}00024\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\{}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00025}00025\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Check\ for\ REX\ prefix\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00026}00026\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((Ip[0]\ >=\ 0x40)\ \&\&\ (Ip[0]\ <=\ 0x4F))}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00027}00027\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00028}00028\ \ \ \ \ \ \ \ \ \ \ \ \ Ip++;}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00031}00031\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\}}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00033}00033\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (Ip[0])}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00034}00034\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00035}00035\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Check\ prefixes\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00036}00036\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x26:\ \textcolor{comment}{//\ ES}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00037}00037\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x2E:\ \textcolor{comment}{//\ CS\ /\ null}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x36:\ \textcolor{comment}{//\ SS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00039}00039\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x3E:\ \textcolor{comment}{//\ DS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00040}00040\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x64:\ \textcolor{comment}{//\ FS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00041}00041\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x65:\ \textcolor{comment}{//\ GS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00042}00042\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x66:\ \textcolor{comment}{//\ OP}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x67:\ \textcolor{comment}{//\ ADDR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00044}00044\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xF0:\ \textcolor{comment}{//\ LOCK}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xF2:\ \textcolor{comment}{//\ REP}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xF3:\ \textcolor{comment}{//\ REP\ INS/OUTS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \ \ \ \ Ip++;}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00049}00049\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00050}00050\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00051}00051\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00052}00052\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00053}00053\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00054}00054\ \ \ \ \ \textcolor{keywordflow}{if}\ (i\ ==\ 15)}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00055}00055\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Too\ many\ prefixes.\ Should\ only\ happen,\ when\ the\ code\ was\ concurrently\ modified.\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00058}00058\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00060}00060\ \ \ \ \ \textcolor{keywordflow}{switch}\ (Ip[0])}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00061}00061\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00062}00062\ \ \ \ \ \textcolor{keywordflow}{case}\ 0xF4:\ \textcolor{comment}{//\ HLT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00063}00063\ \ \ \ \ \textcolor{keywordflow}{case}\ 0xFA:\ \textcolor{comment}{//\ CLI}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00064}00064\ \ \ \ \ \textcolor{keywordflow}{case}\ 0xFB:\ \textcolor{comment}{//\ STI}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00067}00067\ \ \ \ \ \textcolor{keywordflow}{case}\ 0x0F:}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00068}00068\ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (Ip[1])}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00070}00070\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x06:\ \textcolor{comment}{//\ CLTS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x07:\ \textcolor{comment}{//\ SYSRET}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00073}00073\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x08:\ \textcolor{comment}{//\ INVD}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00074}00074\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x09:\ \textcolor{comment}{//\ WBINVD}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x20:\ \textcolor{comment}{//\ MOV\ CR,\ XXX}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00076}00076\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x21:\ \textcolor{comment}{//\ MOV\ DR,\ XXX}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00077}00077\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x22:\ \textcolor{comment}{//\ MOV\ XXX,\ CR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x23:\ \textcolor{comment}{//\ MOV\ YYY,\ DR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00079}00079\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x30:\ \textcolor{comment}{//\ WRMSR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00080}00080\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x32:\ \textcolor{comment}{//\ RDMSR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00081}00081\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x33:\ \textcolor{comment}{//\ RDPMC}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00082}00082\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x35:\ \textcolor{comment}{//\ SYSEXIT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00083}00083\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x78:\ \textcolor{comment}{//\ VMREAD}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00084}00084\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x79:\ \textcolor{comment}{//\ VMWRITE}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00085}00085\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x00:}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00088}00088\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00089}00089\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Check\ MODRM\ Reg\ field\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ ((Ip[2]\ >>\ 3)\ \&\ 0x7)}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00091}00091\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00092}00092\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \textcolor{comment}{//\ LLDT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \textcolor{comment}{//\ LTR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00098}00098\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x01:}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00100}00100\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00101}00101\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (Ip[2])}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00102}00102\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00103}00103\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC1:\ \textcolor{comment}{//\ VMCALL}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00104}00104\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC2:\ \textcolor{comment}{//\ VMLAUNCH}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC3:\ \textcolor{comment}{//\ VMRESUME}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00106}00106\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC4:\ \textcolor{comment}{//\ VMXOFF}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC8:\ \textcolor{comment}{//\ MONITOR}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC9:\ \textcolor{comment}{//\ MWAIT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00109}00109\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xD1:\ \textcolor{comment}{//\ XSETBV}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xF8:\ \textcolor{comment}{//\ SWAPGS}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00113}00113\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Check\ MODRM\ Reg\ field\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00115}00115\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ ((Ip[2]\ >>\ 3)\ \&\ 0x7)}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \textcolor{comment}{//\ LGDT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \textcolor{comment}{//\ LIDT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 6:\ \textcolor{comment}{//\ LMSW}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \textcolor{comment}{//\ INVLPG\ /\ SWAPGS\ /\ RDTSCP}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00125}00125\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x38:}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (Ip[2])}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x80:\ \textcolor{comment}{//\ INVEPT}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00131}00131\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x81:\ \textcolor{comment}{//\ INVVPID}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00132}00132\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00133}00133\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00135}00135\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00136}00136\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00137}00137\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0xC7:}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Check\ MODRM\ Reg\ field\ */}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00140}00140\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ ((Ip[2]\ >>\ 3)\ \&\ 0x7)}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x06:\ \textcolor{comment}{//\ VMPTRLD,\ VMCLEAR,\ VMXON}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00143}00143\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0x07:\ \textcolor{comment}{//\ VMPTRST}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00146}00146\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00149}00149\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00151}00151\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00152}00152\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00154}00154\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{instruction_8c_source_l00155}00155\ \}}
+
+\end{DoxyCode}

@@ -2,6 +2,7 @@ var gop_8c =
 [
     [ "FONT8X16_IMPLEMENTATION", "gop_8c.html#adbf6d7737915bd8927ff186c1bfba2ac", null ],
     [ "FONT_SCALE", "gop_8c.html#a3943979133de3f5a323227e4b3afcbfb", null ],
+    [ "NUM_BUFFER_SIZE", "gop_8c.html#a8870fbad2bc2aa40805985bfa7629b7e", null ],
     [ "gop_clear_screen", "gop_8c.html#a99f29e094035e6b5420d63874004ed9f", null ],
     [ "gop_printf", "gop_8c.html#a41ff1165c1969706dadb5b409ae082e9", null ],
     [ "ksnprintf", "gop_8c.html#a4c58494b90fd7bfbc33a84178e327b88", null ],

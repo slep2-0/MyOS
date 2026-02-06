@@ -1,5 +1,6 @@
 var map_8c =
 [
+    [ "MiAtomicSetTransitionPte", "map_8c.html#ae35d901766d986f00926243d7f0cff27", null ],
     [ "MiGetPdePointer", "map_8c.html#aac08743a17b8efc9e374ff5a4f577f51", null ],
     [ "MiGetPdptePointer", "map_8c.html#a826ab4b40df93f18cec0248e95d3f813", null ],
     [ "MiGetPml4ePointer", "map_8c.html#ab6a386341ec15bdefb039df9f137591a", null ],
@@ -7,7 +8,7 @@ var map_8c =
     [ "MiInvalidateTlbForVa", "map_8c.html#ae2b6d4075b0e93f28cd8adc57b890ce0", null ],
     [ "MiReloadTLBs", "map_8c.html#a4087336eeffc465259da0318319c9c74", null ],
     [ "MiTranslatePteToPfn", "map_8c.html#ab8622097f04d79cb476a78f307323100", null ],
-    [ "MiTranslatePteToVa", "map_8c.html#ad21f0e64e742af499e06c2b21ebc1ead", null ],
+    [ "MiTranslatePteToVa", "map_8c.html#a2c081bf5a3802828295b55479427bab8", null ],
     [ "MiTranslateVirtualToPhysical", "map_8c.html#a29e582a0230e8396492f0620023f0ae5", null ],
     [ "MiUnmapPte", "map_8c.html#ae3021d571acb9a636398898e79e539be", null ],
     [ "MmIsAddressPresent", "map_8c.html#ab2c1d72decad25f1eba4f9d1fbb9089a", null ],

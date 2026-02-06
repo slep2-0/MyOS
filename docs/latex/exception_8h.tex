@@ -1,0 +1,392 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/exception.h File Reference}
+\hypertarget{exception_8h}{}\label{exception_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include "{}me.\+h"{}}\newline
+{\ttfamily \#include "{}core.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+RECORD}}
+\item 
+struct \mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\+\_\+\+CONTEXT}}
+\item 
+struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+REGISTRATION\+\_\+\+RECORD}}
+\item 
+struct \mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n}{\+\_\+\+EX\+\_\+\+FRAME\+\_\+\+REGISTRATION}}
+\item 
+struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e}{\+\_\+\+EXCEPTION\+\_\+\+RANGE}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{exception_8h_a3cd1c98b6babaa34a71c020782244ae2}{EXCEPTION\+\_\+\+MAXIMUM\+\_\+\+PARAMETERS}}~15
+\item 
+\#define \mbox{\hyperlink{exception_8h_a28599e8ac99ea9faff60a2258a914aee}{try}}
+\item 
+\#define \mbox{\hyperlink{exception_8h_a92dd13ee5770a55ecb6128f6d8143939}{except}}
+\item 
+\#define \mbox{\hyperlink{exception_8h_a1f530142e3f8bb37fa99680af8ab9921}{end\+\_\+try}}
+\item 
+\#define \mbox{\hyperlink{exception_8h_ad8fe58d8046dc5b652f4688f035faa04}{leave}}~do \{ goto \+\_\+try\+\_\+break; \} while (0)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+RECORD}} \mbox{\hyperlink{exception_8h_a59d5f4de22ac5d215d56754da8055aaf}{EXCEPTION\+\_\+\+RECORD}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+RECORD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}}
+\item 
+typedef enum \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\+\_\+\+EXCEPTION\+\_\+\+DISPOSITION}} \mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\+\_\+\+DISPOSITION}}
+\item 
+typedef struct \mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\+\_\+\+CONTEXT}} \mbox{\hyperlink{exception_8h_a373939ca181430b8ec42295650e6b99a}{CONTEXT}}
+\item 
+typedef struct \mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\+\_\+\+CONTEXT}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+REGISTRATION\+\_\+\+RECORD}} \mbox{\hyperlink{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}{EXCEPTION\+\_\+\+REGISTRATION\+\_\+\+RECORD}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n}{\+\_\+\+EX\+\_\+\+FRAME\+\_\+\+REGISTRATION}} \mbox{\hyperlink{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af}{EX\+\_\+\+FRAME\+\_\+\+REGISTRATION}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e}{\+\_\+\+EXCEPTION\+\_\+\+RANGE}} \mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e}{\+\_\+\+EXCEPTION\+\_\+\+RANGE}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_af025ceda9d693471e5cd26df65286a43}{PEXCEPTION\+\_\+\+RANGE}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\+\_\+\+EXCEPTION\+\_\+\+DISPOSITION}} \{ \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c}{Exception\+Continue\+Execution}} = 0
+, \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb}{Exception\+Continue\+Search}} = 1
+, \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a}{Exception\+Nested\+Exception}} = 2
+, \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0}{Exception\+Collided\+Unwind}} = 3
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+uint64\+\_\+t \mbox{\hyperlink{exception_8h_abfaee60569fbcbda8465bdb8e8c8eb3b}{Mi\+Search\+Exception\+Table}} (uint64\+\_\+t rip)
+\item 
+\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} \mbox{\hyperlink{exception_8h_a83437e8cd9a8e8befc491348dfcb41c0}{Ps\+Get\+Current\+Thread}} (void)
+\item 
+bool \mbox{\hyperlink{exception_8h_ad6bb0ccaaf02d2d1620cc2e532f0f15a}{Exp\+Capture\+Context}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}} Context)
+\item 
+\mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\+\_\+\+DISPOSITION}} \mbox{\hyperlink{exception_8h_adeb5e1a7690ebae7f60daa59e7df38f2}{Me\+Standard\+Handler}} (\mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}} Exception\+Record, void \texorpdfstring{$\ast$}{*}Establisher\+Frame, \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}} Context\+Record, void \texorpdfstring{$\ast$}{*}Dispatcher\+Context)
+\item 
+bool \mbox{\hyperlink{exception_8h_a2dee8f10bb0d7be89909abb721626b2a}{Exp\+Is\+Exception\+Handler\+Present}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} Thread)
+\item 
+void \mbox{\hyperlink{exception_8h_a899600fb60c845d2acfda420340e0fbe}{Exp\+Dispatch\+Exception}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}} Trap\+Frame, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}} Context\+Record, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}} Exception\+Record)
+\item 
+uint64\+\_\+t \mbox{\hyperlink{exception_8h_af8135ba086b45298daac1a287da6c721}{Exp\+Find\+Kernel\+Mode\+Exception\+Handler}} (uint64\+\_\+t Rip)
+\item 
+bool \mbox{\hyperlink{exception_8h_a7417917e35bc105788b32e7505bd169b}{Exp\+Is\+Privileged\+Instruction}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}Ip)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{exception_8h_a52b50c12b0069015d9629037e8b170c0}{Probe\+For\+Read}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const void \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}}, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t \mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}}, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t Alignment)
+\item 
+void \mbox{\hyperlink{exception_8h_a8bbe46148880fd04948b77ded24ad8ca}{Exp\+Raise\+Status}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Status, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t Rip)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}} \mbox{\hyperlink{exception_8h_aaba5bf3e4293476f1f1a4aa6d677ed45}{\+\_\+\+\_\+start\+\_\+ex\+\_\+table}} \mbox{[}$\,$\mbox{]}
+\item 
+\mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}} \mbox{\hyperlink{exception_8h_a1115f8b9064acca3a882fa7b0ca64a84}{\+\_\+\+\_\+stop\+\_\+ex\+\_\+table}} \mbox{[}$\,$\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{exception_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{exception_8h_a1f530142e3f8bb37fa99680af8ab9921}\index{exception.h@{exception.h}!end\_try@{end\_try}}
+\index{end\_try@{end\_try}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{end\_try}{end\_try}}
+{\footnotesize\ttfamily \label{exception_8h_a1f530142e3f8bb37fa99680af8ab9921} 
+\#define end\+\_\+try}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_try\_break:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \_\_clac();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\}\ \textcolor{keywordflow}{while}\ (0)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00145}{145}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+\Hypertarget{exception_8h_a92dd13ee5770a55ecb6128f6d8143939}\index{exception.h@{exception.h}!except@{except}}
+\index{except@{except}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{except}{except}}
+{\footnotesize\ttfamily \label{exception_8h_a92dd13ee5770a55ecb6128f6d8143939} 
+\#define except}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_try\_end:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ \_volatile\_true\ =\ 1;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}"{}}\ :\ \textcolor{stringliteral}{"{}+r"{}}(\_volatile\_true));\ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ if\ (\_volatile\_true)\ \textcolor{keywordflow}{goto}\ \_try\_break;\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_except\_label:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_clac();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{comment}{/*\ The\ Page\ fault\ handler\ jumps\ here\ if\ we\ faulted\ */}}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00131}{131}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+\Hypertarget{exception_8h_a3cd1c98b6babaa34a71c020782244ae2}\index{exception.h@{exception.h}!EXCEPTION\_MAXIMUM\_PARAMETERS@{EXCEPTION\_MAXIMUM\_PARAMETERS}}
+\index{EXCEPTION\_MAXIMUM\_PARAMETERS@{EXCEPTION\_MAXIMUM\_PARAMETERS}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EXCEPTION\_MAXIMUM\_PARAMETERS}{EXCEPTION\_MAXIMUM\_PARAMETERS}}
+{\footnotesize\ttfamily \label{exception_8h_a3cd1c98b6babaa34a71c020782244ae2} 
+\#define EXCEPTION\+\_\+\+MAXIMUM\+\_\+\+PARAMETERS~15}
+
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00034}{34}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+\Hypertarget{exception_8h_ad8fe58d8046dc5b652f4688f035faa04}\index{exception.h@{exception.h}!leave@{leave}}
+\index{leave@{leave}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{leave}{leave}}
+{\footnotesize\ttfamily \label{exception_8h_ad8fe58d8046dc5b652f4688f035faa04} 
+\#define leave~do \{ goto \+\_\+try\+\_\+break; \} while (0)}
+
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00150}{150}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+\Hypertarget{exception_8h_a28599e8ac99ea9faff60a2258a914aee}\index{exception.h@{exception.h}!try@{try}}
+\index{try@{try}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{try}{try}}
+{\footnotesize\ttfamily \label{exception_8h_a28599e8ac99ea9faff60a2258a914aee} 
+\#define try}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \textcolor{keywordflow}{do}\ \{\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_label\_\_\ \_try\_start,\ \_try\_end,\ \_except\_label,\ \_try\_break;\ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_stac();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \textcolor{comment}{/*\ \ Emit\ the\ table\ entry\ linking\ this\ range\ to\ the\ handler\ */}\ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}.section\ \_\_ex\_table,\(\backslash\)"{}a\(\backslash\)"{}\(\backslash\)n\(\backslash\)t"{}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}.quad\ \%P0,\ \%P1,\ \%P2\(\backslash\)n\(\backslash\)t"{}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}.previous\(\backslash\)n\(\backslash\)t"{}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ :\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}i"{}}\ (\&\&\ \_try\_start),\ \textcolor{stringliteral}{"{}i"{}}\ (\&\&\ \_try\_end),\ \textcolor{stringliteral}{"{}i"{}}\ (\&\&\ \_except\_label)\(\backslash\)}
+\DoxyCodeLine{\ \ \ \ );\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \textcolor{comment}{/*\ Start\ of\ protected\ region\ */}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_try\_start:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});\ \textcolor{comment}{/*\ Prevent\ hoisting\ */}\ \ \ \ \ \ \ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \{}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00115}{115}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{exception_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{exception_8h_a373939ca181430b8ec42295650e6b99a}\index{exception.h@{exception.h}!CONTEXT@{CONTEXT}}
+\index{CONTEXT@{CONTEXT}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{CONTEXT}{CONTEXT}}
+{\footnotesize\ttfamily \label{exception_8h_a373939ca181430b8ec42295650e6b99a} 
+typedef struct \mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\+\_\+\+CONTEXT}} \mbox{\hyperlink{exception_8h_a373939ca181430b8ec42295650e6b99a}{CONTEXT}}}
+
+\Hypertarget{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af}\index{exception.h@{exception.h}!EX\_FRAME\_REGISTRATION@{EX\_FRAME\_REGISTRATION}}
+\index{EX\_FRAME\_REGISTRATION@{EX\_FRAME\_REGISTRATION}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EX\_FRAME\_REGISTRATION}{EX\_FRAME\_REGISTRATION}}
+{\footnotesize\ttfamily \label{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af} 
+typedef struct \mbox{\hyperlink{struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n}{\+\_\+\+EX\+\_\+\+FRAME\+\_\+\+REGISTRATION}} \mbox{\hyperlink{exception_8h_a9c5593789be8e9a8f7f414fdc46a56af}{EX\+\_\+\+FRAME\+\_\+\+REGISTRATION}}}
+
+\Hypertarget{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}\index{exception.h@{exception.h}!EXCEPTION\_DISPOSITION@{EXCEPTION\_DISPOSITION}}
+\index{EXCEPTION\_DISPOSITION@{EXCEPTION\_DISPOSITION}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EXCEPTION\_DISPOSITION}{EXCEPTION\_DISPOSITION}}
+{\footnotesize\ttfamily \label{exception_8h_a9cb88c16b74c1968a18b04bf222ac123} 
+typedef enum \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\+\_\+\+EXCEPTION\+\_\+\+DISPOSITION}} \mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\+\_\+\+DISPOSITION}}}
+
+\Hypertarget{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}\index{exception.h@{exception.h}!EXCEPTION\_RANGE@{EXCEPTION\_RANGE}}
+\index{EXCEPTION\_RANGE@{EXCEPTION\_RANGE}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EXCEPTION\_RANGE}{EXCEPTION\_RANGE}}
+{\footnotesize\ttfamily \label{exception_8h_a30ca0854d275bc6f6b7cb967043d1975} 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e}{\+\_\+\+EXCEPTION\+\_\+\+RANGE}} \mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}}}
+
+\Hypertarget{exception_8h_a59d5f4de22ac5d215d56754da8055aaf}\index{exception.h@{exception.h}!EXCEPTION\_RECORD@{EXCEPTION\_RECORD}}
+\index{EXCEPTION\_RECORD@{EXCEPTION\_RECORD}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EXCEPTION\_RECORD}{EXCEPTION\_RECORD}}
+{\footnotesize\ttfamily \label{exception_8h_a59d5f4de22ac5d215d56754da8055aaf} 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+RECORD}} \mbox{\hyperlink{exception_8h_a59d5f4de22ac5d215d56754da8055aaf}{EXCEPTION\+\_\+\+RECORD}}}
+
+\Hypertarget{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}\index{exception.h@{exception.h}!EXCEPTION\_REGISTRATION\_RECORD@{EXCEPTION\_REGISTRATION\_RECORD}}
+\index{EXCEPTION\_REGISTRATION\_RECORD@{EXCEPTION\_REGISTRATION\_RECORD}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{EXCEPTION\_REGISTRATION\_RECORD}{EXCEPTION\_REGISTRATION\_RECORD}}
+{\footnotesize\ttfamily \label{exception_8h_aa49a15f81a29c84c9f9ac7469daed255} 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_g_i_s_t_r_a_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+REGISTRATION\+\_\+\+RECORD}} \mbox{\hyperlink{exception_8h_aa49a15f81a29c84c9f9ac7469daed255}{EXCEPTION\+\_\+\+REGISTRATION\+\_\+\+RECORD}}}
+
+\Hypertarget{exception_8h_a9c585b252235c3b24267f86ca293eb3b}\index{exception.h@{exception.h}!PCONTEXT@{PCONTEXT}}
+\index{PCONTEXT@{PCONTEXT}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{PCONTEXT}{PCONTEXT}}
+{\footnotesize\ttfamily \label{exception_8h_a9c585b252235c3b24267f86ca293eb3b} 
+typedef struct \mbox{\hyperlink{struct___c_o_n_t_e_x_t}{\+\_\+\+CONTEXT}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}}
+
+\Hypertarget{exception_8h_af025ceda9d693471e5cd26df65286a43}\index{exception.h@{exception.h}!PEXCEPTION\_RANGE@{PEXCEPTION\_RANGE}}
+\index{PEXCEPTION\_RANGE@{PEXCEPTION\_RANGE}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{PEXCEPTION\_RANGE}{PEXCEPTION\_RANGE}}
+{\footnotesize\ttfamily \label{exception_8h_af025ceda9d693471e5cd26df65286a43} 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e}{\+\_\+\+EXCEPTION\+\_\+\+RANGE}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_af025ceda9d693471e5cd26df65286a43}{PEXCEPTION\+\_\+\+RANGE}}}
+
+\Hypertarget{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}\index{exception.h@{exception.h}!PEXCEPTION\_RECORD@{PEXCEPTION\_RECORD}}
+\index{PEXCEPTION\_RECORD@{PEXCEPTION\_RECORD}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{PEXCEPTION\_RECORD}{PEXCEPTION\_RECORD}}
+{\footnotesize\ttfamily \label{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41} 
+typedef struct \mbox{\hyperlink{struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d}{\+\_\+\+EXCEPTION\+\_\+\+RECORD}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}}}
+
+
+
+\label{doc-enum-members}
+\Hypertarget{exception_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{exception_8h_a0beb9666aac7b8e8045033f5675416a3}\index{exception.h@{exception.h}!\_EXCEPTION\_DISPOSITION@{\_EXCEPTION\_DISPOSITION}}
+\index{\_EXCEPTION\_DISPOSITION@{\_EXCEPTION\_DISPOSITION}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{\_EXCEPTION\_DISPOSITION}{\_EXCEPTION\_DISPOSITION}}
+{\footnotesize\ttfamily \label{exception_8h_a0beb9666aac7b8e8045033f5675416a3} 
+enum \mbox{\hyperlink{exception_8h_a0beb9666aac7b8e8045033f5675416a3}{\+\_\+\+EXCEPTION\+\_\+\+DISPOSITION}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ExceptionContinueExecution@{ExceptionContinueExecution}!exception.h@{exception.h}}\index{exception.h@{exception.h}!ExceptionContinueExecution@{ExceptionContinueExecution}}}\Hypertarget{exception_8h_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c}\label{exception_8h_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c} 
+Exception\+Continue\+Execution&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ExceptionContinueSearch@{ExceptionContinueSearch}!exception.h@{exception.h}}\index{exception.h@{exception.h}!ExceptionContinueSearch@{ExceptionContinueSearch}}}\Hypertarget{exception_8h_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb}\label{exception_8h_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb} 
+Exception\+Continue\+Search&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ExceptionNestedException@{ExceptionNestedException}!exception.h@{exception.h}}\index{exception.h@{exception.h}!ExceptionNestedException@{ExceptionNestedException}}}\Hypertarget{exception_8h_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a}\label{exception_8h_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a} 
+Exception\+Nested\+Exception&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ExceptionCollidedUnwind@{ExceptionCollidedUnwind}!exception.h@{exception.h}}\index{exception.h@{exception.h}!ExceptionCollidedUnwind@{ExceptionCollidedUnwind}}}\Hypertarget{exception_8h_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0}\label{exception_8h_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0} 
+Exception\+Collided\+Unwind&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line \mbox{\hyperlink{exception_8h_source_l00043}{43}} of file \mbox{\hyperlink{exception_8h_source}{exception.\+h}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{exception_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{exception_8h_ad6bb0ccaaf02d2d1620cc2e532f0f15a}\index{exception.h@{exception.h}!ExpCaptureContext@{ExpCaptureContext}}
+\index{ExpCaptureContext@{ExpCaptureContext}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpCaptureContext()}{ExpCaptureContext()}}
+{\footnotesize\ttfamily \label{exception_8h_ad6bb0ccaaf02d2d1620cc2e532f0f15a} 
+bool Exp\+Capture\+Context (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}}]{Context}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{exception_8h_a899600fb60c845d2acfda420340e0fbe}\index{exception.h@{exception.h}!ExpDispatchException@{ExpDispatchException}}
+\index{ExpDispatchException@{ExpDispatchException}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpDispatchException()}{ExpDispatchException()}}
+{\footnotesize\ttfamily \label{exception_8h_a899600fb60c845d2acfda420340e0fbe} 
+void Exp\+Dispatch\+Exception (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\+\_\+\+FRAME}}}]{Trap\+Frame}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}}]{Context\+Record}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}}}]{Exception\+Record}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{exception_8c_source_l00056}{56}} of file \mbox{\hyperlink{exception_8c_source}{exception.\+c}}.
+
+\Hypertarget{exception_8h_af8135ba086b45298daac1a287da6c721}\index{exception.h@{exception.h}!ExpFindKernelModeExceptionHandler@{ExpFindKernelModeExceptionHandler}}
+\index{ExpFindKernelModeExceptionHandler@{ExpFindKernelModeExceptionHandler}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpFindKernelModeExceptionHandler()}{ExpFindKernelModeExceptionHandler()}}
+{\footnotesize\ttfamily \label{exception_8h_af8135ba086b45298daac1a287da6c721} 
+uint64\+\_\+t Exp\+Find\+Kernel\+Mode\+Exception\+Handler (\begin{DoxyParamCaption}\item[{uint64\+\_\+t}]{Rip}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{exception_8c_source_l00114}{114}} of file \mbox{\hyperlink{exception_8c_source}{exception.\+c}}.
+
+\Hypertarget{exception_8h_a2dee8f10bb0d7be89909abb721626b2a}\index{exception.h@{exception.h}!ExpIsExceptionHandlerPresent@{ExpIsExceptionHandlerPresent}}
+\index{ExpIsExceptionHandlerPresent@{ExpIsExceptionHandlerPresent}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpIsExceptionHandlerPresent()}{ExpIsExceptionHandlerPresent()}}
+{\footnotesize\ttfamily \label{exception_8h_a2dee8f10bb0d7be89909abb721626b2a} 
+bool Exp\+Is\+Exception\+Handler\+Present (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}}]{Thread}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{exception_8c_source_l00023}{23}} of file \mbox{\hyperlink{exception_8c_source}{exception.\+c}}.
+
+\Hypertarget{exception_8h_a7417917e35bc105788b32e7505bd169b}\index{exception.h@{exception.h}!ExpIsPrivilegedInstruction@{ExpIsPrivilegedInstruction}}
+\index{ExpIsPrivilegedInstruction@{ExpIsPrivilegedInstruction}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpIsPrivilegedInstruction()}{ExpIsPrivilegedInstruction()}}
+{\footnotesize\ttfamily \label{exception_8h_a7417917e35bc105788b32e7505bd169b} 
+bool Exp\+Is\+Privileged\+Instruction (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{Ip}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{instruction_8c_source_l00004}{4}} of file \mbox{\hyperlink{instruction_8c_source}{instruction.\+c}}.
+
+\Hypertarget{exception_8h_a8bbe46148880fd04948b77ded24ad8ca}\index{exception.h@{exception.h}!ExpRaiseStatus@{ExpRaiseStatus}}
+\index{ExpRaiseStatus@{ExpRaiseStatus}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ExpRaiseStatus()}{ExpRaiseStatus()}}
+{\footnotesize\ttfamily \label{exception_8h_a8bbe46148880fd04948b77ded24ad8ca} 
+void Exp\+Raise\+Status (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}]{Status}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{Rip}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{raise_8c_source_l00023}{23}} of file \mbox{\hyperlink{raise_8c_source}{raise.\+c}}.
+
+\Hypertarget{exception_8h_adeb5e1a7690ebae7f60daa59e7df38f2}\index{exception.h@{exception.h}!MeStandardHandler@{MeStandardHandler}}
+\index{MeStandardHandler@{MeStandardHandler}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{MeStandardHandler()}{MeStandardHandler()}}
+{\footnotesize\ttfamily \label{exception_8h_adeb5e1a7690ebae7f60daa59e7df38f2} 
+\mbox{\hyperlink{exception_8h_a9cb88c16b74c1968a18b04bf222ac123}{EXCEPTION\+\_\+\+DISPOSITION}} Me\+Standard\+Handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{exception_8h_ad2e8b20d36f49cdaa8ee49fe1e9f6b41}{PEXCEPTION\+\_\+\+RECORD}}}]{Exception\+Record}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{Establisher\+Frame}{, }\item[{\mbox{\hyperlink{exception_8h_a9c585b252235c3b24267f86ca293eb3b}{PCONTEXT}}}]{Context\+Record}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{Dispatcher\+Context}{}\end{DoxyParamCaption})}
+
+\Hypertarget{exception_8h_abfaee60569fbcbda8465bdb8e8c8eb3b}\index{exception.h@{exception.h}!MiSearchExceptionTable@{MiSearchExceptionTable}}
+\index{MiSearchExceptionTable@{MiSearchExceptionTable}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{MiSearchExceptionTable()}{MiSearchExceptionTable()}}
+{\footnotesize\ttfamily \label{exception_8h_abfaee60569fbcbda8465bdb8e8c8eb3b} 
+uint64\+\_\+t Mi\+Search\+Exception\+Table (\begin{DoxyParamCaption}\item[{uint64\+\_\+t}]{rip}{}\end{DoxyParamCaption})}
+
+\Hypertarget{exception_8h_a52b50c12b0069015d9629037e8b170c0}\index{exception.h@{exception.h}!ProbeForRead@{ProbeForRead}}
+\index{ProbeForRead@{ProbeForRead}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{ProbeForRead()}{ProbeForRead()}}
+{\footnotesize\ttfamily \label{exception_8h_a52b50c12b0069015d9629037e8b170c0} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Probe\+For\+Read (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const void \texorpdfstring{$\ast$}{*}}]{Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Length}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t}]{Alignment}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{probe_8c_source_l00023}{23}} of file \mbox{\hyperlink{probe_8c_source}{probe.\+c}}.
+
+\Hypertarget{exception_8h_a83437e8cd9a8e8befc491348dfcb41c0}\index{exception.h@{exception.h}!PsGetCurrentThread@{PsGetCurrentThread}}
+\index{PsGetCurrentThread@{PsGetCurrentThread}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{PsGetCurrentThread()}{PsGetCurrentThread()}}
+{\footnotesize\ttfamily \label{exception_8h_a83437e8cd9a8e8befc491348dfcb41c0} 
+\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}} Ps\+Get\+Current\+Thread (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{thread_8c_source_l00279}{279}} of file \mbox{\hyperlink{thread_8c_source}{thread.\+c}}.
+
+
+
+\label{doc-var-members}
+\Hypertarget{exception_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{exception_8h_aaba5bf3e4293476f1f1a4aa6d677ed45}\index{exception.h@{exception.h}!\_\_start\_ex\_table@{\_\_start\_ex\_table}}
+\index{\_\_start\_ex\_table@{\_\_start\_ex\_table}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{\_\_start\_ex\_table}{\_\_start\_ex\_table}}
+{\footnotesize\ttfamily \label{exception_8h_aaba5bf3e4293476f1f1a4aa6d677ed45} 
+\mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}} \+\_\+\+\_\+start\+\_\+ex\+\_\+table\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{exception_8h_a1115f8b9064acca3a882fa7b0ca64a84}\index{exception.h@{exception.h}!\_\_stop\_ex\_table@{\_\_stop\_ex\_table}}
+\index{\_\_stop\_ex\_table@{\_\_stop\_ex\_table}!exception.h@{exception.h}}
+\doxysubsubsection{\texorpdfstring{\_\_stop\_ex\_table}{\_\_stop\_ex\_table}}
+{\footnotesize\ttfamily \label{exception_8h_a1115f8b9064acca3a882fa7b0ca64a84} 
+\mbox{\hyperlink{exception_8h_a30ca0854d275bc6f6b7cb967043d1975}{EXCEPTION\+\_\+\+RANGE}} \+\_\+\+\_\+stop\+\_\+ex\+\_\+table\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+

@@ -1,0 +1,80 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ms/spinlock.c File Reference}
+\hypertarget{spinlock_8c}{}\label{spinlock_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/spinlock.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/spinlock.c}}
+{\ttfamily \#include "{}../../includes/ms.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/me.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{spinlock_8c_a07259dff248f8fcb9386897d258d6174}{X86\+\_\+\+SPINLOCK\+\_\+H}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{Ms\+Acquire\+Spinlock}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}} lock, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}} Old\+Irql)
+\item 
+void \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{Ms\+Release\+Spinlock}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}} lock, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}} Old\+Irql)
+\item 
+void \mbox{\hyperlink{spinlock_8c_ad126d8031fb952a65a0fc565304cdc66}{Ms\+Acquire\+Spinlock\+At\+Dpc\+Level}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}} Lock)
+\item 
+void \mbox{\hyperlink{spinlock_8c_abf7cfc98a356c8cf7f1d20e233a77cc3}{Ms\+Release\+Spinlock\+From\+Dpc\+Level}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}} Lock)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{spinlock_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{spinlock_8c_a07259dff248f8fcb9386897d258d6174}\index{spinlock.c@{spinlock.c}!X86\_SPINLOCK\_H@{X86\_SPINLOCK\_H}}
+\index{X86\_SPINLOCK\_H@{X86\_SPINLOCK\_H}!spinlock.c@{spinlock.c}}
+\doxysubsubsection{\texorpdfstring{X86\_SPINLOCK\_H}{X86\_SPINLOCK\_H}}
+{\footnotesize\ttfamily \label{spinlock_8c_a07259dff248f8fcb9386897d258d6174} 
+\#define X86\+\_\+\+SPINLOCK\+\_\+H}
+
+
+
+Definition at line \mbox{\hyperlink{spinlock_8c_source_l00007}{7}} of file \mbox{\hyperlink{spinlock_8c_source}{spinlock.\+c}}.
+
+
+
+\label{doc-func-members}
+\Hypertarget{spinlock_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}\index{spinlock.c@{spinlock.c}!MsAcquireSpinlock@{MsAcquireSpinlock}}
+\index{MsAcquireSpinlock@{MsAcquireSpinlock}!spinlock.c@{spinlock.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquireSpinlock()}{MsAcquireSpinlock()}}
+{\footnotesize\ttfamily \label{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129} 
+void Ms\+Acquire\+Spinlock (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}}}]{lock}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a759f4aeab4719639765f2160de0116da}{PIRQL}}}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{spinlock_8c_source_l00013}{13}} of file \mbox{\hyperlink{spinlock_8c_source}{spinlock.\+c}}.
+
+\Hypertarget{spinlock_8c_ad126d8031fb952a65a0fc565304cdc66}\index{spinlock.c@{spinlock.c}!MsAcquireSpinlockAtDpcLevel@{MsAcquireSpinlockAtDpcLevel}}
+\index{MsAcquireSpinlockAtDpcLevel@{MsAcquireSpinlockAtDpcLevel}!spinlock.c@{spinlock.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquireSpinlockAtDpcLevel()}{MsAcquireSpinlockAtDpcLevel()}}
+{\footnotesize\ttfamily \label{spinlock_8c_ad126d8031fb952a65a0fc565304cdc66} 
+void Ms\+Acquire\+Spinlock\+At\+Dpc\+Level (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{spinlock_8c_source_l00074}{74}} of file \mbox{\hyperlink{spinlock_8c_source}{spinlock.\+c}}.
+
+\Hypertarget{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}\index{spinlock.c@{spinlock.c}!MsReleaseSpinlock@{MsReleaseSpinlock}}
+\index{MsReleaseSpinlock@{MsReleaseSpinlock}!spinlock.c@{spinlock.c}}
+\doxysubsubsection{\texorpdfstring{MsReleaseSpinlock()}{MsReleaseSpinlock()}}
+{\footnotesize\ttfamily \label{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918} 
+void Ms\+Release\+Spinlock (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}}}]{lock}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}}]{Old\+Irql}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{spinlock_8c_source_l00045}{45}} of file \mbox{\hyperlink{spinlock_8c_source}{spinlock.\+c}}.
+
+\Hypertarget{spinlock_8c_abf7cfc98a356c8cf7f1d20e233a77cc3}\index{spinlock.c@{spinlock.c}!MsReleaseSpinlockFromDpcLevel@{MsReleaseSpinlockFromDpcLevel}}
+\index{MsReleaseSpinlockFromDpcLevel@{MsReleaseSpinlockFromDpcLevel}!spinlock.c@{spinlock.c}}
+\doxysubsubsection{\texorpdfstring{MsReleaseSpinlockFromDpcLevel()}{MsReleaseSpinlockFromDpcLevel()}}
+{\footnotesize\ttfamily \label{spinlock_8c_abf7cfc98a356c8cf7f1d20e233a77cc3} 
+void Ms\+Release\+Spinlock\+From\+Dpc\+Level (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_ad0d80c2c14954ce2cd1624447db86ede}{PSPINLOCK}}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{spinlock_8c_source_l00100}{100}} of file \mbox{\hyperlink{spinlock_8c_source}{spinlock.\+c}}.
+

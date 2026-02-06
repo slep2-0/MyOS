@@ -1,0 +1,214 @@
+\doxysection{section.\+c}
+\hypertarget{section_8c_source}{}\label{section_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/section.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/section.c}}
+\mbox{\hyperlink{section_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ section.c}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ translation\ unit\ contains\ the\ implementation\ of\ file\ sections\ (process\ sections).}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mm_8h}{../../includes/mm.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ob_8h}{../../includes/ob.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00021}00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{fs_8h}{../../includes/fs.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00024}00024\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00025}\mbox{\hyperlink{section_8c_afb1da43424543da15183d28612f5fce3}{00025}}\ \mbox{\hyperlink{section_8c_afb1da43424543da15183d28612f5fce3}{MmCreateSection}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00026}00026\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ SectionHandle,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00027}00027\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{struct}\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t}{\_FILE\_OBJECT}}*\ FileObject}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00028}00028\ )}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00029}00029\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00030}00030\ \ \ \ \ \mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r}{MTE\_HEADER}}\ Header;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00031}00031\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00032}00032\ \ \ \ \ \textcolor{comment}{//\ Assume\ failure.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00033}00033\ \ \ \ \ *SectionHandle\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00035}00035\ \ \ \ \ \textcolor{comment}{//\ Read\ the\ header\ from\ the\ file.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00036}00036\ \ \ \ \ Status\ =\ \mbox{\hyperlink{vfs_8c_a466e424d556a0a662d6c0beb0f3e4b86}{FsReadFile}}(FileObject,\ 0,\ \&Header,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r}{MTE\_HEADER}}),\ NULL);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00037}00037\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00038}00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00039}00039\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00041}00041\ \ \ \ \ \textcolor{comment}{//\ Validate\ header\ magic.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00042}00042\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mm_8h_a354f378bccb266ef6eca75a119cd8cd9}{kmemcmp}}(Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a28d9452c47cffce65f32b0cb7416fd42}{Magic}},\ \textcolor{stringliteral}{"{}MTE\(\backslash\)0"{}},\ 4)\ !=\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00043}00043\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Invalid\ header.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00044}00044\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Invalid\ executable\ given,\ magic\ is\ not\ MTE.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00046}00046\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a458ca1f100bcb8e4b28ea178754e462f}{MT\_INVALID\_IMAGE\_FORMAT}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00048}00048\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00049}00049\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00050}00050\ \ \ \ \ \textcolor{comment}{//\ Allocate\ the\ actual\ section\ object\ (pool)}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00051}00051\ \ \ \ \ \mbox{\hyperlink{mm_8h_a3d2c440317d90b2f15952c41808958b6}{PMM\_SECTION}}\ NewSection\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00052}00052\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_ad77278de8f30feb544f7bd27bd85a81f}{ObCreateObject}}(\mbox{\hyperlink{mminit_8c_aa335a59f0adaea91ccd010b7d0135dcb}{MmSectionType}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{mm_8h_a8e5cefb806a3b4b268656f73a936d4cb}{MM\_SECTION}}),\ (\textcolor{keywordtype}{void}**)\&NewSection);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00053}00053\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00055}00055\ \ \ \ \ \textcolor{comment}{//\ Set\ fields}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00056}00056\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73381050b726d3b2b4ea312bc2047ac9}{FileObject}}\ =\ FileObject;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00057}00057\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a02635119ea9aa85932b43679857b6b4d}{EntryPointOffset}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a33b823ec63cba196b8bdb1e3a18a55d0}{EntryRVA}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00058}00058\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a962f06df7a62b3b2c1138126d315b361}{PreferredBase}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a535d3218b77173dbd4cab0f7ac2d8783}{PreferredImageBase}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00059}00059\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00060}00060\ \ \ \ \ \textcolor{comment}{//\ Create\ subsections}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00061}00061\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00062}00062\ \ \ \ \ \textcolor{comment}{//\ Setup\ .text\ -\/\ Read\ |\ Execute}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00063}00063\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a1f2c92422820fcc108ffc63f82eb5e96}{Text}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a879195da4a5c3fa7c37f6e732dcac8f8}{TextRVA}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00064}00064\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a1f2c92422820fcc108ffc63f82eb5e96}{Text}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a63bf8335ef2da1cf25e3824ec7b1a557}{TextSize}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00065}00065\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a1f2c92422820fcc108ffc63f82eb5e96}{Text}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}\ =\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca22ecf9cb9f89e6499098916eae1b3fba}{VAD\_FLAG\_READ}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91cadb61bb2c94a1fa8d69ff6fea05d75a87}{VAD\_FLAG\_EXECUTE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caaec82c9db92dec9993e18288d369eba6}{VAD\_FLAG\_MAPPED\_FILE}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00066}00066\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a1f2c92422820fcc108ffc63f82eb5e96}{Text}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_a4fcfa61e6f5be12e77561dcea9a46701}{IsDemandZero}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00067}00067\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00068}00068\ \ \ \ \ \textcolor{comment}{//\ Setup\ .data\ -\/\ Read\ |\ Write\ |\ CopyOnWrite}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00069}00069\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a5cfcaf9cce1e35a1de1cc18983bd9f7e}{Data}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a2f9ae83b12b2506f2edbde212c1c8404}{DataRVA}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00070}00070\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a5cfcaf9cce1e35a1de1cc18983bd9f7e}{Data}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_a0bb6e1423ffef9b6b28526b5eea00976}{DataSize}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00071}00071\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a5cfcaf9cce1e35a1de1cc18983bd9f7e}{Data}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}\ =\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca22ecf9cb9f89e6499098916eae1b3fba}{VAD\_FLAG\_READ}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caea0945f7ba6f617c48fa1d0767a51a4b}{VAD\_FLAG\_WRITE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caaec82c9db92dec9993e18288d369eba6}{VAD\_FLAG\_MAPPED\_FILE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca6db150cd6db2e801df3f6b620157ef5c}{VAD\_FLAG\_COPY\_ON\_WRITE}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00072}00072\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a5cfcaf9cce1e35a1de1cc18983bd9f7e}{Data}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_a4fcfa61e6f5be12e77561dcea9a46701}{IsDemandZero}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00073}00073\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00074}00074\ \ \ \ \ \textcolor{comment}{//\ Setup\ .bss\ (uninit)\ -\/\ Read\ |\ Write\ |\ DemandZero}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00075}00075\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ =\ 0;\ \textcolor{comment}{//\ Irrelevant\ for\ BSS}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00076}00076\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}}\ =\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_acbaa2ba4b0b8d8d01cbbf8ff3c10b4f6}{BssSize}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00077}00077\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}\ =\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca22ecf9cb9f89e6499098916eae1b3fba}{VAD\_FLAG\_READ}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caea0945f7ba6f617c48fa1d0767a51a4b}{VAD\_FLAG\_WRITE}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00078}00078\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_a4fcfa61e6f5be12e77561dcea9a46701}{IsDemandZero}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00079}00079\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00080}00080\ \ \ \ \ \textcolor{comment}{//\ The\ file\ end\ RVA\ is\ just\ the\ file\ size.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00081}00081\ \ \ \ \ uintptr\_t\ FileEndRVA\ =\ FileObject-\/>FileSize;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00082}00082\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00083}00083\ \ \ \ \ \textcolor{comment}{//\ Configure\ the\ WholeFileSection.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00084}00084\ \ \ \ \ \textcolor{comment}{//\ This\ represents\ the\ chunk\ of\ virtual\ memory\ that\ maps\ directly\ to\ the\ file.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00085}00085\ \ \ \ \ \textcolor{comment}{//\ It\ starts\ at\ FileOffset\ 0\ (so\ we\ can\ see\ the\ Header)\ and\ goes\ up\ to\ the\ end\ of\ Data.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00086}00086\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00087}00087\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}}\ =\ FileEndRVA;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00089}00089\ \ \ \ \ \textcolor{comment}{//\ We\ default\ to\ RWX\ here\ to\ simplify\ loading;\ permissions\ should\ be\ refined\ later\ via\ VirtualProtect.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00090}00090\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}\ =\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca22ecf9cb9f89e6499098916eae1b3fba}{VAD\_FLAG\_READ}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caea0945f7ba6f617c48fa1d0767a51a4b}{VAD\_FLAG\_WRITE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91cadb61bb2c94a1fa8d69ff6fea05d75a87}{VAD\_FLAG\_EXECUTE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caaec82c9db92dec9993e18288d369eba6}{VAD\_FLAG\_MAPPED\_FILE}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00091}00091\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_a4fcfa61e6f5be12e77561dcea9a46701}{IsDemandZero}}\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00092}00092\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00093}00093\ \ \ \ \ \textcolor{comment}{//\ Calculate\ total\ size\ of\ the\ image\ in\ memory.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00094}00094\ \ \ \ \ \textcolor{comment}{//\ This\ includes\ the\ file\ part\ +\ the\ BSS\ part.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00095}00095\ \ \ \ \ NewSection-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a5eeaa5af27ee29ce80ae01ffef627381}{ImageSize}}\ =\ \mbox{\hyperlink{mm_8h_afb00b1a27b40fde5065d26e5aa367808}{ALIGN\_UP}}(FileEndRVA\ +\ Header.\mbox{\hyperlink{struct_m_t_e___h_e_a_d_e_r_acbaa2ba4b0b8d8d01cbbf8ff3c10b4f6}{BssSize}},\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}});}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00096}00096\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00097}00097\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ handle\ for\ the\ section.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00098}00098\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_a04672b5205937df681888794716e3a2c}{ObCreateHandleForObject}}(NewSection,\ \mbox{\hyperlink{mm_8h_aae019c0022dbd1a68fde955f44d5d679}{MT\_SECTION\_ALL\_ACCESS}},\ SectionHandle);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00099}00099\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00100}00100\ \ \ \ \ \textcolor{comment}{//\ Successful!}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00101}00101\ \ \ \ \ \textcolor{comment}{//\ If\ success\ on\ ObCreateHandleForObject\ it\ would\ dereference\ the\ pointer\ count\ created\ by\ ObCreateObject\ }}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00102}00102\ \ \ \ \ \textcolor{comment}{//\ (cancel\ out\ the\ reference\ made\ by\ ObCreateHandleForObject).}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00103}00103\ \ \ \ \ \textcolor{comment}{//\ And\ so\ HandleCount\ ==\ PointerCount.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00104}00104\ \ \ \ \ \textcolor{comment}{//\ Else,\ it\ would\ destroy\ the\ section\ (along\ with\ the\ file\ handle).}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00105}00105\ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(NewSection);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00107}00107\ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00108}00108\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00109}00109\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00110}\mbox{\hyperlink{section_8c_a3a067893b5ed6b29fa0619a8901792b7}{00110}}\ \mbox{\hyperlink{section_8c_a3a067893b5ed6b29fa0619a8901792b7}{MmMapViewOfSection}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00111}00111\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ SectionHandle,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00112}00112\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}\ Process,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00113}00113\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{void}**\ EntryPointAddress,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00114}00114\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{void}**\ BaseAddress}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00115}00115\ )}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00116}00116\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00117}00117\ \ \ \ \ \mbox{\hyperlink{mm_8h_a3d2c440317d90b2f15952c41808958b6}{PMM\_SECTION}}\ Section;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00118}00118\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status\ =\ \mbox{\hyperlink{ob_8c_a47671180c09015ad53f4b1dbacd09de6}{ObReferenceObjectByHandle}}(SectionHandle,\ \mbox{\hyperlink{mm_8h_aae019c0022dbd1a68fde955f44d5d679}{MT\_SECTION\_ALL\_ACCESS}},\ \mbox{\hyperlink{mminit_8c_aa335a59f0adaea91ccd010b7d0135dcb}{MmSectionType}},\ (\textcolor{keywordtype}{void}**)\&Section,\ NULL);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00119}00119\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00120}00120\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00121}00121\ \ \ \ \ uintptr\_t\ load\_base\ =\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a962f06df7a62b3b2c1138126d315b361}{PreferredBase}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00122}00122\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00123}00123\ \ \ \ \ \textcolor{comment}{//\ Map\ the\ whole\ file,\ header\ +\ text\ +\ data.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00124}00124\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00125}00125\ \ \ \ \ \textcolor{comment}{//\ We\ attempt\ to\ map\ the\ file\ content\ at\ the\ preferred\ base.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00126}00126\ \ \ \ \ Status\ =\ \mbox{\hyperlink{vad_8c_aac5120b7c69029846c637943bf5b33b2}{MmAllocateVirtualMemory}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ Process,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}**)\&load\_base,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}},}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00131}00131\ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00132}00132\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00133}00133\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Preferred\ image\ base\ is\ taken.\ Let\ the\ VAD\ allocator\ pick\ an\ address.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00135}00135\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Relocation\ tables\ (mapped\ inside\ this\ chunk)\ will\ be\ needed\ to\ fix\ addresses.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00136}00136\ \ \ \ \ \ \ \ \ load\_base\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00137}00137\ \ \ \ \ \ \ \ \ Status\ =\ \mbox{\hyperlink{vad_8c_aac5120b7c69029846c637943bf5b33b2}{MmAllocateVirtualMemory}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ \ \ \ \ Process,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}**)\&load\_base,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00140}00140\ \ \ \ \ \ \ \ \ \ \ \ \ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}},}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \ \ \ \ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00143}00143\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00144}00144\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00145}00145\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ Cleanup;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00146}00146\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00147}00147\ \ \ \ \ \textcolor{comment}{//\ Store\ the\ file\ and\ fileoffset\ into\ the\ vad\ we\ just\ got.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00148}00148\ \ \ \ \ \textcolor{comment}{//\ IMPORTANT:\ We\ map\ from\ FileOffset\ 0.\ This\ exposes\ the\ MTE\ Header\ in\ memory.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00149}00149\ \ \ \ \ \mbox{\hyperlink{mm_8h_ac818f9f725f779b224d93ab24d3a6fee}{PMMVAD}}\ Vad\ =\ \mbox{\hyperlink{vad_8c_aa51b9d23857fa2c37ffc76b3523267d0}{MiFindVad}}(Process,\ load\_base);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00150}00150\ \ \ \ \ \textcolor{keywordflow}{if}\ (Vad)\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ Vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_aab9d14ca74c6db1a8fa4a9c634bd52eb}{File}}\ =\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73381050b726d3b2b4ea312bc2047ac9}{FileObject}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00152}00152\ \ \ \ \ \ \ \ \ Vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ =\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}};\ \textcolor{comment}{//\ 0}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00153}00153\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00154}00154\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00155}00155\ \ \ \ \ \textcolor{comment}{//\ .bss\ lives\ immediately\ after\ the\ file\ data\ in\ Virtual\ Memory.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00156}00156\ \ \ \ \ \textcolor{keywordflow}{if}\ (Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}}\ >\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ RVA\ where\ BSS\ logically\ starts}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00158}00158\ \ \ \ \ \ \ \ \ uintptr\_t\ BssStartVa\ =\ load\_base\ +\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a765aac81302c8c7131b28a1c5ad4fdb2}{WholeFileSection}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ RVA\ where\ BSS\ ends}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ uintptr\_t\ BssEndVa\ =\ BssStartVa\ +\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_ade2e60ae8927d43eda288a6ffcfb6eed}{VirtualSize}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00161}00161\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ start\ of\ the\ NEXT\ page\ after\ the\ file\ data}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ uintptr\_t\ NextPageVa\ =\ \mbox{\hyperlink{mm_8h_afb00b1a27b40fde5065d26e5aa367808}{ALIGN\_UP}}(BssStartVa,\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}});}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00164}00164\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 2.\ Allocate\ the\ overflow}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00166}00166\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Only\ if\ BSS\ is\ large\ enough\ to\ cross\ into\ the\ next\ page}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00167}00167\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (BssEndVa\ >\ NextPageVa)\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00168}00168\ \ \ \ \ \ \ \ \ \ \ \ \ uintptr\_t\ OverflowSize\ =\ BssEndVa\ -\/\ NextPageVa;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00169}00169\ \ \ \ \ \ \ \ \ \ \ \ \ uintptr\_t\ AllocBase\ =\ NextPageVa;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00170}00170\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00171}00171\ \ \ \ \ \ \ \ \ \ \ \ \ Status\ =\ \mbox{\hyperlink{vad_8c_aac5120b7c69029846c637943bf5b33b2}{MmAllocateVirtualMemory}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00172}00172\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Process,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00173}00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}**)\&AllocBase,\ \textcolor{comment}{//\ Must\ be\ page\ aligned}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ OverflowSize,}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00175}00175\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73729ba75a7e933669e245858f35f83f}{Bss}}.\mbox{\hyperlink{struct___m_m___s_u_b_s_e_c_t_i_o_n_aecdfe477a7e2bb7157c9fe88282abcaa}{Protection}}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00176}00176\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00177}00177\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00178}00178\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00179}00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{vad_8c_a90515c7f40f457fe14ee26424cb9a9e9}{MmFreeVirtualMemory}}(Process,\ (\textcolor{keywordtype}{void}*)load\_base);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00180}00180\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ Cleanup;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00181}00181\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00182}00182\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00183}00183\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00184}00184\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00185}00185\ \ \ \ \ \textcolor{comment}{//\ The\ true\ base\ address\ is\ at\ load\_base}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00186}00186\ \ \ \ \ *BaseAddress\ =\ (\textcolor{keywordtype}{void}*)load\_base;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00187}00187\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00188}00188\ \ \ \ \ \textcolor{comment}{//\ Compute\ RIP\ based\ on\ where\ we\ actually\ loaded}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00189}00189\ \ \ \ \ uintptr\_t\ RipAddress\ =\ load\_base\ +\ Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a02635119ea9aa85932b43679857b6b4d}{EntryPointOffset}};}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00190}00190\ \ \ \ \ *EntryPointAddress\ =\ (\textcolor{keywordtype}{void}*)RipAddress;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00191}00191\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00192}00192\ Cleanup:}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00193}00193\ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Section);}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00194}00194\ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00195}00195\ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00196}00196\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00197}00197\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00198}\mbox{\hyperlink{section_8c_a3f894062f08e6619cc01283ae76e4f23}{00198}}\ \mbox{\hyperlink{section_8c_a3f894062f08e6619cc01283ae76e4f23}{MmpDeleteSection}}(}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00199}00199\ \ \ \ \ \textcolor{keywordtype}{void}*\ Object}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00200}00200\ )}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00201}00201\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00202}00202\ \ \ \ \ \mbox{\hyperlink{mm_8h_a3d2c440317d90b2f15952c41808958b6}{PMM\_SECTION}}\ Section\ =\ (\mbox{\hyperlink{mm_8h_a3d2c440317d90b2f15952c41808958b6}{PMM\_SECTION}})Object;}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00203}00203\ }
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00204}00204\ \ \ \ \ \textcolor{comment}{//\ Deref\ the\ file\ object\ if\ it\ exists.}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00205}00205\ \ \ \ \ \textcolor{keywordflow}{if}\ (Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73381050b726d3b2b4ea312bc2047ac9}{FileObject}})\ \{}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00206}00206\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Section-\/>\mbox{\hyperlink{struct___m_m___s_e_c_t_i_o_n_a73381050b726d3b2b4ea312bc2047ac9}{FileObject}});}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00207}00207\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{section_8c_source_l00208}00208\ \}}
+
+\end{DoxyCode}

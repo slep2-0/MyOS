@@ -1,0 +1,529 @@
+\doxysection{fault.\+c}
+\hypertarget{fault_8c_source}{}\label{fault_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/fault.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/fault.c}}
+\mbox{\hyperlink{fault_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ map.c}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ translation\ unit\ contains\ the\ implementation\ of\ access\ faults\ in\ the\ system.\ (page\ faults)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mm_8h}{../../includes/mm.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mh_8h}{../../includes/mh.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00021}00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00023}00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00024}00024\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00025}00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{fs_8h}{../../includes/fs.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00026}00026\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00027}00027\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00028}\mbox{\hyperlink{fault_8c_a11dcaf87aa4343d57b2e3230982626be}{00028}}\ \mbox{\hyperlink{fault_8c_a11dcaf87aa4343d57b2e3230982626be}{MmAccessFault}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00029}00029\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ uint64\_t\ FaultBits,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00030}00030\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ uint64\_t\ VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00031}00031\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{mm_8h_a77677400417c8f39bbed431515099ee7}{PRIVILEGE\_MODE}}\ PreviousMode,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00032}00032\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ TrapFrame}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00033}00033\ )}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00035}00035\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00036}00036\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00037}00037\ \textcolor{comment}{\ \ \ \ Routine\ description:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00038}00038\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00039}00039\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ is\ called\ by\ the\ kernel\ on\ data\ or\ instruction\ access\ faults.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00040}00040\ \textcolor{comment}{\ \ \ \ \ \ \ \ -\/\ The\ access\ fault\ was\ detected\ due\ to:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00041}00041\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ An\ Access\ Violation.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00042}00042\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ A\ PTE\ with\ the\ present\ bit\ clear.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00043}00043\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ A\ Valid\ PTE\ with\ the\ Dirty\ bit\ and\ a\ write\ operation.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00044}00044\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00045}00045\ \textcolor{comment}{\ \ \ \ \ \ \ \ Note\ that\ the\ page\ fault\ could\ occur\ because\ of\ the\ Page\ Directory\ contents\ as\ well.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00046}00046\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00047}00047\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ routine\ determines\ what\ type\ of\ fault\ it\ is\ and\ calls\ the\ appropriate\ routine\ to\ handle\ or\ write\ the\ page\ fault.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00048}00048\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00049}00049\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00050}00050\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00051}00051\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ FaultBits\ -\/\ The\ error\ code\ pushed\ by\ the\ CPU.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00052}00052\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ VirtualAddress\ -\/\ The\ Memory\ Address\ Referenced\ (CR2)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00053}00053\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ PreviousMode\ -\/\ Supplies\ the\ mode\ (kernel\ or\ user)\ where\ the\ fault\ occured.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00054}00054\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ \ \ \ TrapFrame\ -\/\ Trap\ information\ at\ fault.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00055}00055\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00056}00056\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00057}00057\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00058}00058\ \textcolor{comment}{\ \ \ \ \ \ \ \ MTSTATUS\ Code\ resulting\ in\ the\ status\ of\ fault\ handling\ operation.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00059}00059\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00060}00060\ \textcolor{comment}{\ \ \ \ \ \ \ \ Could\ be:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00061}00061\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ MT\_SUCCESS\ -\/-\/\ Fault\ handled,\ return.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00062}00062\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ MT\_ACCESS\_VIOLATION\ -\/-\/\ User\ mode\ only\ (or\ kernel\ mode\ probing).}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00063}00063\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ MT\_GUARD\_PAGE\_VIOLATION\ -\/-\/\ Bugchecks.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00064}00064\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00065}00065\ \textcolor{comment}{\ \ \ \ \ \ \ \ The\ function\ would\ bugcheck\ if\ an\ invalid\ kernel\ mode\ access\ occured\ (or\ in\ worst\ case,\ 0\ memory\ is\ available\ to\ fill\ the\ VAD\ of\ the\ user\ mode\ process,\ but\ I\ want\ to\ change\ it\ to\ sleep\ instead..)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00066}00066\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00067}00067\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00068}00068\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00069}00069\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00070}00070\ \ \ \ \ \textcolor{comment}{//\ Declarations}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00071}00071\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00072}00072\ \ \ \ \ \textcolor{comment}{//\ These\ are\ used\ when\ I'm\ debugging.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00073}00073\ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ ReferencedPml4e\ =\ \mbox{\hyperlink{map_8c_ab6a386341ec15bdefb039df9f137591a}{MiGetPml4ePointer}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ ReferencedPdpte\ =\ \mbox{\hyperlink{map_8c_a826ab4b40df93f18cec0248e95d3f813}{MiGetPdptePointer}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00075}00075\ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ ReferencedPde\ =\ \mbox{\hyperlink{map_8c_aac08743a17b8efc9e374ff5a4f577f51}{MiGetPdePointer}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ReferencedPml4e);\ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ReferencedPdpte);\ \mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{UNREFERENCED\_PARAMETER}}(ReferencedPde);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00077}00077\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00078}00078\ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ ReferencedPte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00079}00079\ \ \ \ \ \mbox{\hyperlink{mm_8h_a53d92b60aa3e347f792f78b5069c3f9c}{FAULT\_OPERATION}}\ OperationDone\ =\ \mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(FaultBits);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00080}00080\ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ PreviousIrql\ =\ \mbox{\hyperlink{me_8h_a6abf254a525b635b6dc210cd370536d1}{MeGetCurrentIrql}}();}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00082}00082\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00083}00083\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Inside\ MmAccessFault\ |\ FaultBits:\ \%llx\ |\ VirtualAddress:\ \%p\ |\ PreviousMode:\ \%d\ |\ TrapFrame-\/>rip:\ \%p\ |\ Operation:\ \%d\ |\ Irql:\ \%d\(\backslash\)n"{}},\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long})FaultBits,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)VirtualAddress,\ PreviousMode,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)TrapFrame-\/>rip,\ OperationDone,\ PreviousIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00084}00084\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00085}00085\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00086}00086\ \ \ \ \ \textcolor{keywordflow}{if}\ (!ReferencedPte)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00087}00087\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ cannot\ get\ the\ PTE\ for\ the\ VA,\ we\ raise\ access\ violation\ if\ its\ user\ mode,\ or\ bugcheck\ on\ kernel\ mode.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00088}00088\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousMode\ ==\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00089}00089\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00090}00090\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00092}00092\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Bugcheck\ here,\ operations\ in\ the\ Bugcheck\ label\ use\ the\ ReferencedPte\ pointer.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00093}00093\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00094}00094\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00095}00095\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00096}00096\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00097}00097\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00098}00098\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00099}00099\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00100}00100\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00101}00101\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00102}00102\ \ \ \ \ \textcolor{comment}{//\ If\ the\ VA\ given\ isn't\ canonical\ (sign\ extended\ after\ bit\ 47,\ required\ by\ CPU\ MMU\ Laws),\ we\ return\ or\ bugcheck\ depending\ on\ the\ previous\ mode.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00103}00103\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{mm_8h_a021d1e60380e8ed8a9f3e0a064c5c6c4}{MI\_IS\_CANONICAL\_ADDR}}(VirtualAddress))\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00104}00104\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00105}00105\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousMode\ ==\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00106}00106\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ User\ mode\ fault\ on\ non\ canonical\ address,\ not\ destructive.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00108}00108\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00109}00109\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00110}00110\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Kernel\ mode\ page\ fault\ on\ a\ non\ canonical\ address.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00111}00111\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00112}00112\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00113}00113\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00114}00114\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00115}00115\ \ \ \ \ \textcolor{comment}{//\ Check\ for\ NX.\ (NX\ on\ anywhere\ is\ invalid,\ no\ matter\ the\ range)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00116}00116\ \ \ \ \ \textcolor{keywordflow}{if}\ (OperationDone\ ==\ \mbox{\hyperlink{mm_8h_a9330a8c001ceddc2055fc34aa5434027a973fd1d901fbfe716e79dcba5ca86c73}{ExecuteOperation}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ if\ the\ page\ has\ NoExecute.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (ReferencedPte-\/>\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_af363462343b7717ae81a46cc4a8861ec}{NoExecute}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00119}00119\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Execution\ is\ disallowed.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousMode\ ==\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ UserMode\ executions\ get\ an\ access\ violation.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00125}00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ KernelMode\ violations\ are\ bugchecks.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00129}00129\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ page\ is\ executable\ allowed,\ we\ check\ if\ we\ demand\ allocate\ (of\ if\ it\ is\ a\ VAD\ for\ user\ mode)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00131}00131\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Previously\ it\ returned\ an\ access\ violation\ for\ every\ time\ we\ executed\ wrong\ in\ user\ mode,\ which\ was\ bad.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00132}00132\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00133}00133\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00134}00134\ \ \ \ \ \textcolor{comment}{//\ Now\ we\ check\ for\ each\ address\ in\ the\ system,\ and\ handle\ the\ request\ based\ on\ that.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00135}00135\ \ \ \ \ \textcolor{keywordflow}{if}\ (VirtualAddress\ >=\ \mbox{\hyperlink{process_8c_a31c9c1c3329977652467a6adbf5b77fc}{MmSystemRangeStart}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00136}00136\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousMode\ ==\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00137}00137\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ User\ mode\ access\ in\ kernel\ memory,\ invalid.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00140}00140\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_add9838789f7524d0e4f2c643ec0bd922}{MMPTE}}\ TempPte\ =\ *ReferencedPte;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00142}00142\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00143}00143\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ this\ is\ a\ guard\ page,\ we\ MUST\ NOT\ demand\ allocate\ it.\ (pre\ guard)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_acdb871789a1e4398874af8cb07987ef6}{Present}}\ ==\ 0\ \&\&\ TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_ae4ad6680a608da2e63b10b178cb391f2}{MI\_GUARD\_PAGE\_PROTECTION}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Guard\ pages\ for\ kernel\ mode\ do\ not\ raise\ an\ exception\ and\ fill\ in\ the\ PTE,\ this\ is\ only\ for\ user\ mode.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00146}00146\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00148}00148\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00149}00149\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PTE\ Is\ present,\ but\ we\ got\ a\ fault.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_acdb871789a1e4398874af8cb07987ef6}{Present}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Write\ fault\ to\ read-\/only\ memory.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00152}00152\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((OperationDone\ ==\ \mbox{\hyperlink{mm_8h_a9330a8c001ceddc2055fc34aa5434027add21b6eea4474ed034badc7873cd26c5}{WriteOperation}})\ \&\&\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_aada51a8feb2b4ddc762e29d2fd5ec12d}{Write}}\ ==\ 0))\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00153}00153\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00154}00154\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a17ceca6bf2b88671aeca330dabd66a13}{ATTEMPTED\_WRITE\_TO\_READONLY\_MEMORY}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00155}00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00156}00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)ReferencedPte,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ NULL,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00158}00158\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ NULL}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00161}00161\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ get\ here,\ it\ was\ an\ access/dirty\ update\ —\ set\ dirty\ bit\ if\ write}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (OperationDone\ ==\ \mbox{\hyperlink{mm_8h_a9330a8c001ceddc2055fc34aa5434027add21b6eea4474ed034badc7873cd26c5}{WriteOperation}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ dirty\ in\ PTE\ and,\ if\ needed,\ PFN-\/>Dirty}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Prefer\ an\ atomic\ update:\ build\ NewPte\ =\ TempPte;\ NewPte.Hard.Dirty\ =\ 1;\ WriteValidPteAtomic(...)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00166}00166\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_add9838789f7524d0e4f2c643ec0bd922}{MMPTE}}\ NewPte\ =\ TempPte;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00167}00167\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ NewPte.\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_a7ef88f60d3f8a185fad0ee172f14d4e0}{Dirty}}\ =\ 1;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00168}00168\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a1618030b695d70947df038219ea0e6d8}{MiAtomicExchangePte}}(ReferencedPte,\ NewPte.\mbox{\hyperlink{struct___m_m_p_t_e_ada66fd7d38f43cfb18938e8194b1952b}{Value}});}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00169}00169\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{map_8c_ae2b6d4075b0e93f28cd8adc57b890ce0}{MiInvalidateTlbForVa}}((\textcolor{keywordtype}{void}*)VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00170}00170\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00171}00171\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00172}00172\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00173}00173\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Before\ any\ demand\ allocation,\ check\ IRQL.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00175}00175\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousIrql\ >=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00176}00176\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ IRQL\ Isn't\ less\ than\ DISPATCH\_LEVEL,\ so\ we\ cannot\ lazily\ allocate,\ since\ it\ would\ **block**.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00177}00177\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00178}00178\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ae3e824eb536b02e7941e6545b6979fc7}{IRQL\_NOT\_LESS\_OR\_EQUAL}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00179}00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00180}00180\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)PreviousIrql,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00181}00181\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)OperationDone,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00182}00182\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00183}00183\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00184}00184\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00185}00185\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00186}00186\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00187}00187\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PTE\ Isn't\ present,\ check\ for\ demand\ allocations.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00188}00188\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mm_8h_ae2fcab27c6b0fe9c0e38ab9d4d793016}{MM\_IS\_DEMAND\_ZERO\_PTE}}(TempPte))\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00189}00189\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Allocate\ a\ physical\ page\ for\ kernel\ demand-\/zero}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00190}00190\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\_INDEX}}\ pfn\ =\ \mbox{\hyperlink{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff}{MiRequestPhysicalPage}}(\mbox{\hyperlink{mm_8h_a12462d873d8d81a717b5a7622091e998a26f8d58b053c67264f771e0e2dbdc38a}{PfnStateZeroed}});}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00191}00191\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pfn\ ==\ \mbox{\hyperlink{mm_8h_abf3344e78a4b4bc0810703dd2e119230}{PFN\_ERROR}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00192}00192\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out\ of\ memory.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00193}00193\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00194}00194\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00195}00195\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00196}00196\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ The\ page\ first\ of\ all\ must\ be\ a\ protection\ with\ readable.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00197}00197\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_af8460bcb012d3a8c5424f8dd81e01386}{PROT\_KERNEL\_READ}})\ ==\ 1,\ \textcolor{stringliteral}{"{}Read\ protection\ flag\ isnt\ set\ on\ a\ DEMAND\_ZERO\ pte."{}});}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00198}00198\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00199}00199\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_af8460bcb012d3a8c5424f8dd81e01386}{PROT\_KERNEL\_READ}})\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00200}00200\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Invalid\ DemandZero.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00201}00201\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00202}00202\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00203}00203\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ protection\ mask.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ ProtectionFlags\ =\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00206}00206\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a413eec26e92655609cf780e5cf1d075c}{PROT\_KERNEL\_WRITE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00207}00207\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a7985030323f9fdeae6fad62eafc5270c}{PROT\_KERNEL\_NOEXECUTE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ace8c9c443d247312df7cee44939b98e5}{PAGE\_NX}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00208}00208\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00209}00209\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Write\ the\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00210}00210\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(ReferencedPte,\ VirtualAddress,\ \mbox{\hyperlink{mm_8h_a78991932775ada0acbd8c80e96757954}{PPFN\_TO\_PHYSICAL\_ADDRESS}}(\mbox{\hyperlink{mm_8h_ad9b99c6be796a28588cd102246ddba8c}{INDEX\_TO\_PPFN}}(pfn)),\ ProtectionFlags);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00212}00212\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00213}00213\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00214}00214\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00215}00215\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PTE\ Isn't\ present,\ and\ its\ a\ transition\ (KERNEL\ MODE\ PATH)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00216}00216\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_acf5111b7da8f8cb23c5c850a092bf59a}{Transition}}\ ==\ 1)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00217}00217\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Retrieve\ the\ PFN\ Number\ written\ in\ the\ transition\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00218}00218\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\_INDEX}}\ pfn\ =\ TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_ac40a725796f2b1faa0035058f04b7586}{PageFrameNumber}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00219}00219\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{mm_8h_a35b290e88754f60274dc746d2387fd95}{MiIsValidPfn}}(pfn))\ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00220}00220\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00221}00221\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Acquire\ Standby\ PFN\ DB\ List\ lock.\ (acquiring\ spinlock\ is\ okay,\ IRQL\ detection\ was\ checked\ above)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00222}00222\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00223}00223\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ \&oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00224}00224\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00225}00225\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ the\ PFN,\ it\ has\ to\ be\ in\ the\ StandBy\ list\ and\ be\ equal\ to\ our\ PTE,\ if\ not,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00226}00226\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\_ENTRY}}\ PPfn\ =\ \mbox{\hyperlink{mm_8h_ad9b99c6be796a28588cd102246ddba8c}{INDEX\_TO\_PPFN}}(pfn);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00227}00227\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a9ac4c1f881137da2601ed5d333bb5989}{State}}\ !=\ \mbox{\hyperlink{mm_8h_a12462d873d8d81a717b5a7622091e998ac7ce2dd9565e07f38302f67305b7e869}{PfnStateStandby}}\ ||\ PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a118ffbb89a3a201c17eae8d00f9e70d7}{Descriptor}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a968216918d5ebf946c497a66564f1223}{Mapping}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_aaf1a5e1a132630fb917e3fc578d379cb}{PteAddress}}\ ==\ NULL\ ||\ PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a118ffbb89a3a201c17eae8d00f9e70d7}{Descriptor}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a968216918d5ebf946c497a66564f1223}{Mapping}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_aaf1a5e1a132630fb917e3fc578d379cb}{PteAddress}}\ !=\ ReferencedPte)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00228}00228\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ spinlock.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00229}00229\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00230}00230\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00231}00231\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00232}00232\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PFN\ Is\ matching\ to\ this\ pte,\ now\ we\ can\ set\ the\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00233}00233\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ protection\ mask.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00234}00234\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ ProtectionFlags\ =\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00235}00235\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a413eec26e92655609cf780e5cf1d075c}{PROT\_KERNEL\_WRITE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00236}00236\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a7985030323f9fdeae6fad62eafc5270c}{PROT\_KERNEL\_NOEXECUTE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ace8c9c443d247312df7cee44939b98e5}{PAGE\_NX}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00237}00237\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00238}00238\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ this\ PFN\ from\ the\ list.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00239}00239\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pfn_8c_a2c570a4f0e97fa11887df60d7a1b502d}{MiUnlinkPageFromList}}(PPfn);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00240}00240\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00241}00241\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Atomically\ set\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00242}00242\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(ReferencedPte,\ VirtualAddress,\ \mbox{\hyperlink{mm_8h_a0c126830e79f20f2bfa3f70b0c30bab4}{PFN\_TO\_PHYS}}(pfn),\ ProtectionFlags);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00243}00243\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00244}00244\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ PFN\ Standby\ list\ lock.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00245}00245\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00246}00246\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00247}00247\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Return\ success.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00248}00248\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00249}00249\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00250}00250\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00251}00251\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO\ GRAB\ FROM\ PAGEFILE}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00252}00252\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00253}00253\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Unknown\ PTE\ format\ -\/>\ bugcheck\ (kernel\ space)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00254}00254\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ BugCheck;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00255}00255\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00256}00256\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00257}00257\ \ \ \ \ \textcolor{comment}{//\ Address\ is\ below\ the\ kernel\ start,\ and\ above\ user\ address.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00258}00258\ \ \ \ \ \textcolor{comment}{//\ This\ if\ statement\ should\ never\ pass,\ since\ these\ addresses\ are\ non\ canonical,\ and\ the\ first\ if\ statement\ checks\ for\ a\ non\ canonical\ adddres.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00259}00259\ \ \ \ \ \textcolor{comment}{//\ basically\ kernel\ bloat\ at\ this\ point.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00260}00260\ \ \ \ \ \textcolor{comment}{//\ i\ removed\ it,\ bye\ bye.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00261}00261\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00262}00262\ \ \ \ \ \textcolor{comment}{//\ Address\ is\ in\ user\ range.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00263}00263\ \ \ \ \ \textcolor{comment}{//\ Both\ kernel\ and\ user\ mode\ are\ allowed\ to\ fault\ in\ here,\ guaranteeing\ there\ is\ a\ VAD\ backing\ it\ of\ course\ (and\ IRQL\ demands)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00264}00264\ \ \ \ \ \textcolor{comment}{//\ If\ kernel\ faulted\ and\ no\ vad\ (Irql\ is\ good),\ then\ we\ search\ for\ exception\ handlers\ in\ return,\ if\ none\ we\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00265}00265\ \ \ \ \ \textcolor{comment}{//\ If\ a\ user\ faulted\ and\ no\ vad\ (Irql\ is\ good),\ then\ we\ search\ for\ exception\ handlers\ in\ return,\ if\ none\ we\ terminate\ the\ thread.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00266}00266\ \ \ \ \ \textcolor{keywordflow}{if}\ (VirtualAddress\ <=\ \mbox{\hyperlink{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}{MmHighestUserAddress}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00267}00267\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Before\ any\ demand\ allocation,\ check\ IRQL.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00268}00268\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PreviousIrql\ >=\ \mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3ea291292740ec80ec0ff8e2a70c5bdfd6f}{DISPATCH\_LEVEL}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00269}00269\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ IRQL\ Isn't\ less\ than\ DISPATCH\_LEVEL,\ so\ we\ cannot\ lazily\ allocate,\ since\ it\ would\ **block**.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00270}00270\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00271}00271\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ae3e824eb536b02e7941e6545b6979fc7}{IRQL\_NOT\_LESS\_OR\_EQUAL}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00272}00272\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00273}00273\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)PreviousIrql,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00274}00274\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)OperationDone,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00275}00275\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00276}00276\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00277}00277\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00278}00278\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00279}00279\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Fault\ on\ a\ user\ address,\ we\ check\ if\ there\ is\ a\ vad\ for\ it,\ if\ so,\ allocate\ the\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00280}00280\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_ac818f9f725f779b224d93ab24d3a6fee}{PMMVAD}}\ vad\ =\ \mbox{\hyperlink{vad_8c_aa51b9d23857fa2c37ffc76b3523267d0}{MiFindVad}}(\mbox{\hyperlink{ps_8h_a1ad0a15fe3e79d2fd18f00bd361d1eef}{PsGetCurrentProcess}}(),\ VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00281}00281\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!vad)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};\ \textcolor{comment}{//\ If\ kernel\ mode\ exception\ dispatcher\ should\ catch.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00282}00282\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00283}00283\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ if\ we\ are\ allowed\ to\ allocate.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00284}00284\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a1b5809d168ceba0766cfe10ee8b46942}{Flags}}\ \&\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca4870629b3db283e5011a6eb10ad885d1}{VAD\_FLAG\_RESERVED}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00285}00285\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ if\ this\ is\ a\ guard\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00286}00286\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a1b5809d168ceba0766cfe10ee8b46942}{Flags}}\ \&\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca9cc5e46d1d2be9fc96ec8ec8ccc2624a}{VAD\_FLAG\_GUARD\_PAGE}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00287}00287\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Raise\ an\ guard\ page\ violation\ status\ and\ allocate\ the\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00288}00288\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//ExpRaiseStatus()\ TODO}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00289}00289\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a1b5809d168ceba0766cfe10ee8b46942}{Flags}}\ =\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caea0945f7ba6f617c48fa1d0767a51a4b}{VAD\_FLAG\_WRITE}}\ |\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91ca22ecf9cb9f89e6499098916eae1b3fba}{VAD\_FLAG\_READ}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00290}00290\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00291}00291\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00292}00292\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00293}00293\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Allocation\ is\ forbidden,\ return\ access\ violation.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00294}00294\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00295}00295\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00296}00296\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00297}00297\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00298}00298\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_add9838789f7524d0e4f2c643ec0bd922}{MMPTE}}\ TempPte\ =\ *ReferencedPte;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00299}00299\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00300}00300\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ check\ for\ transition\ PTE\ (after\ checking\ reserved\ vad\ flag)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00301}00301\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PTE\ Isn't\ present,\ and\ its\ a\ transition\ (USER\ MODE\ PATH)\ (ACCESS\ VIOLATION\ RETURN)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00302}00302\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ the\ previous\ mode\ is\ kernel\ mode\ and\ an\ access\ violation\ is\ returned,\ KMODE\_EXCEPTION\_NOT\_HANDLED\ bugcheck\ comes}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00303}00303\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ unless\ the\ kernel\ has\ a\ try\ except\ handler\ set\ in\ the\ VA\ (checked\ in\ return\ path)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00304}00304\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_acf5111b7da8f8cb23c5c850a092bf59a}{Transition}}\ ==\ 1)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00305}00305\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Retrieve\ the\ PFN\ Number\ written\ in\ the\ transition\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00306}00306\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\_INDEX}}\ pfn\ =\ TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_ac40a725796f2b1faa0035058f04b7586}{PageFrameNumber}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00307}00307\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{mm_8h_a35b290e88754f60274dc746d2387fd95}{MiIsValidPfn}}(pfn))\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00308}00308\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00309}00309\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Acquire\ Standby\ PFN\ DB\ List\ lock.\ (acquiring\ spinlock\ is\ okay,\ IRQL\ detection\ was\ checked\ above)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00310}00310\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00311}00311\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_a1efc92e3aa7c8ab17da8a844bb9fd129}{MsAcquireSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ \&oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00312}00312\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00313}00313\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ the\ PFN,\ it\ has\ to\ be\ in\ the\ StandBy\ list\ and\ be\ equal\ to\ our\ PTE,\ if\ not,\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00314}00314\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_add4af0c873a7e9aa078742eac12b1879}{PPFN\_ENTRY}}\ PPfn\ =\ \mbox{\hyperlink{mm_8h_ad9b99c6be796a28588cd102246ddba8c}{INDEX\_TO\_PPFN}}(pfn);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00315}00315\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a9ac4c1f881137da2601ed5d333bb5989}{State}}\ !=\ \mbox{\hyperlink{mm_8h_a12462d873d8d81a717b5a7622091e998ac7ce2dd9565e07f38302f67305b7e869}{PfnStateStandby}}\ ||\ PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a118ffbb89a3a201c17eae8d00f9e70d7}{Descriptor}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a968216918d5ebf946c497a66564f1223}{Mapping}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_aaf1a5e1a132630fb917e3fc578d379cb}{PteAddress}}\ ==\ NULL\ ||\ PPfn-\/>\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a118ffbb89a3a201c17eae8d00f9e70d7}{Descriptor}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_a968216918d5ebf946c497a66564f1223}{Mapping}}.\mbox{\hyperlink{struct___p_f_n___e_n_t_r_y_aaf1a5e1a132630fb917e3fc578d379cb}{PteAddress}}\ !=\ ReferencedPte)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00316}00316\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ spinlock.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00317}00317\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00318}00318\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00319}00319\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00320}00320\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00321}00321\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ PFN\ Is\ matching\ to\ this\ pte,\ now\ we\ can\ set\ the\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00322}00322\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ protection\ mask.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00323}00323\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ ProtectionFlags\ =\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00324}00324\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00325}00325\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Writable}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00326}00326\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a413eec26e92655609cf780e5cf1d075c}{PROT\_KERNEL\_WRITE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00327}00327\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00328}00328\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ User\ accessible.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00329}00329\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a83cba0e8c2680fe20dff8dd7e4e54a5f}{PROT\_KERNEL\_USER}})\ !=\ 0);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00330}00330\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a83cba0e8c2680fe20dff8dd7e4e54a5f}{PROT\_KERNEL\_USER}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a95fc312a8636805454c8ff4f8b872042}{PAGE\_USER}}\ :\ 0;\ \textcolor{comment}{//\ This\ should\ always\ be\ valid\ for\ user\ mode\ paths.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00331}00331\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00332}00332\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NoExecute.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00333}00333\ \ \ \ \ \ \ \ \ \ \ \ \ ProtectionFlags\ |=\ (TempPte.\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_a7985030323f9fdeae6fad62eafc5270c}{PROT\_KERNEL\_NOEXECUTE}})\ ?\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ace8c9c443d247312df7cee44939b98e5}{PAGE\_NX}}\ :\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00334}00334\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00335}00335\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ this\ PFN\ from\ the\ list.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00336}00336\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pfn_8c_a2c570a4f0e97fa11887df60d7a1b502d}{MiUnlinkPageFromList}}(PPfn);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00337}00337\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00338}00338\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Atomically\ set\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00339}00339\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(ReferencedPte,\ VirtualAddress,\ \mbox{\hyperlink{mm_8h_a0c126830e79f20f2bfa3f70b0c30bab4}{PFN\_TO\_PHYS}}(pfn),\ ProtectionFlags);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00340}00340\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00341}00341\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Release\ PFN\ Standby\ list\ lock.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00342}00342\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{spinlock_8c_ac938b07a766c2e0f5c701f2264e46918}{MsReleaseSpinlock}}(\&\mbox{\hyperlink{pfn_8c_a838d2043c92e3267897ecdf7abe262f6}{PfnDatabase}}.StandbyPageList.PfnListLock,\ oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00343}00343\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00344}00344\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Return\ success.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00345}00345\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00346}00346\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00347}00347\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00348}00348\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Set\ to\ base\ values.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00349}00349\ \ \ \ \ \ \ \ \ uint64\_t\ PteFlags\ =\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ac5ccf22183fd81d4268d6eb4f3bad604}{PAGE\_PRESENT}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ace8c9c443d247312df7cee44939b98e5}{PAGE\_NX}}\ |\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a95fc312a8636805454c8ff4f8b872042}{PAGE\_USER}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00350}00350\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00351}00351\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Apply\ flags.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00352}00352\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a1b5809d168ceba0766cfe10ee8b46942}{Flags}}\ \&\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91caea0945f7ba6f617c48fa1d0767a51a4b}{VAD\_FLAG\_WRITE}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00353}00353\ \ \ \ \ \ \ \ \ \ \ \ \ PteFlags\ |=\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0a0e92aa1b5476d7f05fbdf6fe3acfeed6}{PAGE\_RW}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00354}00354\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00355}00355\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00356}00356\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a1b5809d168ceba0766cfe10ee8b46942}{Flags}}\ \&\ \mbox{\hyperlink{mm_8h_a36cace3c811aa394d169dd55e644c91cadb61bb2c94a1fa8d69ff6fea05d75a87}{VAD\_FLAG\_EXECUTE}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00357}00357\ \ \ \ \ \ \ \ \ \ \ \ \ PteFlags\ \&=\ \mbox{\hyperlink{mm_8h_a00a91f63329e5c0511b76df1ce7884b0ace8c9c443d247312df7cee44939b98e5}{\string~PAGE\_NX}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00358}00358\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00359}00359\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00360}00360\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00361}00361\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO\ COPY\ ON\ WRITE!!}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00362}00362\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00363}00363\ \textcolor{comment}{\ \ \ \ \ \ \ \ if\ (vad-\/>Flags\ \&\ VAD\_FLAG\_COPY\_ON\_WRITE)\ \{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00364}00364\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ //\ Copy\ the\ physical\ address\ to\ the\ COW\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00365}00365\ \textcolor{comment}{\ \ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00366}00366\ \textcolor{comment}{\ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00367}00367\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00368}00368\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Looks\ like\ we\ have\ a\ valid\ vad,\ lets\ allocate.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00369}00369\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7ce93fd02781ab3e20db6b11d7e28395}{PAGE\_INDEX}}\ pfn\ =\ \mbox{\hyperlink{pfn_8c_a09e1bd69ed2aaa499051fddb5e1b94ff}{MiRequestPhysicalPage}}(\mbox{\hyperlink{mm_8h_a12462d873d8d81a717b5a7622091e998a26f8d58b053c67264f771e0e2dbdc38a}{PfnStateZeroed}});}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00370}00370\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00371}00371\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pfn\ ==\ \mbox{\hyperlink{mm_8h_abf3344e78a4b4bc0810703dd2e119230}{PFN\_ERROR}})\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00372}00372\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00373}00373\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Acquire\ the\ PTE\ for\ the\ faulty\ VA.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00374}00374\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a58b57de8cb1ef44a0f90f7f6e82f4b17}{PMMPTE}}\ pte\ =\ \mbox{\hyperlink{map_8c_ae02125d7ba25e59d4034251153f86492}{MiGetPtePointer}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00375}00375\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00376}00376\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ we\ check\ if\ the\ VAD\ has\ any\ file\ attached\ to\ it,\ if\ it\ does,\ we\ copy\ the\ contents\ of\ the\ file\ to\ the\ RAM}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00377}00377\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ could\ be\ a\ process\ file\ (executable,\ dll),\ or\ even\ our\ pagefile.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00378}00378\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_aab9d14ca74c6db1a8fa4a9c634bd52eb}{File}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00379}00379\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calculate\ file\ offset\ to\ load\ into\ VAD.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00380}00380\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ AlignedAddress\ =\ (uint64\_t)\mbox{\hyperlink{mm_8h_aa02188de52b66a3aa5e1aecc6bd963ae}{PAGE\_ALIGN}}(VirtualAddress);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00381}00381\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ PageOffsetWithinVad\ =\ AlignedAddress\ -\/\ (uint64\_t)vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_a7bbb230e85e9f58ec7434055aa6f7778}{StartVa}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00382}00382\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ ActualFileOffset\ =\ vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_aa42dc16c5ee4d9e3e521acde5bd7726e}{FileOffset}}\ +\ PageOffsetWithinVad;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00383}00383\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00384}00384\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Determine\ how\ many\ bytes\ to\ read\ from\ file\ to\ the\ page.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00385}00385\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject\ =\ vad-\/>\mbox{\hyperlink{struct___m_m_v_a_d_aab9d14ca74c6db1a8fa4a9c634bd52eb}{File}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00386}00386\ \ \ \ \ \ \ \ \ \ \ \ \ uint64\_t\ FileLength\ =\ FileObject-\/>\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a9587fc87c13f73c07a3e9c5dd61698e1}{FileSize}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00387}00387\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ ToRead\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00388}00388\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00389}00389\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (ActualFileOffset\ <\ FileLength)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00390}00390\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ToRead\ =\ (size\_t)\mbox{\hyperlink{macros_8h_a3acffbd305ee72dcd4593c0d8af64a4f}{MIN}}((uint64\_t)\mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}},\ FileLength\ -\/\ ActualFileOffset);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00391}00391\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00392}00392\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00393}00393\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ToRead\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00394}00394\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00395}00395\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00396}00396\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Allocate\ enough\ buffer\ size\ to\ hold\ the\ file.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00397}00397\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ Tmp\ =\ \mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}},\ \textcolor{stringliteral}{'Fpmt'});\ \textcolor{comment}{//\ tmpF\ -\/\ Temporary\ Fault}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00398}00398\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!Tmp)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00399}00399\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00400}00400\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Read\ the\ file\ now.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00401}00401\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (ToRead\ >\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00402}00402\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status\ =\ \mbox{\hyperlink{vfs_8c_a466e424d556a0a662d6c0beb0f3e4b86}{FsReadFile}}(FileObject,\ ActualFileOffset,\ Tmp,\ ToRead,\ NULL);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00403}00403\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00404}00404\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748}{MmFreePool}}(Tmp);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00405}00405\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00406}00406\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00407}00407\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00408}00408\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00409}00409\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOTE:\ Is\ this\ really\ needed?\ Pool\ allocations\ are\ zeroed,\ and\ we\ used\ a\ PfnStateZeroed\ phys\ page\ up\ top.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00410}00410\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (ToRead\ <\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00411}00411\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ zero\ the\ rest\ of\ the\ page}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00412}00412\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a7d9455da4f2ec94a98286a19e7d8e39d}{kmemset}}((uint8\_t*)Tmp\ +\ ToRead,\ 0,\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}}\ -\/\ ToRead);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00413}00413\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00414}00414\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00415}00415\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Copy\ data\ from\ the\ file\ to\ the\ new\ user\ Page}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00416}00416\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ must\ not\ access\ the\ virtual\ address,\ as\ if\ this\ is\ a\ page\ without\ write\ access,\ we\ would\ fault\ (like\ the\ .text\ section)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00417}00417\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Speaking\ from\ exprience\ btw.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00418}00418\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ So\ we\ operate\ on\ the\ physical\ address.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00419}00419\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ should\ be\ IRQL\ fine,\ since\ we\ filtered\ dispatch\ and\ above,\ above.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00420}00420\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ As\ well\ as\ performed\ the\ read\ operation\ in\ PASSIVE\_LEVEL\ (or\ APC)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00421}00421\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_a7258ea91cea6c1c174df48f6225ef4da}{IRQL}}\ oldIrql;}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00422}00422\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ AddressToOperate\ =\ \mbox{\hyperlink{hypermap_8c_a9e3de9aacb781db1acf2815ec071f30e}{MiMapPageInHyperspace}}(pfn,\ \&oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00423}00423\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_a6630c639a0df46de61c0bcde4097890d}{kmemcpy}}(AddressToOperate,\ Tmp,\ \mbox{\hyperlink{mm_8h_acf0ee72c65911c54a418ccefba70ee77}{VirtualPageSize}});}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00424}00424\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{hypermap_8c_ad57ae3b2e037c15c00dfe55b252e7fc8}{MiUnmapHyperSpaceMap}}(oldIrql);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00425}00425\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00426}00426\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00427}00427\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Write\ the\ PTE.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00428}00428\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mm_8h_adc67d797a4f0738b7e8b651af8bdfd71}{MI\_WRITE\_PTE}}(pte,\ VirtualAddress,\ \mbox{\hyperlink{mm_8h_a0c126830e79f20f2bfa3f70b0c30bab4}{PFN\_TO\_PHYS}}(pfn),\ PteFlags);}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00429}00429\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00430}00430\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Return\ success.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00431}00431\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00432}00432\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00433}00433\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00434}00434\ \ \ \ \ \textcolor{comment}{//\ Address,\ is,\ what...\ impossible!}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00435}00435\ \ \ \ \ \textcolor{comment}{//\ This\ comment\ means\ execution\ is\ impossible\ to\ reach\ here,\ as\ we\ sanitized\ all\ (valid)\ addresses\ in\ the\ 48bit\ paging\ hierarchy.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00436}00436\ \ \ \ \ \textcolor{comment}{//\ If\ it\ does\ reach\ here,\ look\ below.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00437}00437\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00438}00438\ BugCheck:}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00439}00439\ \ \ \ \ \textcolor{comment}{//\ Bugchecks\ for:\ IRQL\_NOT\_LESS\_OR\_EQUAL\ or\ ATTEMPTED\_WRITE\_TO\_READONLY\_MEMORY\ are\ handled\ above.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00440}00440\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00441}00441\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ its\ a\ NoExecute\ page\ violation}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00442}00442\ \ \ \ \ \textcolor{keywordflow}{if}\ (ReferencedPte-\/>\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_acdb871789a1e4398874af8cb07987ef6}{Present}}\ \&\&\ ReferencedPte-\/>\mbox{\hyperlink{struct___m_m_p_t_e_a42f06b61b2dd8128f546b87e48632889}{Hard}}.\mbox{\hyperlink{struct___m_m_p_t_e_af363462343b7717ae81a46cc4a8861ec}{NoExecute}}\ \&\&\ OperationDone\ ==\ \mbox{\hyperlink{mm_8h_a9330a8c001ceddc2055fc34aa5434027a973fd1d901fbfe716e79dcba5ca86c73}{ExecuteOperation}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00443}00443\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00444}00444\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ada502507da627dc433750c4e4ec694e1}{ATTEMPTED\_EXECUTE\_OF\_NOEXECUTE\_MEMORY}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00445}00445\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00446}00446\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00447}00447\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00448}00448\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00449}00449\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00450}00450\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00451}00451\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00452}00452\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ its\ a\ guard\ page\ violation}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00453}00453\ \ \ \ \ \textcolor{keywordflow}{if}\ (ReferencedPte-\/>\mbox{\hyperlink{struct___m_m_p_t_e_af9258ac012793b393dcbc5c535abc042}{Soft}}.\mbox{\hyperlink{struct___m_m_p_t_e_af42b3ff837f89f0f868ea00b8819cb4c}{SoftwareFlags}}\ \&\ \mbox{\hyperlink{mm_8h_ae4ad6680a608da2e63b10b178cb391f2}{MI\_GUARD\_PAGE\_PROTECTION}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00454}00454\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00455}00455\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a36c500816de76b4a091c50a838de8bfc}{GUARD\_PAGE\_DEREFERENCE}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00456}00456\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00457}00457\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00458}00458\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00459}00459\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00460}00460\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00461}00461\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00462}00462\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00463}00463\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ its\ a\ pool\ dereference\ (NonPagedPool\ first)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00464}00464\ \ \ \ \ \textcolor{keywordflow}{if}\ (VirtualAddress\ >=\ \mbox{\hyperlink{pool_8c_a167345c073ad2870a9c535ae05b42a6c}{MmNonPagedPoolStart}}\ \&\&\ VirtualAddress\ <=\ \mbox{\hyperlink{pool_8c_a06958d3a08ad9a0333993918819978b8}{MmNonPagedPoolEnd}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00465}00465\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00466}00466\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a2dcee0367e279d7e22c6aa64b7c94d7c}{PAGE\_FAULT\_IN\_FREED\_NONPAGED\_POOL}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00467}00467\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00468}00468\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00469}00469\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00470}00470\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00471}00471\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00472}00472\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00473}00473\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00474}00474\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ Paged\ Pool\ Dereference.\ (the\ IRQL\_NOT\_LESS\_OR\_EQUAL\ bugcheck\ is\ up\ top)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00475}00475\ \ \ \ \ \textcolor{keywordflow}{if}\ (VirtualAddress\ >=\ \mbox{\hyperlink{pool_8c_ac1a426153d364925600366b61092bc86}{MmPagedPoolStart}}\ \&\&\ VirtualAddress\ <=\ \mbox{\hyperlink{pool_8c_acb7eccaaa7f68d8904d713eeadebafdf}{MmPagedPoolEnd}})\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00476}00476\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00477}00477\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ac06f16d5551cb1e4fdd318c61548c35b}{PAGE\_FAULT\_IN\_FREED\_PAGED\_POOL}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00478}00478\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00479}00479\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00480}00480\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00481}00481\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00482}00482\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00483}00483\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00484}00484\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00485}00485\ \ \ \ \ \textcolor{comment}{//\ Normal\ page\ fault.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00486}00486\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00487}00487\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a2db740fb6a5417e1647960fb0f8a3a33}{PAGE\_FAULT}},}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00488}00488\ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)VirtualAddress,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00489}00489\ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)\mbox{\hyperlink{mm_8h_a641e09ef0eab1d6a905b9980d3ee5ba7}{MiRetrieveOperationFromErrorCode}}(TrapFrame-\/>error\_code),}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00490}00490\ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)TrapFrame-\/>rip,}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00491}00491\ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)FaultBits}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00492}00492\ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00493}00493\ \}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00494}00494\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00495}00495\ \textcolor{keywordtype}{bool}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00496}\mbox{\hyperlink{fault_8c_a30572888b6bb3047884dc69af557c939}{00496}}\ \mbox{\hyperlink{fault_8c_a30572888b6bb3047884dc69af557c939}{MmInvalidAccessAllowed}}(}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00497}00497\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00498}00498\ )}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00499}00499\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00500}00500\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00501}00501\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00502}00502\ \textcolor{comment}{\ \ \ \ Routine\ description:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00503}00503\ \textcolor{comment}{\ \ \ \ \ \ \ \ (UNUSED,\ ALWAYS\ FALSE)}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00504}00504\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ determines\ if\ invalid\ access\ (e.g,\ a\ null\ pointer\ dereference),\ is\ allowed\ within\ the\ current\ context.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00505}00505\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00506}00506\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00507}00507\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00508}00508\ \textcolor{comment}{\ \ \ \ \ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00509}00509\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00510}00510\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00511}00511\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00512}00512\ \textcolor{comment}{\ \ \ \ \ \ \ \ True\ if\ invalid\ access\ is\ allowed,\ false\ otherwise.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00513}00513\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00514}00514\ \textcolor{comment}{\ \ \ \ Notes:}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00515}00515\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00516}00516\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ routine\ is\ unused,\ but\ will\ be\ kept\ for\ future\ modifications\ if\ any.}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00517}00517\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00518}00518\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00519}00519\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00520}00520\ }
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00521}00521\ \{}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00522}00522\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{fault_8c_source_l00523}00523\ \}}
+
+\end{DoxyCode}

@@ -1,0 +1,84 @@
+\doxysection{ap\+\_\+main.\+c}
+\hypertarget{ap__main_8c_source}{}\label{ap__main_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/ap\_main.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mh/ap\_main.c}}
+\mbox{\hyperlink{ap__main_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mh_8h}{../../includes/mh.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00002}00002\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00003}00003\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00004}00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00005}00005\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00006}00006\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{mh_8h_a87e63255f41a0a5082f8b92b6cf16591}{SMP\_BOOTINFO}}\ \mbox{\hyperlink{ap__main_8c_acb583a197d96c0eb214171893f360e85}{bootInfo}};}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00007}00007\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_a6fa207f6d561311e0944cd7f47a2bcb4}{PROCESSOR}}\ \mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[];}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00009}00009\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{mh_8h_a0ccfaed6d3c9f76c4914c0174260953c}{IDT\_PTR}}\ \mbox{\hyperlink{meinit_8c_a4fe5cc9425d0e9819e5a3e3b55d29ae7}{PIDT}};}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00011}00011\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint64\_t\ build\_seg(uint32\_t\ base,\ uint32\_t\ limit,\ uint8\_t\ access,\ uint8\_t\ gran)\ \{}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00012}00012\ \ \ \ \ uint64\_t\ desc\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00013}00013\ \ \ \ \ desc\ =\ (limit\ \&\ 0xFFFFull);}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00014}00014\ \ \ \ \ desc\ |=\ (uint64\_t)(base\ \&\ 0xFFFFull)\ <<\ 16;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00015}00015\ \ \ \ \ desc\ |=\ (uint64\_t)((base\ >>\ 16)\ \&\ 0xFFull)\ <<\ 32;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00016}00016\ \ \ \ \ desc\ |=\ (uint64\_t)access\ <<\ 40;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00017}00017\ \ \ \ \ uint8\_t\ gran\_byte\ =\ (uint8\_t)(((limit\ >>\ 16)\ \&\ 0x0Fu)\ |\ (gran\ \&\ 0xF0u));}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00018}00018\ \ \ \ \ desc\ |=\ (uint64\_t)gran\_byte\ <<\ 48;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00019}00019\ \ \ \ \ desc\ |=\ (uint64\_t)((base\ >>\ 24)\ \&\ 0xFFull)\ <<\ 56;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00020}00020\ \ \ \ \ \textcolor{keywordflow}{return}\ desc;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00021}00021\ \}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00023}00023\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ uint8\_t\ get\_initial\_apic\_id(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00024}00024\ \ \ \ \ uint32\_t\ eax,\ ebx,\ ecx,\ edx;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00026}00026\ \ \ \ \ \textcolor{comment}{//\ When\ EAX=1,\ CPUID\ returns\ processor\ info.}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00027}00027\ \ \ \ \ \textcolor{comment}{//\ The\ initial\ APIC\ ID\ is\ in\ bits\ 31-\/24\ of\ the\ EBX\ register.}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00028}00028\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}cpuid"{}}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00029}00029\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=a"{}}(eax),\ \textcolor{stringliteral}{"{}=b"{}}(ebx),\ \textcolor{stringliteral}{"{}=c"{}}(ecx),\ \textcolor{stringliteral}{"{}=d"{}}(edx)}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00030}00030\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}a"{}}(1),\ \textcolor{stringliteral}{"{}c"{}}(0));}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00032}00032\ \ \ \ \ \textcolor{keywordflow}{return}\ (uint8\_t)(ebx\ >>\ 24);}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00033}00033\ \}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00035}\mbox{\hyperlink{ap__main_8c_a2049adf962aa0a1fc2190ca06bc39efa}{00035}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{ap__main_8c_a2049adf962aa0a1fc2190ca06bc39efa}{APMain}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00036}00036\ \ \ \ \ \textcolor{comment}{//\ First,\ setup\ the\ GDT\&TSS,\ then\ IDT.}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00037}00037\ \ \ \ \ \textcolor{keywordtype}{int}\ idx\ =\ -\/1;}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00038}00038\ \ \ \ \ \textcolor{comment}{//\ early\ map\ lapic\ mmio\ (lapic\_init\_cpu\ maps\ it).}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00039}00039\ \ \ \ \ uint8\_t\ \textcolor{keywordtype}{id}\ =\ get\_initial\_apic\_id();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00041}00041\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ (int)\mbox{\hyperlink{ap__main_8c_acb583a197d96c0eb214171893f360e85}{bootInfo}}.cpu\_count\ \&\&\ i\ <\ \mbox{\hyperlink{mh_8h_a87cbc7cff225b4ad63d67d47c21f933f}{MAX\_CPUS}};\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00042}00042\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[i].lapic\_ID\ ==\ \textcolor{keywordtype}{id})\ \{\ idx\ =\ i;\ \textcolor{keywordflow}{break};\ \}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00043}00043\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00045}00045\ \ \ \ \ \textcolor{keywordflow}{if}\ (idx\ <\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00046}00046\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\textcolor{keyword}{false},\ \textcolor{stringliteral}{"{}All\ APs\ must\ be\ initialized\ fully\ and\ successfully."{}});}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00047}00047\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}**Fatal\ error,\ AP\ Failed\ to\ initialize,\ index\ below\ 0.**\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00048}00048\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00049}00049\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00050}00050\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_aca24136529d67d645af8234fafc2371d}{IA32\_GS\_BASE}},\ (uint64\_t)\&\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[idx]);}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00052}00052\ \ \ \ \ \textcolor{comment}{//\ Self\ invalidate\ all\ TLBs}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00053}00053\ \ \ \ \ \mbox{\hyperlink{intrin_8h_ac8ff7db1c624708409696db48e2378a8}{\_\_write\_cr3}}(\mbox{\hyperlink{intrin_8h_af84468b325aa2ddc225df1b06b4a467b}{\_\_read\_cr3}}());}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00055}00055\ \ \ \ \ \textcolor{comment}{//\ Now\ setup\ the\ IDT\ for\ the\ CPU.\ (load\ the\ one\ setupped\ by\ the\ smp\ func)}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00056}00056\ \ \ \ \ \mbox{\hyperlink{intrin_8h_adaaec11c753dc2ee18853075fd11e66f}{\_\_lidt}}(\&\mbox{\hyperlink{meinit_8c_a4fe5cc9425d0e9819e5a3e3b55d29ae7}{PIDT}});}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00058}00058\ \ \ \ \ \textcolor{comment}{//\ Initiate\ per\ cpu\ functions.}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00059}00059\ \ \ \ \ \mbox{\hyperlink{meinit_8c_aad9a7c5e27394530e661691231d854ae}{MeInitializeProcessor}}(\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}(),\ \textcolor{keyword}{true},\ \textcolor{keyword}{true});}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00060}00060\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00061}00061\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ MM\ For\ current\ core\ (init\ PAT)}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00062}00062\ \ \ \ \ \mbox{\hyperlink{mminit_8c_ab78f76010e4e8efa1b2817b67d54d4eb}{MmInitSystem}}(\mbox{\hyperlink{mm_8h_a30f20bd27b174a3c13e20ef088c79c0ea2e01eedb2e51e1eff7110c047d3694aa}{SYSTEM\_PHASE\_INITIALIZE\_PAT\_ONLY}},\ NULL);}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00063}00063\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00064}00064\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ idle\ thread.}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00065}00065\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_aeeccb93d922e4fb825916b6ca880ec10}{InitScheduler}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00067}00067\ \ \ \ \ \textcolor{comment}{//\ mark\ as\ online\ and\ clear\ being\ unavailable}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00068}00068\ \ \ \ \ \mbox{\hyperlink{atomic_8h_afe9956d78545cd7f65642c4b40688593}{InterlockedOrU64}}(\&\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[idx].\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}},\ \mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbba0ae94dbb8647204b1d3989163dbe4a80}{CPU\_ONLINE}});\ }
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00069}00069\ \ \ \ \ \mbox{\hyperlink{atomic_8h_a2cc78e18e91ef71b18aaa79d4121931b}{InterlockedAndU64}}(\&\mbox{\hyperlink{scheduler_8c_ac24e31b8d07b5cf87d838a2cd1c4347f}{cpus}}[idx].\mbox{\hyperlink{mh_8h_a773b39d480759f67926cb18ae2219281}{flags}},\ \string~\mbox{\hyperlink{me_8h_ae73b62a9efe9128bc2387b5843f39cbba7f7748e86db94f2250e55d25134ed791}{CPU\_UNAVAILABLE}});\ \ \ \textcolor{comment}{//\ clear\ unavailable}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00070}00070\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_aef75f616b9a3fdb10d38395dfb996873}{COLOR\_ORANGE}},\ \textcolor{stringliteral}{"{}**Hello\ From\ AP\ CPU!\ -\/\ I'm\ ID:\ \%d\ |\ StackTop:\ \%p\ |\ CPU\ Ptr:\ \%p**\(\backslash\)n"{}},\ \textcolor{keywordtype}{id},\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>VirtStackTop,\ \mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}());}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00071}00071\ \ \ \ \ \textcolor{comment}{//\ enable\ interupts,\ initiate\ timer\ and\ join\ scheduler\ queue}}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00072}00072\ \ \ \ \ \mbox{\hyperlink{apic_8c_a91d3fbf4f7264d3456d0ca88f0b54a08}{lapic\_init\_cpu}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00073}00073\ \ \ \ \ \mbox{\hyperlink{apic_8c_ac7b59a78aea266f1c387e64bcae6cc51}{lapic\_enable}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00074}00074\ \ \ \ \ \mbox{\hyperlink{apic_8c_a1e4c2eac6f54346ca8dd087e24ff420c}{init\_lapic\_timer}}(100);}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00075}00075\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00077}00077\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}();}
+\DoxyCodeLine{\Hypertarget{ap__main_8c_source_l00078}00078\ \}}
+
+\end{DoxyCode}

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: FS_DRIVER Struct Reference</title>
+<title>kernel: FS_DRIVER Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -93,37 +92,85 @@ $(function(){initNavTree('struct_f_s___d_r_i_v_e_r.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p><code>#include &lt;<a class="el" href="vfs_8h_source.html">vfs.h</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="fs_8h_source.html">fs.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a9568163230f1d9237005fca89075407e" id="r_a9568163230f1d9237005fca89075407e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9568163230f1d9237005fca89075407e">init</a> )(uint8_t device_id)</td></tr>
-<tr class="memitem:a7d91e2014ae0125796d218f1d69f64b4" id="r_a7d91e2014ae0125796d218f1d69f64b4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7d91e2014ae0125796d218f1d69f64b4">read</a> )(const char *filename, uint32_t *file_size_out, void **buffer_out)</td></tr>
-<tr class="memitem:a257088fbff20f27c09ddf5dcb4c51ae9" id="r_a257088fbff20f27c09ddf5dcb4c51ae9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a257088fbff20f27c09ddf5dcb4c51ae9">write</a> )(const char *path, const void *data, uint32_t size, uint32_t mode)</td></tr>
-<tr class="memitem:ab200706357671e660cf4573b244e0c61" id="r_ab200706357671e660cf4573b244e0c61"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab200706357671e660cf4573b244e0c61">delete</a> )(const char *path)</td></tr>
-<tr class="memitem:ac8be1a3c787a5acba0e472a3b280227f" id="r_ac8be1a3c787a5acba0e472a3b280227f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac8be1a3c787a5acba0e472a3b280227f">mkdir</a> )(const char *path)</td></tr>
-<tr class="memitem:ae1da9f76fe84650a05bacff43b1b043b" id="r_ae1da9f76fe84650a05bacff43b1b043b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae1da9f76fe84650a05bacff43b1b043b">rmdir</a> )(const char *path)</td></tr>
-<tr class="memitem:a75da2be37f7eac789050e4fde864c13f" id="r_a75da2be37f7eac789050e4fde864c13f"><td class="memItemLeft" align="right" valign="top">bool(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a75da2be37f7eac789050e4fde864c13f">is_dir_empty</a> )(const char *path)</td></tr>
-<tr class="memitem:a9876abc4824c35c5c9e83b304dd93add" id="r_a9876abc4824c35c5c9e83b304dd93add"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9876abc4824c35c5c9e83b304dd93add">listdir</a> )(const char *path, char *listings, size_t max_len)</td></tr>
-<tr class="memitem:ab13487ae751641e00ee1dce372c71a7a" id="r_ab13487ae751641e00ee1dce372c71a7a"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab13487ae751641e00ee1dce372c71a7a">listrootdir</a> )(void)</td></tr>
+<tr class="memitem:a2d074675c8343128fa3c8038f489574b" id="r_a2d074675c8343128fa3c8038f489574b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2d074675c8343128fa3c8038f489574b">ReadFile</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesRead)</td></tr>
+<tr class="memitem:aa5493352372dc79f066c990a1c497b34" id="r_aa5493352372dc79f066c990a1c497b34"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa5493352372dc79f066c990a1c497b34">WriteFile</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesWritten)</td></tr>
+<tr class="memitem:ac5a4c29bd4aec05bb352c01f2ebd67ef" id="r_ac5a4c29bd4aec05bb352c01f2ebd67ef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac5a4c29bd4aec05bb352c01f2ebd67ef">DeleteFile</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject)</td></tr>
+<tr class="memitem:a56cf535f9ead4aed3955e6952cbe0331" id="r_a56cf535f9ead4aed3955e6952cbe0331"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a56cf535f9ead4aed3955e6952cbe0331">ListDirectory</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> DirectoryObject, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> char *listings, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t max_len)</td></tr>
+<tr class="memitem:a716d7be92793beb60fac8961d39231a7" id="r_a716d7be92793beb60fac8961d39231a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a716d7be92793beb60fac8961d39231a7">RemoveDirectoryRecursive</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> DirectoryObject)</td></tr>
+<tr class="memitem:a9f29406f06ef5d65615a16ec47b1273b" id="r_a9f29406f06ef5d65615a16ec47b1273b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9f29406f06ef5d65615a16ec47b1273b">CreateDirectory</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *path, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *OutDirectoryObject)</td></tr>
+<tr class="memitem:a574115d6952cbd6724012c2b7e674535" id="r_a574115d6952cbd6724012c2b7e674535"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a574115d6952cbd6724012c2b7e674535">CreateFile</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *path, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *FileObjectOut)</td></tr>
+<tr class="memitem:a3b2a2db9984d81ade57fd2bcc8a8dbaa" id="r_a3b2a2db9984d81ade57fd2bcc8a8dbaa"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3b2a2db9984d81ade57fd2bcc8a8dbaa">DeleteObjectProcedure</a> )(<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object)</td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00018">18</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00116">116</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
-<a id="ab200706357671e660cf4573b244e0c61" name="ab200706357671e660cf4573b244e0c61"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab200706357671e660cf4573b244e0c61">&#9670;&#160;</a></span>delete</h2>
+<a id="a9f29406f06ef5d65615a16ec47b1273b" name="a9f29406f06ef5d65615a16ec47b1273b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9f29406f06ef5d65615a16ec47b1273b">&#9670;&#160;</a></span>CreateDirectory</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* delete) (const char *path)</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* CreateDirectory) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *path, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *OutDirectoryObject)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00022">22</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00134">134</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
+
+</div>
+</div>
+<a id="a574115d6952cbd6724012c2b7e674535" name="a574115d6952cbd6724012c2b7e674535"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a574115d6952cbd6724012c2b7e674535">&#9670;&#160;</a></span>CreateFile</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* CreateFile) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *path, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> *FileObjectOut)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00138">138</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
+
+</div>
+</div>
+<a id="ac5a4c29bd4aec05bb352c01f2ebd67ef" name="ac5a4c29bd4aec05bb352c01f2ebd67ef"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5a4c29bd4aec05bb352c01f2ebd67ef">&#9670;&#160;</a></span>DeleteFile</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* DeleteFile) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00129">129</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
+
+</div>
+</div>
+<a id="a3b2a2db9984d81ade57fd2bcc8a8dbaa" name="a3b2a2db9984d81ade57fd2bcc8a8dbaa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3b2a2db9984d81ade57fd2bcc8a8dbaa">&#9670;&#160;</a></span>DeleteObjectProcedure</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void(* DeleteObjectProcedure) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00140">140</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
@@ -139,124 +186,76 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00019">19</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00118">118</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
-<a id="a75da2be37f7eac789050e4fde864c13f" name="a75da2be37f7eac789050e4fde864c13f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a75da2be37f7eac789050e4fde864c13f">&#9670;&#160;</a></span>is_dir_empty</h2>
+<a id="a56cf535f9ead4aed3955e6952cbe0331" name="a56cf535f9ead4aed3955e6952cbe0331"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a56cf535f9ead4aed3955e6952cbe0331">&#9670;&#160;</a></span>ListDirectory</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">bool(* is_dir_empty) (const char *path)</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* ListDirectory) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> DirectoryObject, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> char *listings, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t max_len)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00025">25</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00130">130</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
-<a id="a9876abc4824c35c5c9e83b304dd93add" name="a9876abc4824c35c5c9e83b304dd93add"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9876abc4824c35c5c9e83b304dd93add">&#9670;&#160;</a></span>listdir</h2>
+<a id="a2d074675c8343128fa3c8038f489574b" name="a2d074675c8343128fa3c8038f489574b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2d074675c8343128fa3c8038f489574b">&#9670;&#160;</a></span>ReadFile</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* listdir) (const char *path, char *listings, size_t max_len)</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* ReadFile) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesRead)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00026">26</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00119">119</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
-<a id="ab13487ae751641e00ee1dce372c71a7a" name="ab13487ae751641e00ee1dce372c71a7a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab13487ae751641e00ee1dce372c71a7a">&#9670;&#160;</a></span>listrootdir</h2>
+<a id="a716d7be92793beb60fac8961d39231a7" name="a716d7be92793beb60fac8961d39231a7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a716d7be92793beb60fac8961d39231a7">&#9670;&#160;</a></span>RemoveDirectoryRecursive</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* listrootdir) (void)</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* RemoveDirectoryRecursive) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> DirectoryObject)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00027">27</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00133">133</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
-<a id="ac8be1a3c787a5acba0e472a3b280227f" name="ac8be1a3c787a5acba0e472a3b280227f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac8be1a3c787a5acba0e472a3b280227f">&#9670;&#160;</a></span>mkdir</h2>
+<a id="aa5493352372dc79f066c990a1c497b34" name="aa5493352372dc79f066c990a1c497b34"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5493352372dc79f066c990a1c497b34">&#9670;&#160;</a></span>WriteFile</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* mkdir) (const char *path)</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* WriteFile) (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="fs_8h.html#a2721093e4b50ab64577c98d97fc618f0">PFILE_OBJECT</a> FileObject, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t FileOffset, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Buffer, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t BufferSize, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> size_t *BytesWritten)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00023">23</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
-
-</div>
-</div>
-<a id="a7d91e2014ae0125796d218f1d69f64b4" name="a7d91e2014ae0125796d218f1d69f64b4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7d91e2014ae0125796d218f1d69f64b4">&#9670;&#160;</a></span>read</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* read) (const char *filename, uint32_t *file_size_out, void **buffer_out)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00020">20</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
-
-</div>
-</div>
-<a id="ae1da9f76fe84650a05bacff43b1b043b" name="ae1da9f76fe84650a05bacff43b1b043b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae1da9f76fe84650a05bacff43b1b043b">&#9670;&#160;</a></span>rmdir</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* rmdir) (const char *path)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00024">24</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
-
-</div>
-</div>
-<a id="a257088fbff20f27c09ddf5dcb4c51ae9" name="a257088fbff20f27c09ddf5dcb4c51ae9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a257088fbff20f27c09ddf5dcb4c51ae9">&#9670;&#160;</a></span>write</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>(* write) (const char *path, const void *data, uint32_t size, uint32_t mode)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="vfs_8h_source.html#l00021">21</a> of file <a class="el" href="vfs_8h_source.html">vfs.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="fs_8h_source.html#l00124">124</a> of file <a class="el" href="fs_8h_source.html">fs.h</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/filesystem/vfs/<a class="el" href="vfs_8h_source.html">vfs.h</a></li>
+<li>C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/<a class="el" href="fs_8h_source.html">fs.h</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

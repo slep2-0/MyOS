@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: _APC_STATE Struct Reference</title>
+<title>kernel: _APC_STATE Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -101,10 +100,11 @@ Data Fields</h2></td></tr>
 <tr class="memitem:aa6bf8b2333758277c1ad3222df0533be" id="r_aa6bf8b2333758277c1ad3222df0533be"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa6bf8b2333758277c1ad3222df0533be">SavedApcProcess</a></td></tr>
 <tr class="memitem:a867830641a99405e6236bd768bd2d83a" id="r_a867830641a99405e6236bd768bd2d83a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a867830641a99405e6236bd768bd2d83a">AttachedToProcess</a></td></tr>
 <tr class="memitem:aa1fdbb9a286e13705c6dd991f00e2052" id="r_aa1fdbb9a286e13705c6dd991f00e2052"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#a7258ea91cea6c1c174df48f6225ef4da">IRQL</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa1fdbb9a286e13705c6dd991f00e2052">PreviousIrql</a></td></tr>
+<tr class="memitem:a75b0f156b2f076196c24b8feffbb1721" id="r_a75b0f156b2f076196c24b8feffbb1721"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a75b0f156b2f076196c24b8feffbb1721">SavedThreadAttached</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00247">247</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00252">252</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
 <a id="a867830641a99405e6236bd768bd2d83a" name="a867830641a99405e6236bd768bd2d83a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a867830641a99405e6236bd768bd2d83a">&#9670;&#160;</a></span>AttachedToProcess</h2>
@@ -118,7 +118,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00250">250</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00255">255</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -134,7 +134,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00251">251</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00256">256</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -150,7 +150,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00249">249</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00254">254</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -166,7 +166,23 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00248">248</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00253">253</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+
+</div>
+</div>
+<a id="a75b0f156b2f076196c24b8feffbb1721" name="a75b0f156b2f076196c24b8feffbb1721"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75b0f156b2f076196c24b8feffbb1721">&#9670;&#160;</a></span>SavedThreadAttached</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool SavedThreadAttached</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00257">257</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>

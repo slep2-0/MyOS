@@ -1,0 +1,98 @@
+\doxysection{handler.\+c}
+\hypertarget{handler_8c_source}{}\label{handler_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/handler.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/handler.c}}
+\mbox{\hyperlink{handler_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ syscall.c}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ the\ implementation\ of\ the\ syscall\ C\ handler.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mt_8h}{../../includes/mt.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{me_8h}{../../includes/me.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00021}00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mtstatus_8h}{../../mtstatus.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00024}00024\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{SyscallHandler}}\ \mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{Ssdt}}[];}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00026}00026\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00027}\mbox{\hyperlink{handler_8c_a4e7e66088a62cd9e8a33feb588c57395}{00027}}\ \mbox{\hyperlink{handler_8c_a4e7e66088a62cd9e8a33feb588c57395}{MtSyscallHandler}}(}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00028}00028\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ TrapFrame}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00029}00029\ )}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00031}00031\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00032}00032\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00033}00033\ \textcolor{comment}{\ \ \ \ Routine\ description:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00034}00034\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00035}00035\ \textcolor{comment}{\ \ \ \ \ \ \ \ Handles\ a\ system\ call\ from\ user\ mode.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00036}00036\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00037}00037\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00038}00038\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00039}00039\ \textcolor{comment}{\ \ \ \ \ \ \ \ The\ TRAP\_FRAME\ of\ syscall\ entry.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00040}00040\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00041}00041\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00042}00042\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00043}00043\ \textcolor{comment}{\ \ \ \ \ \ \ \ Decided\ by\ the\ system\ call,\ could\ be\ void,\ or\ MTSTATUS\ (zero\ extended\ to\ RAX)}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00044}00044\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00045}00045\ \textcolor{comment}{\ \ \ \ Notes:}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00046}00046\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00047}00047\ \textcolor{comment}{\ \ \ \ \ \ \ \ This\ function\ must\ be\ called\ ONLY\ FROM\ the\ MtSyscallEntry\ routine\ in\ assembly.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00048}00048\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00049}00049\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00050}00050\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00051}00051\ \{}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00052}00052\ \ \ \ \ \textcolor{comment}{//\ Set\ previous\ mode\ to\ user\ mode,\ this\ is\ a\ system\ call.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00053}00053\ \ \ \ \ \mbox{\hyperlink{me_8h_a47d6bb330b3f195c125bd452af7031c8}{MeGetCurrentThread}}()-\/>\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a5fb3dca25a3058c66ba10d3f553e896d}{PreviousMode}}\ =\ \mbox{\hyperlink{mm_8h_afab0c0666e21abd2ffdc8ceb5be3f498adcfc57d389e8e2bb30dc32135b6a92d0}{UserMode}};}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00054}00054\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00055}00055\ \ \ \ \ \textcolor{comment}{//\ Increment\ system\ call\ count\ (cool)}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00056}00056\ \ \ \ \ \mbox{\hyperlink{atomic_8h_a417663fb902a228350d64b7ad5e9d6cb}{InterlockedIncrementU64}}((\textcolor{keyword}{volatile}\ uint64\_t*)\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>SystemCallCount);}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00057}00057\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00058}00058\ \ \ \ \ \textcolor{comment}{//\ Just\ for\ future\ incase.\ (this\ must\ be\ kept\ here\ since\ after\ interrupts\ are\ enabled\ UserRsp\ could\ very\ much\ change)}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00059}00059\ \ \ \ \ \textcolor{comment}{//\ DO\ NOT\ Access\ the\ RSP\ in\ PTRAP\_FRAME,\ it\ does\ not\ exist.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00060}00060\ \ \ \ \ \textcolor{comment}{//\ And\ DO\ NOT\ grab\ the\ UserRsp\ after\ this\ sti\ call,\ as\ it\ may\ change\ immediately\ even,\ save\ it\ to\ a\ local.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00061}00061\ \ \ \ \ \textcolor{comment}{//uint64\_t*\ UserStack\ =\ (uint64\_t*)MeGetCurrentProcessor()-\/>UserRsp;}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00063}00063\ \ \ \ \ \textcolor{comment}{//\ Enable\ interrupts,\ its\ safe\ now.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00064}00064\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();\ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00065}00065\ \ \ \ \ \textcolor{comment}{//\ Grab\ arguments}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00066}00066\ \ \ \ \ \textcolor{comment}{//\ The\ return\ value\ is\ stored\ in\ RAX,\ and\ I\ dont\ want\ to\ do\ more\ assembly}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00067}00067\ \ \ \ \ \textcolor{comment}{//\ Spare\ me.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00068}00068\ \ \ \ \ uint64\_t*\ ReturnValue\ =\ \&TrapFrame-\/>rax;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00069}00069\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00070}00070\ \ \ \ \ \textcolor{comment}{//\ Syscall\ number\ is\ in\ RAX.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00071}00071\ \ \ \ \ uint64\_t\ SyscallNumber\ =\ TrapFrame-\/>rax;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00072}00072\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00073}00073\ \ \ \ \ \textcolor{comment}{//\ >=\ because\ 256\ is\ an\ invalid\ index\ in\ the\ array\ (0-\/255)}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00074}00074\ \ \ \ \ \textcolor{keywordflow}{if}\ (SyscallNumber\ >=\ \mbox{\hyperlink{mt_8h_a88ef3d98617b4673404cd57e1fa4e516}{MAX\_SYSCALLS}}\ ||\ \mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{Ssdt}}[SyscallNumber]\ ==\ NULL)\ \{}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ *ReturnValue\ =\ \mbox{\hyperlink{mtstatus_8h_ac09eac4f67b50a2fb0720300346b8f42}{MT\_INVALID\_SYSTEM\_SERVICE}};}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00076}00076\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00077}00077\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00078}00078\ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00079}00079\ \ \ \ \ \textcolor{comment}{//\ Arugments\ are\ in\ RDI\ RSI\ RDX\ R10\ (not\ RCX\ in\ Syscalls,\ since\ CPU\ clobbers\ it\ for\ RIP)\ R8\ R9}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00080}00080\ \ \ \ \ \textcolor{comment}{//\ Above\ 6\ arguments\ we\ receive\ from\ user\ stack.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00081}00081\ \ \ \ \ \textcolor{comment}{//\ For\ now,\ support\ 6.}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00082}00082\ \ \ \ \ \textcolor{comment}{//\ To\ support\ more\ args\ we\ need\ a\ syscall\ that\ actually\ takes\ more\ than\ 6\ args}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00083}00083\ \ \ \ \ uint64\_t\ Arg1\ =\ TrapFrame-\/>rdi;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00084}00084\ \ \ \ \ uint64\_t\ Arg2\ =\ TrapFrame-\/>rsi;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00085}00085\ \ \ \ \ uint64\_t\ Arg3\ =\ TrapFrame-\/>rdx;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00086}00086\ \ \ \ \ uint64\_t\ Arg4\ =\ TrapFrame-\/>r10;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00087}00087\ \ \ \ \ uint64\_t\ Arg5\ =\ TrapFrame-\/>r8;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00088}00088\ \ \ \ \ uint64\_t\ Arg6\ =\ TrapFrame-\/>r9;}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00089}00089\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00090}00090\ \ \ \ \ \textcolor{comment}{//\ Todo\ regular\ SSDT.\ (with\ limits,\ no\ direct\ indexing)}}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00091}00091\ \ \ \ \ *ReturnValue\ =\ \mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{Ssdt}}[SyscallNumber](Arg1,\ Arg2,\ Arg3,\ Arg4,\ Arg5,\ Arg6);}
+\DoxyCodeLine{\Hypertarget{handler_8c_source_l00092}00092\ \}}
+
+\end{DoxyCode}

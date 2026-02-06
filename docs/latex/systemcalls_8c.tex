@@ -1,0 +1,114 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mt/systemcalls.c File Reference}
+\hypertarget{systemcalls_8c}{}\label{systemcalls_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/systemcalls.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/systemcalls.c}}
+{\ttfamily \#include "{}../../includes/mt.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ob.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mg.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/exception.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/fs.\+h"{}}\newline
+{\ttfamily \#include "{}../../assert.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_a77a069b172b91ebe4e5a8bfb4657f34e}{Mt\+Allocate\+Virtual\+Memory}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Process\+Handle, \mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\+\_\+\+In\+\_\+\+Opt}} \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}Base\+Address, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint8\+\_\+t Allocation\+Type)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_a9fd86d68a6adfabee49c53a0d7528162}{Mt\+Open\+Process}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t Process\+Id, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} Process\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}} Desired\+Access)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_a65caa5dd8cf04ae279ae55f031dd766e}{Mt\+Terminate\+Process}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Process\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Exit\+Status)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_a57ecc9016ed353a1597b1180aa6c8664}{Mt\+Read\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} File\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Read)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_ae908c4a8c8db9e5207c37eba9b042dcf}{Mt\+Write\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} File\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t File\+Offset, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}Buffer, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Buffer\+Size, \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}Bytes\+Written)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_af44bd5e6a14e18423569874dca148c2c}{Mt\+Create\+File}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}path, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}} Desired\+Access, \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}} File\+Handle\+Out)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_a81fd47039e90b10e72c8ce8d0c992b8b}{Mt\+Close}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} h\+Object)
+\item 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} \mbox{\hyperlink{systemcalls_8c_aba51dd68cc66e18a67961dadc44454d1}{Mt\+Terminate\+Thread}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}} Thread\+Handle, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Exit\+Status)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{systemcalls_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{systemcalls_8c_a77a069b172b91ebe4e5a8bfb4657f34e}\index{systemcalls.c@{systemcalls.c}!MtAllocateVirtualMemory@{MtAllocateVirtualMemory}}
+\index{MtAllocateVirtualMemory@{MtAllocateVirtualMemory}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtAllocateVirtualMemory()}{MtAllocateVirtualMemory()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_a77a069b172b91ebe4e5a8bfb4657f34e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Allocate\+Virtual\+Memory (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Process\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\+\_\+\+In\+\_\+\+Opt}} \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} void \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{Base\+Address}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint8\+\_\+t}]{Allocation\+Type}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00029}{29}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_a81fd47039e90b10e72c8ce8d0c992b8b}\index{systemcalls.c@{systemcalls.c}!MtClose@{MtClose}}
+\index{MtClose@{MtClose}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtClose()}{MtClose()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_a81fd47039e90b10e72c8ce8d0c992b8b} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Close (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{h\+Object}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00509}{509}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_af44bd5e6a14e18423569874dca148c2c}\index{systemcalls.c@{systemcalls.c}!MtCreateFile@{MtCreateFile}}
+\index{MtCreateFile@{MtCreateFile}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtCreateFile()}{MtCreateFile()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_af44bd5e6a14e18423569874dca148c2c} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Create\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} const char \texorpdfstring{$\ast$}{*}}]{path}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}}}]{Desired\+Access}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{File\+Handle\+Out}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00453}{453}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_a9fd86d68a6adfabee49c53a0d7528162}\index{systemcalls.c@{systemcalls.c}!MtOpenProcess@{MtOpenProcess}}
+\index{MtOpenProcess@{MtOpenProcess}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtOpenProcess()}{MtOpenProcess()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_a9fd86d68a6adfabee49c53a0d7528162} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Open\+Process (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint32\+\_\+t}]{Process\+Id}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}}]{Process\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\+\_\+\+MASK}}}]{Desired\+Access}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00122}{122}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_a57ecc9016ed353a1597b1180aa6c8664}\index{systemcalls.c@{systemcalls.c}!MtReadFile@{MtReadFile}}
+\index{MtReadFile@{MtReadFile}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtReadFile()}{MtReadFile()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_a57ecc9016ed353a1597b1180aa6c8664} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Read\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{File\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{File\+Offset}{, }\item[{\mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}} void \texorpdfstring{$\ast$}{*}}]{Buffer}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Buffer\+Size}{, }\item[{\mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}}]{Bytes\+Read}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00232}{232}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_a65caa5dd8cf04ae279ae55f031dd766e}\index{systemcalls.c@{systemcalls.c}!MtTerminateProcess@{MtTerminateProcess}}
+\index{MtTerminateProcess@{MtTerminateProcess}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtTerminateProcess()}{MtTerminateProcess()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_a65caa5dd8cf04ae279ae55f031dd766e} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Terminate\+Process (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Process\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}]{Exit\+Status}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00181}{181}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_aba51dd68cc66e18a67961dadc44454d1}\index{systemcalls.c@{systemcalls.c}!MtTerminateThread@{MtTerminateThread}}
+\index{MtTerminateThread@{MtTerminateThread}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtTerminateThread()}{MtTerminateThread()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_aba51dd68cc66e18a67961dadc44454d1} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Terminate\+Thread (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{Thread\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}]{Exit\+Status}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00519}{519}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+
+\Hypertarget{systemcalls_8c_ae908c4a8c8db9e5207c37eba9b042dcf}\index{systemcalls.c@{systemcalls.c}!MtWriteFile@{MtWriteFile}}
+\index{MtWriteFile@{MtWriteFile}!systemcalls.c@{systemcalls.c}}
+\doxysubsubsection{\texorpdfstring{MtWriteFile()}{MtWriteFile()}}
+{\footnotesize\ttfamily \label{systemcalls_8c_ae908c4a8c8db9e5207c37eba9b042dcf} 
+\mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}} Mt\+Write\+File (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}}]{File\+Handle}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uint64\+\_\+t}]{File\+Offset}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} void \texorpdfstring{$\ast$}{*}}]{Buffer}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Buffer\+Size}{, }\item[{\mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}} size\+\_\+t \texorpdfstring{$\ast$}{*}}]{Bytes\+Written}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{systemcalls_8c_source_l00352}{352}} of file \mbox{\hyperlink{systemcalls_8c_source}{systemcalls.\+c}}.
+

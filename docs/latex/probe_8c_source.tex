@@ -1,0 +1,83 @@
+\doxysection{probe.\+c}
+\hypertarget{probe_8c_source}{}\label{probe_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/exp/probe.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/exp/probe.c}}
+\mbox{\hyperlink{probe_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ probe.c}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ translation\ unit\ contains\ the\ implementation\ of\ probing\ user\ addresses.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{exception_8h}{../../includes/exception.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00022}00022\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00023}\mbox{\hyperlink{probe_8c_a52b50c12b0069015d9629037e8b170c0}{00023}}\ \mbox{\hyperlink{probe_8c_a52b50c12b0069015d9629037e8b170c0}{ProbeForRead}}(}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00024}00024\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}},}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00025}00025\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}},}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00026}00026\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint32\_t\ Alignment}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00027}00027\ )}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00029}00029\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00030}00030\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00031}00031\ \textcolor{comment}{\ \ \ \ Routine\ description:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00032}00032\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00033}00033\ \textcolor{comment}{\ \ \ \ \ \ \ \ Checks\ if\ the\ given\ user\ address\ is\ within\ the\ correct\ bounds\ and\ alignment\ of\ access.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00034}00034\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00035}00035\ \textcolor{comment}{\ \ \ \ Arguments:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00036}00036\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00037}00037\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ const\ void*\ Address\ -\/\ The\ user\ address\ to\ check.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00038}00038\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ size\_t\ Length\ -\/\ Length\ in\ bytes\ of\ user\ mode\ buffer.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00039}00039\ \textcolor{comment}{\ \ \ \ \ \ \ \ [IN]\ uint32\_t\ Alignment\ -\/\ Required\ alignment\ (in\ bytes)\ of\ user\ mode\ buffer.\ (1\ for\ char,\ 2\ for\ word,\ 4\ for\ int,\ 8\ for\ long\ long)}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00040}00040\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00041}00041\ \textcolor{comment}{\ \ \ \ Return\ Values:}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00042}00042\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00043}00043\ \textcolor{comment}{\ \ \ \ \ \ \ \ MTSTATUS\ Code.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00044}00044\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00045}00045\ \textcolor{comment}{\ \ \ \ \ \ \ \ MT\_SUCCESS\ -\/\ Address\ is\ fine\ and\ meets\ boundaries\ and\ length\ +\ alignment.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00046}00046\ \textcolor{comment}{\ \ \ \ \ \ \ \ MT\_DATAYPE\_MISALIGNMENT\ -\/\ The\ address\ given\ is\ not\ aligned\ properly\ with\ the\ datatype\ alignment\ given.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00047}00047\ \textcolor{comment}{\ \ \ \ \ \ \ \ MT\_ACCESS\_VIOLATION\ -\/\ The\ address\ given\ is\ not\ within\ boundaries\ of\ the\ user\ mode\ virtual\ address\ range.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00048}00048\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00049}00049\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00050}00050\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00051}00051\ \{}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00052}00052\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}})\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00053}00053\ \ \ \ \ \textcolor{comment}{//\ Standard\ assertion\ to\ check\ if\ alignment\ meets\ function\ requirements.\ (and\ CPU)}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00054}00054\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}((Alignment\ ==\ 1)\ ||\ (Alignment\ ==\ 2)\ ||\ (Alignment\ ==\ 4)\ ||\ (Alignment\ ==\ 8));}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00055}00055\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00056}00056\ \ \ \ \ \textcolor{comment}{//\ Check\ Alignment}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00057}00057\ \ \ \ \ \textcolor{keywordflow}{if}\ (((uint64\_t)\mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}}\ \&\ (Alignment\ -\/\ 1))\ !=\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a40027cd56bab9c12452a2efdae1d2ae7}{MT\_DATATYPE\_MISALIGNMENT}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00059}00059\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00060}00060\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00061}00061\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}}\ !=\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00062}00062\ \ \ \ \ \ \ \ \ uint64\_t\ Start\ =\ (uint64\_t)\mbox{\hyperlink{mh_8h_a910d8dd637ddefc515335aa801391980}{Address}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ uint64\_t\ End\ =\ Start\ +\ \mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}};\ \textcolor{comment}{//\ Integer\ addition,\ exact\ bytes}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00064}00064\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00065}00065\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ Overflow\ (Wrap\ around)}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00066}00066\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (End\ <\ Start)\ \{}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00069}00069\ }
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00070}00070\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ against\ Highest\ User\ Address}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ should\ not\ be\ the\ MmUserProbeAddress,\ as\ the\ stack\ lives\ above\ that\ address,\ and\ if\ a\ user\ gives\ something\ from\ his\ stack\ there,\ it\ would\ resolve\ in\ an\ MT\_ACCESS\_VIOLATION.}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (End\ >\ (uint64\_t)\mbox{\hyperlink{process_8c_afac63eead7d3adaeaba9ac9eb6f08194}{MmHighestUserAddress}})\ \{}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00073}00073\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_ad8d928b54c78b38740dc9de74b2d3f45}{MT\_ACCESS\_VIOLATION}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00074}00074\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00075}00075\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00076}00076\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{probe_8c_source_l00077}00077\ \}}
+
+\end{DoxyCode}

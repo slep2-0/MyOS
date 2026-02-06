@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['wait_5fblock_0',['WAIT_BLOCK',['../me_8h.html#ae473c1407195e30ca04f09c268807470',1,'me.h']]],
-  ['wait_5freason_1',['WAIT_REASON',['../me_8h.html#aedc54f12d788e3e3d9da10b65c804634',1,'me.h']]]
+  ['user_5fallocation_5ftype_0',['USER_ALLOCATION_TYPE',['../mt_8h.html#a73b9dda53251e1e7124d234004ce928b',1,'mt.h']]]
 ];

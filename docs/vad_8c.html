@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/vad.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/vad.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -95,6 +94,7 @@ $(function(){initNavTree('vad_8c.html','',''); });
 <div class="textblock"><code>#include &quot;<a class="el" href="mm_8h_source.html">../../includes/mm.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ps_8h_source.html">../../includes/ps.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="assert_8h_source.html">../../assert.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="exception_8h_source.html">../../includes/exception.h</a>&quot;</code><br />
 </div>
 <p><a href="vad_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -107,15 +107,11 @@ Functions</h2></td></tr>
 <tr class="memitem:a8b4c709d8daa31ed1c8eebd8ed0d1b11" id="r_a8b4c709d8daa31ed1c8eebd8ed0d1b11"><td class="memItemLeft" align="right" valign="top"><a class="el" href="annotations_8h.html#a724fb9f82013c782db5c3c12ea36aac8">FORCEINLINE</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8b4c709d8daa31ed1c8eebd8ed0d1b11">MiGetNodeHeight</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> Node)</td></tr>
 <tr class="memitem:ad86e6f68537a0ab17f538e24e45efd82" id="r_ad86e6f68537a0ab17f538e24e45efd82"><td class="memItemLeft" align="right" valign="top"><a class="el" href="annotations_8h.html#a724fb9f82013c782db5c3c12ea36aac8">FORCEINLINE</a> void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad86e6f68537a0ab17f538e24e45efd82">MiUpdateNodeHeight</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> Node)</td></tr>
 <tr class="memitem:a8629e6db0085acf066d08373a2a73e9f" id="r_a8629e6db0085acf066d08373a2a73e9f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="annotations_8h.html#a724fb9f82013c782db5c3c12ea36aac8">FORCEINLINE</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8629e6db0085acf066d08373a2a73e9f">MiGetBalanceFactor</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> Node)</td></tr>
-<tr class="memitem:a9d43b1e3da4772025d2f077c06bc1566" id="r_a9d43b1e3da4772025d2f077c06bc1566"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9d43b1e3da4772025d2f077c06bc1566">MiFindVad</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> Root, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t VirtualAddress)</td></tr>
+<tr class="memitem:aa51b9d23857fa2c37ffc76b3523267d0" id="r_aa51b9d23857fa2c37ffc76b3523267d0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa51b9d23857fa2c37ffc76b3523267d0">MiFindVad</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t VirtualAddress)</td></tr>
 <tr class="memitem:ac480927b6e68a6585b46984fd3062584" id="r_ac480927b6e68a6585b46984fd3062584"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac480927b6e68a6585b46984fd3062584">MmFindFreeAddressSpace</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t SearchStart, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t SearchEnd)</td></tr>
 <tr class="memitem:aac5120b7c69029846c637943bf5b33b2" id="r_aac5120b7c69029846c637943bf5b33b2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aac5120b7c69029846c637943bf5b33b2">MmAllocateVirtualMemory</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> void **BaseAddress, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a8a7fa089c544e01821dd7b8e803f5bfc">VAD_FLAGS</a> VadFlags)</td></tr>
+<tr class="memitem:a6d9c91f453b9d4970350c5dc85083521" id="r_a6d9c91f453b9d4970350c5dc85083521"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6d9c91f453b9d4970350c5dc85083521">MmIsAddressRangeFree</a> (<a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, uintptr_t StartVa, uintptr_t EndVa)</td></tr>
 <tr class="memitem:a90515c7f40f457fe14ee26424cb9a9e9" id="r_a90515c7f40f457fe14ee26424cb9a9e9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a90515c7f40f457fe14ee26424cb9a9e9">MmFreeVirtualMemory</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *BaseAddress)</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
-Variables</h2></td></tr>
-<tr class="memitem:a65c878d77bdeecae91ff287e7487f89a" id="r_a65c878d77bdeecae91ff287e7487f89a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a65c878d77bdeecae91ff287e7487f89a">vadStack</a> [<a class="el" href="#a1de3bfb3d2dfd8159d0a24b31bf4a7cf">MAX_VAD_DEPTH</a>]</td></tr>
-<tr class="memitem:a4d2e8918f1d4fde37a1e34b5ab24765d" id="r_a4d2e8918f1d4fde37a1e34b5ab24765d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4d2e8918f1d4fde37a1e34b5ab24765d">stackTop</a> = -1</td></tr>
 </table>
 <a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
 <a id="a1de3bfb3d2dfd8159d0a24b31bf4a7cf" name="a1de3bfb3d2dfd8159d0a24b31bf4a7cf"></a>
@@ -130,13 +126,13 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00589">589</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00594">594</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
-<a id="a9d43b1e3da4772025d2f077c06bc1566" name="a9d43b1e3da4772025d2f077c06bc1566"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9d43b1e3da4772025d2f077c06bc1566">&#9670;&#160;</a></span>MiFindVad()</h2>
+<a id="aa51b9d23857fa2c37ffc76b3523267d0" name="aa51b9d23857fa2c37ffc76b3523267d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa51b9d23857fa2c37ffc76b3523267d0">&#9670;&#160;</a></span>MiFindVad()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -144,7 +140,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> MiFindVad </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a></td>          <td class="paramname"><span class="paramname"><em>Root</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -154,7 +150,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00354">354</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00352">352</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -173,7 +169,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00082">82</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00083">83</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -192,7 +188,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00028">28</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00029">29</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -211,7 +207,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00055">55</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00056">56</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -244,7 +240,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00723">723</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00740">740</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -277,7 +273,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00708">708</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00725">725</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
@@ -300,40 +296,35 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00817">817</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00871">871</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>
-<a name="doc-var-members" id="doc-var-members"></a><h2 id="header-doc-var-members" class="groupheader">Variable Documentation</h2>
-<a id="a4d2e8918f1d4fde37a1e34b5ab24765d" name="a4d2e8918f1d4fde37a1e34b5ab24765d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4d2e8918f1d4fde37a1e34b5ab24765d">&#9670;&#160;</a></span>stackTop</h2>
+<a id="a6d9c91f453b9d4970350c5dc85083521" name="a6d9c91f453b9d4970350c5dc85083521"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6d9c91f453b9d4970350c5dc85083521">&#9670;&#160;</a></span>MmIsAddressRangeFree()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int stackTop = -1</td>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> MmIsAddressRangeFree </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
         </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00591">591</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
-
-</div>
-</div>
-<a id="a65c878d77bdeecae91ff287e7487f89a" name="a65c878d77bdeecae91ff287e7487f89a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a65c878d77bdeecae91ff287e7487f89a">&#9670;&#160;</a></span>vadStack</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="mm_8h.html#ac818f9f725f779b224d93ab24d3a6fee">PMMVAD</a> vadStack[<a class="el" href="#a1de3bfb3d2dfd8159d0a24b31bf4a7cf">MAX_VAD_DEPTH</a>]</td>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uintptr_t</td>          <td class="paramname"><span class="paramname"><em>StartVa</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uintptr_t</td>          <td class="paramname"><span class="paramname"><em>EndVa</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00590">590</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="vad_8c_source.html#l00860">860</a> of file <a class="el" href="vad_8c_source.html">vad.c</a>.</p>
 
 </div>
 </div>

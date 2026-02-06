@@ -25,6 +25,8 @@ var struct___p_r_o_c_e_s_s_o_r =
     [ "LapicAddressPhys", "struct___p_r_o_c_e_s_s_o_r.html#ac8a16604f61ff001a4946acebaa4aafa", null ],
     [ "LapicAddressVirt", "struct___p_r_o_c_e_s_s_o_r.html#afeb5cf558eeb01bed5fa2e67da8851d5", null ],
     [ "LookasidePools", "struct___p_r_o_c_e_s_s_o_r.html#abaf160a16f80fa54b0e56b64bfb92e1a", null ],
+    [ "LookasidePoolsNx", "struct___p_r_o_c_e_s_s_o_r.html#a7d0e085542ce2443f3320756e2b411c9", null ],
+    [ "MailboxLock", "struct___p_r_o_c_e_s_s_o_r.html#a9353cdae04c67034a3755de7c8c1ab22", null ],
     [ "MaximumDpcQueueDepth", "struct___p_r_o_c_e_s_s_o_r.html#a7efcdb0e9d4fd1cdda3bf223b20f9b51", null ],
     [ "MinimumDpcRate", "struct___p_r_o_c_e_s_s_o_r.html#a49b72fb0a308f5532159be01884177b2", null ],
     [ "readyQueue", "struct___p_r_o_c_e_s_s_o_r.html#a0e1bee91c77868b3b8fdbe7328e64374", null ],
@@ -34,10 +36,12 @@ var struct___p_r_o_c_e_s_s_o_r =
     [ "schedulerEnabled", "struct___p_r_o_c_e_s_s_o_r.html#a18064996902c47642fa42faed7fbb9d5", null ],
     [ "SchedulerLock", "struct___p_r_o_c_e_s_s_o_r.html#a446cf288f825ceefaae1023614778083", null ],
     [ "self", "struct___p_r_o_c_e_s_s_o_r.html#ac32edc8b4163f7ec55a3da241918be46", null ],
+    [ "SystemCallCount", "struct___p_r_o_c_e_s_s_o_r.html#aeab2690037f81e74ded7ed192910b79d", null ],
     [ "TimerExpirationDPC", "struct___p_r_o_c_e_s_s_o_r.html#aadbb4ebe13515cbf5ed04027255e9ef6", null ],
     [ "TimerHand", "struct___p_r_o_c_e_s_s_o_r.html#a5727b302d0d297235cacb13c811530c1", null ],
     [ "TimerRequest", "struct___p_r_o_c_e_s_s_o_r.html#a9c6caac8d54308792ee29f225b85b9f2", null ],
     [ "tss", "struct___p_r_o_c_e_s_s_o_r.html#a9da901146dc0bf13178be01a88b0dfdf", null ],
+    [ "UserRsp", "struct___p_r_o_c_e_s_s_o_r.html#a07295bf7139165a7b7576f95854ae979", null ],
     [ "VirtStackTop", "struct___p_r_o_c_e_s_s_o_r.html#aca1a50452c2a906b5a82e759ae124a8f", null ],
     [ "ZombieThread", "struct___p_r_o_c_e_s_s_o_r.html#a1f9de65de6cb014bd36d63df91cb43cd", null ]
 ];

@@ -12,5 +12,6 @@ var searchData=
   ['hba_5fpxcmd_5ffre_9',['HBA_PxCMD_FRE',['../ahci_8h.html#a27978dd2aac599cbd0330c923652c6e4',1,'ahci.h']]],
   ['hba_5fpxcmd_5fst_10',['HBA_PxCMD_ST',['../ahci_8h.html#a469ab8af9bf8f1f89a5c8f79b2305e34',1,'ahci.h']]],
   ['hba_5fpxis_5ftfes_11',['HBA_PxIS_TFES',['../ahci_8h.html#a11add414188662b170c68ead95a786d8',1,'ahci.h']]],
-  ['hypermap_5fvirtual_5faddress_12',['HYPERMAP_VIRTUAL_ADDRESS',['../hypermap_8c.html#a9a030194aa32a92a3504947a77e44945',1,'hypermap.c']]]
+  ['hot_12',['HOT',['../annotations_8h.html#a1eb14cc432874ddacd1934791dbe12a3',1,'annotations.h']]],
+  ['hypermap_5fvirtual_5faddress_13',['HYPERMAP_VIRTUAL_ADDRESS',['../hypermap_8c.html#a9a030194aa32a92a3504947a77e44945',1,'hypermap.c']]]
 ];

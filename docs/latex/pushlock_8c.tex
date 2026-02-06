@@ -1,0 +1,61 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/ms/pushlock.c File Reference}
+\hypertarget{pushlock_8c}{}\label{pushlock_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/pushlock.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/pushlock.c}}
+{\ttfamily \#include "{}../../includes/ms.\+h"{}}\newline
+{\ttfamily \#include "{}../../intrinsics/atomic.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{Ms\+Acquire\+Push\+Lock\+Exclusive}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}Lock)
+\item 
+void \mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{Ms\+Release\+Push\+Lock\+Exclusive}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}Lock)
+\item 
+void \mbox{\hyperlink{pushlock_8c_a27ab8aa488b64a9b9b9851a1bf0fe9d9}{Ms\+Acquire\+Push\+Lock\+Shared}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}Lock)
+\item 
+void \mbox{\hyperlink{pushlock_8c_adcf574b0e07b3d2d465d9f34916336d6}{Ms\+Release\+Push\+Lock\+Shared}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}Lock)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{pushlock_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}\index{pushlock.c@{pushlock.c}!MsAcquirePushLockExclusive@{MsAcquirePushLockExclusive}}
+\index{MsAcquirePushLockExclusive@{MsAcquirePushLockExclusive}!pushlock.c@{pushlock.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquirePushLockExclusive()}{MsAcquirePushLockExclusive()}}
+{\footnotesize\ttfamily \label{pushlock_8c_a021655b44601845efc1d11b5e153c1a5} 
+void Ms\+Acquire\+Push\+Lock\+Exclusive (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pushlock_8c_source_l00080}{80}} of file \mbox{\hyperlink{pushlock_8c_source}{pushlock.\+c}}.
+
+\Hypertarget{pushlock_8c_a27ab8aa488b64a9b9b9851a1bf0fe9d9}\index{pushlock.c@{pushlock.c}!MsAcquirePushLockShared@{MsAcquirePushLockShared}}
+\index{MsAcquirePushLockShared@{MsAcquirePushLockShared}!pushlock.c@{pushlock.c}}
+\doxysubsubsection{\texorpdfstring{MsAcquirePushLockShared()}{MsAcquirePushLockShared()}}
+{\footnotesize\ttfamily \label{pushlock_8c_a27ab8aa488b64a9b9b9851a1bf0fe9d9} 
+void Ms\+Acquire\+Push\+Lock\+Shared (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pushlock_8c_source_l00150}{150}} of file \mbox{\hyperlink{pushlock_8c_source}{pushlock.\+c}}.
+
+\Hypertarget{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}\index{pushlock.c@{pushlock.c}!MsReleasePushLockExclusive@{MsReleasePushLockExclusive}}
+\index{MsReleasePushLockExclusive@{MsReleasePushLockExclusive}!pushlock.c@{pushlock.c}}
+\doxysubsubsection{\texorpdfstring{MsReleasePushLockExclusive()}{MsReleasePushLockExclusive()}}
+{\footnotesize\ttfamily \label{pushlock_8c_a8cb9936a4565f56d5d702585e4918678} 
+void Ms\+Release\+Push\+Lock\+Exclusive (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pushlock_8c_source_l00099}{99}} of file \mbox{\hyperlink{pushlock_8c_source}{pushlock.\+c}}.
+
+\Hypertarget{pushlock_8c_adcf574b0e07b3d2d465d9f34916336d6}\index{pushlock.c@{pushlock.c}!MsReleasePushLockShared@{MsReleasePushLockShared}}
+\index{MsReleasePushLockShared@{MsReleasePushLockShared}!pushlock.c@{pushlock.c}}
+\doxysubsubsection{\texorpdfstring{MsReleasePushLockShared()}{MsReleasePushLockShared()}}
+{\footnotesize\ttfamily \label{pushlock_8c_adcf574b0e07b3d2d465d9f34916336d6} 
+void Ms\+Release\+Push\+Lock\+Shared (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\+\_\+\+LOCK}} \texorpdfstring{$\ast$}{*}}]{Lock}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{pushlock_8c_source_l00179}{179}} of file \mbox{\hyperlink{pushlock_8c_source}{pushlock.\+c}}.
+

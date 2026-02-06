@@ -1,0 +1,282 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/efi.h File Reference}
+\hypertarget{efi_8h}{}\label{efi_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/efi.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/efi.h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}
+\item 
+struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}}
+\item 
+struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{efi_8h_ae815d28705943c47ea8e2db5a63ea533}{KERNEL\+\_\+\+STACK\+\_\+\+SIZE\+\_\+\+IN\+\_\+\+BYTES}}~(8 \texorpdfstring{$\ast$}{*} 4096)
+\item 
+\#define \mbox{\hyperlink{efi_8h_af4e9f34f6444eef713f1e6239642490d}{Efi\+Reserved\+Memory\+Type}}~0
+\item 
+\#define \mbox{\hyperlink{efi_8h_a90aae2e90363a29ad96d432a5f7f72dc}{Efi\+Loader\+Code}}~1
+\item 
+\#define \mbox{\hyperlink{efi_8h_a63d4f335cccc52962bc247c9001f0170}{Efi\+Loader\+Data}}~2
+\item 
+\#define \mbox{\hyperlink{efi_8h_a4f64535d5504ac8f2ebf923f6d0ced08}{Efi\+Boot\+Services\+Code}}~3
+\item 
+\#define \mbox{\hyperlink{efi_8h_aa4fa5f19b00f75592a5d1a5335409e28}{Efi\+Boot\+Services\+Data}}~4
+\item 
+\#define \mbox{\hyperlink{efi_8h_af3cee49f9ec781299b538a17e9e02ff8}{Efi\+Runtime\+Services\+Code}}~5
+\item 
+\#define \mbox{\hyperlink{efi_8h_a1f301de8ab02b899d7144cd4d2157789}{Efi\+Runtime\+Services\+Data}}~6
+\item 
+\#define \mbox{\hyperlink{efi_8h_af095fe56818f3bd8a310206b8777bb1c}{Efi\+Conventional\+Memory}}~7
+\item 
+\#define \mbox{\hyperlink{efi_8h_a40fb46933d0e21fc5daa48acbb82398c}{Efi\+Unusable\+Memory}}~8
+\item 
+\#define \mbox{\hyperlink{efi_8h_aa145045e76c9fc18cb5775d19b586dd3}{Efi\+ACPIReclaim\+Memory}}~9
+\item 
+\#define \mbox{\hyperlink{efi_8h_a719f76dff215b3b6e8ed43a558ad59fc}{Efi\+ACPIMemory\+NVS}}~10
+\item 
+\#define \mbox{\hyperlink{efi_8h_a3d7d657c7f3837ab8ceba527830d28a7}{Efi\+Memory\+Mapped\+IO}}~11
+\item 
+\#define \mbox{\hyperlink{efi_8h_a5d5af70fef5ad675a0f9c0c6851945ed}{Efi\+Memory\+Mapped\+IOPort}}~12
+\item 
+\#define \mbox{\hyperlink{efi_8h_a17945d63a42051783be91bb1e8139b6d}{Efi\+Pal\+Code}}~13
+\item 
+\#define \mbox{\hyperlink{efi_8h_a3a70b42e004b52c1cf297cc57c117c63}{Efi\+Persistent\+Memory}}~14
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{efi_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{efi_8h_aef521078a6a7d9bacb81e5cd18cf37b9}{PEFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}
+\item 
+typedef struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}}
+\item 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}}
+\item 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{efi_8h_a30603a4329e93f45c29e6988998e39b8}{PBOOT\+\_\+\+INFO}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} \mbox{\hyperlink{efi_8h_a5f06053b8248ece91f68e4ae8da74ee4}{boot\+\_\+info\+\_\+local}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{efi_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{efi_8h_a719f76dff215b3b6e8ed43a558ad59fc}\index{efi.h@{efi.h}!EfiACPIMemoryNVS@{EfiACPIMemoryNVS}}
+\index{EfiACPIMemoryNVS@{EfiACPIMemoryNVS}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiACPIMemoryNVS}{EfiACPIMemoryNVS}}
+{\footnotesize\ttfamily \label{efi_8h_a719f76dff215b3b6e8ed43a558ad59fc} 
+\#define Efi\+ACPIMemory\+NVS~10}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00095}{95}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_aa145045e76c9fc18cb5775d19b586dd3}\index{efi.h@{efi.h}!EfiACPIReclaimMemory@{EfiACPIReclaimMemory}}
+\index{EfiACPIReclaimMemory@{EfiACPIReclaimMemory}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiACPIReclaimMemory}{EfiACPIReclaimMemory}}
+{\footnotesize\ttfamily \label{efi_8h_aa145045e76c9fc18cb5775d19b586dd3} 
+\#define Efi\+ACPIReclaim\+Memory~9}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00094}{94}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a4f64535d5504ac8f2ebf923f6d0ced08}\index{efi.h@{efi.h}!EfiBootServicesCode@{EfiBootServicesCode}}
+\index{EfiBootServicesCode@{EfiBootServicesCode}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiBootServicesCode}{EfiBootServicesCode}}
+{\footnotesize\ttfamily \label{efi_8h_a4f64535d5504ac8f2ebf923f6d0ced08} 
+\#define Efi\+Boot\+Services\+Code~3}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00088}{88}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_aa4fa5f19b00f75592a5d1a5335409e28}\index{efi.h@{efi.h}!EfiBootServicesData@{EfiBootServicesData}}
+\index{EfiBootServicesData@{EfiBootServicesData}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiBootServicesData}{EfiBootServicesData}}
+{\footnotesize\ttfamily \label{efi_8h_aa4fa5f19b00f75592a5d1a5335409e28} 
+\#define Efi\+Boot\+Services\+Data~4}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00089}{89}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_af095fe56818f3bd8a310206b8777bb1c}\index{efi.h@{efi.h}!EfiConventionalMemory@{EfiConventionalMemory}}
+\index{EfiConventionalMemory@{EfiConventionalMemory}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiConventionalMemory}{EfiConventionalMemory}}
+{\footnotesize\ttfamily \label{efi_8h_af095fe56818f3bd8a310206b8777bb1c} 
+\#define Efi\+Conventional\+Memory~7}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00092}{92}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a90aae2e90363a29ad96d432a5f7f72dc}\index{efi.h@{efi.h}!EfiLoaderCode@{EfiLoaderCode}}
+\index{EfiLoaderCode@{EfiLoaderCode}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiLoaderCode}{EfiLoaderCode}}
+{\footnotesize\ttfamily \label{efi_8h_a90aae2e90363a29ad96d432a5f7f72dc} 
+\#define Efi\+Loader\+Code~1}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00086}{86}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a63d4f335cccc52962bc247c9001f0170}\index{efi.h@{efi.h}!EfiLoaderData@{EfiLoaderData}}
+\index{EfiLoaderData@{EfiLoaderData}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiLoaderData}{EfiLoaderData}}
+{\footnotesize\ttfamily \label{efi_8h_a63d4f335cccc52962bc247c9001f0170} 
+\#define Efi\+Loader\+Data~2}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00087}{87}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a3d7d657c7f3837ab8ceba527830d28a7}\index{efi.h@{efi.h}!EfiMemoryMappedIO@{EfiMemoryMappedIO}}
+\index{EfiMemoryMappedIO@{EfiMemoryMappedIO}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiMemoryMappedIO}{EfiMemoryMappedIO}}
+{\footnotesize\ttfamily \label{efi_8h_a3d7d657c7f3837ab8ceba527830d28a7} 
+\#define Efi\+Memory\+Mapped\+IO~11}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00096}{96}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a5d5af70fef5ad675a0f9c0c6851945ed}\index{efi.h@{efi.h}!EfiMemoryMappedIOPort@{EfiMemoryMappedIOPort}}
+\index{EfiMemoryMappedIOPort@{EfiMemoryMappedIOPort}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiMemoryMappedIOPort}{EfiMemoryMappedIOPort}}
+{\footnotesize\ttfamily \label{efi_8h_a5d5af70fef5ad675a0f9c0c6851945ed} 
+\#define Efi\+Memory\+Mapped\+IOPort~12}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00097}{97}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a17945d63a42051783be91bb1e8139b6d}\index{efi.h@{efi.h}!EfiPalCode@{EfiPalCode}}
+\index{EfiPalCode@{EfiPalCode}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiPalCode}{EfiPalCode}}
+{\footnotesize\ttfamily \label{efi_8h_a17945d63a42051783be91bb1e8139b6d} 
+\#define Efi\+Pal\+Code~13}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00098}{98}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a3a70b42e004b52c1cf297cc57c117c63}\index{efi.h@{efi.h}!EfiPersistentMemory@{EfiPersistentMemory}}
+\index{EfiPersistentMemory@{EfiPersistentMemory}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiPersistentMemory}{EfiPersistentMemory}}
+{\footnotesize\ttfamily \label{efi_8h_a3a70b42e004b52c1cf297cc57c117c63} 
+\#define Efi\+Persistent\+Memory~14}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00099}{99}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_af4e9f34f6444eef713f1e6239642490d}\index{efi.h@{efi.h}!EfiReservedMemoryType@{EfiReservedMemoryType}}
+\index{EfiReservedMemoryType@{EfiReservedMemoryType}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiReservedMemoryType}{EfiReservedMemoryType}}
+{\footnotesize\ttfamily \label{efi_8h_af4e9f34f6444eef713f1e6239642490d} 
+\#define Efi\+Reserved\+Memory\+Type~0}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00085}{85}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_af3cee49f9ec781299b538a17e9e02ff8}\index{efi.h@{efi.h}!EfiRuntimeServicesCode@{EfiRuntimeServicesCode}}
+\index{EfiRuntimeServicesCode@{EfiRuntimeServicesCode}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiRuntimeServicesCode}{EfiRuntimeServicesCode}}
+{\footnotesize\ttfamily \label{efi_8h_af3cee49f9ec781299b538a17e9e02ff8} 
+\#define Efi\+Runtime\+Services\+Code~5}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00090}{90}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a1f301de8ab02b899d7144cd4d2157789}\index{efi.h@{efi.h}!EfiRuntimeServicesData@{EfiRuntimeServicesData}}
+\index{EfiRuntimeServicesData@{EfiRuntimeServicesData}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiRuntimeServicesData}{EfiRuntimeServicesData}}
+{\footnotesize\ttfamily \label{efi_8h_a1f301de8ab02b899d7144cd4d2157789} 
+\#define Efi\+Runtime\+Services\+Data~6}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00091}{91}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_a40fb46933d0e21fc5daa48acbb82398c}\index{efi.h@{efi.h}!EfiUnusableMemory@{EfiUnusableMemory}}
+\index{EfiUnusableMemory@{EfiUnusableMemory}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EfiUnusableMemory}{EfiUnusableMemory}}
+{\footnotesize\ttfamily \label{efi_8h_a40fb46933d0e21fc5daa48acbb82398c} 
+\#define Efi\+Unusable\+Memory~8}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00093}{93}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+\Hypertarget{efi_8h_ae815d28705943c47ea8e2db5a63ea533}\index{efi.h@{efi.h}!KERNEL\_STACK\_SIZE\_IN\_BYTES@{KERNEL\_STACK\_SIZE\_IN\_BYTES}}
+\index{KERNEL\_STACK\_SIZE\_IN\_BYTES@{KERNEL\_STACK\_SIZE\_IN\_BYTES}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{KERNEL\_STACK\_SIZE\_IN\_BYTES}{KERNEL\_STACK\_SIZE\_IN\_BYTES}}
+{\footnotesize\ttfamily \label{efi_8h_ae815d28705943c47ea8e2db5a63ea533} 
+\#define KERNEL\+\_\+\+STACK\+\_\+\+SIZE\+\_\+\+IN\+\_\+\+BYTES~(8 \texorpdfstring{$\ast$}{*} 4096)}
+
+
+
+Definition at line \mbox{\hyperlink{efi_8h_source_l00050}{50}} of file \mbox{\hyperlink{efi_8h_source}{efi.\+h}}.
+
+
+
+\label{doc-typedef-members}
+\Hypertarget{efi_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}\index{efi.h@{efi.h}!BOOT\_INFO@{BOOT\_INFO}}
+\index{BOOT\_INFO@{BOOT\_INFO}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{BOOT\_INFO}{BOOT\_INFO}}
+{\footnotesize\ttfamily \label{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d} 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}}}
+
+\Hypertarget{efi_8h_ae2b15dcae1dcf3876131751b232dc591}\index{efi.h@{efi.h}!EFI\_MEMORY\_DESCRIPTOR@{EFI\_MEMORY\_DESCRIPTOR}}
+\index{EFI\_MEMORY\_DESCRIPTOR@{EFI\_MEMORY\_DESCRIPTOR}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{EFI\_MEMORY\_DESCRIPTOR}{EFI\_MEMORY\_DESCRIPTOR}}
+{\footnotesize\ttfamily \label{efi_8h_ae2b15dcae1dcf3876131751b232dc591} 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \mbox{\hyperlink{efi_8h_ae2b15dcae1dcf3876131751b232dc591}{EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}}
+
+\Hypertarget{efi_8h_a76f436ea56fd593cab07a6800d630828}\index{efi.h@{efi.h}!GOP\_PARAMS@{GOP\_PARAMS}}
+\index{GOP\_PARAMS@{GOP\_PARAMS}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{GOP\_PARAMS}{GOP\_PARAMS}}
+{\footnotesize\ttfamily \label{efi_8h_a76f436ea56fd593cab07a6800d630828} 
+typedef struct \mbox{\hyperlink{struct___g_o_p___p_a_r_a_m_s}{\+\_\+\+GOP\+\_\+\+PARAMS}} \mbox{\hyperlink{efi_8h_a76f436ea56fd593cab07a6800d630828}{GOP\+\_\+\+PARAMS}}}
+
+\Hypertarget{efi_8h_a30603a4329e93f45c29e6988998e39b8}\index{efi.h@{efi.h}!PBOOT\_INFO@{PBOOT\_INFO}}
+\index{PBOOT\_INFO@{PBOOT\_INFO}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{PBOOT\_INFO}{PBOOT\_INFO}}
+{\footnotesize\ttfamily \label{efi_8h_a30603a4329e93f45c29e6988998e39b8} 
+typedef struct \mbox{\hyperlink{struct___b_o_o_t___i_n_f_o}{\+\_\+\+BOOT\+\_\+\+INFO}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{efi_8h_a30603a4329e93f45c29e6988998e39b8}{PBOOT\+\_\+\+INFO}}}
+
+\Hypertarget{efi_8h_aef521078a6a7d9bacb81e5cd18cf37b9}\index{efi.h@{efi.h}!PEFI\_MEMORY\_DESCRIPTOR@{PEFI\_MEMORY\_DESCRIPTOR}}
+\index{PEFI\_MEMORY\_DESCRIPTOR@{PEFI\_MEMORY\_DESCRIPTOR}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{PEFI\_MEMORY\_DESCRIPTOR}{PEFI\_MEMORY\_DESCRIPTOR}}
+{\footnotesize\ttfamily \label{efi_8h_aef521078a6a7d9bacb81e5cd18cf37b9} 
+typedef struct \mbox{\hyperlink{struct___e_f_i___m_e_m_o_r_y___d_e_s_c_r_i_p_t_o_r}{\+\_\+\+EFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{efi_8h_aef521078a6a7d9bacb81e5cd18cf37b9}{PEFI\+\_\+\+MEMORY\+\_\+\+DESCRIPTOR}}}
+
+
+
+\label{doc-var-members}
+\Hypertarget{efi_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{efi_8h_a5f06053b8248ece91f68e4ae8da74ee4}\index{efi.h@{efi.h}!boot\_info\_local@{boot\_info\_local}}
+\index{boot\_info\_local@{boot\_info\_local}!efi.h@{efi.h}}
+\doxysubsubsection{\texorpdfstring{boot\_info\_local}{boot\_info\_local}}
+{\footnotesize\ttfamily \label{efi_8h_a5f06053b8248ece91f68e4ae8da74ee4} 
+\mbox{\hyperlink{efi_8h_aa7f93145770b2b55fa44fc8b9a2cf58d}{BOOT\+\_\+\+INFO}} boot\+\_\+info\+\_\+local\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Definition at line \mbox{\hyperlink{kernel_8c_source_l00027}{27}} of file \mbox{\hyperlink{kernel_8c_source}{kernel.\+c}}.
+

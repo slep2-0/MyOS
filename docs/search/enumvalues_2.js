@@ -74,5 +74,6 @@ var searchData=
   ['cpuid_5ffeat_5fedx_5fsse2_71',['CPUID_FEAT_EDX_SSE2',['../mh_8h.html#a4edea782cc7b64a38c269123646227acab64ff1599bf88ab91782ee4f9152f3ce',1,'mh.h']]],
   ['cpuid_5ffeat_5fedx_5ftm_72',['CPUID_FEAT_EDX_TM',['../mh_8h.html#a4edea782cc7b64a38c269123646227aca011b4b6541a2bb243222c0c33dfabcea',1,'mh.h']]],
   ['cpuid_5ffeat_5fedx_5ftsc_73',['CPUID_FEAT_EDX_TSC',['../mh_8h.html#a4edea782cc7b64a38c269123646227aca2ae56cfb5a846822cc095b79bf74de10',1,'mh.h']]],
-  ['cpuid_5ffeat_5fedx_5fvme_74',['CPUID_FEAT_EDX_VME',['../mh_8h.html#a4edea782cc7b64a38c269123646227aca5d32075fb1cfd95910c1eff1f0f3d056',1,'mh.h']]]
+  ['cpuid_5ffeat_5fedx_5fvme_74',['CPUID_FEAT_EDX_VME',['../mh_8h.html#a4edea782cc7b64a38c269123646227aca5d32075fb1cfd95910c1eff1f0f3d056',1,'mh.h']]],
+  ['critical_5fprocess_5fdied_75',['CRITICAL_PROCESS_DIED',['../me_8h.html#a3dd6c077b2422dcc0d05246537da5c82a02d5930f7f4dc547ce981bcd7f22baf0',1,'me.h']]]
 ];

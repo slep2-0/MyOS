@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ht/handle.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ht/handle.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -94,6 +93,8 @@ $(function(){initNavTree('handle_8c.html','',''); });
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="ht_8h_source.html">../../includes/ht.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ob_8h_source.html">../../includes/ob.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="ps_8h_source.html">../../includes/ps.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="mt_8h_source.html">../../includes/mt.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="assert_8h_source.html">../../assert.h</a>&quot;</code><br />
 </div>
 <p><a href="handle_8c_source.html">Go to the source code of this file.</a></p>
@@ -101,17 +102,37 @@ $(function(){initNavTree('handle_8c.html','',''); });
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a4248a71725a0d96cc5308d2711835c75" id="r_a4248a71725a0d96cc5308d2711835c75"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4248a71725a0d96cc5308d2711835c75">HtCreateHandleTable</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process)</td></tr>
-<tr class="memitem:a4ad24010cc4b9f4331e7ab83c2967fef" id="r_a4ad24010cc4b9f4331e7ab83c2967fef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a> (<a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, void *Object, uint32_t Access)</td></tr>
-<tr class="memitem:a5fd6b74d4b408fdce880fd4a9c01f073" id="r_a5fd6b74d4b408fdce880fd4a9c01f073"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a> (<a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle)</td></tr>
-<tr class="memitem:a3ab925bc21d946c96d3656b6e9662a43" id="r_a3ab925bc21d946c96d3656b6e9662a43"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3ab925bc21d946c96d3656b6e9662a43">HtGetObject</a> (<a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle, <a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> *OutEntry)</td></tr>
+<tr class="memitem:a4ad24010cc4b9f4331e7ab83c2967fef" id="r_a4ad24010cc4b9f4331e7ab83c2967fef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a> (<a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, void *Object, uint32_t Access)</td></tr>
+<tr class="memitem:a5fd6b74d4b408fdce880fd4a9c01f073" id="r_a5fd6b74d4b408fdce880fd4a9c01f073"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a> (<a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle)</td></tr>
+<tr class="memitem:ac7f4d74452b23c7961e9519fca0dd1ee" id="r_ac7f4d74452b23c7961e9519fca0dd1ee"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac7f4d74452b23c7961e9519fca0dd1ee">HtGetObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> <a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> *OutEntry)</td></tr>
 <tr class="memitem:a95832b8395bd6ef19ed5b428994eb291" id="r_a95832b8395bd6ef19ed5b428994eb291"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a95832b8395bd6ef19ed5b428994eb291">HtDeleteHandleTable</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table)</td></tr>
+<tr class="memitem:a730e2ef652afec3699adac7f6e8a8f84" id="r_a730e2ef652afec3699adac7f6e8a8f84"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a730e2ef652afec3699adac7f6e8a8f84">HtClose</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:a546fdba4904ae6132ccc6ad6b5a19356" id="r_a546fdba4904ae6132ccc6ad6b5a19356"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#afb9223ccda4ca489763aad6961a26c65">DOUBLY_LINKED_LIST</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a546fdba4904ae6132ccc6ad6b5a19356">HandleTableList</a></td></tr>
-<tr class="memitem:a4fb2d80ea0a3e6cf3bf9332eff935150" id="r_a4fb2d80ea0a3e6cf3bf9332eff935150"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ms_8h.html#adf17fb77fea5ef3f703733414efda5c4">SPINLOCK</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4fb2d80ea0a3e6cf3bf9332eff935150">HandleTableLock</a></td></tr>
+<tr class="memitem:a11e5a9e6fd76365212669c420a6186bf" id="r_a11e5a9e6fd76365212669c420a6186bf"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ms_8h.html#a0b2891fcded8de47f2ba6d1305024d2b">PUSH_LOCK</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a11e5a9e6fd76365212669c420a6186bf">HandleTableLock</a></td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
+<a id="a730e2ef652afec3699adac7f6e8a8f84" name="a730e2ef652afec3699adac7f6e8a8f84"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a730e2ef652afec3699adac7f6e8a8f84">&#9670;&#160;</a></span>HtClose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> HtClose </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00536">536</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+
+</div>
+</div>
 <a id="a4ad24010cc4b9f4331e7ab83c2967fef" name="a4ad24010cc4b9f4331e7ab83c2967fef"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4ad24010cc4b9f4331e7ab83c2967fef">&#9670;&#160;</a></span>HtCreateHandle()</h2>
 
@@ -119,7 +140,7 @@ Variables</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> HtCreateHandle </td>
+          <td class="memname"><a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> HtCreateHandle </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></td>          <td class="paramname"><span class="paramname"><em>Table</em></span>, </td>
         </tr>
@@ -136,7 +157,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00269">269</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00277">277</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
@@ -155,7 +176,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00087">87</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00090">90</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
@@ -173,12 +194,12 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00333">333</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00342">342</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
@@ -197,12 +218,12 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00434">434</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00442">442</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
-<a id="a3ab925bc21d946c96d3656b6e9662a43" name="a3ab925bc21d946c96d3656b6e9662a43"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3ab925bc21d946c96d3656b6e9662a43">&#9670;&#160;</a></span>HtGetObject()</h2>
+<a id="ac7f4d74452b23c7961e9519fca0dd1ee" name="ac7f4d74452b23c7961e9519fca0dd1ee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac7f4d74452b23c7961e9519fca0dd1ee">&#9670;&#160;</a></span>HtGetObject()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -210,22 +231,22 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname">void * HtGetObject </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></td>          <td class="paramname"><span class="paramname"><em>Table</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></td>          <td class="paramname"><span class="paramname"><em>Table</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> *</td>          <td class="paramname"><span class="paramname"><em>OutEntry</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> <a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> *</td>          <td class="paramname"><span class="paramname"><em>OutEntry</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00389">389</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00397">397</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
@@ -242,23 +263,23 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00026">26</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00028">28</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>
-<a id="a4fb2d80ea0a3e6cf3bf9332eff935150" name="a4fb2d80ea0a3e6cf3bf9332eff935150"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4fb2d80ea0a3e6cf3bf9332eff935150">&#9670;&#160;</a></span>HandleTableLock</h2>
+<a id="a11e5a9e6fd76365212669c420a6186bf" name="a11e5a9e6fd76365212669c420a6186bf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a11e5a9e6fd76365212669c420a6186bf">&#9670;&#160;</a></span>HandleTableLock</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ms_8h.html#adf17fb77fea5ef3f703733414efda5c4">SPINLOCK</a> HandleTableLock</td>
+          <td class="memname"><a class="el" href="ms_8h.html#a0b2891fcded8de47f2ba6d1305024d2b">PUSH_LOCK</a> HandleTableLock</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00027">27</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="handle_8c_source.html#l00029">29</a> of file <a class="el" href="handle_8c_source.html">handle.c</a>.</p>
 
 </div>
 </div>

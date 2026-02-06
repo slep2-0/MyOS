@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmproc.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmproc.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -96,6 +95,7 @@ $(function(){initNavTree('mmproc_8c.html','',''); });
 <code>#include &quot;<a class="el" href="me_8h_source.html">../../includes/me.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="assert_8h_source.html">../../assert.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="mg_8h_source.html">../../includes/mg.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="ps_8h_source.html">../../includes/ps.h</a>&quot;</code><br />
 </div>
 <p><a href="mmproc_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -104,6 +104,10 @@ Functions</h2></td></tr>
 <tr class="memitem:a395221ebf401ad2be0b1e0b2389da78d" id="r_a395221ebf401ad2be0b1e0b2389da78d"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a395221ebf401ad2be0b1e0b2389da78d">MiCreateKernelStack</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> bool LargeStack)</td></tr>
 <tr class="memitem:ac86d917699eab12ac1f9cf71e38d4bdb" id="r_ac86d917699eab12ac1f9cf71e38d4bdb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac86d917699eab12ac1f9cf71e38d4bdb">MiFreeKernelStack</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *AllocatedStackTop, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> bool LargeStack)</td></tr>
 <tr class="memitem:a6ce36965e5c7e35927cdaa72acadc16a" id="r_a6ce36965e5c7e35927cdaa72acadc16a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6ce36965e5c7e35927cdaa72acadc16a">MmCreateProcessAddressSpace</a> (<a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **DirectoryTable)</td></tr>
+<tr class="memitem:a9c507232bc4f45c3d97021580ac8c2c2" id="r_a9c507232bc4f45c3d97021580ac8c2c2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9c507232bc4f45c3d97021580ac8c2c2">MmDeleteProcessAddressSpace</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t PageDirectoryPhysical)</td></tr>
+<tr class="memitem:a90f40625d5030ca379a8707ae1c18cea" id="r_a90f40625d5030ca379a8707ae1c18cea"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a90f40625d5030ca379a8707ae1c18cea">MmCreateUserStack</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **OutStackTop, <a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> size_t StackReserveSize)</td></tr>
+<tr class="memitem:afe344ba1bbb444dcb6f68185de9a674f" id="r_afe344ba1bbb444dcb6f68185de9a674f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afe344ba1bbb444dcb6f68185de9a674f">MmCreatePeb</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **OutPeb, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **OutBasicMtdllTypes)</td></tr>
+<tr class="memitem:aba1711c37ecf9ab0b16e9476338d73cc" id="r_aba1711c37ecf9ab0b16e9476338d73cc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aba1711c37ecf9ab0b16e9476338d73cc">MmCreateTeb</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> Thread, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **OutTeb)</td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
 <a id="a395221ebf401ad2be0b1e0b2389da78d" name="a395221ebf401ad2be0b1e0b2389da78d"></a>
@@ -121,7 +125,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00025">25</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00026">26</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
 
 </div>
 </div>
@@ -144,7 +148,35 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00148">148</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00149">149</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+
+</div>
+</div>
+<a id="afe344ba1bbb444dcb6f68185de9a674f" name="afe344ba1bbb444dcb6f68185de9a674f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe344ba1bbb444dcb6f68185de9a674f">&#9670;&#160;</a></span>MmCreatePeb()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> MmCreatePeb </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **</td>          <td class="paramname"><span class="paramname"><em>OutPeb</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **</td>          <td class="paramname"><span class="paramname"><em>OutBasicMtdllTypes</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00502">502</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
 
 </div>
 </div>
@@ -163,7 +195,81 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00220">220</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00221">221</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+
+</div>
+</div>
+<a id="aba1711c37ecf9ab0b16e9476338d73cc" name="aba1711c37ecf9ab0b16e9476338d73cc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba1711c37ecf9ab0b16e9476338d73cc">&#9670;&#160;</a></span>MmCreateTeb()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> MmCreateTeb </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a></td>          <td class="paramname"><span class="paramname"><em>Thread</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **</td>          <td class="paramname"><span class="paramname"><em>OutTeb</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00536">536</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+
+</div>
+</div>
+<a id="a90f40625d5030ca379a8707ae1c18cea" name="a90f40625d5030ca379a8707ae1c18cea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a90f40625d5030ca379a8707ae1c18cea">&#9670;&#160;</a></span>MmCreateUserStack()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> MmCreateUserStack </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **</td>          <td class="paramname"><span class="paramname"><em>OutStackTop</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> size_t</td>          <td class="paramname"><span class="paramname"><em>StackReserveSize</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00436">436</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
+
+</div>
+</div>
+<a id="a9c507232bc4f45c3d97021580ac8c2c2" name="a9c507232bc4f45c3d97021580ac8c2c2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9c507232bc4f45c3d97021580ac8c2c2">&#9670;&#160;</a></span>MmDeleteProcessAddressSpace()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> MmDeleteProcessAddressSpace </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t</td>          <td class="paramname"><span class="paramname"><em>PageDirectoryPhysical</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mmproc_8c_source.html#l00391">391</a> of file <a class="el" href="mmproc_8c_source.html">mmproc.c</a>.</p>
 
 </div>
 </div>

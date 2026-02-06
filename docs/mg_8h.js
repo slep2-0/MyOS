@@ -19,10 +19,10 @@ var mg_8h =
     [ "COLOR_TEAL", "mg_8h.html#a4b267232e4d63357f019b51df51eaef2", null ],
     [ "COLOR_WHITE", "mg_8h.html#a9b44987ffdc2af19b635206b94334b69", null ],
     [ "COLOR_YELLOW", "mg_8h.html#a4534b577b74a58b0f4b7be027af664e0", null ],
-    [ "gop_clear_screen", "mg_8h.html#aa503353bbbc9732ffe7f094f9cbb09b8", null ],
-    [ "gop_printf", "mg_8h.html#a537493458eaff61b044c815c037d3cc2", null ],
-    [ "ksnprintf", "mg_8h.html#a4c58494b90fd7bfbc33a84178e327b88", null ],
-    [ "kstrcmp", "mg_8h.html#aeb9ae33be9fc0ba0f5380f9af0927176", null ],
+    [ "__attribute__", "mg_8h.html#a3d00274cfa7c2f042d474ce4e9fc3bc8", null ],
+    [ "gop_clear_screen", "mg_8h.html#ae200033de2a8b5caec1ab0aa3961bb0b", null ],
+    [ "ksnprintf", "mg_8h.html#a659d06410337dba26069b6ee00098de2", null ],
+    [ "kstrcmp", "mg_8h.html#a2b4da899854a29bc9e26e7a39de974c3", null ],
     [ "kstrcpy", "mg_8h.html#a864c88d82a5c0cb213765ccf4b61ce93", null ],
     [ "kstrlen", "mg_8h.html#a3ce34f7245087a9c75e657df97e21b6b", null ],
     [ "kstrncat", "mg_8h.html#a34b635934c54b4f46a83fc6e70e7101e", null ],
@@ -30,5 +30,6 @@ var mg_8h =
     [ "kstrncpy", "mg_8h.html#a928767eb3d6af2e725d8be0b32bd4582", null ],
     [ "kstrtok_r", "mg_8h.html#a7a89f0d6dcc077de69240e141ca120c2", null ],
     [ "MgAcquireExclusiveGopOwnerShip", "mg_8h.html#a304cb844bb7695ea7fdb74ae68edff29", null ],
-    [ "MgReleaseExclusiveGopOwnerShip", "mg_8h.html#a6cd2fcd37b557f064fdc6a7d5d791145", null ]
+    [ "MgReleaseExclusiveGopOwnerShip", "mg_8h.html#a6cd2fcd37b557f064fdc6a7d5d791145", null ],
+    [ "fmt", "mg_8h.html#adf68afc8085d4aeb4c638870f9bae8a4", null ]
 ];

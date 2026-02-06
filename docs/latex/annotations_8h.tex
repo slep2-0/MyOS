@@ -1,0 +1,292 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/includes/annotations.h File Reference}
+\hypertarget{annotations_8h}{}\label{annotations_8h}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/annotations.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/annotations.h}}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}
+\item 
+\#define \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}{\+\_\+\+In\+\_\+\+Opt}}
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\+\_\+\+Out\+\_\+\+Opt}}
+\item 
+\#define \mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((noreturn))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}~static inline
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a3d3146d095d92ca9ba09f1e2ff22a8d1}{FORCEINLINE\+\_\+\+NOHEADER}}~inline
+\item 
+\#define \mbox{\hyperlink{annotations_8h_abcd0a22ee4346cad5706adb6d2119429}{USED}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((used))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_afefbce768b9d0df9c9ebc30dd6d13fed}{MUST\+\_\+\+USE\+\_\+\+RESULT}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((warn\+\_\+unused\+\_\+result))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_adf49424ef577203642abd5ac56f6cf72}{COLD}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((cold))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a1eb14cc432874ddacd1934791dbe12a3}{HOT}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((hot))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a36d525cf4d116b2fe4ecc00222b256f1}{PACKED}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((packed))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a8ce491b27b644889db1ca99d8c99c24e}{STATIC\+\_\+\+ASSERT}}(cond,  msg)
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a8e457b80c3252e821c680844127c1424}{COMPILE\+\_\+\+WARNING}}(msg)
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a045d3bdb9abc06e2d3562deb5286bca4}{COMPILE\+\_\+\+ERROR}}(msg)
+\item 
+\#define \mbox{\hyperlink{annotations_8h_acf03e9bdf04f84054c0d7db0f2a42a2f}{SYSV\+\_\+\+ABI}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((sysv\+\_\+abi))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a4cf0740db5a3d5692e12b6fcfe1ee9cf}{MS\+\_\+\+ABI}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((ms\+\_\+abi))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a1b173d22e57d9395897acbd8de62d505}{NOINLINE}}~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((noinline))
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a16d57fa333e3c80f8c8d959ddcfd31af}{UNREACHABLE\+\_\+\+CODE}}()
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a15d631d0ddab79dd930809b6f7505011}{VALIDATE\+\_\+\+SIZE}}(struc,  size)
+\item 
+\#define \mbox{\hyperlink{annotations_8h_a9562aecae410ade34d64992022a56227}{VALIDATE\+\_\+\+OFFSET}}(struc,  member,  offset)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{annotations_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a}\index{annotations.h@{annotations.h}!\_In\_Opt@{\_In\_Opt}}
+\index{\_In\_Opt@{\_In\_Opt}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{\_In\_Opt}{\_In\_Opt}}
+{\footnotesize\ttfamily \label{annotations_8h_a5a0c9c18b7d8388957d19aef11e2406a} 
+\#define \+\_\+\+In\+\_\+\+Opt}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00010}{10}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}\index{annotations.h@{annotations.h}!\_Out\_Opt@{\_Out\_Opt}}
+\index{\_Out\_Opt@{\_Out\_Opt}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{\_Out\_Opt}{\_Out\_Opt}}
+{\footnotesize\ttfamily \label{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90} 
+\#define \+\_\+\+Out\+\_\+\+Opt}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00011}{11}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_adf49424ef577203642abd5ac56f6cf72}\index{annotations.h@{annotations.h}!COLD@{COLD}}
+\index{COLD@{COLD}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{COLD}{COLD}}
+{\footnotesize\ttfamily \label{annotations_8h_adf49424ef577203642abd5ac56f6cf72} 
+\#define COLD~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((cold))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00045}{45}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a045d3bdb9abc06e2d3562deb5286bca4}\index{annotations.h@{annotations.h}!COMPILE\_ERROR@{COMPILE\_ERROR}}
+\index{COMPILE\_ERROR@{COMPILE\_ERROR}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{COMPILE\_ERROR}{COMPILE\_ERROR}}
+{\footnotesize\ttfamily \label{annotations_8h_a045d3bdb9abc06e2d3562deb5286bca4} 
+\#define COMPILE\+\_\+\+ERROR(\begin{DoxyParamCaption}\item[{}]{msg}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\_\_attribute\_\_}}((error(msg)))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00060}{60}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a8e457b80c3252e821c680844127c1424}\index{annotations.h@{annotations.h}!COMPILE\_WARNING@{COMPILE\_WARNING}}
+\index{COMPILE\_WARNING@{COMPILE\_WARNING}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{COMPILE\_WARNING}{COMPILE\_WARNING}}
+{\footnotesize\ttfamily \label{annotations_8h_a8e457b80c3252e821c680844127c1424} 
+\#define COMPILE\+\_\+\+WARNING(\begin{DoxyParamCaption}\item[{}]{msg}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{mh_8h_a720173e80c53ae6b5fa163fd6e81ad27}{\_\_attribute\_\_}}((warning(msg)))}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00057}{57}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}\index{annotations.h@{annotations.h}!FORCEINLINE@{FORCEINLINE}}
+\index{FORCEINLINE@{FORCEINLINE}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{FORCEINLINE}{FORCEINLINE}}
+{\footnotesize\ttfamily \label{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8} 
+\#define FORCEINLINE~static inline}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00023}{23}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a3d3146d095d92ca9ba09f1e2ff22a8d1}\index{annotations.h@{annotations.h}!FORCEINLINE\_NOHEADER@{FORCEINLINE\_NOHEADER}}
+\index{FORCEINLINE\_NOHEADER@{FORCEINLINE\_NOHEADER}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{FORCEINLINE\_NOHEADER}{FORCEINLINE\_NOHEADER}}
+{\footnotesize\ttfamily \label{annotations_8h_a3d3146d095d92ca9ba09f1e2ff22a8d1} 
+\#define FORCEINLINE\+\_\+\+NOHEADER~inline}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00034}{34}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a1eb14cc432874ddacd1934791dbe12a3}\index{annotations.h@{annotations.h}!HOT@{HOT}}
+\index{HOT@{HOT}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{HOT}{HOT}}
+{\footnotesize\ttfamily \label{annotations_8h_a1eb14cc432874ddacd1934791dbe12a3} 
+\#define HOT~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((hot))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00048}{48}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}\index{annotations.h@{annotations.h}!IN@{IN}}
+\index{IN@{IN}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{IN}{IN}}
+{\footnotesize\ttfamily \label{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928} 
+\#define IN}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00008}{8}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a4cf0740db5a3d5692e12b6fcfe1ee9cf}\index{annotations.h@{annotations.h}!MS\_ABI@{MS\_ABI}}
+\index{MS\_ABI@{MS\_ABI}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{MS\_ABI}{MS\_ABI}}
+{\footnotesize\ttfamily \label{annotations_8h_a4cf0740db5a3d5692e12b6fcfe1ee9cf} 
+\#define MS\+\_\+\+ABI~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((ms\+\_\+abi))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00066}{66}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_afefbce768b9d0df9c9ebc30dd6d13fed}\index{annotations.h@{annotations.h}!MUST\_USE\_RESULT@{MUST\_USE\_RESULT}}
+\index{MUST\_USE\_RESULT@{MUST\_USE\_RESULT}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{MUST\_USE\_RESULT}{MUST\_USE\_RESULT}}
+{\footnotesize\ttfamily \label{annotations_8h_afefbce768b9d0df9c9ebc30dd6d13fed} 
+\#define MUST\+\_\+\+USE\+\_\+\+RESULT~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((warn\+\_\+unused\+\_\+result))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00042}{42}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a1b173d22e57d9395897acbd8de62d505}\index{annotations.h@{annotations.h}!NOINLINE@{NOINLINE}}
+\index{NOINLINE@{NOINLINE}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{NOINLINE}{NOINLINE}}
+{\footnotesize\ttfamily \label{annotations_8h_a1b173d22e57d9395897acbd8de62d505} 
+\#define NOINLINE~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((noinline))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00069}{69}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}\index{annotations.h@{annotations.h}!NORETURN@{NORETURN}}
+\index{NORETURN@{NORETURN}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{NORETURN}{NORETURN}}
+{\footnotesize\ttfamily \label{annotations_8h_aa1728270d73c5d1598de1fd691762eb1} 
+\#define NORETURN~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((noreturn))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00014}{14}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}\index{annotations.h@{annotations.h}!OUT@{OUT}}
+\index{OUT@{OUT}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{OUT}{OUT}}
+{\footnotesize\ttfamily \label{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae} 
+\#define OUT}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00009}{9}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a36d525cf4d116b2fe4ecc00222b256f1}\index{annotations.h@{annotations.h}!PACKED@{PACKED}}
+\index{PACKED@{PACKED}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{PACKED}{PACKED}}
+{\footnotesize\ttfamily \label{annotations_8h_a36d525cf4d116b2fe4ecc00222b256f1} 
+\#define PACKED~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((packed))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00051}{51}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a8ce491b27b644889db1ca99d8c99c24e}\index{annotations.h@{annotations.h}!STATIC\_ASSERT@{STATIC\_ASSERT}}
+\index{STATIC\_ASSERT@{STATIC\_ASSERT}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{STATIC\_ASSERT}{STATIC\_ASSERT}}
+{\footnotesize\ttfamily \label{annotations_8h_a8ce491b27b644889db1ca99d8c99c24e} 
+\#define STATIC\+\_\+\+ASSERT(\begin{DoxyParamCaption}\item[{}]{cond}{, }\item[{}]{msg}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{\_Static\_assert}(cond,\ msg)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00054}{54}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_acf03e9bdf04f84054c0d7db0f2a42a2f}\index{annotations.h@{annotations.h}!SYSV\_ABI@{SYSV\_ABI}}
+\index{SYSV\_ABI@{SYSV\_ABI}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{SYSV\_ABI}{SYSV\_ABI}}
+{\footnotesize\ttfamily \label{annotations_8h_acf03e9bdf04f84054c0d7db0f2a42a2f} 
+\#define SYSV\+\_\+\+ABI~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((sysv\+\_\+abi))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00063}{63}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a16d57fa333e3c80f8c8d959ddcfd31af}\index{annotations.h@{annotations.h}!UNREACHABLE\_CODE@{UNREACHABLE\_CODE}}
+\index{UNREACHABLE\_CODE@{UNREACHABLE\_CODE}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{UNREACHABLE\_CODE}{UNREACHABLE\_CODE}}
+{\footnotesize\ttfamily \label{annotations_8h_a16d57fa333e3c80f8c8d959ddcfd31af} 
+\#define UNREACHABLE\+\_\+\+CODE(\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\_\_builtin\_unreachable()}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00072}{72}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_abcd0a22ee4346cad5706adb6d2119429}\index{annotations.h@{annotations.h}!USED@{USED}}
+\index{USED@{USED}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{USED}{USED}}
+{\footnotesize\ttfamily \label{annotations_8h_abcd0a22ee4346cad5706adb6d2119429} 
+\#define USED~\mbox{\hyperlink{struct____attribute____}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((used))}
+
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00039}{39}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a9562aecae410ade34d64992022a56227}\index{annotations.h@{annotations.h}!VALIDATE\_OFFSET@{VALIDATE\_OFFSET}}
+\index{VALIDATE\_OFFSET@{VALIDATE\_OFFSET}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{VALIDATE\_OFFSET}{VALIDATE\_OFFSET}}
+{\footnotesize\ttfamily \label{annotations_8h_a9562aecae410ade34d64992022a56227} 
+\#define VALIDATE\+\_\+\+OFFSET(\begin{DoxyParamCaption}\item[{}]{struc}{, }\item[{}]{member}{, }\item[{}]{offset}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{\_Static\_assert}(offsetof(struc,\ member)\ ==\ offset,\ \textcolor{stringliteral}{"{}The\ offset\ of\ "{}}\ \#member\ \textcolor{stringliteral}{"{}\ in\ "{}}\ \#struc\ \textcolor{stringliteral}{"{}\ is\ not\ "{}}\ \#offset\ \textcolor{stringliteral}{"{}..."{}})}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00078}{78}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+
+\Hypertarget{annotations_8h_a15d631d0ddab79dd930809b6f7505011}\index{annotations.h@{annotations.h}!VALIDATE\_SIZE@{VALIDATE\_SIZE}}
+\index{VALIDATE\_SIZE@{VALIDATE\_SIZE}!annotations.h@{annotations.h}}
+\doxysubsubsection{\texorpdfstring{VALIDATE\_SIZE}{VALIDATE\_SIZE}}
+{\footnotesize\ttfamily \label{annotations_8h_a15d631d0ddab79dd930809b6f7505011} 
+\#define VALIDATE\+\_\+\+SIZE(\begin{DoxyParamCaption}\item[{}]{struc}{, }\item[{}]{size}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{\_Static\_assert}(\textcolor{keyword}{sizeof}(struc)\ ==\ size,\ \textcolor{stringliteral}{"{}Invalid\ structure\ size\ of\ "{}}\ \#struc)}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{annotations_8h_source_l00075}{75}} of file \mbox{\hyperlink{annotations_8h_source}{annotations.\+h}}.
+

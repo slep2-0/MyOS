@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h Source File</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/exception.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -188,86 +187,157 @@ $(function(){initNavTree('exception_8h_source.html','',''); });
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno"><a class="line" href="exception_8h.html#a9c5593789be8e9a8f7f414fdc46a56af">   85</a></span>} <a class="code hl_typedef" href="exception_8h.html#a9c5593789be8e9a8f7f414fdc46a56af">EX_FRAME_REGISTRATION</a>;</div>
 </div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="comment">// ------------------ FUNCTIONS ------------------</span></div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="keyword">extern</span> <a class="code hl_typedef" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> <a class="code hl_function" href="exception_8h.html#a83437e8cd9a8e8befc491348dfcb41c0">PsGetCurrentThread</a>(<span class="keywordtype">void</span>);</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a">   90</a></span><span class="keyword">extern</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a">ExpCaptureContext</a>(<a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> Context);</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno"><a class="line" href="exception_8h.html#adeb5e1a7690ebae7f60daa59e7df38f2">   92</a></span><a class="code hl_typedef" href="exception_8h.html#a9cb88c16b74c1968a18b04bf222ac123">EXCEPTION_DISPOSITION</a> <a class="code hl_function" href="exception_8h.html#adeb5e1a7690ebae7f60daa59e7df38f2">MeStandardHandler</a>(</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <a class="code hl_typedef" href="exception_8h.html#ad2e8b20d36f49cdaa8ee49fe1e9f6b41">PEXCEPTION_RECORD</a> ExceptionRecord,</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    <span class="keywordtype">void</span>* EstablisherFrame,</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> ContextRecord,</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    <span class="keywordtype">void</span>* DispatcherContext</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>);</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span> </div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="comment">// macros</span></div>
-<div class="foldopen" id="foldopen00100" data-start="" data-end="">
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno"><a class="line" href="exception_8h.html#a725ec12e237ed7b4dd1978a186afb949">  100</a></span><span class="preprocessor">#define _try \</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="preprocessor">    { \</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="preprocessor">        PETHREAD _CurrentThread = PsGetCurrentThread(); \</span></div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="preprocessor">        ME_EXCEPTION_FRAME _MyFrame; \</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="preprocessor">        _MyFrame.Next = (PME_EXCEPTION_FRAME)_CurrentThread-&gt;ExceptionList; \</span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="preprocessor">        _MyFrame.Handler = MeStandardHandler; \</span></div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="preprocessor">        _CurrentThread-&gt;ExceptionList = &amp;_MyFrame; \</span></div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="preprocessor">        </span><span class="comment">/* Save Context. Returns 0 initially. Returns 1 if we crashed. */</span><span class="preprocessor"> \</span></div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="preprocessor">        if (ExpCaptureContext(&amp;_MyFrame) == 0) { \</span></div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span><span class="preprocessor"></span> </div>
+<div class="foldopen" id="foldopen00087" data-start="{" data-end="};">
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html">   87</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html">_EXCEPTION_RANGE</a> {</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7afbba4d73394c65f560067a9bfc2d89">   88</a></span>    uint64_t <a class="code hl_variable" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7afbba4d73394c65f560067a9bfc2d89">start_addr</a>;</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno"><a class="line" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a5f84025f61d1f13a046dfb1f24181f19">   89</a></span>    uint64_t <a class="code hl_variable" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a5f84025f61d1f13a046dfb1f24181f19">end_addr</a>;</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7b3eeee848efd596a60d6cd0b273f011">   90</a></span>    uint64_t <a class="code hl_variable" href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7b3eeee848efd596a60d6cd0b273f011">handler_addr</a>;</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno"><a class="line" href="exception_8h.html#a30ca0854d275bc6f6b7cb967043d1975">   91</a></span>} <a class="code hl_typedef" href="exception_8h.html#a30ca0854d275bc6f6b7cb967043d1975">EXCEPTION_RANGE</a>, *<a class="code hl_typedef" href="exception_8h.html#af025ceda9d693471e5cd26df65286a43">PEXCEPTION_RANGE</a>;</div>
 </div>
-<div class="foldopen" id="foldopen00110" data-start="" data-end="">
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno"><a class="line" href="exception_8h.html#abd4cff0ca8231e7634099220e3ef46b8">  110</a></span><span class="preprocessor">#define _except(FilterExpression) \</span></div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="preprocessor">            </span><span class="comment">/* Success path: Unlink frame */</span><span class="preprocessor"> \</span></div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="preprocessor">            _CurrentThread-&gt;ExceptionList = _MyFrame.Next; \</span></div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="preprocessor">        } else { \</span></div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="preprocessor">            </span><span class="comment">/* Crash path: We just &quot;landed&quot; here from the handler! */</span><span class="preprocessor"> \</span></div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="preprocessor">            </span><span class="comment">/* Unlink frame (safe to do again) */</span><span class="preprocessor"> \</span></div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="preprocessor">            _CurrentThread-&gt;ExceptionList = _MyFrame.Next; \</span></div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">            </span><span class="comment">/* You can access _MyFrame.ExceptionCode here if needed */</span><span class="preprocessor"> \</span></div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="preprocessor">            { \</span></div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="preprocessor">               </span><span class="comment">/* User Code inside except block */</span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="comment">// Symbols defined by the linker script</span></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="keyword">extern</span> <a class="code hl_typedef" href="exception_8h.html#a30ca0854d275bc6f6b7cb967043d1975">EXCEPTION_RANGE</a> <a class="code hl_variable" href="exception_8h.html#aaba5bf3e4293476f1f1a4aa6d677ed45">__start_ex_table</a>[];</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="keyword">extern</span> <a class="code hl_typedef" href="exception_8h.html#a30ca0854d275bc6f6b7cb967043d1975">EXCEPTION_RANGE</a> <a class="code hl_variable" href="exception_8h.html#a1115f8b9064acca3a882fa7b0ca64a84">__stop_ex_table</a>[];</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="comment">// Helper to search the table</span></div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno"><a class="line" href="exception_8h.html#abfaee60569fbcbda8465bdb8e8c8eb3b">   98</a></span>uint64_t <a class="code hl_function" href="exception_8h.html#abfaee60569fbcbda8465bdb8e8c8eb3b">MiSearchExceptionTable</a>(uint64_t rip);</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment">// ------------------ FUNCTIONS ------------------</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="keyword">extern</span> <a class="code hl_typedef" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> <a class="code hl_function" href="exception_8h.html#a83437e8cd9a8e8befc491348dfcb41c0">PsGetCurrentThread</a>(<span class="keywordtype">void</span>);</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno"><a class="line" href="exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a">  103</a></span><span class="keyword">extern</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a">ExpCaptureContext</a>(<a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> Context);</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno"><a class="line" href="exception_8h.html#adeb5e1a7690ebae7f60daa59e7df38f2">  105</a></span><a class="code hl_typedef" href="exception_8h.html#a9cb88c16b74c1968a18b04bf222ac123">EXCEPTION_DISPOSITION</a> <a class="code hl_function" href="exception_8h.html#adeb5e1a7690ebae7f60daa59e7df38f2">MeStandardHandler</a>(</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <a class="code hl_typedef" href="exception_8h.html#ad2e8b20d36f49cdaa8ee49fe1e9f6b41">PEXCEPTION_RECORD</a> ExceptionRecord,</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    <span class="keywordtype">void</span>* EstablisherFrame,</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> ContextRecord,</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    <span class="keywordtype">void</span>* DispatcherContext</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>);</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="comment">// macros</span></div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment">// Try except blocks mean we will most likely touch user accessible memory, so stac and clac are always included no matter the previousmode.</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="preprocessor">#ifndef _MSC_VER</span></div>
+<div class="foldopen" id="foldopen00115" data-start="" data-end="">
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno"><a class="line" href="exception_8h.html#a28599e8ac99ea9faff60a2258a914aee">  115</a></span><span class="preprocessor">#define try do { \</span></div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="preprocessor">    __label__ _try_start, _try_end, _except_label, _try_break;      \</span></div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">    __stac();                                                       \</span></div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="preprocessor">    </span><span class="comment">/*  Emit the table entry linking this range to the handler */</span><span class="preprocessor">   \</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="preprocessor">    __asm__ volatile (                                              \</span></div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="preprocessor">        &quot;.section __ex_table,\&quot;a\&quot;\n\t&quot;                             \</span></div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="preprocessor">        &quot;.quad %P0, %P1, %P2\n\t&quot;                                   \</span></div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="preprocessor">        &quot;.previous\n\t&quot;                                             \</span></div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="preprocessor">            :                                                       \</span></div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="preprocessor">        : &quot;i&quot; (&amp;&amp; _try_start), &quot;i&quot; (&amp;&amp; _try_end), &quot;i&quot; (&amp;&amp; _except_label)\</span></div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="preprocessor">    );                                                          \</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="preprocessor">    </span><span class="comment">/* Start of protected region */</span><span class="preprocessor">                                 \</span></div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="preprocessor">    _try_start:                                                     \</span></div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="preprocessor">    __asm__ volatile(&quot;&quot; ::: &quot;memory&quot;); </span><span class="comment">/* Prevent hoisting */</span><span class="preprocessor">       \</span></div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="preprocessor">    {</span></div>
 </div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
-<div class="foldopen" id="foldopen00121" data-start="" data-end="">
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno"><a class="line" href="exception_8h.html#a3e2d117c8ff6c4855462a5c0e4b33e58">  121</a></span><span class="preprocessor">#define _end_except \</span></div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="preprocessor">            } \</span></div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="preprocessor">        } \</span></div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="preprocessor">    }</span></div>
-</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="keywordtype">bool</span></div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><a class="code hl_function" href="exception_8h.html#a2dee8f10bb0d7be89909abb721626b2a">ExpIsExceptionHandlerPresent</a>(</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> Thread</div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>);</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span> </div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="keywordtype">void</span></div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><a class="code hl_function" href="exception_8h.html#a899600fb60c845d2acfda420340e0fbe">ExpDispatchException</a>(</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="core_8h.html#aa67765a45c59a875c081a07037408850">PTRAP_FRAME</a> TrapFrame,</div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> ContextRecord,</div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#ad2e8b20d36f49cdaa8ee49fe1e9f6b41">PEXCEPTION_RECORD</a> ExceptionRecord</div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>);</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span><span class="preprocessor">#endif</span></div>
-<div class="ttc" id="aannotations_8h_html_ac2bbd6d630a06a980d9a92ddb9a49928"><div class="ttname"><a href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a></div><div class="ttdeci">#define IN</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00007">annotations.h:7</a></div></div>
+<div class="foldopen" id="foldopen00131" data-start="" data-end="">
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno"><a class="line" href="exception_8h.html#a92dd13ee5770a55ecb6128f6d8143939">  131</a></span><span class="preprocessor">#define except                                          \</span></div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><span class="preprocessor">    }                                                   \</span></div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span><span class="preprocessor">    __asm__ volatile(&quot;&quot; ::: &quot;memory&quot;);                  \</span></div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="preprocessor">    _try_end:                                          \</span></div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="preprocessor">    {                                                   \</span></div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="preprocessor">        int _volatile_true = 1;                         \</span></div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="preprocessor">        __asm__ volatile(&quot;&quot; : &quot;+r&quot;(_volatile_true));    \</span></div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span><span class="preprocessor">        if (_volatile_true) goto _try_break;            \</span></div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span><span class="preprocessor">    }                                                   \</span></div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span><span class="preprocessor">    _except_label:                                      \</span></div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span><span class="preprocessor">    {                                                   \</span></div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span><span class="preprocessor">    __clac();                                           \</span></div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span><span class="preprocessor">        </span><span class="comment">/* The Page fault handler jumps here if we faulted */</span><span class="preprocessor"></span></div>
+</div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span> </div>
+<div class="foldopen" id="foldopen00145" data-start="" data-end="">
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno"><a class="line" href="exception_8h.html#a1f530142e3f8bb37fa99680af8ab9921">  145</a></span><span class="preprocessor">#define end_try                                                     \</span></div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="preprocessor">    }                                                               \</span></div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span><span class="preprocessor">    _try_break:                                                     \</span></div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span><span class="preprocessor">        __clac();                                                   \</span></div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="preprocessor">} while (0)</span></div>
+</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno"><a class="line" href="exception_8h.html#ad8fe58d8046dc5b652f4688f035faa04">  150</a></span><span class="preprocessor">#define leave   do { goto _try_break; } while (0)</span></div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="preprocessor">#define try </span></div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="preprocessor">#define except </span><span class="comment">/* */</span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="preprocessor">#define end_try</span></div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="preprocessor">#define leave</span></div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="keywordtype">bool</span></div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><a class="code hl_function" href="exception_8h.html#a2dee8f10bb0d7be89909abb721626b2a">ExpIsExceptionHandlerPresent</a>(</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> Thread</div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>);</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span> </div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span><span class="keywordtype">void</span></div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span><a class="code hl_function" href="exception_8h.html#a899600fb60c845d2acfda420340e0fbe">ExpDispatchException</a>(</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="core_8h.html#aa67765a45c59a875c081a07037408850">PTRAP_FRAME</a> TrapFrame,</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a> ContextRecord,</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="exception_8h.html#ad2e8b20d36f49cdaa8ee49fe1e9f6b41">PEXCEPTION_RECORD</a> ExceptionRecord</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>);</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span> </div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>uint64_t</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span><a class="code hl_function" href="exception_8h.html#af8135ba086b45298daac1a287da6c721">ExpFindKernelModeExceptionHandler</a>(</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    uint64_t Rip</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>);</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span> </div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span><span class="comment">// instruction.c</span></div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span> </div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span><span class="keywordtype">bool</span></div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><a class="code hl_function" href="exception_8h.html#a7417917e35bc105788b32e7505bd169b">ExpIsPrivilegedInstruction</a>(uint8_t* Ip <span class="comment">/*, bool Wow64*/</span>);</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span> </div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment">// probe.c</span></div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span> </div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><a class="code hl_typedef" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a></div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><a class="code hl_function" href="exception_8h.html#a52b50c12b0069015d9629037e8b170c0">ProbeForRead</a>(</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <span class="keyword">const</span> <span class="keywordtype">void</span>* <a class="code hl_variable" href="mh_8h.html#a910d8dd637ddefc515335aa801391980">Address</a>,</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <span class="keywordtype">size_t</span> <a class="code hl_variable" href="mh_8h.html#af8d8a0e464944d6e219e87ef2f33d2e0">Length</a>,</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint32_t Alignment</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>);</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span> </div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">// raise.c</span></div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment">// unused func.</span></div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keywordtype">void</span></div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><a class="code hl_function" href="exception_8h.html#a8bbe46148880fd04948b77ded24ad8ca">ExpRaiseStatus</a>(</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> Status,</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t Rip</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>);</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aannotations_8h_html_ac2bbd6d630a06a980d9a92ddb9a49928"><div class="ttname"><a href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a></div><div class="ttdeci">#define IN</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00008">annotations.h:8</a></div></div>
 <div class="ttc" id="acore_8h_html"><div class="ttname"><a href="core_8h.html">core.h</a></div></div>
-<div class="ttc" id="acore_8h_html_aa67765a45c59a875c081a07037408850"><div class="ttname"><a href="core_8h.html#aa67765a45c59a875c081a07037408850">PTRAP_FRAME</a></div><div class="ttdeci">TRAP_FRAME * PTRAP_FRAME</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00054">core.h:54</a></div></div>
-<div class="ttc" id="acore_8h_html_ad66fec9d1871be79dbc3f828f4ac5ee7"><div class="ttname"><a href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a></div><div class="ttdeci">ETHREAD * PETHREAD</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00042">core.h:42</a></div></div>
+<div class="ttc" id="acore_8h_html_aa67765a45c59a875c081a07037408850"><div class="ttname"><a href="core_8h.html#aa67765a45c59a875c081a07037408850">PTRAP_FRAME</a></div><div class="ttdeci">TRAP_FRAME * PTRAP_FRAME</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00056">core.h:56</a></div></div>
+<div class="ttc" id="acore_8h_html_ad66fec9d1871be79dbc3f828f4ac5ee7"><div class="ttname"><a href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a></div><div class="ttdeci">ETHREAD * PETHREAD</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00044">core.h:44</a></div></div>
 <div class="ttc" id="aexception_8h_html_a0beb9666aac7b8e8045033f5675416a3"><div class="ttname"><a href="exception_8h.html#a0beb9666aac7b8e8045033f5675416a3">_EXCEPTION_DISPOSITION</a></div><div class="ttdeci">_EXCEPTION_DISPOSITION</div><div class="ttdef"><b>Definition</b> <a href="#l00043">exception.h:43</a></div></div>
 <div class="ttc" id="aexception_8h_html_a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb"><div class="ttname"><a href="exception_8h.html#a0beb9666aac7b8e8045033f5675416a3a2ed676b05618185050f8487702b693eb">ExceptionContinueSearch</a></div><div class="ttdeci">@ ExceptionContinueSearch</div><div class="ttdef"><b>Definition</b> <a href="#l00045">exception.h:45</a></div></div>
 <div class="ttc" id="aexception_8h_html_a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0"><div class="ttname"><a href="exception_8h.html#a0beb9666aac7b8e8045033f5675416a3a3a569b22fbf51648a94126a888911ad0">ExceptionCollidedUnwind</a></div><div class="ttdeci">@ ExceptionCollidedUnwind</div><div class="ttdef"><b>Definition</b> <a href="#l00047">exception.h:47</a></div></div>
 <div class="ttc" id="aexception_8h_html_a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a"><div class="ttname"><a href="exception_8h.html#a0beb9666aac7b8e8045033f5675416a3a6bccce5e4d1e09eaa21a3e9ea5e7362a">ExceptionNestedException</a></div><div class="ttdeci">@ ExceptionNestedException</div><div class="ttdef"><b>Definition</b> <a href="#l00046">exception.h:46</a></div></div>
 <div class="ttc" id="aexception_8h_html_a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c"><div class="ttname"><a href="exception_8h.html#a0beb9666aac7b8e8045033f5675416a3af73a939802f7ec25cf2f80b5897be84c">ExceptionContinueExecution</a></div><div class="ttdeci">@ ExceptionContinueExecution</div><div class="ttdef"><b>Definition</b> <a href="#l00044">exception.h:44</a></div></div>
+<div class="ttc" id="aexception_8h_html_a1115f8b9064acca3a882fa7b0ca64a84"><div class="ttname"><a href="exception_8h.html#a1115f8b9064acca3a882fa7b0ca64a84">__stop_ex_table</a></div><div class="ttdeci">EXCEPTION_RANGE __stop_ex_table[]</div></div>
 <div class="ttc" id="aexception_8h_html_a2dee8f10bb0d7be89909abb721626b2a"><div class="ttname"><a href="exception_8h.html#a2dee8f10bb0d7be89909abb721626b2a">ExpIsExceptionHandlerPresent</a></div><div class="ttdeci">bool ExpIsExceptionHandlerPresent(IN PETHREAD Thread)</div><div class="ttdef"><b>Definition</b> <a href="exception_8c_source.html#l00023">exception.c:23</a></div></div>
+<div class="ttc" id="aexception_8h_html_a30ca0854d275bc6f6b7cb967043d1975"><div class="ttname"><a href="exception_8h.html#a30ca0854d275bc6f6b7cb967043d1975">EXCEPTION_RANGE</a></div><div class="ttdeci">struct _EXCEPTION_RANGE EXCEPTION_RANGE</div></div>
 <div class="ttc" id="aexception_8h_html_a373939ca181430b8ec42295650e6b99a"><div class="ttname"><a href="exception_8h.html#a373939ca181430b8ec42295650e6b99a">CONTEXT</a></div><div class="ttdeci">struct _CONTEXT CONTEXT</div></div>
+<div class="ttc" id="aexception_8h_html_a52b50c12b0069015d9629037e8b170c0"><div class="ttname"><a href="exception_8h.html#a52b50c12b0069015d9629037e8b170c0">ProbeForRead</a></div><div class="ttdeci">MTSTATUS ProbeForRead(IN const void *Address, IN size_t Length, IN uint32_t Alignment)</div><div class="ttdef"><b>Definition</b> <a href="probe_8c_source.html#l00023">probe.c:23</a></div></div>
 <div class="ttc" id="aexception_8h_html_a59d5f4de22ac5d215d56754da8055aaf"><div class="ttname"><a href="exception_8h.html#a59d5f4de22ac5d215d56754da8055aaf">EXCEPTION_RECORD</a></div><div class="ttdeci">struct _EXCEPTION_RECORD EXCEPTION_RECORD</div></div>
-<div class="ttc" id="aexception_8h_html_a83437e8cd9a8e8befc491348dfcb41c0"><div class="ttname"><a href="exception_8h.html#a83437e8cd9a8e8befc491348dfcb41c0">PsGetCurrentThread</a></div><div class="ttdeci">PETHREAD PsGetCurrentThread(void)</div><div class="ttdef"><b>Definition</b> <a href="thread_8c_source.html#l00191">thread.c:191</a></div></div>
+<div class="ttc" id="aexception_8h_html_a7417917e35bc105788b32e7505bd169b"><div class="ttname"><a href="exception_8h.html#a7417917e35bc105788b32e7505bd169b">ExpIsPrivilegedInstruction</a></div><div class="ttdeci">bool ExpIsPrivilegedInstruction(uint8_t *Ip)</div><div class="ttdef"><b>Definition</b> <a href="instruction_8c_source.html#l00004">instruction.c:4</a></div></div>
+<div class="ttc" id="aexception_8h_html_a83437e8cd9a8e8befc491348dfcb41c0"><div class="ttname"><a href="exception_8h.html#a83437e8cd9a8e8befc491348dfcb41c0">PsGetCurrentThread</a></div><div class="ttdeci">PETHREAD PsGetCurrentThread(void)</div><div class="ttdef"><b>Definition</b> <a href="thread_8c_source.html#l00279">thread.c:279</a></div></div>
 <div class="ttc" id="aexception_8h_html_a899600fb60c845d2acfda420340e0fbe"><div class="ttname"><a href="exception_8h.html#a899600fb60c845d2acfda420340e0fbe">ExpDispatchException</a></div><div class="ttdeci">void ExpDispatchException(IN PTRAP_FRAME TrapFrame, IN PCONTEXT ContextRecord, IN PEXCEPTION_RECORD ExceptionRecord)</div><div class="ttdef"><b>Definition</b> <a href="exception_8c_source.html#l00056">exception.c:56</a></div></div>
+<div class="ttc" id="aexception_8h_html_a8bbe46148880fd04948b77ded24ad8ca"><div class="ttname"><a href="exception_8h.html#a8bbe46148880fd04948b77ded24ad8ca">ExpRaiseStatus</a></div><div class="ttdeci">void ExpRaiseStatus(IN MTSTATUS Status, IN uint64_t Rip)</div><div class="ttdef"><b>Definition</b> <a href="raise_8c_source.html#l00023">raise.c:23</a></div></div>
 <div class="ttc" id="aexception_8h_html_a9c5593789be8e9a8f7f414fdc46a56af"><div class="ttname"><a href="exception_8h.html#a9c5593789be8e9a8f7f414fdc46a56af">EX_FRAME_REGISTRATION</a></div><div class="ttdeci">struct _EX_FRAME_REGISTRATION EX_FRAME_REGISTRATION</div></div>
 <div class="ttc" id="aexception_8h_html_a9c585b252235c3b24267f86ca293eb3b"><div class="ttname"><a href="exception_8h.html#a9c585b252235c3b24267f86ca293eb3b">PCONTEXT</a></div><div class="ttdeci">struct _CONTEXT * PCONTEXT</div></div>
 <div class="ttc" id="aexception_8h_html_a9cb88c16b74c1968a18b04bf222ac123"><div class="ttname"><a href="exception_8h.html#a9cb88c16b74c1968a18b04bf222ac123">EXCEPTION_DISPOSITION</a></div><div class="ttdeci">enum _EXCEPTION_DISPOSITION EXCEPTION_DISPOSITION</div></div>
 <div class="ttc" id="aexception_8h_html_aa49a15f81a29c84c9f9ac7469daed255"><div class="ttname"><a href="exception_8h.html#aa49a15f81a29c84c9f9ac7469daed255">EXCEPTION_REGISTRATION_RECORD</a></div><div class="ttdeci">struct _EXCEPTION_REGISTRATION_RECORD EXCEPTION_REGISTRATION_RECORD</div></div>
+<div class="ttc" id="aexception_8h_html_aaba5bf3e4293476f1f1a4aa6d677ed45"><div class="ttname"><a href="exception_8h.html#aaba5bf3e4293476f1f1a4aa6d677ed45">__start_ex_table</a></div><div class="ttdeci">EXCEPTION_RANGE __start_ex_table[]</div></div>
+<div class="ttc" id="aexception_8h_html_abfaee60569fbcbda8465bdb8e8c8eb3b"><div class="ttname"><a href="exception_8h.html#abfaee60569fbcbda8465bdb8e8c8eb3b">MiSearchExceptionTable</a></div><div class="ttdeci">uint64_t MiSearchExceptionTable(uint64_t rip)</div></div>
 <div class="ttc" id="aexception_8h_html_ad2e8b20d36f49cdaa8ee49fe1e9f6b41"><div class="ttname"><a href="exception_8h.html#ad2e8b20d36f49cdaa8ee49fe1e9f6b41">PEXCEPTION_RECORD</a></div><div class="ttdeci">struct _EXCEPTION_RECORD * PEXCEPTION_RECORD</div></div>
 <div class="ttc" id="aexception_8h_html_ad6bb0ccaaf02d2d1620cc2e532f0f15a"><div class="ttname"><a href="exception_8h.html#ad6bb0ccaaf02d2d1620cc2e532f0f15a">ExpCaptureContext</a></div><div class="ttdeci">bool ExpCaptureContext(IN PCONTEXT Context)</div></div>
 <div class="ttc" id="aexception_8h_html_adeb5e1a7690ebae7f60daa59e7df38f2"><div class="ttname"><a href="exception_8h.html#adeb5e1a7690ebae7f60daa59e7df38f2">MeStandardHandler</a></div><div class="ttdeci">EXCEPTION_DISPOSITION MeStandardHandler(PEXCEPTION_RECORD ExceptionRecord, void *EstablisherFrame, PCONTEXT ContextRecord, void *DispatcherContext)</div></div>
+<div class="ttc" id="aexception_8h_html_af025ceda9d693471e5cd26df65286a43"><div class="ttname"><a href="exception_8h.html#af025ceda9d693471e5cd26df65286a43">PEXCEPTION_RANGE</a></div><div class="ttdeci">struct _EXCEPTION_RANGE * PEXCEPTION_RANGE</div></div>
+<div class="ttc" id="aexception_8h_html_af8135ba086b45298daac1a287da6c721"><div class="ttname"><a href="exception_8h.html#af8135ba086b45298daac1a287da6c721">ExpFindKernelModeExceptionHandler</a></div><div class="ttdeci">uint64_t ExpFindKernelModeExceptionHandler(uint64_t Rip)</div><div class="ttdef"><b>Definition</b> <a href="exception_8c_source.html#l00114">exception.c:114</a></div></div>
 <div class="ttc" id="ame_8h_html"><div class="ttname"><a href="me_8h.html">me.h</a></div></div>
+<div class="ttc" id="amh_8h_html_a910d8dd637ddefc515335aa801391980"><div class="ttname"><a href="mh_8h.html#a910d8dd637ddefc515335aa801391980">Address</a></div><div class="ttdeci">uint64_t Address</div><div class="ttdef"><b>Definition</b> <a href="mh_8h_source.html#l00004">mh.h:4</a></div></div>
+<div class="ttc" id="amh_8h_html_af8d8a0e464944d6e219e87ef2f33d2e0"><div class="ttname"><a href="mh_8h.html#af8d8a0e464944d6e219e87ef2f33d2e0">Length</a></div><div class="ttdeci">uint32_t Length</div><div class="ttdef"><b>Definition</b> <a href="mh_8h_source.html#l00006">mh.h:6</a></div></div>
 <div class="ttc" id="amtstatus_8h_html_a7c794b38d203a5b842f27b12fb55495a"><div class="ttname"><a href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a></div><div class="ttdeci">int32_t MTSTATUS</div><div class="ttdef"><b>Definition</b> <a href="mtstatus_8h_source.html#l00012">mtstatus.h:12</a></div></div>
 <div class="ttc" id="astruct___c_o_n_t_e_x_t_html"><div class="ttname"><a href="struct___c_o_n_t_e_x_t.html">_CONTEXT</a></div><div class="ttdef"><b>Definition</b> <a href="#l00050">exception.h:50</a></div></div>
 <div class="ttc" id="astruct___c_o_n_t_e_x_t_html_a0f73e4e5473269acbcb957fa430fdca7"><div class="ttname"><a href="struct___c_o_n_t_e_x_t.html#a0f73e4e5473269acbcb957fa430fdca7">_CONTEXT::R10</a></div><div class="ttdeci">uint64_t R10</div><div class="ttdef"><b>Definition</b> <a href="#l00068">exception.h:68</a></div></div>
@@ -297,6 +367,10 @@ $(function(){initNavTree('exception_8h_source.html','',''); });
 <div class="ttc" id="astruct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_html"><div class="ttname"><a href="struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n.html">_EX_FRAME_REGISTRATION</a></div><div class="ttdef"><b>Definition</b> <a href="#l00082">exception.h:82</a></div></div>
 <div class="ttc" id="astruct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_html_a5026ff6f28b721ec0496f0e9ac5fee98"><div class="ttname"><a href="struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n.html#a5026ff6f28b721ec0496f0e9ac5fee98">_EX_FRAME_REGISTRATION::RegistrationPointer</a></div><div class="ttdeci">EXCEPTION_REGISTRATION_RECORD * RegistrationPointer</div><div class="ttdef"><b>Definition</b> <a href="#l00084">exception.h:84</a></div></div>
 <div class="ttc" id="astruct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n_html_acfb01145d6aa2f7ef43741bd30757211"><div class="ttname"><a href="struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n.html#acfb01145d6aa2f7ef43741bd30757211">_EX_FRAME_REGISTRATION::Thread</a></div><div class="ttdeci">PETHREAD Thread</div><div class="ttdef"><b>Definition</b> <a href="#l00083">exception.h:83</a></div></div>
+<div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_a_n_g_e_html"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html">_EXCEPTION_RANGE</a></div><div class="ttdef"><b>Definition</b> <a href="#l00087">exception.h:87</a></div></div>
+<div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_a_n_g_e_html_a5f84025f61d1f13a046dfb1f24181f19"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a5f84025f61d1f13a046dfb1f24181f19">_EXCEPTION_RANGE::end_addr</a></div><div class="ttdeci">uint64_t end_addr</div><div class="ttdef"><b>Definition</b> <a href="#l00089">exception.h:89</a></div></div>
+<div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_a_n_g_e_html_a7afbba4d73394c65f560067a9bfc2d89"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7afbba4d73394c65f560067a9bfc2d89">_EXCEPTION_RANGE::start_addr</a></div><div class="ttdeci">uint64_t start_addr</div><div class="ttdef"><b>Definition</b> <a href="#l00088">exception.h:88</a></div></div>
+<div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_a_n_g_e_html_a7b3eeee848efd596a60d6cd0b273f011"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_a_n_g_e.html#a7b3eeee848efd596a60d6cd0b273f011">_EXCEPTION_RANGE::handler_addr</a></div><div class="ttdeci">uint64_t handler_addr</div><div class="ttdef"><b>Definition</b> <a href="#l00090">exception.h:90</a></div></div>
 <div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_html"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d.html">_EXCEPTION_RECORD</a></div><div class="ttdef"><b>Definition</b> <a href="#l00035">exception.h:35</a></div></div>
 <div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_html_a3d228a18f10dafeba1ed09c9cc85deae"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d.html#a3d228a18f10dafeba1ed09c9cc85deae">_EXCEPTION_RECORD::ExceptionFlags</a></div><div class="ttdeci">uint32_t ExceptionFlags</div><div class="ttdef"><b>Definition</b> <a href="#l00037">exception.h:37</a></div></div>
 <div class="ttc" id="astruct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d_html_a566eb0091fc7debcfa5712ae9a898bc4"><div class="ttname"><a href="struct___e_x_c_e_p_t_i_o_n___r_e_c_o_r_d.html#a566eb0091fc7debcfa5712ae9a898bc4">_EXCEPTION_RECORD::ExceptionAddress</a></div><div class="ttdeci">void * ExceptionAddress</div><div class="ttdef"><b>Definition</b> <a href="#l00039">exception.h:39</a></div></div>

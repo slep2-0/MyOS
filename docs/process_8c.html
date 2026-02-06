@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/process.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -93,13 +92,14 @@ $(function(){initNavTree('process_8c.html','',''); });
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="time_8h_source.html">../../time.h</a>&quot;</code><br />
-<code>#include &quot;<a class="el" href="vfs_8h_source.html">../../filesystem/vfs/vfs.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="me_8h_source.html">../../includes/me.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ps_8h_source.html">../../includes/ps.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="mg_8h_source.html">../../includes/mg.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ms_8h_source.html">../../includes/ms.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ob_8h_source.html">../../includes/ob.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="assert_8h_source.html">../../assert.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="fs_8h_source.html">../../includes/fs.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="exception_8h_source.html">../../includes/exception.h</a>&quot;</code><br />
 </div>
 <p><a href="process_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -111,18 +111,24 @@ Macros</h2></td></tr>
 <tr class="memitem:a08150dd3f0ffc0e330a631dd728ea448" id="r_a08150dd3f0ffc0e330a631dd728ea448"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a08150dd3f0ffc0e330a631dd728ea448">MAX_FREE_POOL</a>&#160;&#160;&#160;1024u</td></tr>
 <tr class="memitem:a4d73fc9c6a1ef15ef791e1db05a7df2f" id="r_a4d73fc9c6a1ef15ef791e1db05a7df2f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4d73fc9c6a1ef15ef791e1db05a7df2f">PML4_INDEX</a>(addr)</td></tr>
 <tr class="memitem:af04c99859f460cc79915a4ebb29b2261" id="r_af04c99859f460cc79915a4ebb29b2261"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af04c99859f460cc79915a4ebb29b2261">KERNEL_PML4_START</a>&#160;&#160;&#160;((size_t)<a class="el" href="#a4d73fc9c6a1ef15ef791e1db05a7df2f">PML4_INDEX</a>(<a class="el" href="mm_8h.html#a4ecf752e3fbdc34c893043d0f3810986">KernelVaStart</a>))</td></tr>
-<tr class="memitem:ad9dece005ad722afbde08f5df76a065a" id="r_ad9dece005ad722afbde08f5df76a065a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad9dece005ad722afbde08f5df76a065a">USER_INITIAL_STACK_TOP</a>&#160;&#160;&#160;0x00007FFFFFFFFFFF</td></tr>
+<tr class="memitem:ad9dece005ad722afbde08f5df76a065a" id="r_ad9dece005ad722afbde08f5df76a065a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad9dece005ad722afbde08f5df76a065a">USER_INITIAL_STACK_TOP</a>&#160;&#160;&#160;<a class="el" href="mm_8h.html#a820eaf87fc49c007ebf206dbb7e58d0c">USER_VA_END</a></td></tr>
+<tr class="memitem:adc1efd73f7933bdec9e0794bf75d6f2a" id="r_adc1efd73f7933bdec9e0794bf75d6f2a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adc1efd73f7933bdec9e0794bf75d6f2a">MTDLL_TARGET_ENTRY</a>&#160;&#160;&#160;&quot;LdrInitializeProcess&quot;</td></tr>
+<tr class="memitem:a8a7f8bf72fa07b4bb77ce04caf5697ea" id="r_a8a7f8bf72fa07b4bb77ce04caf5697ea"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8a7f8bf72fa07b4bb77ce04caf5697ea">MTDLL_PATH</a>&#160;&#160;&#160;&quot;mtdll.mtdll&quot;</td></tr>
+<tr class="memitem:aca6274c290968105ce340bd20bbffc7e" id="r_aca6274c290968105ce340bd20bbffc7e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aca6274c290968105ce340bd20bbffc7e">MAX_EXPORTED_FUNC_NAME</a>&#160;&#160;&#160;256</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:af7ae7a3211790e443ecedc4d83a2e00b" id="r_af7ae7a3211790e443ecedc4d83a2e00b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af7ae7a3211790e443ecedc4d83a2e00b">PsCreateProcess</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *ExecutablePath, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ProcessHandle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> ParentProcess)</td></tr>
-<tr class="memitem:acb082c9ff12b913298f7f4e60fb17668" id="r_acb082c9ff12b913298f7f4e60fb17668"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acb082c9ff12b913298f7f4e60fb17668">PsTerminateProcess</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process)</td></tr>
+<tr class="memitem:af7ae7a3211790e443ecedc4d83a2e00b" id="r_af7ae7a3211790e443ecedc4d83a2e00b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af7ae7a3211790e443ecedc4d83a2e00b">PsCreateProcess</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> const char *ExecutablePath, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ProcessHandle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> ParentProcess)</td></tr>
+<tr class="memitem:a9d9e680102d53838126baf4f572d19f0" id="r_a9d9e680102d53838126baf4f572d19f0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9d9e680102d53838126baf4f572d19f0">PsTerminateProcess</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> ExitCode)</td></tr>
+<tr class="memitem:abd4fe3049ce602b46127052e3c26983c" id="r_abd4fe3049ce602b46127052e3c26983c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abd4fe3049ce602b46127052e3c26983c">PsDeleteProcess</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *ProcessObject)</td></tr>
+<tr class="memitem:a33d30b234e50d1295aa290d8a79e92bb" id="r_a33d30b234e50d1295aa290d8a79e92bb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a33d30b234e50d1295aa290d8a79e92bb">PsGetNextProcessThread</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process, <a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> LastThread)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:ab8b165b05e519217042b080d15ecd316" id="r_ab8b165b05e519217042b080d15ecd316"><td class="memItemLeft" align="right" valign="top"><a class="el" href="core_8h.html#a1079f854acf7ed03691ff4ea20bc1be6">EPROCESS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab8b165b05e519217042b080d15ecd316">SystemProcess</a></td></tr>
 <tr class="memitem:a31c9c1c3329977652467a6adbf5b77fc" id="r_a31c9c1c3329977652467a6adbf5b77fc"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a31c9c1c3329977652467a6adbf5b77fc">MmSystemRangeStart</a> = <a class="el" href="mm_8h.html#aa1cd9b3c456e6501f130ba4f13636192">PhysicalMemoryOffset</a></td></tr>
 <tr class="memitem:afac63eead7d3adaeaba9ac9eb6f08194" id="r_afac63eead7d3adaeaba9ac9eb6f08194"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afac63eead7d3adaeaba9ac9eb6f08194">MmHighestUserAddress</a> = <a class="el" href="mm_8h.html#a820eaf87fc49c007ebf206dbb7e58d0c">USER_VA_END</a></td></tr>
+<tr class="memitem:af238096733204fc558bf610917291aac" id="r_af238096733204fc558bf610917291aac"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af238096733204fc558bf610917291aac">MmUserStartAddress</a> = <a class="el" href="mm_8h.html#ab465be06c000090c5a66ea8f3c96264d">USER_VA_START</a></td></tr>
 <tr class="memitem:a6815bdedae56360940bf80736ac86cbb" id="r_a6815bdedae56360940bf80736ac86cbb"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6815bdedae56360940bf80736ac86cbb">MmUserProbeAddress</a> = 0x00007FFFFFFF0000</td></tr>
 </table>
 <a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
@@ -138,7 +144,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00018">18</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00019">19</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -154,7 +160,23 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00022">22</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00023">23</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="aca6274c290968105ce340bd20bbffc7e" name="aca6274c290968105ce340bd20bbffc7e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca6274c290968105ce340bd20bbffc7e">&#9670;&#160;</a></span>MAX_EXPORTED_FUNC_NAME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_EXPORTED_FUNC_NAME&#160;&#160;&#160;256</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00028">28</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -170,7 +192,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00019">19</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00020">20</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -186,7 +208,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00017">17</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00018">18</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -202,7 +224,39 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00016">16</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00017">17</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="a8a7f8bf72fa07b4bb77ce04caf5697ea" name="a8a7f8bf72fa07b4bb77ce04caf5697ea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8a7f8bf72fa07b4bb77ce04caf5697ea">&#9670;&#160;</a></span>MTDLL_PATH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MTDLL_PATH&#160;&#160;&#160;&quot;mtdll.mtdll&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00027">27</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="adc1efd73f7933bdec9e0794bf75d6f2a" name="adc1efd73f7933bdec9e0794bf75d6f2a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adc1efd73f7933bdec9e0794bf75d6f2a">&#9670;&#160;</a></span>MTDLL_TARGET_ENTRY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MTDLL_TARGET_ENTRY&#160;&#160;&#160;&quot;LdrInitializeProcess&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00026">26</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -222,7 +276,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">(((addr) &gt;&gt; 39) &amp; 0x1FFULL)</div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00021">21</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00022">22</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -233,12 +287,12 @@ Variables</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define USER_INITIAL_STACK_TOP&#160;&#160;&#160;0x00007FFFFFFFFFFF</td>
+          <td class="memname">#define USER_INITIAL_STACK_TOP&#160;&#160;&#160;<a class="el" href="mm_8h.html#a820eaf87fc49c007ebf206dbb7e58d0c">USER_VA_END</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00023">23</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00024">24</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -257,41 +311,87 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ProcessHandle</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ProcessHandle</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ParentProcess</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ParentProcess</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00050">50</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00181">181</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
-<a id="acb082c9ff12b913298f7f4e60fb17668" name="acb082c9ff12b913298f7f4e60fb17668"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acb082c9ff12b913298f7f4e60fb17668">&#9670;&#160;</a></span>PsTerminateProcess()</h2>
+<a id="abd4fe3049ce602b46127052e3c26983c" name="abd4fe3049ce602b46127052e3c26983c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd4fe3049ce602b46127052e3c26983c">&#9670;&#160;</a></span>PsDeleteProcess()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void PsTerminateProcess </td>
+          <td class="memname">void PsDeleteProcess </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *</td>          <td class="paramname"><span class="paramname"><em>ProcessObject</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00231">231</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00522">522</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="a33d30b234e50d1295aa290d8a79e92bb" name="a33d30b234e50d1295aa290d8a79e92bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33d30b234e50d1295aa290d8a79e92bb">&#9670;&#160;</a></span>PsGetNextProcessThread()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a> PsGetNextProcessThread </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#a5a0c9c18b7d8388957d19aef11e2406a">_In_Opt</a> <a class="el" href="core_8h.html#ad66fec9d1871be79dbc3f828f4ac5ee7">PETHREAD</a></td>          <td class="paramname"><span class="paramname"><em>LastThread</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00563">563</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="a9d9e680102d53838126baf4f572d19f0" name="a9d9e680102d53838126baf4f572d19f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d9e680102d53838126baf4f572d19f0">&#9670;&#160;</a></span>PsTerminateProcess()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> PsTerminateProcess </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td>          <td class="paramname"><span class="paramname"><em>Process</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a></td>          <td class="paramname"><span class="paramname"><em>ExitCode</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00435">435</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -308,7 +408,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00027">27</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00032">32</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -324,7 +424,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00026">26</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00031">31</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>
@@ -340,7 +440,23 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00028">28</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00034">34</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
+
+</div>
+</div>
+<a id="af238096733204fc558bf610917291aac" name="af238096733204fc558bf610917291aac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af238096733204fc558bf610917291aac">&#9670;&#160;</a></span>MmUserStartAddress</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uintptr_t MmUserStartAddress = <a class="el" href="mm_8h.html#ab465be06c000090c5a66ea8f3c96264d">USER_VA_START</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="process_8c_source.html#l00033">33</a> of file <a class="el" href="process_8c_source.html">process.c</a>.</p>
 
 </div>
 </div>

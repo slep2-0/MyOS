@@ -1,0 +1,98 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mt/setup.c File Reference}
+\hypertarget{setup_8c}{}\label{setup_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/setup.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/setup.c}}
+{\ttfamily \#include "{}../../includes/mt.\+h"{}}\newline
+{\ttfamily \#include "{}../../intrinsics/intrin.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{SYSCALL\+\_\+\+INIT\+\_\+\+ENTRY}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{setup_8c_af67124851385aa68fb6bc6d386a45efb}{Mt\+Syscall\+Entry}} (void)
+\item 
+void \mbox{\hyperlink{setup_8c_a17a99247d353e2255edfc047fb70bb5a}{Mt\+Setup\+Syscall}} (void)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{Syscall\+Handler}} \mbox{\hyperlink{setup_8c_a59b7c46a7db1ba3ff9e2e1bc697928c6}{Ssdt}} \mbox{[}\mbox{\hyperlink{mt_8h_a88ef3d98617b4673404cd57e1fa4e516}{MAX\+\_\+\+SYSCALLS}}\mbox{]}
+\item 
+\mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{SYSCALL\+\_\+\+INIT\+\_\+\+ENTRY}} \mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{Syscall\+Table}} \mbox{[}$\,$\mbox{]}
+\item 
+bool \mbox{\hyperlink{setup_8c_ad27c2b259b554e31d022f239afe7efb9}{Syscalls\+Already\+Initialized}} = false
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{setup_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{setup_8c_a17a99247d353e2255edfc047fb70bb5a}\index{setup.c@{setup.c}!MtSetupSyscall@{MtSetupSyscall}}
+\index{MtSetupSyscall@{MtSetupSyscall}!setup.c@{setup.c}}
+\doxysubsubsection{\texorpdfstring{MtSetupSyscall()}{MtSetupSyscall()}}
+{\footnotesize\ttfamily \label{setup_8c_a17a99247d353e2255edfc047fb70bb5a} 
+void Mt\+Setup\+Syscall (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{setup_8c_source_l00055}{55}} of file \mbox{\hyperlink{setup_8c_source}{setup.\+c}}.
+
+\Hypertarget{setup_8c_af67124851385aa68fb6bc6d386a45efb}\index{setup.c@{setup.c}!MtSyscallEntry@{MtSyscallEntry}}
+\index{MtSyscallEntry@{MtSyscallEntry}!setup.c@{setup.c}}
+\doxysubsubsection{\texorpdfstring{MtSyscallEntry()}{MtSyscallEntry()}}
+{\footnotesize\ttfamily \label{setup_8c_af67124851385aa68fb6bc6d386a45efb} 
+void Mt\+Syscall\+Entry (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+\label{doc-var-members}
+\Hypertarget{setup_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{setup_8c_a59b7c46a7db1ba3ff9e2e1bc697928c6}\index{setup.c@{setup.c}!Ssdt@{Ssdt}}
+\index{Ssdt@{Ssdt}!setup.c@{setup.c}}
+\doxysubsubsection{\texorpdfstring{Ssdt}{Ssdt}}
+{\footnotesize\ttfamily \label{setup_8c_a59b7c46a7db1ba3ff9e2e1bc697928c6} 
+\mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{Syscall\+Handler}} Ssdt\mbox{[}\mbox{\hyperlink{mt_8h_a88ef3d98617b4673404cd57e1fa4e516}{MAX\+\_\+\+SYSCALLS}}\mbox{]}}
+
+
+
+Definition at line \mbox{\hyperlink{setup_8c_source_l00028}{28}} of file \mbox{\hyperlink{setup_8c_source}{setup.\+c}}.
+
+\Hypertarget{setup_8c_ad27c2b259b554e31d022f239afe7efb9}\index{setup.c@{setup.c}!SyscallsAlreadyInitialized@{SyscallsAlreadyInitialized}}
+\index{SyscallsAlreadyInitialized@{SyscallsAlreadyInitialized}!setup.c@{setup.c}}
+\doxysubsubsection{\texorpdfstring{SyscallsAlreadyInitialized}{SyscallsAlreadyInitialized}}
+{\footnotesize\ttfamily \label{setup_8c_ad27c2b259b554e31d022f239afe7efb9} 
+bool Syscalls\+Already\+Initialized = false}
+
+
+
+Definition at line \mbox{\hyperlink{setup_8c_source_l00052}{52}} of file \mbox{\hyperlink{setup_8c_source}{setup.\+c}}.
+
+\Hypertarget{setup_8c_a70115731731ee0b734227bec807d0589}\index{setup.c@{setup.c}!SyscallTable@{SyscallTable}}
+\index{SyscallTable@{SyscallTable}!setup.c@{setup.c}}
+\doxysubsubsection{\texorpdfstring{SyscallTable}{SyscallTable}}
+{\footnotesize\ttfamily \label{setup_8c_a70115731731ee0b734227bec807d0589} 
+\mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{SYSCALL\+\_\+\+INIT\+\_\+\+ENTRY}} Syscall\+Table\mbox{[}$\,$\mbox{]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{}
+\DoxyCodeLine{\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 0,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a77a069b172b91ebe4e5a8bfb4657f34e}{MtAllocateVirtualMemory}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 1,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a9fd86d68a6adfabee49c53a0d7528162}{MtOpenProcess}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 2,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a65caa5dd8cf04ae279ae55f031dd766e}{MtTerminateProcess}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 3,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a57ecc9016ed353a1597b1180aa6c8664}{MtReadFile}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 4,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_ae908c4a8c8db9e5207c37eba9b042dcf}{MtWriteFile}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 5,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_af44bd5e6a14e18423569874dca148c2c}{MtCreateFile}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 6,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a81fd47039e90b10e72c8ce8d0c992b8b}{MtClose}}\},}
+\DoxyCodeLine{\ \ \ \ \{.Num\ =\ 7,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_aba51dd68cc66e18a67961dadc44454d1}{MtTerminateThread}}\},}
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+
+
+Definition at line \mbox{\hyperlink{setup_8c_source_l00040}{40}} of file \mbox{\hyperlink{setup_8c_source}{setup.\+c}}.
+

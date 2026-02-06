@@ -1,0 +1,198 @@
+\doxysection{fs.\+h}
+\hypertarget{fs_8h_source}{}\label{fs_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/fs.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/fs.h}}
+\mbox{\hyperlink{fs_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00005}00005\ \textcolor{comment}{\ \ \ \ fs.h}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ the\ header\ files\ \&\ prototypes\ required\ for\ filesystem\ operation\ in\ the\ kernel.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00019}00019\ \textcolor{preprocessor}{\#ifndef\ X86\_MATANEL\_FS\_H}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00020}00020\ \textcolor{preprocessor}{\#define\ X86\_MATANEL\_FS\_H}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mtstatus_8h}{../mtstatus.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00023}00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ob_8h}{ob.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00024}00024\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00025}\mbox{\hyperlink{fs_8h_ab99ded389af74001a6298fc9e44e74e5}{00025}}\ \textcolor{preprocessor}{\#define\ MAX\_PATH\ 256}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00026}00026\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00027}\mbox{\hyperlink{fs_8h_a71b39e02c8447bfbfe31a3e59217e6d3}{00027}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_READ\_DATA\ \ \ \ \ \ \ \ \ \ \ \ 0x0001\ \ }\textcolor{comment}{//\ file\ \&\ pipe}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00028}\mbox{\hyperlink{fs_8h_a972c31db4664a3d61d17f4ec065d6b31}{00028}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_LIST\_DIRECTORY\ \ \ \ \ \ \ 0x0001\ \ }\textcolor{comment}{//\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00030}\mbox{\hyperlink{fs_8h_ad1be952cdf6d9eefef8f92336504fde0}{00030}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_WRITE\_DATA\ \ \ \ \ \ \ \ \ \ \ 0x0002\ \ }\textcolor{comment}{//\ file\ \&\ pipe}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00031}\mbox{\hyperlink{fs_8h_ad750309979a41334fa04548cb5d14fe3}{00031}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_ADD\_FILE\ \ \ \ \ \ \ \ \ \ \ \ \ 0x0002\ \ }\textcolor{comment}{//\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00032}00032\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00033}\mbox{\hyperlink{fs_8h_a0678dff57400d42281f3849c6539a475}{00033}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_APPEND\_DATA\ \ \ \ \ \ \ \ \ \ 0x0004\ \ }\textcolor{comment}{//\ file}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00034}\mbox{\hyperlink{fs_8h_af27fcde8a8446e5bed4494a10a0479b0}{00034}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_ADD\_SUBDIRECTORY\ \ \ \ \ 0x0004\ \ }\textcolor{comment}{//\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00035}\mbox{\hyperlink{fs_8h_a8e295534f74aa0d55a33a09e3266c3fb}{00035}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_CREATE\_PIPE\_INSTANCE\ 0x0004\ \ }\textcolor{comment}{//\ named\ pipe}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00036}00036\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00037}\mbox{\hyperlink{fs_8h_af457982c0c4febbdd93e2158277c2f31}{00037}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_READ\_EA\ \ \ \ \ \ \ \ \ \ \ \ \ \ 0x0008\ \ }\textcolor{comment}{//\ file\ \&\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00038}\mbox{\hyperlink{fs_8h_acdeae837f1617a28c1097e5243899a42}{00038}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_WRITE\_EA\ \ \ \ \ \ \ \ \ \ \ \ \ 0x0010\ \ }\textcolor{comment}{//\ file\ \&\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00039}00039\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00040}\mbox{\hyperlink{fs_8h_a3a4c9e4b3412e64369f7edc907ab3e95}{00040}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_EXECUTE\ \ \ \ \ \ \ \ \ \ \ \ \ \ 0x0020\ \ }\textcolor{comment}{//\ file}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00041}\mbox{\hyperlink{fs_8h_ac7a949e25ab87c3f6a0eeec6f1d8ee96}{00041}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_TRAVERSE\ \ \ \ \ \ \ \ \ \ \ \ \ 0x0020\ \ }\textcolor{comment}{//\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00042}00042\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00043}\mbox{\hyperlink{fs_8h_a67847b77e031d11036e2a16f1a4cce85}{00043}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_DELETE\_CHILD\ \ \ \ \ \ \ \ \ 0x0040\ \ }\textcolor{comment}{//\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00044}00044\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00045}\mbox{\hyperlink{fs_8h_a5d67d3ac95ad2217b325c0d613be4595}{00045}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_READ\_ATTRIBUTES\ \ \ \ \ \ 0x0080\ \ }\textcolor{comment}{//\ all}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00046}\mbox{\hyperlink{fs_8h_a6bf359892e63d0700a4f8109e3dd1dfd}{00046}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_WRITE\_ATTRIBUTES\ \ \ \ \ 0x0100\ \ }\textcolor{comment}{//\ all}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00047}\mbox{\hyperlink{fs_8h_a1bd722951e681da54c013f3f23ccd521}{00047}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_ALL\_ACCESS\ \ \ \ \ \ \ \ \ \ \ 0x01FF\ \ }\textcolor{comment}{//\ everything\ above}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00048}00048\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00049}\mbox{\hyperlink{fs_8h_a3f699ff5fd3e345a173e26176e5d819b}{00049}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_GENERIC\_READ\ \ (\ MT\_FILE\_READ\_DATA\ \ \ \ |\ MT\_FILE\_READ\_ATTRIBUTES\ |\ MT\_FILE\_READ\_EA\ )}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00050}\mbox{\hyperlink{fs_8h_a14a14e0728930aa41829b65a162f7010}{00050}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_GENERIC\_WRITE\ (\ MT\_FILE\_WRITE\_DATA\ \ \ |\ MT\_FILE\_WRITE\_ATTRIBUTES\ |\ MT\_FILE\_WRITE\_EA\ |\ MT\_FILE\_APPEND\_DATA\ )}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00051}\mbox{\hyperlink{fs_8h_ad047cd921527a2328cf84f2317cdbe37}{00051}}\ \textcolor{preprocessor}{\#define\ MT\_FILE\_GENERIC\_EXECUTE\ (\ MT\_FILE\_READ\_ATTRIBUTES\ |\ MT\_FILE\_EXECUTE\ )}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00052}00052\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00053}00053\ \textcolor{comment}{//\ PFILE\_OBJECT-\/>Flags}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00054}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623}{00054}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}\ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623}{\_MT\_FILE\_OBJECT\_FLAGS}}\ \{}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00055}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2c593866ce0ffc9a55847f1596939633}{00055}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2c593866ce0ffc9a55847f1596939633}{MT\_FOF\_NONE}}\ =\ 0x00000000,\ \textcolor{comment}{//\ no\ flags}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00057}00057\ \ \ \ \ \textcolor{comment}{//\ Basic\ object\ types,\ if\ MT\_FOF\_DIRECTORY\ bit\ is\ set,\ it\ is\ a\ directory,\ otherwise,\ it\ is\ a\ file.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00058}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a46e3d3f5fdcd367b26929bef6ed842bb}{00058}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a46e3d3f5fdcd367b26929bef6ed842bb}{MT\_FOF\_DIRECTORY}}\ =\ 0x00000001,\ \textcolor{comment}{//\ object\ is\ a\ directory}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00059}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a1a90f563ed67f45a2405811a7f8e7801}{00059}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a1a90f563ed67f45a2405811a7f8e7801}{MT\_FOF\_READ\_ONLY}}\ =\ 0x00000002,\ \textcolor{comment}{//\ DOS\ readonly\ attribute\ (persisted)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00060}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0e3d358d0b82e45ba892fe4afe1dd9a0}{00060}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0e3d358d0b82e45ba892fe4afe1dd9a0}{MT\_FOF\_HIDDEN}}\ =\ 0x00000004,\ \textcolor{comment}{//\ DOS\ hidden\ (persisted)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00061}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ac24078616896ff31f780444e383a8f3f}{00061}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ac24078616896ff31f780444e383a8f3f}{MT\_FOF\_SYSTEM}}\ =\ 0x00000008,\ \textcolor{comment}{//\ DOS\ system\ (persisted)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00062}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0c0b64b49cbff6b8902b6eab2bec52dc}{00062}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0c0b64b49cbff6b8902b6eab2bec52dc}{MT\_FOF\_VOLUME\_LABEL}}\ =\ 0x00000010,\ \textcolor{comment}{//\ volume\ label\ entry\ (rare)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00063}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a5b1a1d5da3c5702740611c1449f4ed8a}{00063}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a5b1a1d5da3c5702740611c1449f4ed8a}{MT\_FOF\_ARCHIVE}}\ =\ 0x00000020,\ \textcolor{comment}{//\ DOS\ archive\ bit\ (persisted)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00064}00064\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00065}00065\ \ \ \ \ \textcolor{comment}{//\ Storage\ attributes}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00066}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623adfbeddea1f34342a4d68220434498595}{00066}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623adfbeddea1f34342a4d68220434498595}{MT\_FOF\_COMPRESSED}}\ =\ 0x00000040,\ \textcolor{comment}{//\ file\ is\ compressed\ (on-\/disk)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00067}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a341087a8731f9b5df8f57c24e471b5c8}{00067}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a341087a8731f9b5df8f57c24e471b5c8}{MT\_FOF\_ENCRYPTED}}\ =\ 0x00000080,\ \textcolor{comment}{//\ file\ is\ encrypted\ (on-\/disk)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00068}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ae013c43062a41cb87c973620ad8eda4c}{00068}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ae013c43062a41cb87c973620ad8eda4c}{MT\_FOF\_SPARSE}}\ =\ 0x00000100,\ \textcolor{comment}{//\ sparse\ file\ support}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00069}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2ba89386e6cb91f1972355a28d5e26a2}{00069}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2ba89386e6cb91f1972355a28d5e26a2}{MT\_FOF\_TEMPORARY}}\ =\ 0x00000200,\ \textcolor{comment}{//\ temporary\ file\ (do\ not\ write\ to\ disk\ eagerly)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00070}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623aec8d4bff1b2e20997b4ae112da7e2e15}{00070}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623aec8d4bff1b2e20997b4ae112da7e2e15}{MT\_FOF\_OFFLINE}}\ =\ 0x00000400,\ \textcolor{comment}{//\ data\ moved\ offline\ /\ recall\ needed}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00072}00072\ \ \ \ \ \textcolor{comment}{//\ Lifecycle\ object.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00073}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623aed64ebc497b40799e9292d2435194001}{00073}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623aed64ebc497b40799e9292d2435194001}{MT\_FOF\_APPEND\_ONLY}}\ =\ 0x00000800,\ \textcolor{comment}{//\ all\ writes\ forced\ to\ EOF}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00074}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a6fc5a2a8a5c28b4c7bc0e9b14346fcaa}{00074}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a6fc5a2a8a5c28b4c7bc0e9b14346fcaa}{MT\_FOF\_IMMUTABLE}}\ =\ 0x00001000,\ \textcolor{comment}{//\ contents\ cannot\ be\ changed\ (readonly\ at\ FS\ level)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00075}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623acd79e7318caa202a142cb4730d938f0c}{00075}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623acd79e7318caa202a142cb4730d938f0c}{MT\_FOF\_DELETE\_ON\_CLOSE}}\ =\ 0x00002000,\ \textcolor{comment}{//\ mark\ to\ delete\ when\ last\ handle\ closes}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00076}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ad03f35c2b2cdbd920da8495f337a5a37}{00076}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623ad03f35c2b2cdbd920da8495f337a5a37}{MT\_FOF\_DELETE\_PENDING}}\ =\ 0x00004000,\ \textcolor{comment}{//\ already\ unlinked;\ still\ open\ by\ handles}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00077}00077\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00078}00078\ \ \ \ \ \textcolor{comment}{//\ IO}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00079}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623acdc57567982207a4fd9a0ddf779b2a52}{00079}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623acdc57567982207a4fd9a0ddf779b2a52}{MT\_FOF\_NO\_CACHE}}\ =\ 0x00008000,\ \textcolor{comment}{//\ do\ not\ cache\ in\ page\ cache}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00080}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a1fb9b946b705f2d86a57f39d68920d33}{00080}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a1fb9b946b705f2d86a57f39d68920d33}{MT\_FOF\_WRITE\_THROUGH}}\ =\ 0x00010000,\ \textcolor{comment}{//\ writes\ bypass\ cache\ (write-\/through)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00081}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623adc124cfd6e86905cb03bf689ea462747}{00081}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623adc124cfd6e86905cb03bf689ea462747}{MT\_FOF\_REPARSE\_POINT}}\ =\ 0x00020000,\ \textcolor{comment}{//\ entry\ is\ a\ reparse\ point\ /\ junction\ /\ symlink}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00082}00082\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00083}00083\ \ \ \ \ \textcolor{comment}{//\ State\ markers}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00084}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0e470d866857c031bcc6befe844f320f}{00084}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0e470d866857c031bcc6befe844f320f}{MT\_FOF\_LOCKED}}\ =\ 0x00040000,\ \textcolor{comment}{//\ someone\ holds\ exclusive\ FS-\/level\ lock\ (useful\ for\ mkdir/rmdir)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00085}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0d9ed30fd24d3a6b08b48dd4fecc07bd}{00085}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a0d9ed30fd24d3a6b08b48dd4fecc07bd}{MT\_FOF\_DIRTY\_METADATA}}\ =\ 0x00080000,\ \textcolor{comment}{//\ metadata\ changed\ and\ needs\ flush.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00086}00086\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00087}00087\ \ \ \ \ \textcolor{comment}{//\ Reserved.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00088}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2da5ee1377b784caadf0c36e14a846a0}{00088}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2da5ee1377b784caadf0c36e14a846a0}{MT\_FOF\_RESERVED\_1}}\ =\ 0x00100000,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00089}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a11606a573e145beb090c3fdaa5cb2d5f}{00089}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a11606a573e145beb090c3fdaa5cb2d5f}{MT\_FOF\_RESERVED\_2}}\ =\ 0x00200000,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00090}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2efd4e0e77d6be3d0510f3a7a2735621}{00090}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a2efd4e0e77d6be3d0510f3a7a2735621}{MT\_FOF\_RESERVED\_3}}\ =\ 0x00400000,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00092}00092\ \ \ \ \ \textcolor{comment}{//\ Reserved.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00093}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a7899d507e179463f26bdc93cdd21be5d}{00093}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a7899d507e179463f26bdc93cdd21be5d}{MT\_FOF\_FS\_RESERVED\_START}}\ =\ 0x01000000,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00094}\mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a49fb2c24faec79d08014d867d780974d}{00094}}\ \ \ \ \ \mbox{\hyperlink{fs_8h_aa1d7b752266c920327f2f4ffadeab623a49fb2c24faec79d08014d867d780974d}{MT\_FOF\_FS\_RESERVED\_MASK}}\ =\ 0xFF000000u}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00095}\mbox{\hyperlink{fs_8h_ac445016e4ea9c2f9656eb91a88c3052b}{00095}}\ \}\ \mbox{\hyperlink{fs_8h_ac445016e4ea9c2f9656eb91a88c3052b}{MT\_FILE\_OBJECT\_FLAGS}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00096}00096\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00097}00097\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ STRUCTURES\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00098}00098\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00099}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t}{00099}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t}{\_FILE\_OBJECT}}\ \{}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00100}00100\ \ \ \ \ \textcolor{comment}{//\ Name\ of\ the\ file.\ (full\ path)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00101}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a6db62a3bbd4a8f2741d9559299a0cec2}{00101}}\ \ \ \ \ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a6db62a3bbd4a8f2741d9559299a0cec2}{FileName}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00102}00102\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00103}00103\ \ \ \ \ \textcolor{comment}{//\ Filesystem-\/specific\ context\ (e.\ first\ cluster\ number\ of\ file/dir\ in\ our\ FAT32)}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00104}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a80a8d3c070891b78950d8128a5eaebd6}{00104}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a80a8d3c070891b78950d8128a5eaebd6}{FsContext}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00105}00105\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00106}00106\ \ \ \ \ \textcolor{comment}{//\ Size\ of\ the\ file\ in\ bytes}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00107}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a9587fc87c13f73c07a3e9c5dd61698e1}{00107}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a9587fc87c13f73c07a3e9c5dd61698e1}{FileSize}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00108}00108\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00109}00109\ \ \ \ \ \textcolor{comment}{//\ Current\ read/write\ position\ in\ file}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00110}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a2bcb1ae3ec40d9fea5ef0e6575d7d041}{00110}}\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_a2bcb1ae3ec40d9fea5ef0e6575d7d041}{CurrentOffset}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00111}00111\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00112}00112\ \ \ \ \ \textcolor{comment}{//\ Flags:\ directory,\ read-\/only,\ etc.}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00113}\mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_ae91751449932fe1a8fe52092a2851b9e}{00113}}\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{struct___f_i_l_e___o_b_j_e_c_t_ae91751449932fe1a8fe52092a2851b9e}{Flags}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00114}\mbox{\hyperlink{fs_8h_ab1f83ada6bba009fd7d3f3aef045891a}{00114}}\ \}\ \mbox{\hyperlink{fs_8h_ab1f83ada6bba009fd7d3f3aef045891a}{FILE\_OBJECT}},\ *\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00115}00115\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00116}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{00116}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\_DRIVER}}\ \{}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00117}00117\ \ \ \ \ \textcolor{comment}{//\ Initialize\ driver\ for\ a\ device}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00118}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9568163230f1d9237005fca89075407e}{00118}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9568163230f1d9237005fca89075407e}{init}})(uint8\_t\ device\_id);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00119}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a2d074675c8343128fa3c8038f489574b}{00119}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a2d074675c8343128fa3c8038f489574b}{ReadFile}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00120}00120\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00121}00121\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00122}00122\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00123}00123\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesRead);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00124}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_aa5493352372dc79f066c990a1c497b34}{00124}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_aa5493352372dc79f066c990a1c497b34}{WriteFile}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00125}00125\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00126}00126\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00127}00127\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00128}00128\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesWritten);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00129}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_ac5a4c29bd4aec05bb352c01f2ebd67ef}{00129}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_ac5a4c29bd4aec05bb352c01f2ebd67ef}{DeleteFile}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00130}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a56cf535f9ead4aed3955e6952cbe0331}{00130}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a56cf535f9ead4aed3955e6952cbe0331}{ListDirectory}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ DirectoryObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00131}00131\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{char}*\ listings,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00132}00132\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ max\_len);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00133}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a716d7be92793beb60fac8961d39231a7}{00133}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a716d7be92793beb60fac8961d39231a7}{RemoveDirectoryRecursive}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ DirectoryObject);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00134}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9f29406f06ef5d65615a16ec47b1273b}{00134}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a9f29406f06ef5d65615a16ec47b1273b}{CreateDirectory}})(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00135}00135\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00136}00136\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}*\ OutDirectoryObject}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00137}00137\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00138}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a574115d6952cbd6724012c2b7e674535}{00138}}\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a574115d6952cbd6724012c2b7e674535}{CreateFile}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00139}00139\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}*\ FileObjectOut);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00140}\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a3b2a2db9984d81ade57fd2bcc8a8dbaa}{00140}}\ \ \ \ \ void(*\mbox{\hyperlink{struct_f_s___d_r_i_v_e_r_a3b2a2db9984d81ade57fd2bcc8a8dbaa}{DeleteObjectProcedure}})(\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{void}*\ Object);}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00141}00141\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00142}\mbox{\hyperlink{fs_8h_aa3f31248b089b7eb1ae82810b9867f6b}{00142}}\ \}\ \mbox{\hyperlink{struct_f_s___d_r_i_v_e_r}{FS\_DRIVER}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00143}00143\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00144}00144\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ FUNCTIONS\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00145}00145\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{ob_8h_a1090c1618ef4082635e12605b8832a46}{POBJECT\_TYPE}}\ \mbox{\hyperlink{vfs_8c_a2a10a29c3c62bbb8a2dc92a482e27d9b}{FsFileType}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00146}00146\ \textcolor{keyword}{typedef}\ int32\_t\ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}},\ *\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00147}00147\ \textcolor{keyword}{typedef}\ uint32\_t\ \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\_MASK}};}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00148}00148\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00149}00149\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_a491d9a7c9928c23736b71bc732d606c7}{FsInitialize}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00150}00150\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00151}00151\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_a5e0463f87cdbe0ddea92556533b64945}{FsCreateFile}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00152}00152\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00153}00153\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_a18b1b4f2fb3e795e24fd8eddc2b48c08}{ACCESS\_MASK}}\ DesiredAccess,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00154}00154\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ FileHandleOut}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00155}00155\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00156}00156\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00157}00157\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_a466e424d556a0a662d6c0beb0f3e4b86}{FsReadFile}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00158}00158\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00159}00159\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00160}00160\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00161}00161\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00162}00162\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesRead}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00163}00163\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00164}00164\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00165}00165\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_aac3a6cf6660acfe864f485811abdad92}{FsWriteFile}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00166}00166\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00167}00167\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ FileOffset,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00168}00168\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{void}*\ Buffer,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00169}00169\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ BufferSize,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00170}00170\ \ \ \ \ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \textcolor{keywordtype}{size\_t}*\ BytesWritten}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00171}00171\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00172}00172\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00173}00173\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_ab8d8224afc1c4aa017512bf0aa661d21}{FsDeleteFile}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00174}00174\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ FileObject}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00175}00175\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00176}00176\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00177}00177\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_a7b539cbf98aa4cee994e8c6a9c22fb4f}{FsListDirectory}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00178}00178\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ DirectoryObject,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00179}00179\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \textcolor{keywordtype}{char}*\ listings,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00180}00180\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{size\_t}\ max\_len}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00181}00181\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00182}00182\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00183}00183\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_a1b5f35421e87d63d585b8cb85820c430}{FsCreateDirectory}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00184}00184\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00185}00185\ \ \ \ \ \mbox{\hyperlink{annotations_8h_aec78e7a9e90a406a56f859ee456e8eae}{OUT}}\ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ OutDirectoryObject}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00186}00186\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00187}00187\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00188}00188\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{fs_8h_ac5b8c0bafa031885851110c585806e44}{FsRemoveDirectoryRecursive}}(}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00189}00189\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{fs_8h_a2721093e4b50ab64577c98d97fc618f0}{PFILE\_OBJECT}}\ DirectoryObject}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00190}00190\ );}
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00191}00191\ }
+\DoxyCodeLine{\Hypertarget{fs_8h_source_l00192}00192\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

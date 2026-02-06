@@ -8,6 +8,7 @@ var dir_2983b707f28b8d064a43513b6db50808 =
     [ "mmproc.c", "mmproc_8c.html", "mmproc_8c" ],
     [ "pfn.c", "pfn_8c.html", "pfn_8c" ],
     [ "pool.c", "pool_8c.html", "pool_8c" ],
+    [ "section.c", "section_8c.html", "section_8c" ],
     [ "va.c", "va_8c.html", "va_8c" ],
     [ "vad.c", "vad_8c.html", "vad_8c" ]
 ];

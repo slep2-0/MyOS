@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmio.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/mmio.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -104,6 +103,7 @@ Functions</h2></td></tr>
 <tr class="memitem:ac78ff048b41c520d5b2f9cd176dfce2b" id="r_ac78ff048b41c520d5b2f9cd176dfce2b"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac78ff048b41c520d5b2f9cd176dfce2b">MmAllocateContigiousMemory</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint64_t HighestAcceptableAddress)</td></tr>
 <tr class="memitem:a0710a778ca4c13692cff818db218b066" id="r_a0710a778ca4c13692cff818db218b066"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0710a778ca4c13692cff818db218b066">MmFreeContigiousMemory</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *BaseAddress, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes)</td></tr>
 <tr class="memitem:a4939c6c7723219a53552746a8b716657" id="r_a4939c6c7723219a53552746a8b716657"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4939c6c7723219a53552746a8b716657">MmMapIoSpace</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t PhysicalAddress, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a38e8697844f666050ca4be062ea593a8">MEMORY_CACHING_TYPE</a> CacheType)</td></tr>
+<tr class="memitem:a565004e65a978233665430334faed99c" id="r_a565004e65a978233665430334faed99c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a565004e65a978233665430334faed99c">MmUnmapIoSpace</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *VirtualAddress, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t NumberOfBytes)</td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
 <a id="a17314759b57e834ab629d21746317d8e" name="a17314759b57e834ab629d21746317d8e"></a>
@@ -200,6 +200,29 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p class="definition">Definition at line <a class="el" href="mmio_8c_source.html#l00269">269</a> of file <a class="el" href="mmio_8c_source.html">mmio.c</a>.</p>
+
+</div>
+</div>
+<a id="a565004e65a978233665430334faed99c" name="a565004e65a978233665430334faed99c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a565004e65a978233665430334faed99c">&#9670;&#160;</a></span>MmUnmapIoSpace()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MmUnmapIoSpace </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *</td>          <td class="paramname"><span class="paramname"><em>VirtualAddress</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> size_t</td>          <td class="paramname"><span class="paramname"><em>NumberOfBytes</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mmio_8c_source.html#l00335">335</a> of file <a class="el" href="mmio_8c_source.html">mmio.c</a>.</p>
 
 </div>
 </div>

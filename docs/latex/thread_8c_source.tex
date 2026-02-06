@@ -1,0 +1,438 @@
+\doxysection{thread.\+c}
+\hypertarget{thread_8c_source}{}\label{thread_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/thread.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ps/thread.c}}
+\mbox{\hyperlink{thread_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00001}00001\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00002}00002\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{assert_8h}{../../assert.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00003}00003\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mg_8h}{../../includes/mg.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00004}00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ob_8h}{../../includes/ob.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00005}00005\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00006}\mbox{\hyperlink{thread_8c_a380e61f9be3a2721fd83a3a0b07f4132}{00006}}\ \textcolor{preprocessor}{\#define\ MIN\_TID\ \ \ \ \ \ \ \ \ \ \ 3u}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00007}\mbox{\hyperlink{thread_8c_af6bea0442249039ac2b6b3c250938c0c}{00007}}\ \textcolor{preprocessor}{\#define\ MAX\_TID\ \ \ \ \ \ \ \ \ \ \ 0xFFFFFFFCu}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00008}\mbox{\hyperlink{thread_8c_a31452d15206784935051c52d5a78ff03}{00008}}\ \textcolor{preprocessor}{\#define\ ALIGN\_DELTA\ \ \ \ \ \ \ 3u}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00009}\mbox{\hyperlink{thread_8c_a08150dd3f0ffc0e330a631dd728ea448}{00009}}\ \textcolor{preprocessor}{\#define\ MAX\_FREE\_POOL\ \ \ \ \ 1024u}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00010}00010\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00011}\mbox{\hyperlink{thread_8c_a90b7a8cb7bc3fdbd98014a3e15ee6e9a}{00011}}\ \textcolor{preprocessor}{\#define\ THREAD\_STACK\_SIZE\ (1024*24)\ }\textcolor{comment}{//\ 24\ KiB}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00012}\mbox{\hyperlink{thread_8c_afa1d2c5ae9892cf06df19518092ad464}{00012}}\ \textcolor{preprocessor}{\#define\ THREAD\_ALIGNMENT\ 16}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00013}00013\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00014}00014\ \textcolor{comment}{//\ Clean\ exit\ for\ a\ thread—never\ returns!}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00015}00015\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ ThreadExit(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00016}00016\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00017}00017\ \ \ \ \ \textcolor{comment}{//\ if\ you\ are\ asking\ why\ i\ dont\ print\ the\ tid,\ its\ because\ i\ (fucking)\ hate\ the\ gop\ function}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00018}00018\ \ \ \ \ \textcolor{comment}{//\ so\ many\ stack\ overflows,\ it\ makes\ my\ blood\ boil.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00019}00019\ \ \ \ \ \mbox{\hyperlink{gop_8c_a41ff1165c1969706dadb5b409ae082e9}{gop\_printf}}(\mbox{\hyperlink{mg_8h_ad86358bf19927183dd7b4ae215a29731}{COLOR\_RED}},\ \textcolor{stringliteral}{"{}Reached\ ThreadExit,\ terminating\ system\ thread.\(\backslash\)n"{}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00020}00020\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00021}00021\ \ \ \ \ \textcolor{comment}{//\ Terminate\ the\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00022}00022\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\mbox{\hyperlink{ps_8h_aa30db9b8d584b69873c706c5ea12aa87}{PsIsKernelThread}}(\mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}())\ ==\ \textcolor{keyword}{true},\ \textcolor{stringliteral}{"{}A\ user\ thread\ has\ entered\ kernel\ thread\ termination."{}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00023}00023\ \ \ \ \ \mbox{\hyperlink{thread_8c_a17b8990d566ce50032855c01bb490857}{PsTerminateThread}}(\mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}(),\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00024}00024\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00025}00025\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00026}00026\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00027}00027\ \textcolor{comment}{//\ Kernel\ threads\ only.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00028}00028\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ ThreadWrapperEx(\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}}\ thread\_entry,\ \mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\_PARAMETER}}\ parameter)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00029}00029\ \ \ \ \ \textcolor{comment}{//\ thread\_entry(parameters)\ -\/>\ void\ func(void*)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00030}00030\ \ \ \ \ thread\_entry(parameter);\ \textcolor{comment}{//\ If\ thread\ entry\ takes\ no\ parameters,\ passing\ NULL\ is\ still\ fine.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00032}00032\ \ \ \ \ ThreadExit();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00033}00033\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00035}00035\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{core_8h_a1079f854acf7ed03691ff4ea20bc1be6}{EPROCESS}}\ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00036}00036\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00037}00037\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00038}\mbox{\hyperlink{thread_8c_a67a9220a7e0e33616a91477cd89ebe68}{00038}}\ \mbox{\hyperlink{thread_8c_a67a9220a7e0e33616a91477cd89ebe68}{PsCreateThread}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00039}00039\ \ \ \ \ \mbox{\hyperlink{core_8h_a84a85b4c81f3ad61278cc4473a44f202}{HANDLE}}\ ProcessHandle,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00040}00040\ \ \ \ \ \mbox{\hyperlink{core_8h_a4eff5701246ce814577877fc805928de}{PHANDLE}}\ ThreadHandle,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00041}00041\ \ \ \ \ \mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}}\ EntryPoint,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00042}00042\ \ \ \ \ \mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\_PARAMETER}}\ ThreadParameter,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00043}00043\ \ \ \ \ \mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{TimeSliceTicks}}\ TimeSlice,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00044}00044\ \ \ \ \ \mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}}\ MtdllEntrypoint}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00045}00045\ )}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00046}00046\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00047}00047\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00048}00048\ \ \ \ \ \textcolor{comment}{//\ Checks.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00049}00049\ \ \ \ \ \textcolor{keywordflow}{if}\ (!ProcessHandle\ ||\ !EntryPoint\ ||\ !TimeSlice)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a55458e0861f6a58c2bc62538f93609ce}{MT\_INVALID\_PARAM}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00050}00050\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00051}00051\ \ \ \ \ \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}\ ParentProcess;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00052}00052\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00053}00053\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_a47671180c09015ad53f4b1dbacd09de6}{ObReferenceObjectByHandle}}(ProcessHandle,\ \mbox{\hyperlink{ps_8h_a7c1dec2d565737e21ad7739eea6e751e}{MT\_PROCESS\_CREATE\_THREAD}},\ \mbox{\hyperlink{psmgr_8c_a5831e6e9cf425b592554e81508ce2155}{PsProcessType}},\ (\textcolor{keywordtype}{void}**)\&ParentProcess,\ NULL);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00054}00054\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00055}00055\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00056}00056\ \ \ \ \ \textcolor{comment}{//\ Acquire\ process\ rundown\ protection.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00057}00057\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{rundown_8c_a5901eaa5bcb8edcbd0bad3d55f0f816f}{MsAcquireRundownProtection}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7}{ProcessRundown}}))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00058}00058\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Process\ is,\ being\ terminated?}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00059}00059\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(ParentProcess);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a170dcded714ddb53772102d131ee77dc}{MT\_PROCESS\_IS\_TERMINATING}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00061}00061\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00063}00063\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ new\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00064}00064\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ Thread;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00065}00065\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_ad77278de8f30feb544f7bd27bd85a81f}{ObCreateObject}}(\mbox{\hyperlink{psmgr_8c_a32564f2df24bd688bb18b93f81d3bf7d}{PsThreadType}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}),\ (\textcolor{keywordtype}{void}**)\ \&\ Thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00066}00066\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(ParentProcess);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{rundown_8c_a83aff9858a03409861f6c210b508b012}{MsReleaseRundownProtection}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7}{ProcessRundown}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{goto}\ Cleanup;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00070}00070\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00071}00071\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00072}00072\ \ \ \ \ \textcolor{comment}{//\ Set\ parent\ process.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00073}00073\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a1db330b908dc0c15f56f4a4de49ed883}{ParentProcess}}\ =\ ParentProcess;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00074}00074\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00075}00075\ \ \ \ \ \textcolor{comment}{//\ Initialize\ list\ head.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00077}00077\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00078}00078\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ TID\ for\ the\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00079}00079\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}}\ =\ \mbox{\hyperlink{cid_8c_a5dfbea187ffb7f2ef182fb25330e6d8a}{PsAllocateThreadId}}(Thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00080}00080\ \ \ \ \ \textcolor{keywordflow}{if}\ (Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}}\ ==\ \mbox{\hyperlink{mtstatus_8h_aa7188fae8aa0195501b03f629a441554}{MT\_INVALID\_HANDLE}})\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00082}00082\ \ \ \ \ \textcolor{comment}{//\ Write\ the\ PID\ into\ the\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00083}00083\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a3608232e90425f47fc30e4d54417156c}{PID}}\ =\ ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c}{PID}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00084}00084\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00085}00085\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ new\ stack\ for\ the\ thread's\ kernel\ environment.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00086}00086\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a949a9f69e54a9c4714e29011de37383e}{KernelStack}}\ =\ \mbox{\hyperlink{mmproc_8c_a395221ebf401ad2be0b1e0b2389da78d}{MiCreateKernelStack}}(\textcolor{keyword}{false});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00087}00087\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a1ceb5f81bce3838a9703c746dbfc9066}{IsLargeStack}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00088}00088\ \ \ \ \ \textcolor{keywordflow}{if}\ (!Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a949a9f69e54a9c4714e29011de37383e}{KernelStack}})\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00089}00089\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00090}00090\ \ \ \ \ \textcolor{comment}{//\ Create\ user\ mode\ stack.\ }}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00091}00091\ \ \ \ \ \textcolor{keywordtype}{void}*\ BaseAddress\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00092}00092\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ StackSize\ =\ \mbox{\hyperlink{mm_8h_a96a9a736bff3d6b8d4c4b9570cb7aca0}{MI\_DEFAULT\_USER\_STACK\_SIZE}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00093}00093\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mmproc_8c_a90f40625d5030ca379a8707ae1c18cea}{MmCreateUserStack}}(ParentProcess,\ \&BaseAddress,\ StackSize);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00094}00094\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00095}00095\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}}\ =\ BaseAddress;\ \textcolor{comment}{//\ Stack\ grows\ downward.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00096}00096\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00097}00097\ \ \ \ \ \textcolor{comment}{//\ Setup\ timeslice.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00098}00098\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}}\ =\ TimeSlice;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00099}00099\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ac82dc0f66693dda24c97ed90c0f899b7}{TimeSliceAllocated}}\ =\ TimeSlice;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00100}00100\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00101}00101\ \ \ \ \ \textcolor{comment}{//\ Set\ registers}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00102}00102\ \ \ \ \ \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\_FRAME}}\ ContextFrame;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00103}00103\ \ \ \ \ \mbox{\hyperlink{mm_8h_a7d9455da4f2ec94a98286a19e7d8e39d}{kmemset}}(\&ContextFrame,\ 0,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\_FRAME}}));}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00104}00104\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00105}00105\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}}\ =\ (uint64\_t)Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00106}00106\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}}\ =\ (uint64\_t)EntryPoint;\ \textcolor{comment}{//\ Entry\ point\ parameter\ should\ be\ removed\ when\ mtdll\ comes\ around,\ as\ it\ should\ handle\ new\ thread\ creations}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00107}00107\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a5764734a394146dcf093f9295c2fd5b4}{rdi}}\ =\ (uint64\_t)ThreadParameter;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00108}00108\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_ac67e007ae346a1499c5a276869bfd1bb}{rflags}}\ =\ \mbox{\hyperlink{me_8h_a42d2be9195a6eaec44cd3f5a9ff372eb}{USER\_RFLAGS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00109}00109\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_aea3e8b50ef91f54dad11c01a77675324}{cs}}\ =\ \mbox{\hyperlink{me_8h_a32134ca8ad3890b9f208cf4ec56477e0}{USER\_CS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00110}00110\ \ \ \ \ ContextFrame.\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a515ae478df5d026d97c16d466d1d2611}{ss}}\ =\ \mbox{\hyperlink{me_8h_ab7835d5c0b7d8988f4b58c033cd8e8d0}{USER\_SS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00111}00111\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}}\ =\ ContextFrame;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00112}00112\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a565f2d011714f1a2185019c88b6a620c}{SystemThread}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00113}00113\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00114}00114\ \ \ \ \ \textcolor{comment}{//\ Set\ state}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00115}00115\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3adc6a307a71277ce8d642b5b916e05042}{THREAD\_READY}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00116}00116\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ae9e70a267dbbee57a023a480da6d34a9}{ApcState}}.\mbox{\hyperlink{struct___a_p_c___s_t_a_t_e_aa6bf8b2333758277c1ad3222df0533be}{SavedApcProcess}}\ =\ ParentProcess;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00117}00117\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00118}00118\ \ \ \ \ \textcolor{comment}{//\ Get\ TEB.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00119}00119\ \ \ \ \ \mbox{\hyperlink{ps_8h_a5550f6713b7c7a24a6253fd29634337b}{PTEB}}\ Teb\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00120}00120\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mmproc_8c_aba1711c37ecf9ab0b16e9476338d73cc}{MmCreateTeb}}(Thread,\ (\textcolor{keywordtype}{void}**)\ \&\ Teb);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00121}00121\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00122}00122\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00123}00123\ \ \ \ \ \mbox{\hyperlink{me_8h_a3919e8d4ea6db2a14f119d45ba8aebcc}{APC\_STATE}}\ ApcState;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00124}00124\ \ \ \ \ \mbox{\hyperlink{attach_8c_abe5e1d1426a0f223f346bd763781720d}{MeAttachProcess}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_ad2a2893f20d3d18267ad09839a8b9c80}{InternalProcess}},\ \&ApcState);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00125}00125\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00126}00126\ \ \ \ \ \textcolor{comment}{//\ Write\ some\ basic\ information\ to\ TEB.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00127}00127\ \ \ \ \ \textcolor{keywordflow}{try}\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ Teb-\/>\mbox{\hyperlink{struct___t_e_b_aba5c4b80ce4a7467edbad2c3439902d8}{UniqueThreadId}}\ =\ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ Teb-\/>\mbox{\hyperlink{struct___t_e_b_a189b39c55aecf5484784e8c7ae73f5dc}{UniqueProcessId}}\ =\ ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a3608232e90425f47fc30e4d54417156c}{PID}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00130}00130\ \ \ \ \ \ \ \ \ Teb-\/>\mbox{\hyperlink{struct___t_e_b_a6bd92d34e3f33fef750116f00e3fb49b}{MtTib}}.\mbox{\hyperlink{struct___m_t___t_i_b_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}}\ =\ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00131}00131\ \ \ \ \ \ \ \ \ Teb-\/>\mbox{\hyperlink{struct___t_e_b_a6bd92d34e3f33fef750116f00e3fb49b}{MtTib}}.\mbox{\hyperlink{struct___m_t___t_i_b_a133bb5de2259b53b58f54294b7a88afb}{StackLimit}}\ =\ (\textcolor{keywordtype}{void}*)(((uintptr\_t)Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}}\ -\/\ StackSize));}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00132}00132\ \ \ \ \ \ \ \ \ Status\ =\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00133}00133\ \ \ \ \ \}\ \mbox{\hyperlink{exception_8h_a92dd13ee5770a55ecb6128f6d8143939}{except}}\{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Page\ fault\ on\ user\ addr.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00135}00135\ \ \ \ \ \ \ \ \ Status\ =\ \mbox{\hyperlink{ps_8h_a2a0e8462e6f930a0b22005c4dd01864b}{GetExceptionCode}}();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00136}00136\ \ \ \ \ \}\ \mbox{\hyperlink{exception_8h_a1f530142e3f8bb37fa99680af8ab9921}{end\_try}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00137}00137\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00138}00138\ \ \ \ \ \textcolor{comment}{//\ Detach}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00139}00139\ \ \ \ \ \mbox{\hyperlink{attach_8c_a13b3e5dffb1e570758cc8f21b1ac22ad}{MeDetachProcess}}(\&ApcState);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00140}00140\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00141}00141\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00142}00142\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00143}00143\ \ \ \ \ \textcolor{comment}{//\ Set\ process's\ thread\ properties.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00144}00144\ \ \ \ \ \textcolor{keywordflow}{if}\ (!ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b}{MainThread}})\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_aa332e3add171f80b25646e5c1a3fd53b}{MainThread}}\ =\ Thread;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00146}00146\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00147}00147\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Main\ thread\ means\ ThreadParameter\ is\ actually\ the\ 3rd\ argument\ to\ LdrInitializeProcess\ in\ mtdll}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00148}00148\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RDI\ -\/\ Pointer\ to\ PEB.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00149}00149\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RSI\ -\/\ Pointer\ to\ TEB.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00150}00150\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RDX\ -\/\ Thread\ entry\ point.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00151}00151\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RCX\ -\/\ Pointer\ to\ MTDLL\_BASIC\_TYPES.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00152}00152\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_aa67765a45c59a875c081a07037408850}{PTRAP\_FRAME}}\ Trap\ =\ \&Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00153}00153\ \ \ \ \ \ \ \ \ Trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a5764734a394146dcf093f9295c2fd5b4}{rdi}}\ =\ (uint64\_t)ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a4e53a3f9c64cf6aa42b7abd226c9cac5}{Peb}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00154}00154\ \ \ \ \ \ \ \ \ Trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_ac778707d44587840c5bd1269e8644eb9}{rsi}}\ =\ (uint64\_t)Teb;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00155}00155\ \ \ \ \ \ \ \ \ Trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a7e87c5e2faab8a404c01084ddeed4588}{rdx}}\ =\ (uint64\_t)EntryPoint;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00156}00156\ \ \ \ \ \ \ \ \ Trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a914f17516921c8917ca4a809893138d6}{rcx}}\ =\ (uint64\_t)ThreadParameter;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ Trap-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}}\ =\ (uint64\_t)MtdllEntrypoint;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00158}00158\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00159}00159\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ There\ is\ a\ process\ main\ thread,\ this\ thread's\ return\ address\ must\ be\ to\ ExitThread(),\ since\ after\ the\ function\ return\ of}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00161}00161\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ EntryPoint\ (if\ it\ returns),\ it\ will\ POP\ an\ invalid\ value\ from\ the\ stack\ to\ return,\ and\ so\ a\ probable\ page\ fault\ and\ termination}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ of\ thread\ (or\ process,\ havent\ decided\ yet,\ look\ at\ MiPageFault\ if\ it\ updated)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ FIXME.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ (main\ threads\ pop\ back\ to\ crt0\ runtime,\ where\ ExitProcess\ is\ ran)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Set\ MTDLL\ }}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00166}00166\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00167}00167\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00168}00168\ \ \ \ \ \textcolor{comment}{//\ Create\ a\ handle\ for\ the\ thread\ (and\ place\ it\ in\ the\ process's\ handle\ table).}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00169}00169\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_a70b2e47218e2d92659efb010e14c5993}{ObCreateHandleForObjectEx}}(Thread,\ \mbox{\hyperlink{ps_8h_a7364848e8554eb43b069f7f56c28c26c}{MT\_THREAD\_ALL\_ACCESS}},\ ThreadHandle,\ ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}{ObjectTable}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00170}00170\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \textcolor{keywordflow}{goto}\ CleanupWithRef;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00171}00171\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00172}00172\ \ \ \ \ \textcolor{comment}{//\ Add\ to\ list\ of\ all\ threads\ in\ the\ parent\ process.\ (acquire\ its\ push\ lock)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00173}00173\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{MsAcquirePushLockExclusive}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a578cfbde0cd30f537a4d785833f1b337}{ThreadListLock}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00174}00174\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00175}00175\ \ \ \ \ \mbox{\hyperlink{ms_8h_abc60fab3d33ed1b1c9f11d1ed674a7b3}{InsertTailList}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf}{AllThreads}},\ \&Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00176}00176\ \ \ \ \ ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a18cc8b1fbce9eb05da106ba8c46a9cb1}{NumThreads}}++;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00177}00177\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00178}00178\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{MsReleasePushLockExclusive}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a578cfbde0cd30f537a4d785833f1b337}{ThreadListLock}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00179}00179\ \ \ \ \ Status\ =\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00180}00180\ \ \ \ \ \textcolor{comment}{//\ Insert\ thread\ to\ processor\ queue.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00181}00181\ \ \ \ \ \mbox{\hyperlink{ps_8h_a082a6c14a0748ab67e5560c96a47b623}{MeEnqueueThreadWithLock}}(\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>readyQueue,\ Thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00182}00182\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00183}00183\ CleanupWithRef:}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00184}00184\ \ \ \ \ \textcolor{comment}{//\ If\ failure\ on\ status,\ we\ destroy\ the\ thread,\ if\ not.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00185}00185\ \ \ \ \ \textcolor{comment}{//\ We\ are\ left\ with\ PointerCount\ ==\ 2\ and\ HandleCount\ ==\ 1,\ why?\ Because\ if\ we\ access\ the\ thread\ and\ dereference\ it\ there\ still\ must\ be\ left\ HandleCount\ ==\ 1\ and\ PointerCount\ ==\ 1\ (the\ handles)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00186}00186\ \ \ \ \ \textcolor{comment}{//\ With\ processes\ however,\ its\ different.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00187}00187\ \ \ \ \ \mbox{\hyperlink{rundown_8c_a83aff9858a03409861f6c210b508b012}{MsReleaseRundownProtection}}(\&ParentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a1e28d84793df7af85a2a5154fcd435c7}{ProcessRundown}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00188}00188\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00189}00189\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00190}00190\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(ParentProcess);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00191}00191\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00192}00192\ Cleanup:}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00193}00193\ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00194}00194\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00195}00195\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00196}\mbox{\hyperlink{thread_8c_a9e4934479a8599dbca9c2fe834076cc0}{00196}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ \mbox{\hyperlink{thread_8c_a9e4934479a8599dbca9c2fe834076cc0}{PsCreateSystemThread}}(\mbox{\hyperlink{ps_8h_a72fcf929d51dce199593912ed4910ade}{ThreadEntry}}\ entry,\ \mbox{\hyperlink{ps_8h_ac97f2b26eaa411a9744e1be2fbc90c11}{THREAD\_PARAMETER}}\ parameter,\ \mbox{\hyperlink{me_8h_ae2fa920c6cd4660356637d5a33222a70}{TimeSliceTicks}}\ TIMESLICE,\ \mbox{\hyperlink{annotations_8h_a847bfbc4921fd3f7c84381c60a6a1b90}{\_Out\_Opt}}\ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}*\ OutThread)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00197}00197\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{macros_8h_ac6c45889010c1bd68631771b64f18101}{unlikely}}(!\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.PID))\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_aafd803b321d036759d81fd68163ea0fd}{MT\_NOT\_FOUND}};\ \textcolor{comment}{//\ The\ system\ process,\ somehow,\ hasn't\ been\ setupped\ yet.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00198}00198\ \ \ \ \ \textcolor{keywordflow}{if}\ (!entry\ ||\ !TIMESLICE)\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a55458e0861f6a58c2bc62538f93609ce}{MT\_INVALID\_PARAM}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00199}00199\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00200}00200\ \ \ \ \ \textcolor{comment}{//\ First,\ allocate\ a\ new\ thread.\ (using\ our\ shiny\ and\ glossy\ new\ object\ manager!!!)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00201}00201\ \ \ \ \ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ Status;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00202}00202\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ thread;\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00203}00203\ \ \ \ \ Status\ =\ \mbox{\hyperlink{ob_8c_ad77278de8f30feb544f7bd27bd85a81f}{ObCreateObject}}(\mbox{\hyperlink{psmgr_8c_a32564f2df24bd688bb18b93f81d3bf7d}{PsThreadType}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}}),\ (\textcolor{keywordtype}{void}*)\ \&\ thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00204}00204\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{mtstatus_8h_a51b65f92cdedadf23a01dff0f9f4fac7}{MT\_FAILURE}}(Status))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Status;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00206}00206\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00207}00207\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00208}00208\ \ \ \ \ \textcolor{comment}{//\ Initialize\ list\ head.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00209}00209\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00210}00210\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00211}00211\ \ \ \ \ \textcolor{comment}{//\ Create\ stack}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00212}00212\ \ \ \ \ \textcolor{keywordtype}{bool}\ LargeStack\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00213}00213\ \ \ \ \ \textcolor{keywordtype}{void}*\ stackStart\ =\ \mbox{\hyperlink{mmproc_8c_a395221ebf401ad2be0b1e0b2389da78d}{MiCreateKernelStack}}(LargeStack);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00214}00214\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00215}00215\ \ \ \ \ \textcolor{keywordflow}{if}\ (!stackStart)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00216}00216\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ free\ thread}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00217}00217\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00218}00218\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a04d00d9b51e2f25c23b87d750df59dc4}{MT\_NO\_MEMORY}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00219}00219\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00220}00220\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00221}00221\ \ \ \ \ uintptr\_t\ StackTop\ =\ (uintptr\_t)stackStart;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00222}00222\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00223}00223\ \ \ \ \ StackTop\ \&=\ \string~0xF;\ \textcolor{comment}{//\ Align\ to\ 16\ bytes\ (clear\ lower\ 4\ bits)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00224}00224\ \ \ \ \ StackTop\ -\/=\ 8;\ \textcolor{comment}{//\ Decrement\ by\ 8\ to\ keep\ 16-\/byte\ alignment.\ (after\ pushes)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00225}00225\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00226}00226\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a11a9d0f7a133753b1f3af14396caf0fc}{StackBase}}\ =\ stackStart;\ \textcolor{comment}{//\ The\ stackbase\ must\ be\ the\ one\ gotten\ from\ MiCreateKernelStack,\ as\ freeing\ with\ StackTop\ will\ result\ in\ incorrect\ arithmetic,\ and\ so\ assertion\ failure.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00227}00227\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a1ceb5f81bce3838a9703c746dbfc9066}{IsLargeStack}}\ =\ LargeStack;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00228}00228\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a949a9f69e54a9c4714e29011de37383e}{KernelStack}}\ =\ stackStart;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00229}00229\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00230}00230\ \ \ \ \ \mbox{\hyperlink{core_8h_a14d79ce92fc8bd426be5e9b939f8ba7a}{TRAP\_FRAME}}*\ cfm\ =\ \&thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00231}00231\ \ \ \ \ \mbox{\hyperlink{mm_8h_a7d9455da4f2ec94a98286a19e7d8e39d}{kmemset}}(cfm,\ 0,\ \textcolor{keyword}{sizeof}\ *\ cfm);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00232}00232\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00233}00233\ \ \ \ \ \textcolor{comment}{//\ Set\ our\ timeslice.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00234}00234\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a8888cdbf0abf1eab5ad7011409de2220}{TimeSlice}}\ =\ TIMESLICE;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00235}00235\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ac82dc0f66693dda24c97ed90c0f899b7}{TimeSliceAllocated}}\ =\ TIMESLICE;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00236}00236\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00237}00237\ \ \ \ \ \textcolor{comment}{//\ saved\ rsp\ must\ point\ to\ the\ top\ (aligned),\ not\ sp-\/8}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00238}00238\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a8e218c31298bb17b5041cfc61646d6b9}{rsp}}\ =\ (uint64\_t)StackTop;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00239}00239\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a90e28f434559f0582a69699dc4dbc286}{rip}}\ =\ (uint64\_t)ThreadWrapperEx;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00240}00240\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a5764734a394146dcf093f9295c2fd5b4}{rdi}}\ =\ (uint64\_t)entry;\ \textcolor{comment}{//\ first\ argument\ to\ ThreadWrapperEx\ (the\ entry\ point)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00241}00241\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_ac778707d44587840c5bd1269e8644eb9}{rsi}}\ =\ (uint64\_t)parameter;\ \textcolor{comment}{//\ second\ arugment\ to\ ThreadWrapperEx\ (the\ parameter\ pointer)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00242}00242\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00243}00243\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_a515ae478df5d026d97c16d466d1d2611}{ss}}\ =\ \mbox{\hyperlink{me_8h_a0f0e6aa17e708f29f1de07be4d6c53e8}{KERNEL\_SS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00244}00244\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_aea3e8b50ef91f54dad11c01a77675324}{cs}}\ =\ \mbox{\hyperlink{me_8h_ab0b69b822e9207a5960bc07fc3d36ee4}{KERNEL\_CS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00245}00245\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00246}00246\ \ \ \ \ \textcolor{comment}{//\ Create\ it's\ RFLAGS\ with\ IF\ bit\ set\ to\ 1.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00247}00247\ \ \ \ \ cfm-\/>\mbox{\hyperlink{struct___t_r_a_p___f_r_a_m_e_ac67e007ae346a1499c5a276869bfd1bb}{rflags}}\ |=\ (1\ <<\ 9ULL);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00248}00248\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00249}00249\ \ \ \ \ \textcolor{comment}{//\ Set\ it's\ registers\ and\ others.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00250}00250\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ababb8727e86c272342fa9424274c88b7}{TrapRegisters}}\ =\ *cfm;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00251}00251\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3adc6a307a71277ce8d642b5b916e05042}{THREAD\_READY}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00252}00252\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}}\ =\ \mbox{\hyperlink{cid_8c_a5dfbea187ffb7f2ef182fb25330e6d8a}{PsAllocateThreadId}}(thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00253}00253\ \ \ \ \ \textcolor{keywordflow}{if}\ (thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}}\ ==\ \mbox{\hyperlink{mtstatus_8h_aa7188fae8aa0195501b03f629a441554}{MT\_INVALID\_HANDLE}})\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00254}00254\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00255}00255\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_aa7188fae8aa0195501b03f629a441554}{MT\_INVALID\_HANDLE}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00256}00256\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00257}00257\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a9f858225ecfd7174a28bddc1a075bd08}{CurrentEvent}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00258}00258\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ae9e70a267dbbee57a023a480da6d34a9}{ApcState}}.\mbox{\hyperlink{struct___a_p_c___s_t_a_t_e_aa6bf8b2333758277c1ad3222df0533be}{SavedApcProcess}}\ =\ \&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00259}00259\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ae9e70a267dbbee57a023a480da6d34a9}{ApcState}}.\mbox{\hyperlink{struct___a_p_c___s_t_a_t_e_a867830641a99405e6236bd768bd2d83a}{AttachedToProcess}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00260}00260\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a565f2d011714f1a2185019c88b6a620c}{SystemThread}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00261}00261\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00262}00262\ \ \ \ \ \textcolor{comment}{//\ Process\ stuffz}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00263}00263\ \ \ \ \ thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a1db330b908dc0c15f56f4a4de49ed883}{ParentProcess}}\ =\ \&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}};\ \textcolor{comment}{//\ The\ parent\ process\ for\ the\ system\ thread,\ is\ the\ system\ process.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00264}00264\ \ \ \ \ \textcolor{comment}{//\ Use\ the\ push\ lock\ to\ insert\ it\ into\ AllThreads.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00265}00265\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{MsAcquirePushLockExclusive}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ThreadListLock);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00266}00266\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00267}00267\ \ \ \ \ \mbox{\hyperlink{ms_8h_abc60fab3d33ed1b1c9f11d1ed674a7b3}{InsertTailList}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.AllThreads,\ \&thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00268}00268\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.NumThreads++;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00269}00269\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00270}00270\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{MsReleasePushLockExclusive}}(\&\mbox{\hyperlink{scheduler_8c_ac6c835f9ef3163dba3826f22bf43b9d2}{PsInitialSystemProcess}}.ThreadListLock);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00271}00271\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00272}00272\ \ \ \ \ \textcolor{comment}{//\ Enqueue\ it\ into\ processor.\ TODO\ START\ SUSPENDED?}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00273}00273\ \ \ \ \ \mbox{\hyperlink{ps_8h_a082a6c14a0748ab67e5560c96a47b623}{MeEnqueueThreadWithLock}}(\&\mbox{\hyperlink{me_8h_ad67c53006a896cba38c6eabe92a0ad91}{MeGetCurrentProcessor}}()-\/>readyQueue,\ thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00274}00274\ \ \ \ \ \textcolor{keywordflow}{if}\ (OutThread)\ *OutThread\ =\ thread;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00275}00275\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00276}00276\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00277}00277\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00278}00278\ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00279}\mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{00279}}\ \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}\ (\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00280}00280\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{macros_8h_aad0775b806dea2a5529806f0e8d90cee}{CONTAINING\_RECORD}}(\mbox{\hyperlink{me_8h_a47d6bb330b3f195c125bd452af7031c8}{MeGetCurrentThread}}(),\ \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}},\ InternalThread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00281}00281\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00282}00282\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00283}00283\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00284}\mbox{\hyperlink{thread_8c_a17b8990d566ce50032855c01bb490857}{00284}}\ \mbox{\hyperlink{thread_8c_a17b8990d566ce50032855c01bb490857}{PsTerminateThread}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00285}00285\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ Thread,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00286}00286\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ ExitStatus}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00287}00287\ )}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00288}00288\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00289}00289\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00290}00290\ \ \ \ \ \textcolor{comment}{//\ Non\ complete\ function,\ this\ should\ queue\ a\ thread\ Apc\ to\ call\ MtTerminateThread\ (PspExitThread)\ on\ itself.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00291}00291\ \ \ \ \ \textcolor{comment}{//\ Or\ if\ it\ is\ the\ current\ thread,\ we\ just\ terminate\ ourselves.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00292}00292\ \ \ \ \ \textcolor{keywordflow}{if}\ (Thread\ ==\ \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}())\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00293}00293\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Exit\ current\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00294}00294\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{thread_8c_a1528fbb80f4464def43f30e893fc7b2a}{PspExitThread}}(ExitStatus);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00295}00295\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a147849337a41d8be9ccb4ef599b84a86}{MT\_SUCCESS}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00296}00296\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00297}00297\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00298}00298\ \ \ \ \ \mbox{\hyperlink{assert_8h_a3d4ae9c092e117c836f52dc7d7cee574}{assert}}(\textcolor{keyword}{false},\ \textcolor{stringliteral}{"{}Termination\ called\ upon\ remote\ thread,\ unimplemented.\ Need\ APCs"{}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00299}00299\ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}((\mbox{\hyperlink{me_8h_aec7c4f5d577b4ebbff3ba86c9c70381a}{BUGCHECK\_CODES}})\mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}},\ (\textcolor{keywordtype}{void}*)(uintptr\_t)Thread,\ (\textcolor{keywordtype}{void}*)(uintptr\_t)ExitStatus,\ NULL,\ NULL);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00300}00300\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00301}00301\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{mtstatus_8h_a3f63df5b525aeed240a0798a736a0127}{MT\_NOT\_IMPLEMENTED}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00302}00302\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00303}00303\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00304}00304\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00305}\mbox{\hyperlink{thread_8c_ace7d0ce52fd3242f29560caa1197ddc2}{00305}}\ \mbox{\hyperlink{thread_8c_ace7d0ce52fd3242f29560caa1197ddc2}{PsDeleteThread}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00306}00306\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \textcolor{keywordtype}{void}*\ Object}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00307}00307\ )}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00308}00308\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00309}00309\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00310}00310\ \ \ \ \ \textcolor{comment}{//\ This\ function\ is\ called\ when\ the\ reference\ count\ for\ this\ thread\ has\ reached\ 0\ (e.g,\ it\ is\ no\ longer\ in\ use)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00311}00311\ \ \ \ \ \textcolor{comment}{//\ (it\ is\ called\ after\ thread\ termination)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00312}00312\ \ \ \ \ \textcolor{comment}{//\ We\ free\ everything\ that\ the\ ETHREAD\ uses.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00313}00313\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ Thread\ =\ (\mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}})Object;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00314}00314\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00315}00315\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsKernelThread\ =\ \mbox{\hyperlink{ps_8h_aa30db9b8d584b69873c706c5ea12aa87}{PsIsKernelThread}}(Thread);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00316}00316\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00317}00317\ \ \ \ \ \textcolor{comment}{//\ Free\ TID.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00318}00318\ \ \ \ \ \mbox{\hyperlink{cid_8c_ae34f562ec68ec4d092329da8efa705e6}{PsFreeCid}}(Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a4f322c225ea87b4c71a53def5189f4a2}{TID}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00319}00319\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00320}00320\ \ \ \ \ \textcolor{comment}{//\ Free\ its\ stack.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00321}00321\ \ \ \ \ \textcolor{keywordflow}{if}\ (IsKernelThread)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00322}00322\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pswork_8c_a8622c6be494cf16caf6a6c2eb8009343}{PsDeferKernelStackDeletion}}(Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a949a9f69e54a9c4714e29011de37383e}{KernelStack}},\ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a1ceb5f81bce3838a9703c746dbfc9066}{IsLargeStack}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00323}00323\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00324}00324\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00325}00325\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Dereference\ the\ parent\ process,\ and\ free\ its\ kernel\ stack..}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00326}00326\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pswork_8c_a8622c6be494cf16caf6a6c2eb8009343}{PsDeferKernelStackDeletion}}(Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a949a9f69e54a9c4714e29011de37383e}{KernelStack}},\ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a1ceb5f81bce3838a9703c746dbfc9066}{IsLargeStack}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00327}00327\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ob_8c_a7dee8ead706a375c2a916dc9ed752224}{ObDereferenceObject}}(Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a1db330b908dc0c15f56f4a4de49ed883}{ParentProcess}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00328}00328\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00329}00329\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00330}00330\ \ \ \ \ \textcolor{comment}{//\ When\ we\ reach\ here,\ the\ function\ returns,\ and\ the\ ETHREAD\ is\ deleted.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00331}00331\ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00332}00332\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00333}00333\ \mbox{\hyperlink{annotations_8h_aa1728270d73c5d1598de1fd691762eb1}{NORETURN}}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00334}00334\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00335}\mbox{\hyperlink{thread_8c_a1528fbb80f4464def43f30e893fc7b2a}{00335}}\ \mbox{\hyperlink{thread_8c_a1528fbb80f4464def43f30e893fc7b2a}{PspExitThread}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00336}00336\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{mtstatus_8h_a7c794b38d203a5b842f27b12fb55495a}{MTSTATUS}}\ ExitStatus}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00337}00337\ )}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00338}00338\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00339}00339\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00340}00340\ \ \ \ \ \textcolor{comment}{//\ This\ exits\ the\ current\ running\ thread\ on\ the\ processor.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00341}00341\ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ Thread\ =\ \mbox{\hyperlink{thread_8c_a83437e8cd9a8e8befc491348dfcb41c0}{PsGetCurrentThread}}();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00342}00342\ \ \ \ \ \mbox{\hyperlink{core_8h_a991a69d592c53aaa098317abccbdfca7}{PEPROCESS}}\ CurrentProcess\ =\ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ae9e70a267dbbee57a023a480da6d34a9}{ApcState}}.\mbox{\hyperlink{struct___a_p_c___s_t_a_t_e_aa6bf8b2333758277c1ad3222df0533be}{SavedApcProcess}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00343}00343\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00344}00344\ \ \ \ \ \textcolor{comment}{//\ Cannot\ terminate\ this\ thread\ if\ we\ are\ attached\ to\ a\ different\ process\ (since\ we\ would\ use\ another\ process\ fields)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00345}00345\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{me_8h_a5961f78c7025077db55e2665ea33c812}{MeIsAttachedProcess}}())\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00346}00346\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00347}00347\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ae3d76490c57e3b222c3792456e5f323c}{INVALID\_PROCESS\_ATTACH\_ATTEMPT}},}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00348}00348\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)CurrentProcess,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00349}00349\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_ae9e70a267dbbee57a023a480da6d34a9}{ApcState}}.\mbox{\hyperlink{struct___a_p_c___s_t_a_t_e_aa6bf8b2333758277c1ad3222df0533be}{SavedApcProcess}},}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00350}00350\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)Thread,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00351}00351\ \ \ \ \ \ \ \ \ \ \ \ \ NULL}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00352}00352\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00353}00353\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00354}00354\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00355}00355\ \ \ \ \ \textcolor{comment}{//\ Lower\ IRQL\ to\ passive\ level.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00356}00356\ \ \ \ \ \mbox{\hyperlink{irql_8c_ad07e05df3c335028a1b5ff02de7f3ef2}{MeLowerIrql}}(\mbox{\hyperlink{core_8h_a6ff101fd8adf1c79792d98893f8dee3eacf81bceb86f53bdf373ff56d5f6e179f}{PASSIVE\_LEVEL}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00357}00357\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00358}00358\ \ \ \ \ \textcolor{comment}{//\ We\ cannot\ terminate\ a\ worker\ thread.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00359}00359\ \ \ \ \ \textcolor{keywordflow}{if}\ (Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a7117c2c9710a419d65611044813917a9}{WorkerThread}})\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00360}00360\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00361}00361\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82ae28bf19609922e82692ff93c3a6ba81f}{WORKER\_THREAD\_ATTEMPTED\_TERMINATION}},}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00362}00362\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)Thread,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00363}00363\ \ \ \ \ \ \ \ \ \ \ \ \ NULL,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00364}00364\ \ \ \ \ \ \ \ \ \ \ \ \ NULL,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00365}00365\ \ \ \ \ \ \ \ \ \ \ \ \ NULL}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00366}00366\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00367}00367\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00368}00368\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00369}00369\ \ \ \ \ \textcolor{comment}{//\ Todo\ check\ for\ pending\ APCs,\ if\ so\ bugcheck.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00370}00370\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00371}00371\ \ \ \ \ \textcolor{comment}{//\ Wait\ for\ rundown\ protection\ release}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00372}00372\ \ \ \ \ \mbox{\hyperlink{rundown_8c_aac47f99e0adc9ac0498d115f952e7ec6}{MsWaitForRundownProtectionRelease}}(\&Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a17130bdf8bc4c41840767d7f5d775aa3}{ThreadRundown}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00373}00373\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00374}00374\ \ \ \ \ \textcolor{comment}{//\ Acquire\ process\ lock\ before\ we\ modify\ thread\ entries.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00375}00375\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{MsAcquirePushLockExclusive}}(\&CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a578cfbde0cd30f537a4d785833f1b337}{ThreadListLock}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00376}00376\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00377}00377\ \ \ \ \ \textcolor{comment}{//\ Decrease\ thread\ count\ and\ check\ if\ we\ are\ the\ last\ thread\ (if\ so,\ terminate\ process)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00378}00378\ \ \ \ \ \textcolor{comment}{//\ No\ need\ for\ interlocked\ decrement\ as\ we\ hold\ push\ lock}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00379}00379\ \ \ \ \ \textcolor{keywordtype}{bool}\ LastThread\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00380}00380\ \ \ \ \ \textcolor{keywordflow}{if}\ (!(-\/-\/CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a18cc8b1fbce9eb05da106ba8c46a9cb1}{NumThreads}}))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00381}00381\ \ \ \ \ \ \ \ \ LastThread\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00382}00382\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00383}00383\ \ \ \ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00384}00384\ \ \ \ \ \textcolor{comment}{//\ Remove\ us\ from\ the\ process\ thread\ list.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00385}00385\ \ \ \ \ \mbox{\hyperlink{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}{PDOUBLY\_LINKED\_LIST}}\ listHead\ =\ \&CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_afa2bf092db11195fa0f0688767cd7baf}{AllThreads}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00386}00386\ \ \ \ \ \mbox{\hyperlink{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}{PDOUBLY\_LINKED\_LIST}}\ entry\ =\ listHead-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_ad730634dba2dfcaef8cb8880cb1e4719}{Flink}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00387}00387\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00388}00388\ \ \ \ \ \textcolor{keywordflow}{while}\ (entry\ !=\ listHead)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00389}00389\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{core_8h_ad66fec9d1871be79dbc3f828f4ac5ee7}{PETHREAD}}\ iter\ =\ \mbox{\hyperlink{macros_8h_aad0775b806dea2a5529806f0e8d90cee}{CONTAINING\_RECORD}}(entry,\ \mbox{\hyperlink{core_8h_ab36019f6c21ddbae4a9dd226ed885a46}{ETHREAD}},\ ThreadListEntry);}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00390}00390\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (iter\ ==\ Thread)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00391}00391\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Remove\ entry}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00392}00392\ \ \ \ \ \ \ \ \ \ \ \ \ entry-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_a0d08a6f276c5a25d9a16ae91a699d8b3}{Blink}}-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_ad730634dba2dfcaef8cb8880cb1e4719}{Flink}}\ =\ entry-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_ad730634dba2dfcaef8cb8880cb1e4719}{Flink}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00393}00393\ \ \ \ \ \ \ \ \ \ \ \ \ entry-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_ad730634dba2dfcaef8cb8880cb1e4719}{Flink}}-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_a0d08a6f276c5a25d9a16ae91a699d8b3}{Blink}}\ =\ entry-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_a0d08a6f276c5a25d9a16ae91a699d8b3}{Blink}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00394}00394\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00395}00395\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Set\ entry\ to\ point\ at\ itself}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00396}00396\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}(\&Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_af89b69b8dfdc6f73ffba7bdf79eeec8e}{ThreadListEntry}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00397}00397\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00398}00398\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00399}00399\ \ \ \ \ \ \ \ \ entry\ =\ entry-\/>\mbox{\hyperlink{struct___d_o_u_b_l_y___l_i_n_k_e_d___l_i_s_t_ad730634dba2dfcaef8cb8880cb1e4719}{Flink}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00400}00400\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00401}00401\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00402}00402\ \ \ \ \ \textcolor{comment}{//\ Release\ it\ now.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00403}00403\ \ \ \ \ \mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{MsReleasePushLockExclusive}}(\&CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a578cfbde0cd30f537a4d785833f1b337}{ThreadListLock}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00404}00404\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00405}00405\ \ \ \ \ \textcolor{keywordflow}{if}\ (LastThread\ \&\&\ (CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a7208696dddc45fd583f3bc5f7969c933}{Flags}}\ \&\ \mbox{\hyperlink{ps_8h_ab3558a2b45482efcee336f4df791567ba34ef8e7e554d93ca52ce60e8f3002a7f}{ProcessBreakOnTermination}}))\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00406}00406\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ is\ the\ last\ thread\ termination\ of\ a\ critical\ process,\ this\ MUST\ not\ happen.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00407}00407\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{bugcheck_8c_a6ec4513aac495ad65f57eef09b218058}{MeBugCheckEx}}(}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00408}00408\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{me_8h_a3dd6c077b2422dcc0d05246537da5c82a02d5930f7f4dc547ce981bcd7f22baf0}{CRITICAL\_PROCESS\_DIED}},}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00409}00409\ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keywordtype}{void}*)(uintptr\_t)CurrentProcess,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00410}00410\ \ \ \ \ \ \ \ \ \ \ \ \ NULL,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00411}00411\ \ \ \ \ \ \ \ \ \ \ \ \ NULL,}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00412}00412\ \ \ \ \ \ \ \ \ \ \ \ \ NULL}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00413}00413\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00414}00414\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00415}00415\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00416}00416\ \ \ \ \ \textcolor{keywordflow}{if}\ (LastThread)\ \{}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00417}00417\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ is\ the\ last\ thread\ of\ the\ process,\ we\ clear\ its\ handle\ table.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00418}00418\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handle_8c_a95832b8395bd6ef19ed5b428994eb291}{HtDeleteHandleTable}}(CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}{ObjectTable}});}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00419}00419\ \ \ \ \ \ \ \ \ CurrentProcess-\/>\mbox{\hyperlink{struct___e_p_r_o_c_e_s_s_a433fb021c56e2c0fdbdec96ea9dcecab}{ObjectTable}}\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00420}00420\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00421}00421\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00422}00422\ \ \ \ \ \textcolor{comment}{//\ Todo\ termination\ ports\ for\ a\ process\ (so\ when\ it\ dies\ the\ user\ process\ can\ like\ show\ a\ message\ to\ parent\ process\ or\ sum\ shit)}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00423}00423\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00424}00424\ \ \ \ \ \textcolor{comment}{//\ Todo\ process\ the\ thread's\ mutexes\ and\ waits\ (unwait\ all\ threads\ waiting\ on\ this),\ along\ with\ flushing\ its\ APCs.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00425}00425\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00426}00426\ \ \ \ \ \textcolor{comment}{//\ Finally,\ terminate\ this\ thread\ from\ the\ scheduler.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00427}00427\ \ \ \ \ \mbox{\hyperlink{irql_8c_a0b1fa831ad8ad8a91e8510137dcbd255}{MeDisableInterrupts}}();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00428}00428\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a83143d77bd729a051df1f26e621c3818}{ExitStatus}}\ =\ ExitStatus;}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00429}00429\ \ \ \ \ Thread-\/>\mbox{\hyperlink{struct___e_t_h_r_e_a_d_a277ac0724d62341752a5d14f7ebe57fa}{InternalThread}}.\mbox{\hyperlink{struct___i_t_h_r_e_a_d_a0212532a6ccca439cbf4a98c092eb2c9}{ThreadState}}\ =\ \mbox{\hyperlink{ps_8h_aa10ee122164d8eab53bd059c31538ca3a671b68cda962520c0b53a108cb584203}{THREAD\_TERMINATING}};}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00430}00430\ }
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00431}00431\ \ \ \ \ \textcolor{comment}{//\ Schedule\ away.}}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00432}00432\ \ \ \ \ \mbox{\hyperlink{scheduler_8c_a0014bec3cf8d95a2fe028d30d8f7bd1d}{Schedule}}();}
+\DoxyCodeLine{\Hypertarget{thread_8c_source_l00433}00433\ \}}
+
+\end{DoxyCode}

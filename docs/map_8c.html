@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/map.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/map.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -107,13 +106,37 @@ Functions</h2></td></tr>
 <tr class="memitem:aac08743a17b8efc9e374ff5a4f577f51" id="r_aac08743a17b8efc9e374ff5a4f577f51"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aac08743a17b8efc9e374ff5a4f577f51">MiGetPdePointer</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t va)</td></tr>
 <tr class="memitem:ae2b6d4075b0e93f28cd8adc57b890ce0" id="r_ae2b6d4075b0e93f28cd8adc57b890ce0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae2b6d4075b0e93f28cd8adc57b890ce0">MiInvalidateTlbForVa</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *VirtualAddress)</td></tr>
 <tr class="memitem:ab8622097f04d79cb476a78f307323100" id="r_ab8622097f04d79cb476a78f307323100"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab8622097f04d79cb476a78f307323100">MiTranslatePteToPfn</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a> pte)</td></tr>
-<tr class="memitem:ad21f0e64e742af499e06c2b21ebc1ead" id="r_ad21f0e64e742af499e06c2b21ebc1ead"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad21f0e64e742af499e06c2b21ebc1ead">MiTranslatePteToVa</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a> pte)</td></tr>
+<tr class="memitem:a2c081bf5a3802828295b55479427bab8" id="r_a2c081bf5a3802828295b55479427bab8"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2c081bf5a3802828295b55479427bab8">MiTranslatePteToVa</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a> pte)</td></tr>
 <tr class="memitem:ae3021d571acb9a636398898e79e539be" id="r_ae3021d571acb9a636398898e79e539be"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae3021d571acb9a636398898e79e539be">MiUnmapPte</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a> pte)</td></tr>
+<tr class="memitem:ae35d901766d986f00926243d7f0cff27" id="r_ae35d901766d986f00926243d7f0cff27"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae35d901766d986f00926243d7f0cff27">MiAtomicSetTransitionPte</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a> Pte, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a> Pfn)</td></tr>
 <tr class="memitem:a4087336eeffc465259da0318319c9c74" id="r_a4087336eeffc465259da0318319c9c74"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4087336eeffc465259da0318319c9c74">MiReloadTLBs</a> (void)</td></tr>
 <tr class="memitem:a29e582a0230e8396492f0620023f0ae5" id="r_a29e582a0230e8396492f0620023f0ae5"><td class="memItemLeft" align="right" valign="top">uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a29e582a0230e8396492f0620023f0ae5">MiTranslateVirtualToPhysical</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *VirtualAddress)</td></tr>
 <tr class="memitem:ab2c1d72decad25f1eba4f9d1fbb9089a" id="r_ab2c1d72decad25f1eba4f9d1fbb9089a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab2c1d72decad25f1eba4f9d1fbb9089a">MmIsAddressPresent</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uintptr_t VirtualAddress)</td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
+<a id="ae35d901766d986f00926243d7f0cff27" name="ae35d901766d986f00926243d7f0cff27"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae35d901766d986f00926243d7f0cff27">&#9670;&#160;</a></span>MiAtomicSetTransitionPte()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool MiAtomicSetTransitionPte </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a></td>          <td class="paramname"><span class="paramname"><em>Pte</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a></td>          <td class="paramname"><span class="paramname"><em>Pfn</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00438">438</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
+
+</div>
+</div>
 <a id="aac08743a17b8efc9e374ff5a4f577f51" name="aac08743a17b8efc9e374ff5a4f577f51"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aac08743a17b8efc9e374ff5a4f577f51">&#9670;&#160;</a></span>MiGetPdePointer()</h2>
 
@@ -224,7 +247,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00443">443</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00499">499</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
 
 </div>
 </div>
@@ -247,14 +270,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ad21f0e64e742af499e06c2b21ebc1ead" name="ad21f0e64e742af499e06c2b21ebc1ead"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad21f0e64e742af499e06c2b21ebc1ead">&#9670;&#160;</a></span>MiTranslatePteToVa()</h2>
+<a id="a2c081bf5a3802828295b55479427bab8" name="a2c081bf5a3802828295b55479427bab8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c081bf5a3802828295b55479427bab8">&#9670;&#160;</a></span>MiTranslatePteToVa()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t MiTranslatePteToVa </td>
+          <td class="memname">uintptr_t MiTranslatePteToVa </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a58b57de8cb1ef44a0f90f7f6e82f4b17">PMMPTE</a></td>          <td class="paramname"><span class="paramname"><em>pte</em></span></td><td>)</td>
           <td></td>
@@ -281,7 +304,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00456">456</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00512">512</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
 
 </div>
 </div>
@@ -319,7 +342,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00488">488</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="map_8c_source.html#l00544">544</a> of file <a class="el" href="map_8c_source.html">map.c</a>.</p>
 
 </div>
 </div>

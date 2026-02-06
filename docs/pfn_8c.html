@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pfn.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/pfn.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -103,7 +102,10 @@ $(function(){initNavTree('pfn_8c.html','',''); });
 Functions</h2></td></tr>
 <tr class="memitem:aa80c9f143f084f29f0961969eecbab97" id="r_aa80c9f143f084f29f0961969eecbab97"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa80c9f143f084f29f0961969eecbab97">MiInitializePfnDatabase</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="efi_8h.html#a30603a4329e93f45c29e6988998e39b8">PBOOT_INFO</a> BootInfo)</td></tr>
 <tr class="memitem:a09e1bd69ed2aaa499051fddb5e1b94ff" id="r_a09e1bd69ed2aaa499051fddb5e1b94ff"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a09e1bd69ed2aaa499051fddb5e1b94ff">MiRequestPhysicalPage</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a2af3dbc8dfc6350d4c18c46bf3c92d2a">PFN_STATE</a> ListType)</td></tr>
-<tr class="memitem:a5c45262799a0761469b19a5dd9810947" id="r_a5c45262799a0761469b19a5dd9810947"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5c45262799a0761469b19a5dd9810947">MiReleasePhysicalPage</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a> PfnIndex)</td></tr>
+<tr class="memitem:a66560194ca27fb735c05cd0e5fc4fd33" id="r_a66560194ca27fb735c05cd0e5fc4fd33"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a66560194ca27fb735c05cd0e5fc4fd33">asm</a> (&quot;.global MiReleasePhysicalPage_start\n&quot; &quot;MiReleasePhysicalPage_start:\n&quot;)</td></tr>
+<tr class="memitem:a14a788acde3f2d98ee811df8af7e0b6a" id="r_a14a788acde3f2d98ee811df8af7e0b6a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="annotations_8h.html#a1b173d22e57d9395897acbd8de62d505">NOINLINE</a> void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a14a788acde3f2d98ee811df8af7e0b6a">MiReleasePhysicalPage</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a> PfnIndex)</td></tr>
+<tr class="memitem:ace19ff980f7b4a9f6b9186ce899b766f" id="r_ace19ff980f7b4a9f6b9186ce899b766f"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ace19ff980f7b4a9f6b9186ce899b766f">asm</a> (&quot;.global MiReleasePhysicalPage_end\n&quot; &quot;MiReleasePhysicalPage_end:\n&quot;)</td></tr>
+<tr class="memitem:a7772a789a8332a81e456d0e286b270a3" id="r_a7772a789a8332a81e456d0e286b270a3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7772a789a8332a81e456d0e286b270a3">MiIsWithinBoundsOfReleasePhysicalPage</a> (void *VirtualAddress)</td></tr>
 <tr class="memitem:a2c570a4f0e97fa11887df60d7a1b502d" id="r_a2c570a4f0e97fa11887df60d7a1b502d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2c570a4f0e97fa11887df60d7a1b502d">MiUnlinkPageFromList</a> (<a class="el" href="mm_8h.html#add4af0c873a7e9aa078742eac12b1879">PPFN_ENTRY</a> pfn)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
@@ -111,8 +113,46 @@ Variables</h2></td></tr>
 <tr class="memitem:a838d2043c92e3267897ecdf7abe262f6" id="r_a838d2043c92e3267897ecdf7abe262f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a67864b7f6770308b692c66253a69e09d">MM_PFN_DATABASE</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a838d2043c92e3267897ecdf7abe262f6">PfnDatabase</a></td></tr>
 <tr class="memitem:a751b1ff6046212e402e3ac873016e7ff" id="r_a751b1ff6046212e402e3ac873016e7ff"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a751b1ff6046212e402e3ac873016e7ff">MmPfnDatabaseInitialized</a> = false</td></tr>
 <tr class="memitem:a22803a09c3713dda1ef6f7ee637874dc" id="r_a22803a09c3713dda1ef6f7ee637874dc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a22803a09c3713dda1ef6f7ee637874dc">MmHighestPfn</a> = 0</td></tr>
+<tr class="memitem:aa3b206c125476ca3919d1dbcb1153d52" id="r_aa3b206c125476ca3919d1dbcb1153d52"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa3b206c125476ca3919d1dbcb1153d52">MmTotalMemory</a> = 0</td></tr>
+<tr class="memitem:a8148b0cad71e13dd232e29d1703516c7" id="r_a8148b0cad71e13dd232e29d1703516c7"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8148b0cad71e13dd232e29d1703516c7">MmTotalUsableMemory</a> = 0</td></tr>
+<tr class="memitem:a8f7d375414a98156ffc77e0d24aebecd" id="r_a8f7d375414a98156ffc77e0d24aebecd"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8f7d375414a98156ffc77e0d24aebecd">MiReleasePhysicalPage_start</a></td></tr>
+<tr class="memitem:a7391ef0e04e8d4751f2797c069324ed1" id="r_a7391ef0e04e8d4751f2797c069324ed1"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7391ef0e04e8d4751f2797c069324ed1">MiReleasePhysicalPage_end</a></td></tr>
 </table>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
+<a id="ace19ff980f7b4a9f6b9186ce899b766f" name="ace19ff980f7b4a9f6b9186ce899b766f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace19ff980f7b4a9f6b9186ce899b766f">&#9670;&#160;</a></span>asm() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">asm </td>
+          <td>(</td>
+          <td class="paramtype">&quot;.global MiReleasePhysicalPage_end\n&quot; &quot;MiReleasePhysicalPage_end:\n&quot;</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a66560194ca27fb735c05cd0e5fc4fd33" name="a66560194ca27fb735c05cd0e5fc4fd33"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a66560194ca27fb735c05cd0e5fc4fd33">&#9670;&#160;</a></span>asm() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">asm </td>
+          <td>(</td>
+          <td class="paramtype">&quot;.global MiReleasePhysicalPage_start\n&quot; &quot;MiReleasePhysicalPage_start:\n&quot;</td>          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="aa80c9f143f084f29f0961969eecbab97" name="aa80c9f143f084f29f0961969eecbab97"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa80c9f143f084f29f0961969eecbab97">&#9670;&#160;</a></span>MiInitializePfnDatabase()</h2>
 
@@ -128,18 +168,37 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00100">100</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00102">102</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
 
 </div>
 </div>
-<a id="a5c45262799a0761469b19a5dd9810947" name="a5c45262799a0761469b19a5dd9810947"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5c45262799a0761469b19a5dd9810947">&#9670;&#160;</a></span>MiReleasePhysicalPage()</h2>
+<a id="a7772a789a8332a81e456d0e286b270a3" name="a7772a789a8332a81e456d0e286b270a3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7772a789a8332a81e456d0e286b270a3">&#9670;&#160;</a></span>MiIsWithinBoundsOfReleasePhysicalPage()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void MiReleasePhysicalPage </td>
+          <td class="memname">bool MiIsWithinBoundsOfReleasePhysicalPage </td>
+          <td>(</td>
+          <td class="paramtype">void *</td>          <td class="paramname"><span class="paramname"><em>VirtualAddress</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00516">516</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+
+</div>
+</div>
+<a id="a14a788acde3f2d98ee811df8af7e0b6a" name="a14a788acde3f2d98ee811df8af7e0b6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a14a788acde3f2d98ee811df8af7e0b6a">&#9670;&#160;</a></span>MiReleasePhysicalPage()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="annotations_8h.html#a1b173d22e57d9395897acbd8de62d505">NOINLINE</a> void MiReleasePhysicalPage </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="mm_8h.html#a7ce93fd02781ab3e20db6b11d7e28395">PAGE_INDEX</a></td>          <td class="paramname"><span class="paramname"><em>PfnIndex</em></span></td><td>)</td>
           <td></td>
@@ -147,7 +206,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00421">421</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00441">441</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
 
 </div>
 </div>
@@ -166,7 +225,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00325">325</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00333">333</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
 
 </div>
 </div>
@@ -185,11 +244,55 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00486">486</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00530">530</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
 
 </div>
 </div>
 <a name="doc-var-members" id="doc-var-members"></a><h2 id="header-doc-var-members" class="groupheader">Variable Documentation</h2>
+<a id="a7391ef0e04e8d4751f2797c069324ed1" name="a7391ef0e04e8d4751f2797c069324ed1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7391ef0e04e8d4751f2797c069324ed1">&#9670;&#160;</a></span>MiReleasePhysicalPage_end</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">char MiReleasePhysicalPage_end</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8f7d375414a98156ffc77e0d24aebecd" name="a8f7d375414a98156ffc77e0d24aebecd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8f7d375414a98156ffc77e0d24aebecd">&#9670;&#160;</a></span>MiReleasePhysicalPage_start</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">char MiReleasePhysicalPage_start</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a22803a09c3713dda1ef6f7ee637874dc" name="a22803a09c3713dda1ef6f7ee637874dc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a22803a09c3713dda1ef6f7ee637874dc">&#9670;&#160;</a></span>MmHighestPfn</h2>
 
@@ -219,6 +322,38 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00030">30</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+
+</div>
+</div>
+<a id="aa3b206c125476ca3919d1dbcb1153d52" name="aa3b206c125476ca3919d1dbcb1153d52"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa3b206c125476ca3919d1dbcb1153d52">&#9670;&#160;</a></span>MmTotalMemory</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t MmTotalMemory = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00033">33</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
+
+</div>
+</div>
+<a id="a8148b0cad71e13dd232e29d1703516c7" name="a8148b0cad71e13dd232e29d1703516c7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8148b0cad71e13dd232e29d1703516c7">&#9670;&#160;</a></span>MmTotalUsableMemory</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t MmTotalUsableMemory = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="pfn_8c_source.html#l00034">34</a> of file <a class="el" href="pfn_8c_source.html">pfn.c</a>.</p>
 
 </div>
 </div>

@@ -16,5 +16,7 @@ var searchData=
   ['efiruntimeservicesdata_13',['EfiRuntimeServicesData',['../efi_8h.html#a1f301de8ab02b899d7144cd4d2157789',1,'efi.h']]],
   ['efiunusablememory_14',['EfiUnusableMemory',['../efi_8h.html#a40fb46933d0e21fc5daa48acbb82398c',1,'efi.h']]],
   ['end_5fof_5fdirectory_15',['END_OF_DIRECTORY',['../fat32_8h.html#a01a4677c2b328cdba713cab62e32be98',1,'fat32.h']]],
-  ['exception_5fmaximum_5fparameters_16',['EXCEPTION_MAXIMUM_PARAMETERS',['../exception_8h.html#a3cd1c98b6babaa34a71c020782244ae2',1,'exception.h']]]
+  ['end_5ftry_16',['end_try',['../exception_8h.html#a1f530142e3f8bb37fa99680af8ab9921',1,'exception.h']]],
+  ['except_17',['except',['../exception_8h.html#a92dd13ee5770a55ecb6128f6d8143939',1,'exception.h']]],
+  ['exception_5fmaximum_5fparameters_18',['EXCEPTION_MAXIMUM_PARAMETERS',['../exception_8h.html#a3cd1c98b6babaa34a71c020782244ae2',1,'exception.h']]]
 ];

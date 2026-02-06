@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/core.h File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/core.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -94,9 +93,11 @@ $(function(){initNavTree('core_8h.html','',''); });
 <div class="contents">
 <div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
 <code>#include &lt;stdint.h&gt;</code><br />
+<code>#include &lt;stddef.h&gt;</code><br />
 <code>#include &quot;<a class="el" href="behavior_8h_source.html">behavior.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="macros_8h_source.html">macros.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="annotations_8h_source.html">annotations.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="mtstatus_8h_source.html">../mtstatus.h</a>&quot;</code><br />
 </div>
 <p><a href="core_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -125,6 +126,9 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a991a69d592c53aaa098317abccbdfca7" id="r_a991a69d592c53aaa098317abccbdfca7"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="#a1079f854acf7ed03691ff4ea20bc1be6">EPROCESS</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></td></tr>
 <tr class="memitem:a14d79ce92fc8bd426be5e9b939f8ba7a" id="r_a14d79ce92fc8bd426be5e9b939f8ba7a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct___t_r_a_p___f_r_a_m_e.html">_TRAP_FRAME</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a14d79ce92fc8bd426be5e9b939f8ba7a">TRAP_FRAME</a></td></tr>
 <tr class="memitem:aa67765a45c59a875c081a07037408850" id="r_aa67765a45c59a875c081a07037408850"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="#a14d79ce92fc8bd426be5e9b939f8ba7a">TRAP_FRAME</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa67765a45c59a875c081a07037408850">PTRAP_FRAME</a></td></tr>
+<tr class="memitem:a84a85b4c81f3ad61278cc4473a44f202" id="r_a84a85b4c81f3ad61278cc4473a44f202"><td class="memItemLeft" align="right" valign="top">typedef int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td></tr>
+<tr class="memitem:a4eff5701246ce814577877fc805928de" id="r_a4eff5701246ce814577877fc805928de"><td class="memItemLeft" align="right" valign="top">typedef int32_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4eff5701246ce814577877fc805928de">PHANDLE</a></td></tr>
+<tr class="memitem:a18b1b4f2fb3e795e24fd8eddc2b48c08" id="r_a18b1b4f2fb3e795e24fd8eddc2b48c08"><td class="memItemLeft" align="right" valign="top">typedef uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -142,6 +146,22 @@ Enumerations</h2></td></tr>
  }</td></tr>
 </table>
 <a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Typedef Documentation</h2>
+<a id="a18b1b4f2fb3e795e24fd8eddc2b48c08" name="a18b1b4f2fb3e795e24fd8eddc2b48c08"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a18b1b4f2fb3e795e24fd8eddc2b48c08">&#9670;&#160;</a></span>ACCESS_MASK</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef uint32_t <a class="el" href="#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00059">59</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+
+</div>
+</div>
 <a id="afb9223ccda4ca489763aad6961a26c65" name="afb9223ccda4ca489763aad6961a26c65"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afb9223ccda4ca489763aad6961a26c65">&#9670;&#160;</a></span>DOUBLY_LINKED_LIST</h2>
 
@@ -168,7 +188,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00049">49</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00051">51</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -184,7 +204,23 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00041">41</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00043">43</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+
+</div>
+</div>
+<a id="a84a85b4c81f3ad61278cc4473a44f202" name="a84a85b4c81f3ad61278cc4473a44f202"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a84a85b4c81f3ad61278cc4473a44f202">&#9670;&#160;</a></span>HANDLE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef int32_t <a class="el" href="#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00058">58</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -200,7 +236,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00037">37</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00039">39</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -230,7 +266,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00033">33</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00035">35</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -260,7 +296,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00050">50</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00052">52</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -276,7 +312,23 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00042">42</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00044">44</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+
+</div>
+</div>
+<a id="a4eff5701246ce814577877fc805928de" name="a4eff5701246ce814577877fc805928de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4eff5701246ce814577877fc805928de">&#9670;&#160;</a></span>PHANDLE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef int32_t * <a class="el" href="#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00058">58</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -292,7 +344,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00038">38</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00040">40</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -322,7 +374,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00034">34</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00036">36</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -338,7 +390,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00046">46</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00048">48</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -354,7 +406,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00045">45</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00047">47</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -384,7 +436,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00054">54</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00056">56</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -414,7 +466,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00053">53</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00055">55</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>
@@ -441,7 +493,7 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf" name="a6ff101fd8adf1c79792d98893f8dee3ea179bd93cb26ad6988d9665bad27c0bbf"></a>HIGH_LEVEL&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00012">12</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="core_8h_source.html#l00014">14</a> of file <a class="el" href="core_8h_source.html">core.h</a>.</p>
 
 </div>
 </div>

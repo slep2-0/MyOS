@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/ht.h Source File</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/ht.h Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -138,7 +137,7 @@ $(function(){initNavTree('ht_8h_source.html','',''); });
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno"><a class="line" href="struct___h_a_n_d_l_e___t_a_b_l_e.html">   41</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="struct___h_a_n_d_l_e___t_a_b_l_e.html">_HANDLE_TABLE</a> {</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    <span class="comment">// Linked list of next table (if any)</span></div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a30016c0d0eb869baf66d2a3e33f737a9">   43</a></span>    <a class="code hl_typedef" href="core_8h.html#afb9223ccda4ca489763aad6961a26c65">DOUBLY_LINKED_LIST</a> <a class="code hl_variable" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a30016c0d0eb869baf66d2a3e33f737a9">TableList</a>;</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno"><a class="line" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a4a7ed92088fd67aff2cdbbc556acfc0b">   44</a></span>    <a class="code hl_typedef" href="ms_8h.html#adf17fb77fea5ef3f703733414efda5c4">SPINLOCK</a> <a class="code hl_variable" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a4a7ed92088fd67aff2cdbbc556acfc0b">TableLock</a>;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno"><a class="line" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a63dc38b141bcf2c535ef40b440cf9cf1">   44</a></span>    <a class="code hl_typedef" href="ms_8h.html#a0b2891fcded8de47f2ba6d1305024d2b">PUSH_LOCK</a> <a class="code hl_variable" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a63dc38b141bcf2c535ef40b440cf9cf1">TableLock</a>;</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    <span class="comment">// Storage</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno"><a class="line" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a67ff1861e81c9aa1033681c5fb47608e">   47</a></span>    uint64_t <a class="code hl_variable" href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a67ff1861e81c9aa1033681c5fb47608e">TableCode</a>;     <span class="comment">// Pointer | Level</span></div>
@@ -154,61 +153,71 @@ $(function(){initNavTree('ht_8h_source.html','',''); });
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">// --------------- TYPE DEFINES ---------------</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span> </div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno"><a class="line" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">   59</a></span><span class="keyword">typedef</span> int32_t <a class="code hl_typedef" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a>, * <a class="code hl_typedef" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a>;</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="keyword">typedef</span> int32_t <a class="code hl_typedef" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a>, * <a class="code hl_typedef" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a>;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">// --------------- FUNCTIONS ---------------</span></div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">   63</a></span><span class="keyword">typedef</span> uint32_t <a class="code hl_typedef" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a>;</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="keyword">typedef</span> uint32_t <a class="code hl_typedef" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a>;</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span> </div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keywordtype">void</span>*</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><a class="code hl_function" href="ht_8h.html#a3ab925bc21d946c96d3656b6e9662a43">HtGetObject</a>(</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table,</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <a class="code hl_typedef" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle,</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <a class="code hl_typedef" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a>* OutEntry</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>);</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span> </div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="keywordtype">void</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><a class="code hl_function" href="ht_8h.html#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a>(</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table,</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    <a class="code hl_typedef" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><a class="code hl_define" href="annotations_8h.html#afefbce768b9d0df9c9ebc30dd6d13fed">MUST_USE_RESULT</a></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="keywordtype">void</span>*</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><a class="code hl_function" href="ht_8h.html#a8ce2ac2d0c1461bc6acf17dca0ea735f">HtGetObject</a>(</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a>  <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table,</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a>  <a class="code hl_typedef" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle,</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <a class="code hl_define" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> <a class="code hl_typedef" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a>* OutEntry</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>);</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><a class="code hl_typedef" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><a class="code hl_function" href="ht_8h.html#a730e2ef652afec3699adac7f6e8a8f84">HtClose</a>(</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>);</div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span> </div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><a class="code hl_typedef" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><a class="code hl_function" href="ht_8h.html#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a>(</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="keywordtype">void</span></div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><a class="code hl_function" href="ht_8h.html#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a>(</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table,</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="keywordtype">void</span>* Object,</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    uint32_t Access</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>);</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><a class="code hl_function" href="ht_8h.html#a4248a71725a0d96cc5308d2711835c75">HtCreateHandleTable</a>(</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a>  <a class="code hl_typedef" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>);</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span> </div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="keywordtype">void</span></div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><a class="code hl_function" href="ht_8h.html#a95832b8395bd6ef19ed5b428994eb291">HtDeleteHandleTable</a>(</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>);</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="preprocessor">#endif</span></div>
-<div class="ttc" id="aannotations_8h_html_ac2bbd6d630a06a980d9a92ddb9a49928"><div class="ttname"><a href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a></div><div class="ttdeci">#define IN</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00007">annotations.h:7</a></div></div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <a class="code hl_typedef" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>);</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span> </div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><a class="code hl_typedef" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><a class="code hl_function" href="ht_8h.html#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a>(</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table,</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    <span class="keywordtype">void</span>* Object,</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>    uint32_t Access</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>);</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><a class="code hl_function" href="ht_8h.html#a4248a71725a0d96cc5308d2711835c75">HtCreateHandleTable</a>(</div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a>  <a class="code hl_typedef" href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a> Process</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>);</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="keywordtype">void</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><a class="code hl_function" href="ht_8h.html#a95832b8395bd6ef19ed5b428994eb291">HtDeleteHandleTable</a>(</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>    <a class="code hl_define" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="code hl_typedef" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> Table</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>);</div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span> </div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aannotations_8h_html_a847bfbc4921fd3f7c84381c60a6a1b90"><div class="ttname"><a href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a></div><div class="ttdeci">#define _Out_Opt</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00011">annotations.h:11</a></div></div>
+<div class="ttc" id="aannotations_8h_html_ac2bbd6d630a06a980d9a92ddb9a49928"><div class="ttname"><a href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a></div><div class="ttdeci">#define IN</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00008">annotations.h:8</a></div></div>
+<div class="ttc" id="aannotations_8h_html_afefbce768b9d0df9c9ebc30dd6d13fed"><div class="ttname"><a href="annotations_8h.html#afefbce768b9d0df9c9ebc30dd6d13fed">MUST_USE_RESULT</a></div><div class="ttdeci">#define MUST_USE_RESULT</div><div class="ttdef"><b>Definition</b> <a href="annotations_8h_source.html#l00042">annotations.h:42</a></div></div>
 <div class="ttc" id="acore_8h_html"><div class="ttname"><a href="core_8h.html">core.h</a></div></div>
-<div class="ttc" id="acore_8h_html_a991a69d592c53aaa098317abccbdfca7"><div class="ttname"><a href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></div><div class="ttdeci">EPROCESS * PEPROCESS</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00050">core.h:50</a></div></div>
+<div class="ttc" id="acore_8h_html_a18b1b4f2fb3e795e24fd8eddc2b48c08"><div class="ttname"><a href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></div><div class="ttdeci">uint32_t ACCESS_MASK</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00059">core.h:59</a></div></div>
+<div class="ttc" id="acore_8h_html_a4eff5701246ce814577877fc805928de"><div class="ttname"><a href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></div><div class="ttdeci">int32_t * PHANDLE</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00058">core.h:58</a></div></div>
+<div class="ttc" id="acore_8h_html_a84a85b4c81f3ad61278cc4473a44f202"><div class="ttname"><a href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></div><div class="ttdeci">int32_t HANDLE</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00058">core.h:58</a></div></div>
+<div class="ttc" id="acore_8h_html_a991a69d592c53aaa098317abccbdfca7"><div class="ttname"><a href="core_8h.html#a991a69d592c53aaa098317abccbdfca7">PEPROCESS</a></div><div class="ttdeci">EPROCESS * PEPROCESS</div><div class="ttdef"><b>Definition</b> <a href="core_8h_source.html#l00052">core.h:52</a></div></div>
 <div class="ttc" id="acore_8h_html_afb9223ccda4ca489763aad6961a26c65"><div class="ttname"><a href="core_8h.html#afb9223ccda4ca489763aad6961a26c65">DOUBLY_LINKED_LIST</a></div><div class="ttdeci">struct _DOUBLY_LINKED_LIST DOUBLY_LINKED_LIST</div></div>
-<div class="ttc" id="aht_8h_html_a18b1b4f2fb3e795e24fd8eddc2b48c08"><div class="ttname"><a href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></div><div class="ttdeci">uint32_t ACCESS_MASK</div><div class="ttdef"><b>Definition</b> <a href="#l00063">ht.h:63</a></div></div>
-<div class="ttc" id="aht_8h_html_a3ab925bc21d946c96d3656b6e9662a43"><div class="ttname"><a href="ht_8h.html#a3ab925bc21d946c96d3656b6e9662a43">HtGetObject</a></div><div class="ttdeci">void * HtGetObject(PHANDLE_TABLE Table, HANDLE Handle, PHANDLE_TABLE_ENTRY *OutEntry)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00389">handle.c:389</a></div></div>
 <div class="ttc" id="aht_8h_html_a3d81f899340d501c8834e8d2055bc97f"><div class="ttname"><a href="ht_8h.html#a3d81f899340d501c8834e8d2055bc97f">HANDLE_TABLE</a></div><div class="ttdeci">struct _HANDLE_TABLE HANDLE_TABLE</div></div>
-<div class="ttc" id="aht_8h_html_a4248a71725a0d96cc5308d2711835c75"><div class="ttname"><a href="ht_8h.html#a4248a71725a0d96cc5308d2711835c75">HtCreateHandleTable</a></div><div class="ttdeci">PHANDLE_TABLE HtCreateHandleTable(IN PEPROCESS Process)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00087">handle.c:87</a></div></div>
-<div class="ttc" id="aht_8h_html_a4ad24010cc4b9f4331e7ab83c2967fef"><div class="ttname"><a href="ht_8h.html#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a></div><div class="ttdeci">HANDLE HtCreateHandle(PHANDLE_TABLE Table, void *Object, uint32_t Access)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00269">handle.c:269</a></div></div>
-<div class="ttc" id="aht_8h_html_a4eff5701246ce814577877fc805928de"><div class="ttname"><a href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></div><div class="ttdeci">int32_t * PHANDLE</div><div class="ttdef"><b>Definition</b> <a href="#l00059">ht.h:59</a></div></div>
+<div class="ttc" id="aht_8h_html_a4248a71725a0d96cc5308d2711835c75"><div class="ttname"><a href="ht_8h.html#a4248a71725a0d96cc5308d2711835c75">HtCreateHandleTable</a></div><div class="ttdeci">PHANDLE_TABLE HtCreateHandleTable(IN PEPROCESS Process)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00090">handle.c:90</a></div></div>
+<div class="ttc" id="aht_8h_html_a4ad24010cc4b9f4331e7ab83c2967fef"><div class="ttname"><a href="ht_8h.html#a4ad24010cc4b9f4331e7ab83c2967fef">HtCreateHandle</a></div><div class="ttdeci">HANDLE HtCreateHandle(PHANDLE_TABLE Table, void *Object, uint32_t Access)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00277">handle.c:277</a></div></div>
 <div class="ttc" id="aht_8h_html_a555fe8af7cfd68bcf804156fc8b3777a"><div class="ttname"><a href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a></div><div class="ttdeci">struct _HANDLE_TABLE_ENTRY * PHANDLE_TABLE_ENTRY</div></div>
-<div class="ttc" id="aht_8h_html_a5fd6b74d4b408fdce880fd4a9c01f073"><div class="ttname"><a href="ht_8h.html#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a></div><div class="ttdeci">void HtDeleteHandle(PHANDLE_TABLE Table, HANDLE Handle)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00333">handle.c:333</a></div></div>
+<div class="ttc" id="aht_8h_html_a5fd6b74d4b408fdce880fd4a9c01f073"><div class="ttname"><a href="ht_8h.html#a5fd6b74d4b408fdce880fd4a9c01f073">HtDeleteHandle</a></div><div class="ttdeci">void HtDeleteHandle(PHANDLE_TABLE Table, HANDLE Handle)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00342">handle.c:342</a></div></div>
+<div class="ttc" id="aht_8h_html_a730e2ef652afec3699adac7f6e8a8f84"><div class="ttname"><a href="ht_8h.html#a730e2ef652afec3699adac7f6e8a8f84">HtClose</a></div><div class="ttdeci">MTSTATUS HtClose(IN HANDLE Handle)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00536">handle.c:536</a></div></div>
 <div class="ttc" id="aht_8h_html_a7ef9aee766b45c680842fc726fb6cb7f"><div class="ttname"><a href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a></div><div class="ttdeci">struct _HANDLE_TABLE * PHANDLE_TABLE</div></div>
-<div class="ttc" id="aht_8h_html_a84a85b4c81f3ad61278cc4473a44f202"><div class="ttname"><a href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></div><div class="ttdeci">int32_t HANDLE</div><div class="ttdef"><b>Definition</b> <a href="#l00059">ht.h:59</a></div></div>
-<div class="ttc" id="aht_8h_html_a95832b8395bd6ef19ed5b428994eb291"><div class="ttname"><a href="ht_8h.html#a95832b8395bd6ef19ed5b428994eb291">HtDeleteHandleTable</a></div><div class="ttdeci">void HtDeleteHandleTable(IN PHANDLE_TABLE Table)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00434">handle.c:434</a></div></div>
+<div class="ttc" id="aht_8h_html_a8ce2ac2d0c1461bc6acf17dca0ea735f"><div class="ttname"><a href="ht_8h.html#a8ce2ac2d0c1461bc6acf17dca0ea735f">HtGetObject</a></div><div class="ttdeci">MUST_USE_RESULT void * HtGetObject(IN PHANDLE_TABLE Table, IN HANDLE Handle, _Out_Opt PHANDLE_TABLE_ENTRY *OutEntry)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00397">handle.c:397</a></div></div>
+<div class="ttc" id="aht_8h_html_a95832b8395bd6ef19ed5b428994eb291"><div class="ttname"><a href="ht_8h.html#a95832b8395bd6ef19ed5b428994eb291">HtDeleteHandleTable</a></div><div class="ttdeci">void HtDeleteHandleTable(IN PHANDLE_TABLE Table)</div><div class="ttdef"><b>Definition</b> <a href="handle_8c_source.html#l00442">handle.c:442</a></div></div>
 <div class="ttc" id="aht_8h_html_aabc7d11947f196e52f1129935e675d6b"><div class="ttname"><a href="ht_8h.html#aabc7d11947f196e52f1129935e675d6b">HANDLE_TABLE_ENTRY</a></div><div class="ttdeci">struct _HANDLE_TABLE_ENTRY HANDLE_TABLE_ENTRY</div></div>
 <div class="ttc" id="ams_8h_html"><div class="ttname"><a href="ms_8h.html">ms.h</a></div></div>
-<div class="ttc" id="ams_8h_html_adf17fb77fea5ef3f703733414efda5c4"><div class="ttname"><a href="ms_8h.html#adf17fb77fea5ef3f703733414efda5c4">SPINLOCK</a></div><div class="ttdeci">struct _SPINLOCK SPINLOCK</div></div>
+<div class="ttc" id="ams_8h_html_a0b2891fcded8de47f2ba6d1305024d2b"><div class="ttname"><a href="ms_8h.html#a0b2891fcded8de47f2ba6d1305024d2b">PUSH_LOCK</a></div><div class="ttdeci">struct _PUSH_LOCK PUSH_LOCK</div></div>
+<div class="ttc" id="amtstatus_8h_html_a7c794b38d203a5b842f27b12fb55495a"><div class="ttname"><a href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a></div><div class="ttdeci">int32_t MTSTATUS</div><div class="ttdef"><b>Definition</b> <a href="mtstatus_8h_source.html#l00012">mtstatus.h:12</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y_html"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y.html">_HANDLE_TABLE_ENTRY</a></div><div class="ttdef"><b>Definition</b> <a href="#l00027">ht.h:27</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y_html_a3550bdcc265b58ab5f9aaf72b9100813"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y.html#a3550bdcc265b58ab5f9aaf72b9100813">_HANDLE_TABLE_ENTRY::NextFreeTableEntry</a></div><div class="ttdeci">uint32_t NextFreeTableEntry</div><div class="ttdef"><b>Definition</b> <a href="#l00034">ht.h:34</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y_html_a8469589da6564a713bcba390308412a3"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e___e_n_t_r_y.html#a8469589da6564a713bcba390308412a3">_HANDLE_TABLE_ENTRY::Object</a></div><div class="ttdeci">void * Object</div><div class="ttdef"><b>Definition</b> <a href="#l00029">ht.h:29</a></div></div>
@@ -219,7 +228,7 @@ $(function(){initNavTree('ht_8h_source.html','',''); });
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a1140404623ed3862fd0fbd8757285659"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a1140404623ed3862fd0fbd8757285659">_HANDLE_TABLE::LastFreeHandleEntry</a></div><div class="ttdeci">PHANDLE_TABLE_ENTRY LastFreeHandleEntry</div><div class="ttdef"><b>Definition</b> <a href="#l00051">ht.h:51</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a30016c0d0eb869baf66d2a3e33f737a9"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a30016c0d0eb869baf66d2a3e33f737a9">_HANDLE_TABLE::TableList</a></div><div class="ttdeci">DOUBLY_LINKED_LIST TableList</div><div class="ttdef"><b>Definition</b> <a href="#l00043">ht.h:43</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a3820befc55e7951f6ef7a66a7799656b"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a3820befc55e7951f6ef7a66a7799656b">_HANDLE_TABLE::NextHandleNeedingPool</a></div><div class="ttdeci">uint32_t NextHandleNeedingPool</div><div class="ttdef"><b>Definition</b> <a href="#l00053">ht.h:53</a></div></div>
-<div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a4a7ed92088fd67aff2cdbbc556acfc0b"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a4a7ed92088fd67aff2cdbbc556acfc0b">_HANDLE_TABLE::TableLock</a></div><div class="ttdeci">SPINLOCK TableLock</div><div class="ttdef"><b>Definition</b> <a href="#l00044">ht.h:44</a></div></div>
+<div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a63dc38b141bcf2c535ef40b440cf9cf1"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a63dc38b141bcf2c535ef40b440cf9cf1">_HANDLE_TABLE::TableLock</a></div><div class="ttdeci">PUSH_LOCK TableLock</div><div class="ttdef"><b>Definition</b> <a href="#l00044">ht.h:44</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_a67ff1861e81c9aa1033681c5fb47608e"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#a67ff1861e81c9aa1033681c5fb47608e">_HANDLE_TABLE::TableCode</a></div><div class="ttdeci">uint64_t TableCode</div><div class="ttdef"><b>Definition</b> <a href="#l00047">ht.h:47</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_ad02d99ab696eac436d8a3308495857c7"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#ad02d99ab696eac436d8a3308495857c7">_HANDLE_TABLE::QuotaProcess</a></div><div class="ttdeci">PEPROCESS QuotaProcess</div><div class="ttdef"><b>Definition</b> <a href="#l00048">ht.h:48</a></div></div>
 <div class="ttc" id="astruct___h_a_n_d_l_e___t_a_b_l_e_html_ad11e2c98cf6159cc5cf5a7ac5c3b66f7"><div class="ttname"><a href="struct___h_a_n_d_l_e___t_a_b_l_e.html#ad11e2c98cf6159cc5cf5a7ac5c3b66f7">_HANDLE_TABLE::FirstFreeHandle</a></div><div class="ttdeci">uint32_t FirstFreeHandle</div><div class="ttdef"><b>Definition</b> <a href="#l00052">ht.h:52</a></div></div>

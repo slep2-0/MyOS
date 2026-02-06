@@ -1,0 +1,304 @@
+\doxysection{intrin.\+h}
+\hypertarget{intrin_8h_source}{}\label{intrin_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/intrinsics/intrin.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/intrinsics/intrin.h}}
+\mbox{\hyperlink{intrin_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00001}00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00002}00002\ \textcolor{comment}{\ *\ PROJECT:\ \ \ \ \ MatanelOS\ Kernel}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00003}00003\ \textcolor{comment}{\ *\ LICENSE:\ \ \ \ \ NONE}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00004}00004\ \textcolor{comment}{\ *\ PURPOSE:\ \ \ \ \ Intrinsics\ for\ easy\ assembly\ use.}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00005}00005\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00006}00006\ \textcolor{preprocessor}{\#ifndef\ X86\_INTRINSICS\_H}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00007}00007\ \textcolor{preprocessor}{\#define\ X86\_INTRINSICS\_H}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00008}00008\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00009}00009\ \ \textcolor{comment}{//\ PIC\ Ports}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00010}\mbox{\hyperlink{intrin_8h_a03c0db7a4cafd35e99b7c78605419d3e}{00010}}\ \textcolor{preprocessor}{\#define\ PIC1\_COMMAND\_MASTER\ 0x20}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00011}\mbox{\hyperlink{intrin_8h_af27e966ec947ca1172f30ae301c5f24b}{00011}}\ \textcolor{preprocessor}{\#define\ PIC1\_DATA\ \ \ \ \ \ \ \ \ \ \ 0x21}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00012}\mbox{\hyperlink{intrin_8h_a219552e186c48addf9752e17045ab0d0}{00012}}\ \textcolor{preprocessor}{\#define\ PIC2\_COMMAND\_SLAVE\ \ 0xA0}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00013}\mbox{\hyperlink{intrin_8h_ab6d3b9f6f427357310896adf176145f1}{00013}}\ \textcolor{preprocessor}{\#define\ PIC2\_DATA\ \ \ \ \ \ \ \ \ \ \ 0xA1}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00014}00014\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00015}00015\ \textcolor{comment}{//\ End\ of\ Interrupt\ command\ code}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00016}\mbox{\hyperlink{intrin_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{00016}}\ \textcolor{preprocessor}{\#define\ PIC\_EOI\ 0x20}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00017}00017\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00018}00018\ \textcolor{comment}{//\ MSRs}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00019}\mbox{\hyperlink{intrin_8h_a160987ecb36cc6c4cdef6b4a3170e994}{00019}}\ \textcolor{preprocessor}{\#define\ IA32\_KERNEL\_GS\_BASE\ 0xC0000102}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00020}\mbox{\hyperlink{intrin_8h_aca24136529d67d645af8234fafc2371d}{00020}}\ \textcolor{preprocessor}{\#define\ IA32\_GS\_BASE\ 0xC0000101\ }\textcolor{comment}{/*\ used\ both\ in\ kernel\ mode\ and\ user\ mode\ */}\textcolor{preprocessor}{}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00021}\mbox{\hyperlink{intrin_8h_a8bc43ef06be82502b81d787be9f74eed}{00021}}\ \textcolor{preprocessor}{\#define\ IA32\_FS\_BASE\ 0xC0000100}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00022}\mbox{\hyperlink{intrin_8h_a781940174888ffe44a60eac2cef0c9ff}{00022}}\ \textcolor{preprocessor}{\#define\ IA32\_EFER\ 0xC0000080}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00023}\mbox{\hyperlink{intrin_8h_ac177c522e3e9cf4ff3143d9e9b4057e3}{00023}}\ \textcolor{preprocessor}{\#define\ IA32\_STAR\ 0xC0000081}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00024}\mbox{\hyperlink{intrin_8h_a591479e9e26bb3a18a1dd959ab4e5e82}{00024}}\ \textcolor{preprocessor}{\#define\ IA32\_LSTAR\ 0xC0000082}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00025}\mbox{\hyperlink{intrin_8h_ad0119f85357fc5f335b82e12dd6d2378}{00025}}\ \textcolor{preprocessor}{\#define\ IA32\_CSTAR\ 0xC0000083}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00026}\mbox{\hyperlink{intrin_8h_a3a69543dc8732e4059fe779ed07d9655}{00026}}\ \textcolor{preprocessor}{\#define\ IA32\_FMASK\ 0xC0000084}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00027}00027\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00028}00028\ \textcolor{preprocessor}{\#ifndef\ UNREFERENCED\_PARAMETER}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00029}\mbox{\hyperlink{intrin_8h_a7b1a47a94be3cc9455621cecad58b168}{00029}}\ \textcolor{preprocessor}{\#define\ UNREFERENCED\_PARAMETER(x)\ (void)(x)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00030}00030\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00031}00031\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00032}00032\ \textcolor{preprocessor}{\#ifdef\ \_MSC\_VER}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00033}00033\ \textcolor{preprocessor}{\#ifndef\ \_\_asm\_\_}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00034}00034\ \textcolor{preprocessor}{\#define\ \_\_asm\_\_\ \_\_asm}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00035}00035\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00036}00036\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00037}00037\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00038}00038\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00039}00039\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{annotations_8h}{../includes/annotations.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00040}00040\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00041}00041\ \textcolor{comment}{//\ Disable\ interrupts\ (cli)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00042}00042\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00043}\mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{00043}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00044}00044\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}cli"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00045}00045\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00046}00046\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00047}00047\ \textcolor{comment}{//\ Enable\ supervisor\ access\ to\ user\ memory\ (STAC)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00048}\mbox{\hyperlink{intrin_8h_aeb08846ccf9c34c10907d618ba5e9a51}{00048}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_aeb08846ccf9c34c10907d618ba5e9a51}{\_\_stac}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00049}00049\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}stac"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00050}00050\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00052}00052\ \textcolor{comment}{//\ Disable\ supervisor\ access\ to\ user\ memory\ (CLAC)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00053}\mbox{\hyperlink{intrin_8h_afef14681fbfe0254c5230130d806d27a}{00053}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_afef14681fbfe0254c5230130d806d27a}{\_\_clac}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00054}00054\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}clac"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00055}00055\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00057}00057\ \textcolor{comment}{//\ Enable\ interrupts\ (sti)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00058}00058\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00059}\mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{00059}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00060}00060\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}sti"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00061}00061\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00063}00063\ \textcolor{comment}{//\ Halt\ CPU\ until\ next\ interrupt\ (hlt)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00064}00064\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00065}\mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{00065}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a5d7de5a6b690a532d64eeb6d89e4c388}{\_\_hlt}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00066}00066\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}hlt"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00067}00067\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00068}00068\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00069}00069\ \textcolor{comment}{//\ Read\ CR0\ register}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00070}\mbox{\hyperlink{intrin_8h_a64554e41bbfcd695975ef9125de7016f}{00070}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{intrin_8h_a64554e41bbfcd695975ef9125de7016f}{\_\_read\_cr0}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00071}00071\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00072}00072\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}mov\ \%\%cr0,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00073}00073\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00074}00074\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00075}00075\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00076}00076\ \textcolor{comment}{//\ Write\ CR0\ register}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00077}\mbox{\hyperlink{intrin_8h_a8967b3b97a5ce474b517c21728c2e2e7}{00077}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a8967b3b97a5ce474b517c21728c2e2e7}{\_\_write\_cr0}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00078}00078\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%cr0"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00079}00079\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00080}00080\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00081}00081\ \textcolor{comment}{//\ CR2\ (Page\ fault\ linear\ address)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00082}\mbox{\hyperlink{intrin_8h_acc7c0ca0a4f2c0dfecc94756795df21d}{00082}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{intrin_8h_acc7c0ca0a4f2c0dfecc94756795df21d}{\_\_read\_cr2}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00083}00083\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00084}00084\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr2,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00085}00085\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00086}00086\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00087}00087\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00088}\mbox{\hyperlink{intrin_8h_a3af7af384746d1f391e0711d4331a223}{00088}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a3af7af384746d1f391e0711d4331a223}{\_\_write\_cr2}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00089}00089\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%cr2"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00090}00090\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00091}00091\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00092}00092\ \textcolor{comment}{//\ CR3\ (Page\ table\ base\ address)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00093}\mbox{\hyperlink{intrin_8h_af84468b325aa2ddc225df1b06b4a467b}{00093}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_af84468b325aa2ddc225df1b06b4a467b}{\_\_read\_cr3}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00094}00094\ \ \ \ \ uint64\_t\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00095}00095\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr3,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00096}00096\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00097}00097\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00098}\mbox{\hyperlink{intrin_8h_ac8ff7db1c624708409696db48e2378a8}{00098}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_ac8ff7db1c624708409696db48e2378a8}{\_\_write\_cr3}}(uint64\_t\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00099}00099\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%cr3"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00100}00100\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00101}00101\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00102}00102\ \textcolor{comment}{//\ CR4\ (Feature\ control)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00103}\mbox{\hyperlink{intrin_8h_aac76b4f4f1bd31ba8e888a9bd593f9aa}{00103}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{intrin_8h_aac76b4f4f1bd31ba8e888a9bd593f9aa}{\_\_read\_cr4}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00104}00104\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00105}00105\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr4,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00107}00107\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00108}\mbox{\hyperlink{intrin_8h_a90d8b0bff26cc5bf12ab31e5a4bc2a27}{00108}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a90d8b0bff26cc5bf12ab31e5a4bc2a27}{\_\_write\_cr4}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00109}00109\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%cr4"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00110}00110\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00111}00111\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00112}00112\ \textcolor{comment}{//\ CR8\ (Task\ Priority\ Register,\ x86-\/64\ only)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00113}\mbox{\hyperlink{intrin_8h_aecddc625d622948d4e6ab58ddbc26f19}{00113}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{intrin_8h_aecddc625d622948d4e6ab58ddbc26f19}{\_\_read\_cr8}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00114}00114\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00115}00115\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%cr8,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00116}00116\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00117}00117\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00118}\mbox{\hyperlink{intrin_8h_ab3a1f32b83737b90c38a1650b17e6682}{00118}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_ab3a1f32b83737b90c38a1650b17e6682}{\_\_write\_cr8}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00119}00119\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%cr8"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00120}00120\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00121}00121\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00122}00122\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00123}00123\ \textcolor{comment}{//\ Read\ DRx\ register\ (dr0-\/dr7)\ (Usage\ \_\_read\_dr(3)\ =\ will\ return\ dr3.}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00124}\mbox{\hyperlink{intrin_8h_a41b087e19c6e22ca6be38752af62688b}{00124}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a41b087e19c6e22ca6be38752af62688b}{\_\_read\_dr}}(\textcolor{keywordtype}{int}\ reg)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00125}00125\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ val\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00126}00126\ \ \ \ \ \textcolor{keywordflow}{switch}\ (reg)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00127}00127\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr0,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00128}00128\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 1:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr1,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00129}00129\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr2,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00130}00130\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr3,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00131}00131\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 6:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr6,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00132}00132\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%\%dr7,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00133}00133\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00134}00134\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00135}00135\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00136}00136\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00137}00137\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00138}00138\ \textcolor{comment}{//\ Write\ DRx\ register\ (dr0-\/dr7)\ (Usage\ \_\_write\_dr(3,\ 0x5000)\ =\ will\ write\ 0x5000\ to\ dr3.}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00139}\mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{00139}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_aab96655396a1cc834edfbc9b021b6092}{\_\_write\_dr}}(\textcolor{keywordtype}{int}\ reg,\ uint64\_t\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00140}00140\ \ \ \ \ \textcolor{keywordflow}{switch}\ (reg)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00141}00141\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr0"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00142}00142\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 1:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr1"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00143}00143\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr2"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00144}00144\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr3"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00145}00145\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 6:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr6"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00146}00146\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}mov\ \%0,\ \%\%dr7"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(val));\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00147}00147\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00148}00148\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00149}00149\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00150}\mbox{\hyperlink{intrin_8h_adaaec11c753dc2ee18853075fd11e66f}{00150}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_adaaec11c753dc2ee18853075fd11e66f}{\_\_lidt}}(\textcolor{keywordtype}{void}*\ idt\_ptr)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00151}00151\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}lidt\ (\%0)"{}}\ ::\ \textcolor{stringliteral}{"{}r"{}}(idt\_ptr));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00152}00152\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00153}00153\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00154}00154\ \textcolor{comment}{//\ Read\ RFLAGS\ register}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00155}\mbox{\hyperlink{intrin_8h_ad3e38959b0dd8197ea38f264395f9543}{00155}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{intrin_8h_ad3e38959b0dd8197ea38f264395f9543}{\_\_read\_rflags}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00156}00156\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ rflags;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00157}00157\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00158}00158\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}pushfl\(\backslash\)n\(\backslash\)t"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00159}00159\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}pop\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00160}00160\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(rflags)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00161}00161\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00162}00162\ \ \ \ \ \textcolor{keywordflow}{return}\ rflags;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00163}00163\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00164}00164\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00165}00165\ \textcolor{comment}{//\ Write\ RFLAGS\ register}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00166}\mbox{\hyperlink{intrin_8h_add12a0abbf1d884d13d9640e53fd1ee2}{00166}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_add12a0abbf1d884d13d9640e53fd1ee2}{\_\_write\_rflags}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{int}\ rflags)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00167}00167\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00168}00168\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}push\ \%0\(\backslash\)n\(\backslash\)t"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00169}00169\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}popfl"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00170}00170\ \ \ \ \ \ \ \ \ ::\ \textcolor{stringliteral}{"{}r"{}}(rflags)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00171}00171\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00172}00172\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00173}00173\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00174}00174\ \textcolor{comment}{//\ Read\ port\ (inw)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00175}\mbox{\hyperlink{intrin_8h_a715f66586809de539b08453d96429917}{00175}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{intrin_8h_a715f66586809de539b08453d96429917}{\_\_inword}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ port)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00176}00176\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ ret;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00177}00177\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}inw\ \%1,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(ret)\ :\ \textcolor{stringliteral}{"{}Nd"{}}(port));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00178}00178\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00179}00179\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00180}00180\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00181}00181\ \textcolor{comment}{//\ Write\ port\ (outw)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00182}\mbox{\hyperlink{intrin_8h_a5973bd33ce30c4726198a92d96f0d0d6}{00182}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a5973bd33ce30c4726198a92d96f0d0d6}{\_\_outword}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ port,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00183}00183\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}outw\ \%0,\ \%1"{}}\ :\ :\ \textcolor{stringliteral}{"{}a"{}}(val),\ \textcolor{stringliteral}{"{}Nd"{}}(port));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00184}00184\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00185}00185\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00186}00186\ \textcolor{comment}{//\ Read\ port\ (inb)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00187}\mbox{\hyperlink{intrin_8h_ae8aae7032515082f6e2ff67cffa8daf5}{00187}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{intrin_8h_ae8aae7032515082f6e2ff67cffa8daf5}{\_\_inbyte}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ port)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00188}00188\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ ret;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00189}00189\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}inb\ \%1,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(ret)\ :\ \textcolor{stringliteral}{"{}Nd"{}}(port));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00190}00190\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00191}00191\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00192}00192\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00193}00193\ \textcolor{comment}{//\ Write\ port\ (outb)}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00194}\mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{00194}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ port,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ val)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00195}00195\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}outb\ \%0,\ \%1"{}}\ ::\ \textcolor{stringliteral}{"{}a"{}}(val),\ \textcolor{stringliteral}{"{}Nd"{}}(port));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00196}00196\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00197}00197\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00198}\mbox{\hyperlink{intrin_8h_af1b8c8a497fe972f1c7c88f0246f154a}{00198}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_af1b8c8a497fe972f1c7c88f0246f154a}{send\_eoi}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ irq)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00199}00199\ \ \ \ \ \textcolor{keywordflow}{if}\ (irq\ >=\ 8)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00200}00200\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(\mbox{\hyperlink{intrin_8h_a219552e186c48addf9752e17045ab0d0}{PIC2\_COMMAND\_SLAVE}},\ \mbox{\hyperlink{intrin_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});\ \ \textcolor{comment}{//\ Slave\ PIC}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00201}00201\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00202}00202\ \ \ \ \ \mbox{\hyperlink{intrin_8h_aaef83ee1b1d1480679b73d376c0dc15c}{\_\_outbyte}}(\mbox{\hyperlink{intrin_8h_a03c0db7a4cafd35e99b7c78605419d3e}{PIC1\_COMMAND\_MASTER}},\ \mbox{\hyperlink{intrin_8h_a170d8eebdb48c16cfcd60cbd46760cb2}{PIC\_EOI}});\ \ \ \ \ \ \textcolor{comment}{//\ Master\ PIC}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00203}00203\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00204}00204\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00205}\mbox{\hyperlink{intrin_8h_a495c18530f70ecd7355445b11823b6da}{00205}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a495c18530f70ecd7355445b11823b6da}{invlpg}}(\textcolor{keywordtype}{void}*\ m)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00206}00206\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}invlpg\ (\%0)"{}}\ :\ :\ \textcolor{stringliteral}{"{}b"{}}(m)\ :\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00207}00207\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00208}00208\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00209}\mbox{\hyperlink{intrin_8h_a01f5d8c9172c3fa07bc93d6227ce2f17}{00209}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a01f5d8c9172c3fa07bc93d6227ce2f17}{\_\_readmsr}}(uint32\_t\ msr)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00210}00210\ \ \ \ \ uint32\_t\ lo,\ hi;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00211}00211\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}rdmsr"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(lo),\ \textcolor{stringliteral}{"{}=d"{}}(hi)\ :\ \textcolor{stringliteral}{"{}c"{}}(msr));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00212}00212\ \ \ \ \ \textcolor{keywordflow}{return}\ ((uint64\_t)hi\ <<\ 32)\ |\ lo;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00213}00213\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00214}00214\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00215}\mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{00215}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(uint32\_t\ msr,\ uint64\_t\ value)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00216}00216\ \ \ \ \ uint32\_t\ lo\ =\ value\ \&\ 0xFFFFFFFF;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00217}00217\ \ \ \ \ uint32\_t\ hi\ =\ value\ >>\ 32;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00218}00218\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}wrmsr"{}}\ :\ :\ \textcolor{stringliteral}{"{}c"{}}(msr),\ \textcolor{stringliteral}{"{}a"{}}(lo),\ \textcolor{stringliteral}{"{}d"{}}(hi));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00219}00219\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00220}00220\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00221}\mbox{\hyperlink{intrin_8h_a7863b2ff869f911ae2b156df9be8917c}{00221}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a7863b2ff869f911ae2b156df9be8917c}{\_\_read\_rbp}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00222}00222\ \ \ \ \ uint64\_t\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00223}00223\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}mov\ \%\%rbp,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00224}00224\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00225}00225\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00226}00226\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00227}\mbox{\hyperlink{intrin_8h_a33ebec64f98a39434a2b2fb25c5cfc0d}{00227}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a33ebec64f98a39434a2b2fb25c5cfc0d}{\_\_read\_rsp}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00228}00228\ \ \ \ \ uint64\_t\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00229}00229\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}mov\ \%\%rsp,\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(val));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00230}00230\ \ \ \ \ \textcolor{keywordflow}{return}\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00231}00231\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00232}00232\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00233}\mbox{\hyperlink{intrin_8h_a1448af231b66ec63fa7088274c991550}{00233}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a1448af231b66ec63fa7088274c991550}{\_\_read\_rip}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00234}00234\ \ \ \ \ uint64\_t\ rip;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00235}00235\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}leaq\ (\%\%rip),\ \%0"{}}\ :\ \textcolor{stringliteral}{"{}=r"{}}(rip));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00236}00236\ \ \ \ \ \textcolor{keywordflow}{return}\ rip;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00237}00237\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00238}00238\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00239}\mbox{\hyperlink{intrin_8h_a26e3a63842c3c5f7d7b97a5c2d786e41}{00239}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_a26e3a63842c3c5f7d7b97a5c2d786e41}{\_\_pause}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00240}00240\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}pause"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00241}00241\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00242}00242\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00243}\mbox{\hyperlink{intrin_8h_a2f9cbd01a76328a2305d59b5c894737f}{00243}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a2f9cbd01a76328a2305d59b5c894737f}{\_\_readgsqword}}(uint64\_t\ offset)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00244}00244\ \ \ \ \ uint64\_t\ value;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00245}00245\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00246}00246\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}movq\ \%\%gs:(\%1),\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00247}00247\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(value)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00248}00248\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}r"{}}(offset)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00249}00249\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}memory"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00250}00250\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00251}00251\ \ \ \ \ \textcolor{keywordflow}{return}\ value;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00252}00252\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00253}00253\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00254}\mbox{\hyperlink{intrin_8h_abda2d45d554f124e2ccce43903a807be}{00254}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_abda2d45d554f124e2ccce43903a807be}{\_\_readfsqword}}(uint64\_t\ offset)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00255}00255\ \ \ \ \ uint64\_t\ value;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00256}00256\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00257}00257\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}movq\ \%\%fs:(\%1),\ \%0"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00258}00258\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(value)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00259}00259\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}r"{}}(offset)}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00260}00260\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}memory"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00261}00261\ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00262}00262\ \ \ \ \ \textcolor{keywordflow}{return}\ value;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00263}00263\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00264}00264\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00265}\mbox{\hyperlink{intrin_8h_aae88f87aba042c590885501566c9f86f}{00265}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{intrin_8h_aae88f87aba042c590885501566c9f86f}{\_\_swapgs}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00266}00266\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}swapgs"{}}\ :::\ \textcolor{stringliteral}{"{}memory"{}});}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00267}00267\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00268}00268\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00269}\mbox{\hyperlink{intrin_8h_a349bbfb6e70df9420f3494c9ac662b88}{00269}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{intrin_8h_a349bbfb6e70df9420f3494c9ac662b88}{\_\_rdrand64}}(uint64\_t*\ out)\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00270}00270\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ ok;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00271}00271\ \ \ \ \ uint64\_t\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00272}00272\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}(\textcolor{stringliteral}{"{}rdrand\ \%0;\ setc\ \%1"{}}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00273}00273\ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=r"{}}(val),\ \textcolor{stringliteral}{"{}=qm"{}}(ok));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00274}00274\ \ \ \ \ *out\ =\ val;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00275}00275\ \ \ \ \ \textcolor{keywordflow}{return}\ ok;\ \textcolor{comment}{//\ 1=success,\ 0=failure}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00276}00276\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00277}00277\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00278}\mbox{\hyperlink{intrin_8h_a0a48fb771b42f6a1ee05a5a65a33c5a0}{00278}}\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}\ uint64\_t\ \mbox{\hyperlink{intrin_8h_a0a48fb771b42f6a1ee05a5a65a33c5a0}{\_\_rdtsc}}(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00279}00279\ \ \ \ \ uint32\_t\ lo,\ hi;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00280}00280\ \ \ \ \ \_\_asm\_\_\ \textcolor{keyword}{volatile}\ (\textcolor{stringliteral}{"{}rdtsc"{}}\ :\ \textcolor{stringliteral}{"{}=a"{}}(lo),\ \textcolor{stringliteral}{"{}=d"{}}(hi));}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00281}00281\ \ \ \ \ \textcolor{keywordflow}{return}\ ((uint64\_t)hi\ <<\ 32)\ |\ lo;}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00282}00282\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00283}00283\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00284}00284\ \textcolor{preprocessor}{\#ifdef\ DEBUG}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00285}00285\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00286}00286\ \textcolor{comment}{//\ GDB\ Func\ to\ CLI\ and\ STI}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00287}00287\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00288}00288\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ gcli(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00289}00289\ \ \ \ \ \mbox{\hyperlink{intrin_8h_abb1251f925e2791c9288b7e32dd3e631}{\_\_cli}}();}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00290}00290\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00291}00291\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00292}00292\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ gsti(\textcolor{keywordtype}{void})\ \{}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00293}00293\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a75ba81f3504f770413771043ac0e7c05}{\_\_sti}}();}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00294}00294\ \}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00295}00295\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00296}00296\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00297}00297\ }
+\DoxyCodeLine{\Hypertarget{intrin_8h_source_l00298}00298\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ X86\_INTRINSICS\_H}}
+
+\end{DoxyCode}

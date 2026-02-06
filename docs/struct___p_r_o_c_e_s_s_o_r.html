@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: _PROCESSOR Struct Reference</title>
+<title>kernel: _PROCESSOR Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -114,6 +113,7 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a844d9a19f07fc7c6a7d89c7ef4d7e689" id="r_a844d9a19f07fc7c6a7d89c7ef4d7e689"><td class="memItemLeft" align="right" valign="top">uint64_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a844d9a19f07fc7c6a7d89c7ef4d7e689">gdt</a></td></tr>
 <tr class="memitem:a0831e8262ba92e5998b1bec18f5f31e3" id="r_a0831e8262ba92e5998b1bec18f5f31e3"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="struct___d_p_c.html">_DPC</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0831e8262ba92e5998b1bec18f5f31e3">CurrentDeferredRoutine</a></td></tr>
 <tr class="memitem:a617c51e579907a9b7e0c98981bb64bde" id="r_a617c51e579907a9b7e0c98981bb64bde"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="struct___e_t_h_r_e_a_d.html">_ETHREAD</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a617c51e579907a9b7e0c98981bb64bde">idleThread</a></td></tr>
+<tr class="memitem:a9353cdae04c67034a3755de7c8c1ab22" id="r_a9353cdae04c67034a3755de7c8c1ab22"><td class="memItemLeft" align="right" valign="top">volatile uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9353cdae04c67034a3755de7c8c1ab22">MailboxLock</a></td></tr>
 <tr class="memitem:aa3721138f6c7e7e000ae66e2baccc189" id="r_aa3721138f6c7e7e000ae66e2baccc189"><td class="memItemLeft" align="right" valign="top">volatile uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa3721138f6c7e7e000ae66e2baccc189">IpiSeq</a></td></tr>
 <tr class="memitem:aa69959a4b611916dc14a67f87a0197f2" id="r_aa69959a4b611916dc14a67f87a0197f2"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="mh_8h.html#a1284f96951816db55a31764685872bb4">_CPU_ACTION</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa69959a4b611916dc14a67f87a0197f2">IpiAction</a></td></tr>
 <tr class="memitem:a0fa202ea68ae5a251dda6568ebdd2a18" id="r_a0fa202ea68ae5a251dda6568ebdd2a18"><td class="memItemLeft" align="right" valign="top">volatile <a class="el" href="mh_8h.html#a31e6d7d3d740029297de19620af57ae4">IPI_PARAMS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0fa202ea68ae5a251dda6568ebdd2a18">IpiParameter</a></td></tr>
@@ -133,14 +133,17 @@ Data Fields</h2></td></tr>
 <tr class="memitem:afeb6d7827ddf35a32b4ea98ab78d344a" id="r_afeb6d7827ddf35a32b4ea98ab78d344a"><td class="memItemLeft" align="right" valign="top">volatile bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afeb6d7827ddf35a32b4ea98ab78d344a">ApcInterruptRequested</a></td></tr>
 <tr class="memitem:a446cf288f825ceefaae1023614778083" id="r_a446cf288f825ceefaae1023614778083"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ms_8h.html#adf17fb77fea5ef3f703733414efda5c4">SPINLOCK</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a446cf288f825ceefaae1023614778083">SchedulerLock</a></td></tr>
 <tr class="memitem:abaf160a16f80fa54b0e56b64bfb92e1a" id="r_abaf160a16f80fa54b0e56b64bfb92e1a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a61eb1fdc33ff0e8ba286ff833a6a0e8f">POOL_DESCRIPTOR</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abaf160a16f80fa54b0e56b64bfb92e1a">LookasidePools</a> [<a class="el" href="mm_8h.html#a17874476e17ae3296b37bbbc0662678a">MAX_POOL_DESCRIPTORS</a>]</td></tr>
+<tr class="memitem:a7d0e085542ce2443f3320756e2b411c9" id="r_a7d0e085542ce2443f3320756e2b411c9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mm_8h.html#a61eb1fdc33ff0e8ba286ff833a6a0e8f">POOL_DESCRIPTOR</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7d0e085542ce2443f3320756e2b411c9">LookasidePoolsNx</a> [<a class="el" href="mm_8h.html#a17874476e17ae3296b37bbbc0662678a">MAX_POOL_DESCRIPTORS</a>]</td></tr>
 <tr class="memitem:a1b30347604d6b08a6d9e7f81efc72b59" id="r_a1b30347604d6b08a6d9e7f81efc72b59"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="struct___d_e_b_u_g___e_n_t_r_y.html">_DEBUG_ENTRY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1b30347604d6b08a6d9e7f81efc72b59">DebugEntry</a> [4]</td></tr>
 <tr class="memitem:a8f9f5d55b11f74fa8124697a240ca83b" id="r_a8f9f5d55b11f74fa8124697a240ca83b"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8f9f5d55b11f74fa8124697a240ca83b">IstTimerStackTop</a></td></tr>
 <tr class="memitem:a39e0e04a40871c069002a4a2fd2dc575" id="r_a39e0e04a40871c069002a4a2fd2dc575"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a39e0e04a40871c069002a4a2fd2dc575">IstIpiStackTop</a></td></tr>
 <tr class="memitem:a1f9de65de6cb014bd36d63df91cb43cd" id="r_a1f9de65de6cb014bd36d63df91cb43cd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="me_8h.html#a2d834bd4d32ac0b2687eb0a0e7c9642b">PITHREAD</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1f9de65de6cb014bd36d63df91cb43cd">ZombieThread</a></td></tr>
+<tr class="memitem:a07295bf7139165a7b7576f95854ae979" id="r_a07295bf7139165a7b7576f95854ae979"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a07295bf7139165a7b7576f95854ae979">UserRsp</a></td></tr>
+<tr class="memitem:aeab2690037f81e74ded7ed192910b79d" id="r_aeab2690037f81e74ded7ed192910b79d"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aeab2690037f81e74ded7ed192910b79d">SystemCallCount</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00274">274</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00280">280</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
 <a id="afeb6d7827ddf35a32b4ea98ab78d344a" name="afeb6d7827ddf35a32b4ea98ab78d344a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afeb6d7827ddf35a32b4ea98ab78d344a">&#9670;&#160;</a></span>ApcInterruptRequested</h2>
@@ -154,7 +157,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00319">319</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00327">327</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -170,7 +173,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00310">310</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00318">318</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -186,7 +189,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00290">290</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00297">297</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -202,7 +205,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00276">276</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00283">283</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -218,7 +221,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00278">278</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00285">285</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -234,7 +237,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00327">327</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00336">336</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -250,7 +253,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00304">304</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00312">312</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -266,7 +269,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00318">318</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00326">326</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -282,7 +285,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00315">315</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00323">323</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -298,7 +301,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00305">305</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00313">313</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -314,7 +317,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00287">287</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00294">294</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -330,7 +333,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00289">289</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00296">296</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -346,7 +349,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00280">280</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00287">287</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -362,7 +365,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00291">291</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00298">298</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -378,7 +381,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00293">293</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00301">301</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -394,7 +397,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00294">294</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00302">302</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -410,7 +413,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00292">292</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00300">300</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -426,7 +429,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00286">286</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00293">293</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -442,7 +445,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00329">329</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00338">338</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -458,7 +461,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00285">285</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00292">292</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -474,7 +477,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00328">328</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00337">337</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -490,7 +493,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00281">281</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00288">288</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -506,7 +509,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00296">296</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00304">304</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -522,7 +525,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00295">295</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00303">303</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -538,7 +541,39 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00325">325</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00333">333</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+
+</div>
+</div>
+<a id="a7d0e085542ce2443f3320756e2b411c9" name="a7d0e085542ce2443f3320756e2b411c9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7d0e085542ce2443f3320756e2b411c9">&#9670;&#160;</a></span>LookasidePoolsNx</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mm_8h.html#a61eb1fdc33ff0e8ba286ff833a6a0e8f">POOL_DESCRIPTOR</a> LookasidePoolsNx[<a class="el" href="mm_8h.html#a17874476e17ae3296b37bbbc0662678a">MAX_POOL_DESCRIPTORS</a>]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00334">334</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+
+</div>
+</div>
+<a id="a9353cdae04c67034a3755de7c8c1ab22" name="a9353cdae04c67034a3755de7c8c1ab22"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9353cdae04c67034a3755de7c8c1ab22">&#9670;&#160;</a></span>MailboxLock</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile uint64_t MailboxLock</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00299">299</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -554,7 +589,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00313">313</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00321">321</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -570,7 +605,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00314">314</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00322">322</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -586,7 +621,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00279">279</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00286">286</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -602,7 +637,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00300">300</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00308">308</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -618,7 +653,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00284">284</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00291">291</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -634,7 +669,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00288">288</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00295">295</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -650,7 +685,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00277">277</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00284">284</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -666,7 +701,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00322">322</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00330">330</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -682,7 +717,23 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00275">275</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00281">281</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+
+</div>
+</div>
+<a id="aeab2690037f81e74ded7ed192910b79d" name="aeab2690037f81e74ded7ed192910b79d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeab2690037f81e74ded7ed192910b79d">&#9670;&#160;</a></span>SystemCallCount</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t SystemCallCount</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00345">345</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -698,7 +749,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00299">299</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00307">307</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -714,7 +765,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00307">307</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00315">315</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -730,7 +781,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00306">306</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00314">314</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -746,7 +797,23 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00283">283</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00290">290</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+
+</div>
+</div>
+<a id="a07295bf7139165a7b7576f95854ae979" name="a07295bf7139165a7b7576f95854ae979"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a07295bf7139165a7b7576f95854ae979">&#9670;&#160;</a></span>UserRsp</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t UserRsp</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00344">344</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -762,7 +829,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00282">282</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00289">289</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>
@@ -778,7 +845,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00332">332</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="me_8h_source.html#l00341">341</a> of file <a class="el" href="me_8h_source.html">me.h</a>.</p>
 
 </div>
 </div>

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>My Project: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ob/ob.c File Reference</title>
+<title>kernel: C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ob/ob.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,9 +25,8 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr id="projectrow">
-  <td id="projectlogo"><img alt="Logo" src="WindowsMT.png"/></td>
   <td id="projectalign">
-   <div id="projectname">My Project
+   <div id="projectname">kernel
    </div>
   </td>
  </tr>
@@ -97,6 +96,7 @@ $(function(){initNavTree('ob_8c.html','',''); });
 <code>#include &quot;<a class="el" href="md_8h_source.html">../../includes/md.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="assert_8h_source.html">../../assert.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ps_8h_source.html">../../includes/ps.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="mt_8h_source.html">../../includes/mt.h</a>&quot;</code><br />
 </div>
 <p><a href="ob_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -107,9 +107,11 @@ Functions</h2></td></tr>
 <tr class="memitem:ad77278de8f30feb544f7bd27bd85a81f" id="r_ad77278de8f30feb544f7bd27bd85a81f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad77278de8f30feb544f7bd27bd85a81f">ObCreateObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a> ObjectType, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint32_t ObjectSize, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **ObjectCreated)</td></tr>
 <tr class="memitem:a9c0083927d724a73a83b8d5577d7c970" id="r_a9c0083927d724a73a83b8d5577d7c970"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9c0083927d724a73a83b8d5577d7c970">ObReferenceObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object)</td></tr>
 <tr class="memitem:a6060934b4b8c0fd9bc4b7fc089578835" id="r_a6060934b4b8c0fd9bc4b7fc089578835"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6060934b4b8c0fd9bc4b7fc089578835">ObReferenceObjectByPointer</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a> DesiredType)</td></tr>
-<tr class="memitem:a47671180c09015ad53f4b1dbacd09de6" id="r_a47671180c09015ad53f4b1dbacd09de6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a47671180c09015ad53f4b1dbacd09de6">ObReferenceObjectByHandle</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint32_t DesiredAccess, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a> DesiredType, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **Object, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> <a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> HandleInformation)</td></tr>
-<tr class="memitem:a04672b5205937df681888794716e3a2c" id="r_a04672b5205937df681888794716e3a2c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a04672b5205937df681888794716e3a2c">ObCreateHandleForObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ReturnedHandle)</td></tr>
-<tr class="memitem:a70b2e47218e2d92659efb010e14c5993" id="r_a70b2e47218e2d92659efb010e14c5993"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a70b2e47218e2d92659efb010e14c5993">ObCreateHandleForObjectEx</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ReturnedHandle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> ObjectTable)</td></tr>
+<tr class="memitem:ae13c51c02ee94f89128621b1ee6c0ebb" id="r_ae13c51c02ee94f89128621b1ee6c0ebb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae13c51c02ee94f89128621b1ee6c0ebb">ObOpenObjectByPointer</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a> ObjectType, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> Handle)</td></tr>
+<tr class="memitem:a47671180c09015ad53f4b1dbacd09de6" id="r_a47671180c09015ad53f4b1dbacd09de6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a47671180c09015ad53f4b1dbacd09de6">ObReferenceObjectByHandle</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a> Handle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> uint32_t DesiredAccess, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a> DesiredType, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> void **Object, <a class="el" href="annotations_8h.html#a847bfbc4921fd3f7c84381c60a6a1b90">_Out_Opt</a> <a class="el" href="ht_8h.html#a555fe8af7cfd68bcf804156fc8b3777a">PHANDLE_TABLE_ENTRY</a> HandleInformation)</td></tr>
+<tr class="memitem:a04672b5205937df681888794716e3a2c" id="r_a04672b5205937df681888794716e3a2c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a04672b5205937df681888794716e3a2c">ObCreateHandleForObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ReturnedHandle)</td></tr>
+<tr class="memitem:a70b2e47218e2d92659efb010e14c5993" id="r_a70b2e47218e2d92659efb010e14c5993"><td class="memItemLeft" align="right" valign="top"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a70b2e47218e2d92659efb010e14c5993">ObCreateHandleForObjectEx</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a> DesiredAccess, <a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a> ReturnedHandle, <a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a7ef9aee766b45c680842fc726fb6cb7f">PHANDLE_TABLE</a> ObjectTable)</td></tr>
+<tr class="memitem:abb622f3d935164caff6cdd74b53c0b35" id="r_abb622f3d935164caff6cdd74b53c0b35"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abb622f3d935164caff6cdd74b53c0b35">ObDeleteObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a4cf25ca68172437be6e63daf06e4f379">POBJECT_HEADER</a> Header)</td></tr>
 <tr class="memitem:a7dee8ead706a375c2a916dc9ed752224" id="r_a7dee8ead706a375c2a916dc9ed752224"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7dee8ead706a375c2a916dc9ed752224">ObDereferenceObject</a> (<a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *Object)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
@@ -134,17 +136,17 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ReturnedHandle</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ReturnedHandle</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00318">318</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00403">403</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -162,12 +164,12 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="ht_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ReturnedHandle</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>ReturnedHandle</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -177,7 +179,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00363">363</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00440">440</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -205,7 +207,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00116">116</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00118">118</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -233,7 +235,26 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00060">60</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00062">62</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+
+</div>
+</div>
+<a id="abb622f3d935164caff6cdd74b53c0b35" name="abb622f3d935164caff6cdd74b53c0b35"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abb622f3d935164caff6cdd74b53c0b35">&#9670;&#160;</a></span>ObDeleteObject()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ObDeleteObject </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a4cf25ca68172437be6e63daf06e4f379">POBJECT_HEADER</a></td>          <td class="paramname"><span class="paramname"><em>Header</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00529">529</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -251,8 +272,9 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>FIXME below. If we are above DISPATCH_LEVEL we queue a <a class="el" href="me_8h.html#ab4a5c3c2096f05e5f0db35f80685b4a2">DPC</a> Else, we just delete it immediately. Until I can figure out what overwrites the processor DpcData, we immediately free GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..</p>
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00446">446</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00554">554</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -270,8 +292,42 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>FIXME, This is currently unused.</p>
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00033">33</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00034">34</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+
+</div>
+</div>
+<a id="ae13c51c02ee94f89128621b1ee6c0ebb" name="ae13c51c02ee94f89128621b1ee6c0ebb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae13c51c02ee94f89128621b1ee6c0ebb">&#9670;&#160;</a></span>ObOpenObjectByPointer()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> ObOpenObjectByPointer </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> void *</td>          <td class="paramname"><span class="paramname"><em>Object</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ob_8h.html#a1090c1618ef4082635e12605b8832a46">POBJECT_TYPE</a></td>          <td class="paramname"><span class="paramname"><em>ObjectType</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a18b1b4f2fb3e795e24fd8eddc2b48c08">ACCESS_MASK</a></td>          <td class="paramname"><span class="paramname"><em>DesiredAccess</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#aec78e7a9e90a406a56f859ee456e8eae">OUT</a> <a class="el" href="core_8h.html#a4eff5701246ce814577877fc805928de">PHANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00252">252</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -290,7 +346,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00160">160</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00163">163</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -303,7 +359,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="mtstatus_8h.html#a7c794b38d203a5b842f27b12fb55495a">MTSTATUS</a> ObReferenceObjectByHandle </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="ht_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>, </td>
+          <td class="paramtype"><a class="el" href="annotations_8h.html#ac2bbd6d630a06a980d9a92ddb9a49928">IN</a> <a class="el" href="core_8h.html#a84a85b4c81f3ad61278cc4473a44f202">HANDLE</a></td>          <td class="paramname"><span class="paramname"><em>Handle</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -328,7 +384,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00247">247</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00277">277</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -351,7 +407,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00200">200</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00205">205</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -368,7 +424,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00027">27</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00028">28</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -384,7 +440,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00031">31</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00032">32</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -400,7 +456,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00028">28</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00029">29</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>
@@ -416,7 +472,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00026">26</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="ob_8c_source.html#l00027">27</a> of file <a class="el" href="ob_8c_source.html">ob.c</a>.</p>
 
 </div>
 </div>

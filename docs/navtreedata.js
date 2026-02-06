@@ -24,7 +24,7 @@
 */
 var NAVTREE =
 [
-  [ "My Project", "index.html", [
+  [ "kernel", "index.html", [
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
       [ "Data Structure Index", "classes.html", null ],
@@ -38,7 +38,7 @@ var NAVTREE =
       [ "Globals", "globals.html", [
         [ "All", "globals.html", "globals_dup" ],
         [ "Functions", "globals_func.html", "globals_func" ],
-        [ "Variables", "globals_vars.html", null ],
+        [ "Variables", "globals_vars.html", "globals_vars" ],
         [ "Typedefs", "globals_type.html", null ],
         [ "Enumerations", "globals_enum.html", null ],
         [ "Enumerator", "globals_eval.html", "globals_eval" ],
@@ -51,15 +51,17 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "acpi_8c.html",
-"dir_2983b707f28b8d064a43513b6db50808.html",
-"globals_eval_i.html",
-"macros_8h.html#ae67fce0de32a6e75b649711af83a0d6e",
-"mh_8h.html",
-"mm_8h.html#a11753cbaa8a99c0cd33327df44168f20",
-"mtstatus_8h.html#a1c3bb6736a4567dcb59b8bbaa5837a6e",
-"rundown_8c.html#a5901eaa5bcb8edcbd0bad3d55f0f816f",
-"struct___f_a_d_t.html#ae91751449932fe1a8fe52092a2851b9e",
-"struct___p_r_o_c_e_s_s_o_r.html#a0e1bee91c77868b3b8fdbe7328e64374"
+"core_8h.html#a7258ea91cea6c1c174df48f6225ef4da",
+"functions_e.html",
+"hypermap_8c.html#a979672ff6f9bf90141b67720b4af82de",
+"me_8h.html#a47d6bb330b3f195c125bd452af7031c8",
+"mh_8h.html#a764903d3ce0d9d019c6ed852c4c56122",
+"mm_8h.html#a751b1ff6046212e402e3ac873016e7ff",
+"mtstatus_8h.html#a6d5fbcabd98dd3b993870c73592c8318",
+"ps_8h_source.html",
+"struct___e_x___f_r_a_m_e___r_e_g_i_s_t_r_a_t_i_o_n.html#acfb01145d6aa2f7ef43741bd30757211",
+"struct___m_m_p_t_e.html#a1432d86fa3877286b270c234acdbdc6d",
+"struct_m_o_u_n_t_e_d___f_s.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

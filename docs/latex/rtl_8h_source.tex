@@ -1,0 +1,63 @@
+\doxysection{rtl.\+h}
+\hypertarget{rtl_8h_source}{}\label{rtl_8h_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/rtl.h@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/includes/rtl.h}}
+\mbox{\hyperlink{rtl_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00001}00001\ \textcolor{preprocessor}{\#ifndef\ X86\_MATANEL\_RUNTIME\_LIBRARIES\_H}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00002}00002\ \textcolor{preprocessor}{\#define\ X86\_MATANEL\_RUNTIME\_LIBRARIES\_H}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00003}00003\ }
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00004}00004\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00005}00005\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00006}00006\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00007}00007\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00008}00008\ \textcolor{comment}{\ \ \ \ rtl.h}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00009}00009\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00010}00010\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00011}00011\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00012}00012\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ declarations\ for\ the\ runtime\ library\ (RTL),\ which\ provide\ core\ support\ routines\ used\ by\ other\ kernel\ components.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00013}00013\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00014}00014\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00015}00015\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00016}00016\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00017}00017\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00018}00018\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00019}00019\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00020}00020\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00021}00021\ }
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00022}00022\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00023}00023\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00024}00024\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00025}00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{macros_8h}{macros.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00026}00026\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{annotations_8h}{annotations.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00027}00027\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mtstatus_8h}{../mtstatus.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00028}00028\ }
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00029}00029\ \mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00030}00030\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00031}\mbox{\hyperlink{rtl_8h_a28b5b497ec79c4caacd2c104ef3914f3}{00031}}\ \mbox{\hyperlink{rtl_8h_a28b5b497ec79c4caacd2c104ef3914f3}{RtlZeroMemory}}(}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00032}00032\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \textcolor{keywordtype}{void}*\ Destination,}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00033}00033\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00034}00034\ )}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00035}00035\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00036}00036\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00037}00037\ \textcolor{comment}{Routine\ Description:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00038}00038\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00039}00039\ \textcolor{comment}{\ \ \ \ Fills\ a\ block\ of\ memory\ with\ zeros.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00040}00040\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00041}00041\ \textcolor{comment}{Arguments:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00042}00042\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00043}00043\ \textcolor{comment}{\ \ \ \ Destination\ -\/\ Pointer\ to\ the\ memory\ block\ to\ zero.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00044}00044\ \textcolor{comment}{\ \ \ \ Length\ \ \ \ \ \ -\/\ Number\ of\ bytes\ to\ zero.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00045}00045\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00046}00046\ \textcolor{comment}{Return\ Value:}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00047}00047\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00048}00048\ \textcolor{comment}{\ \ \ \ None.}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00049}00049\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00050}00050\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00051}00051\ \{}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00052}00052\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*\ ptr\ =\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*)Destination;}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00053}00053\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{mh_8h_af8d8a0e464944d6e219e87ef2f33d2e0}{Length}}-\/-\/)}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00054}00054\ \ \ \ \ \ \ \ \ *ptr++\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00055}00055\ \}}
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00056}00056\ }
+\DoxyCodeLine{\Hypertarget{rtl_8h_source_l00057}00057\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

@@ -1,0 +1,222 @@
+\doxysection{pushlock.\+c}
+\hypertarget{pushlock_8c_source}{}\label{pushlock_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/pushlock.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/ms/pushlock.c}}
+\mbox{\hyperlink{pushlock_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ pushlock.c}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ translation\ unit\ contains\ the\ implementation\ of\ kernel\ push\ lock\ synchronization.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ms_8h}{../../includes/ms.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{atomic_8h}{../../intrinsics/atomic.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00021}00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mm_8h}{../../includes/mm.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00022}00022\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00023}00023\ \textcolor{keyword}{static}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00024}00024\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00025}00025\ MspSuspendPushLock(}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00026}00026\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\_LOCK}}*\ Lock,}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00027}00027\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ WaitBlock,}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00028}00028\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ uint64\_t\ CurrentValue}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00029}00029\ )}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00030}00030\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00031}00031\ \ \ \ \ \textcolor{comment}{//\ \ We\ use\ SynchronizationEvent\ because\ we\ want\ to\ wake\ 1\ waiter\ at\ a\ time.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00032}00032\ \ \ \ \ WaitBlock-\/>WakeEvent.type\ =\ \mbox{\hyperlink{ms_8h_a4fd8d54f196d53e4f9494e1874200d9ca8861427ef720dbbb2dd458be833e390d}{SynchronizationEvent}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00033}00033\ \ \ \ \ WaitBlock-\/>WakeEvent.signaled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00034}00034\ \ \ \ \ WaitBlock-\/>WakeEvent.lock.locked\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00035}00035\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00036}00036\ \ \ \ \ \textcolor{comment}{//\ Initialize\ list\ head.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00037}00037\ \ \ \ \ \mbox{\hyperlink{ms_8h_a46e3ce34dec4da38189211cef81110c1}{InitializeListHead}}((\mbox{\hyperlink{core_8h_a5ab6087d9cf9b1c2356140128e66b95f}{PDOUBLY\_LINKED\_LIST}})\&WaitBlock-\/>WakeEvent.waitingQueue);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00038}00038\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00039}00039\ \ \ \ \ WaitBlock-\/>Signaled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00040}00040\ \ \ \ \ WaitBlock-\/>ShareCount\ =\ 0;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00041}00041\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00042}00042\ \ \ \ \ \textcolor{comment}{//\ If\ the\ lock\ currently\ has\ readers\ (Shared\ Count\ >\ 0)\ and\ is\ not\ a\ pointer\ to\ a\ wait\ list\ yet,}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00043}00043\ \ \ \ \ \textcolor{comment}{//\ we\ must\ save\ that\ count\ so\ we\ don't\ lose\ track\ of\ those\ readers.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00044}00044\ \ \ \ \ \textcolor{keywordflow}{if}\ ((CurrentValue\ \&\ \string~\mbox{\hyperlink{ms_8h_a7429fcf53e961413ad9eabc0edf5079e}{PL\_FLAG\_MASK}})\ >\ 0\ \&\&\ !(CurrentValue\ \&\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00045}00045\ \ \ \ \ \ \ \ \ WaitBlock-\/>ShareCount\ =\ (uint32\_t)(CurrentValue\ >>\ 4);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00046}00046\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00047}00047\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00048}00048\ \ \ \ \ \textcolor{comment}{//\ Push\ waitblock\ to\ head\ of\ \&Lock-\/>Value}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00049}00049\ \ \ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00050}00050\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ the\ Waiting\ bit\ is\ set,\ the\ value\ is\ a\ pointer\ to\ the\ current\ head}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00051}00051\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (CurrentValue\ \&\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00052}00052\ \ \ \ \ \ \ \ \ \ \ \ \ WaitBlock-\/>Next\ =\ (\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*)(CurrentValue\ \&\ \string~\mbox{\hyperlink{ms_8h_a7429fcf53e961413ad9eabc0edf5079e}{PL\_FLAG\_MASK}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00053}00053\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00054}00054\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00055}00055\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ No\ waiters\ yet.\ Next\ is\ NULL.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00056}00056\ \ \ \ \ \ \ \ \ \ \ \ \ WaitBlock-\/>Next\ =\ NULL;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00057}00057\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00058}00058\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00059}00059\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calculate\ new\ value:\ Pointer\ to\ Us\ |\ Waiting\ Bit\ |\ Lock\ Bit}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00060}00060\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ keep\ the\ Lock\ Bit\ set\ to\ prevent\ new\ fast\ path\ acquires\ while\ we\ wait.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00061}00061\ \ \ \ \ \ \ \ \ uint64\_t\ NewValue\ =\ (uint64\_t)WaitBlock\ |\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}}\ |\ \mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00062}00062\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00063}00063\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Atomic\ Swap}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00064}00064\ \ \ \ \ \ \ \ \ uint64\_t\ Result\ =\ \mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ NewValue,\ CurrentValue);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00065}00065\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00066}00066\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Result\ ==\ CurrentValue)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00067}00067\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Success}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00068}00068\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00069}00069\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00070}00070\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00071}00071\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Failed\ (value\ changed\ by\ another\ core),\ retry.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00072}00072\ \ \ \ \ \ \ \ \ CurrentValue\ =\ Result;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00073}00073\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00074}00074\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00075}00075\ \ \ \ \ \textcolor{comment}{//\ We\ are\ now\ in\ the\ queue.\ We\ wait\ for\ our\ WakeEvent\ to\ be\ signaled\ by\ the\ releaser.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00076}00076\ \ \ \ \ \mbox{\hyperlink{events_8c_a254e9c853c7dd615f3cdb9e97e91f233}{MsWaitForEvent}}(\&WaitBlock-\/>WakeEvent);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00077}00077\ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00078}00078\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00079}00079\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00080}\mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{00080}}\ \mbox{\hyperlink{pushlock_8c_a021655b44601845efc1d11b5e153c1a5}{MsAcquirePushLockExclusive}}(}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00081}00081\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\_LOCK}}*\ Lock}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00082}00082\ )}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00083}00083\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00084}00084\ \ \ \ \ \textcolor{comment}{//\ If\ nobody\ owns\ an\ exclusive\ lock,\ we\ return\ and\ set\ it\ to\ owned.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00085}00085\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ \mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}},\ 0)\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00086}00086\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00087}00087\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00088}00088\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00089}00089\ \ \ \ \ \textcolor{comment}{//\ Allocate\ a\ wait\ block.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00090}00090\ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ WaitBlock\ =\ (\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*)\mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}),\ \textcolor{stringliteral}{'tiaw'});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00091}00091\ \ \ \ \ \textcolor{keywordflow}{if}\ (!WaitBlock)\ \textcolor{keywordflow}{return};\ \textcolor{comment}{//\ idk\ what\ to\ do\ here\ to\ be\ honest.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00092}00092\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00093}00093\ \ \ \ \ \textcolor{comment}{//\ An\ exclusive\ lock\ is\ owned..,\ we\ just\ push\ to\ the\ waitblock.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00094}00094\ \ \ \ \ WaitBlock-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_ae91751449932fe1a8fe52092a2851b9e}{Flags}}\ =\ \mbox{\hyperlink{ms_8h_ad0e3fb24e015c3b835d3d20aee0ddf8c}{PL\_FLAGS\_EXCLUSIVE}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00095}00095\ \ \ \ \ MspSuspendPushLock(Lock,\ WaitBlock,\ Lock-\/>Value);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00096}00096\ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00097}00097\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00098}00098\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00099}\mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{00099}}\ \mbox{\hyperlink{pushlock_8c_a8cb9936a4565f56d5d702585e4918678}{MsReleasePushLockExclusive}}(}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00100}00100\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\_LOCK}}*\ Lock}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00101}00101\ )}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00102}00102\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00103}00103\ \ \ \ \ uint64\_t\ Value,\ NewValue;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00104}00104\ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00105}00105\ \ \ \ \ \textcolor{comment}{//\ If\ the\ value\ is\ the\ bit,\ we\ just\ set\ to\ 0\ (no\ waiters\ exist)}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00106}00106\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ 0,\ \mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}})\ ==\ \mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00107}00107\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00108}00108\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00109}00109\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00110}00110\ \ \ \ \ \textcolor{comment}{//\ Waiters\ exist,\ we\ must\ release\ them.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00111}00111\ \ \ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00112}00112\ \ \ \ \ \ \ \ \ Value\ =\ Lock-\/>Value;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00113}00113\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00114}00114\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ somebody\ cleared\ the\ lock\ bit\ but\ left\ waiters?\ (shouldn't\ happen\ in\ standard\ flow\ but\ safe\ to\ check)}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00115}00115\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!(Value\ \&\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00116}00116\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{atomic_8h_a2cc78e18e91ef71b18aaa79d4121931b}{InterlockedAndU64}}(\&Lock-\/>Value,\ \string~\mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00117}00117\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00118}00118\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00119}00119\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00120}00120\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Get\ the\ list\ head}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00121}00121\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ Head\ =\ (\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*)(Value\ \&\ \string~\mbox{\hyperlink{ms_8h_a7429fcf53e961413ad9eabc0edf5079e}{PL\_FLAG\_MASK}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00122}00122\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00123}00123\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Pop\ next\ item}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00124}00124\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ Next\ =\ Head-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_a2e5677eca0af7b46dfec2aa86736777c}{Next}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00125}00125\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00126}00126\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calculate\ New\ Value}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00127}00127\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ Next\ is\ NULL,\ we\ clear\ the\ Waiting\ bit.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00128}00128\ \ \ \ \ \ \ \ \ NewValue\ =\ (uint64\_t)Next;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00129}00129\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (NewValue\ !=\ 0)\ NewValue\ |=\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00130}00130\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00131}00131\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ ther\ waiter\ we\ are\ waking\ is\ an\ exclusive\ waiter,\ we\ can\ leave\ the\ bit,\ its\ an\ optimization.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00132}00132\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Head-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_ae91751449932fe1a8fe52092a2851b9e}{Flags}}\ ==\ \mbox{\hyperlink{ms_8h_ad0e3fb24e015c3b835d3d20aee0ddf8c}{PL\_FLAGS\_EXCLUSIVE}})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00133}00133\ \ \ \ \ \ \ \ \ \ \ \ \ NewValue\ |=\ \mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00134}00134\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00135}00135\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00136}00136\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Try\ to\ update\ the\ lock\ pointer}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00137}00137\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ NewValue,\ Value)\ ==\ Value)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00138}00138\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Wake\ the\ next\ waiter.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00139}00139\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{events_8c_a94fb2b29c7dc6c3f542b1ed3cafc3270}{MsSetEvent}}(\&Head-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_a7524e454f50e39d7148079411dd5a259}{WakeEvent}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00140}00140\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00141}00141\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Free\ the\ waiters\ memory\ allocated.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00142}00142\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{pool_8c_ac850e1b4ef3a12e327c5e76bb8fae748}{MmFreePool}}(Head);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00143}00143\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00144}00144\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00145}00145\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00146}00146\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00147}00147\ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00148}00148\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00149}00149\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00150}\mbox{\hyperlink{pushlock_8c_a27ab8aa488b64a9b9b9851a1bf0fe9d9}{00150}}\ \mbox{\hyperlink{pushlock_8c_a27ab8aa488b64a9b9b9851a1bf0fe9d9}{MsAcquirePushLockShared}}(}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00151}00151\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\_LOCK}}*\ Lock}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00152}00152\ )}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00153}00153\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00154}00154\ \ \ \ \ uint64\_t\ Value,\ NewValue;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00155}00155\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00156}00156\ \ \ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00157}00157\ \ \ \ \ \ \ \ \ Value\ =\ Lock-\/>Value;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00158}00158\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00159}00159\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ Locked\ (Bit\ 0)\ or\ Waiting\ (Bit\ 1)\ is\ set,\ we\ must\ wait.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00160}00160\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ just\ sleep.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00161}00161\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Value\ \&\ (\mbox{\hyperlink{ms_8h_ad6b76ae1af32be63f1ceb3b6db9602bc}{PL\_LOCK\_BIT}}\ |\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}}))\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00162}00162\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ WaitBlock\ =\ (\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*)\mbox{\hyperlink{pool_8c_ae9d292b2b45846858ec19cb240e2c2d1}{MmAllocatePoolWithTag}}(\mbox{\hyperlink{mm_8h_a32a1467b2542bf2a6384f6fc19953bddab404d073a115ee062dbc5f16be851ea7}{NonPagedPool}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}),\ \textcolor{stringliteral}{'tiaw'});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00163}00163\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!WaitBlock)\ \textcolor{keywordflow}{return};\ \textcolor{comment}{//\ idk\ what\ to\ do\ here\ to\ be\ honest.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00164}00164\ \ \ \ \ \ \ \ \ \ \ \ \ WaitBlock-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_ae91751449932fe1a8fe52092a2851b9e}{Flags}}\ =\ \mbox{\hyperlink{ms_8h_a1f94e368a1bb9d24e17cc88a0fa0b4c7}{PL\_FLAGS\_SHARED}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00165}00165\ \ \ \ \ \ \ \ \ \ \ \ \ MspSuspendPushLock(Lock,\ WaitBlock,\ Value);}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00166}00166\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00167}00167\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00168}00168\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00169}00169\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Increment\ share\ count,\ no\ one\ is\ locking\ or\ waiting.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00170}00170\ \ \ \ \ \ \ \ \ NewValue\ =\ Value\ +\ \mbox{\hyperlink{ms_8h_ab4e3d8c713dc41fa28c39760b7150eb0}{PL\_SHARE\_INC}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00171}00171\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00172}00172\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ NewValue,\ Value)\ ==\ Value)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00173}00173\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00174}00174\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00175}00175\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00176}00176\ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00177}00177\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00178}00178\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00179}\mbox{\hyperlink{pushlock_8c_adcf574b0e07b3d2d465d9f34916336d6}{00179}}\ \mbox{\hyperlink{pushlock_8c_adcf574b0e07b3d2d465d9f34916336d6}{MsReleasePushLockShared}}(}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00180}00180\ \ \ \ \ \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}}\ \mbox{\hyperlink{ms_8h_a0b2891fcded8de47f2ba6d1305024d2b}{PUSH\_LOCK}}*\ Lock}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00181}00181\ )}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00182}00182\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00183}00183\ \ \ \ \ uint64\_t\ Value,\ NewValue;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00184}00184\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00185}00185\ \ \ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00186}00186\ \ \ \ \ \ \ \ \ Value\ =\ Lock-\/>Value;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00187}00187\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00188}00188\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ if\ there\ are\ waiters}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00189}00189\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (Value\ \&\ \mbox{\hyperlink{ms_8h_af5d31eafb69b4c3c2aedcd08668fabf6}{PL\_WAIT\_BIT}})\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00190}00190\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ someone\ is\ waiting,\ the\ Value\ is\ no\ longer\ a\ count\ of\ shared\ threads,\ but\ a\ pointer\ to\ setting\ the\ event\ to\ wake\ the\ exclusive\ waiter.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00191}00191\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ no\ more\ shares,\ we\ wake\ up\ the\ waiter\ and\ he\ acquires\ the\ exclusive\ lock.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00192}00192\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00193}00193\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ Head\ =\ (\mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*)(Value\ \&\ \string~\mbox{\hyperlink{ms_8h_a7429fcf53e961413ad9eabc0edf5079e}{PL\_FLAG\_MASK}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00194}00194\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ms_8h_a4816dd6403bfe79c7a1797ee964e19ea}{PUSH\_LOCK\_WAIT\_BLOCK}}*\ Last\ =\ Head;}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00195}00195\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00196}00196\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Find\ the\ end\ of\ the\ chain\ (TODO\ LAST\ PTR\ TO\ MAKE\ IT\ FASTER\ (HINT))}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00197}00197\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (Last-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_a2e5677eca0af7b46dfec2aa86736777c}{Next}}\ !=\ NULL)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00198}00198\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Last\ =\ Last-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_a2e5677eca0af7b46dfec2aa86736777c}{Next}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00199}00199\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00200}00200\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00201}00201\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Decrement\ the\ saved\ count\ in\ the\ wait\ block}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00202}00202\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a7d155446a14ecbfb5bd6e0abf7b6cb93}{InterlockedDecrementU32}}(\&Last-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_adc18b3f5f08528801f76a6c8dccc09fb}{ShareCount}})\ ==\ 0)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00203}00203\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ hit\ zero,\ we\ signal\ the\ writer\ that\ he\ can\ stop\ waiting\ for\ readers.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00204}00204\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{events_8c_a94fb2b29c7dc6c3f542b1ed3cafc3270}{MsSetEvent}}(\&Last-\/>\mbox{\hyperlink{struct___p_u_s_h___l_o_c_k___w_a_i_t___b_l_o_c_k_a7524e454f50e39d7148079411dd5a259}{WakeEvent}});}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00205}00205\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00206}00206\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00207}00207\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00208}00208\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00209}00209\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Decrement\ shared\ count.}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00210}00210\ \ \ \ \ \ \ \ \ NewValue\ =\ Value\ -\/\ \mbox{\hyperlink{ms_8h_ab4e3d8c713dc41fa28c39760b7150eb0}{PL\_SHARE\_INC}};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00211}00211\ }
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00212}00212\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{atomic_8h_a39d94e872c7402bfe84a8dc0d107b865}{InterlockedCompareExchangeU64}}(\&Lock-\/>Value,\ NewValue,\ Value)\ ==\ Value)\ \{}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00213}00213\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00214}00214\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00215}00215\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{pushlock_8c_source_l00216}00216\ \}}
+
+\end{DoxyCode}

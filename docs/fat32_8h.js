@@ -22,14 +22,16 @@ var fat32_8h =
     ] ],
     [ "__attribute__", "fat32_8h.html#ae508953494a83c161d64cf4426195be5", null ],
     [ "fat32_create_directory", "fat32_8h.html#a400a63d664bec5e30b5713ff3cbf35a6", null ],
+    [ "fat32_create_file", "fat32_8h.html#a29aee6bc2f7e9d2717373aba650393e7", null ],
     [ "fat32_delete_directory", "fat32_8h.html#a60629b733e5b262b7367d972bf549ea9", null ],
     [ "fat32_delete_file", "fat32_8h.html#ac0fe70241ba5f3c709198b99d8c2b972", null ],
+    [ "fat32_deletion_routine", "fat32_8h.html#ac6b4c0e8dfaec41380abbc4a649e32c3", null ],
     [ "fat32_directory_is_empty", "fat32_8h.html#ae59b119946d406d4603400ae2e495700", null ],
     [ "fat32_init", "fat32_8h.html#a311ce2a795c9e78112568a0b90d4cbe8", null ],
     [ "fat32_list_directory", "fat32_8h.html#a467adde29b891f25a9e1cd2365a67197", null ],
     [ "fat32_list_root", "fat32_8h.html#adfca68a881df4fb301c3d55a00a781df", null ],
-    [ "fat32_read_file", "fat32_8h.html#a71c6c7658a82c589657c4dc0a85e1e63", null ],
-    [ "fat32_write_file", "fat32_8h.html#a9e1098d6877aadbca830f6c469f62781", null ],
+    [ "fat32_read_file", "fat32_8h.html#a8106339705a284783b1d03fc8ddac410", null ],
+    [ "fat32_write_file", "fat32_8h.html#aa2142d4aa71e0caeaf37561623ca7f89", null ],
     [ "FAT32_BPB", "fat32_8h.html#a520b4af7b127966e48892bf842ca8ea8", null ],
     [ "FAT32_DIR_ENTRY", "fat32_8h.html#a818bd287914bc3e1f740d86bc1631515", null ]
 ];

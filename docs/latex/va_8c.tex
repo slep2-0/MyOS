@@ -1,0 +1,108 @@
+\doxysection{C\+:/\+Users/matanel/\+Desktop/\+Projects/\+Kernel\+Development/kernel/core/mm/va.c File Reference}
+\hypertarget{va_8c}{}\label{va_8c}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/va.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mm/va.c}}
+{\ttfamily \#include "{}../../includes/mm.\+h"{}}\newline
+{\ttfamily \#include "{}../../includes/ps.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{va_8c_adee89ce5e34d83e3d6e44f20cf2eee14}{Mi\+Initialize\+Pool\+Va\+Space}} (void)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool \mbox{\hyperlink{va_8c_a5c98d14f915f40e724550998b5406da9}{Mi\+Bitmap\+Test\+Bit}} (uint64\+\_\+t \texorpdfstring{$\ast$}{*}bitmap, size\+\_\+t bit)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool \mbox{\hyperlink{va_8c_a2b620673213671c14a5dc408229e6c6c}{Mi\+Bitmap\+Test\+And\+Set\+Bit\+Locked}} (uint64\+\_\+t \texorpdfstring{$\ast$}{*}bitmap, size\+\_\+t bit)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} void \mbox{\hyperlink{va_8c_a213d215e2748a4779769aec2b3ef6e59}{Mi\+Bitmap\+Clear\+Bit\+Locked}} (uint64\+\_\+t \texorpdfstring{$\ast$}{*}bitmap, size\+\_\+t bit)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} uintptr\+\_\+t \mbox{\hyperlink{va_8c_a4374eea9768ba488bb10283f127913f4}{Mi\+Index\+To\+Va}} (uintptr\+\_\+t pool\+Base, size\+\_\+t index)
+\item 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} size\+\_\+t \mbox{\hyperlink{va_8c_a061c3ac2d3c5f0614c1c15e663adb476}{Mi\+Va\+To\+Index}} (uintptr\+\_\+t pool\+Base, uintptr\+\_\+t va)
+\item 
+uintptr\+\_\+t \mbox{\hyperlink{va_8c_a59b51635e8b5715662e2f3ed1345d23e}{Mi\+Allocate\+Pool\+Va}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a4f335183142a8c763d0005c9b886ae06}{POOL\+\_\+\+TYPE}} Pool\+Type, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes)
+\item 
+void \mbox{\hyperlink{va_8c_a69a7e1102f1a90b6892f1ad184a0e350}{Mi\+Free\+Pool\+Va\+Contiguous}} (\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t va, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t Number\+Of\+Bytes, \mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a4f335183142a8c763d0005c9b886ae06}{POOL\+\_\+\+TYPE}} Pool\+Type)
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{va_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{va_8c_a59b51635e8b5715662e2f3ed1345d23e}\index{va.c@{va.c}!MiAllocatePoolVa@{MiAllocatePoolVa}}
+\index{MiAllocatePoolVa@{MiAllocatePoolVa}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiAllocatePoolVa()}{MiAllocatePoolVa()}}
+{\footnotesize\ttfamily \label{va_8c_a59b51635e8b5715662e2f3ed1345d23e} 
+uintptr\+\_\+t Mi\+Allocate\+Pool\+Va (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a4f335183142a8c763d0005c9b886ae06}{POOL\+\_\+\+TYPE}}}]{Pool\+Type}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00213}{213}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a213d215e2748a4779769aec2b3ef6e59}\index{va.c@{va.c}!MiBitmapClearBitLocked@{MiBitmapClearBitLocked}}
+\index{MiBitmapClearBitLocked@{MiBitmapClearBitLocked}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiBitmapClearBitLocked()}{MiBitmapClearBitLocked()}}
+{\footnotesize\ttfamily \label{va_8c_a213d215e2748a4779769aec2b3ef6e59} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} void Mi\+Bitmap\+Clear\+Bit\+Locked (\begin{DoxyParamCaption}\item[{uint64\+\_\+t \texorpdfstring{$\ast$}{*}}]{bitmap}{, }\item[{size\+\_\+t}]{bit}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00171}{171}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a2b620673213671c14a5dc408229e6c6c}\index{va.c@{va.c}!MiBitmapTestAndSetBitLocked@{MiBitmapTestAndSetBitLocked}}
+\index{MiBitmapTestAndSetBitLocked@{MiBitmapTestAndSetBitLocked}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiBitmapTestAndSetBitLocked()}{MiBitmapTestAndSetBitLocked()}}
+{\footnotesize\ttfamily \label{va_8c_a2b620673213671c14a5dc408229e6c6c} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool Mi\+Bitmap\+Test\+And\+Set\+Bit\+Locked (\begin{DoxyParamCaption}\item[{uint64\+\_\+t \texorpdfstring{$\ast$}{*}}]{bitmap}{, }\item[{size\+\_\+t}]{bit}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00150}{150}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a5c98d14f915f40e724550998b5406da9}\index{va.c@{va.c}!MiBitmapTestBit@{MiBitmapTestBit}}
+\index{MiBitmapTestBit@{MiBitmapTestBit}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiBitmapTestBit()}{MiBitmapTestBit()}}
+{\footnotesize\ttfamily \label{va_8c_a5c98d14f915f40e724550998b5406da9} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} bool Mi\+Bitmap\+Test\+Bit (\begin{DoxyParamCaption}\item[{uint64\+\_\+t \texorpdfstring{$\ast$}{*}}]{bitmap}{, }\item[{size\+\_\+t}]{bit}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00131}{131}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a69a7e1102f1a90b6892f1ad184a0e350}\index{va.c@{va.c}!MiFreePoolVaContiguous@{MiFreePoolVaContiguous}}
+\index{MiFreePoolVaContiguous@{MiFreePoolVaContiguous}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiFreePoolVaContiguous()}{MiFreePoolVaContiguous()}}
+{\footnotesize\ttfamily \label{va_8c_a69a7e1102f1a90b6892f1ad184a0e350} 
+void Mi\+Free\+Pool\+Va\+Contiguous (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} uintptr\+\_\+t}]{va}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} size\+\_\+t}]{Number\+Of\+Bytes}{, }\item[{\mbox{\hyperlink{annotations_8h_ac2bbd6d630a06a980d9a92ddb9a49928}{IN}} \mbox{\hyperlink{mm_8h_a4f335183142a8c763d0005c9b886ae06}{POOL\+\_\+\+TYPE}}}]{Pool\+Type}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00367}{367}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a4374eea9768ba488bb10283f127913f4}\index{va.c@{va.c}!MiIndexToVa@{MiIndexToVa}}
+\index{MiIndexToVa@{MiIndexToVa}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiIndexToVa()}{MiIndexToVa()}}
+{\footnotesize\ttfamily \label{va_8c_a4374eea9768ba488bb10283f127913f4} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} uintptr\+\_\+t Mi\+Index\+To\+Va (\begin{DoxyParamCaption}\item[{uintptr\+\_\+t}]{pool\+Base}{, }\item[{size\+\_\+t}]{index}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00188}{188}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_adee89ce5e34d83e3d6e44f20cf2eee14}\index{va.c@{va.c}!MiInitializePoolVaSpace@{MiInitializePoolVaSpace}}
+\index{MiInitializePoolVaSpace@{MiInitializePoolVaSpace}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiInitializePoolVaSpace()}{MiInitializePoolVaSpace()}}
+{\footnotesize\ttfamily \label{va_8c_adee89ce5e34d83e3d6e44f20cf2eee14} 
+bool Mi\+Initialize\+Pool\+Va\+Space (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00035}{35}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+
+\Hypertarget{va_8c_a061c3ac2d3c5f0614c1c15e663adb476}\index{va.c@{va.c}!MiVaToIndex@{MiVaToIndex}}
+\index{MiVaToIndex@{MiVaToIndex}!va.c@{va.c}}
+\doxysubsubsection{\texorpdfstring{MiVaToIndex()}{MiVaToIndex()}}
+{\footnotesize\ttfamily \label{va_8c_a061c3ac2d3c5f0614c1c15e663adb476} 
+\mbox{\hyperlink{annotations_8h_a724fb9f82013c782db5c3c12ea36aac8}{FORCEINLINE}} size\+\_\+t Mi\+Va\+To\+Index (\begin{DoxyParamCaption}\item[{uintptr\+\_\+t}]{pool\+Base}{, }\item[{uintptr\+\_\+t}]{va}{}\end{DoxyParamCaption})}
+
+
+
+Definition at line \mbox{\hyperlink{va_8c_source_l00201}{201}} of file \mbox{\hyperlink{va_8c_source}{va.\+c}}.
+

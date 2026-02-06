@@ -1,0 +1,92 @@
+\doxysection{setup.\+c}
+\hypertarget{setup_8c_source}{}\label{setup_8c_source}\index{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/setup.c@{C:/Users/matanel/Desktop/Projects/KernelDevelopment/kernel/core/mt/setup.c}}
+\mbox{\hyperlink{setup_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00001}00001\ \textcolor{comment}{/*++}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00002}00002\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00003}00003\ \textcolor{comment}{Module\ Name:}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00004}00004\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00005}00005\ \textcolor{comment}{\ \ \ \ syscall.c}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00006}00006\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00007}00007\ \textcolor{comment}{Purpose:}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00008}00008\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00009}00009\ \textcolor{comment}{\ \ \ \ This\ module\ contains\ the\ implementation\ of\ syscall\ setup\ in\ x86.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00010}00010\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00011}00011\ \textcolor{comment}{Author:}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00012}00012\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00013}00013\ \textcolor{comment}{\ \ \ \ slep\ (Matanel)\ 2025.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00014}00014\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00015}00015\ \textcolor{comment}{Revision\ History:}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00016}00016\ \textcolor{comment}{}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00017}00017\ \textcolor{comment}{-\/-\/*/}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00018}00018\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00019}00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mt_8h}{../../includes/mt.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00020}00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{intrin_8h}{../../intrinsics/intrin.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00021}00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{mm_8h}{../../includes/mm.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00022}00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ps_8h}{../../includes/ps.h}}"{}}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00023}00023\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00024}00024\ \textcolor{comment}{//\ From\ syscall.asm}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00025}\mbox{\hyperlink{setup_8c_af67124851385aa68fb6bc6d386a45efb}{00025}}\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{setup_8c_af67124851385aa68fb6bc6d386a45efb}{MtSyscallEntry}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00026}00026\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00027}00027\ \textcolor{comment}{//\ The\ SSDT}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00028}\mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{00028}}\ \mbox{\hyperlink{mt_8h_a2537c4cbde107ade6ef61d733a54d12d}{SyscallHandler}}\ \mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{Ssdt}}[\mbox{\hyperlink{mt_8h_a88ef3d98617b4673404cd57e1fa4e516}{MAX\_SYSCALLS}}];}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00029}00029\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00030}\mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{00030}}\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00031}\mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y_ac8c1bc03bc14f84fac40aea89a21f838}{00031}}\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y_ac8c1bc03bc14f84fac40aea89a21f838}{Num}};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00032}\mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y_ac0f7d93dfff8c245929d0a6bbf58bedf}{00032}}\ \ \ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y_ac0f7d93dfff8c245929d0a6bbf58bedf}{Handler}};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00033}00033\ \}\ \mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{SYSCALL\_INIT\_ENTRY}};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00034}00034\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00035}00035\ \textcolor{comment}{//\ TODO\ Proper\ SSDT\ with\ offsets\ to\ handlers\ from\ SSDT\ base\ instead\ of\ raw\ pointers\ (for\ security)}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00036}00036\ \textcolor{comment}{//\ Along\ with\ validating\ that\ the\ handler\ is\ in\ the\ .text\ section\ of\ the\ kernel}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00037}00037\ \textcolor{comment}{//\ and\ idk\ implement\ patchguard\ on\ the\ way}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00038}00038\ \textcolor{comment}{//\ patchguard\ works\ by\ queuing\ DPCs\ and\ KTIMERs,\ not\ by\ making\ a\ system\ thread}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00039}00039\ \textcolor{comment}{//\ (so\ its\ always\ hidden),\ honestly\ microsoft\ engineers\ are\ brilliant.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00040}\mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{00040}}\ \mbox{\hyperlink{struct_s_y_s_c_a_l_l___i_n_i_t___e_n_t_r_y}{SYSCALL\_INIT\_ENTRY}}\ \mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{SyscallTable}}[]\ =\ \{}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00041}00041\ \ \ \ \ \textcolor{comment}{//\ Syscalls\ are\ here.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00042}00042\ \ \ \ \ \{.Num\ =\ 0,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a77a069b172b91ebe4e5a8bfb4657f34e}{MtAllocateVirtualMemory}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00043}00043\ \ \ \ \ \{.Num\ =\ 1,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a9fd86d68a6adfabee49c53a0d7528162}{MtOpenProcess}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00044}00044\ \ \ \ \ \{.Num\ =\ 2,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a65caa5dd8cf04ae279ae55f031dd766e}{MtTerminateProcess}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00045}00045\ \ \ \ \ \{.Num\ =\ 3,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a57ecc9016ed353a1597b1180aa6c8664}{MtReadFile}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00046}00046\ \ \ \ \ \{.Num\ =\ 4,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_ae908c4a8c8db9e5207c37eba9b042dcf}{MtWriteFile}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00047}00047\ \ \ \ \ \{.Num\ =\ 5,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_af44bd5e6a14e18423569874dca148c2c}{MtCreateFile}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00048}00048\ \ \ \ \ \{.Num\ =\ 6,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_a81fd47039e90b10e72c8ce8d0c992b8b}{MtClose}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00049}00049\ \ \ \ \ \{.Num\ =\ 7,\ .Handler\ =\ \mbox{\hyperlink{systemcalls_8c_aba51dd68cc66e18a67961dadc44454d1}{MtTerminateThread}}\},}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00050}00050\ \};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00051}00051\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00052}\mbox{\hyperlink{setup_8c_ad27c2b259b554e31d022f239afe7efb9}{00052}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{setup_8c_ad27c2b259b554e31d022f239afe7efb9}{SyscallsAlreadyInitialized}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00053}00053\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00054}00054\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00055}\mbox{\hyperlink{setup_8c_a17a99247d353e2255edfc047fb70bb5a}{00055}}\ \mbox{\hyperlink{setup_8c_a17a99247d353e2255edfc047fb70bb5a}{MtSetupSyscall}}(}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00056}00056\ \ \ \ \ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00057}00057\ )}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00058}00058\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00059}00059\ \{}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00060}00060\ \ \ \ \ \textcolor{comment}{//\ Write\ the\ Code\ Segment\ selectors\ into\ the\ STAR\ msr.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00061}00061\ \ \ \ \ uint64\_t\ STAR\ =\ ((uint64\_t)\mbox{\hyperlink{me_8h_ab0b69b822e9207a5960bc07fc3d36ee4}{KERNEL\_CS}}\ <<\ 32)\ |\ ((uint64\_t)(\mbox{\hyperlink{me_8h_a26cfc41c1bddc0fc379ca65503945da4}{USER\_DS}}\ -\/\ 8)\ <<\ 48);}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00062}00062\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_ac177c522e3e9cf4ff3143d9e9b4057e3}{IA32\_STAR}},\ STAR);}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00063}00063\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00064}00064\ \ \ \ \ \textcolor{comment}{//\ Write\ the\ syscall\ entrypoint\ to\ LSTAR\ msr.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00065}00065\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_a591479e9e26bb3a18a1dd959ab4e5e82}{IA32\_LSTAR}},\ (uint64\_t)\mbox{\hyperlink{setup_8c_af67124851385aa68fb6bc6d386a45efb}{MtSyscallEntry}});}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00066}00066\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00067}00067\ \ \ \ \ \textcolor{comment}{//\ Write\ the\ FMASK\ (flag\ mask)\ MSR\ to\ flag\ IF\ and\ TF.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00068}00068\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_a3a69543dc8732e4059fe779ed07d9655}{IA32\_FMASK}},\ (1\ <<\ 8)\ |\ (1\ <<\ 9));}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00069}00069\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00070}00070\ \ \ \ \ \textcolor{comment}{//\ Write\ the\ current\ processor\ to\ IA32\_KERNEL\_GS\_BASE\ for\ swapgs}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00071}00071\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{intrin_8h_a160987ecb36cc6c4cdef6b4a3170e994}{IA32\_KERNEL\_GS\_BASE}},\ 0);}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00072}00072\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00073}00073\ \ \ \ \ \textcolor{comment}{//\ Setup\ list\ of\ syscalls.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00074}00074\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{atomic_8h_a5949e4a258af1861b629a727ca576ee9}{InterlockedFetch8}}((\textcolor{keyword}{volatile}\ int8\_t*)\ \&\ \mbox{\hyperlink{setup_8c_ad27c2b259b554e31d022f239afe7efb9}{SyscallsAlreadyInitialized}}))\ \{}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00075}00075\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{SyscallTable}})\ /\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{SyscallTable}}[0]);\ i++)\ \{}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00076}00076\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{handler_8c_ae9289a41fdf77ed620105205dbe39b38}{Ssdt}}[\mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{SyscallTable}}[i].Num]\ =\ \mbox{\hyperlink{setup_8c_a70115731731ee0b734227bec807d0589}{SyscallTable}}[i].Handler;}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00077}00077\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00078}00078\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ BSP\ Should\ run\ this\ first,\ no\ need\ for\ interlocked.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00079}00079\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{setup_8c_ad27c2b259b554e31d022f239afe7efb9}{SyscallsAlreadyInitialized}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00080}00080\ \ \ \ \ \}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00081}00081\ }
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00082}00082\ \ \ \ \ \textcolor{comment}{//\ Enable\ SysCallEnable\ (SCE)\ in\ EFER.}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00083}00083\ \ \ \ \ uint64\_t\ EFER\ =\ \mbox{\hyperlink{intrin_8h_a01f5d8c9172c3fa07bc93d6227ce2f17}{\_\_readmsr}}(\mbox{\hyperlink{mh_8h_a0a1b2c46c1424eb03b3270bd4befcb03aea7bb78183d473a07ffdf11d8b8818bf}{MSR\_EFER}});}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00084}00084\ \ \ \ \ EFER\ |=\ 1;\ \textcolor{comment}{//\ EFER.SCE}}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00085}00085\ \ \ \ \ \mbox{\hyperlink{intrin_8h_a033eb09bcc9159331d7e5aaf73ba9ff6}{\_\_writemsr}}(\mbox{\hyperlink{mh_8h_a0a1b2c46c1424eb03b3270bd4befcb03aea7bb78183d473a07ffdf11d8b8818bf}{MSR\_EFER}},\ EFER);}
+\DoxyCodeLine{\Hypertarget{setup_8c_source_l00086}00086\ \}}
+
+\end{DoxyCode}
