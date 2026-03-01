@@ -104,7 +104,7 @@ do {                                                                        \
                                                                             \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
-    /* Send IPIs if SMP is initialized */                                   \
+    /* Send IPIs if SMP is initialized (and all APs are on) */              \
     if (smpInitialized && allApsInitialized) {                              \
         IPI_PARAMS _Params;                                                 \
         _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
@@ -583,9 +583,11 @@ typedef struct {
     uint64_t reloc_size;
     uint64_t imports_rva; // RVA To import array, then absolute addresses.
     uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
+    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
+
+VALIDATE_SIZE(MTE_HEADER, 128);
 
 // Exports are RVA
 typedef struct {
@@ -625,7 +627,8 @@ typedef struct _MM_SECTION {
 
 // ------------------ FUNCTIONS ------------------
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
-// Global Declarations for signals & constants.
+
+// Global Externals for signals & constants.
 extern bool MmPfnDatabaseInitialized;
 extern PAGE_INDEX MmHighestPfn;
 extern uintptr_t MmSystemRangeStart;
@@ -636,6 +639,9 @@ extern uintptr_t MmNonPagedPoolStart;
 extern uintptr_t MmNonPagedPoolEnd;
 extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
+extern uint64_t MmTotalMemory;
+extern uint64_t MmTotalUsableMemory;
+
 
 #define USER_VA_END 0x00007FFFFFFFFFFF
 #define USER_VA_START 0x10000
@@ -685,11 +691,6 @@ kmemcmp(
     }
     return 0;
 }
-
-void
-MiReloadTLBs(
-    void
-);
 
 FORCEINLINE
 uint64_t 
@@ -767,11 +768,6 @@ MiAtomicExchangePte(
     InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
 }
 
-void
-MiInvalidateTlbForVa(
-    IN void* VirtualAddress
-);
-
 FORCEINLINE
 bool
 MiIsValidPfn(
@@ -779,6 +775,7 @@ MiIsValidPfn(
 )
 
 {
+    // Pfn is unsigned so checking for <= 0 is useless.
     return Pfn <= MmHighestPfn;
 }
 
@@ -817,6 +814,16 @@ MiUnlinkPageFromList(
 );
 
 // module: map.c
+
+void
+MiInvalidateTlbForVa(
+    IN void* VirtualAddress
+);
+
+void
+MiReloadTLBs(
+    void
+);
 
 PMMPTE
 MiGetPml4ePointer(

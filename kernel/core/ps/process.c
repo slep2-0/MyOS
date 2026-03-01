@@ -74,6 +74,7 @@ ReadStringFromFile(PFILE_OBJECT FileObject, uint64_t off, char* buf, size_t buf_
     return 0;
 }
 
+// This finds LdrInitializeProcess inside of the MTDLL Export table.
 static
 void*
 PspFindMtdllEntry(

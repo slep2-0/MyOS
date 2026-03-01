@@ -233,6 +233,10 @@ typedef struct _DPC_DATA {
 	volatile uint32_t DpcCount; // Statistics
 } DPC_DATA, *PDPC_DATA;
 
+typedef struct _APC {
+	uint8_t unsetupped;
+} APC, *PAPC;
+
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
 

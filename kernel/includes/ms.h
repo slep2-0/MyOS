@@ -48,9 +48,11 @@ typedef struct _RUNDOWN_REF {
     uint64_t Count; // Reference count, bit 0-62 is used for reference counting, bit 63 is used to signify the object is being terminated. (teardown flag)
 } RUNDOWN_REF, *PRUNDOWN_REF;
  
+// Each CPU has its own lock, they do not use the global scheduler lock.
 typedef struct _Queue {
     PETHREAD head;
     PETHREAD tail;
+    SPINLOCK lock;
 } Queue;
 
 /**

@@ -26,7 +26,7 @@ typedef struct {
     uint64_t reloc_size;
     uint64_t imports_rva; // RVA To import array, then absolute addresses.
     uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
+    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
 

@@ -30,16 +30,20 @@ MM_PFN_DATABASE PfnDatabase;
 bool MmPfnDatabaseInitialized = false;
 PAGE_INDEX MmHighestPfn = 0;
 
+uint64_t MmTotalMemory = 0;
+uint64_t MmTotalUsableMemory = 0;
+
+
 static
-uint64_t 
-MiGetTotalMemory (
+uint64_t
+MiGetTotalMemory(
     const BOOT_INFO* boot_info
 )
 
 /*++
 
     Routine description:
-    
+
         Calculates the highest address of USABLE physical memory in the system.
 
     Arguments:
@@ -60,9 +64,6 @@ MiGetTotalMemory (
     PEFI_MEMORY_DESCRIPTOR desc = boot_info->MemoryMap;
 
     for (size_t i = 0; i < entry_count; i++) {
-        // FILTER: Only look at usable RAM or memory we might reclaim.
-        // Ignore Reserved, Unusable, and MemoryMappedIO.
-        // TODO Other types...
         if (desc->Type == EfiConventionalMemory)
         {
             uint64_t region_end = desc->PhysicalStart + (desc->NumberOfPages * PhysicalFrameSize);
@@ -72,6 +73,7 @@ MiGetTotalMemory (
         desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + boot_info->DescriptorSize);
     }
 
+    MmTotalUsableMemory = highest_addr;
     return highest_addr;
 }
 
@@ -181,6 +183,12 @@ MiInitializePfnDatabase(
 
     // Zero the region.
     kmemset(PfnDatabase.PfnEntries, 0, neededPages * VirtualPageSize);
+
+    // This ensures that holes (addresses not covered by UEFI map) are treated as invalid.
+    for (uint64_t i = 0; i < totalPfnEntries; i++) {
+        PfnDatabase.PfnEntries[i].State = PfnStateBad;
+        PfnDatabase.PfnEntries[i].RefCount = 0; // Optional if you want 0
+    }
 
     // Initialize counts.
     PfnDatabase.TotalPageCount = totalPfnEntries;            
@@ -388,15 +396,18 @@ MiRequestPhysicalPage(
 
     // 4. All lists are empty
     // TODO: Paging (flush modified list to disk, give a page from there.)
+    // If paging fails, that means a buggy storage driver, a thread starve, or other (view the NO_PAGES_AVAILABLE 0x4D bugcheck in msdn)
+   
     // Release Global Lock
     MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
-    return (uint64_t)-1;
+    return PFN_ERROR;
 
 found:
-    // Claim while locked.
     assert((pfn->RefCount) == 0);
-    pfn->State = PfnStateTransition;
+
+    // Claim while locked.
     // Set final metadata: now "owned" by the caller.
+    pfn->State = PfnStateTransition;
     pfn->RefCount = 1;
 
     // Release Global Lock
@@ -451,6 +462,7 @@ MiReleasePhysicalPage(
     // First, access the PFN in the database to determine its staistics.
     PPFN_ENTRY pfn = INDEX_TO_PPFN(PfnIndex);
 
+    assert(MiIsValidPfn(PfnIndex), "PFN Given to MiReleasePhysicalPage is NOT a valid PFN in DB.");
     assert((pfn->RefCount) > 0, "Refcount is 0 while releasing. Double Free");
 
     if (InterlockedDecrementU32(&pfn->RefCount) == 0) {

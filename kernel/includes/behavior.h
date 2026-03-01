@@ -27,4 +27,9 @@ Revision History:
 
 //#define MT_NO_PREEMPTION // Uncomment to force cooperative scheduling (yielding only, no forceful context switch).
 
+//#define PERFORMANCE_ANALYTICS // Uncomment to increment performance analytics global fields (like hyperspace mappings done, etc.)
+
+// Other Behavioural Macros TODO: 
+// POOL_TAGGING (debug pool allocs)
+
 #endif

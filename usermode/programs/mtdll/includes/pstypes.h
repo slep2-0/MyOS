@@ -29,7 +29,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY {
     uint64_t LoadTime; // Epoch timestamp of time module loaded.
 
     // The list entry itself.
-    DOUBLY_LINKED_LIST LoadedModuleList; // Doubly linked list of LDR_DATA_TABLE_ENTRY
+    DOUBLY_LINKED_LIST LoadedModuleList; // (linked ptr) Doubly linked list of LDR_DATA_TABLE_ENTRY
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef struct _PEB_LDR_DATA {

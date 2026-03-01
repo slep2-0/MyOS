@@ -201,18 +201,18 @@ MiMoveUefiDataToHigherHalf(
 
 {
     // Move GOP to higher half, luckily i developed this extremely advanced memory api (its just advancing pointers)
-    uintptr_t Virt = MiTranslateVirtualToPhysical((void*)gop_local.FrameBufferBase);
+    uintptr_t Phys = MiTranslateVirtualToPhysical((void*)gop_local.FrameBufferBase);
 
 #ifdef DEBUG
     uint64_t oldBase = gop_local.FrameBufferBase;
 #endif
 
-    gop_local.FrameBufferBase = (uint64_t)MmMapIoSpace(Virt, gop_local.FrameBufferSize, MmCached);
-    assert(gop_local.FrameBufferBase != Virt);
+    gop_local.FrameBufferBase = (uint64_t)MmMapIoSpace(Phys, gop_local.FrameBufferSize, MmCached);
+    assert(gop_local.FrameBufferBase != Phys);
     assert((void*)gop_local.FrameBufferBase != NULL);
 
-    // Unmap the previous PTE.
-    MiUnmapPte(MiGetPtePointer(Virt));
+    // Unmap the previous PTE. (was a 1:1 identity map, so thats why we use the phys addr)
+    MiUnmapPte(MiGetPtePointer(Phys));
 
 #ifdef DEBUG
     assert(MmIsAddressValid((uintptr_t)oldBase) == false);
@@ -224,6 +224,7 @@ MiMoveUefiDataToHigherHalf(
     kmemset(BootInfo, 0, sizeof(BOOT_INFO));
 
     // Great, unmap it now.
+    // NOTE: Is this safe? This unmaps the whole 4KiB page of the BootInfo, so this assumes theres no data near it (that we need)
     assert(sizeof(BOOT_INFO) <= VirtualPageSize); // If the size is larger, we would need to do a for loop.
     MiUnmapPte(MiGetPtePointer((uintptr_t)BootInfo));
     assert(MmIsAddressValid((uintptr_t)BootInfo) == false);

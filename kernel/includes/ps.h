@@ -86,7 +86,7 @@ typedef enum _PS_PHASE_ROUTINE {
 #define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
 #define MT_PROCESS_CREATE_PROCESS     0x0200  // Create a new process.
 
-#define MT_PROCESS_ALL_ACCESS         0x01FF  // Everything above
+#define MT_PROCESS_ALL_ACCESS         0x03FF  // Everything above
 
 typedef enum _PROCESS_FLAGS {
     ProcessBreakOnTermination = (1 << 0),
@@ -181,7 +181,8 @@ typedef struct _EPROCESS {
 
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
-    // TODO TEB
+    
+    PTEB Teb;
     struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
     HANDLE TID;           /* thread id */
     HANDLE PID;           // Thread's process PID.
@@ -349,7 +350,7 @@ GetExceptionCode(
 {
     PETHREAD CurrentThread = PsGetCurrentThread();
     if (CurrentThread) return CurrentThread->LastStatus;
-    else return MT_GENERAL_FAILURE; // Fallback
+    else return MT_SUCCESS; // Fallback
 }
 
 HANDLE
@@ -384,9 +385,8 @@ void
 MeEnqueueThreadWithLock(
     Queue* queue, PETHREAD thread)
 {
-    /// FIXME CRITICAL, Remove the Queue struct from the Processor block, instead just have 3 fields (IdleThread,CurrentThread,NextThread), all are ITHREAD.
-    /// FOR NOW - We acquire scheduler lock and not queue lock.
-    MeAcquireSchedulerLock();
+    IRQL flags;
+    MsAcquireSpinlock(&queue->lock, &flags);
 
     // Initialize the new node's links using the SCHEDULER entry
     thread->SchedulerListEntry.Flink = NULL;
@@ -406,7 +406,7 @@ MeEnqueueThreadWithLock(
     // Update tail to be the new thread
     queue->tail = thread;
 
-    MeReleaseSchedulerLock();
+    MsReleaseSpinlock(&queue->lock, flags);
 }
 
 // Dequeues the head thread from the queue with spinlock protection.
@@ -414,10 +414,11 @@ FORCEINLINE
 PETHREAD
 MeDequeueThreadWithLock(Queue* q)
 {
-    MeAcquireSchedulerLock();
+    IRQL flags;
+    MsAcquireSpinlock(&q->lock, &flags);
 
     if (!q->head) {
-        MeReleaseSchedulerLock();
+        MsReleaseSpinlock(&q->lock, flags);
         return NULL;
     }
 
@@ -442,7 +443,7 @@ MeDequeueThreadWithLock(Queue* q)
     t->SchedulerListEntry.Flink = NULL;
     t->SchedulerListEntry.Blink = NULL;
 
-    MeReleaseSchedulerLock();
+    MsReleaseSpinlock(&q->lock, flags);
     return t;
 }
 

@@ -473,10 +473,12 @@ MiAtomicSetTransitionPte(
     assert(Expected.Hard.Present == 0);
     assert(Expected.Soft.Transition == 0);
 
+#ifdef DEBUG
     char buf[256];
     ksnprintf(buf, sizeof(buf), "Address of PTE: %p", Pte);
     assert(Expected.Hard.Prototype == 0, buf);
-    
+#endif
+
     // Set the transition page properties.
     MMPTE Transition = Expected;
     Transition.Soft.Transition = 1;

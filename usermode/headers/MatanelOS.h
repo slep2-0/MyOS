@@ -29,7 +29,7 @@ typedef struct {
 
 /* * MACRO: MT_IMPORT
  * Usage: MT_IMPORT("libname", VariableName)
- * * Pre-requisite: You must declare 'VariableName' yourself before calling this.
+ * * Pre-requisite: VariableName must be declared before calling the macro.
  */
 #define MT_IMPORT(lib, func_name) \
     __attribute__((section(".mtimports"), used)) \
@@ -40,6 +40,7 @@ typedef struct {
     };
 
 // Access rights
+
 //
 // Thread Access Rights
 //

@@ -78,7 +78,8 @@ MtSyscallHandler(
 
     // Arugments are in RDI RSI RDX R10 (not RCX in Syscalls, since CPU clobbers it for RIP) R8 R9
     // Above 6 arguments we receive from user stack.
-    // For now, support 6 (TODO ProbeForRead)
+    // For now, support 6.
+    // To support more args we need a syscall that actually takes more than 6 args
     uint64_t Arg1 = TrapFrame->rdi;
     uint64_t Arg2 = TrapFrame->rsi;
     uint64_t Arg3 = TrapFrame->rdx;
@@ -86,6 +87,6 @@ MtSyscallHandler(
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
     
-    // Todo regular SSDT.
+    // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
 }

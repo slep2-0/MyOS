@@ -135,9 +135,6 @@ void MiInterprocessorInterrupt (
                 break;
             }
         }
-    case CPU_ACTION_DO_DEFERRED_ROUTINES:
-        // This is a NO-OP, since DPCs WILL be executed when we just return.
-        // unused.
         break;
     case CPU_ACTION_FLUSH_CR3:
         __write_cr3(__read_cr3());

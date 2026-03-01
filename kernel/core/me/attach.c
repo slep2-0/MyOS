@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
+#include "../../assert.h"
 
 void
 MeAttachProcess(
@@ -78,6 +79,8 @@ MeAttachProcess(
 
 	// Switch CR3s.
 	uint64_t TargetCr3 = Process->PageDirectoryPhysical;
+	assert(TargetCr3 != 0);
+
 	if (ApcState->SavedCr3 != TargetCr3) {
 		__write_cr3(TargetCr3);
 	}

@@ -26,7 +26,7 @@ Revision History:
 // Since we also use push locks.
 
 DOUBLY_LINKED_LIST HandleTableList;
-PUSH_LOCK HandleTableLock;
+PUSH_LOCK HandleTableListLock;
 
 static
 PHANDLE_TABLE_ENTRY
@@ -129,6 +129,11 @@ HtCreateHandleTable(
     Table->FirstFreeHandle = 4;
     Table->QuotaProcess = Process;
     Table->TableLock.Value = 0;
+
+    // Insert this handle table into the global list.
+    MsAcquirePushLockExclusive(&HandleTableListLock);
+    InsertTailList(&HandleTableList, &Table->TableList);
+    MsReleasePushLockExclusive(&HandleTableListLock);
 
     return Table;
 }
@@ -527,6 +532,11 @@ HtDeleteHandleTable(
         assert(false, "Unsupported level encountered on handle table free.");
         MsReleasePushLockExclusive(&Table->TableLock);
     }
+
+    // Release this handle table from the global list.
+    MsAcquirePushLockExclusive(&HandleTableListLock);
+    RemoveEntryList(&Table->TableList);
+    MsReleasePushLockExclusive(&HandleTableListLock);
 
     // Finally, free our table itself.
     MmFreePool(Table);

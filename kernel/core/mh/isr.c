@@ -23,6 +23,7 @@ const bool has_error_code[] = {
 extern void lapic_eoi(void);    
 
 USED
+HOT
 void
 MhHandleInterrupt (
     IN  int vec_num, 
@@ -65,7 +66,7 @@ MhHandleInterrupt (
 
     // Determine the mode for this interrupt context
     // If we came from User land, we are now entering the kernel for the first time in this stack.
-    // If we came from Kernel land, we are just nesting.
+    // If we came from Kernel mode, we are just nesting.
     PRIVILEGE_MODE TrapMode;
     if ((trap->cs & 0x3) == 0x3) {
         TrapMode = UserMode;

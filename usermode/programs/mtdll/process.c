@@ -50,3 +50,15 @@ TerminateProcess(
     return true;
 }
 
+bool
+TerminateThread(
+    IN HANDLE ThreadHandle,
+    IN uint32_t ExitCode
+)
+
+{
+    // This should be ran at every thread final return (including main thread, it shouldn't call ExitProcess)
+    MTSTATUS Status = MtTerminateThread(ThreadHandle, ExitCode);
+    return MT_SUCCEEDED(Status);
+}
+
