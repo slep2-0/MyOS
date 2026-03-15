@@ -24,7 +24,7 @@ _start:
     mov $0, %rsi
 
 .make_syscall:
-    call TerminateProcesss
+    call TerminateProcess
 
 .loop:
     jmp .loop
