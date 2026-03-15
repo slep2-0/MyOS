@@ -217,6 +217,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize the object manager subsystem.
     ObInitialize();
 
+    // Initialize the handle table subsystem.
+    HtInitializeSystem();
+
     // Initialize Ps subsystem.
     st = PsInitializeSystem(PS_PHASE_INITIALIZE_SYSTEM);
     if (MT_FAILURE(st)) {

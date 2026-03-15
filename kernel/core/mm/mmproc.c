@@ -278,7 +278,6 @@ MmCreateProcessAddressSpace(
     kmemset(&recursivePte, 0, sizeof(MMPTE)); // Ensure clean start
 
     // Note: We pass NULL for the VA as it's a self-ref, we only care about the PFN and Flags.
-    // Ensure PFN_TO_PHYS is used if MI_WRITE_PTE expects a physical address.
     MI_WRITE_PTE(&recursivePte,
         (void*)0,
         PFN_TO_PHYS(pfnIndex),
@@ -504,6 +503,26 @@ MmCreatePeb(
     OUT void** OutPeb,
     OUT void** OutBasicMtdllTypes
 )
+
+/*++
+
+    Routine description:
+
+        Creates a PEB (Process Environment Block) for the specified process, along with MtdllBasicTypes.
+        Note that this only allocates, not initializes.
+        Initialization occurs in MTDLL.
+
+    Arguments:
+
+        [IN] PEPROCESS Process - The Process to create the PEB for.
+        [OUT] void** OutPeb - Pointer to store the PEB User address address.
+        [OUT] void** OutBasicMtdllTypes - Pointer to store the BasicMtdllTypes address.
+
+    Return Values:
+
+        MTSTATUS Status code.
+
+--*/
 
 {
     // For now all this does is allocate memory really.

@@ -98,4 +98,9 @@ HtDeleteHandleTable(
     IN PHANDLE_TABLE Table
 );
 
+void
+HtInitializeSystem(
+    void
+);
+
 #endif

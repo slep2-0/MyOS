@@ -419,7 +419,9 @@ PsCreateProcess(
 CleanupWithRef:
 #ifdef DEBUG
     if (MT_FAILURE(Status)) {
-        assert(false, "Something went wrong.");
+        char buf[144];
+        ksnprintf(buf, sizeof(buf), "Process creation failure, status: %x", Status);
+        assert(false, buf);
     }
 #endif
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
@@ -507,6 +509,7 @@ PsTerminateProcess(
     if (SeenOurselves) {
         // noreturn
         PspExitThread(ExitCode);
+        assert(false, "No return, returned? (possible memory corruption, or malware)");
     }
 
     // Should I create a PspExitProcess function as well? I mean it should only dereference stuff, check the ReactOS PspExitProcess

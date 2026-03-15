@@ -318,7 +318,7 @@ RemoveEntryList(
    ListHeadPtr is PSINGLE_LINKED_LIST* (address of the head pointer). 
    Usage: InterlockedPushEntry(&Descriptor->FreeListHead.Next, &Header->Metadata.FreeListEntry);
    */
-FORCEINLINE 
+FORCEINLINE
 void
 InterlockedPushEntry(
     PSINGLE_LINKED_LIST* ListHeadPtr, /* &head_ptr */

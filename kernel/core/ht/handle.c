@@ -86,6 +86,31 @@ HtpLookupEntry(
     return NULL;
 }
 
+void
+HtInitializeSystem(
+    void
+)
+
+/*++
+
+    Routine description:
+
+        Initializes the HandleTableListHead.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    InitializeListHead(&HandleTableList);
+}
+
 PHANDLE_TABLE
 HtCreateHandleTable(
     IN  PEPROCESS Process

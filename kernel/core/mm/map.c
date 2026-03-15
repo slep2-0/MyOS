@@ -404,9 +404,7 @@ MiUnmapPte (
 
 {
     if (!pte) return;
-    // First gets its PFN to write to the PMMPTE PresentNotSet union.
-    PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
-    if (!pfn) return;
+
     // Get the PTE's original VA.
     uintptr_t origVa = MiTranslatePteToVa(pte);
 
@@ -570,5 +568,5 @@ MmIsAddressPresent(
 
 {
     PMMPTE pte = MiGetPtePointer(VirtualAddress);
-    return pte->Hard.Present;
+    return pte && pte->Hard.Present;
 }

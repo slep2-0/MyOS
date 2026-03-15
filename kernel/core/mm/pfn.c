@@ -462,8 +462,12 @@ MiReleasePhysicalPage(
     // First, access the PFN in the database to determine its staistics.
     PPFN_ENTRY pfn = INDEX_TO_PPFN(PfnIndex);
 
-    assert(MiIsValidPfn(PfnIndex), "PFN Given to MiReleasePhysicalPage is NOT a valid PFN in DB.");
+#ifdef DEBUG
+    char buf[144];
+    ksnprintf(buf, sizeof(buf), "PFN Given to MiReleasePhysicalPage is NOT a valid PFN in DB. Pfn: %lu", PfnIndex);
+    assert(MiIsValidPfn(PfnIndex), buf);
     assert((pfn->RefCount) > 0, "Refcount is 0 while releasing. Double Free");
+#endif
 
     if (InterlockedDecrementU32(&pfn->RefCount) == 0) {
         // This is the last reference to the page, store it back in the list.
@@ -491,16 +495,28 @@ MiReleasePhysicalPage(
                 // Dirty bit is not set, we throw it to the standby list.
                 IRQL oldIrql;
                 pfn->State = PfnStateStandby;
+
+                // Grab the PTE address now, BEFORE we touch the linked list
+                PMMPTE SavedPteAddress = pfn->Descriptor.Mapping.PteAddress;
+
+                // Set the PTE to transition state using our safe copy of the address
+                if (SavedPteAddress) {
+                    // This if should always pass, unless we are dealing with release of pages that don't have any PTE's associated with them. (that we set in MI_WRITE_PTE that is)
+                    // Like the BOOT_INFO physical frame, even though it does have a PTE associated with it, it is not written in the PFN Database, as it was set by the bootloader.
+                    // Check the MiMoveUefiDataToHigherHalf function.
+                    bool ok = MiAtomicSetTransitionPte(SavedPteAddress, PPFN_TO_INDEX(pfn));
+                    UNREFERENCED_PARAMETER(ok);
+                }
+
+                // Now it is safe to put the PFN back into list, since now we are allowed to overwrite the union.
+                // Before, MiAtomicSetTransitionPte was given an overwritten pte address (which was the flink of the pfn itself)
+                // Corrupting the PFN List.
                 MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
                 InsertTailList(&PfnDatabase.StandbyPageList.ListEntry, &pfn->Descriptor.ListEntry);
 
                 // Increment the counters
                 InterlockedIncrementU64(&PfnDatabase.StandbyPageList.Count);
                 InterlockedIncrementU64(&PfnDatabase.AvailablePages);
-
-                // Set PTE as transition (compare-exchange)
-                bool ok = MiAtomicSetTransitionPte(pfn->Descriptor.Mapping.PteAddress, PPFN_TO_INDEX(pfn));
-                UNREFERENCED_PARAMETER(ok);
 
                 MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
             }
