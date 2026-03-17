@@ -34,21 +34,21 @@ void pit_sleep_ms(uint32_t ms) {
         __outbyte(PIT_CMD_PORT, PIT_CMD_LATCH_CH0);
         // Ensure proper sequencing of port reads
         uint8_t start_lo = __inbyte(PIT_CH0_PORT);
-        asm volatile("" ::: "memory");  // compiler barrier
+        __asm__ volatile("" ::: "memory");  // compiler barrier
         uint8_t start_hi = __inbyte(PIT_CH0_PORT);
         uint16_t start = start_lo | ((uint16_t)start_hi << 8);
 
         while (1) {
             __outbyte(PIT_CMD_PORT, PIT_CMD_LATCH_CH0);
             uint8_t curr_lo = __inbyte(PIT_CH0_PORT);
-            asm volatile("" ::: "memory");  // compiler barrier
+            __asm__ volatile("" ::: "memory");  // compiler barrier
             uint8_t curr_hi = __inbyte(PIT_CH0_PORT);
             uint16_t curr = curr_lo | ((uint16_t)curr_hi << 8);
 
             uint16_t elapsed = (uint16_t)(start - curr);
             if ((uint32_t)elapsed >= chunk) break;
 
-            asm volatile("pause");
+            __asm__ volatile("pause");
         }
 
         MeEnableInterrupts(Enabled);

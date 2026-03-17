@@ -524,11 +524,14 @@ MiReleasePhysicalPage(
     }
 }
 
+#ifdef DEBUG
 #ifndef _MSC_VER
 asm(".global MiReleasePhysicalPage_end\n"
     "MiReleasePhysicalPage_end:\n");
 #endif
+#endif
 
+#ifdef DEBUG
 bool
 MiIsWithinBoundsOfReleasePhysicalPage(
     void* VirtualAddress
@@ -542,6 +545,7 @@ MiIsWithinBoundsOfReleasePhysicalPage(
     uintptr_t e = (uintptr_t)&MiReleasePhysicalPage_end;
     return (a >= s) && (a < e);
 }
+#endif
 
 void
 MiUnlinkPageFromList(

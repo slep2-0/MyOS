@@ -120,11 +120,12 @@ $(BUILD_DIR)/%.S.o: %.S | $(BUILD_DIR)
 	@$(CC) $(CFLAGS) -o $@ $<
 
 # 6. Link & Convert
-$(FINAL_OUT): $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
-	@echo "  [LD]  Linking -> $(BUILD_DIR)/temp.elf"
-	@$(LD) $(LDFLAGS) -o $(BUILD_DIR)/temp.elf $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
+# Change the final linking target to omit $(CRT0_OBJ)
+$(FINAL_OUT): $(HEADER_OBJ) $(OBJS)
+	@echo "  [LD]  Linking -> $(BUILD_DIR)/mtdll_temp.elf"
+	@$(LD) $(LDFLAGS) -o $(BUILD_DIR)/mtdll_temp.elf $(HEADER_OBJ) $(OBJS)
 	@echo "  [OBJ] Converting -> $@"
-	@$(OBJCOPY) -O binary $(BUILD_DIR)/temp.elf $@
+	@$(OBJCOPY) -O binary $(BUILD_DIR)/mtdll_temp.elf $@
 	@echo "Build succeeded: $@"
 
 # Utility: Hex dump first 8 lines

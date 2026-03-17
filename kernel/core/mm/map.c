@@ -460,9 +460,11 @@ MiAtomicSetTransitionPte(
 --*/
 
 {
+#ifdef DEBUG
     // Assertion that the return address is within the bounds of MiReleasePhysicalPage, as this function MUST ONLY be called from there.
     // Why didnt I make it there? Because I MIGHT plan that this function can be called somewhere else, we'll see.
     assert(MiIsWithinBoundsOfReleasePhysicalPage(RETADDR(0)));
+#endif
 
     // Set the baseline expected.
     MMPTE Expected = *Pte;
