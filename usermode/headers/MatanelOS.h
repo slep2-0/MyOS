@@ -22,22 +22,10 @@ Revision History:
 #include <stddef.h>
 
 typedef struct {
-	const char* module_name;
-	const char* function_name;
-	void** func_ptr_addr;
+    uint64_t module_name_rva;
+    uint64_t function_name_rva;
+    uint64_t func_ptr_addr_rva;
 } MT_IMPORT;
-
-/* * MACRO: MT_IMPORT
- * Usage: MT_IMPORT("libname", VariableName)
- * * Pre-requisite: VariableName must be declared before calling the macro.
- */
-#define MT_IMPORT(lib, func_name) \
-    __attribute__((section(".mtimports"), used)) \
-    const MT_IMPORT __import_entry_##func_name = { \
-        .module_name = lib, \
-        .function_name = #func_name, \
-        .func_ptr_addr = (void**)&func_name \
-    };
 
 // Access rights
 

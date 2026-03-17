@@ -14,7 +14,7 @@ int main(void) {
     char Hello[] = "ascendz mcdonalds adiravraham ofirs";
     // the sizeof operator shouldnt be used here as it is a text file, and so it would include null termination which is not used.
     // instead, we would need strlen, but my os doesnt have a user standard library yet (i plan to implement it in mtdll)
-    bool Worked = WriteFile(FileHandle, 0, Hello, sizeof(Hello), NULL);
+    bool Worked = WriteFile(FileHandle, 0, Hello, strlen(Hello), NULL);
     if (!Worked) {
         goto failure;
     }

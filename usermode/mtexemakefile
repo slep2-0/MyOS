@@ -6,11 +6,13 @@
 
 # Default to MTEXE since this is the mtexemakefile
 TYPE ?= MTEXE
-PROJ_NAME = TerminateMyself
+PROJ_NAME = ProjectName
 
-# Sources specific to MTDLL
-SRCS = programs/terminateMyself/main.c \
-	   headers/import_table.S
+# Sources specific to MTEXE
+# Example:
+#
+# SRCS = programs/terminateMyself/main.c \
+# 	   headers/import_table.S
 
 # --- Toolchain (System Defaults) ----------------------------------------------
 # Using standard PATH tools as requested (same as build_mtexe.sh)
@@ -61,7 +63,8 @@ BASE_CFLAGS = -std=gnu11 \
 DLL_CFLAGS = $(BASE_CFLAGS) -fPIC
 
 # MTEXE needs -fno-pic so the compiler writes actual offsets, not relocations
-EXE_CFLAGS = $(BASE_CFLAGS) -fno-pic
+# We define IMAGE_BASE to match mtexe.ld
+EXE_CFLAGS = $(BASE_CFLAGS) -fno-pic -DIMAGE_BASE=0x10000
 
 # Linker Flags
 # DLL: Shared object, symbolic

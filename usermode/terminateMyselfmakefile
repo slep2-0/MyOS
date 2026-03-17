@@ -1,0 +1,144 @@
+# ==============================================================================
+# MTEXE Build System (System Tools)
+# ==============================================================================
+
+# --- Configuration ------------------------------------------------------------
+
+# Default to MTEXE since this is the mtexemakefile
+TYPE ?= MTEXE
+PROJ_NAME = TerminateMyself
+
+# Sources specific to MTEXE
+SRCS = programs/terminateMyself/main.c \
+	   headers/import_table.S
+
+# --- Toolchain (System Defaults) ----------------------------------------------
+# Using standard PATH tools as requested (same as build_mtexe.sh)
+
+CC      = gcc
+LD      = ld
+OBJCOPY = objcopy
+NASM    = nasm
+AS      = as
+XXD     = xxd
+
+BUILD_DIR = build/user
+
+# --- Logic: Select Linker Script ----------------------------------------------
+
+ifeq ($(TYPE),MTEXE)
+    LDSCRIPT = mtexe.ld
+    OUT_EXT  = mtexe
+    CFLAGS   = $(EXE_CFLAGS) 
+    LDFLAGS  = $(EXE_LDFLAGS)
+    $(info [BUILD-MODE] Building Executable (MTEXE))
+else ifeq ($(TYPE),MTDLL)
+    LDSCRIPT = mtdll.ld
+    OUT_EXT  = mtdll
+    CFLAGS   = $(DLL_CFLAGS) 
+    LDFLAGS  = $(DLL_LDFLAGS)
+    $(info [BUILD-MODE] Building Library (MTDLL))
+else
+    $(error Invalid TYPE specified. Use TYPE=MTEXE or TYPE=MTDLL)
+endif
+
+FINAL_OUT = $(BUILD_DIR)/$(PROJ_NAME).$(OUT_EXT)
+
+# --- Flags --------------------------------------------------------------------
+
+# Compiler Flags
+# -m64: Enforce 64-bit
+# -I...: Add include paths for mtexe headers
+BASE_CFLAGS = -std=gnu11 \
+         -m64 -ffreestanding -nostdlib -fno-builtin -c \
+         -fdiagnostics-color=always \
+         -Wall -Wextra -Wno-unused-function \
+         -mno-red-zone -fno-pie \
+         -Iheaders -MMD -MP
+
+# 2. Define Mode-Specific Flags
+# MTDLL needs -fPIC to work as a shared library
+DLL_CFLAGS = $(BASE_CFLAGS) -fPIC
+
+# MTEXE needs -fno-pic so the compiler writes actual offsets, not relocations
+# We define IMAGE_BASE to match mtexe.ld
+EXE_CFLAGS = $(BASE_CFLAGS) -fno-pic -DIMAGE_BASE=0x10000
+
+# Linker Flags
+# DLL: Shared object, symbolic
+DLL_LDFLAGS = -shared -Bsymbolic --no-undefined -T $(LDSCRIPT) -m elf_x86_64
+
+# EXE: Static (resolve symbols now), Image Base 0 (Crucial, see below)
+# We remove -shared and add -static
+EXE_LDFLAGS = -static -Bsymbolic --no-undefined -T $(LDSCRIPT) -m elf_x86_64
+
+# Assembly Flags (NASM)
+ASMFLAGS = -f elf64
+
+# --- Bootstrapping Files ------------------------------------------------------
+
+HEADER_SRC = header.S
+CRT0_SRC   = crt0.S
+
+HEADER_OBJ = $(BUILD_DIR)/header.o
+CRT0_OBJ   = $(BUILD_DIR)/crt0.o
+
+# --- Object Calculation -------------------------------------------------------
+
+OBJS = $(SRCS:%=$(BUILD_DIR)/%.o)
+
+# --- Targets ------------------------------------------------------------------
+
+.PHONY: all clean dump
+
+all: $(FINAL_OUT)
+
+# 1. Create Build Directory
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $(OBJS))
+
+# 2. Compile/Assemble Header & CRT0
+$(HEADER_OBJ): $(HEADER_SRC) | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@$(AS) -o $@ $<
+
+$(CRT0_OBJ): $(CRT0_SRC) | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@$(AS) -o $@ $<
+
+# 3. Compile C Sources
+$(BUILD_DIR)/%.c.o: %.c | $(BUILD_DIR)
+	@echo "  [CC]  $<"
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $< -o $@
+
+# 4. Assemble NASM Sources (.asm)
+$(BUILD_DIR)/%.asm.o: %.asm | $(BUILD_DIR)
+	@echo "  [NASM] $<"
+	@mkdir -p $(dir $@)
+	@$(NASM) $(ASMFLAGS) -o $@ $<
+
+# 5. Assemble GAS Sources (.S)
+$(BUILD_DIR)/%.S.o: %.S | $(BUILD_DIR)
+	@echo "  [AS]  $<"
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -o $@ $<
+
+# 6. Link & Convert
+$(FINAL_OUT): $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
+	@echo "  [LD]  Linking -> $(BUILD_DIR)/temp.elf"
+	@$(LD) $(LDFLAGS) -o $(BUILD_DIR)/temp.elf $(HEADER_OBJ) $(CRT0_OBJ) $(OBJS)
+	@echo "  [OBJ] Converting -> $@"
+	@$(OBJCOPY) -O binary $(BUILD_DIR)/temp.elf $@
+	@echo "Build succeeded: $@"
+
+# Utility: Hex dump first 8 lines
+dump: $(FINAL_OUT)
+	@echo "Header bytes:"
+	@$(XXD) -g 1 $< | head -n 8
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+-include $(OBJS:.o=.d)
