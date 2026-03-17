@@ -228,7 +228,7 @@ MhRequestSoftwareInterrupt(
 {
     bool prev_if;
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    assert(cpu->DpcInterruptRequested == true);
+    assert(cpu->DpcInterruptRequested == true || cpu->ApcInterruptRequested == true);
 
     // We only support DISPATCH_LEVEL.
     assert(RequestIrql == DISPATCH_LEVEL || RequestIrql == APC_LEVEL);

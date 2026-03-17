@@ -2,6 +2,7 @@
 #define X86_ANNOTATIONS_H
 
 // Annotations (and macros) for documentation, and potential future analyzing.
+// These are almost all for the compiler to decide how the variable, function, code blocks (etc), would execute.
 
 // Parameter Annotations
 #define IN // Takes REQUIRED INPUT
@@ -71,9 +72,9 @@
 #define UNREACHABLE_CODE() __builtin_unreachable()
 
 // Ensures the size of struct 'struc' must be 'size' size in bytes.
-#define VALIDATE_SIZE(struc, size) static_assert(sizeof(struc) == size, "Invalid structure size of " #struc)
+#define VALIDATE_SIZE(struc, size) _Static_assert(sizeof(struc) == size, "Invalid structure size of " #struc)
 
 // Ensures the offset of 'member' field in the struct 'struc', must be 'offset' bytes from the start.
-#define VALIDATE_OFFSET(struc, member, offset) static_assert(offsetof(struc, member) == offset, "The offset of " #member " in " #struc " is not " #offset "...")
+#define VALIDATE_OFFSET(struc, member, offset) _Static_assert(offsetof(struc, member) == offset, "The offset of " #member " in " #struc " is not " #offset "...")
 
 #endif

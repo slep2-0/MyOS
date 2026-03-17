@@ -16,7 +16,9 @@ MsSetEvent (
 
 /*++
 
-    Routine description : Sets an event to wake threads waiting on it.
+    Routine description : 
+    
+        Sets an event to wake threads waiting on it.
 
     Arguments:
     
@@ -31,6 +33,8 @@ MsSetEvent (
 {
     if (!event) return MT_INVALID_ADDRESS;
 
+    // NOTE: (TODO) Can we use push locks here? Events should only be used in PASSIVE_LEVEL to APC_LEVEL IRQL contexts,
+    // holding a lock to raise to DISPATCH_LEVEL just delays us furthermore..
     IRQL flags;
     MsAcquireSpinlock(&event->lock, &flags);
 
@@ -59,15 +63,15 @@ MsSetEvent (
     PETHREAD t;
 
     while ((t = MeDequeueThread(&event->waitingQueue)) != NULL) {
-        // 1. Detach the thread from any previous list by nulling its links
+        // Detach the thread from any previous list by nulling its links
         t->ThreadListEntry.Flink = NULL;
         t->ThreadListEntry.Blink = NULL;
 
-        // 2. Build the local singly-linked list (head/tail) using Flink
+        // Build the local singly-linked list (head/tail) using Flink
         if (tail) {
             // Link the current tail to the new thread via Flink
             tail->ThreadListEntry.Flink = &t->ThreadListEntry;
-            // Optionally: Set the new thread's Blink to the old tail (for local list integrity)
+            // Set the new thread's Blink to the old tail (for local list integrity)
             t->ThreadListEntry.Blink = &tail->ThreadListEntry;
         }
         else {
@@ -116,7 +120,9 @@ MsWaitForEvent (
 
 /*++
 
-    Routine description : Sleeps the current thread to wait on the specified event.
+    Routine description : 
+    
+        Sleeps the current thread to wait on the specified event.
 
     Arguments:
 

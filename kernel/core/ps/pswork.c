@@ -65,7 +65,11 @@ static void PsStackDeleterThread(void) {
 void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
 {
     PSTACK_REAPER_ENTRY node = MmAllocatePoolWithTag(NonPagedPool, sizeof(STACK_REAPER_ENTRY), 'rSpR');
-    if (!node) return;
+    if (!node) {
+        // We dont have a node to put in the deferred list, we must free the stack now to not let the system die on us.
+        MiFreeKernelStack(StackBase, IsLarge);
+        return;
+    }
 
     node->StackBase = StackBase;
     node->IsLarge = IsLarge;

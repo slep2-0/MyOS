@@ -26,7 +26,7 @@ typedef struct {
     uint64_t reloc_size;
     uint64_t imports_rva; // RVA To import array, then absolute addresses.
     uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
+    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
 
@@ -36,9 +36,9 @@ typedef struct {
     uint64_t func_rva;
 } MT_EXPORT_ENTRY;
 
-// Imports are absolutes.
+// Imports are RVA.
 typedef struct {
-    uint64_t lib_name_absolute;   // RVA to string "kernel32.dll"
-    uint64_t func_name_absolute;  // RVA to string "PrintString"
-    uint64_t iat_addr_absolute;   // RVA to the function pointer to be patched
+    uint64_t lib_name_rva;   // RVA to string "kernel32.dll"
+    uint64_t func_name_rva;  // RVA to string "PrintString"
+    uint64_t iat_addr_rva;   // RVA to the function pointer to be patched
 } MT_IMPORT_ENTRY;

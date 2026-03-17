@@ -60,7 +60,6 @@ MmAccessFault(
         Could be:
             MT_SUCCESS -- Fault handled, return.
             MT_ACCESS_VIOLATION -- User mode only (or kernel mode probing).
-            MT_GUARD_PAGE_VIOLATION -- Bugchecks.
 
         The function would bugcheck if an invalid kernel mode access occured (or in worst case, 0 memory is available to fill the VAD of the user mode process, but I want to change it to sleep instead..)
 
@@ -260,7 +259,7 @@ MmAccessFault(
     // i removed it, bye bye.
 
     // Address is in user range.
-    // Both kernel and user mode are allowed to fault in here, guranteing there is a VAD backing it of course (and IRQL demands)
+    // Both kernel and user mode are allowed to fault in here, guaranteeing there is a VAD backing it of course (and IRQL demands)
     // If kernel faulted and no vad (Irql is good), then we search for exception handlers in return, if none we bugcheck.
     // If a user faulted and no vad (Irql is good), then we search for exception handlers in return, if none we terminate the thread.
     if (VirtualAddress <= MmHighestUserAddress) {
@@ -368,7 +367,7 @@ MmAccessFault(
         // Looks like we have a valid vad, lets allocate.
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
 
-        if (pfn == PFN_ERROR) return MT_ACCESS_VIOLATION; // TODO OOM
+        if (pfn == PFN_ERROR) return MT_ACCESS_VIOLATION;
 
         // Acquire the PTE for the faulty VA.
         PMMPTE pte = MiGetPtePointer(VirtualAddress);
@@ -405,6 +404,8 @@ MmAccessFault(
                     return MT_ACCESS_VIOLATION;
                 }
             }
+
+            // NOTE: Is this really needed? Pool allocations are zeroed, and we used a PfnStateZeroed phys page up top.
             if (ToRead < VirtualPageSize) {
                 // zero the rest of the page
                 kmemset((uint8_t*)Tmp + ToRead, 0, VirtualPageSize - ToRead);

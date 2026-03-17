@@ -63,7 +63,7 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
     (&(PfnDatabase.PfnEntries[(size_t)(Index)]))
 #define PHYSICAL_TO_PPFN(PHYS) \
     (&PfnDatabase.PfnEntries[(size_t)((PHYS) / (uint64_t)PhysicalFrameSize)])
-#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
+#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & 0x000FFFFFFFFFF000ULL)
 /* single-CPU build (no IPI shootdown code) */
 #ifdef MT_UP
 
@@ -104,7 +104,7 @@ do {                                                                        \
                                                                             \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
-    /* Send IPIs if SMP is initialized */                                   \
+    /* Send IPIs if SMP is initialized (and all APs are on) */              \
     if (smpInitialized && allApsInitialized) {                              \
         IPI_PARAMS _Params;                                                 \
         _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
@@ -455,7 +455,7 @@ typedef struct _MMPTE
             uint64_t Transition : 1;         // 1 = Page is in transition (has PFN) (used for StandBy List)
             uint64_t Prototype : 1;          // 1 = Prototype PTE (mapped section)
             uint64_t PageFile : 1;           // 1 = Paged to disk (pagefile)
-            uint64_t Reserved : 7;           // i'm sorry, h.c (sorry for cringing out whoever sees this)
+            uint64_t Reserved : 7;           // Reserved, we have no use for it.
             uint64_t PageFrameNumber : 32;   // Pagefile offset or PFN (if transition)
             uint64_t SoftwareFlags : 19;     // e.g. protection mask, pool type
             uint64_t NoExecute : 1;          // NX still meaningful in software
@@ -470,7 +470,7 @@ typedef struct _PFN_ENTRY {
     volatile uint32_t RefCount;     // Atomic Reference Count
     uint8_t State;                  // PFN_STATE of this Page.
     uint8_t Flags;                  // Bitfield of PFN_FLAGS
-    // The Descriptor of the PFN (contains mapping data, the doubly linked list, and file offset, all that depend on the State)
+    // (UNION) The Descriptor of the PFN (contains mapping data, the doubly linked list, and file offset, all that depend on the State)
     union {
         // State: PfnStateFree, PfnStateZeroed, 
         // PfnStateStandby, PfnStateModified (Used when - INACTIVE)
@@ -484,7 +484,6 @@ typedef struct _PFN_ENTRY {
 
         // State: PfnStateStandby or PfnStateModified (for file backed pages) (Used when - SEMI-ACTIVE, PAGED TO DISK, NOT IN CURRENT USE)
         uint64_t FileOffset; // Offset of bytes in pagefile.mtsys
-
     } Descriptor;
 } PFN_ENTRY, *PPFN_ENTRY;
 
@@ -583,9 +582,11 @@ typedef struct {
     uint64_t reloc_size;
     uint64_t imports_rva; // RVA To import array, then absolute addresses.
     uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[10];      /* pad the rest to 128 bytes */
+    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
 } MTE_HEADER;
 #pragma pack(pop)
+
+VALIDATE_SIZE(MTE_HEADER, 128);
 
 // Exports are RVA
 typedef struct {
@@ -593,11 +594,11 @@ typedef struct {
     uint64_t func_rva;
 } MT_EXPORT_ENTRY;
 
-// Imports are absolutes.
+// Imports are RVA.
 typedef struct {
-    uint64_t lib_name_absolute;   // RVA to string "kernel32.dll"
-    uint64_t func_name_absolute;  // RVA to string "PrintString"
-    uint64_t iat_addr_absolute;   // RVA to the function pointer to be patched
+    uint64_t lib_name_rva;   // RVA to string "kernel32.dll"
+    uint64_t func_name_rva;  // RVA to string "PrintString"
+    uint64_t iat_addr_rva;   // RVA to the function pointer to be patched
 } MT_IMPORT_ENTRY;
 
 // Represents a section in the file (.text, .data)
@@ -625,7 +626,8 @@ typedef struct _MM_SECTION {
 
 // ------------------ FUNCTIONS ------------------
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
-// Global Declarations for signals & constants.
+
+// Global Externals for signals & constants.
 extern bool MmPfnDatabaseInitialized;
 extern PAGE_INDEX MmHighestPfn;
 extern uintptr_t MmSystemRangeStart;
@@ -636,6 +638,9 @@ extern uintptr_t MmNonPagedPoolStart;
 extern uintptr_t MmNonPagedPoolEnd;
 extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
+extern uint64_t MmTotalMemory;
+extern uint64_t MmTotalUsableMemory;
+
 
 #define USER_VA_END 0x00007FFFFFFFFFFF
 #define USER_VA_START 0x10000
@@ -686,11 +691,6 @@ kmemcmp(
     return 0;
 }
 
-void
-MiReloadTLBs(
-    void
-);
-
 FORCEINLINE
 uint64_t 
 MiCacheToFlags(MEMORY_CACHING_TYPE type)
@@ -734,7 +734,7 @@ MiRetrieveOperationFromErrorCode(
 
     // Any of the operations below can also occur not only because of a non-present page (PTE), but a non-present page directory (or above)
     if (ErrorCode & (1 << 4)) {
-        operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.)
+        operation = ExecuteOperation; // Execute (NX Fault) (NX Bit set, and CPU attempted execution on an instruction with it present.) (Or Execution on a non present page)
     }
     else if (ErrorCode & (1 << 1)) {
         operation = WriteOperation; // Write fault (read only page \ not present)
@@ -767,11 +767,6 @@ MiAtomicExchangePte(
     InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
 }
 
-void
-MiInvalidateTlbForVa(
-    IN void* VirtualAddress
-);
-
 FORCEINLINE
 bool
 MiIsValidPfn(
@@ -779,6 +774,7 @@ MiIsValidPfn(
 )
 
 {
+    // Pfn is unsigned so checking for <= 0 is useless.
     return Pfn <= MmHighestPfn;
 }
 
@@ -817,6 +813,16 @@ MiUnlinkPageFromList(
 );
 
 // module: map.c
+
+void
+MiInvalidateTlbForVa(
+    IN void* VirtualAddress
+);
+
+void
+MiReloadTLBs(
+    void
+);
 
 PMMPTE
 MiGetPml4ePointer(

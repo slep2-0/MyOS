@@ -49,4 +49,3 @@ TerminateProcess(
 
     return true;
 }
-

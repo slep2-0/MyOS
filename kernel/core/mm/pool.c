@@ -658,7 +658,7 @@ MmFreePool(
 
 {
     if (!buf) return;
-    assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+    assert(MeGetCurrentIrql() <= DISPATCH_LEVEL, "Any pool frees must not happen with IRQL higher than DISPATCH.");
 
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));

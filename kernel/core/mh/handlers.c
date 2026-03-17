@@ -10,6 +10,7 @@
 #include "../../includes/ps.h"
 #include "../../includes/md.h"
 #include "../../includes/exception.h"
+#include "../../assert.h"
 
 #define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
     do {                                                             \
@@ -135,9 +136,6 @@ void MiInterprocessorInterrupt (
                 break;
             }
         }
-    case CPU_ACTION_DO_DEFERRED_ROUTINES:
-        // This is a NO-OP, since DPCs WILL be executed when we just return.
-        // unused.
         break;
     case CPU_ACTION_FLUSH_CR3:
         __write_cr3(__read_cr3());
@@ -513,10 +511,11 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
 
     // Terminate the thread, todo exp.
     // We must not return to the thread, at all.
+    assert(Thread->SystemThread == false, "System thread #GPF when PrevMode == UserMode");
     Thread->InternalThread.TimeSlice = 1;
     Thread->InternalThread.TimeSliceAllocated = 1;
     MeGetCurrentProcessor()->schedulePending = true;
-    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating thread (%s) %p for %lx | RIP: %p\n", (Thread->SystemThread) ? "Kernel Mode" : "User Mode", Thread, (unsigned long)Status, (void*)(uintptr_t)trap->rip);
+    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating user mode thread (Process Name: %s) ptr %p for %x | RIP: %p\n", PsGetCurrentProcess()->ImageName, Thread, Status, (void*)(uintptr_t)trap->rip);
     PsTerminateThread(Thread, Status);
 }
 

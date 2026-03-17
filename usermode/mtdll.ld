@@ -99,7 +99,7 @@ SECTIONS
   PROVIDE(__text_size  = __text_end - __text_start);
   PROVIDE(__data_size  = __data_end - __data_start);
   PROVIDE(__bss_size   = __bss_end  - __bss_start);
-  PROVIDE(__entry_rva  = _start - __file_start);
+  PROVIDE(__entry_rva  = 0); /* NTDLL does not have a main entry point unlike other DLLs. */
   PROVIDE(__text_rva   = __text_start - __file_start);
   PROVIDE(__data_rva   = __data_start - __file_start);
 }

@@ -98,7 +98,7 @@ static inline bool interrupts_enabled(void) {
 }
 
 void kernel_idle_checks(void) {
-    gop_printf(0xFF000FF0, "Reached the scheduler!\n");
+    gop_printf(0xFF000FF0, "Reached the idle thread!\n");
     // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
     if (!interrupts_enabled()) {
         gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
@@ -217,6 +217,9 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Initialize the object manager subsystem.
     ObInitialize();
 
+    // Initialize the handle table subsystem.
+    HtInitializeSystem();
+
     // Initialize Ps subsystem.
     st = PsInitializeSystem(PS_PHASE_INITIALIZE_SYSTEM);
     if (MT_FAILURE(st)) {
@@ -238,6 +241,7 @@ void kernel_main(BOOT_INFO* boot_info) {
     // And, initialize our system process.
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);
+
 #ifdef DEBUG
     {
         uint64_t temp_canary = 0;
@@ -263,8 +267,10 @@ void kernel_main(BOOT_INFO* boot_info) {
         }
     }
 #endif
+
     /* Initiate Scheduler */
     InitScheduler();
+
     uint64_t rip;
     __asm__ volatile (
         "lea 1f(%%rip), %0\n\t"  // Calculate the address of label 1 relative to RIP
@@ -285,7 +291,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
 
     MTSTATUS status = FsInitialize();
-    gop_printf(COLOR_RED, "FsInitialize returned: %s\n", MT_SUCCEEDED(status) ? "Success" : "Unsuccessful");
     if (MT_FAILURE(status)) {
         MeBugCheck(FILESYSTEM_PANIC);
     }
@@ -332,9 +337,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);
     if (MT_FAILURE(status)) {
         gop_printf(COLOR_RED, "**[MTSTATUS-FAILURE]** ParseLAPICs status returned: %x, continuing in UP mode.\n", status);
+        // 1 CPU Present in the system
     }
     else {
-        MhInitializeSMP(apic_list, 4, lapicAddress);
+        MhInitializeSMP(apic_list, cpu_count, lapicAddress);
         IPI_PARAMS dummy = { 0 }; // zero-initialize the struct
         MhSendActionToCpusAndWait(CPU_ACTION_PRINT_ID, dummy);
         allApsInitialized = true; // Toggle this flag after all CPUs printed their ID, since thats when it marks that all CPUs in the apic list have initialized fully.

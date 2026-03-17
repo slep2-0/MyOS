@@ -51,7 +51,7 @@ LdrInitializeThread(
     // Jump to entry point.
     ((void (*)(void))EntryPoint)();
 
-    // Returned from a thread, this typically should not be the main thread as it already called ExitProcess.
+    // Returned from a thread.
     // So we call to terminate the thread.
     // Todo custom retval. (ExitStatus)
     TerminateThread(MtCurrentThread(), MT_SUCCESS);

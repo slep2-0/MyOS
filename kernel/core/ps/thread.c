@@ -162,7 +162,7 @@ PsCreateThread(
         // of thread (or process, havent decided yet, look at MiPageFault if it updated)
         // FIXME.
         // (main threads pop back to crt0 runtime, where ExitProcess is ran)
-        // So TODO MTDLL.
+        // Set MTDLL 
     }
 
     // Create a handle for the thread (and place it in the process's handle table).

@@ -26,6 +26,10 @@ Revision History:
 SPINLOCK HyperLock;
 PPFN_ENTRY g_pfnInUse;
 
+#ifdef PERFORMANCE_ANALYTICS
+uint64_t g_HypermappingsDone;
+#endif
+
 #define LOCK_HYPERSPACE(PtrOldIrql) MsAcquireSpinlock(&HyperLock, PtrOldIrql)
 #define UNLOCK_HYPERSPACE(OldIrql) MsReleaseSpinlock(&HyperLock, OldIrql)
 
@@ -65,6 +69,8 @@ MiMapPageInHyperspace(
 
     // Map the PFN into the page.
     // We do not send an IPI, as we are in a spinlock.
+    // Besides, an IPI does not need to be used here, as the hyperspace is a one CPU exclusive object, 2 cpus cannot use it at the same time
+    // so their TLBs do not need to be updated for this VA.
     PPFN_ENTRY pfn = INDEX_TO_PPFN (PfnIndex);
     uint64_t physAddr = PPFN_TO_PHYSICAL_ADDRESS (pfn);
     PMMPTE pte = MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS);
@@ -75,6 +81,11 @@ MiMapPageInHyperspace(
     pfn->Descriptor.Mapping.PteAddress = pte;
     pfn->Descriptor.Mapping.Vad = NULL;
     g_pfnInUse = pfn;
+
+#ifdef PERFORMANCE_ANALYTICS
+    // No need for atomic increment, we are under spinlock.
+    g_HypermappingsDone++;
+#endif
 
     // Return the virtual address (now mapped)
     return (void*)HYPERMAP_VIRTUAL_ADDRESS;

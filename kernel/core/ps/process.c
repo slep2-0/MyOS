@@ -74,6 +74,7 @@ ReadStringFromFile(PFILE_OBJECT FileObject, uint64_t off, char* buf, size_t buf_
     return 0;
 }
 
+// This finds LdrInitializeProcess inside of the MTDLL Export table.
 static
 void*
 PspFindMtdllEntry(
@@ -283,10 +284,13 @@ PsCreateProcess(
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Map them into view.
-    void* MtdllText;
+    void* MtdllEntrypoint; // MtdllEntrypoint should be equal to base as mtdll does not have any entrypoints, like normal DLLs.
     void* MtdllBase;
-    Status = MmMapViewOfSection(MtdllSection, Process, &MtdllText, &MtdllBase);
+    Status = MmMapViewOfSection(MtdllSection, Process, &MtdllEntrypoint , &MtdllBase);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // Neat assertion.
+    assert(MtdllEntrypoint == MtdllBase, "Entrypoint does not match MTDLL Base, mtdll file corruption, or incorrect linking.");
 
     APC_STATE RelocApcState;
     MeAttachProcess(&Process->InternalProcess, &RelocApcState);
@@ -329,6 +333,7 @@ PsCreateProcess(
     Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     PFILE_OBJECT FileObject;
+
     // Reference the handle, and then close it so only the pointer reference remains (this)
     Status = ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
     HtClose(FileHandle);
@@ -349,9 +354,9 @@ PsCreateProcess(
     // Map them into address space.
     // Start address - entry point.
     void* StartAddress = NULL;
-    // File base address - The actual executable file base address in memory (should contain mt header)
-    void* FileBaseAddress = NULL;
-    Status = MmMapViewOfSection(SectionHandle, Process, &StartAddress, &FileBaseAddress);
+    // Executable base address.
+    void* ExecutableBaseAddress = NULL;
+    Status = MmMapViewOfSection(SectionHandle, Process, &StartAddress, &ExecutableBaseAddress);
     // MmpDeleteSection closes the file handle.
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
@@ -364,7 +369,6 @@ PsCreateProcess(
     APC_STATE ApcState;
     MeAttachProcess(&Process->InternalProcess, &ApcState);
 
-    __stac();
     // Also create basic MTDLL types.
     try {
         // For now peb is guranteed to be zeroed since allocating a PFN in fault.c is zeroed, but ill still set it to 0
@@ -375,7 +379,7 @@ PsCreateProcess(
         // Init basic MTDLL types as well.
         BasicTypes->PrimaryExecutable.Size = FileObject->FileSize;
         kstrncpy(BasicTypes->PrimaryExecutable.FullPath, ExecutablePath, sizeof(BasicTypes->PrimaryExecutable.FullPath));
-        BasicTypes->PrimaryExecutable.Base = FileBaseAddress;
+        BasicTypes->PrimaryExecutable.Base = ExecutableBaseAddress;
 
         // Now for MTDLL itself.
         BasicTypes->Mtdll.Base = MtdllBase;
@@ -388,7 +392,6 @@ PsCreateProcess(
         // Bad.
         Status = GetExceptionCode();
     } end_try;
-    __clac();
 
     // Detach.
     MeDetachProcess(&ApcState);
@@ -404,6 +407,12 @@ PsCreateProcess(
     // Create a main thread for the process.
     Process->NextStackHint = USER_INITIAL_STACK_TOP;
     HANDLE MainThreadHandle;
+
+#ifdef DEBUG
+    gop_printf(COLOR_CYAN, "MTDLL Created for %s at base %p\n", Process->ImageName, MtdllBase);
+    gop_printf(COLOR_CYAN, "Process %s created at base %p and entrypoint %p\n", Process->ImageName, ExecutableBaseAddress, StartAddress);
+#endif
+
     Status = PsCreateThread(hProcess, &MainThreadHandle, (ThreadEntry)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, MtdllInitializeProcess);
     if (MT_FAILURE(Status)) {
         // This is a failure, since there is not a handle to the process, we must close it.
@@ -418,7 +427,9 @@ PsCreateProcess(
 CleanupWithRef:
 #ifdef DEBUG
     if (MT_FAILURE(Status)) {
-        assert(false, "Something went wrong.");
+        char buf[144];
+        ksnprintf(buf, sizeof(buf), "Process creation failure, status: %x, process name: %s", Status, Process->ImageName);
+        assert(false, buf);
     }
 #endif
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
@@ -456,6 +467,9 @@ PsTerminateProcess(
 
 {
     // Declarations
+#ifdef DEBUG
+    gop_printf(COLOR_MAGENTA, "PsTerminateProcess called on process %p with name %s, ExitCode is %x (MTSTATUS)", Process, Process->ImageName, ExitCode);
+#endif
     PETHREAD Thread = NULL;
     MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
     bool SeenOurselves = false;
@@ -506,6 +520,7 @@ PsTerminateProcess(
     if (SeenOurselves) {
         // noreturn
         PspExitThread(ExitCode);
+        assert(false, "No return, returned? (possible memory corruption, or malware)");
     }
 
     // Should I create a PspExitProcess function as well? I mean it should only dereference stuff, check the ReactOS PspExitProcess

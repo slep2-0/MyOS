@@ -160,7 +160,10 @@ Schedule(void) {
         // This works ONLY when there is a CLI call before doing swapgs, since we could prepare to return to user mode, and then we return with an opposite GS.
         // ACTUALLY DO NOT create a trap frame GS, (only the offset), this should be handled carefully
         // I do not know what the fuck do i do..
-        if (next->TrapRegisters.rip >= KernelVaStart) {
+
+        // Note that this uses MmSystemRangeStart which is PhysicalMemoryOffset (which is the start of the kernel space in the 64bit addr space)
+        // It's fine. (no need to use KernelVaStart)
+        if (next->TrapRegisters.rip >= MmSystemRangeStart) {
             restore_user_context_withoutswapgs(PsGetEThreadFromIThread(next));
         }
         else {

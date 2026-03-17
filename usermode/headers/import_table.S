@@ -13,16 +13,16 @@
     .global \func
     .align 8
     \func:
-        .quad 0  /* Loader will overwrite this with the real address */
+        .quad 0  /* Loader will overwrite this with the real absolute address */
 
     /* --- 3. The Import Table Entry --- */
-    /* struct MT_IMPORT_ENTRY { const char* lib_name_absolute; const char* func_name_absolute; void** iat_addr_absolute; } */
     .section .mtimports, "a"
     .align 8
     __import_entry_\func:
-        .quad __str_mod_\func   /* module_name */
-        .quad __str_func_\func  /* function_name */
-        .quad \func             /* func_ptr_addr (Address of the variable above) */
+        /* Preprocessor will replace IMAGE_BASE with the value from the Makefile */
+        .quad (__str_mod_\func - IMAGE_BASE)   /* module_name RVA */
+        .quad (__str_func_\func - IMAGE_BASE)  /* function_name RVA */
+        .quad (\func - IMAGE_BASE)             /* func_ptr_addr RVA */
 .endm
 
 /* ========================== */

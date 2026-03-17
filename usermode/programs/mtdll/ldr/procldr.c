@@ -151,12 +151,12 @@ LdrProcessImports(
     {
         MT_IMPORT_ENTRY* Entry = &ImportTable[i];
 
-        // Imports are absolute.
-        const char* LibName = (const char*)Entry->lib_name_absolute;
-        const char* FuncName = (const char*)Entry->func_name_absolute;
+        // Imports are RVA.
+        const char* LibName = (const char*)(ImageBase + Entry->lib_name_rva);
+        const char* FuncName = (const char*)(ImageBase + Entry->func_name_rva);
 
         // The address of the IAT to patch to new function ptr.
-        void** IatSlot = (void**)Entry->iat_addr_absolute;
+        void** IatSlot = (void**)(ImageBase + Entry->iat_addr_rva);
 
         // Call the final resolver, if we are messing with another dll that is not Mtdll, we would load library it here now, and use its LDR_DATA_TABLE_ENTRY.
         if (strcmp(LibName, "mtdll.mtdll") == 0) {
@@ -194,7 +194,7 @@ LdrInitializeProcess(
 {
     // Set initial PEB LoaderData to be our process.
     // This is a very bad allocation, since virtual alloc literally takes a page no matter the allocation size, and if we are a byte above a page, another page is consumed
-    // We need a heap allocator like the MmAllocatePoolWithTag in the kernel space, ill probably implement RtlAllocateHeap soon enough.
+    // We need a heap allocator like the MmAllocatePoolWithTag in the kernel space, ill probably implement RtlAllocateHeap soon enough. (TODO)
     PLDR_DATA_TABLE_ENTRY ProcessEntry = VirtualAlloc(NULL, sizeof(LDR_DATA_TABLE_ENTRY), PAGE_READWRITE);
     if (!ProcessEntry) {
         // Allocation failure, we terminate process with MT_NO_MEMORY.
@@ -234,6 +234,9 @@ LdrInitializeProcess(
 
     // Resolve its imports.
     MTSTATUS Status = LdrProcessImports(ProcessEntry, InitialPeb);
+
+    // In Windows when an Import fails it usually creates a MessageBox first to notify the user.
+    // But we dont have that yet! :(
     if (MT_FAILURE(Status)) MtTerminateProcess(MtCurrentProcess(), Status);
 
     // Initialize the thread now.

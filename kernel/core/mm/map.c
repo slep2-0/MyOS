@@ -404,9 +404,7 @@ MiUnmapPte (
 
 {
     if (!pte) return;
-    // First gets its PFN to write to the PMMPTE PresentNotSet union.
-    PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
-    if (!pfn) return;
+
     // Get the PTE's original VA.
     uintptr_t origVa = MiTranslatePteToVa(pte);
 
@@ -462,9 +460,11 @@ MiAtomicSetTransitionPte(
 --*/
 
 {
+#ifdef DEBUG
     // Assertion that the return address is within the bounds of MiReleasePhysicalPage, as this function MUST ONLY be called from there.
     // Why didnt I make it there? Because I MIGHT plan that this function can be called somewhere else, we'll see.
     assert(MiIsWithinBoundsOfReleasePhysicalPage(RETADDR(0)));
+#endif
 
     // Set the baseline expected.
     MMPTE Expected = *Pte;
@@ -473,10 +473,12 @@ MiAtomicSetTransitionPte(
     assert(Expected.Hard.Present == 0);
     assert(Expected.Soft.Transition == 0);
 
+#ifdef DEBUG
     char buf[256];
     ksnprintf(buf, sizeof(buf), "Address of PTE: %p", Pte);
     assert(Expected.Hard.Prototype == 0, buf);
-    
+#endif
+
     // Set the transition page properties.
     MMPTE Transition = Expected;
     Transition.Soft.Transition = 1;
@@ -568,5 +570,5 @@ MmIsAddressPresent(
 
 {
     PMMPTE pte = MiGetPtePointer(VirtualAddress);
-    return pte->Hard.Present;
+    return pte && pte->Hard.Present;
 }

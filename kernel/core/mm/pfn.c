@@ -30,16 +30,20 @@ MM_PFN_DATABASE PfnDatabase;
 bool MmPfnDatabaseInitialized = false;
 PAGE_INDEX MmHighestPfn = 0;
 
+uint64_t MmTotalMemory = 0;
+uint64_t MmTotalUsableMemory = 0;
+
+
 static
-uint64_t 
-MiGetTotalMemory (
+uint64_t
+MiGetTotalMemory(
     const BOOT_INFO* boot_info
 )
 
 /*++
 
     Routine description:
-    
+
         Calculates the highest address of USABLE physical memory in the system.
 
     Arguments:
@@ -60,9 +64,6 @@ MiGetTotalMemory (
     PEFI_MEMORY_DESCRIPTOR desc = boot_info->MemoryMap;
 
     for (size_t i = 0; i < entry_count; i++) {
-        // FILTER: Only look at usable RAM or memory we might reclaim.
-        // Ignore Reserved, Unusable, and MemoryMappedIO.
-        // TODO Other types...
         if (desc->Type == EfiConventionalMemory)
         {
             uint64_t region_end = desc->PhysicalStart + (desc->NumberOfPages * PhysicalFrameSize);
@@ -72,6 +73,7 @@ MiGetTotalMemory (
         desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + boot_info->DescriptorSize);
     }
 
+    MmTotalUsableMemory = highest_addr;
     return highest_addr;
 }
 
@@ -181,6 +183,12 @@ MiInitializePfnDatabase(
 
     // Zero the region.
     kmemset(PfnDatabase.PfnEntries, 0, neededPages * VirtualPageSize);
+
+    // This ensures that holes (addresses not covered by UEFI map) are treated as invalid.
+    for (uint64_t i = 0; i < totalPfnEntries; i++) {
+        PfnDatabase.PfnEntries[i].State = PfnStateBad;
+        PfnDatabase.PfnEntries[i].RefCount = 0; // Optional if you want 0
+    }
 
     // Initialize counts.
     PfnDatabase.TotalPageCount = totalPfnEntries;            
@@ -388,15 +396,18 @@ MiRequestPhysicalPage(
 
     // 4. All lists are empty
     // TODO: Paging (flush modified list to disk, give a page from there.)
+    // If paging fails, that means a buggy storage driver, a thread starve, or other (view the NO_PAGES_AVAILABLE 0x4D bugcheck in msdn)
+   
     // Release Global Lock
     MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
-    return (uint64_t)-1;
+    return PFN_ERROR;
 
 found:
-    // Claim while locked.
     assert((pfn->RefCount) == 0);
-    pfn->State = PfnStateTransition;
+
+    // Claim while locked.
     // Set final metadata: now "owned" by the caller.
+    pfn->State = PfnStateTransition;
     pfn->RefCount = 1;
 
     // Release Global Lock
@@ -451,7 +462,12 @@ MiReleasePhysicalPage(
     // First, access the PFN in the database to determine its staistics.
     PPFN_ENTRY pfn = INDEX_TO_PPFN(PfnIndex);
 
+#ifdef DEBUG
+    char buf[144];
+    ksnprintf(buf, sizeof(buf), "PFN Given to MiReleasePhysicalPage is NOT a valid PFN in DB. Pfn: %lu", PfnIndex);
+    assert(MiIsValidPfn(PfnIndex), buf);
     assert((pfn->RefCount) > 0, "Refcount is 0 while releasing. Double Free");
+#endif
 
     if (InterlockedDecrementU32(&pfn->RefCount) == 0) {
         // This is the last reference to the page, store it back in the list.
@@ -479,6 +495,22 @@ MiReleasePhysicalPage(
                 // Dirty bit is not set, we throw it to the standby list.
                 IRQL oldIrql;
                 pfn->State = PfnStateStandby;
+
+                // Grab the PTE address now, BEFORE we touch the linked list
+                PMMPTE SavedPteAddress = pfn->Descriptor.Mapping.PteAddress;
+
+                // Set the PTE to transition state using our safe copy of the address
+                if (SavedPteAddress) {
+                    // This if should always pass, unless we are dealing with release of pages that don't have any PTE's associated with them. (that we set in MI_WRITE_PTE that is)
+                    // Like the BOOT_INFO physical frame, even though it does have a PTE associated with it, it is not written in the PFN Database, as it was set by the bootloader.
+                    // Check the MiMoveUefiDataToHigherHalf function.
+                    bool ok = MiAtomicSetTransitionPte(SavedPteAddress, PPFN_TO_INDEX(pfn));
+                    UNREFERENCED_PARAMETER(ok);
+                }
+
+                // Now it is safe to put the PFN back into list, since now we are allowed to overwrite the union.
+                // Before, MiAtomicSetTransitionPte was given an overwritten pte address (which was the flink of the pfn itself)
+                // Corrupting the PFN List.
                 MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
                 InsertTailList(&PfnDatabase.StandbyPageList.ListEntry, &pfn->Descriptor.ListEntry);
 
@@ -486,21 +518,20 @@ MiReleasePhysicalPage(
                 InterlockedIncrementU64(&PfnDatabase.StandbyPageList.Count);
                 InterlockedIncrementU64(&PfnDatabase.AvailablePages);
 
-                // Set PTE as transition (compare-exchange)
-                bool ok = MiAtomicSetTransitionPte(pfn->Descriptor.Mapping.PteAddress, PPFN_TO_INDEX(pfn));
-                UNREFERENCED_PARAMETER(ok);
-
                 MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
             }
         }
     }
 }
 
+#ifdef DEBUG
 #ifndef _MSC_VER
 asm(".global MiReleasePhysicalPage_end\n"
     "MiReleasePhysicalPage_end:\n");
 #endif
+#endif
 
+#ifdef DEBUG
 bool
 MiIsWithinBoundsOfReleasePhysicalPage(
     void* VirtualAddress
@@ -514,6 +545,7 @@ MiIsWithinBoundsOfReleasePhysicalPage(
     uintptr_t e = (uintptr_t)&MiReleasePhysicalPage_end;
     return (a >= s) && (a < e);
 }
+#endif
 
 void
 MiUnlinkPageFromList(
