@@ -73,20 +73,23 @@ SECTIONS
 
   /* --- IMPORTS --- */
   . = ALIGN(8);
-  __mtimports_start = .; /* Define directly, avoid PROVIDE for safety here */
+  __mtimports_start = .; 
   
   .mtimports : AT(ADDR(.mtimports) - __image_base)
   {
       KEEP(*(.mtimports))
+  }
+  __mtimports_arr_end = .; /* Snap the end of the structs here */
+  
+  .mtimports.str : AT(ADDR(.mtimports.str) - __image_base)
+  {
       KEEP(*(.mtimports.str))
   }
-  
   __mtimports_end = .;
 
-  /* Calculate RVA and Size */
-  /* e.g. 0x12000 - 0x10000 = 0x2000 */
+  /* Calculate RVA and Size for the STRUCTS ONLY */
   PROVIDE(__mtimports_rva  = __mtimports_start - __file_start);
-  PROVIDE(__mtimports_size = __mtimports_end - __mtimports_start);
+  PROVIDE(__mtimports_size = __mtimports_arr_end - __mtimports_start);
 
   /* --- BSS --- */
   __bss_start = .;

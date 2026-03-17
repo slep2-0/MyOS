@@ -63,7 +63,7 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
     (&(PfnDatabase.PfnEntries[(size_t)(Index)]))
 #define PHYSICAL_TO_PPFN(PHYS) \
     (&PfnDatabase.PfnEntries[(size_t)((PHYS) / (uint64_t)PhysicalFrameSize)])
-#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & ~0xFFFULL)
+#define PTE_TO_PHYSICAL(PMMPTE) ((PMMPTE)->Value & 0x000FFFFFFFFFF000ULL)
 /* single-CPU build (no IPI shootdown code) */
 #ifdef MT_UP
 

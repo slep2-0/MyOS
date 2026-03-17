@@ -467,6 +467,9 @@ PsTerminateProcess(
 
 {
     // Declarations
+#ifdef DEBUG
+    gop_printf(COLOR_MAGENTA, "PsTerminateProcess called on process %p with name %s, ExitCode is %x (MTSTATUS)", Process, Process->ImageName, ExitCode);
+#endif
     PETHREAD Thread = NULL;
     MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
     bool SeenOurselves = false;

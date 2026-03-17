@@ -50,6 +50,8 @@ MtSyscallHandler(
 
 {
     // Set previous mode to user mode, this is a system call.
+    // The reason why this is set to UserMode because any pointers given to the system calls
+    // must be validated (and try except only happens when previousmode is usermode)
     MeGetCurrentThread()->PreviousMode = UserMode;
 
     // Increment system call count (cool)
