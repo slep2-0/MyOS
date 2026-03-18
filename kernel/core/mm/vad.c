@@ -438,7 +438,9 @@ MiGetRegionSizeInternal(
     if (Vad) {
         // Just return the VAD region size.
         if (AcquireLock) MsReleasePushLockShared(&Process->VadLock);
-        return Vad->EndVa - Vad->StartVa;
+
+        // + 1 since EndVa is inclusive. (StarVa = 0x1000, EndVa = 0x1FFF, not 0x2000, so EndVa - StartVa is 4095 bytes and not 4096, so we add 1)
+        return Vad->EndVa - Vad->StartVa + 1;
     }
 
     // VA, we scan the tree of the process
