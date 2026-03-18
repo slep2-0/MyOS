@@ -123,7 +123,7 @@ LdrFindEntryForModule(
 
 static
 MTSTATUS 
-LdrProcessImports(
+LdrpProcessImports(
     IN PLDR_DATA_TABLE_ENTRY ExecutableEntry,
     IN PPEB PebPointer
 )
@@ -233,12 +233,14 @@ LdrInitializeProcess(
     InsertTailList(&InitialPeb->LoaderData.LoadedModuleList, &MtdllEntry->LoadedModuleList);
 
     // Resolve its imports.
-    MTSTATUS Status = LdrProcessImports(ProcessEntry, InitialPeb);
+    MTSTATUS Status = LdrpProcessImports(ProcessEntry, InitialPeb);
 
     // In Windows when an Import fails it usually creates a MessageBox first to notify the user.
     // But we dont have that yet! :(
     if (MT_FAILURE(Status)) MtTerminateProcess(MtCurrentProcess(), Status);
 
     // Initialize the thread now.
-    LdrInitializeThread(InitialTeb, InitialPeb, EntryPoint);
+    // TODO, Change NULL to argc and argv.
+    // To be honest, I never used argc and argv in my life :)
+    LdrInitializeThread(InitialTeb, InitialPeb, EntryPoint, 0);
 }

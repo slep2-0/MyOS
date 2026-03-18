@@ -126,5 +126,6 @@ void
 LdrInitializeThread(
 	IN PTEB Teb,
 	IN PPEB Peb,
-	IN uint64_t EntryPoint
+	IN uint64_t EntryPoint,
+	IN uintptr_t ThreadParameter
 );

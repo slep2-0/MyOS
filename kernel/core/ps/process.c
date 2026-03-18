@@ -24,7 +24,6 @@
 #define USER_INITIAL_STACK_TOP USER_VA_END
 
 #define MTDLL_TARGET_ENTRY "LdrInitializeProcess"
-#define MTDLL_PATH "mtdll.mtdll" // root dir
 #define MAX_EXPORTED_FUNC_NAME 256
 extern EPROCESS SystemProcess;
 
@@ -32,6 +31,17 @@ uintptr_t MmSystemRangeStart = PhysicalMemoryOffset; // Changed to PhysicalMemor
 uintptr_t MmHighestUserAddress = USER_VA_END;
 uintptr_t MmUserStartAddress = USER_VA_START;
 uintptr_t MmUserProbeAddress = 0x00007FFFFFFF0000;
+
+// Define a structure to hold our cached exports
+typedef struct _MTDLL_CACHE_ENTRY {
+    char RoutineName[MAX_EXPORTED_FUNC_NAME];
+    void* RoutineRva;
+} MTDLL_CACHE_ENTRY;
+
+// Global cache variables
+bool PsMtdllRvasSaved = false;                 // Flag to track if cache is built
+size_t PsMtdllExportCount = 0;                 // How many valid exports we actually cached
+MTDLL_CACHE_ENTRY* PsMtdllExportCache = NULL;  // Pointer to our dynamic cache array
 
 static 
 bool 
@@ -74,13 +84,28 @@ ReadStringFromFile(PFILE_OBJECT FileObject, uint64_t off, char* buf, size_t buf_
     return 0;
 }
 
-// This finds LdrInitializeProcess inside of the MTDLL Export table.
-static
+// This finds the routine inside of the MTDLL Export table, with memory caching.
 void*
 PspFindMtdllEntry(
-    IN PFILE_OBJECT MtdllObject
+    IN PFILE_OBJECT MtdllObject,
+    IN const char* RoutineName
 )
 {
+    // If already cached use it.
+    if (PsMtdllRvasSaved && PsMtdllExportCache != NULL) {
+        for (size_t i = 0; i < PsMtdllExportCount; ++i) {
+            if (kstrcmp(PsMtdllExportCache[i].RoutineName, RoutineName) == 0) {
+                return PsMtdllExportCache[i].RoutineRva;
+            }
+        }
+        return NULL; // Cache exists, but the requested routine isn't in it
+    }
+
+    // No cache yet, file object required.
+    if (MtdllObject == NULL) {
+        return NULL;
+    }
+
     MTE_HEADER hdr;
     size_t br;
     MTSTATUS st;
@@ -93,46 +118,53 @@ PspFindMtdllEntry(
         return NULL;
     }
 
-    // Null checks
     if (hdr.exports_rva == 0 || hdr.exports_size < sizeof(MT_EXPORT_ENTRY)) return NULL;
 
     size_t max_entries = hdr.exports_size / sizeof(MT_EXPORT_ENTRY);
     if (max_entries == 0) return NULL;
 
+    // Allocate memory for the cache based on max_entries
+    PsMtdllExportCache = (MTDLL_CACHE_ENTRY*)MmAllocatePoolWithTag(NonPagedPool, max_entries * sizeof(MTDLL_CACHE_ENTRY), 'CACH');
+    if (PsMtdllExportCache == NULL) {
+        return NULL; // Allocation failed, bail out
+    }
+
     MT_EXPORT_ENTRY entry;
     char namebuf[MAX_EXPORTED_FUNC_NAME];
+    void* requested_rva = NULL; // Keep track of the one the user actually asked for
 
+    // Loop through the disk entries and save.
     for (size_t i = 0; i < max_entries; ++i) {
         uint64_t entry_off = hdr.exports_rva + (uint64_t)(i * sizeof(MT_EXPORT_ENTRY));
 
-        /* read the single MTEXPORT_ENTRY from file */
         st = FsReadFile(MtdllObject, entry_off, &entry, sizeof(entry), &br);
         if (MT_FAILURE(st) || br < sizeof(entry)) {
             break;
         }
 
-
-        // The entry on disk is ALREADY an RVA.
         uint64_t name_rva_calculated = entry.name_rva;
+        if (name_rva_calculated == 0 || name_rva_calculated >= MtdllObject->FileSize) continue;
 
-        if (name_rva_calculated == 0) continue;
-
-        // Safety check: Ensure RVA is within file bounds (optional but recommended)
-        if (name_rva_calculated >= MtdllObject->FileSize) continue;
-
-        // Read string using the calculated RVA/Offset
         if (ReadStringFromFile(MtdllObject, name_rva_calculated, namebuf, sizeof(namebuf)) != 0) {
             continue;
         }
 
-        // String compare with the export we want.
-        if (kstrcmp(namebuf, MTDLL_TARGET_ENTRY) == 0) {
-            // Return the RVA now.
-            return (void*)(uintptr_t)(entry.func_rva);
+        // Save the valid entry to our memory cache
+        kstrcpy(PsMtdllExportCache[PsMtdllExportCount].RoutineName, namebuf);
+        PsMtdllExportCache[PsMtdllExportCount].RoutineRva = (void*)(uintptr_t)(entry.func_rva);
+
+        // Check if this is the routine the caller originally wanted
+        if (kstrcmp(namebuf, RoutineName) == 0) {
+            requested_rva = PsMtdllExportCache[PsMtdllExportCount].RoutineRva;
         }
+
+        PsMtdllExportCount++;
     }
 
-    return NULL; /* not found */
+    // Cached, now set the global.
+    PsMtdllRvasSaved = true;
+
+    return requested_rva; // Returns the RVA if found, or NULL if it wasn't in the table
 }
 
 static
@@ -260,18 +292,28 @@ PsCreateProcess(
     if (!HandleTable) goto CleanupWithRef;
     Process->ObjectTable = HandleTable;
 
-    // Open MTDLL for the process.
-    HANDLE MtdllHandle;
-    Status = FsCreateFile("mtdll.mtdll", MT_FILE_ALL_ACCESS, &MtdllHandle);
-    if (MT_FAILURE(Status)) goto CleanupWithRef;
-    // Reference
-    PFILE_OBJECT MtdllObject;
-    Status = ObReferenceObjectByHandle(MtdllHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&MtdllObject, NULL);
-    HtClose(MtdllHandle);
-    if (MT_FAILURE(Status)) goto CleanupWithRef;
+    // Open MTDLL for the process. (if cached no need)
+    PFILE_OBJECT MtdllObject = NULL;
 
-    // Find MTDLL Entrypoint now.
-    void* MtdllInitializeProcessRva = PspFindMtdllEntry(MtdllObject);
+    if (PsMtdllRvasSaved == false) {
+        // NO CACHE
+
+        HANDLE MtdllHandle;
+        Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, &MtdllHandle);
+        if (MT_FAILURE(Status)) goto CleanupWithRef;
+        // Reference
+        Status = ObReferenceObjectByHandle(MtdllHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&MtdllObject, NULL);
+        HtClose(MtdllHandle);
+        if (MT_FAILURE(Status)) goto CleanupWithRef;
+    }
+
+    // Find MTDLL Entrypoint now. (LdrInitializeProcess)
+    // MtdllObject should be NULL if cached.
+#ifdef DEBUG
+    if (PsMtdllRvasSaved) assert(MtdllObject == NULL);
+#endif
+    
+    void* MtdllInitializeProcessRva = PspFindMtdllEntry(MtdllObject, MTDLL_TARGET_ENTRY);
     if (!MtdllInitializeProcessRva) {
         // Close the mtdll file object.
         ObDereferenceObject(MtdllObject);

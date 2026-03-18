@@ -18,6 +18,7 @@ Revision History:
 
 #include "includes/mtdll.h"
 #include "includes/exports.h"
+#include "includes/errorhandlingapi.h"
 
 void*
 VirtualAlloc(
@@ -89,6 +90,7 @@ void* VirtualAllocEx(
         Status = MtAllocateVirtualMemory(ProcessHandle, BaseAddress, AllocationSize, AllocationType);
     }
 
+    SetLastError(MtStatusToLastError(Status));
     if (MT_SUCCEEDED(Status)) {
         return Address;
     }
@@ -115,5 +117,8 @@ VirtualQueryEx(
 
 {
     // Call kernel.
-    return MT_SUCCEEDED(MtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformation));
+    MTSTATUS Status = MtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformation);
+    SetLastError(MtStatusToLastError(Status));
+
+    return MT_SUCCEEDED(Status);
 }

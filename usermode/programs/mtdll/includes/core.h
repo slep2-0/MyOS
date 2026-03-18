@@ -1,4 +1,5 @@
 #pragma once
+#include "annotations.h"
 
 typedef struct _SINGLE_LINKED_LIST {
     struct _SINGLE_LINKED_LIST* Next;

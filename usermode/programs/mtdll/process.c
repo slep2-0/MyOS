@@ -18,6 +18,7 @@ Revision History:
 
 #include "includes/mtdll.h"
 #include "includes/exports.h"
+#include "includes/errorhandlingapi.h"
 
 HANDLE
 OpenProcess(
@@ -29,6 +30,8 @@ OpenProcess(
     // Call kernel.
     HANDLE OutHandle = MT_INVALID_HANDLE;
     MTSTATUS Status = MtOpenProcess(ProcessId, &OutHandle, DesiredAccess);
+
+    SetLastError(MtStatusToLastError(Status));
     if (MT_FAILURE(Status)) return MT_INVALID_HANDLE;
 
     // Return handle.
@@ -43,9 +46,8 @@ TerminateProcess(
 
 {
     // Since we dont have termination ports for a process (so we can feed the exit code in), we assume exit code is MTSTATUS
-    if (MT_FAILURE(MtTerminateProcess(ProcessHandle, ExitCode))) {
-        return false;
-    }
+    MTSTATUS Status = MtTerminateProcess(ProcessHandle, ExitCode);
+    SetLastError(MtStatusToLastError(Status));
 
-    return true;
+    return MT_SUCCEEDED(Status);
 }

@@ -58,3 +58,7 @@ MT_IMPORT "mtdll.mtdll", VirtualQueryEx
 MT_IMPORT "mtdll.mtdll", CreateFile
 MT_IMPORT "mtdll.mtdll", WriteFile
 MT_IMPORT "mtdll.mtdll", ReadFile
+
+/* Error Handling */
+MT_IMPORT "mtdll.mtdll", GetLastError
+MT_IMPORT "mtdll.mtdll", SetLastError

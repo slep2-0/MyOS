@@ -1,5 +1,6 @@
 // Include standard header.
 #include "../../headers/MatanelOS.h"
+#include "../../headers/mtstatus.h"
 
 int main(void) {
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
@@ -46,7 +47,8 @@ int main(void) {
     goto success;
 
 failure:
-    // todo GetLastError
+    volatile ERROR_CODE Err = GetLastError();
+    Err = Err + 1; // Modify the value so its easier to track through disassembly.
     TerminateProcess(MtCurrentProcess(), ExitCode);
 success:
     while (true) {

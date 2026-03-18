@@ -58,4 +58,8 @@ typedef TRAP_FRAME* PTRAP_FRAME;
 typedef int32_t HANDLE, * PHANDLE;
 typedef uint32_t ACCESS_MASK;
 
+struct _FILE_OBJECT;
+typedef struct _FILE_OBJECT FILE_OBJECT;
+typedef FILE_OBJECT* PFILE_OBJECT;
+
 #endif // MATANEL_CORE_H

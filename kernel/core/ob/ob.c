@@ -410,7 +410,7 @@ ObCreateHandleForObject(
 
     Routine description:
 
-       Creates a handle in the current process's handle table for the specified Object.
+       Creates a handle in the current process's handle table for the specified Object and references the object.
 
     Arguments:
 

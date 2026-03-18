@@ -54,3 +54,7 @@ EXPORT LdrInitializeProcess, "LdrInitializeProcess"
 
 /* thrdldr.c */
 EXPORT LdrInitializeThread, "LdrInitializeThread"
+
+/* error.c */
+EXPORT GetLastError, "GetLastError"
+EXPORT SetLastError, "SetLastError"

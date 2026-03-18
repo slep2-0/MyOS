@@ -88,6 +88,8 @@ typedef enum _PS_PHASE_ROUTINE {
 
 #define MT_PROCESS_ALL_ACCESS         0x03FF  // Everything above
 
+#define MTDLL_PATH "mtdll.mtdll" // root dir
+
 typedef enum _PROCESS_FLAGS {
     ProcessBreakOnTermination = (1 << 0),
     ProcessBeingTerminated = (1 << 1),
@@ -378,6 +380,11 @@ PsFreeCid(
     IN HANDLE Cid
 );
 
+void*
+PspFindMtdllEntry(
+    IN PFILE_OBJECT MtdllObject,
+    IN const char* RoutineName
+);
 
 // Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE

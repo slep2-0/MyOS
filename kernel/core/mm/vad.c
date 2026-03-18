@@ -403,6 +403,7 @@ MiFindVad(
     Routine description:
 
         Finds a VAD that contains the given virtual address in it.
+        Holds Lock.
 
     Arguments:
 
@@ -498,6 +499,8 @@ MiGetRegionSize(
         (VA GIVEN)
         If VA is allocated, same as VAD.
         If its not allocated, we return the region size up to the next region that is not free.
+
+        Holds Lock.
 
     Arguments:
 

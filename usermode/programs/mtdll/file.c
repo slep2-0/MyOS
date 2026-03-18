@@ -18,6 +18,7 @@ Revision History:
 
 #include "includes/mtdll.h"
 #include "includes/exports.h"
+#include "includes/errorhandlingapi.h"
 
 HANDLE
 CreateFile(
@@ -31,6 +32,8 @@ CreateFile(
 
     // Call kernel
     MTSTATUS Status = MtCreateFile(FileName, DesiredAccess, &OutHandle);
+
+    SetLastError(MtStatusToLastError(Status));
     if (MT_FAILURE(Status)) return MT_INVALID_HANDLE;
 
     // Return handle if it got updated.
@@ -50,6 +53,7 @@ WriteFile(
     // Call kernel, retrieve status.
     MTSTATUS Status = MtWriteFile(FileHandle, FileOffset, Buffer, BufferSize, BytesWritten);
     
+    SetLastError(MtStatusToLastError(Status));
     return MT_SUCCEEDED(Status);
 }
 
@@ -67,5 +71,6 @@ ReadFile(
     // Call kernel, retrieve status.
     MTSTATUS Status = MtReadFile(FileHandle, FileOffset, Buffer, BufferSize, BytesRead);
 
+    SetLastError(MtStatusToLastError(Status));
     return MT_SUCCEEDED(Status);
 }

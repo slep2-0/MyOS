@@ -151,7 +151,23 @@ typedef struct _MEMORY_BASIC_INFORMATION {
     USER_ALLOCATION_TYPE Protection;
 } MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
 
-// System calls. (TODO mtdll.mtdll, funny name)
+FORCEINLINE
+PTEB 
+NtCurrentTeb(
+    void
+)
+
+{
+    void* teb;
+    __asm__ volatile (
+        "rdgsbase %0"
+        : "=r"(teb)
+        );
+    return (PTEB)teb;
+}
+
+#define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
+
 MTSTATUS
 MtAllocateVirtualMemory(
     IN HANDLE Process,

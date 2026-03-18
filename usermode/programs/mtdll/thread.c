@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "includes/mtdll.h"
+#include "includes/errorhandlingapi.h"
 
 bool
 TerminateThread(
@@ -27,6 +28,8 @@ TerminateThread(
 {
     // Assume ExitStatus is MTSTATUS for now, we need termination ports for custom statuses.
     MTSTATUS Status = MtTerminateThread(ThreadHandle, ExitStatus);
+
+    SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);
 }

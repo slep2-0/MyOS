@@ -10,6 +10,7 @@
 
 #define THREAD_STACK_SIZE (1024*24) // 24 KiB
 #define THREAD_ALIGNMENT 16
+#define MTDLL_THREAD_ROUTINE "LdrInitializeThread"
 
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
@@ -103,8 +104,6 @@ PsCreateThread(
     kmemset(&ContextFrame, 0, sizeof(TRAP_FRAME));
 
     ContextFrame.rsp = (uint64_t)Thread->InternalThread.StackBase;
-    ContextFrame.rip = (uint64_t)EntryPoint; // Entry point parameter should be removed when mtdll comes around, as it should handle new thread creations
-    ContextFrame.rdi = (uint64_t)ThreadParameter;
     ContextFrame.rflags = USER_RFLAGS;
     ContextFrame.cs = USER_CS;
     ContextFrame.ss = USER_SS;
@@ -120,6 +119,7 @@ PsCreateThread(
     Status = MmCreateTeb(Thread, (void**) & Teb);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
+    // Attach to process address space so we can bring in pageable memory.
     APC_STATE ApcState;
     MeAttachProcess(&ParentProcess->InternalProcess, &ApcState);
 
@@ -157,12 +157,53 @@ PsCreateThread(
         Trap->rip = (uint64_t)MtdllEntrypoint;
     }
     else {
-        // There is a process main thread, this thread's return address must be to ExitThread(), since after the function return of
-        // EntryPoint (if it returns), it will POP an invalid value from the stack to return, and so a probable page fault and termination
-        // of thread (or process, havent decided yet, look at MiPageFault if it updated)
-        // FIXME.
-        // (main threads pop back to crt0 runtime, where ExitProcess is ran)
-        // Set MTDLL 
+        // This is a process new thread, set execution entrypoint to LdrInitializeThread.
+        // Since a thread is already created, this means the entries are already cached in memory
+        // so a file object isnt required.
+        void* LdrInitializeThreadRva = PspFindMtdllEntry(NULL, MTDLL_THREAD_ROUTINE);
+
+        if (!LdrInitializeThreadRva) {
+            Status = MT_NOT_FOUND;
+            goto CleanupWithRef;
+        }
+
+        uintptr_t LdrInitializeThreadAddress = 0;
+        
+        // Try to find MTDLL base in memory using the PEB.
+        try {
+            PPEB Peb = ParentProcess->Peb;
+            
+            PDOUBLY_LINKED_LIST Head = &Peb->LoaderData.LoadedModuleList;
+            PDOUBLY_LINKED_LIST Current = Peb->LoaderData.LoadedModuleList.Flink;
+
+            while (Head != Current) {
+                LDR_DATA_TABLE_ENTRY* Entry = CONTAINING_RECORD(Current, LDR_DATA_TABLE_ENTRY, LoadedModuleList);
+                
+                if (kstrcmp(Entry->FullName, MTDLL_PATH) == 0) {
+                    // This is MTDLL, add base + entry.
+                    LdrInitializeThreadAddress = (uintptr_t)Entry->Base + (uintptr_t)LdrInitializeThreadRva;
+                    break;
+                }
+            }
+
+        } except{
+            Status = GetExceptionCode();
+            goto CleanupWithRef;
+        }
+        end_try;
+
+        if (!LdrInitializeThreadAddress) {
+            Status = MT_NOT_FOUND;
+            goto CleanupWithRef;
+        }
+
+        // Address found, set it to RIP.
+        PTRAP_FRAME Trap = &Thread->InternalThread.TrapRegisters;
+        Trap->rip = (uint64_t)LdrInitializeThreadAddress;
+        Trap->rdi = (uint64_t)Teb; // First argument, address of Teb in UM.
+        Trap->rsi = (uint64_t)ParentProcess->Peb; // Second argument, address of Peb in UM.
+        Trap->rdx = (uint64_t)EntryPoint; // Third argument, the thread's entrypoint.
+        Trap->rcx = (uint64_t)ThreadParameter; // Fourth argument, the thread's parameter.
     }
 
     // Create a handle for the thread (and place it in the process's handle table).
@@ -171,12 +212,13 @@ PsCreateThread(
     
     // Add to list of all threads in the parent process. (acquire its push lock)
     MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
-
     InsertTailList(&ParentProcess->AllThreads, &Thread->ThreadListEntry);
     ParentProcess->NumThreads++;
-
     MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
+
+    // Successful.
     Status = MT_SUCCESS;
+
     // Insert thread to processor queue.
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
 
