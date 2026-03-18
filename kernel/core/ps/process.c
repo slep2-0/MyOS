@@ -292,30 +292,22 @@ PsCreateProcess(
     if (!HandleTable) goto CleanupWithRef;
     Process->ObjectTable = HandleTable;
 
-    // Open MTDLL for the process. (if cached no need)
+    // Open MTDLL for the process. (ALWAYS needed to map it into memory, code below also uses it)
     PFILE_OBJECT MtdllObject = NULL;
+    HANDLE MtdllHandle;
 
-    if (PsMtdllRvasSaved == false) {
-        // NO CACHE
+    Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, &MtdllHandle);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
 
-        HANDLE MtdllHandle;
-        Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, &MtdllHandle);
-        if (MT_FAILURE(Status)) goto CleanupWithRef;
-        // Reference
-        Status = ObReferenceObjectByHandle(MtdllHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&MtdllObject, NULL);
-        HtClose(MtdllHandle);
-        if (MT_FAILURE(Status)) goto CleanupWithRef;
-    }
+    // Reference the handle
+    Status = ObReferenceObjectByHandle(MtdllHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&MtdllObject, NULL);
+    HtClose(MtdllHandle);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
 
-    // Find MTDLL Entrypoint now. (LdrInitializeProcess)
-    // MtdllObject should be NULL if cached.
-#ifdef DEBUG
-    if (PsMtdllRvasSaved) assert(MtdllObject == NULL);
-#endif
-    
+    // Find MTDLL Entrypoint now. 
+    // (PspFindMtdllEntry will safely use the cache and ignore MtdllObject if PsMtdllRvasSaved is true)
     void* MtdllInitializeProcessRva = PspFindMtdllEntry(MtdllObject, MTDLL_TARGET_ENTRY);
     if (!MtdllInitializeProcessRva) {
-        // Close the mtdll file object.
         ObDereferenceObject(MtdllObject);
         goto CleanupWithRef;
     }
@@ -589,6 +581,8 @@ PsDeleteProcess(
     if (Process->SectionHandle) {
         HtClose(Process->SectionHandle);
     }
+
+    // TODO Is this needed?????
     if (Process->MtdllHandle) {
         HtClose(Process->MtdllHandle);
     }

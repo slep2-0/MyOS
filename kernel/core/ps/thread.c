@@ -160,6 +160,7 @@ PsCreateThread(
         // This is a process new thread, set execution entrypoint to LdrInitializeThread.
         // Since a thread is already created, this means the entries are already cached in memory
         // so a file object isnt required.
+        assert(false, "testremoveme");
         void* LdrInitializeThreadRva = PspFindMtdllEntry(NULL, MTDLL_THREAD_ROUTINE);
 
         if (!LdrInitializeThreadRva) {
@@ -184,6 +185,8 @@ PsCreateThread(
                     LdrInitializeThreadAddress = (uintptr_t)Entry->Base + (uintptr_t)LdrInitializeThreadRva;
                     break;
                 }
+
+                Current = Current->Flink;
             }
 
         } except{
