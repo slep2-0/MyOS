@@ -981,6 +981,14 @@ MiFindVad(
 );
 
 MUST_USE_RESULT
+PMMVAD
+MiFindVadInternal(
+    IN  PEPROCESS Process,
+    IN  uintptr_t VirtualAddress,
+    IN  bool AcquireLock
+);
+
+MUST_USE_RESULT
 uintptr_t
 MmFindFreeAddressSpace(
     IN  PEPROCESS Process,
@@ -995,6 +1003,21 @@ MmIsAddressRangeFree(
     PEPROCESS Process,
     uintptr_t StartVa,
     uintptr_t EndVa
+);
+
+size_t
+MiGetRegionSize(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process
+);
+
+size_t
+MiGetRegionSizeInternal(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process,
+    IN bool AcquireLock
 );
 
 // module: va.c

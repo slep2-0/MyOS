@@ -25,6 +25,63 @@ Revision History:
 #include "../../includes/fs.h"
 #include "../../assert.h"
 
+static
+VAD_FLAGS
+MtpUserAllocationTypeToVadFlags(
+    IN USER_ALLOCATION_TYPE AllocationType
+)
+
+{
+    switch (AllocationType) {
+        case PAGE_EXECUTE_READWRITE:
+            return VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE;
+        case PAGE_EXECUTE_READ:
+            return VAD_FLAG_EXECUTE | VAD_FLAG_READ;
+        case PAGE_READWRITE:
+            return VAD_FLAG_READ | VAD_FLAG_WRITE;
+        case PAGE_READONLY:
+            return VAD_FLAG_READ;
+        case PAGE_NOACCESS:
+            return VAD_FLAG_RESERVED;
+    }
+
+    return VAD_FLAG_NONE;
+}
+
+static
+USER_ALLOCATION_TYPE
+MtpVadFlagsToUserAllocationType(
+    IN VAD_FLAGS VadFlags
+)
+{
+    if ((VadFlags & (VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE)) ==
+        (VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE))
+    {
+        return PAGE_EXECUTE_READWRITE;
+    }
+    else if ((VadFlags & (VAD_FLAG_EXECUTE | VAD_FLAG_READ)) ==
+        (VAD_FLAG_EXECUTE | VAD_FLAG_READ))
+    {
+        return PAGE_EXECUTE_READ;
+    }
+    else if ((VadFlags & (VAD_FLAG_READ | VAD_FLAG_WRITE)) ==
+        (VAD_FLAG_READ | VAD_FLAG_WRITE))
+    {
+        return PAGE_READWRITE;
+    }
+    else if (VadFlags & VAD_FLAG_READ)
+    {
+        return PAGE_READONLY;
+    }
+    else if (VadFlags & VAD_FLAG_RESERVED)
+    {
+        return PAGE_NOACCESS;
+    }
+
+    // Fallback if no match found
+    return PAGE_NOACCESS;
+}
+
 MTSTATUS
 MtAllocateVirtualMemory(
     IN HANDLE ProcessHandle,
@@ -556,4 +613,109 @@ MtTerminateThread(
 
     // Call internal function.
     return PsTerminateThread(Thread, ExitStatus);
+}
+
+MTSTATUS
+MtQueryVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+)
+
+/*++
+
+    Routine description:
+
+        System call for querying virtual memory pages.
+        Note that this supports only user mode pages.
+
+    Arguments:
+
+        [IN]    HANDLE ProcessHandle - Handle for the process to query memory for. Use MtCurrentProcess to signify the current process
+        [IN]    void* BaseAddress - The base address of the memory region. This value is rounded down to the nearest page boundary.
+        [OUT]   PMEMORY_BASIC_INFORMATION MemoryInformation - Pointer to buffer that receives the specified information of the page(s).
+
+    Return Values:
+
+        Various MTSTATUS Status codes.
+
+--*/
+
+{
+    assert((uintptr_t)BaseAddress <= MmHighestUserAddress);
+    if (!MI_IS_CANONICAL_ADDR(BaseAddress) || (uintptr_t)BaseAddress > MmHighestUserAddress) return MT_INVALID_ADDRESS;
+
+    // Check if the process is ours.
+    PEPROCESS Process;
+    MTSTATUS Status;
+    
+    if (ProcessHandle == MtCurrentProcess()) {
+        // Our process.
+        Process = PsGetCurrentProcess();
+
+        // Reference it so it doesnt die.
+        if (!ObReferenceObject(Process)) {
+            // Process has died mid syscall.
+            return MT_PROCESS_IS_TERMINATING;
+        }
+
+        Status = MT_SUCCESS;
+    }
+    else {
+        // Remote process, reference.
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_QUERY_INFO,
+            PsProcessType,
+            (void**)&Process,
+            NULL
+        );
+    }
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Check if the buffer supplied is all good before actually checking protection.
+    Status = ProbeForRead(MemoryInformation, sizeof(MEMORY_BASIC_INFORMATION), _Alignof(MEMORY_BASIC_INFORMATION));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Round the address to the nearest page boundary.
+    uintptr_t RoundedAddress = (uintptr_t)PAGE_ALIGN(BaseAddress);
+
+    // Acquire the VAD lock before we find the vad and do the region size check.
+    // Since we cannot have the VAD paged out (freed) mid operations due to another thread running MmFreeVirtualMemory.
+    MsAcquirePushLockShared(&Process->VadLock);
+
+    // Check for the VAD.
+    MEMORY_BASIC_INFORMATION BasicInfo;
+    PMMVAD Vad = MiFindVadInternal(Process, RoundedAddress, false);
+
+    // NO VAD
+    if (!Vad) {
+        // The page is not allocated.
+        BasicInfo.BaseAddress = (void*)RoundedAddress;
+        BasicInfo.Protection = (USER_ALLOCATION_TYPE)UINT32_MAX; // undefined.
+        BasicInfo.RegionSize = MiGetRegionSizeInternal(NULL, RoundedAddress, Process, false);
+    }
+
+    // VAD
+    else {
+        // Page is allocated.
+        BasicInfo.BaseAddress = (void*)Vad->StartVa;
+        BasicInfo.Protection = MtpVadFlagsToUserAllocationType(Vad->Flags);
+        BasicInfo.RegionSize = MiGetRegionSizeInternal(Vad, 0, Process, false);
+    }
+
+    // Release VAD Lock.
+    MsReleasePushLockShared(&Process->VadLock);
+
+    // Return it to the user.
+    try {
+        kmemcpy(MemoryInformation, &BasicInfo, sizeof(MEMORY_BASIC_INFORMATION));
+    } except{
+        return GetExceptionCode();
+    }
+    end_try;
+
+    // Successful.
+    return MT_SUCCESS;
 }

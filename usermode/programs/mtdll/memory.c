@@ -95,3 +95,25 @@ void* VirtualAllocEx(
 
     return NULL;
 }
+
+bool
+VirtualQuery(
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+)
+
+{
+    return VirtualQueryEx(MtCurrentProcess(), BaseAddress, MemoryInformation);
+}
+
+bool
+VirtualQueryEx(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+)
+
+{
+    // Call kernel.
+    return MT_SUCCEEDED(MtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformation));
+}

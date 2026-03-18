@@ -139,3 +139,18 @@ MtTerminateThread:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtQueryVirtualMemory(
+;     IN HANDLE ProcessHandle,
+;     IN void* BaseAddress,
+;     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+; );
+; Syscall number is 8.
+
+global MtQueryVirtualMemory
+MtQueryVirtualMemory:
+	mov rax, 8
+	mov r10, rcx
+	syscall
+	ret

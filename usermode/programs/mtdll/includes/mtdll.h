@@ -145,6 +145,12 @@ typedef enum _USER_ALLOCATION_TYPE {
     PAGE_READONLY = 0x40 // PRESENT | NX
 } USER_ALLOCATION_TYPE;
 
+typedef struct _MEMORY_BASIC_INFORMATION {
+    void* BaseAddress;
+    size_t RegionSize;
+    USER_ALLOCATION_TYPE Protection;
+} MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
+
 // System calls. (TODO mtdll.mtdll, funny name)
 MTSTATUS
 MtAllocateVirtualMemory(
@@ -201,4 +207,11 @@ MTSTATUS
 MtTerminateThread(
     IN HANDLE ThreadHandle,
     IN MTSTATUS ExitStatus
+);
+
+MTSTATUS
+MtQueryVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 );

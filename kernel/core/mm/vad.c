@@ -349,6 +349,50 @@ MiCheckVadOverlap(
 }
 
 PMMVAD
+MiFindVadInternal(
+    IN  PEPROCESS Process,
+    IN  uintptr_t VirtualAddress,
+    IN  bool AcquireLock
+)
+
+{
+    if (AcquireLock) {
+        // Acquire the reading lock for the process.
+        MsAcquirePushLockShared(&Process->VadLock);
+    }
+
+    PMMVAD current = Process->VadRoot;
+
+    while (current) {
+        // Is the virtual address BEFORE this VAD
+        if (VirtualAddress < current->StartVa) {
+            current = current->LeftChild;
+        }
+
+        // Is the virtual address AFTER this VAD
+        else if (VirtualAddress > current->EndVa) {
+            current = current->RightChild;
+        }
+
+        // Then, it must be inside of this VAD.
+        else {
+            if (AcquireLock) {
+                MsReleasePushLockShared(&Process->VadLock);
+            }
+
+            return current;
+        }
+    }
+
+    // Not found.
+    if (AcquireLock) {
+        MsReleasePushLockShared(&Process->VadLock);
+    }
+
+    return NULL;
+}
+
+PMMVAD
 MiFindVad(
     IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
@@ -372,32 +416,106 @@ MiFindVad(
 --*/
 
 {
-    // Acquire the reading lock for the process.
-    MsAcquirePushLockShared(&Process->VadLock);
+    return MiFindVadInternal(Process, VirtualAddress, true);
+}
 
+size_t
+MiGetRegionSizeInternal(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process,
+    IN bool AcquireLock
+)
+
+{
+    if (!Process) return MT_INVALID_PARAM;
+
+    if (AcquireLock) {
+        // Acquire VAD lock (shared)
+        MsAcquirePushLockShared(&Process->VadLock);
+    }
+
+    if (Vad) {
+        // Just return the VAD region size.
+        if (AcquireLock) MsReleasePushLockShared(&Process->VadLock);
+        return Vad->EndVa - Vad->StartVa;
+    }
+
+    // VA, we scan the tree of the process
     PMMVAD current = Process->VadRoot;
 
+    // Default to the max user address, since if we dont find any the free range is upto that addr.
+    uintptr_t closestNextVa = MmHighestUserAddress;
+
     while (current) {
-        // Is the virtual address BEFORE this VAD
         if (VirtualAddress < current->StartVa) {
+            // The VA is strictly before this VAD. 
+            // This makes the current VAD a candidate for the next allocated region.
+            if (current->StartVa < closestNextVa) {
+                closestNextVa = current->StartVa;
+            }
+
+            // Move left to see if there's a tighter upper bound
             current = current->LeftChild;
         }
-
-        // Is the virtual address AFTER this VAD
         else if (VirtualAddress > current->EndVa) {
+            // The VA is strictly after this VAD.
+            // Move right to look for higher VADs.
             current = current->RightChild;
         }
-
-        // Then, it must be inside of this VAD.
         else {
-            MsReleasePushLockShared(&Process->VadLock);
-            return current;
+            // The VA falls perfectly inside this VAD.
+            size_t size = current->EndVa - current->StartVa;
+            if (AcquireLock) MsReleasePushLockShared(&Process->VadLock);
+            return size;
         }
     }
 
-    // Not found.
-    MsReleasePushLockShared(&Process->VadLock);
-    return NULL;
+    // If we reach here, the VA is not in any allocated VAD.
+    // Return the distance from the requested VA up to the next allocated region.
+    if (AcquireLock) MsReleasePushLockShared(&Process->VadLock);
+    return closestNextVa - VirtualAddress;
+}
+
+size_t
+MiGetRegionSize(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process
+)
+
+/*++
+
+    Routine description:
+
+        Returns the region size of the VAD or VA.
+
+        (VAD GIVEN)
+        We return the region size of the comitted memory.
+
+        (VA GIVEN)
+        If VA is allocated, same as VAD.
+        If its not allocated, we return the region size up to the next region that is not free.
+
+    Arguments:
+
+        [IN OPTIONAL]    PMMVAD Vad - VAD To check the size for.
+        [IN OPTIONAL]    uintptr_t VirtualAddress - Address to check the size for.
+        [IN]             PEPROCESS Process - Process to check the VAD/Address in.
+
+    Return Values:
+
+        Region size.
+
+    Notes:
+
+        The function checks for the VAD first (if non-null)
+        So you either give a VA or a VAD.
+
+--*/
+
+{
+    return MiGetRegionSizeInternal(Vad, VirtualAddress, Process, true);
 }
 
 static

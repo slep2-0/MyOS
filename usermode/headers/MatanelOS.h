@@ -237,6 +237,12 @@ typedef enum _USER_ALLOCATION_TYPE {
 	PAGE_READONLY = 0x40 // PRESENT | NX
 } USER_ALLOCATION_TYPE;
 
+typedef struct _MEMORY_BASIC_INFORMATION {
+    void* BaseAddress;
+    size_t RegionSize;
+    USER_ALLOCATION_TYPE Protection;
+} MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
+
 extern char* (*strchr)(const char* s, int c);
 extern char* (*strncat)(char* dest, const char* src, size_t max_len);
 extern int   (*strncmp)(const char* s1, const char* s2, size_t length);
@@ -272,6 +278,17 @@ extern void* (*VirtualAllocEx)(
     IN size_t AllocationSize,
     IN USER_ALLOCATION_TYPE AllocationType
     );
+
+extern bool (*VirtualQuery)(
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+extern bool (*VirtualQueryEx)(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
 
 extern HANDLE(*CreateFile)(
     IN  const char* FileName,

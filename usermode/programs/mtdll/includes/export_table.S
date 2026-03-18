@@ -41,6 +41,8 @@ EXPORT TerminateProcess, "TerminateProcess"
 /* memory.c */
 EXPORT VirtualAlloc, "VirtualAlloc"
 EXPORT VirtualAllocEx, "VirtualAllocEx"
+EXPORT VirtualQuery, "VirtualQuery"
+EXPORT VirtualQueryEx, "VirtualQueryEx"
 
 /* file.c */
 EXPORT CreateFile, "CreateFile"

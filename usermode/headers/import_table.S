@@ -29,6 +29,9 @@
 /* IMPORTS LIST               */
 /* ========================== */
 
+/* TODO Make it only when the process uses an import, it requests its library, because this is useless right now */
+/* But for that we need compiler/linker support.  */
+
 /* String Ops */
 MT_IMPORT "mtdll.mtdll", strchr
 MT_IMPORT "mtdll.mtdll", strncat
@@ -48,6 +51,8 @@ MT_IMPORT "mtdll.mtdll", TerminateProcess
 /* Memory */
 MT_IMPORT "mtdll.mtdll", VirtualAlloc
 MT_IMPORT "mtdll.mtdll", VirtualAllocEx
+MT_IMPORT "mtdll.mtdll", VirtualQuery
+MT_IMPORT "mtdll.mtdll", VirtualQueryEx
 
 /* File I/O */
 MT_IMPORT "mtdll.mtdll", CreateFile

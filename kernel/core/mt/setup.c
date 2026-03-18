@@ -47,6 +47,7 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 5, .Handler = MtCreateFile},
     {.Num = 6, .Handler = MtClose},
     {.Num = 7, .Handler = MtTerminateThread},
+    {.Num = 8, .Handler = MtQueryVirtualMemory}
 };
 
 bool SyscallsAlreadyInitialized = false;

@@ -62,11 +62,25 @@ VirtualAlloc(
 	IN USER_ALLOCATION_TYPE AllocationType
 );
 
-void* VirtualAllocEx(
+void* 
+VirtualAllocEx(
 	IN HANDLE ProcessHandle,
 	_In_Opt _Out_Opt void** BaseAddress,
 	IN size_t AllocationSize,
 	IN USER_ALLOCATION_TYPE AllocationType
+);
+
+bool
+VirtualQuery(
+	IN void* BaseAddress,
+	OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+bool
+VirtualQueryEx(
+	IN HANDLE ProcessHandle,
+	IN void* BaseAddress,
+	OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 );
 
 // module: file.c

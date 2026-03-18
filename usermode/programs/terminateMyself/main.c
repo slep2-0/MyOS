@@ -6,7 +6,10 @@ int main(void) {
     // If at any point we fail we will terminate the program with the status that failed.
     volatile int counter = 0;
     HANDLE FileHandle = CreateFile("group.txt", MT_FILE_ALL_ACCESS);
+    MTSTATUS ExitCode = MT_GENERAL_FAILURE;
+
     if (FileHandle == MT_INVALID_HANDLE) {
+        ExitCode = MT_INVALID_HANDLE;
         goto failure;
     }
 
@@ -16,15 +19,26 @@ int main(void) {
     // instead, we would need strlen, but my os doesnt have a user standard library yet (i plan to implement it in mtdll)
     bool Worked = WriteFile(FileHandle, 0, Hello, strlen(Hello), NULL);
     if (!Worked) {
+        ExitCode = MT_FAT32_INVALID_FILENAME;
         goto failure;
     }
 
     // Allocate.
-    void* BaseAddress = VirtualAlloc(NULL, sizeof(Hello), PAGE_EXECUTE_READWRITE);
+    void* BaseAddress = VirtualAlloc(NULL, strlen(Hello), PAGE_EXECUTE_READWRITE);
 
     // Read
-    Worked = ReadFile(FileHandle, 0, BaseAddress, sizeof(Hello), NULL);
+    Worked = ReadFile(FileHandle, 0, BaseAddress, strlen(Hello), NULL);
     if (!Worked) {
+        ExitCode = MT_ACCESS_DENIED;
+        goto failure;
+    }
+
+    // Check if the address is the same.
+    MEMORY_BASIC_INFORMATION Information;
+    bool ok = VirtualQuery(BaseAddress, &Information);
+
+    if (!ok || Information.Protection != PAGE_EXECUTE_READWRITE) {
+        ExitCode = MT_NO_MEMORY;
         goto failure;
     }
 
@@ -33,7 +47,7 @@ int main(void) {
 
 failure:
     // todo GetLastError
-    TerminateProcess(MtCurrentProcess(), MT_GENERAL_FAILURE);
+    TerminateProcess(MtCurrentProcess(), ExitCode);
 success:
     while (true) {
         counter++;
