@@ -1114,13 +1114,13 @@ MmInitSections(
 
 MTSTATUS
 MmCreateSection(
-    OUT PHANDLE SectionHandle,
+    OUT void** SectionObject,
     IN struct _FILE_OBJECT* FileObject
 );
 
 MTSTATUS
 MmMapViewOfSection(
-    IN HANDLE SectionHandle,
+    IN void* SectionObject,
     IN PEPROCESS Process,
     OUT void** EntryPointAddress,
     OUT void** BaseAddress

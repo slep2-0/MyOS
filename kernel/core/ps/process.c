@@ -313,16 +313,19 @@ PsCreateProcess(
     }
 
     // Create sections for MTDLL
-    HANDLE MtdllSection;
+    void* MtdllSection;
     Status = MmCreateSection(&MtdllSection, MtdllObject);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+    
+    // Set in process.
+    Process->MtdllSection = MtdllSection;
 
     // Map them into view.
     void* MtdllEntrypoint; // MtdllEntrypoint should be equal to base as mtdll does not have any entrypoints, like normal DLLs.
     void* MtdllBase;
     Status = MmMapViewOfSection(MtdllSection, Process, &MtdllEntrypoint , &MtdllBase);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-
+    
     // Neat assertion.
     assert(MtdllEntrypoint == MtdllBase, "Entrypoint does not match MTDLL Base, mtdll file corruption, or incorrect linking.");
 
@@ -375,22 +378,22 @@ PsCreateProcess(
     // TODO ADD ADDRESS TO WORKING SET OF PROCESS!!
 
     // Create the sections for the process.
-    HANDLE SectionHandle;
-    Status = MmCreateSection(&SectionHandle, FileObject);
+    void* SectionObject;
+    Status = MmCreateSection(&SectionObject, FileObject);
     if (MT_FAILURE(Status)) {
         // If file reference failed it would close the file handle.
         goto CleanupWithRef;
     }
 
-    // Set handle.
-    Process->SectionHandle = SectionHandle;
+    // Set process section.
+    Process->SectionObject = SectionObject;
 
     // Map them into address space.
     // Start address - entry point.
     void* StartAddress = NULL;
     // Executable base address.
     void* ExecutableBaseAddress = NULL;
-    Status = MmMapViewOfSection(SectionHandle, Process, &StartAddress, &ExecutableBaseAddress);
+    Status = MmMapViewOfSection(SectionObject, Process, &StartAddress, &ExecutableBaseAddress);
     // MmpDeleteSection closes the file handle.
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
@@ -502,7 +505,7 @@ PsTerminateProcess(
 {
     // Declarations
 #ifdef DEBUG
-    gop_printf(COLOR_MAGENTA, "PsTerminateProcess called on process %p with name %s, ExitCode is %x (MTSTATUS)", Process, Process->ImageName, ExitCode);
+    gop_printf(COLOR_MAGENTA, "**PsTerminateProcess called on process %p with name %s, ExitCode is %x (MTSTATUS)**\n", Process, Process->ImageName, ExitCode);
 #endif
     PETHREAD Thread = NULL;
     MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
@@ -578,13 +581,14 @@ PsDeleteProcess(
     InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingDeleted);
 
     // Delete section handles.
-    if (Process->SectionHandle) {
-        HtClose(Process->SectionHandle);
+    if (Process->SectionObject) {
+        ObDereferenceObject(Process->SectionObject);
+        Process->SectionObject = NULL;
     }
 
-    // TODO Is this needed?????
-    if (Process->MtdllHandle) {
-        HtClose(Process->MtdllHandle);
+    if (Process->MtdllSection) {
+        ObDereferenceObject(Process->MtdllSection);
+        Process->MtdllSection = NULL;
     }
 
     // TODO (CRITICAL FIXME) (MEMORY LEAK) Working set list delete all active VADs.
@@ -603,6 +607,7 @@ PsDeleteProcess(
         MeDetachProcess(&State);
         Process->ObjectTable = NULL;
     }
+
     // Delete its address space.
     MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);
 

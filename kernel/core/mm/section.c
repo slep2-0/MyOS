@@ -23,14 +23,14 @@ Revision History:
 
 MTSTATUS
 MmCreateSection(
-    OUT PHANDLE SectionHandle,
+    OUT void** SectionObject,
     IN struct _FILE_OBJECT* FileObject
 )
 {
     MTE_HEADER Header;
     MTSTATUS Status;
     // Assume failure.
-    *SectionHandle = 0;
+    *SectionObject = NULL;
 
     // Read the header from the file.
     Status = FsReadFile(FileObject, 0, &Header, sizeof(MTE_HEADER), NULL);
@@ -94,36 +94,28 @@ MmCreateSection(
     // This includes the file part + the BSS part.
     NewSection->ImageSize = ALIGN_UP(FileEndRVA + Header.BssSize, VirtualPageSize);
 
-    // Create a handle for the section.
-    Status = ObCreateHandleForObject(NewSection, MT_SECTION_ALL_ACCESS, SectionHandle);
+    // Set the section object as the new section.
+    *SectionObject = NewSection;
 
     // Successful!
-    // If success on ObCreateHandleForObject it would dereference the pointer count created by ObCreateObject 
-    // (cancel out the reference made by ObCreateHandleForObject).
-    // And so HandleCount == PointerCount.
-    // Else, it would destroy the section (along with the file handle).
-    ObDereferenceObject(NewSection);
     return MT_SUCCESS;
 }
 
 MTSTATUS
 MmMapViewOfSection(
-    IN HANDLE SectionHandle,
+    IN void* SectionObject,
     IN PEPROCESS Process,
     OUT void** EntryPointAddress,
     OUT void** BaseAddress
 )
 {
-    PMM_SECTION Section;
-    MTSTATUS Status = ObReferenceObjectByHandle(SectionHandle, MT_SECTION_ALL_ACCESS, MmSectionType, (void**)&Section, NULL);
-    if (MT_FAILURE(Status)) return Status;
+    PMM_SECTION Section = (PMM_SECTION)SectionObject;
 
     uintptr_t load_base = Section->PreferredBase;
 
     // Map the whole file, header + text + data.
-
     // We attempt to map the file content at the preferred base.
-    Status = MmAllocateVirtualMemory(
+    MTSTATUS Status = MmAllocateVirtualMemory(
         Process,
         (void**)&load_base,
         Section->WholeFileSection.VirtualSize,
@@ -190,7 +182,6 @@ MmMapViewOfSection(
     *EntryPointAddress = (void*)RipAddress;
 
 Cleanup:
-    ObDereferenceObject(Section);
     return Status;
 }
 

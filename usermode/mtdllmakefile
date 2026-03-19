@@ -19,7 +19,7 @@ SRCS = programs/mtdll/dllmain.c \
        programs/mtdll/includes/export_table.S \
        programs/mtdll/ldr/procldr.c \
        programs/mtdll/ldr/thrdldr.c \
-       programs/mtdll/error.c \
+	   programs/mtdll/error.c \
        syscalls/syscalls.asm
 
 # --- Toolchain (System Defaults) ----------------------------------------------

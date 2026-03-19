@@ -338,47 +338,55 @@ MiFreePageTableHierarchy(
 
     // Iterate through the indices.
     for (int i = start; i < limit; i++) {
-
         PAGE_INDEX childPfn = PFN_ERROR;
         bool isPresent = false;
         bool isLargePage = false;
 
-        // Map the table to read the entry at i
+        // Map the table
         mapping = (uint64_t*)MiMapPageInHyperspace(TablePfn, &oldIrql);
-        MMPTE pte;
-        pte.Value = mapping[i];
+        PMMPTE ptePtr = (PMMPTE)&mapping[i];
+        MMPTE pte = *ptePtr;
 
         if (pte.Hard.Present) {
             isPresent = true;
             childPfn = MiTranslatePteToPfn(&pte);
-
-            // We dont support large pages yet (or we do and I didnt update this comment)
-            // But we will scan for them anyway to prevent bugs in the future (faults and such)
             if (Level > 1 && (pte.Value & PAGE_PS)) {
                 isLargePage = true;
             }
         }
 
-        // Unmap immediately so we can use Hyperspace in the recursion
-        MiUnmapHyperSpaceMap(oldIrql);
+        if (!isPresent) {
+            MiUnmapHyperSpaceMap(oldIrql);
+            continue;
+        }
 
-        // Process the entry if it was valid
-        if (isPresent && childPfn != PFN_ERROR) {
+        // Page is present.
+        if (Level > 1 && !isLargePage) {
+            // Pointer to lower level page.
+            // I am not using MiUnmapPte since its expensive here.
+            ptePtr->Value = 0;
 
-            if (Level > 1) {
-                if (isLargePage) {
-                    // It's a 2MB or 1GB user page. Release the physical memory directly.
-                    MiReleasePhysicalPage(childPfn);
-                }
-                else {
-                    // It's a pointer to a lower-level page table. Recurse.
-                    MiFreePageTableHierarchy(childPfn, Level - 1);
-                }
-            }
-            else {
-                // The PTs, the vad should have already freed them, but if it didnt, we do it.
-                MiReleasePhysicalPage(childPfn);
-            }
+            // Unmap before recursing to free up the Hyperspace slot
+            MiUnmapHyperSpaceMap(oldIrql);
+
+            // Recurse
+            MiFreePageTableHierarchy(childPfn, Level - 1);
+        }
+        else {
+            // PT Entry or large page
+            MiUnmapPte(ptePtr);
+
+            // Unmap hyperspace now that we are done with the pointer
+            MiUnmapHyperSpaceMap(oldIrql);
+
+            // Clear the PTE mapping in PFN DB.
+            // This prevents MiReleasePhysicalPage from dereferencing adead recursive pointer from the wrong CR3 context.
+            // Since this is supposed to mostly happen in the reaper thread (kernel idle)
+            PPFN_ENTRY deadUserPage = INDEX_TO_PPFN(childPfn);
+            deadUserPage->Descriptor.Mapping.PteAddress = NULL;
+
+            // Finally, release the physical page
+            MiReleasePhysicalPage(childPfn);
         }
     }
 

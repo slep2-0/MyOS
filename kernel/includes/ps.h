@@ -124,7 +124,7 @@ typedef struct _MT_TIB {
 } MT_TIB, *PMT_TIB;
 
 typedef struct _TEB {
-    MT_TIB MtTib; // GS:[0] should point here.
+    MT_TIB MtTib; // GS:[0] should point here. (at user mode)
     uint64_t UniqueProcessId; // Current ID of this thread's process.
     uint64_t UniqueThreadId; // Current ID of this thread.
     PPEB ProcessEnvironmentBlock; // Pointer to this thread's process's PEB.
@@ -154,8 +154,8 @@ typedef struct _EPROCESS {
     // SID TODO. - User info as well, when users.
 
     PPEB Peb; // Accessible only pageable IRQL (APC_LEVEL and below), and only when process is setupped.
-    HANDLE SectionHandle; // Handle for the process section view.
-    HANDLE MtdllHandle; // SECTION Handle for MTDLL, i need alternatives.
+    void* SectionObject; // MM_SECTION Object for the process section.
+    void* MtdllSection; // MM_SECTION Object for MTDLL in the process section.
 
     // Synchorinzation for internal functions.
     struct _RUNDOWN_REF ProcessRundown; // A process rundown that is used to safely synchronize the teardown or deletion of a process, ensuring no pointer is still active & accessing it.
@@ -183,9 +183,7 @@ typedef struct _EPROCESS {
 
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
-    
     PTEB Teb;
-    struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
     HANDLE TID;           /* thread id */
     HANDLE PID;           // Thread's process PID.
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */

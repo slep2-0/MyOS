@@ -130,6 +130,31 @@ MmAccessFault(
         // Previously it returned an access violation for every time we executed wrong in user mode, which was bad.
     }
 
+    // Grab the TempPte early
+    MMPTE TempPte = *ReferencedPte;
+
+    // Handle Present pages globally first (Dirty / Accessed bit updates)
+    if (TempPte.Hard.Present) {
+        if (OperationDone == WriteOperation) {
+            // Check if the page actually has write perms.
+            if (TempPte.Hard.Write == 0) {
+                if (PreviousMode == UserMode) return MT_ACCESS_VIOLATION;
+                MeBugCheckEx(ATTEMPTED_WRITE_TO_READONLY_MEMORY, (void*)VirtualAddress, (void*)ReferencedPte, NULL, NULL);
+            }
+
+            // It has write permission, so this is just a dirty bit update.
+            MMPTE NewPte = TempPte;
+            NewPte.Hard.Dirty = 1;
+            MiAtomicExchangePte(ReferencedPte, NewPte.Value);
+            MiInvalidateTlbForVa((void*)VirtualAddress);
+            return MT_SUCCESS;
+        }
+
+        // If it was a ReadOperation on a present page, it was likely an accessed bit update.
+        // We handle setting the accessed bit here (TODO Working set, analytics, yada yada)
+        return MT_SUCCESS;
+    }
+
     // Now we check for each address in the system, and handle the request based on that.
     if (VirtualAddress >= MmSystemRangeStart) {
         if (PreviousMode == UserMode) {
@@ -137,37 +162,10 @@ MmAccessFault(
             return MT_ACCESS_VIOLATION;
         }
 
-        MMPTE TempPte = *ReferencedPte;
-
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
         if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
             // Guard pages for kernel mode do not raise an exception and fill in the PTE, this is only for user mode.
             goto BugCheck;
-        }
-
-        // PTE Is present, but we got a fault.
-        if (TempPte.Hard.Present) {
-            // Write fault to read-only memory.
-            if ((OperationDone == WriteOperation) && (TempPte.Hard.Write == 0)) {
-                MeBugCheckEx(
-                    ATTEMPTED_WRITE_TO_READONLY_MEMORY,
-                    (void*)VirtualAddress,
-                    (void*)ReferencedPte,
-                    NULL,
-                    NULL
-                );
-            }
-
-            // If we get here, it was an access/dirty update — set dirty bit if write
-            if (OperationDone == WriteOperation) {
-                // set dirty in PTE and, if needed, PFN->Dirty
-                // Prefer an atomic update: build NewPte = TempPte; NewPte.Hard.Dirty = 1; WriteValidPteAtomic(...)
-                MMPTE NewPte = TempPte;
-                NewPte.Hard.Dirty = 1;
-                MiAtomicExchangePte(ReferencedPte, NewPte.Value);
-                MiInvalidateTlbForVa((void*)VirtualAddress);
-            }
-            return MT_SUCCESS;
         }
         
         // Before any demand allocation, check IRQL.
@@ -181,7 +179,6 @@ MmAccessFault(
                 (void*)TrapFrame->rip
             );
         }
-        
 
         // PTE Isn't present, check for demand allocations.
         if (MM_IS_DEMAND_ZERO_PTE(TempPte)) {
@@ -293,8 +290,6 @@ MmAccessFault(
                 return MT_ACCESS_VIOLATION;
             }
         }
-
-        MMPTE TempPte = *ReferencedPte;
 
         // Now check for transition PTE (after checking reserved vad flag)
         // PTE Isn't present, and its a transition (USER MODE PATH) (ACCESS VIOLATION RETURN)

@@ -345,7 +345,7 @@ MeBugCheckEx (
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
     HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
-    gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
+    gop_printf(0xFFFFFF00, "Current Thread ID: %d (User Mode Thread: %s)\n", currTid, (PsGetCurrentThread()->SystemThread) ? "No" : "Yes");
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);

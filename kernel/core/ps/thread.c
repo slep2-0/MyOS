@@ -15,9 +15,7 @@
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
 #ifdef DEBUG
-    // if you are asking why i dont print the tid, its because i (fucking) hate the gop function
-    // so many stack overflows, it makes my blood boil.
-    gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread.\n");
+    gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread tid %d.\n", PsGetCurrentThread()->TID);
 #endif
     // Terminate the thread.
     assert(PsIsKernelThread(PsGetCurrentThread()) == true, "A user thread has entered kernel thread termination.");
@@ -332,6 +330,9 @@ PsTerminateThread(
 )
 
 {
+#ifdef DEBUG
+    gop_printf(COLOR_PINK, "**Terminating Thread TID %d (user mode: %d) for ExitStatus %x**\n", Thread->TID, !Thread->SystemThread, ExitStatus);
+#endif
     // Non complete function, this should queue a thread Apc to call MtTerminateThread (PspExitThread) on itself.
     // Or if it is the current thread, we just terminate ourselves.
     if (Thread == PsGetCurrentThread()) {

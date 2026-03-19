@@ -192,6 +192,14 @@ LdrInitializeProcess(
 )
 
 {
+    // Initialize GS base IMMEDIATELY so NtCurrentTeb() and SetLastError() work.
+    __asm__ volatile (
+        "wrgsbase %0"
+        :
+    : "r"(InitialTeb)
+        : "memory"
+        );
+
     // Set initial PEB LoaderData to be our process.
     // This is a very bad allocation, since virtual alloc literally takes a page no matter the allocation size, and if we are a byte above a page, another page is consumed
     // We need a heap allocator like the MmAllocatePoolWithTag in the kernel space, ill probably implement RtlAllocateHeap soon enough. (TODO)
