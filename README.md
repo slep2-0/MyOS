@@ -20,7 +20,7 @@ MatanelOS is a 64-bit SMP Compatible Operating System built from scratch, inspir
 
 ## Supported Features
 
-### Core Kernel Features
+### Core Kernel Features (please note, that as I work on the project I tend to forget to update this below)
 | Feature | Status |
 |---------|--------|
 | 64-bit Long Mode | ![✔️](https://img.shields.io/badge/status-WORKING-green) |
