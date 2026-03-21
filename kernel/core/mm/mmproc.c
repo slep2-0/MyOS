@@ -473,33 +473,45 @@ MmCreateUserStack(
     // If no stack reserve size, we use the default
     if (!StackReserveSize) StackReserveSize = MI_DEFAULT_USER_STACK_SIZE;
 
-    // Acquire the exclusive push lock for the stack.
+    // Acquire thew exclusive push lock.
     MsAcquirePushLockExclusive(&Process->AddressSpaceLock);
 
-    // Grab current hint.
+    // Save the current hint.
     uintptr_t CurrentStackHint = Process->NextStackHint;
-    
-    // Compute the end of the stack.
+
+    // Compute the desired end of the stack (and align it).
     uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
+    EndOfStack &= ~((uintptr_t)VirtualPageSize - 1);
+
     void* EndOfStackVoid = (void*)EndOfStack;
 
-    // Allocate a VAD for the address space.
-    MTSTATUS Status = MmAllocateVirtualMemory(Process, (void**) & EndOfStack, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
+    // Allocate the actual stack. 
+    MTSTATUS Status = MmAllocateVirtualMemory(Process, &EndOfStackVoid, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
     if (MT_FAILURE(Status)) goto Cleanup;
 
-    // Create a VAD for the guard page (reserved)
-    void* GuardPageEnd = (void*)(EndOfStack - VirtualPageSize);
-    Status = MmAllocateVirtualMemory(Process, (void**)&GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
+    // Capture the REAL allocated base address
+    uintptr_t RealStackBase = (uintptr_t)EndOfStackVoid;
+
+    // Create a VAD for the guard page right below the actual allocation
+    void* GuardPageEnd = (void*)(RealStackBase - VirtualPageSize);
+    Status = MmAllocateVirtualMemory(Process, &GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
     if (MT_FAILURE(Status)) goto CleanupWithVad;
 
-    // The next hint should be the end of the guard page.
+    // The next hint should be the guard page.
     Process->NextStackHint = (uintptr_t)GuardPageEnd;
-    // Success.
-    if (OutStackTop) *OutStackTop = (void*)CurrentStackHint;
+
+    // Calculate the true top of the stack
+    uintptr_t TrueStackTop = RealStackBase + StackReserveSize;
+
+    // Align to 16-bytes, then simulate the pushed return address
+    TrueStackTop &= ~0xFULL; // Force 16-byte alignment
+    TrueStackTop -= 8; // Subtract 8 bytes so (RSP % 16 == 8) on entry
+
+    if (OutStackTop) *OutStackTop = (void*)TrueStackTop;
     goto Cleanup;
 
 CleanupWithVad:
-    MmFreeVirtualMemory(Process, &EndOfStackVoid, 0, MEM_RELEASE);
+    MmFreeVirtualMemory(Process, &EndOfStackVoid, &StackReserveSize, MEM_RELEASE);
 
 Cleanup:
     MsReleasePushLockExclusive(&Process->AddressSpaceLock);

@@ -31,6 +31,7 @@ OpenProcess(
     HANDLE OutHandle = MT_INVALID_HANDLE;
     MTSTATUS Status = MtOpenProcess(ProcessId, &OutHandle, DesiredAccess);
 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
     if (MT_FAILURE(Status)) return MT_INVALID_HANDLE;
 
@@ -47,6 +48,7 @@ TerminateProcess(
 {
     // Since we dont have termination ports for a process (so we can feed the exit code in), we assume exit code is MTSTATUS
     MTSTATUS Status = MtTerminateProcess(ProcessHandle, ExitCode);
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);

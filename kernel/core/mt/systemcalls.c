@@ -176,7 +176,7 @@ MtAllocateVirtualMemory(
     }
 
     if (Flags != VAD_FLAG_NONE) {
-        Status = MmAllocateVirtualMemory(Process, KernelBaseAddressBecauseWeDontTrustUserMode, NumberOfBytes, Flags);
+        Status = MmAllocateVirtualMemory(Process, &KernelBaseAddressBecauseWeDontTrustUserMode, NumberOfBytes, Flags);
     }
     else {
         Status = MT_INVALID_PARAM;
@@ -186,9 +186,9 @@ MtAllocateVirtualMemory(
         try {
             *BaseAddress = KernelBaseAddressBecauseWeDontTrustUserMode;
         } except{
-                // I'll keep memory comitted.
-                ObDereferenceObject(Process);
-                return GetExceptionCode();
+            // I'll keep memory comitted.
+            ObDereferenceObject(Process);
+            return GetExceptionCode();
         }
         end_try;
     }

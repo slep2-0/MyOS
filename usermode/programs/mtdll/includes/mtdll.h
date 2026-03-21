@@ -158,7 +158,7 @@ typedef enum _FREE_TYPE {
 
 FORCEINLINE
 PTEB 
-NtCurrentTeb(
+MtCurrentTeb(
     void
 )
 
@@ -171,7 +171,7 @@ NtCurrentTeb(
     return (PTEB)teb;
 }
 
-#define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
+#define MtCurrentPeb() (MtCurrentTeb()->ProcessEnvironmentBlock)
 
 MTSTATUS
 MtAllocateVirtualMemory(

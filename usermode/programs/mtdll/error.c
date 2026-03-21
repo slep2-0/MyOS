@@ -7,7 +7,7 @@ ERROR_CODE GetLastError(
 
 {
 	// Return last error value from the TEB.
-	return NtCurrentTeb()->LastErrorValue;
+	return MtCurrentTeb()->LastErrorValue;
 }
 
 void SetLastError(
@@ -15,5 +15,23 @@ void SetLastError(
 )
 
 {
-	NtCurrentTeb()->LastErrorValue = dwErrorCode;
+	MtCurrentTeb()->LastErrorValue = dwErrorCode;
+}
+
+// Private MTDLL API
+
+MTSTATUS GetLastStatus(
+	void
+)
+
+{
+	return MtCurrentTeb()->LastStatusValue;
+}
+
+void SetLastStatus(
+	MTSTATUS dwStatusCode
+)
+
+{
+	MtCurrentTeb()->LastStatusValue = dwStatusCode;
 }

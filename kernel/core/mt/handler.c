@@ -19,6 +19,7 @@ Revision History:
 #include "../../includes/mt.h"
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
+#include "../../includes/mg.h"
 #include "../../mtstatus.h"
 
 extern SyscallHandler Ssdt[];
@@ -88,6 +89,8 @@ MtSyscallHandler(
     uint64_t Arg4 = TrapFrame->r10;
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
+
+    gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lu | ARG2: %lu | ARG3: %lu**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
     
     // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);

@@ -27,6 +27,7 @@ CloseHandle(
 {
     // Call kernel, retrieve status.
     MTSTATUS Status = MtClose(hObject);
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);

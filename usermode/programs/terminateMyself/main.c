@@ -5,6 +5,8 @@
 volatile int GlobalVarData = 1;
 volatile int GlobalVarBss;
 
+
+
 int main(void) {
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
     // If at any point we fail we will terminate the program with the status that failed.
@@ -42,7 +44,7 @@ int main(void) {
     bool ok = VirtualQuery(BaseAddress, &Information);
 
     if (!ok || Information.Protection != PAGE_EXECUTE_READWRITE) {
-        ExitCode = MT_NO_MEMORY;
+        //ExitCode = MT_NO_MEMORY;
         goto failure;
     }
 
@@ -67,8 +69,7 @@ int main(void) {
     goto success;
 
 failure:
-    volatile ERROR_CODE Err = GetLastError();
-    TerminateProcess(MtCurrentProcess(), Err);
+    TerminateProcess(MtCurrentProcess(), GetLastError());
 success:
     while (true) {
         counter++;

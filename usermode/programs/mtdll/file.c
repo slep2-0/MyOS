@@ -33,6 +33,7 @@ CreateFile(
     // Call kernel
     MTSTATUS Status = MtCreateFile(FileName, DesiredAccess, &OutHandle);
 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
     if (MT_FAILURE(Status)) return MT_INVALID_HANDLE;
 
@@ -53,6 +54,7 @@ WriteFile(
     // Call kernel, retrieve status.
     MTSTATUS Status = MtWriteFile(FileHandle, FileOffset, Buffer, BufferSize, BytesWritten);
     
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
     return MT_SUCCEEDED(Status);
 }
@@ -71,6 +73,7 @@ ReadFile(
     // Call kernel, retrieve status.
     MTSTATUS Status = MtReadFile(FileHandle, FileOffset, Buffer, BufferSize, BytesRead);
 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
     return MT_SUCCEEDED(Status);
 }

@@ -18,8 +18,8 @@ Revision History:
 
 #include "../includes/mtdll.h"
 #include "../includes/exports.h"
+#include "../includes/errorhandlingapi.h"
 #include "../includes/mteheader.h"
-
 
 // 1. LDR_DATA_TABLE_ENTRY of Dll.
 // 2. "WriteFile"
@@ -204,9 +204,10 @@ LdrInitializeProcess(
     // This is a very bad allocation, since virtual alloc literally takes a page no matter the allocation size, and if we are a byte above a page, another page is consumed
     // We need a heap allocator like the MmAllocatePoolWithTag in the kernel space, ill probably implement RtlAllocateHeap soon enough. (TODO)
     PLDR_DATA_TABLE_ENTRY ProcessEntry = VirtualAlloc(NULL, sizeof(LDR_DATA_TABLE_ENTRY), PAGE_READWRITE);
+
     if (!ProcessEntry) {
-        // Allocation failure, we terminate process with MT_NO_MEMORY.
-        MtTerminateProcess(MtCurrentProcess(), MT_NO_MEMORY);
+        // Allocation failure, we terminate process.
+        MtTerminateProcess(MtCurrentProcess(), GetLastStatus());
     }
 
     // Initialize the PEB list entry.
@@ -226,7 +227,7 @@ LdrInitializeProcess(
     // Now add mtdll into the PEB as well.
     PLDR_DATA_TABLE_ENTRY MtdllEntry = VirtualAlloc(NULL, sizeof(LDR_DATA_TABLE_ENTRY), PAGE_READWRITE);
     if (!MtdllEntry) {
-        MtTerminateProcess(MtCurrentProcess(), MT_NO_MEMORY);
+        MtTerminateProcess(MtCurrentProcess(), GetLastError());
     }
 
     // Set fields for mtdll.

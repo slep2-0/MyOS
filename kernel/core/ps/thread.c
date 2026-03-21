@@ -42,7 +42,9 @@ PspThreadTerminationRoutine(
 {
     UNREFERENCED_PARAMETER(Apc); UNREFERENCED_PARAMETER(NormalContext); UNREFERENCED_PARAMETER(NormalRoutine); UNREFERENCED_PARAMETER(SystemArgument1); UNREFERENCED_PARAMETER(SystemArgument2);
     // Call PspExitThread, we are terminating this thread.
-    PspExitThread(PsGetCurrentThread()->ExitStatus);
+    // We could also just run the rundown routine before tihs, which would call MmFreePool on the APC
+    // Instead of allocating one on every ITHREAD, but at the end of the day it gets allocated so..
+    PspExitThread((MTSTATUS)(uintptr_t)*SystemArgument1);
 }
 
 MTSTATUS
@@ -362,9 +364,6 @@ PsTerminateThread(
 #ifdef DEBUG
     gop_printf(COLOR_PINK, "**Terminating Thread TID %d (user mode: %d) for ExitStatus %x**\n", Thread->TID, !Thread->SystemThread, ExitStatus);
 #endif
-    
-    // Set ExitStatus
-    Thread->ExitStatus = ExitStatus;
 
     // Or if it is the current thread, we just terminate ourselves.
     if (Thread == PsGetCurrentThread()) {
@@ -402,7 +401,7 @@ PsTerminateThread(
     MsReleaseSpinlock(&IThread->ApcQueueLock, oldIrql);
 
     // Insert the final APC that will terminate the thread.
-    MeInsertQueueApc(&Thread->InternalThread.TerminationApc, NULL, NULL);
+    MeInsertQueueApc(&Thread->InternalThread.TerminationApc, (void*)(uintptr_t)ExitStatus, NULL);
 
     return MT_SUCCESS;
 }

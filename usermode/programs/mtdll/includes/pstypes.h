@@ -37,7 +37,7 @@ typedef struct _PEB_LDR_DATA {
 } PEB_LDR_DATA, * PPEB_LDR_DATA;
 
 typedef struct _PEB {
-    uint8_t  BeingDebugged;          // Flag set if process is being debugged
+    uint8_t BeingDebugged; // Flag set if process is being debugged
     void* ImageBase; // Pointer of executable entry point in memory.
     PEB_LDR_DATA LoaderData;
 } PEB, * PPEB;

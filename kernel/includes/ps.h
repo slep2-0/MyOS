@@ -34,7 +34,8 @@ Revision History:
 
 // ------------------ ENUMERATORS ------------------
 
-typedef enum _THREAD_STATE {
+typedef enum _
+ {
     THREAD_RUNNING,
     THREAD_READY,
     THREAD_BLOCKED,

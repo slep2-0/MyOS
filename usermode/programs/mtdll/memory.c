@@ -80,16 +80,22 @@ void* VirtualAllocEx(
 {
     void* Address = NULL;
     MTSTATUS Status;
-    // Call kernel.
+
     if (!BaseAddress) {
+        // Caller did not supply a BaseAddress pointer
         void* TmpAddr = NULL;
         Status = MtAllocateVirtualMemory(ProcessHandle, &TmpAddr, AllocationSize, AllocationType);
-        Address = TmpAddr;
+        Address = TmpAddr;  // safe
     }
     else {
+        // Caller provided a pointer to a pointer
         Status = MtAllocateVirtualMemory(ProcessHandle, BaseAddress, AllocationSize, AllocationType);
+        if (MT_SUCCEEDED(Status)) {
+            Address = *BaseAddress;
+        }
     }
 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
     if (MT_SUCCEEDED(Status)) {
         return Address;
@@ -118,6 +124,7 @@ VirtualQueryEx(
 {
     // Call kernel.
     MTSTATUS Status = MtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformation);
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);
@@ -149,6 +156,7 @@ VirtualProtectEx(
     void** BaseAddressPtr = &BaseAddress;
     size_t* RegionSizePtr = &RegionSize;
     MTSTATUS Status = MtProtectVirtualMemory(ProcessHandle, BaseAddressPtr, RegionSizePtr, NewProtection, OldProtection); 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);
@@ -179,6 +187,7 @@ VirtualFreeEx(
     size_t* NumberOfBytesTemp = &NumberOfBytes;
 
     MTSTATUS Status = MtFreeVirtualMemory(ProcessHandle, BaseAddressTemp, NumberOfBytesTemp, FreeType);
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);

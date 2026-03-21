@@ -29,6 +29,7 @@ TerminateThread(
     // Assume ExitStatus is MTSTATUS for now, we need termination ports for custom statuses.
     MTSTATUS Status = MtTerminateThread(ThreadHandle, ExitStatus);
 
+    SetLastStatus(Status);
     SetLastError(MtStatusToLastError(Status));
 
     return MT_SUCCEEDED(Status);
