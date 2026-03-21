@@ -154,3 +154,36 @@ MtQueryVirtualMemory:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtProtectVirtualMemory(
+;     IN HANDLE ProcessHandle,
+;     IN OUT void** BaseAddress,
+;     IN OUT size_t* RegionSize,
+;     IN USER_PROTECTION_TYPE NewProtection,
+;     OUT USER_PROTECTION_TYPE* OldProtection
+; );
+; Syscall number is 9.
+
+global MtProtectVirtualMemory
+MtProtectVirtualMemory:
+	mov rax, 9
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtFreeVirtualMemory(
+;     IN HANDLE ProcessHandle,
+;     IN OUT void** BaseAddress,
+;     IN OUT size_t* NumberOfBytes,
+;     IN enum _FREE_TYPE FreeType
+; );
+; Syscall number is 10.
+
+global MtFreeVirtualMemory
+MtFreeVirtualMemory:
+	mov rax, 10
+	mov r10, rcx
+	syscall
+	ret

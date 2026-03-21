@@ -163,7 +163,17 @@ MhHandleInterrupt (
         MeLowerIrql(oldIrql);
         break;
     case VECTOR_APC:
-        gop_printf(COLOR_RED, "APC Vector hit.\n");
+        assert(MeAreInterruptsEnabled() == false);
+        MeRaiseIrql(APC_LEVEL, &oldIrql);
+        lapic_eoi();
+
+        // Enable interrupts because APCs generally run with interrupts enabled 
+        MeEnableInterrupts(true);
+
+        MeRetireAPCs();
+
+        MeDisableInterrupts();
+        MeLowerIrql(oldIrql);
         break;
     case LAPIC_SIV_INTERRUPT:
         // just send EOI

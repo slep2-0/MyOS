@@ -131,7 +131,7 @@ MtStatusToLastError(MTSTATUS Status)
         return ERROR_OUTOFMEMORY;
 
     case MT_INVALID_ADDRESS:
-        return ERROR_NOACCESS;
+        return ERROR_INVALID_PARAMETER;
 
     case MT_IO_ERROR:
     case MT_DEVICE_ERROR:

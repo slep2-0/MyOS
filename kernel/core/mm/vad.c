@@ -106,7 +106,6 @@ MiGetBalanceFactor(
     return MiGetNodeHeight(Node->RightChild) - MiGetNodeHeight(Node->LeftChild);
 }
 
-static
 PMMVAD 
 MiAllocateVad(
     void
@@ -137,7 +136,6 @@ MiAllocateVad(
 }
 
 
-static
 void
 MiFreeVad(
     IN PMMVAD Vad
@@ -523,7 +521,6 @@ MiGetRegionSize(
     return MiGetRegionSizeInternal(Vad, VirtualAddress, Process, true);
 }
 
-static
 PMMVAD
 MiInsertVadNode(
     IN PMMVAD Node,
@@ -891,28 +888,14 @@ MmAllocateVirtualMemory(
 
     uintptr_t StartVa; 
     MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
-    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
-    // messy code below, sorry.
+
     if (BaseAddress) {
-        if (PreviousMode == UserMode) {
-            status = ProbeForRead(BaseAddress, sizeof(void*), 1);
-
-            if (MT_FAILURE(status)) {
-                return status;
-            }
-        }
-
-        try {
-            // Dereference the address given to see if we are supplied with a starting virtual address.
-            StartVa = (uintptr_t)*BaseAddress;
-        } except{
-            return GetExceptionCode();
-        }
-        end_try;
+        StartVa = (uintptr_t)*BaseAddress;
     }
     else {
         return MT_INVALID_PARAM;
     }
+
     size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
     bool checkForOverlap = true;
@@ -923,15 +906,7 @@ MmAllocateVirtualMemory(
         if (!StartVa) return MT_NOT_FOUND;
         
         // Update the newly found address.
-        if (BaseAddress) {
-            try {
-                *BaseAddress = (void*)StartVa;
-            }
-            except{
-                return GetExceptionCode();
-            }
-            end_try;
-        }
+        *BaseAddress = (void*)StartVa;
         
         // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.
         checkForOverlap = false;
@@ -993,69 +968,103 @@ MmIsAddressRangeFree(
 MTSTATUS
 MmFreeVirtualMemory(
     IN PEPROCESS Process,
-    IN void* BaseAddress
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
 )
-
-/*++
-
-    Routine description:
-
-        Releases virtual memory allocated by MmAllocateVirtualMemory.
-
-    Arguments:
-
-        [IN]    PEPROCESS Process - Process to allocate memory for
-        [IN]    void* BaseAddress - The base address to release memory, supplied from/to MmAllocateVirtualMemory.
-
-    Return Values:
-
-        Various MTSTATUS Status code.
-
---*/
-
 {
     MTSTATUS status = MT_GENERAL_FAILURE;
-    uintptr_t va = (uintptr_t)BaseAddress;
+    uintptr_t FreeStart = 0;
+    size_t AlignedBytes = 0;
+    uintptr_t FreeEnd = 0;
+
+    // Resolve memory ranges and validate parameters
+    if (FreeType == MEM_DECOMMIT) {
+        FreeStart = (uintptr_t)PAGE_ALIGN(BaseAddress);
+        AlignedBytes = ALIGN_UP(*NumberOfBytes, VirtualPageSize);
+        if (AlignedBytes == 0) return MT_INVALID_PARAM;
+        FreeEnd = FreeStart + AlignedBytes - 1;
+    }
+    else if (FreeType == MEM_RELEASE) {
+        FreeStart = (uintptr_t)PAGE_ALIGN(BaseAddress);
+        // NumberOfBytes is ignored for MEM_RELEASE, the entire VAD is freed based on the node.
+    }
+    else {
+        return MT_INVALID_PARAM;
+    }
 
     // Acquire rundown protection
     if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
         return MT_INVALID_STATE;
     }
 
-    // Acquire VAD lock
+    // Acquire VAD lock exclusive
     MsAcquirePushLockExclusive(&Process->VadLock);
 
-    PMMVAD VadToFree = MiFindVad(Process, va);
-
-    // Check if its the valid VAD and if the base address is the start of the VAD region.
-    if (VadToFree == NULL || VadToFree->StartVa != va) {
-        status = MT_INVALID_PARAM;
+    PMMVAD VadToFree = MiFindVad(Process, FreeStart);
+    if (VadToFree == NULL) {
+        status = MT_INVALID_ADDRESS;
         goto cleanup;
     }
 
-    // Unmap all PTEs and physical pages from VAD.
-    for (uintptr_t virtualaddr = VadToFree->StartVa; virtualaddr <= VadToFree->EndVa; virtualaddr += VirtualPageSize) {
-        // Get the PTE pointer for the current VA.
-        PMMPTE pte = MiGetPtePointer(virtualaddr);
-        // Atomically unmap the PTE.
-        MiUnmapPte(pte);
-        // Grab the PFN Number from the (now replaced) PTE. (in PresentSet, PageFrameNumber is the physical address, not the PFN index, our MiUnmapPte function replaced that)
-        PAGE_INDEX pfn = pte->Soft.PageFrameNumber;
-        // Release the PFN back to MM.
-        MiReleasePhysicalPage(pfn);
+    // Validate VAD based on FreeType
+    if (FreeType == MEM_RELEASE) {
+        // Invalid address, does not map to the actual VAD start (programmer must return the same addr given by MmAllocateVirtualMemory for MEM_RELEASE)
+        if (FreeStart != VadToFree->StartVa) {
+            status = MT_INVALID_ADDRESS;
+            goto cleanup;
+        }
+
+        // Set FreeEnd to encompass the entire VAD
+        FreeEnd = VadToFree->EndVa;
+
+        // Update the OUT param.
+        *NumberOfBytes = (FreeEnd - FreeStart) + 1;
+    }
+    else {
+        // MEM_DECOMMIT: Ensure the region is fully contained within the VAD bounds
+        if (FreeEnd > VadToFree->EndVa) {
+            status = MT_INVALID_ADDRESS;
+            goto cleanup;
+        }
     }
 
-    // Delete the VAD from the tree.
-    Process->VadRoot = MiDeleteVadNode(Process->VadRoot, VadToFree);
-    // Free the VAD struct itself (from kernel's nonpagedpool memory, its not a double free)
-    MiFreeVad(VadToFree);
+    // Unmap PTEs and release physical pages
+    for (uintptr_t virtualaddr = FreeStart; virtualaddr <= FreeEnd; virtualaddr += VirtualPageSize) {
+        PMMPTE pte = MiGetPtePointer(virtualaddr);
+        if (!pte) continue;
 
-    // Set status.
+        if (pte->Soft.Present || pte->Soft.Transition) {
+            PAGE_INDEX pfn = pte->Soft.PageFrameNumber;
+            // Unmapping PTE is set by the value below.
+            // I dont use MiUnmap here since we can juse use MiReloadTLBs which is a bit faster for more than a few PTEs (depending on how many the user allocated)
+            MiReleasePhysicalPage(pfn);
+        }
+
+        // Clear the PTE completely.
+        pte->Value = 0;
+    }
+
+    // Flush TLBs due to multiple PTEs (or maybe one :))
+    MiReloadTLBs();
+
+    // Update the new base address.
+    *BaseAddress = (void*)FreeStart;
+
+    // Update the VAD tree
+    if (FreeType == MEM_RELEASE) {
+        // MEM_RELEASE completely deletes the VAD.
+        Process->VadRoot = MiDeleteVadNode(Process->VadRoot, VadToFree);
+        MiFreeVad(VadToFree);
+    }
+    else if (FreeType == MEM_DECOMMIT) {
+        // VADs are kept, since in DECOMITTING MmAllocateVirtualMemory knows that the memory is still taken.
+    }
+
     status = MT_SUCCESS;
-    goto cleanup;
 
 cleanup:
-    MsReleaseRundownProtection(&Process->ProcessRundown);
     MsReleasePushLockExclusive(&Process->VadLock);
+    MsReleaseRundownProtection(&Process->ProcessRundown);
     return status;
 }

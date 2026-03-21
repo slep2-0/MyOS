@@ -824,6 +824,14 @@ MiReloadTLBs(
     void
 );
 
+// Uses ComapreExchange
+bool 
+MiAtomicSetPte(
+    volatile PMMPTE Pte,
+    uint64_t NewValue,
+    uint64_t ExpectedValue
+);
+
 PMMPTE
 MiGetPml4ePointer(
     IN  uintptr_t va
@@ -958,6 +966,22 @@ MmCreateTeb(
 
 // module: vad.c
 
+PMMVAD
+MiAllocateVad(
+    void
+);
+
+void
+MiFreeVad(
+    IN PMMVAD Vad
+);
+
+PMMVAD
+MiInsertVadNode(
+    IN PMMVAD Node,
+    IN PMMVAD NewVad
+);
+
 MTSTATUS
 MmAllocateVirtualMemory(
     IN PEPROCESS Process,
@@ -967,10 +991,11 @@ MmAllocateVirtualMemory(
 );
 
 MTSTATUS
-// TODO Free with explicit size, split vad if needed.
 MmFreeVirtualMemory(
     IN PEPROCESS Process,
-    IN void* BaseAddress
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
 );
 
 MUST_USE_RESULT

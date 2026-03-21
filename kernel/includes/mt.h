@@ -28,18 +28,18 @@ typedef uint64_t(*SyscallHandler)(uint64_t, uint64_t, uint64_t, uint64_t, uint64
 #define MtCurrentProcess() -1
 #define MtCurrentThread() -2
 
-typedef enum _USER_ALLOCATION_TYPE {
+typedef enum _USER_PROTECTION_TYPE {
     PAGE_EXECUTE_READ = 0x10, // PRESENT
     PAGE_EXECUTE_READWRITE = 0x20, // PRESENT | RW
     PAGE_READWRITE = 0x30, // PRESENT | RW | NX
     PAGE_READONLY = 0x40, // PRESENT | NX
     PAGE_NOACCESS = 0x50 // NONE.
-} USER_ALLOCATION_TYPE;
+} USER_PROTECTION_TYPE;
 
 typedef struct _MEMORY_BASIC_INFORMATION {
     void* BaseAddress;
     size_t RegionSize;
-    USER_ALLOCATION_TYPE Protection;
+    USER_PROTECTION_TYPE Protection;
 } MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
 
 void
@@ -115,6 +115,23 @@ MtQueryVirtualMemory(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+MTSTATUS
+MtProtectVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* RegionSize,
+    IN USER_PROTECTION_TYPE NewProtection,
+    OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+MTSTATUS
+MtFreeVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
 );
 
 #endif

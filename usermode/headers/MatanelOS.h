@@ -44,17 +44,22 @@ typedef uint32_t ACCESS_MASK;
 #define MtCurrentProcess() -1 // Special handle signifying current process.
 #define MtCurrentThread() -2 // Special handle signifying current thread.
 
-typedef enum _USER_ALLOCATION_TYPE {
+typedef enum _USER_PROTECTION_TYPE {
 	PAGE_EXECUTE_READ = 0x10, // PRESENT
 	PAGE_EXECUTE_READWRITE = 0x20, // PRESENT | RW
 	PAGE_READWRITE = 0x30, // PRESENT | RW | NX
 	PAGE_READONLY = 0x40 // PRESENT | NX
-} USER_ALLOCATION_TYPE;
+} USER_PROTECTION_TYPE;
+
+typedef enum _FREE_TYPE {
+    MEM_RELEASE, // Release the entire region, base address must be the same that returned from MtAllocateVirtualMemory
+    MEM_DECOMMIT // Decommit the region specified by the NumberOfBytes argument.
+} FREE_TYPE;
 
 typedef struct _MEMORY_BASIC_INFORMATION {
     void* BaseAddress;
     size_t RegionSize;
-    USER_ALLOCATION_TYPE Protection;
+    USER_PROTECTION_TYPE Protection;
 } MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
 
 extern char* (*strchr)(const char* s, int c);
@@ -83,14 +88,14 @@ extern bool (*TerminateProcess)(
 extern void* (*VirtualAlloc)(
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
-    IN USER_ALLOCATION_TYPE AllocationType
+    IN USER_PROTECTION_TYPE AllocationType
     );
 
 extern void* (*VirtualAllocEx)(
     IN HANDLE ProcessHandle,
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
-    IN USER_ALLOCATION_TYPE AllocationType
+    IN USER_PROTECTION_TYPE AllocationType
     );
 
 extern bool (*VirtualQuery)(
@@ -102,6 +107,35 @@ extern bool (*VirtualQueryEx)(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+
+extern bool (*VirtualProtect)(
+    IN void* BaseAddress,
+    IN size_t RegionSize,
+    IN USER_PROTECTION_TYPE NewProtection,
+    OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+extern bool (*VirtualProtectEx)(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    IN size_t RegionSize,
+    IN USER_PROTECTION_TYPE NewProtection,
+    OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+extern bool (*VirtualFree)(
+    IN void* BaseAddress,
+    IN size_t NumberOfBytes,
+    IN FREE_TYPE FreeType
+);
+
+extern bool (*VirtualFreeEx)(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress,
+    IN size_t NumberOfBytes,
+    IN FREE_TYPE FreeType
 );
 
 extern HANDLE(*CreateFile)(

@@ -233,10 +233,6 @@ typedef struct _DPC_DATA {
 	volatile uint32_t DpcCount; // Statistics
 } DPC_DATA, *PDPC_DATA;
 
-typedef struct _APC {
-	uint8_t unsetupped;
-} APC, *PAPC;
-
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
 
@@ -257,6 +253,29 @@ typedef struct _APC_STATE {
 	bool SavedThreadAttached;
 } APC_STATE, *PAPC_STATE;
 
+typedef void (*PNORMAL_ROUTINE)(void* NormalContext, void* SystemArgument1, void* SystemArgument2);
+typedef void (*PKERNEL_ROUTINE)(PAPC Apc, PNORMAL_ROUTINE NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2);
+typedef void (*PRUNDOWN_ROUTINE)(PAPC Apc);
+
+typedef struct _APC {
+	uint8_t ApcType;             // Normal, Special, Rundown
+	uint8_t ApcMode;             // KernelMode or UserMode
+	uint8_t Inserted;            // Bool that represents if the APC has been queued or not.
+
+	struct _ITHREAD* Thread;     // The target thread that will execute this APC
+	struct _DOUBLY_LINKED_LIST ApcListEntry; // Node for the thread's APC queue
+
+	// Routines
+	PKERNEL_ROUTINE KernelRoutine;
+	PRUNDOWN_ROUTINE RundownRoutine;
+	PNORMAL_ROUTINE NormalRoutine;
+
+	// Context / Arguments
+	void* NormalContext;         // User defined context data (example could be from CreateFileAsyn)
+	void* SystemArgument1;       // OS arg1
+	void* SystemArgument2;       // OS arg2
+} APC, * PAPC;
+
 typedef struct _IPROCESS {
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
 	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
@@ -274,6 +293,14 @@ typedef struct _ITHREAD {
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
+
+	// Apc Related
+	DOUBLY_LINKED_LIST ApcListHead; // Add this to hold queued APCs
+	SPINLOCK ApcQueueLock; // Spinlock for inserting/dequeuing from an APC.
+	APC TerminationApc; // APC That gets executed when pending termiantion for this thread.
+
+	// Procesor Related
+	struct _PROCESSOR* ActiveProcessor; // ONLY valid when ThreadState == THREAD_RUNNING
 } ITHREAD, *PITHREAD;
 
 // Note to self: Re-organize this to match more of the KPRCB style, that style is way more consistent across the board (Separates between scheduler and Processor, yada yada)
@@ -324,7 +351,7 @@ typedef struct _PROCESSOR {
 
 	// Interrupt requests
 	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
-	volatile bool ApcInterruptRequested; // (Undeveloped yet) True if we requested an interrupt for APCs.
+	volatile bool ApcInterruptRequested; // True if we requested an interrupt for asynchronous procedure calls.
 
 	// Scheduler Lock
 	SPINLOCK SchedulerLock;
@@ -506,6 +533,34 @@ MeRaiseIrql(
 void 
 MeLowerIrql(
 	IN IRQL NewIrql
+);
+
+void
+MeInitializeApc(
+	IN PAPC Apc,
+	IN struct _ITHREAD* TargetThread,
+	IN PRIVILEGE_MODE ApcMode,
+	IN void* KernelRoutine,
+	_In_Opt void* RundownRoutine,
+	_In_Opt void* NormalRoutine,
+	_In_Opt void* NormalContext
+);
+
+bool
+MeInsertQueueApc(
+	IN PAPC Apc,
+	IN void* SystemArgument1,
+	IN void* SystemArgument2
+);
+
+bool
+MeRemoveQueueApc(
+	IN PAPC Apc
+);
+
+void
+MeRetireAPCs(
+	void
 );
 
 void

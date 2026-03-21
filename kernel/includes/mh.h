@@ -91,7 +91,8 @@ typedef enum _CPU_ACTION {
 	CPU_ACTION_PERFORM_TLB_SHOOTDOWN = 2,
 	CPU_ACTION_WRITE_DEBUG_REGS = 3,
 	CPU_ACTION_CLEAR_DEBUG_REGS = 4,
-    CPU_ACTION_FLUSH_CR3 = 5
+    CPU_ACTION_FLUSH_CR3 = 5,
+    CPU_ACTION_REQUEST_APC = 6
 } CPU_ACTION;
 
 enum MADT_TYPES {
@@ -448,6 +449,7 @@ typedef struct _IPI_PARAMS {
 void APMain(void);
 void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress);
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter);
+void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION action, IPI_PARAMS parameter);
 
 extern int smp_cpu_count;
 extern bool smpInitialized;

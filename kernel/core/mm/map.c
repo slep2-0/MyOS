@@ -432,6 +432,21 @@ MiUnmapPte (
     return;
 }
 
+bool MiAtomicSetPte(
+    volatile PMMPTE Pte,
+    uint64_t NewValue,
+    uint64_t ExpectedValue
+)
+{
+    uint64_t original = InterlockedCompareExchangeU64(
+        (volatile uint64_t*)Pte,
+        (uint64_t)NewValue,
+        (uint64_t)ExpectedValue
+    );
+
+    return (original == ExpectedValue);
+}
+
 bool
 MiAtomicSetTransitionPte(
     IN PMMPTE Pte,

@@ -481,6 +481,7 @@ MmCreateUserStack(
     
     // Compute the end of the stack.
     uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
+    void* EndOfStackVoid = (void*)EndOfStack;
 
     // Allocate a VAD for the address space.
     MTSTATUS Status = MmAllocateVirtualMemory(Process, (void**) & EndOfStack, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
@@ -498,7 +499,7 @@ MmCreateUserStack(
     goto Cleanup;
 
 CleanupWithVad:
-    MmFreeVirtualMemory(Process, (void*)EndOfStack);
+    MmFreeVirtualMemory(Process, &EndOfStackVoid, 0, MEM_RELEASE);
 
 Cleanup:
     MsReleasePushLockExclusive(&Process->AddressSpaceLock);

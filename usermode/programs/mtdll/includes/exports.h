@@ -59,7 +59,7 @@ void*
 VirtualAlloc(
 	_In_Opt _Out_Opt void** BaseAddress,
 	IN size_t AllocationSize,
-	IN USER_ALLOCATION_TYPE AllocationType
+	IN USER_PROTECTION_TYPE AllocationType
 );
 
 void* 
@@ -67,7 +67,7 @@ VirtualAllocEx(
 	IN HANDLE ProcessHandle,
 	_In_Opt _Out_Opt void** BaseAddress,
 	IN size_t AllocationSize,
-	IN USER_ALLOCATION_TYPE AllocationType
+	IN USER_PROTECTION_TYPE AllocationType
 );
 
 bool
@@ -81,6 +81,38 @@ VirtualQueryEx(
 	IN HANDLE ProcessHandle,
 	IN void* BaseAddress,
 	OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+bool
+VirtualProtect(
+	IN void* BaseAddress,
+	IN size_t RegionSize,
+	IN USER_PROTECTION_TYPE NewProtection,
+	OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+bool
+VirtualProtectEx(
+	IN HANDLE ProcessHandle,
+	IN void* BaseAddress,
+	IN size_t RegionSize,
+	IN USER_PROTECTION_TYPE NewProtection,
+	OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+bool
+VirtualFree(
+	IN void* BaseAddress,
+	IN size_t NumberOfBytes,
+	IN FREE_TYPE FreeType
+);
+
+bool
+VirtualFreeEx(
+	IN HANDLE ProcessHandle,
+	IN void* BaseAddress,
+	IN size_t NumberOfBytes,
+	IN FREE_TYPE FreeType
 );
 
 // module: file.c

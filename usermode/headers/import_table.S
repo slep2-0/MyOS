@@ -53,6 +53,10 @@ MT_IMPORT "mtdll.mtdll", VirtualAlloc
 MT_IMPORT "mtdll.mtdll", VirtualAllocEx
 MT_IMPORT "mtdll.mtdll", VirtualQuery
 MT_IMPORT "mtdll.mtdll", VirtualQueryEx
+MT_IMPORT "mtdll.mtdll", VirtualProtect
+MT_IMPORT "mtdll.mtdll", VirtualProtectEx
+MT_IMPORT "mtdll.mtdll", VirtualFree
+MT_IMPORT "mtdll.mtdll", VirtualFreeEx
 
 /* File I/O */
 MT_IMPORT "mtdll.mtdll", CreateFile

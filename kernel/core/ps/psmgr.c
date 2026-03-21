@@ -88,7 +88,6 @@ PsInitializeProcessThreadManager(
     return MT_SUCCESS;
 }
 
-
 MTSTATUS
 PsInitializeSystem(
     IN  enum _PS_PHASE_ROUTINE Phase

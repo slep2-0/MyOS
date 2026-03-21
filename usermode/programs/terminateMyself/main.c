@@ -2,6 +2,9 @@
 #include "../../headers/MatanelOS.h"
 #include "../../headers/mtstatus.h"
 
+volatile int GlobalVarData = 1;
+volatile int GlobalVarBss;
+
 int main(void) {
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
     // If at any point we fail we will terminate the program with the status that failed.
@@ -43,13 +46,29 @@ int main(void) {
         goto failure;
     }
 
+    // Protect it to PAGE_READWRITE only.
+    USER_PROTECTION_TYPE OldProtection;
+    ok = VirtualProtect(BaseAddress, strlen(Hello), PAGE_READWRITE, &OldProtection);
+
+    if (!ok || OldProtection != PAGE_EXECUTE_READWRITE) {
+        ExitCode = MT_DEVICE_ERROR;
+        goto failure;
+    }
+
+    // Free it.
+    ok = VirtualFree(BaseAddress, 0, MEM_RELEASE);
+
+    if (!ok) {
+        ExitCode = MT_AHCI_TIMEOUT;
+        goto failure;
+    }
+
     // Done, infinite loop.
     goto success;
 
 failure:
     volatile ERROR_CODE Err = GetLastError();
-    Err = Err + 1; // Modify the value so its easier to track through disassembly.
-    TerminateProcess(MtCurrentProcess(), ExitCode);
+    TerminateProcess(MtCurrentProcess(), Err);
 success:
     while (true) {
         counter++;

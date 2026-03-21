@@ -33,6 +33,18 @@ static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter
 
 extern EPROCESS PsInitialSystemProcess;
 
+static
+void
+PspThreadTerminationRoutine(
+    struct _APC* Apc, void** NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2
+)
+
+{
+    UNREFERENCED_PARAMETER(Apc); UNREFERENCED_PARAMETER(NormalContext); UNREFERENCED_PARAMETER(NormalRoutine); UNREFERENCED_PARAMETER(SystemArgument1); UNREFERENCED_PARAMETER(SystemArgument2);
+    // Call PspExitThread, we are terminating this thread.
+    PspExitThread(PsGetCurrentThread()->ExitStatus);
+}
+
 MTSTATUS
 PsCreateThread(
     HANDLE ProcessHandle,
@@ -217,6 +229,20 @@ PsCreateThread(
     ParentProcess->NumThreads++;
     MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
 
+    // Initialize APC List head.
+    InitializeListHead(&Thread->InternalThread.ApcListHead);
+
+    // Finally, initialize the termination APC.
+    MeInitializeApc(
+        &Thread->InternalThread.TerminationApc,
+        &Thread->InternalThread,
+        KernelMode,
+        PspThreadTerminationRoutine, // Just calls PspExitThread
+        NULL,
+        NULL,
+        NULL
+    );
+
     // Successful.
     Status = MT_SUCCESS;
 
@@ -312,6 +338,9 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
+    // Initialized APC List head.
+    InitializeListHead(&thread->InternalThread.ApcListHead);
+
     // Enqueue it into processor. TODO START SUSPENDED?
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
     if (OutThread) *OutThread = thread;
@@ -333,7 +362,10 @@ PsTerminateThread(
 #ifdef DEBUG
     gop_printf(COLOR_PINK, "**Terminating Thread TID %d (user mode: %d) for ExitStatus %x**\n", Thread->TID, !Thread->SystemThread, ExitStatus);
 #endif
-    // Non complete function, this should queue a thread Apc to call MtTerminateThread (PspExitThread) on itself.
+    
+    // Set ExitStatus
+    Thread->ExitStatus = ExitStatus;
+
     // Or if it is the current thread, we just terminate ourselves.
     if (Thread == PsGetCurrentThread()) {
         // Exit current thread.
@@ -341,10 +373,38 @@ PsTerminateThread(
         return MT_SUCCESS;
     }
 
-    assert(false, "Termination called upon remote thread, unimplemented. Need APCs");
-    MeBugCheckEx((BUGCHECK_CODES)MT_NOT_IMPLEMENTED, (void*)(uintptr_t)Thread, (void*)(uintptr_t)ExitStatus, NULL, NULL);
+    // Flush the APC queue (for rundown routines) before calling the final termination APC.
+    PITHREAD IThread = &Thread->InternalThread;
+    IRQL oldIrql;
+    MsAcquireSpinlock(&IThread->ApcQueueLock, &oldIrql);
 
-    return MT_NOT_IMPLEMENTED;
+    // While the list is not empty
+    while (IThread->ApcListHead.Flink != &IThread->ApcListHead) {
+        PDOUBLY_LINKED_LIST Entry = RemoveHeadList(&IThread->ApcListHead);
+        PAPC Apc = CONTAINING_RECORD(Entry, APC, ApcListEntry);
+        
+        // Remove inserted
+        Apc->Inserted = 0;
+
+        // Drop spinlock before calling rundown routine.
+        MsReleaseSpinlock(&IThread->ApcQueueLock, oldIrql);
+
+        // Call rundown routine.
+        if (Apc->RundownRoutine) {
+            Apc->RundownRoutine(Apc);
+        }
+
+        // Reacquire spinlock to safely check if list is empty.
+        MsAcquireSpinlock(&IThread->ApcQueueLock, &oldIrql);
+    }
+
+    // Release spinlock.
+    MsReleaseSpinlock(&IThread->ApcQueueLock, oldIrql);
+
+    // Insert the final APC that will terminate the thread.
+    MeInsertQueueApc(&Thread->InternalThread.TerminationApc, NULL, NULL);
+
+    return MT_SUCCESS;
 }
 
 void
@@ -386,6 +446,10 @@ PspExitThread(
     // This exits the current running thread on the processor.
     PETHREAD Thread = PsGetCurrentThread();
     PEPROCESS CurrentProcess = Thread->InternalThread.ApcState.SavedApcProcess;
+
+#ifdef DEBUG
+    gop_printf(COLOR_WHITE, "**PspExitThread called on thread tid %d (parent name %s) for status %x (MTSTATUS)**\n", Thread->TID, CurrentProcess->ImageName, ExitStatus);
+#endif
 
     // Cannot terminate this thread if we are attached to a different process (since we would use another process fields)
     if (MeIsAttachedProcess()) {

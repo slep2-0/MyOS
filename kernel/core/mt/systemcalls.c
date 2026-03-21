@@ -28,7 +28,7 @@ Revision History:
 static
 VAD_FLAGS
 MtpUserAllocationTypeToVadFlags(
-    IN USER_ALLOCATION_TYPE AllocationType
+    IN USER_PROTECTION_TYPE AllocationType
 )
 
 {
@@ -49,7 +49,7 @@ MtpUserAllocationTypeToVadFlags(
 }
 
 static
-USER_ALLOCATION_TYPE
+USER_PROTECTION_TYPE
 MtpVadFlagsToUserAllocationType(
     IN VAD_FLAGS VadFlags
 )
@@ -102,7 +102,7 @@ MtAllocateVirtualMemory(
         [IN]    HANDLE ProcessHandle - Handle to process that memory should be allocated for. (special handles supported, e.g MtCurrentProcess)
         [IN OPTIONAL | OUT OPTIONAL] [PTR_TO_PTR]   void** BaseAddress - The base address to allocate memory starting from if supplied. If NULL, a free gap is chosen and used by NumberOfBytes, and *BaseAddress is set to the found start of gap.
         [IN]    size_t NumberOfBytes - The amount in virtual memory to allocate.
-        [IN]    uint8_t AllocationType - USER_ALLOCATION_TYPE Enum specifying which type of PTE flags the allocation should have. (executable, writable, none)
+        [IN]    uint8_t AllocationType - USER_PROTECTION_TYPE Enum specifying which type of PTE flags the allocation should have. (executable, writable, none)
 
     Return Values:
 
@@ -114,9 +114,21 @@ MtAllocateVirtualMemory(
     // We must allocate more than 0 bytes. (it will be page size anyway, so..)
     if (!NumberOfBytes) return MT_INVALID_PARAM;
 
+    // Address checking.
+    MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+
+    void* KernelBaseAddressBecauseWeDontTrustUserMode = NULL;
+
+    try {
+        KernelBaseAddressBecauseWeDontTrustUserMode = *BaseAddress;
+    } except{
+        return GetExceptionCode();
+    }
+    end_try;
+
     // Handle checking.
     PEPROCESS Process;
-    MTSTATUS Status;
     if (ProcessHandle == MtCurrentProcess()) {
         // Current process allocation.
         Process = PsGetCurrentProcess();
@@ -164,10 +176,21 @@ MtAllocateVirtualMemory(
     }
 
     if (Flags != VAD_FLAG_NONE) {
-        Status = MmAllocateVirtualMemory(Process, BaseAddress, NumberOfBytes, Flags);
+        Status = MmAllocateVirtualMemory(Process, KernelBaseAddressBecauseWeDontTrustUserMode, NumberOfBytes, Flags);
     }
     else {
         Status = MT_INVALID_PARAM;
+    }
+
+    if (MT_SUCCEEDED(Status)) {
+        try {
+            *BaseAddress = KernelBaseAddressBecauseWeDontTrustUserMode;
+        } except{
+                // I'll keep memory comitted.
+                ObDereferenceObject(Process);
+                return GetExceptionCode();
+        }
+        end_try;
     }
 
     // Dereference the reference made.
@@ -263,7 +286,8 @@ MtTerminateProcess(
     MTSTATUS Status;
     if (ProcessHandle == MtCurrentProcess()) {
         ProcessToTerminate = PsGetCurrentProcess();
-        gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process %p called upon to terminate itself from this existence of the virtual world. | Status: %p\n", (void*)(uintptr_t)ProcessToTerminate, (void*)(uintptr_t)ExitStatus);
+        ObReferenceObject(ProcessToTerminate);
+        gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process (%s) called upon to terminate itself from this existence of the virtual world. | Status: %x\n", ProcessToTerminate->ImageName, ExitStatus);
     }
     else {
         // Attempt reference of handle.
@@ -275,8 +299,18 @@ MtTerminateProcess(
             NULL
         );
         if (MT_FAILURE(Status)) return Status;
-        gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process %p called to be terminated. | Status: %p\n", (void*)(uintptr_t)ProcessToTerminate, (void*)(uintptr_t)ExitStatus);
+        gop_printf(
+            COLOR_RED,
+            "[PROCESS-TERMINATE] Process (%s) called to be terminated by process pid %d (%s). | Status: %x\n",
+            ProcessToTerminate->ImageName,              // %s
+            PsGetCurrentProcess()->PID,                 // %d
+            PsGetCurrentProcess()->ImageName,           // %s
+            ExitStatus                                  // %x
+        );
     }
+
+    // Dereference.
+    ObDereferenceObject(ProcessToTerminate);
 
     // Kill the process.
     Status = PsTerminateProcess(ProcessToTerminate, ExitStatus);
@@ -611,6 +645,9 @@ MtTerminateThread(
         return Status;
     }
 
+    // Dereference remote thread.
+    ObDereferenceObject(Thread);
+
     // Call internal function.
     return PsTerminateThread(Thread, ExitStatus);
 }
@@ -676,7 +713,10 @@ MtQueryVirtualMemory(
 
     // Check if the buffer supplied is all good before actually checking protection.
     Status = ProbeForRead(MemoryInformation, sizeof(MEMORY_BASIC_INFORMATION), _Alignof(MEMORY_BASIC_INFORMATION));
-    if (MT_FAILURE(Status)) return Status;
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Process);
+        return Status;
+    }
 
     // Round the address to the nearest page boundary.
     uintptr_t RoundedAddress = (uintptr_t)PAGE_ALIGN(BaseAddress);
@@ -693,7 +733,7 @@ MtQueryVirtualMemory(
     if (!Vad) {
         // The page is not allocated.
         BasicInfo.BaseAddress = (void*)RoundedAddress;
-        BasicInfo.Protection = (USER_ALLOCATION_TYPE)UINT32_MAX; // undefined.
+        BasicInfo.Protection = (USER_PROTECTION_TYPE)UINT32_MAX; // undefined.
         BasicInfo.RegionSize = MiGetRegionSizeInternal(NULL, RoundedAddress, Process, false);
     }
 
@@ -712,10 +752,280 @@ MtQueryVirtualMemory(
     try {
         kmemcpy(MemoryInformation, &BasicInfo, sizeof(MEMORY_BASIC_INFORMATION));
     } except{
+        ObDereferenceObject(Process);
         return GetExceptionCode();
     }
     end_try;
 
     // Successful.
+    ObDereferenceObject(Process);
     return MT_SUCCESS;
 }
+
+MTSTATUS
+MtProtectVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* RegionSize,
+    IN USER_PROTECTION_TYPE NewProtection,
+    OUT USER_PROTECTION_TYPE* OldProtection
+)
+
+{
+    // Check if user address is valid.
+    MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+    Status = ProbeForRead(RegionSize, sizeof(size_t*), _Alignof(size_t*));
+    if (MT_FAILURE(Status)) return Status;
+    Status = ProbeForRead(OldProtection, sizeof(USER_PROTECTION_TYPE*), _Alignof(USER_PROTECTION_TYPE*));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Attempt to capture the base address and required region size.
+    size_t CapturedRegionSize = 0;
+    void* CapturedBaseAddress = 0;
+
+    try {
+        CapturedBaseAddress = *BaseAddress;
+        CapturedRegionSize = *RegionSize;
+    } except{
+        return GetExceptionCode();
+    }
+    end_try;
+
+    // Check process handle.
+    PEPROCESS Process;
+
+    if (ProcessHandle == MtCurrentProcess()) {
+        // Current Process.
+        Process = PsGetCurrentProcess();
+        Status = MT_SUCCESS;
+
+        if (!ObReferenceObject(Process)) {
+            return MT_PROCESS_IS_TERMINATING;
+        }
+    }
+    else {
+        // Remote process, reference handle.
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_VM_OPERATION,
+            PsProcessType,
+            (void**)&Process,
+            NULL
+        );
+    }
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // All validations have been passed, now time to do the actual stuff.
+    uintptr_t ProtectStart = (uintptr_t)PAGE_ALIGN(CapturedBaseAddress);
+    uintptr_t ProtectEnd = ProtectStart + ALIGN_UP(CapturedRegionSize, VirtualPageSize) - 1;
+
+    // Acquire exclusive.
+    MsAcquirePushLockExclusive(&Process->VadLock);
+
+    PMMVAD Vad = MiFindVadInternal(Process, ProtectStart, false);
+
+    // Validate VAD exists and entirely encompasses the request.
+    if (!Vad || ProtectEnd > Vad->EndVa) {
+        MsReleasePushLockExclusive(&Process->VadLock);
+        ObDereferenceObject(Process);
+        return MT_INVALID_ADDRESS;
+    }
+
+    try {
+        *OldProtection = MtpVadFlagsToUserAllocationType(Vad->Flags);
+        *RegionSize = (ProtectEnd - ProtectStart) + 1;
+    } except{
+        MsReleasePushLockExclusive(&Process->VadLock);
+        ObDereferenceObject(Process);
+        return GetExceptionCode();
+    } end_try;
+
+    VAD_FLAGS NewVadFlags = MtpUserAllocationTypeToVadFlags(NewProtection);
+
+    // If programmer == dumb (or forgetful)
+    if (Vad->Flags == NewVadFlags) {
+        MsReleasePushLockExclusive(&Process->VadLock);
+        ObDereferenceObject(Process);
+        return MT_SUCCESS;
+    }
+
+    // Determine which split
+    bool NeedsLeftSplit = (ProtectStart > Vad->StartVa);
+    bool NeedsRightSplit = (ProtectEnd < Vad->EndVa);
+
+    PMMVAD LeftVad = NULL;
+    PMMVAD RightVad = NULL;
+    if (NeedsLeftSplit) LeftVad = MiAllocateVad();
+    if (NeedsRightSplit) RightVad = MiAllocateVad();
+
+    // Allocation failure.
+    if ((NeedsLeftSplit && !LeftVad) || (NeedsRightSplit && !RightVad)) {
+        if (LeftVad) MiFreeVad(LeftVad);
+        if (RightVad) MiFreeVad(RightVad);
+        MsReleasePushLockExclusive(&Process->VadLock);
+        ObDereferenceObject(Process);
+        return MT_NO_RESOURCES;
+    }
+
+    // Shrink the middle vad to avoid expanding the first node.
+    uintptr_t OrigStart = Vad->StartVa;
+    uintptr_t OrigEnd = Vad->EndVa;
+    VAD_FLAGS OrigFlags = Vad->Flags;
+    uint64_t OrigFileOffset = Vad->FileOffset;
+
+    // Adjust the middle (the original node now)
+    Vad->StartVa = ProtectStart;
+    Vad->EndVa = ProtectEnd;
+    Vad->Flags = NewVadFlags;
+    if (Vad->Flags & VAD_FLAG_MAPPED_FILE) {
+        Vad->FileOffset += (ProtectStart - OrigStart);
+    }
+
+    // Insert the left.
+    if (NeedsLeftSplit) {
+        LeftVad->StartVa = OrigStart;
+        LeftVad->EndVa = ProtectStart - 1;
+        LeftVad->Flags = OrigFlags;
+        LeftVad->OwningProcess = Process;
+        LeftVad->File = Vad->File;
+        LeftVad->FileOffset = OrigFileOffset;
+        Process->VadRoot = MiInsertVadNode(Process->VadRoot, LeftVad);
+    }
+
+    // Insert the right.
+    if (NeedsRightSplit) {
+        RightVad->StartVa = ProtectEnd + 1;
+        RightVad->EndVa = OrigEnd;
+        RightVad->Flags = OrigFlags;
+        RightVad->OwningProcess = Process;
+        RightVad->File = Vad->File;
+        if (RightVad->Flags & VAD_FLAG_MAPPED_FILE) {
+            RightVad->FileOffset = OrigFileOffset + ((ProtectEnd + 1) - OrigStart);
+        }
+        Process->VadRoot = MiInsertVadNode(Process->VadRoot, RightVad);
+    }
+
+    // Update PTEs now.
+    for (uintptr_t Addr = ProtectStart; Addr <= ProtectEnd; Addr += VirtualPageSize) {
+        PMMPTE Pte = MiGetPtePointer(Addr);
+        MMPTE Expected;
+        MMPTE New;
+
+        do {
+            Expected.Value = Pte->Value;
+            New.Value = Expected.Value;
+
+            // Modify the PTE only if its present.
+            if (Expected.Hard.Present) {
+                switch (NewProtection) {
+                case PAGE_NOACCESS:
+                    New.Hard.Present = 0;
+                    break;
+                case PAGE_EXECUTE_READWRITE:
+                    New.Hard.Write = 1;
+                    New.Hard.NoExecute = 0;
+                    break;
+                case PAGE_EXECUTE_READ:
+                    New.Hard.Write = 0;
+                    New.Hard.NoExecute = 0;
+                    break;
+                case PAGE_READWRITE:
+                    New.Hard.Write = 1;
+                    New.Hard.NoExecute = 1;
+                    break;
+                case PAGE_READONLY:
+                    New.Hard.Write = 0;
+                    New.Hard.NoExecute = 1;
+                    break;
+                }
+            }
+            else {
+                // Swapped out, update software flags.
+                New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_READ) ? PROT_KERNEL_READ : 0;
+                New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_WRITE) ? PROT_KERNEL_WRITE : 0;
+                New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_EXECUTE) ? PROT_KERNEL_NOEXECUTE : 0;
+                New.Soft.SoftwareFlags |= PROT_KERNEL_USER;
+            }
+
+        } while (!MiAtomicSetPte(Pte, New.Value, Expected.Value));
+    }
+
+    // Flush TLB since we modified several PTEs.
+    MiReloadTLBs();
+
+    MsReleasePushLockExclusive(&Process->VadLock);
+    ObDereferenceObject(Process);
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+MtFreeVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
+)
+
+{
+    // Address validations.
+    MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+    Status = ProbeForRead(NumberOfBytes, sizeof(size_t*), _Alignof(size_t*));
+    if (MT_FAILURE(Status)) return Status;
+
+    void* KernelBase = NULL;
+    size_t KernelNumberOfBytes = 0;
+
+    // Attempt to read into kernel buffers.
+    try {
+        KernelBase = *BaseAddress;
+        KernelNumberOfBytes = *NumberOfBytes;
+    } except{
+        return GetExceptionCode();
+    }
+    end_try;
+
+    PEPROCESS Process = NULL;
+    // Get Process.
+    if (ProcessHandle == MtCurrentProcess()) {
+        Process = PsGetCurrentProcess();
+        Status = MT_SUCCESS;
+    }
+    else {
+        // Remote process.
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_VM_OPERATION,
+            PsProcessType,
+            (void**)&Process,
+            NULL
+        );
+    }
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Call internal function.
+    Status = MmFreeVirtualMemory(
+        Process,
+        &KernelBase,
+        &KernelNumberOfBytes,
+        FreeType
+    );
+
+    if (MT_SUCCEEDED(Status)) {
+        try {
+            *BaseAddress = KernelBase;
+            *NumberOfBytes = KernelNumberOfBytes;
+        } except{
+            ObDereferenceObject(Process);
+            return GetExceptionCode();
+        }
+        end_try;
+    }
+
+    ObDereferenceObject(Process);
+    return Status;
+}
+

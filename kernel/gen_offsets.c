@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "includes/core.h"
 #include "includes/annotations.h"
 #include "includes/ms.h"
 #include "includes/mm.h"

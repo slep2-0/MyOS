@@ -168,7 +168,8 @@ MmMapViewOfSection(
             );
 
             if (MT_FAILURE(Status)) {
-                MmFreeVirtualMemory(Process, (void*)load_base);
+                void* load_Base_temp = (void*)load_base;
+                MmFreeVirtualMemory(Process, &load_Base_temp, 0, MEM_RELEASE);
                 goto Cleanup;
             }
         }

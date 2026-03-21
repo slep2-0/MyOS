@@ -17,13 +17,161 @@ Revision History:
 --*/
 
 #include "../../includes/me.h"
+#include "../../includes/ps.h"
 #include "../../assert.h"
 
 void
 MeInitializeApc(
-    void
+    IN PAPC Apc,
+    IN struct _ITHREAD* TargetThread,
+    IN PRIVILEGE_MODE ApcMode,
+    IN void* KernelRoutine,
+    _In_Opt void* RundownRoutine,
+    _In_Opt void* NormalRoutine,
+    _In_Opt void* NormalContext
 )
 
 {
-    assert(false, "this is gonna be a hard impl");
+    assert(NormalRoutine != NULL || NormalContext == NULL);
+    // Initialize the APC Standard fields.
+    Apc->Thread = TargetThread;
+    Apc->ApcMode = ApcMode;
+    Apc->NormalContext = NormalContext;
+
+    // Initialize the APC routine fields.
+    Apc->KernelRoutine = KernelRoutine;
+    Apc->RundownRoutine = RundownRoutine;
+    Apc->NormalContext = NormalRoutine;
+
+    // Initialize the list head.
+    InitializeListHead(&Apc->ApcListEntry);
+}
+
+bool
+MeInsertQueueApc(
+    IN PAPC Apc,
+    IN void* SystemArgument1,
+    IN void* SystemArgument2
+)
+{
+    assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+
+    bool Inserted = false;
+    PITHREAD Thread = Apc->Thread;
+
+    if (Apc->Inserted) return Inserted;
+
+    // Acquire the APC lock
+    IRQL oldIrql;
+    MsAcquireSpinlock(&Thread->ApcQueueLock, &oldIrql);
+
+    // Double-check after acquiring the lock to prevent race conditions
+    if (!Apc->Inserted) {
+        Apc->SystemArgument1 = SystemArgument1;
+        Apc->SystemArgument2 = SystemArgument2;
+        Apc->Inserted = 1;
+
+        // Queue the APC
+        InsertTailList(&Thread->ApcListHead, &Apc->ApcListEntry);
+        Inserted = true;
+
+        // If the target thread is currently running on the current CPU, request an APC interrupt.
+        PPROCESSOR cpu = MeGetCurrentProcessor();
+
+        if (Thread->ThreadState == THREAD_RUNNING && Thread->ActiveProcessor != NULL) {
+            if (cpu->currentThread == Thread) {
+                cpu->ApcInterruptRequested = true;
+            }
+            else {
+                // Set IPI to the next thread's CPU.
+                IPI_PARAMS IpiParams = { 0 };
+                MhSendActionToSpecificCpuAndWait(Thread->ActiveProcessor, CPU_ACTION_REQUEST_APC, IpiParams);
+            }
+        }
+    }
+
+    MsReleaseSpinlock(&Thread->ApcQueueLock, oldIrql);
+    return Inserted;
+}
+
+void
+MeRetireAPCs(
+    void
+)
+{
+    PPROCESSOR cpu = MeGetCurrentProcessor();
+    PITHREAD currentThread = cpu->currentThread;
+
+    if (!currentThread) return;
+
+    cpu->ApcRoutineActive = true;
+    cpu->ApcInterruptRequested = false;
+
+    while (true) {
+        IRQL oldIrql;
+        MsAcquireSpinlock(&currentThread->ApcQueueLock, &oldIrql);
+
+        // If no APCs are queued just leave.
+        if (currentThread->ApcListHead.Flink == &currentThread->ApcListHead) {
+            MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
+            break;
+        }
+
+        // Dequeue the APC
+        PDOUBLY_LINKED_LIST entry = RemoveHeadList(&currentThread->ApcListHead);
+        PAPC Apc = CONTAINING_RECORD(entry, APC, ApcListEntry);
+        Apc->Inserted = 0;
+
+        MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
+
+        // Prepare context and arguments
+        PNORMAL_ROUTINE NormalRoutine = Apc->NormalRoutine;
+        void* NormalContext = Apc->NormalContext;
+        void* SysArg1 = Apc->SystemArgument1;
+        void* SysArg2 = Apc->SystemArgument2; 
+
+        // KernelRoutine runs first and can alter the NormalRoutine or arguments
+        if (Apc->KernelRoutine) {
+            Apc->KernelRoutine(Apc, NormalRoutine, &NormalContext, &SysArg1, &SysArg2);
+        }
+
+        // If we have a NormalRoutine execute it.
+        if (NormalRoutine) {
+            if (Apc->ApcMode == KernelMode) {
+                // Run Kernel-mode APC directly
+                NormalRoutine(NormalContext, SysArg1, SysArg2);
+            }
+            else {
+                // User mode APC, must change the trap frame and stuff.
+                
+            }
+        }
+    }
+
+    cpu->ApcRoutineActive = false;
+}
+
+bool
+MeRemoveQueueApc(
+    IN PAPC Apc
+)
+{
+    PITHREAD Thread = Apc->Thread;
+    bool Removed = false;
+    IRQL oldIrql;
+
+    // Acquire lock to modify list
+    MsAcquireSpinlock(&Thread->ApcQueueLock, &oldIrql);
+
+    if (Apc->Inserted) {
+        // Unlink the entry from the thread's ApcListHead
+        RemoveEntryList(&Apc->ApcListEntry);
+
+        Apc->Inserted = 0;
+        Removed = true;
+    }
+
+    MsReleaseSpinlock(&Thread->ApcQueueLock, oldIrql);
+
+    return Removed;
 }

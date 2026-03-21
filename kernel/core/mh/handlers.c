@@ -140,6 +140,11 @@ void MiInterprocessorInterrupt (
     case CPU_ACTION_FLUSH_CR3:
         __write_cr3(__read_cr3());
         break;
+    case CPU_ACTION_REQUEST_APC:
+        // An APC should be executed in this CPU, request interrupt.
+        cpu->ApcInterruptRequested = true;
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+        break;
     }
 
     MmFullBarrier();

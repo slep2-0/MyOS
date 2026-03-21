@@ -62,4 +62,13 @@ struct _FILE_OBJECT;
 typedef struct _FILE_OBJECT FILE_OBJECT;
 typedef FILE_OBJECT* PFILE_OBJECT;
 
+typedef enum _FREE_TYPE {
+	MEM_RELEASE, // Release the entire region, base address must be the same that returned from MtAllocateVirtualMemory
+	MEM_DECOMMIT // Decommit the region specified by the NumberOfBytes argument.
+} FREE_TYPE;
+
+struct _APC;
+typedef struct _APC APC;
+typedef APC* PAPC;
+
 #endif // MATANEL_CORE_H

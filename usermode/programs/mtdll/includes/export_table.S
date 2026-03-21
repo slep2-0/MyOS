@@ -43,6 +43,10 @@ EXPORT VirtualAlloc, "VirtualAlloc"
 EXPORT VirtualAllocEx, "VirtualAllocEx"
 EXPORT VirtualQuery, "VirtualQuery"
 EXPORT VirtualQueryEx, "VirtualQueryEx"
+EXPORT VirtualProtect, "VirtualProtect"
+EXPORT VirtualProtectEx, "VirtualProtectEx"
+EXPORT VirtualFree, "VirtualFree"
+EXPORT VirtualFreeEx, "VirtualFreeEx"
 
 /* file.c */
 EXPORT CreateFile, "CreateFile"

@@ -627,6 +627,8 @@ static void release_tmp_lock(SPINLOCK* lock) {
     __sync_lock_release(&lock->locked);
 }
 
+extern bool isBugChecking;
+
 #ifdef DISABLE_GOP
 USED static void gop_printfz(uint32_t color, const char* fmt, ...) {
 #else
@@ -642,13 +644,27 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     __cli(); // Critical section
 
     GOP_PARAMS* gop = &gop_local;
+
+
     va_list ap;
     va_start(ap, fmt);
 
     // One buffer to rule them all. 
     // Large enough for binary(64) + null + slop.
-    __attribute__((aligned(16))) char scratch[NUM_BUFFER_SIZE];
     size_t written = 0;
+    __attribute__((aligned(16))) char scratch[NUM_BUFFER_SIZE];
+    scratch[0] = '\0';
+
+    if (!isBugChecking) {
+        PPROCESSOR cpu = MeGetCurrentProcessor();
+        if (cpu) {
+            int cpu_id = (int)(uintptr_t)cpu->ID;
+            buf_print_dec64(scratch, NUM_BUFFER_SIZE, &written, cpu_id);
+            gop_puts(gop, "[CPU: ", color);
+            gop_puts(gop, scratch, color);
+            gop_puts(gop, "] ", color);
+        }
+    }
 
     for (const char* p = fmt; *p; p++) {
         if (*p == '*' && p[1] == '*') {

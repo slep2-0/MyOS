@@ -140,7 +140,17 @@ Schedule(void) {
     }
 
     next->ThreadState = THREAD_RUNNING;
+    next->ActiveProcessor = cpu; // Set the thread's current CPU as this.
     MeGetCurrentProcessor()->currentThread = next;
+
+    // Check if this thread has any APCs queued to it
+    // If so, request the interrupt.
+    IRQL apcQueueIrql;
+    MsAcquireSpinlock(&next->ApcQueueLock, &apcQueueIrql);
+    if (next->ApcListHead.Flink != &next->ApcListHead) {
+        cpu->ApcInterruptRequested = true;
+    }
+    MsReleaseSpinlock(&next->ApcQueueLock, apcQueueIrql);
 
     // Disable interrupts, we must not scheduled away now.
     MeDisableInterrupts();

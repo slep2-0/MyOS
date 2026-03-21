@@ -267,3 +267,43 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		InterlockedExchangeU64(&cpus[i].MailboxLock, 0);
 	}
 }
+
+void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION action, IPI_PARAMS parameter) {
+	// Ensure SMP is initialized and the target is valid.
+	if (!smpInitialized || !TargetProcessor) return;
+
+	uint8_t myid = my_lapic_id();
+
+	// Prevent sending an IPI to ourselves and ensure the target is online.
+	if (TargetProcessor->lapic_ID == myid) return;
+	if (!(TargetProcessor->flags & CPU_ONLINE)) return;
+
+	// Generate a unique sequence number for this IPI request.
+	static uint64_t g_ipiSeq = 1;
+	uint64_t seq = InterlockedIncrementU64(&g_ipiSeq);
+
+	__asm__ volatile("mfence" ::: "memory");
+
+	// Acquire the mailbox lock for the target processor.
+	// If the lock is held, we spin and process any incoming IPIs for ourselves.
+	while (InterlockedCompareExchangeU64(&TargetProcessor->MailboxLock, 1, 0) == 1) {
+		MhSpinAndProcessIpis();
+	}
+
+	// Assign the action, parameters, and sequence number to the target's mailbox.
+	TargetProcessor->IpiAction = action;
+	TargetProcessor->IpiParameter = parameter;
+	TargetProcessor->IpiSeq = seq;
+
+	// Send the IPI using the global IPI vector.
+	lapic_send_ipi(TargetProcessor->lapic_ID, (uint8_t)VECTOR_IPI, 0x0);
+
+	// Wait for the target processor to finish handling the IPI.
+	// The target will clear or update its IpiSeq upon completion.
+	while (*(volatile uint64_t*)&TargetProcessor->IpiSeq == seq) {
+		MhSpinAndProcessIpis();
+	}
+
+	// Release the mailbox lock so other processors can send requests to this CPU.
+	InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
+}

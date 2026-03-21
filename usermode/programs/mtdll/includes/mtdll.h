@@ -138,18 +138,23 @@ RemoveEntryList(
 
 
 // should change to protection type, and add allocation type like MEM_TOP_DOWN
-typedef enum _USER_ALLOCATION_TYPE {
+typedef enum _USER_PROTECTION_TYPE {
     PAGE_EXECUTE_READ = 0x10, // PRESENT
     PAGE_EXECUTE_READWRITE = 0x20, // PRESENT | RW
     PAGE_READWRITE = 0x30, // PRESENT | RW | NX
     PAGE_READONLY = 0x40 // PRESENT | NX
-} USER_ALLOCATION_TYPE;
+} USER_PROTECTION_TYPE;
 
 typedef struct _MEMORY_BASIC_INFORMATION {
     void* BaseAddress;
     size_t RegionSize;
-    USER_ALLOCATION_TYPE Protection;
+    USER_PROTECTION_TYPE Protection;
 } MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
+
+typedef enum _FREE_TYPE {
+    MEM_RELEASE, // Release the entire region, base address must be the same that returned from MtAllocateVirtualMemory
+    MEM_DECOMMIT // Decommit the region specified by the NumberOfBytes argument.
+} FREE_TYPE;
 
 FORCEINLINE
 PTEB 
@@ -230,4 +235,21 @@ MtQueryVirtualMemory(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
+);
+
+MTSTATUS
+MtProtectVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* RegionSize,
+    IN USER_PROTECTION_TYPE NewProtection,
+    OUT USER_PROTECTION_TYPE* OldProtection
+);
+
+MTSTATUS
+MtFreeVirtualMemory(
+    IN HANDLE ProcessHandle,
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
 );
