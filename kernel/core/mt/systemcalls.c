@@ -775,9 +775,9 @@ MtProtectVirtualMemory(
     // Check if user address is valid.
     MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
     if (MT_FAILURE(Status)) return Status;
-    Status = ProbeForRead(RegionSize, sizeof(size_t*), _Alignof(size_t*));
+    Status = ProbeForRead(RegionSize, sizeof(size_t), _Alignof(size_t));
     if (MT_FAILURE(Status)) return Status;
-    Status = ProbeForRead(OldProtection, sizeof(USER_PROTECTION_TYPE*), _Alignof(USER_PROTECTION_TYPE*));
+    Status = ProbeForRead(OldProtection, sizeof(USER_PROTECTION_TYPE), _Alignof(USER_PROTECTION_TYPE));
     if (MT_FAILURE(Status)) return Status;
 
     // Attempt to capture the base address and required region size.
@@ -835,6 +835,7 @@ MtProtectVirtualMemory(
 
     try {
         *OldProtection = MtpVadFlagsToUserAllocationType(Vad->Flags);
+        gop_printf(COLOR_RED, "**[SYSCALL-VIRTPROT] Returning OldProtection %x**\n", MtpVadFlagsToUserAllocationType(Vad->Flags));
         *RegionSize = (ProtectEnd - ProtectStart) + 1;
     } except{
         MsReleasePushLockExclusive(&Process->VadLock);
@@ -972,7 +973,7 @@ MtFreeVirtualMemory(
     // Address validations.
     MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
     if (MT_FAILURE(Status)) return Status;
-    Status = ProbeForRead(NumberOfBytes, sizeof(size_t*), _Alignof(size_t*));
+    Status = ProbeForRead(NumberOfBytes, sizeof(size_t), _Alignof(size_t));
     if (MT_FAILURE(Status)) return Status;
 
     void* KernelBase = NULL;

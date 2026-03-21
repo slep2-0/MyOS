@@ -473,10 +473,10 @@ MmCreateUserStack(
     // If no stack reserve size, we use the default
     if (!StackReserveSize) StackReserveSize = MI_DEFAULT_USER_STACK_SIZE;
 
-    // Acquire thew exclusive push lock.
+    // Acquire the exclusive push lock.
     MsAcquirePushLockExclusive(&Process->AddressSpaceLock);
 
-    // Save the current hint.
+    // Grab the current hint.
     uintptr_t CurrentStackHint = Process->NextStackHint;
 
     // Compute the desired end of the stack (and align it).

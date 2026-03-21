@@ -169,7 +169,7 @@ MmMapViewOfSection(
 
             if (MT_FAILURE(Status)) {
                 void* load_Base_temp = (void*)load_base;
-                MmFreeVirtualMemory(Process, &load_Base_temp, 0, MEM_RELEASE);
+                MmFreeVirtualMemory(Process, &load_Base_temp, &OverflowSize, MEM_RELEASE);
                 goto Cleanup;
             }
         }
