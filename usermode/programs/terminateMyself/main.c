@@ -5,7 +5,27 @@
 volatile int GlobalVarData = 1;
 volatile int GlobalVarBss;
 
+uint32_t MyThread(void* ThreadParameter) {
+    (void)(ThreadParameter);
 
+    // Syscall once, but in a while loop because we are cool.
+    bool spammy = false;
+    void* wastemem;
+    while (true) {
+        if (!spammy) {
+            spammy = true;
+            wastemem = VirtualAlloc(NULL, 4095, PAGE_EXECUTE_READWRITE);
+        }
+
+        if (spammy) {
+            USER_PROTECTION_TYPE oldprot;
+            bool wastemem2 = VirtualProtect((void*)wastemem, 4095, PAGE_READWRITE, &oldprot);
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 int main(void) {
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
@@ -64,6 +84,9 @@ int main(void) {
         ExitCode = MT_AHCI_TIMEOUT;
         goto failure;
     }
+
+    // Create thread.
+    CreateThread((THREAD_START_ROUTINE)MyThread, NULL);
 
     // Done, infinite loop.
     goto success;

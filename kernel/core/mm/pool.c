@@ -511,8 +511,8 @@ MmAllocatePoolWithTag(
                 BAD_POOL_CALLER,
                 (void*)&MmAllocatePoolWithTag,
                 (void*)MeGetCurrentIrql(),
-                (void*)8,
-                (void*)__builtin_return_address(0)
+                (void*)(uintptr_t)PoolType,
+                (void*)RETADDR(0)
             );
         }
     }
@@ -522,8 +522,8 @@ MmAllocatePoolWithTag(
             BAD_POOL_CALLER,
             (void*)&MmAllocatePoolWithTag,
             (void*)MeGetCurrentIrql(),
-            (void*)8,
-            (void*)__builtin_return_address(0)
+            (void*)(uintptr_t)PoolType,
+            (void*)RETADDR(0)
         );
     }
 
@@ -663,7 +663,7 @@ MmFreePool(
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));
 
-    gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
+    //gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
 
     if (header->PoolCanary != 'BEKA') {
         MeBugCheckEx(

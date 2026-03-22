@@ -33,6 +33,8 @@ EXPORT strlen, "strlen"
 
 /* thread.c */
 EXPORT TerminateThread, "TerminateThread"
+EXPORT CreateThread, "CreateThread"
+EXPORT CreateRemoteThread, "CreateRemoteThread"
 
 /* process.c */
 EXPORT OpenProcess, "OpenProcess"

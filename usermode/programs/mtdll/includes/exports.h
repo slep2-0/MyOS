@@ -31,14 +31,6 @@ char* strcpy(char* dst, const char* src);
 size_t strlen(const char* str);
 char* strncat(char* dest, const char* src, size_t max_len);
 
-// module: thread.c
-
-bool
-TerminateThread(
-	IN HANDLE ThreadHandle,
-	IN uint32_t ExitStatus
-);
-
 // module: process.c
 
 HANDLE

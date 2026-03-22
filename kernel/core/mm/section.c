@@ -142,6 +142,13 @@ MmMapViewOfSection(
     if (Vad) {
         Vad->File = Section->FileObject;
         Vad->FileOffset = Section->WholeFileSection.FileOffset; // 0
+
+        // Increment reference count since we added another pointer
+        // Look in MiDeleteVadsProcess, it also dereferences the same file object
+        // So we must own another reference count.
+        if (Vad->File) {
+            ObReferenceObject(Vad->File);
+        }
     }
 
     // .bss lives immediately after the file data in Virtual Memory.

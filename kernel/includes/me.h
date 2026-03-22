@@ -313,7 +313,7 @@ typedef struct _PROCESSOR {
 	struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
-	void* VirtStackTop; // Pointer to top of CPU Stack.
+	void* VirtStackTop; // Pointer to top of CPU Stack. -- NOTE (FIXME): I dont get why do we need this, since every stack onward should be the THREADS kernel stack, or an IST stack, not this.
 	void* tss; // Task State Segment ptr.
 	void* Rsp0; // General RSP for interrupts & syscalls (entry only) & exceptions.
 	void* IstPFStackTop; // Page Fault IST Stack

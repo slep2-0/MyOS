@@ -2,6 +2,7 @@
 #include "../../assert.h"
 #include "../../includes/mg.h"
 #include "../../includes/ob.h"
+#include "../../includes/mt.h"
 
 #define MIN_TID           3u
 #define MAX_TID           0xFFFFFFFCu
@@ -49,9 +50,9 @@ PspThreadTerminationRoutine(
 
 MTSTATUS
 PsCreateThread(
-    HANDLE ProcessHandle,
+    PEPROCESS Process,
     PHANDLE ThreadHandle,
-    ThreadEntry EntryPoint,
+    THREAD_START_ROUTINE EntryPoint,
     THREAD_PARAMETER ThreadParameter,
     TimeSliceTicks TimeSlice,
     ThreadEntry MtdllEntrypoint
@@ -59,12 +60,15 @@ PsCreateThread(
 
 {
     // Checks.
-    if (!ProcessHandle || !EntryPoint || !TimeSlice) return MT_INVALID_PARAM;
+    if (!Process || !EntryPoint || !TimeSlice) return MT_INVALID_PARAM;
     MTSTATUS Status;
-    PEPROCESS ParentProcess;
+    PEPROCESS ParentProcess = Process;
+    bool ThreadHandleCreated = false;
 
-    Status = ObReferenceObjectByHandle(ProcessHandle, MT_PROCESS_CREATE_THREAD, PsProcessType, (void**)&ParentProcess, NULL);
-    if (MT_FAILURE(Status)) return Status;
+    // Reference parent.
+    if (!ObReferenceObject(ParentProcess)) {
+        return MT_PROCESS_IS_TERMINATING;
+    }
 
     // Acquire process rundown protection.
     if (!MsAcquireRundownProtection(&ParentProcess->ProcessRundown)) {
@@ -74,7 +78,7 @@ PsCreateThread(
     }
 
     // Create a new thread.
-    PETHREAD Thread;
+    PETHREAD Thread = NULL;
     Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**) & Thread);
     if (MT_FAILURE(Status)) {
         ObDereferenceObject(ParentProcess);
@@ -172,7 +176,6 @@ PsCreateThread(
         // This is a process new thread, set execution entrypoint to LdrInitializeThread.
         // Since a thread is already created, this means the entries are already cached in memory
         // so a file object isnt required.
-        assert(false, "testremoveme");
         void* LdrInitializeThreadRva = PspFindMtdllEntry(NULL, MTDLL_THREAD_ROUTINE);
 
         if (!LdrInitializeThreadRva) {
@@ -224,6 +227,8 @@ PsCreateThread(
     // Create a handle for the thread (and place it in the process's handle table).
     Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    ThreadHandleCreated = true;
     
     // Add to list of all threads in the parent process. (acquire its push lock)
     MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
@@ -252,11 +257,14 @@ PsCreateThread(
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
 
 CleanupWithRef:
-    // If failure on status, we destroy the thread, if not.
-    // We are left with PointerCount == 2 and HandleCount == 1, why? Because if we access the thread and dereference it there still must be left HandleCount == 1 and PointerCount == 1 (the handles)
+    // If failure on status, we destroy the thread, if not,
+    // we are left with PointerCount == 2 and HandleCount == 1, why? Because if we access the thread and dereference it there still must be left HandleCount == 1 and PointerCount == 1 (the handles)
     // With processes however, its different.
     MsReleaseRundownProtection(&ParentProcess->ProcessRundown);
     if (MT_FAILURE(Status)) {
+        // If a handle is created, destroy the handle which also dereferences the object
+        // Else, dereference the thread only.
+        if (ThreadHandleCreated) HtClose(*ThreadHandle);
         ObDereferenceObject(Thread);
         ObDereferenceObject(ParentProcess);
     }

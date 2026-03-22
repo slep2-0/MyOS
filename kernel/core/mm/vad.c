@@ -980,13 +980,13 @@ MmFreeVirtualMemory(
 
     // Resolve memory ranges and validate parameters
     if (FreeType == MEM_DECOMMIT) {
-        FreeStart = (uintptr_t)PAGE_ALIGN(BaseAddress);
+        FreeStart = (uintptr_t)PAGE_ALIGN(*BaseAddress);
         AlignedBytes = ALIGN_UP(*NumberOfBytes, VirtualPageSize);
         if (AlignedBytes == 0) return MT_INVALID_PARAM;
         FreeEnd = FreeStart + AlignedBytes - 1;
     }
     else if (FreeType == MEM_RELEASE) {
-        FreeStart = (uintptr_t)PAGE_ALIGN(BaseAddress);
+        FreeStart = (uintptr_t)PAGE_ALIGN(*BaseAddress);
         // NumberOfBytes is ignored for MEM_RELEASE, the entire VAD is freed based on the node.
     }
     else {
@@ -1001,7 +1001,7 @@ MmFreeVirtualMemory(
     // Acquire VAD lock exclusive
     MsAcquirePushLockExclusive(&Process->VadLock);
 
-    PMMVAD VadToFree = MiFindVad(Process, FreeStart);
+    PMMVAD VadToFree = MiFindVadInternal(Process, FreeStart, false);
     if (VadToFree == NULL) {
         status = MT_INVALID_ADDRESS;
         goto cleanup;
@@ -1067,4 +1067,44 @@ cleanup:
     MsReleasePushLockExclusive(&Process->VadLock);
     MsReleaseRundownProtection(&Process->ProcessRundown);
     return status;
+}
+
+static
+void
+MiDeleteVadTree(
+    IN PMMVAD Node
+)
+{
+    if (!Node) return;
+
+    // Recursively delete the left and right children first
+    MiDeleteVadTree(Node->LeftChild);
+    MiDeleteVadTree(Node->RightChild);
+
+    // Dereference the file object if this VAD is backed by a mapped file
+    if ((Node->Flags & VAD_FLAG_MAPPED_FILE) && Node->File != NULL) {
+        ObDereferenceObject(Node->File);
+    }
+
+    // Free the actual VAD node.
+    MiFreeVad(Node);
+}
+
+void
+MiTerminateVadsProcess(
+    IN PEPROCESS Process
+)
+
+{
+    // Acquire exclusive lock.
+    MsAcquirePushLockExclusive(&Process->VadLock);
+
+    // Traverse the tree and delete each node.
+    MiDeleteVadTree(Process->VadRoot);
+
+    // No dangling ptrs.
+    Process->VadRoot = NULL;
+
+    // Release lock.
+    MsReleasePushLockExclusive(&Process->VadLock);
 }

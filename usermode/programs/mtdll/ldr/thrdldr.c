@@ -17,6 +17,7 @@ Revision History:
 --*/
 
 #include "../includes/mtdll.h"
+#include "../includes/processthreadsapi.h"
 #include "../includes/exports.h"
 
 static
@@ -50,12 +51,12 @@ LdrInitializeThread(
     LdrpInitializeBase(Teb);
 
     // Jump to entry point.
-    ((void (*)(uintptr_t))EntryPoint)(ThreadParameter);
+    uint32_t RetVal = ((uint32_t (*)(uintptr_t))EntryPoint)(ThreadParameter);
 
     // Returned from a thread.
     // So we call to terminate the thread.
     // Todo custom retval. (ExitStatus)
-    TerminateThread(MtCurrentThread(), MT_SUCCESS);
+    TerminateThread(MtCurrentThread(), RetVal);
 
     // This should effictively be a no-return, but if we did return from TerminateThread, we are somehow the last thread of the process, and ExitProcess wasnt called.
     TerminateProcess(MtCurrentProcess(), MT_GENERAL_FAILURE);

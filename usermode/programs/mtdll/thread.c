@@ -18,6 +18,7 @@ Revision History:
 
 #include "includes/mtdll.h"
 #include "includes/errorhandlingapi.h"
+#include "includes/processthreadsapi.h"
 
 bool
 TerminateThread(
@@ -35,3 +36,31 @@ TerminateThread(
     return MT_SUCCEEDED(Status);
 }
 
+HANDLE
+CreateThread(
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* ThreadParameter
+)
+
+{
+    HANDLE ThreadHandle = MT_INVALID_HANDLE;
+    MTSTATUS Status = MtCreateThread(MtCurrentProcess(), StartRoutine, ThreadParameter, &ThreadHandle);
+    SetLastError(MtStatusToLastError(Status));
+    SetLastStatus(Status);
+    return ThreadHandle;
+}
+
+HANDLE
+CreateRemoteThread(
+    IN HANDLE ProcessHandle,
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* ThreadParameter
+)
+
+{
+    HANDLE ThreadHandle = MT_INVALID_HANDLE;
+    MTSTATUS Status = MtCreateThread(ProcessHandle, StartRoutine, ThreadParameter, &ThreadHandle);
+    SetLastError(MtStatusToLastError(Status));
+    SetLastStatus(Status);
+    return ThreadHandle;
+}

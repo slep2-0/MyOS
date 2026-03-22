@@ -166,7 +166,7 @@ MsWaitForEvent (
     // Keep event lock held only for enqueue; after this we release and block.
     MsReleaseSpinlock(&event->lock, flags);
 #ifdef DEBUG
-    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p\n", PsGetCurrentThread());
+    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p (owner %s)\n", PsGetCurrentThread(), PsGetCurrentProcess()->ImageName);
 #endif
     assert((MeGetCurrentIrql()) < DISPATCH_LEVEL);
     MsYieldExecution(&curr->InternalThread.TrapRegisters);

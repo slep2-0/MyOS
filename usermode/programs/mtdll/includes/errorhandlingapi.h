@@ -70,6 +70,7 @@ typedef int32_t ERROR_CODE;
 #define ERROR_DIR_NOT_EMPTY              ((ERROR_CODE)145L)
 #define ERROR_FILENAME_EXCED_RANGE       ((ERROR_CODE)206L)
 #define ERROR_DIRECTORY                  ((ERROR_CODE)267L)
+#define ERROR_DATATYPE_MISMATCH          ((ERROR_CODE)1629L)
 
 /* I/O / async */
 #define ERROR_IO_INCOMPLETE              ((ERROR_CODE)996L)
@@ -152,6 +153,8 @@ MtStatusToLastError(MTSTATUS Status)
         return ERROR_NOACCESS;
     case MT_INVALID_IMAGE_FORMAT:
         return ERROR_BAD_UNIT;
+    case MT_DATATYPE_MISALIGNMENT:
+        return ERROR_DATATYPE_MISMATCH;
 
         // -------------------------
         // VFS & Filesystem Base

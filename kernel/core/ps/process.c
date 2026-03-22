@@ -13,6 +13,7 @@
 #include "../../assert.h"
 #include "../../includes/fs.h"
 #include "../../includes/exception.h"
+#include "../../includes/mt.h"
 
 #define MIN_PID           4u
 #define MAX_PID           0xFFFFFFFCUL
@@ -369,7 +370,7 @@ PsCreateProcess(
     HANDLE FileHandle;
     Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    PFILE_OBJECT FileObject;
+    PFILE_OBJECT FileObject = NULL;
 
     // Reference the handle, and then close it so only the pointer reference remains (this)
     Status = ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
@@ -450,13 +451,14 @@ PsCreateProcess(
     gop_printf(COLOR_CYAN, "Process %s created at base %p and entrypoint %p\n", Process->ImageName, ExecutableBaseAddress, StartAddress);
 #endif
 
-    Status = PsCreateThread(hProcess, &MainThreadHandle, (ThreadEntry)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, MtdllInitializeProcess);
+    Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, MtdllInitializeProcess);
     if (MT_FAILURE(Status)) {
-        // This is a failure, since there is not a handle to the process, we must close it.
+        // This is a failure, since there is now a handle to the process, we must close it.
         // Destroy the handle.
         HtClose(hProcess);
         goto CleanupWithRef;
     }
+
     // We are, successful.
     if (ProcessHandle) *ProcessHandle = hProcess;
     Status = MT_SUCCESS;
@@ -472,6 +474,14 @@ CleanupWithRef:
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
     // If not, it would reach reference 0, and PspDeleteProcess would execute.
     ObDereferenceObject(Process);
+
+    if (MT_FAILURE(Status)) {
+        // We dereference these file pointers only on failure
+        // If not, then they are used by MmAccessFault, and their dereference
+        // comes when the process dies. (See MmpDeleteSection triggered by PsTerminateProcess)
+        if (FileObject) ObDereferenceObject(FileObject);
+        if (MtdllObject) ObDereferenceObject(MtdllObject);
+    }
     // [[fallthrough]]
 Cleanup:
     if (Parent) ObDereferenceObject(Parent);
@@ -564,6 +574,7 @@ PsTerminateProcess(
     // So I dont think its REALLY needed, unless the pointers MUST NOT be dereferenced by other processes
     // and I can imagine a case where thats needed, so TODO PspExitProcess for self term. (check comment below before taking action)
     // PspDeleteProcess takes care of the actual dereference stuff too, so idk to be honest.
+    // future me - i have no idea what the fuck i meant back then, but ok..
 
     // Return if mission successful.
     return Status;
@@ -591,8 +602,8 @@ PsDeleteProcess(
         Process->MtdllSection = NULL;
     }
 
-    // TODO (CRITICAL FIXME) (MEMORY LEAK) Working set list delete all active VADs.
-    // VADs deletion would also close the FileObject HANDLE!
+    // Delete all VADs owned by process.
+    MiTerminateVadsProcess(Process);
     
     // Delete its CID.
     PsFreeCid(Process->PID);

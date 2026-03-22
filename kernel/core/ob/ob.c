@@ -463,7 +463,7 @@ ObCreateHandleForObjectEx(
         MTSTATUS Status Codes:
 
             MT_SUCCESS - Successful.
-            MT_INVALID_STATE - No handle table for current process.
+            MT_INVALID_ADDRESS - No handle table for process has been given.
             MT_INVALID_CHECK - HtCreateHandle returned MT_INVALID_HANDLE.
 --*/
 
@@ -583,7 +583,7 @@ void ObDereferenceObject(
 
     if (NewCount == 0) {
         // NO HANDLES Must be open if we delete the object, its a use after free.
-        assert(Header->HandleCount == 0);
+        assert(Header->HandleCount == 0, "Object pointer count reached 0, but still has handles open to it.");
         // Free Memory (defer it)
         //ObpDeferObjectDeletion(Header);
         /// FIXME below. If we are above DISPATCH_LEVEL we queue a DPC

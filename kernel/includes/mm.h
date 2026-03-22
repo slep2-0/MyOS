@@ -972,6 +972,11 @@ MiAllocateVad(
 );
 
 void
+MiTerminateVadsProcess(
+    IN PEPROCESS Process
+);
+
+void
 MiFreeVad(
     IN PMMVAD Vad
 );

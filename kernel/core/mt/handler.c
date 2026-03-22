@@ -56,7 +56,7 @@ MtSyscallHandler(
     MeGetCurrentThread()->PreviousMode = UserMode;
 
     // Increment system call count (cool)
-    InterlockedIncrementU64((volatile uint64_t*)&MeGetCurrentProcessor()->SystemCallCount);
+    MeGetCurrentProcessor()->SystemCallCount++;
 
     // Just for future incase. (this must be kept here since after interrupts are enabled UserRsp could very much change)
     // DO NOT Access the RSP in PTRAP_FRAME, it does not exist.
@@ -75,6 +75,7 @@ MtSyscallHandler(
 
     // >= because 256 is an invalid index in the array (0-255)
     if (SyscallNumber >= MAX_SYSCALLS || Ssdt[SyscallNumber] == NULL) {
+        gop_printf(COLOR_WHITE, "**{SYSCALL-FAIURE} (%lu) Syscall number passed %lu when its over max syscalls or NULL.", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber);
         *ReturnValue = MT_INVALID_SYSTEM_SERVICE;
         return;
     }
@@ -90,7 +91,7 @@ MtSyscallHandler(
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
 
-    gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lu | ARG2: %lu | ARG3: %lu**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
+    gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lx | ARG2: %lx | ARG3: %lx**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
     
     // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);

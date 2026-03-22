@@ -43,6 +43,8 @@ MT_IMPORT "mtdll.mtdll", strlen
 
 /* Threading */
 MT_IMPORT "mtdll.mtdll", TerminateThread
+MT_IMPORT "mtdll.mtdll", CreateThread
+MT_IMPORT "mtdll.mtdll", CreateRemoteThread
 
 /* Processes */
 MT_IMPORT "mtdll.mtdll", OpenProcess

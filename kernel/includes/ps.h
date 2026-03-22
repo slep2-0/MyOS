@@ -232,9 +232,9 @@ PsCreateProcess(
 
 MTSTATUS
 PsCreateThread(
-    HANDLE ProcessHandle,
+    PEPROCESS Process,
     PHANDLE ThreadHandle,
-    ThreadEntry EntryPoint,
+    THREAD_START_ROUTINE EntryPoint,
     THREAD_PARAMETER ThreadParameter,
     TimeSliceTicks TimeSlice,
     ThreadEntry MtdllEntrypoint

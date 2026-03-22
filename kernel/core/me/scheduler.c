@@ -118,7 +118,7 @@ Schedule(void) {
 
     // Check if we need to delete another thread's (safe now, we are at a separate stack)
     if (cpu->ZombieThread) {
-        // Drop the reference, we are on another thread's stack.
+        // Drop the reference, we are on another thread's stack
         ObDereferenceObject((void*)cpu->ZombieThread);
         cpu->ZombieThread = NULL;
     }

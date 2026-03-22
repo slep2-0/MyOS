@@ -26,6 +26,8 @@ typedef uint32_t ACCESS_MASK;
 #define MtCurrentProcess() -1 // Special handle signifying current process.
 #define MtCurrentThread() -2 // Special handle signifying current thread.
 
+typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
+
 /// This example is using the legacy kernel structures.
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
@@ -252,4 +254,12 @@ MtFreeVirtualMemory(
     IN OUT void** BaseAddress,
     IN OUT size_t* NumberOfBytes,
     IN enum _FREE_TYPE FreeType
+);
+
+MTSTATUS
+MtCreateThread(
+    IN HANDLE ProcessHandle,
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* Argument,
+    OUT PHANDLE ThreadHandle
 );

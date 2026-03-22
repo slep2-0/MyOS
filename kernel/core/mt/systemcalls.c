@@ -626,6 +626,12 @@ MtTerminateThread(
         // Current Thread.
         Thread = PsGetCurrentThread();
 
+        if (!ObReferenceObject(Thread)) {
+            // This shouldnt be possible, we are ourselves, but we are dead?
+            assert(false);
+            return MT_PROCESS_IS_TERMINATING;
+        }
+
         // Successful.
         Status = MT_SUCCESS;
     }
@@ -645,7 +651,7 @@ MtTerminateThread(
         return Status;
     }
 
-    // Dereference remote thread.
+    // Dereference thread (that we referenced earlier).
     ObDereferenceObject(Thread);
 
     // Call internal function.
@@ -992,6 +998,11 @@ MtFreeVirtualMemory(
     // Get Process.
     if (ProcessHandle == MtCurrentProcess()) {
         Process = PsGetCurrentProcess();
+
+        if (!ObReferenceObject(Process)) {
+            return MT_PROCESS_IS_TERMINATING;
+        }
+
         Status = MT_SUCCESS;
     }
     else {
@@ -1030,3 +1041,65 @@ MtFreeVirtualMemory(
     return Status;
 }
 
+MTSTATUS 
+MtCreateThread(
+    IN HANDLE ProcessHandle,
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* Argument,
+    OUT PHANDLE ThreadHandle
+)
+
+{
+    // Validate argument.
+    MTSTATUS Status = ProbeForRead(ThreadHandle, sizeof(HANDLE), _Alignof(HANDLE));
+    if (MT_FAILURE(Status)) return Status;
+
+    PEPROCESS Process;
+    if (ProcessHandle == MtCurrentProcess()) {
+        Process = PsGetCurrentProcess();
+
+        if (!ObReferenceObject(Process)) {
+            return MT_PROCESS_IS_TERMINATING;
+        }
+
+        Status = MT_SUCCESS;
+    }
+    else {
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_CREATE_THREAD,
+            PsProcessType,
+            (void**)&Process,
+            NULL
+        );
+    }
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Call internal function.
+    HANDLE KThreadHandle;
+
+    Status = PsCreateThread(
+        Process,
+        &KThreadHandle,
+        StartRoutine,
+        Argument,
+        DEFAULT_TIMESLICE_TICKS,
+        NULL
+    );
+
+    bool Succeeded = MT_SUCCEEDED(Status);
+
+    if (Succeeded) {
+        try {
+            *ThreadHandle = KThreadHandle;
+        } except{
+            ObDereferenceObject(Process);
+            return GetExceptionCode();
+        }
+        end_try;
+    }
+
+    ObDereferenceObject(Process);
+    return Status;
+}

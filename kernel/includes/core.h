@@ -71,4 +71,6 @@ struct _APC;
 typedef struct _APC APC;
 typedef APC* PAPC;
 
+typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
+
 #endif // MATANEL_CORE_H

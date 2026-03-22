@@ -21,6 +21,42 @@ static void update_apic_irqs(IRQL newLevel) {
     switch (newLevel) {
     case HIGH_LEVEL:
     case POWER_LEVEL:
+        tpr = 15; // Max priority
+        break;
+
+    case IPI_LEVEL:
+        tpr = (VECTOR_IPI >> 4);
+        break;
+
+    case CLOCK_LEVEL:
+        tpr = (VECTOR_CLOCK >> 4);
+        break;
+
+    case DISPATCH_LEVEL:
+        tpr = (VECTOR_DPC >> 4);
+        break;
+
+    case APC_LEVEL:
+        tpr = (VECTOR_APC >> 4);
+        break;
+
+    case PASSIVE_LEVEL:
+    default:
+        tpr = 0;
+        break;
+    }
+
+    __write_cr8((unsigned long)tpr);
+}
+
+/*
+PREVIOUS VERSION, if the upper one breaks, use it.
+static void update_apic_irqs(IRQL newLevel) {
+    uint8_t tpr = 0;
+
+    switch (newLevel) {
+    case HIGH_LEVEL:
+    case POWER_LEVEL:
         tpr = TPR_HIGH; // 15
         break;
 
@@ -48,6 +84,7 @@ static void update_apic_irqs(IRQL newLevel) {
 
     __write_cr8((unsigned long)tpr);
 }
+*/
 
 static inline void toggle_scheduler(void) {
     // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL

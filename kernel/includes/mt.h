@@ -134,4 +134,12 @@ MtFreeVirtualMemory(
     IN enum _FREE_TYPE FreeType
 );
 
+MTSTATUS
+MtCreateThread(
+    IN HANDLE ProcessHandle,
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* Argument,
+    OUT PHANDLE ThreadHandle
+);
+
 #endif

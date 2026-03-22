@@ -187,3 +187,19 @@ MtFreeVirtualMemory:
 	mov r10, rcx
 	syscall
 	ret
+
+; MTSTATUS
+; MtCreateThread(
+;     IN HANDLE ProcessHandle,
+;     IN THREAD_START_ROUTINE StartRoutine,
+;     IN void* Argument,
+;     OUT PHANDLE ThreadHandle
+; );
+; Syscall number is 11.
+
+global MtCreateThread
+MtCreateThread:
+	mov rax, 11
+	mov r10, rcx
+	syscall
+	ret

@@ -62,6 +62,8 @@ typedef struct _MEMORY_BASIC_INFORMATION {
     USER_PROTECTION_TYPE Protection;
 } MEMORY_BASIC_INFORMATION, * PMEMORY_BASIC_INFORMATION;
 
+typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
+
 extern char* (*strchr)(const char* s, int c);
 extern char* (*strncat)(char* dest, const char* src, size_t max_len);
 extern int   (*strncmp)(const char* s1, const char* s2, size_t length);
@@ -74,6 +76,19 @@ extern bool (*TerminateThread)(
     IN HANDLE ThreadHandle,
     IN uint32_t ExitStatus
     );
+
+extern HANDLE
+(*CreateThread)(
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* ThreadParameter
+);
+
+extern HANDLE
+(*CreateRemoteThread)(
+    IN HANDLE ProcessHandle,
+    IN THREAD_START_ROUTINE StartRoutine,
+    IN void* ThreadParameter
+);
 
 extern HANDLE(*OpenProcess)(
     IN  ACCESS_MASK DesiredAccess,
