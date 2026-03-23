@@ -20,6 +20,8 @@ Revision History:
 #include "../../includes/ps.h"
 #include "../../assert.h"
 
+#define DISPATCHER_FUNC_NAME "MeUserApcDispatcher"
+
 void
 MeInitializeApc(
     IN PAPC Apc,
@@ -99,6 +101,9 @@ MeRetireAPCs(
     void
 )
 {
+#ifdef DEBUG
+    gop_printf(COLOR_CYAN, "**In MeRetireAPCs**\n");
+#endif
     PPROCESSOR cpu = MeGetCurrentProcessor();
     PITHREAD currentThread = cpu->currentThread;
 
@@ -143,7 +148,45 @@ MeRetireAPCs(
             }
             else {
                 // User mode APC, must change the trap frame and stuff.
-                
+                // Grab thread's TRAP_FRAME.
+                PTRAP_FRAME Trap = &currentThread->TrapRegisters;
+
+                // Make room for red zone.
+                uint64_t UserStack = Trap->rsp - 128;
+
+                // Make room for the TRAP_FRAME and align to 16 bytes
+                UserStack -= sizeof(TRAP_FRAME);
+                UserStack &= ~0x0FULL;
+
+                // Push in the new trap frame.
+                try {
+                    kmemcpy((void*)UserStack, Trap, sizeof(TRAP_FRAME));
+                } except{
+                    continue;
+                }
+                end_try;
+
+                // Set R8 To point to that location;
+                Trap->r8 = UserStack;
+
+                // Set RIP to MeUserApcDispatcher
+                Trap->rip = (uint64_t)PspFindMtdllEntryAddress(DISPATCHER_FUNC_NAME, PsGetEThreadFromIThread(currentThread));
+
+                if (!Trap->rip) {
+                    assert(false, "Could not find MeUserApcDispatcher inside of MTDLL for APC.");
+                    continue;
+                }
+
+                Trap->rdi = (uint64_t)NormalRoutine;
+                Trap->rsi = (uint64_t)NormalContext;
+                Trap->rdx = (uint64_t)SysArg1;
+                Trap->rcx = (uint64_t)SysArg2;
+
+                // Return immediately, we want this to be processed.
+                // Note that the flag ApcRoutineActive stays on! Until MtContinue is called.
+                // Free the APC and return.
+                MmFreePool(Apc);
+                return;
             }
         }
     }

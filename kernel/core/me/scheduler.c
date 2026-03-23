@@ -180,5 +180,5 @@ Schedule(void) {
             restore_user_context_withswapgs(PsGetEThreadFromIThread(next));
         }
     }
-    __builtin_unreachable();
+    UNREACHABLE_CODE();
 }

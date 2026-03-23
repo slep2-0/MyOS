@@ -102,6 +102,7 @@ typedef int32_t MTSTATUS;
 #define MT_THREAD_CREATION_FAILURE ((MTSTATUS)0xC4000002L)
 #define MT_SCHEDULER_ERROR      ((MTSTATUS)0xC4000003L)
 #define MT_INVALID_IRQL         ((MTSTATUS)0xC4000004L)
+#define MT_APC_ERROR			((MTSTATUS)0xC4000005L)
 
 //
 // ==========================

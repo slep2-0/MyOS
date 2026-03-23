@@ -87,7 +87,7 @@ ReadStringFromFile(PFILE_OBJECT FileObject, uint64_t off, char* buf, size_t buf_
 
 // This finds the routine inside of the MTDLL Export table, with memory caching.
 void*
-PspFindMtdllEntry(
+PspFindMtdllEntryRva(
     IN PFILE_OBJECT MtdllObject,
     IN const char* RoutineName
 )
@@ -166,6 +166,50 @@ PspFindMtdllEntry(
     PsMtdllRvasSaved = true;
 
     return requested_rva; // Returns the RVA if found, or NULL if it wasn't in the table
+}
+
+// MTDLL Entries must be cached for this function to work.
+uintptr_t
+PspFindMtdllEntryAddress(
+    IN const char* RoutineName,
+    IN PETHREAD Thread
+)
+
+{
+    void* FunctionRva = PspFindMtdllEntryRva(NULL, RoutineName);
+
+    if (!FunctionRva) {
+        return 0;
+    }
+
+    uintptr_t ActualAddress = 0;
+    PEPROCESS Process = Thread->ParentProcess;
+
+    // Try to find MTDLL base in memory using the PEB.
+    try {
+        PPEB Peb = Process->Peb;
+
+        PDOUBLY_LINKED_LIST Head = &Peb->LoaderData.LoadedModuleList;
+        PDOUBLY_LINKED_LIST Current = Peb->LoaderData.LoadedModuleList.Flink;
+
+        while (Head != Current) {
+            LDR_DATA_TABLE_ENTRY* Entry = CONTAINING_RECORD(Current, LDR_DATA_TABLE_ENTRY, LoadedModuleList);
+
+            if (kstrcmp(Entry->FullName, MTDLL_PATH) == 0) {
+                // This is MTDLL, add base + entry.
+                ActualAddress = (uintptr_t)Entry->Base + (uintptr_t)FunctionRva;
+                break;
+            }
+
+            Current = Current->Flink;
+        }
+
+    } except{
+        return 0;
+    }
+    end_try;
+
+    return ActualAddress;
 }
 
 static
@@ -307,7 +351,7 @@ PsCreateProcess(
 
     // Find MTDLL Entrypoint now. 
     // (PspFindMtdllEntry will safely use the cache and ignore MtdllObject if PsMtdllRvasSaved is true)
-    void* MtdllInitializeProcessRva = PspFindMtdllEntry(MtdllObject, MTDLL_TARGET_ENTRY);
+    void* MtdllInitializeProcessRva = PspFindMtdllEntryRva(MtdllObject, MTDLL_TARGET_ENTRY);
     if (!MtdllInitializeProcessRva) {
         ObDereferenceObject(MtdllObject);
         goto CleanupWithRef;

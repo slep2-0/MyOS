@@ -10,9 +10,6 @@
 #define _In_Opt // Optional input (NULL allowed)
 #define _Out_Opt // Optional output (NULL allowed)
 
-// Function will not return.
-#define NORETURN __attribute__((noreturn))
-
 // Function will be forcefully inlined by the compiler.
 #ifndef FORCEINLINE
 #if defined(__clang__) || defined(__GNUC__)
@@ -34,6 +31,9 @@
 #define FORCEINLINE_NOHEADER inline
 #endif
 #endif
+
+// Function will not return.
+#define NORETURN __attribute__((noreturn))
 
 // Function / Object is signaled as used, even though it is not used in any translation unit.
 #define USED __attribute__((used))

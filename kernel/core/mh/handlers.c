@@ -527,7 +527,7 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
 void MiFloatingPointError(PTRAP_FRAME trap) {
     UNREFERENCED_PARAMETER(trap);
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
-    gop_printf(0xFFFF0000, "Error: Floating Point error, have you done a correct calculation?\n");
+    gop_printf(0xFFFF0000, "**Error: Floating Point error, have you done a correct calculation?**\n");
 }
 
 void MiAlignmentCheck(PTRAP_FRAME trap) {
@@ -535,7 +535,7 @@ void MiAlignmentCheck(PTRAP_FRAME trap) {
     // CR0.AM (Alignment Mask) must be set to 1.
     // EFLAGS.AC (Alignment Check) must be set to 1.
     // CPL (user mode or kernel mode) must be set to 3. (user mode only)
-    // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write, writing more than there is.
+    // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write.
     // for now, bugcheck.
     MeBugCheckEx(ALIGNMENT_CHECK, (void*)trap->rip, NULL, NULL, NULL);
 }

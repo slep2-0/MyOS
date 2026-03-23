@@ -1,7 +1,4 @@
 /* exports_table.S — Fixed RVA calculation using Image Base literal */
-
-/* This must match the mtdll.ld start address */
-/* The Makefile should modify this by reading the image base set in the linker script, then modify this line, but who cares for hidden bugs for now */
 #define IMAGE_BASE 0x100000
 
 /* * Helper Macro for GNU Assembler (GAS)
@@ -64,3 +61,6 @@ EXPORT LdrInitializeThread, "LdrInitializeThread"
 /* error.c */
 EXPORT GetLastError, "GetLastError"
 EXPORT SetLastError, "SetLastError"
+
+/* apcdispatch.asm */
+EXPORT MeUserApcDispatcher, "MeUserApcDispatcher"

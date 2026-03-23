@@ -297,7 +297,8 @@ typedef struct _ITHREAD {
 	// Apc Related
 	DOUBLY_LINKED_LIST ApcListHead; // Add this to hold queued APCs
 	SPINLOCK ApcQueueLock; // Spinlock for inserting/dequeuing from an APC.
-	APC TerminationApc; // APC That gets executed when pending termiantion for this thread.
+
+	PTRAP_FRAME SyscallTrap; // A pointer to the trap frame last saved by the syscall handler, ONLY SYSTEM CALLS ARE ALLOWED TO TOUCH THIS!
 
 	// Procesor Related
 	struct _PROCESSOR* ActiveProcessor; // ONLY valid when ThreadState == THREAD_RUNNING
@@ -342,7 +343,7 @@ typedef struct _PROCESSOR {
 	uintptr_t TimerHand;                 // Context for timer expiration (unused)
 
 	// Additional APC Fields
-	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs
+	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs (or in a user mode APC)
 
 	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;

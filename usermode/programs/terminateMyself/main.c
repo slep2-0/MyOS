@@ -8,20 +8,12 @@ volatile int GlobalVarBss;
 uint32_t MyThread(void* ThreadParameter) {
     (void)(ThreadParameter);
 
-    // Syscall once, but in a while loop because we are cool.
-    bool spammy = false;
-    void* wastemem;
-    while (true) {
-        if (!spammy) {
-            spammy = true;
-            wastemem = VirtualAlloc(NULL, 4095, PAGE_EXECUTE_READWRITE);
-        }
-
-        if (spammy) {
-            USER_PROTECTION_TYPE oldprot;
-            bool wastemem2 = VirtualProtect((void*)wastemem, 4095, PAGE_READWRITE, &oldprot);
-            return 0;
-        }
+    volatile int i = 0;
+    while (1) {
+        i++;
+        __asm__ volatile("pause");
+        // I will never terminate!
+        // Unless...
     }
 
     return 1;
@@ -33,6 +25,7 @@ int main(void) {
     volatile int counter = 0;
     HANDLE FileHandle = CreateFile("group.txt", MT_FILE_ALL_ACCESS);
     MTSTATUS ExitCode = MT_GENERAL_FAILURE;
+    HANDLE ThreadHandle;
 
     if (FileHandle == MT_INVALID_HANDLE) {
         ExitCode = MT_INVALID_HANDLE;
@@ -41,8 +34,6 @@ int main(void) {
 
     // Write.
     char Hello[] = "ascendz mcdonalds adiravraham ofirs";
-    // the sizeof operator shouldnt be used here as it is a text file, and so it would include null termination which is not used.
-    // instead, we would need strlen, but my os doesnt have a user standard library yet (i plan to implement it in mtdll)
     bool Worked = WriteFile(FileHandle, 0, Hello, strlen(Hello), NULL);
     if (!Worked) {
         ExitCode = MT_FAT32_INVALID_FILENAME;
@@ -86,7 +77,7 @@ int main(void) {
     }
 
     // Create thread.
-    CreateThread((THREAD_START_ROUTINE)MyThread, NULL);
+    ThreadHandle = CreateThread((THREAD_START_ROUTINE)MyThread, NULL);
 
     // Done, infinite loop.
     goto success;
@@ -97,6 +88,10 @@ success:
     while (true) {
         counter++;
         __asm__ volatile ("pause");
+
+        if (counter == 10000000) {
+            TerminateThread(ThreadHandle, MT_SUCCESS);
+        }
     }
     return 0;
 }

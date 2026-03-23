@@ -91,6 +91,9 @@ MtSyscallHandler(
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
 
+    // Copy into the current threads PITHREAD a pointer to this trap frame so the syscall can touch it (like MtContinue)
+    MeGetCurrentThread()->SyscallTrap = TrapFrame;
+
     gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lx | ARG2: %lx | ARG3: %lx**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
     
     // Todo regular SSDT. (with limits, no direct indexing)

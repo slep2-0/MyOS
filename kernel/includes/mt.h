@@ -142,4 +142,9 @@ MtCreateThread(
     OUT PHANDLE ThreadHandle
 );
 
+void
+MtContinue(
+    PTRAP_FRAME OldTrapFrame
+);
+
 #endif

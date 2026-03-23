@@ -380,9 +380,15 @@ PsFreeCid(
 );
 
 void*
-PspFindMtdllEntry(
+PspFindMtdllEntryRva(
     IN PFILE_OBJECT MtdllObject,
     IN const char* RoutineName
+);
+
+uintptr_t
+PspFindMtdllEntryAddress(
+    IN const char* RoutineName,
+    IN PETHREAD Thread
 );
 
 // Enqueues a thread into the queue with spinlock protection.

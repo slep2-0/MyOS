@@ -244,7 +244,7 @@ LdrInitializeProcess(
     // Resolve its imports.
     MTSTATUS Status = LdrpProcessImports(ProcessEntry, InitialPeb);
 
-    // In Windows when an Import fails it usually creates a MessageBox first to notify the user.
+    // In Windows when an Import fails it usually creates a MessageBox first to notify the user. (only for when the main executable imports that is)
     // But we dont have that yet! :(
     if (MT_FAILURE(Status)) MtTerminateProcess(MtCurrentProcess(), Status);
 

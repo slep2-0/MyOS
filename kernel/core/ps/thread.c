@@ -36,6 +36,17 @@ extern EPROCESS PsInitialSystemProcess;
 
 static
 void
+PspThreadRundown(
+    IN PAPC Apc
+)
+
+{
+    // Free it.
+    MmFreePool(Apc);
+}
+
+static
+void
 PspThreadTerminationRoutine(
     struct _APC* Apc, void** NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2
 )
@@ -43,8 +54,11 @@ PspThreadTerminationRoutine(
 {
     UNREFERENCED_PARAMETER(Apc); UNREFERENCED_PARAMETER(NormalContext); UNREFERENCED_PARAMETER(NormalRoutine); UNREFERENCED_PARAMETER(SystemArgument1); UNREFERENCED_PARAMETER(SystemArgument2);
     // Call PspExitThread, we are terminating this thread.
-    // We could also just run the rundown routine before tihs, which would call MmFreePool on the APC
-    // Instead of allocating one on every ITHREAD, but at the end of the day it gets allocated so..
+    Apc->RundownRoutine(Apc);
+
+    // Set APC Routine as non active in the current CPU, as PspExitThread is a NORETURN
+    MeGetCurrentProcessor()->ApcRoutineActive = false;
+
     PspExitThread((MTSTATUS)(uintptr_t)*SystemArgument1);
 }
 
@@ -176,7 +190,7 @@ PsCreateThread(
         // This is a process new thread, set execution entrypoint to LdrInitializeThread.
         // Since a thread is already created, this means the entries are already cached in memory
         // so a file object isnt required.
-        void* LdrInitializeThreadRva = PspFindMtdllEntry(NULL, MTDLL_THREAD_ROUTINE);
+        void* LdrInitializeThreadRva = PspFindMtdllEntryRva(NULL, MTDLL_THREAD_ROUTINE);
 
         if (!LdrInitializeThreadRva) {
             Status = MT_NOT_FOUND;
@@ -238,17 +252,6 @@ PsCreateThread(
 
     // Initialize APC List head.
     InitializeListHead(&Thread->InternalThread.ApcListHead);
-
-    // Finally, initialize the termination APC.
-    MeInitializeApc(
-        &Thread->InternalThread.TerminationApc,
-        &Thread->InternalThread,
-        KernelMode,
-        PspThreadTerminationRoutine, // Just calls PspExitThread
-        NULL,
-        NULL,
-        NULL
-    );
 
     // Successful.
     Status = MT_SUCCESS;
@@ -389,7 +392,7 @@ PsTerminateThread(
     while (IThread->ApcListHead.Flink != &IThread->ApcListHead) {
         PDOUBLY_LINKED_LIST Entry = RemoveHeadList(&IThread->ApcListHead);
         PAPC Apc = CONTAINING_RECORD(Entry, APC, ApcListEntry);
-        
+
         // Remove inserted
         Apc->Inserted = 0;
 
@@ -408,8 +411,32 @@ PsTerminateThread(
     // Release spinlock.
     MsReleaseSpinlock(&IThread->ApcQueueLock, oldIrql);
 
+    // Allocate the termination APC.
+    PAPC ExitApc = NULL;
+    while (true) {
+        ExitApc = (PAPC)MmAllocatePoolWithTag(NonPagedPool, sizeof(APC), ' CPA');
+        if (ExitApc != NULL) break;
+
+        // DELAY EXECUTION! (TODO)
+        // we cant spin like this, it will burn the cpu..
+        for (volatile int i = 0; i < 100000000; i++) __pause();
+    }
+
+    // Initialize it.
+    MeInitializeApc(
+        ExitApc,
+        &Thread->InternalThread,
+        KernelMode,
+        PspThreadTerminationRoutine,
+        PspThreadRundown,
+        NULL,
+        NULL
+    );
+
     // Insert the final APC that will terminate the thread.
-    MeInsertQueueApc(&Thread->InternalThread.TerminationApc, (void*)(uintptr_t)ExitStatus, NULL);
+    bool Inserted = MeInsertQueueApc(ExitApc, (void*)(uintptr_t)ExitStatus, NULL);
+    assert(Inserted, "Couldnt insert termination APC to thread.");
+    UNREFERENCED_PARAMETER(Inserted);
 
     return MT_SUCCESS;
 }
@@ -455,7 +482,7 @@ PspExitThread(
     PEPROCESS CurrentProcess = Thread->InternalThread.ApcState.SavedApcProcess;
 
 #ifdef DEBUG
-    gop_printf(COLOR_WHITE, "**PspExitThread called on thread tid %d (parent name %s) for status %x (MTSTATUS)**\n", Thread->TID, CurrentProcess->ImageName, ExitStatus);
+    gop_printf(COLOR_WHITE, "**PspExitThread called on thread tid %d (parent name %s) (parent main thread %d) for status %x (MTSTATUS)**\n", Thread->TID, CurrentProcess->ImageName, CurrentProcess->MainThread->TID, ExitStatus);
 #endif
 
     // Cannot terminate this thread if we are attached to a different process (since we would use another process fields)

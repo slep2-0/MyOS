@@ -546,6 +546,7 @@ void ObDeleteObject(
 
     // Update Stats
     InterlockedDecrementU32((volatile uint32_t*)&Type->TotalNumberOfObjects);
+
     // Free Memory
     gop_printf(COLOR_RED, "Freeing the header\n");
     MmFreePool(Header);

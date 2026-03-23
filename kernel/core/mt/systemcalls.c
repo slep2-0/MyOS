@@ -1103,3 +1103,26 @@ MtCreateThread(
     ObDereferenceObject(Process);
     return Status;
 }
+
+void
+MtContinue(
+    PTRAP_FRAME OldTrapFrame
+)
+
+{
+    // Access the current thread trap frame.
+    PTRAP_FRAME CurrentTrap = MeGetCurrentThread()->SyscallTrap;
+
+    // Attempt to copy the old trap frame into the current one.
+    // This would essentially return the thread to his old trap context before the user mode APC Dipatch.
+    // First, turn off the flag.
+    MeGetCurrentProcessor()->ApcRoutineActive = false;
+
+    try {
+        kmemcpy(CurrentTrap, OldTrapFrame, sizeof(TRAP_FRAME));
+    } except{
+        assert(false, "Exception in copying TRAP_FRAME, this shouldn't happen.");
+        PsTerminateThread(PsGetCurrentThread(), MT_APC_ERROR);
+    }
+    end_try;
+}

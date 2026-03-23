@@ -69,4 +69,12 @@ extern uint8_t kernel_end;
 #define FIELD_OFFSET(t,f)       ((uint32_t)__builtin_offsetof(t,f))
 #endif
 
+// System V ABI Calling convention (Integer arguments)
+// Argument 1: RDI
+// Argument 2: RSI
+// Argument 3: RDX
+// Argument 4: RCX
+// Argument 5: R8
+// Argument 6: R9
+
 #endif
