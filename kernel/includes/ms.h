@@ -124,7 +124,18 @@ typedef struct _PUSH_LOCK_WAIT_BLOCK {
 #define PL_FLAG_MASK       0xF     // Bottom 4 bits are flags
 #define PL_SHARE_INC       0x10    // Shared count starts at Bit 4
 
+// Stuff for stuff
+#define MT_PENDING 0x00000103
+#define MT_TIMEOUT 0x00000102
+#define INFINITE   (uint64_t)-1
+
 // ------------------ FUNCTIONS ------------------
+
+extern SPINLOCK MsTimerQueueLock;
+extern DOUBLY_LINKED_LIST MsTimerQueue;
+
+extern POBJECT_TYPE MsEventType;
+extern POBJECT_TYPE MsMutexType;
 
 //#ifndef MT_UP
 void
@@ -183,9 +194,15 @@ MsSetEvent(
     IN PEVENT event
 );
 
-MTSTATUS 
+MTSTATUS
 MsWaitForEvent(
-    IN  PEVENT event
+    IN  PEVENT event,
+    IN uint64_t Milliseconds
+);
+
+MTSTATUS
+MsInitializeSynchronization(
+    void
 );
 
 void
@@ -217,6 +234,10 @@ void
 MsReleasePushLockShared(
     IN PUSH_LOCK* Lock
 );
+
+PITHREAD
+GetHeadOfTimerQueue(void);
+void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2);
 
 FORCEINLINE
 void
@@ -311,6 +332,16 @@ RemoveEntryList(
     // Sanitize the removed entry so it doesn't look valid
     Entry->Flink = Entry;
     Entry->Blink = Entry;
+}
+
+FORCEINLINE
+bool
+IsListEmpty(
+    IN PDOUBLY_LINKED_LIST Head
+)
+
+{
+    return (Head->Flink == Head);
 }
 
 

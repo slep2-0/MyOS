@@ -21,6 +21,7 @@ Revision History:
 #include "../../includes/mm.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ms.h"
 #include "../../includes/exception.h"
 #include "../../includes/fs.h"
 #include "../../assert.h"
@@ -768,6 +769,20 @@ MtQueryVirtualMemory(
     return MT_SUCCESS;
 }
 
+FORCEINLINE
+bool
+IsValidProtection(
+    IN USER_PROTECTION_TYPE Type
+)
+
+{
+    return (Type == PAGE_EXECUTE_READ ||
+        Type == PAGE_EXECUTE_READWRITE ||
+        Type == PAGE_READWRITE ||
+        Type == PAGE_READONLY ||
+        Type == PAGE_NOACCESS);
+}
+
 MTSTATUS
 MtProtectVirtualMemory(
     IN HANDLE ProcessHandle,
@@ -778,6 +793,8 @@ MtProtectVirtualMemory(
 )
 
 {
+    if (!IsValidProtection(NewProtection)) return MT_INVALID_PARAM;
+
     // Check if user address is valid.
     MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
     if (MT_FAILURE(Status)) return Status;
@@ -1110,6 +1127,8 @@ MtContinue(
 )
 
 {
+    assert(MeGetCurrentProcessor()->ApcRoutineActive == true);
+
     // Access the current thread trap frame.
     PTRAP_FRAME CurrentTrap = MeGetCurrentThread()->SyscallTrap;
 
@@ -1125,4 +1144,108 @@ MtContinue(
         PsTerminateThread(PsGetCurrentThread(), MT_APC_ERROR);
     }
     end_try;
+}
+
+MTSTATUS
+MtSleep(
+    IN uint64_t Milliseconds
+)
+
+{
+    if (Milliseconds == 0) {
+        // Yield the rest of the current quantum
+        MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
+        return MT_SUCCESS;
+    }
+
+    PITHREAD CurrentThread = MeGetCurrentThread();
+
+    // Convert MS to ticks (rounding up to ensure at least 1 tick)
+    uint64_t Ticks = (Milliseconds + TICK_MS - 1) / TICK_MS;
+
+    // Acquire timer lock.
+    IRQL OldIrql;
+    MsAcquireSpinlock(&MsTimerQueueLock, &OldIrql);
+
+    // Set waitblock info.
+    CurrentThread->WaitBlock.WakeupTime = MeSystemTickCount + Ticks;
+    CurrentThread->WaitBlock.WaitReason = Sleeping;
+    CurrentThread->ThreadState = THREAD_BLOCKED;
+
+    // Insert SORTED into MeTimerQueue (Ascending order)
+    if (IsListEmpty(&MsTimerQueue)) {
+        InsertTailList(&MsTimerQueue, &CurrentThread->WaitBlock.WaitBlockList);
+    }
+    else {
+        // List isn't empty, find the thread that has a wakeup timer higher than ours
+        // then insert below him (keep ascending order)
+        PDOUBLY_LINKED_LIST Current = MsTimerQueue.Flink;
+        bool Inserted = false;
+        while (Current != &MsTimerQueue) {
+            PITHREAD Block = CONTAINING_RECORD(Current, ITHREAD, WaitBlock.WaitBlockList);
+
+            if (CurrentThread->WaitBlock.WakeupTime < Block->WaitBlock.WakeupTime) {
+                // Insert before this element
+                CurrentThread->WaitBlock.WaitBlockList.Flink = Current;
+                CurrentThread->WaitBlock.WaitBlockList.Blink = Current->Blink;
+                Current->Blink->Flink = &CurrentThread->WaitBlock.WaitBlockList;
+                Current->Blink = &CurrentThread->WaitBlock.WaitBlockList;
+                Inserted = true;
+                break;
+            }
+
+            Current = Current->Flink;
+        }
+        if (!Inserted) {
+            InsertTailList(&MsTimerQueue, &CurrentThread->WaitBlock.WaitBlockList);
+        }
+    }
+
+    // Release lock.
+    MsReleaseSpinlock(&MsTimerQueueLock, OldIrql);
+
+    // Context switch away
+    MsYieldExecution(&CurrentThread->TrapRegisters);
+
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+MtWaitForSingleObject(
+    IN HANDLE ObjectHandle,
+    IN uint64_t Milliseconds
+)
+
+{
+    MTSTATUS Status;
+    void* Object = NULL;
+    POBJECT_HEADER Header;
+
+    // Reference the object, get its type.
+    Status = ObReferenceObjectByHandle(
+        ObjectHandle,
+        MT_SYNCHRONIZE,
+        NULL,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    Header = OBJECT_TO_OBJECT_HEADER(Object);
+
+    // Route based on object type
+    if (Header->Type == MsEventType) {
+        Status = MsWaitForEvent((PEVENT)Object, Milliseconds);
+    }
+    else if (Header->Type == MsMutexType) {
+        Status = MsAcquireMutexObject((PMUTEX)Object);
+    }
+    else {
+        // Object type is invalid (for now) (need to add support for processes/threads/files)
+        Status = MT_INVALID_PARAM;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
 }

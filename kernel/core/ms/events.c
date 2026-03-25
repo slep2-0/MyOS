@@ -7,6 +7,7 @@
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ms.h"
 #include "../../assert.h"
 
 MTSTATUS 
@@ -33,81 +34,64 @@ MsSetEvent (
 {
     if (!event) return MT_INVALID_ADDRESS;
 
-    // NOTE: (TODO) Can we use push locks here? Events should only be used in PASSIVE_LEVEL to APC_LEVEL IRQL contexts,
-    // holding a lock to raise to DISPATCH_LEVEL just delays us furthermore..
     IRQL flags;
     MsAcquireSpinlock(&event->lock, &flags);
 
     if (event->type == SynchronizationEvent) {
-        // Wake exactly one waiter (auto-reset)
-        PETHREAD waiter = MeDequeueThread(&event->waitingQueue); // safe under event->lock
-        if (waiter) {
-            event->signaled = false; // consumed by waking one waiter
-            MsReleaseSpinlock(&event->lock, flags);
+        PETHREAD waiter;
+        while ((waiter = MeDequeueThread(&event->waitingQueue)) != NULL) {
+            // Unlink explicitly so the thread knows it's no longer in the queue
+            waiter->ThreadListEntry.Flink = NULL;
+            waiter->ThreadListEntry.Blink = NULL;
 
-            waiter->InternalThread.ThreadState = THREAD_READY;
-            MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, waiter);
-            return MT_SUCCESS;
+            // Try to claim the thread for a Success wake
+            if (__sync_val_compare_and_swap(&waiter->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
+                event->signaled = false;
+                MsReleaseSpinlock(&event->lock, flags);
+
+                waiter->InternalThread.ThreadState = THREAD_READY;
+                MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, waiter);
+                return MT_SUCCESS;
+            }
+            // If failed, the timer claimed it. Loop to find the next valid waiter.
         }
-        else {
-            // No waiter -> mark event signaled so next waiter won't block
-            event->signaled = true;
-            MsReleaseSpinlock(&event->lock, flags);
-            return MT_SUCCESS;
-        }
+
+        event->signaled = true;
+        MsReleaseSpinlock(&event->lock, flags);
+        return MT_SUCCESS;
     }
 
-    // NotificationEvent: drain waiters into local list while holding event lock
+    // --- NotificationEvent Logic ---
     PETHREAD head = NULL;
     PETHREAD tail = NULL;
     PETHREAD t;
 
     while ((t = MeDequeueThread(&event->waitingQueue)) != NULL) {
-        // Detach the thread from any previous list by nulling its links
         t->ThreadListEntry.Flink = NULL;
         t->ThreadListEntry.Blink = NULL;
 
-        // Build the local singly-linked list (head/tail) using Flink
-        if (tail) {
-            // Link the current tail to the new thread via Flink
-            tail->ThreadListEntry.Flink = &t->ThreadListEntry;
-            // Set the new thread's Blink to the old tail (for local list integrity)
-            t->ThreadListEntry.Blink = &tail->ThreadListEntry;
+        // Only wake threads we successfully claim
+        if (__sync_val_compare_and_swap(&t->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
+            if (tail) {
+                tail->ThreadListEntry.Flink = &t->ThreadListEntry;
+                t->ThreadListEntry.Blink = &tail->ThreadListEntry;
+            }
+            else {
+                head = t;
+            }
+            tail = t;
         }
-        else {
-            // First thread
-            head = t;
-            // First thread's Blink should be NULL
-            t->ThreadListEntry.Blink = NULL;
-        }
-
-        // The new tail is 't'
-        tail = t;
     }
 
-    // Notification persists until reset
     event->signaled = true;
     MsReleaseSpinlock(&event->lock, flags);
 
-    // Enqueue drained threads to scheduler (after releasing event lock)
     t = head;
     while (t) {
-        // Get the next thread pointer by reading the Flink, then CONTAINING_RECORD
         struct _DOUBLY_LINKED_LIST* nxtEntry = t->ThreadListEntry.Flink;
-
-        // Set thread state
         t->InternalThread.ThreadState = THREAD_READY;
-
-        // Enqueue
         MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
-
-        // Move to the next thread
-        if (nxtEntry) {
-            t = CONTAINING_RECORD(nxtEntry, ETHREAD, ThreadListEntry);
-        }
-        else {
-            t = NULL;
-        }
+        t = nxtEntry ? CONTAINING_RECORD(nxtEntry, ETHREAD, ThreadListEntry) : NULL;
     }
 
     return MT_SUCCESS;
@@ -115,7 +99,8 @@ MsSetEvent (
 
 MTSTATUS 
 MsWaitForEvent (
-    IN  PEVENT event
+    IN  PEVENT event,
+    IN uint64_t Milliseconds
 ) 
 
 /*++
@@ -127,6 +112,7 @@ MsWaitForEvent (
     Arguments:
 
         Pointer to EVENT Object.
+        Amount of milliseconds to wait if event doesnt signal us.
 
     Return Values:
 
@@ -140,38 +126,103 @@ MsWaitForEvent (
 
 {
     if (!event) return MT_INVALID_ADDRESS;
-    assert((MeGetCurrentIrql() < DISPATCH_LEVEL), "Blocking function called with DISPATCH_LEVEL IRQL or Higher.");
+    assert((MeGetCurrentIrql() < DISPATCH_LEVEL));
+
     IRQL flags;
     PETHREAD curr = PsGetCurrentThread();
 
-    // Acquire event lock to check signaled state atomically with enqueue.
     MsAcquireSpinlock(&event->lock, &flags);
 
-    // If already signaled, consume or accept depending on type:
     if (event->signaled) {
-        if (event->type == SynchronizationEvent) {
-            // consume the single-signaled state
-            event->signaled = false;
-        }
-        // For NotificationEvent, leave event->signaled = true (notification persists)
+        if (event->type == SynchronizationEvent) event->signaled = false;
         MsReleaseSpinlock(&event->lock, flags);
         return MT_SUCCESS;
     }
 
-    // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
-    curr->InternalThread.ThreadState = THREAD_BLOCKED;
+    // Zero timeout check
+    if (Milliseconds == 0) {
+        MsReleaseSpinlock(&event->lock, flags);
+        return MT_TIMEOUT;
+    }
+
+    // Setup atomic claim and block state
+    curr->InternalThread.WaitStatus = MT_PENDING;
     curr->CurrentEvent = event;
-    // Not signaled -> enqueue this thread into the event waiting queue (under event lock)
+    curr->InternalThread.ThreadState = THREAD_BLOCKED;
+
+    // Enqueue into the Event waiting queue
     MeEnqueueThread(&event->waitingQueue, curr);
-    // Keep event lock held only for enqueue; after this we release and block.
     MsReleaseSpinlock(&event->lock, flags);
+
+    // Enqueue into Timer Queue if a valid timeout is provided
+    if (Milliseconds != INFINITE) {
+        uint64_t Ticks = (Milliseconds + TICK_MS - 1) / TICK_MS;
+
+        IRQL tflags;
+        MsAcquireSpinlock(&MsTimerQueueLock, &tflags);
+
+        curr->InternalThread.WaitBlock.WakeupTime = MeSystemTickCount + Ticks;
+        curr->InternalThread.WaitBlock.WaitReason = Sleeping; // Or a new WaitReason
+
+        // --- Insert SORTED into MeTimerQueue ---
+        if (IsListEmpty(&MsTimerQueue)) {
+            InsertTailList(&MsTimerQueue, &curr->InternalThread.WaitBlock.WaitBlockList);
+        }
+        else {
+            PDOUBLY_LINKED_LIST CurrentNode = MsTimerQueue.Flink;
+            bool Inserted = false;
+            while (CurrentNode != &MsTimerQueue) {
+                PITHREAD Block = CONTAINING_RECORD(CurrentNode, ITHREAD, WaitBlock.WaitBlockList);
+                if (curr->InternalThread.WaitBlock.WakeupTime < Block->WaitBlock.WakeupTime) {
+                    curr->InternalThread.WaitBlock.WaitBlockList.Flink = CurrentNode;
+                    curr->InternalThread.WaitBlock.WaitBlockList.Blink = CurrentNode->Blink;
+                    CurrentNode->Blink->Flink = &curr->InternalThread.WaitBlock.WaitBlockList;
+                    CurrentNode->Blink = &curr->InternalThread.WaitBlock.WaitBlockList;
+                    Inserted = true;
+                    break;
+                }
+                CurrentNode = CurrentNode->Flink;
+            }
+            if (!Inserted) InsertTailList(&MsTimerQueue, &curr->InternalThread.WaitBlock.WaitBlockList);
+        }
+        MsReleaseSpinlock(&MsTimerQueueLock, tflags);
+    }
+
 #ifdef DEBUG
     gop_printf(COLOR_PURPLE, "Sleeping current thread: %p (owner %s)\n", PsGetCurrentThread(), PsGetCurrentProcess()->ImageName);
 #endif
-    assert((MeGetCurrentIrql()) < DISPATCH_LEVEL);
+
+    // Yield Execution
     MsYieldExecution(&curr->InternalThread.TrapRegisters);
 
-    // When we resume here, the waker has already moved us to the ready queue, and we are now an active thread on the CPU.
-    return MT_SUCCESS;
-}
+    // At this point, WaitStatus is either MT_SUCCESS or MT_TIMEOUT
+    MTSTATUS finalStatus = curr->InternalThread.WaitStatus;
 
+    // Unlink from queues to prevent memory corruption
+    if (finalStatus == MT_TIMEOUT) {
+        // We timed out, so we might still be in the Event queue.
+        MsAcquireSpinlock(&event->lock, &flags);
+
+        // If it's NULL, MsSetEvent already popped us
+        if (curr->ThreadListEntry.Flink != NULL) {
+            RemoveEntryList(&curr->ThreadListEntry);
+            curr->ThreadListEntry.Flink = NULL;
+            curr->ThreadListEntry.Blink = NULL;
+        }
+
+        MsReleaseSpinlock(&event->lock, flags);
+    }
+    else if (finalStatus == MT_SUCCESS && Milliseconds != INFINITE) {
+        // Event woke us, so we might still be in the Timer queue.
+        IRQL tflags;
+        MsAcquireSpinlock(&MsTimerQueueLock, &tflags);
+        if (curr->InternalThread.WaitBlock.WaitBlockList.Flink != NULL) { // If NULL, DPC popped us
+            RemoveEntryList(&curr->InternalThread.WaitBlock.WaitBlockList);
+            curr->InternalThread.WaitBlock.WaitBlockList.Flink = NULL;
+            curr->InternalThread.WaitBlock.WaitBlockList.Blink = NULL;
+        }
+        MsReleaseSpinlock(&MsTimerQueueLock, tflags);
+    }
+
+    return finalStatus;
+}

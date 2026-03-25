@@ -319,7 +319,18 @@ MeRetireDPCs(
                     Cpu->CurrentDeferredRoutine = Dpc;
 #ifdef DEBUG
                     gop_printf(COLOR_WHITE, "I'm about to execute DPC %p | Routine: %p | SysArg1: %p | SysArg2: %p | Priority: %d\n", Dpc, Dpc->DeferredRoutine, Dpc->SystemArgument1, Dpc->SystemArgument2, Dpc->priority);
+                    if (!DeferredRoutine) {
+                        // NULL DPC routine.
+                        MeBugCheckEx(
+                            DPC_EXECUTE_FAILURE,
+                            (void*)(uintptr_t)Dpc,
+                            NULL,
+                            NULL,
+                            NULL
+                        );
+                    }
 #endif
+
                     DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
                     Cpu->CurrentDeferredRoutine = NULL;
 

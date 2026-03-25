@@ -49,7 +49,7 @@ PsInitializeCidTable(
 --*/
 
 {
-    PspCidTable = HtCreateHandleTable(NULL);
+    PspCidTable = HtCreateHandleTable(&PsInitialSystemProcess);
     if (!PspCidTable) MeBugCheck(CID_TABLE_NULL);
 
     // Claim the first handle, HANDLE 4 (pid) is the PID of the SystemProcess, it must not be used.

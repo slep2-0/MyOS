@@ -11,6 +11,7 @@
 #include "../../includes/md.h"
 #include "../../includes/exception.h"
 #include "../../assert.h"
+#include "../../includes/ms.h"
 
 #define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
     do {                                                             \
@@ -28,16 +29,31 @@
         __hlt();                                                      \
     } while (0)
 
-// NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
-
+volatile uint64_t MeSystemTickCount = 0;
 
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
 static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
+    // Increment system ticks.
+    InterlockedIncrementU64(&MeSystemTickCount);
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
+    IRQL oldIrql;
+    MsAcquireSpinlock(&MsTimerQueueLock, &oldIrql);
+    // Check the head of the sorted timer queue
+    PITHREAD FirstSleepingThread = GetHeadOfTimerQueue();
+    MsReleaseSpinlock(&MsTimerQueueLock, oldIrql);
+
+    if (FirstSleepingThread && MeSystemTickCount >= FirstSleepingThread->WaitBlock.WakeupTime) {
+        // Queue timer expiration DPC.
+        MeInsertQueueDpc(&cpu->TimerExpirationDPC, NULL, NULL);
+    }
+    
+    //
+    // Handle thread's quantum
+    //
     // Do not decrement if a schedule is already pending.
     if (cpu->schedulePending) return;
 

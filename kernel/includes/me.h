@@ -134,7 +134,9 @@ typedef enum _BUGCHECK_CODES {
 	INVALID_PROCESS_ATTACH_ATTEMPT,
 	CRITICAL_PROCESS_DIED,
 	WORKER_THREAD_ATTEMPTED_TERMINATION,
-	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY
+	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
+	MSMGR_INIT_FAILED,
+	DPC_EXECUTE_FAILURE
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -147,9 +149,10 @@ typedef struct _DEBUG_ENTRY {
 } DEBUG_ENTRY;
 
 typedef struct _WAIT_BLOCK {
-	struct _SINGLE_LINKED_LIST WaitBlockList;	// List entry of the current wait block of the thread.
+	struct _DOUBLY_LINKED_LIST WaitBlockList;	// List entry of the current wait block of the thread.
 	void* Object;								// Pointer to the object it is currently waiting on (indicated which one by WaitReason)
 	enum _WAIT_REASON WaitReason;				// Defines which object the thread is currently waiting on (indicated by the _WAIT_REASON Enumerator)
+	uint64_t WakeupTime;						// The remaining time until wakeup (represented by each APIC Tick)
 } WAIT_BLOCK, *PWAIT_BLOCK;
 
 typedef struct _TRAP_FRAME {
@@ -293,6 +296,7 @@ typedef struct _ITHREAD {
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
+	volatile uint32_t WaitStatus;						   // Time left for waiting.
 
 	// Apc Related
 	DOUBLY_LINKED_LIST ApcListHead; // Add this to hold queued APCs
@@ -373,8 +377,9 @@ typedef struct _PROCESSOR {
 	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
 } PROCESSOR, *PPROCESSOR;
 
-// ------------------ FUNCTIONS ------------------
 
+// ------------------ FUNCTIONS ------------------
+extern volatile uint64_t MeSystemTickCount;
 
 NORETURN
 void

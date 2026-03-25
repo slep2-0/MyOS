@@ -221,6 +221,14 @@ MeInitializeProcessor(
     // Initialize system calls.
     MtSetupSyscall();
 
+    // Initialize the Timer Expiration DPC.
+    MeInitializeDpc(
+        &CPU->TimerExpirationDPC,
+        TimerExpirationDPC,
+        NULL,
+        MEDIUM_PRIORITY
+    );
+
     if (!InitializeStandardRoutine && !AreYouAP) return; // If we are BSP, and we do not want to run the routines below, return. If we are AP, we run it none the less.
 
 StartInit: {

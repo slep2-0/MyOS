@@ -20,6 +20,7 @@ SRCS = programs/mtdll/dllmain.c \
        programs/mtdll/ldr/procldr.c \
        programs/mtdll/ldr/thrdldr.c \
 	   programs/mtdll/error.c \
+	   programs/mtdll/synch.c \
 	   programs/mtdll/apcdispatch.asm \
        syscalls/syscalls.asm
 

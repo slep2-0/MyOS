@@ -62,6 +62,10 @@ struct _FILE_OBJECT;
 typedef struct _FILE_OBJECT FILE_OBJECT;
 typedef FILE_OBJECT* PFILE_OBJECT;
 
+struct _OBJECT_TYPE;
+typedef struct _OBJECT_TYPE OBJECT_TYPE;
+typedef OBJECT_TYPE* POBJECT_TYPE;
+
 typedef enum _FREE_TYPE {
 	MEM_RELEASE, // Release the entire region, base address must be the same that returned from MtAllocateVirtualMemory
 	MEM_DECOMMIT // Decommit the region specified by the NumberOfBytes argument.
@@ -70,6 +74,10 @@ typedef enum _FREE_TYPE {
 struct _APC;
 typedef struct _APC APC;
 typedef APC* PAPC;
+
+struct _DPC;
+typedef struct _DPC DPC;
+typedef DPC* PDPC;
 
 typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
 

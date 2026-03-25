@@ -608,7 +608,7 @@ MiDeleteVadNode(
 
     Routine description:
 
-        Delets VadToDelete from Root.
+        Deletes VadToDelete from Root.
 
     Arguments:
 

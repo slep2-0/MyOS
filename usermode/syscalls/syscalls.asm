@@ -203,3 +203,33 @@ MtCreateThread:
 	mov r10, rcx
 	syscall
 	ret
+
+; MtContinue is not here, syscall number is 12. (look at apcdispatch.asm)
+
+; MTSTATUS
+; MtSleep(
+;     IN uint64_t Milliseconds
+; );
+; Syscall number is 13.
+
+global MtSleep
+MtSleep:
+	mov rax, 13
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtWaitForSingleObject(
+;     IN HANDLE ObjectHandle,
+;     IN uint64_t Milliseconds
+; );
+; Syscall number is 14.
+
+global MtWaitForSingleObject
+MtWaitForSingleObject:
+	mov rax, 14
+	mov r10, rcx
+	syscall
+	ret
+

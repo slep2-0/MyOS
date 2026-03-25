@@ -15,6 +15,11 @@ typedef int32_t MTSTATUS;
 #define MT_SUCCEEDED(Status) ((Status) >= 0)
 #define MT_FAILURE(Status)    ((Status) < 0)
 
+// Stuff for stuff
+#define MT_PENDING 0x00000103
+#define MT_TIMEOUT 0x00000102
+#define INFINITE   (uint64_t)-1
+
 //
 // ==========================
 // GENERAL MTSTATUS
@@ -24,7 +29,6 @@ typedef int32_t MTSTATUS;
 #define MT_INVALID_PARAM        ((MTSTATUS)0xC0000002L)
 #define MT_INVALID_STATE        ((MTSTATUS)0xC0000003L)
 #define MT_ACCESS_DENIED        ((MTSTATUS)0xC0000004L)
-#define MT_TIMEOUT              ((MTSTATUS)0xC0000005L)
 #define MT_UNSUPPORTED_OP       ((MTSTATUS)0xC0000006L)
 #define MT_ALREADY_EXISTS       ((MTSTATUS)0xC0000007L)
 #define MT_NOT_FOUND            ((MTSTATUS)0xC0000008L)

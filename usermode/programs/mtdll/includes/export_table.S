@@ -64,3 +64,7 @@ EXPORT SetLastError, "SetLastError"
 
 /* apcdispatch.asm */
 EXPORT MeUserApcDispatcher, "MeUserApcDispatcher"
+
+/* synch.c */
+EXPORT Sleep, "Sleep"
+EXPORT WaitForSingleObject, "WaitForSingleObject"

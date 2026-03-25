@@ -68,3 +68,7 @@ MT_IMPORT "mtdll.mtdll", ReadFile
 /* Error Handling */
 MT_IMPORT "mtdll.mtdll", GetLastError
 MT_IMPORT "mtdll.mtdll", SetLastError
+
+/* Synchronization */
+MT_IMPORT "mtdll.mtdll", Sleep
+MT_IMPORT "mtdll.mtdll", WaitForSingleObject

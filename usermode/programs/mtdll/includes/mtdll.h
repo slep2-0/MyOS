@@ -263,3 +263,15 @@ MtCreateThread(
     IN void* Argument,
     OUT PHANDLE ThreadHandle
 );
+
+MTSTATUS
+MtSleep(
+    IN uint64_t Milliseconds
+);
+
+MTSTATUS
+MtWaitForSingleObject(
+    IN HANDLE ObjectHandle,
+    IN uint64_t Milliseconds
+);
+

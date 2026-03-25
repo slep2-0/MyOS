@@ -36,7 +36,7 @@ static void PsStackDeleterThread(void) {
 #endif
     for (;;) {
         // Wait until there is work (or force wake).
-        MsWaitForEvent(&g_StackReaperEvent);
+        MsWaitForEvent(&g_StackReaperEvent, INFINITE);
 
         // Atomically steal the whole list
         PSTACK_REAPER_ENTRY head = PopAllStacks();

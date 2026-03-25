@@ -73,7 +73,7 @@ MspSuspendPushLock(
     }
 
     // We are now in the queue. We wait for our WakeEvent to be signaled by the releaser.
-    MsWaitForEvent(&WaitBlock->WakeEvent);
+    MsWaitForEvent(&WaitBlock->WakeEvent, INFINITE);
 }
 
 void

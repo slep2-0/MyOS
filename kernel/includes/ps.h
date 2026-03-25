@@ -61,6 +61,11 @@ typedef enum _PS_PHASE_ROUTINE {
 // ------------------ STRUCTURES ------------------
 
 //
+// Standard / Common Access Rights
+//
+#define MT_SYNCHRONIZE 0x00100000  // Wait on the object (e.g., WaitForSingleObject)
+
+//
 // Thread Access Rights
 //
 #define MT_THREAD_TERMINATE          0x0001    // Terminate the thread
@@ -70,7 +75,7 @@ typedef enum _PS_PHASE_ROUTINE {
 #define MT_THREAD_QUERY_INFO         0x0010    // Query thread info (state, priority, etc.)
 #define MT_THREAD_SET_INFO           0x0020    // Modify thread info (priority, name, affinity)
 
-#define MT_THREAD_ALL_ACCESS         0x003F    // Request all valid thread access rights
+#define MT_THREAD_ALL_ACCESS         (MT_SYNCHRONIZE | 0x003F)    // Request all valid thread access rights
 
 
 //
@@ -87,7 +92,7 @@ typedef enum _PS_PHASE_ROUTINE {
 #define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
 #define MT_PROCESS_CREATE_PROCESS     0x0200  // Create a new process.
 
-#define MT_PROCESS_ALL_ACCESS         0x03FF  // Everything above
+#define MT_PROCESS_ALL_ACCESS         (MT_SYNCHRONIZE | 0x03FF)  // Everything above
 
 #define MTDLL_PATH "mtdll.mtdll" // root dir
 

@@ -238,6 +238,12 @@ void kernel_main(BOOT_INFO* boot_info) {
         );
     }
 
+    // Initialize the synchronization manager.
+    st = MsInitializeSynchronization();
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(MSMGR_INIT_FAILED, (void*)(uintptr_t)st, NULL, NULL, NULL);
+    }
+
     // And, initialize our system process.
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);

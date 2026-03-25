@@ -75,7 +75,7 @@ extern size_t(*strlen)(const char* str);
 extern bool (*TerminateThread)(
     IN HANDLE ThreadHandle,
     IN uint32_t ExitStatus
-    );
+);
 
 extern HANDLE
 (*CreateThread)(
@@ -93,25 +93,25 @@ extern HANDLE
 extern HANDLE(*OpenProcess)(
     IN  ACCESS_MASK DesiredAccess,
     IN  uint32_t ProcessId
-    );
+);
 
 extern bool (*TerminateProcess)(
     IN  HANDLE ProcessHandle,
     IN  uint32_t ExitCode
-    );
+);
 
 extern void* (*VirtualAlloc)(
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
     IN USER_PROTECTION_TYPE AllocationType
-    );
+);
 
 extern void* (*VirtualAllocEx)(
     IN HANDLE ProcessHandle,
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
     IN USER_PROTECTION_TYPE AllocationType
-    );
+);
 
 extern bool (*VirtualQuery)(
     IN void* BaseAddress,
@@ -156,7 +156,7 @@ extern bool (*VirtualFreeEx)(
 extern HANDLE(*CreateFile)(
     IN  const char* FileName,
     IN  ACCESS_MASK DesiredAccess
-    );
+);
 
 extern bool (*WriteFile)(
     IN HANDLE FileHandle,
@@ -164,7 +164,7 @@ extern bool (*WriteFile)(
     IN void* Buffer,
     IN size_t BufferSize,
     _Out_Opt size_t* BytesWritten
-    );
+);
 
 extern bool (*ReadFile)(
     IN HANDLE FileHandle,
@@ -172,4 +172,15 @@ extern bool (*ReadFile)(
     OUT void* Buffer,
     IN size_t BufferSize,
     _Out_Opt size_t* BytesRead
-    );
+);
+
+extern void
+(*Sleep)(
+    IN uint32_t Milliseconds
+);
+
+extern uint32_t
+(*WaitForSingleObject)(
+    IN HANDLE ObjectHandle,
+    IN uint32_t Milliseconds
+);
