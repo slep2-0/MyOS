@@ -158,4 +158,10 @@ MtWaitForSingleObject(
     IN uint64_t Milliseconds
 );
 
+MTSTATUS
+MtPrintConsole(
+    IN uint32_t Color,
+    IN const char* String
+);
+
 #endif

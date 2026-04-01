@@ -53,7 +53,8 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 11, .Handler = MtCreateThread},
     {.Num = 12, .Handler = MtContinue},
     {.Num = 13, .Handler = MtSleep},
-    {.Num = 14, .Handler = MtWaitForSingleObject}
+    {.Num = 14, .Handler = MtWaitForSingleObject},
+    {.Num = 255, .Handler = MtPrintConsole}
 };
 
 bool SyscallsAlreadyInitialized = false;

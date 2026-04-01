@@ -119,7 +119,7 @@ PspFindMtdllEntryRva(
         return NULL;
     }
 
-    if (hdr.exports_rva == 0 || hdr.exports_size < sizeof(MT_EXPORT_ENTRY)) return NULL;
+    if (hdr.exports_rva == 0 || hdr.exports_size < sizeof(MT_EXPORT_ENTRY) || hdr.exports_size > MtdllObject->FileSize) return NULL;
 
     size_t max_entries = hdr.exports_size / sizeof(MT_EXPORT_ENTRY);
     if (max_entries == 0) return NULL;
@@ -318,8 +318,8 @@ PsCreateProcess(
 
     // Set its image name.
     char filename[24];
-    GetBaseName(ExecutablePath, filename, sizeof(filename));
-    if (filename[0] == '\0') goto CleanupWithRef;
+    bool mtexeok = GetBaseName(ExecutablePath, filename, sizeof(filename));
+    if (!mtexeok || filename[0] == '\0') goto CleanupWithRef;
     kstrncpy(Process->ImageName, filename, sizeof(Process->ImageName));
 
     // Set initial state

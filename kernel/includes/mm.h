@@ -640,6 +640,7 @@ extern uintptr_t MmPagedPoolStart;
 extern uintptr_t MmPagedPoolEnd;
 extern uint64_t MmTotalMemory;
 extern uint64_t MmTotalUsableMemory;
+extern uint64_t MmHighestUsablePhysicalAddress;
 
 
 #define USER_VA_END 0x00007FFFFFFFFFFF

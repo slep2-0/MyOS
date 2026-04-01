@@ -63,11 +63,22 @@ extern uint8_t kernel_end;
 
 #define FREEZE() __cli(); __hlt()
 
+#define FREEZE_OTHER_CPUS()            \
+    do {                              \
+        IPI_PARAMS param = {0};       \
+        MhSendActionToCpusAndWait(    \
+            CPU_ACTION_STOP,          \
+            param                    \
+        );                            \
+    } while (0)
+
 #if !defined(__GNUC__)
 #define FIELD_OFFSET(t,f)       ((uint32_t)(uint32_t*)&(((t*) 0)->f))
 #else
 #define FIELD_OFFSET(t,f)       ((uint32_t)__builtin_offsetof(t,f))
 #endif
+
+#define WILL_ADD_OVERFLOW(a, b) ((a) > SIZE_MAX - (b))
 
 // System V ABI Calling convention (Integer arguments)
 // Argument 1: RDI

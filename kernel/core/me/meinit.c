@@ -21,6 +21,7 @@ Revision History:
 #include "../../includes/mg.h"
 #include "../../assert.h"
 #include "../../includes/mt.h"
+#include "../../includes/md.h"
 
 /* Register Bit Definitions */
 #define CR0_MP              (1UL << 1)   // Monitor Coprocessor
@@ -168,6 +169,13 @@ static void MeInitGdtTssForCurrentProcessor(void) {
 extern IDT_ENTRY64 IDT[];
 extern IDT_PTR  PIDT;
 
+static void DbgCallback(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    gop_printf(COLOR_RED, "**(HELLO HELLO HELLO) RIP: %lx set the DPC to something!**\n", info->trap->rip);
+    FREEZE_OTHER_CPUS();
+    FREEZE();
+}
+
 void
 MeInitializeProcessor(
     IN PPROCESSOR CPU,
@@ -274,4 +282,7 @@ StartInit: {
     // Reload IDT with set stacks.
     __lidt(&PIDT);
     }
+
+    MTSTATUS z = MdSetHardwareBreakpoint(DbgCallback, &MeGetCurrentProcessor()->TimerExpirationDPC.DeferredRoutine, DEBUG_ACCESS_WRITE, DEBUG_LEN_QWORD);
+    assert(MT_SUCCEEDED(z));
 }

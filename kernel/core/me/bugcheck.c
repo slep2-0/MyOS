@@ -209,6 +209,15 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY:
         *s = "ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY";
         break;
+    case MSMGR_INIT_FAILED:
+        *s = "MSMGR_INIT_FAILED";
+        break;
+    case DPC_EXECUTE_FAILURE:
+        *s = "DPC_EXECUTE_FAILURE";
+        break;
+    case PROCESSOR_POINTER_CORRUPTION:
+        *s = "PROCESSOR_POINTER_CORRUPTION";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;

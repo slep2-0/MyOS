@@ -240,6 +240,17 @@ FORCEINLINE void __pause(void) {
     __asm__ volatile("pause" ::: "memory");
 }
 
+static inline uint64_t __readgsbase(void) {
+    uint64_t gs_base;
+    __asm__ volatile (
+        "rdgsbase %0"
+        : "=r"(gs_base)
+        :
+        : "memory"
+        );
+    return gs_base;
+}
+
 FORCEINLINE uint64_t __readgsqword(uint64_t offset) {
     uint64_t value;
     __asm__ volatile (

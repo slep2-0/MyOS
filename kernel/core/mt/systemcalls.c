@@ -1163,14 +1163,18 @@ MtSleep(
     // Convert MS to ticks (rounding up to ensure at least 1 tick)
     uint64_t Ticks = (Milliseconds + TICK_MS - 1) / TICK_MS;
 
-    // Acquire timer lock.
+    // Acquire lock at CLOCK.
     IRQL OldIrql;
-    MsAcquireSpinlock(&MsTimerQueueLock, &OldIrql);
+    MeRaiseIrql(CLOCK_LEVEL, &OldIrql);
+    while (__sync_lock_test_and_set(&MsTimerQueueLock.locked, 1)) {
+        __asm__ volatile("pause" ::: "memory");
+    }
 
     // Set waitblock info.
     CurrentThread->WaitBlock.WakeupTime = MeSystemTickCount + Ticks;
     CurrentThread->WaitBlock.WaitReason = Sleeping;
     CurrentThread->ThreadState = THREAD_BLOCKED;
+    CurrentThread->WaitStatus = MT_PENDING;
 
     // Insert SORTED into MeTimerQueue (Ascending order)
     if (IsListEmpty(&MsTimerQueue)) {
@@ -1202,7 +1206,8 @@ MtSleep(
     }
 
     // Release lock.
-    MsReleaseSpinlock(&MsTimerQueueLock, OldIrql);
+    __sync_lock_release(&MsTimerQueueLock.locked);
+    MeLowerIrql(OldIrql);
 
     // Context switch away
     MsYieldExecution(&CurrentThread->TrapRegisters);
@@ -1248,4 +1253,29 @@ MtWaitForSingleObject(
 
     ObDereferenceObject(Object);
     return Status;
+}
+
+// THIS SYSCALL SHOULD NOT STAY! SINCE GOP IS TO BE RETIRED WHEN FULL OS - SYSCALL NUM - 696969
+MTSTATUS
+MtPrintConsole(
+    IN uint32_t Color,
+    IN const char* String
+)
+{
+    MTSTATUS Status;
+    char KernelBuffer[256]; // max safe limit
+
+    Status = ProbeForRead((void*)String, sizeof(char), _Alignof(char));
+    if (MT_FAILURE(Status)) return Status;
+
+    try {
+        // it gurantees nullterm so we are fine.
+        kstrncpy(KernelBuffer, String, sizeof(KernelBuffer));
+    } except{
+        return GetExceptionCode();
+    } end_try;
+
+    gop_printf(Color, "[FROM USERMODE %s TID %d] %s", PsGetCurrentProcess()->ImageName, PsGetCurrentThread()->TID, KernelBuffer);
+
+    return MT_SUCCESS;
 }

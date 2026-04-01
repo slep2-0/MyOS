@@ -31,8 +31,47 @@ bool MmPfnDatabaseInitialized = false;
 PAGE_INDEX MmHighestPfn = 0;
 
 uint64_t MmTotalMemory = 0;
+uint64_t MmHighestUsablePhysicalAddress = 0; // This can contain MMIO Holes below
 uint64_t MmTotalUsableMemory = 0;
 
+static
+uint64_t
+MiGetTotalUsableMemory(
+    const BOOT_INFO* boot_info
+)
+
+/*++
+
+    Routine description:
+
+       Calculates the sum of total usable physical memory in the system.
+
+    Arguments:
+
+        [IN]    Pointer to BOOT_INFO struct, obtained from UEFI.
+
+    Return Values:
+
+        Total usable physical memory. (in bytes)
+
+--*/
+
+{
+    uint64_t Total = 0;
+    size_t entry_count = boot_info->MapSize / boot_info->DescriptorSize;
+    PEFI_MEMORY_DESCRIPTOR desc = boot_info->MemoryMap;
+
+    for (size_t i = 0; i < entry_count; i++) {
+
+        if (desc->Type == EfiConventionalMemory) {
+            Total += desc->NumberOfPages * PhysicalFrameSize;
+        }
+
+        desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + boot_info->DescriptorSize);
+    }
+
+    return Total;
+}
 
 static
 uint64_t
@@ -73,7 +112,7 @@ MiGetTotalMemory(
         desc = (PEFI_MEMORY_DESCRIPTOR)((uint8_t*)desc + boot_info->DescriptorSize);
     }
 
-    MmTotalUsableMemory = highest_addr;
+    MmHighestUsablePhysicalAddress = highest_addr;
     return highest_addr;
 }
 
@@ -125,6 +164,10 @@ MiInitializePfnDatabase(
     // to allocate the amount of PFN_ENTRY(ies) needed.
     uint64_t totalRam = MiGetTotalMemory(BootInfo);
     if (!totalRam) return MT_NO_MEMORY;
+
+    // Get also the total amount of usable memory.
+    MmTotalUsableMemory = MiGetTotalUsableMemory(BootInfo);
+    gop_printf(COLOR_CYAN, "Total amount of USABLE Memory is: %lu bytes.\n", MmTotalUsableMemory);
 
     uint64_t totalPfnEntries = totalRam / PhysicalFrameSize;
 
@@ -187,7 +230,7 @@ MiInitializePfnDatabase(
     // This ensures that holes (addresses not covered by UEFI map) are treated as invalid.
     for (uint64_t i = 0; i < totalPfnEntries; i++) {
         PfnDatabase.PfnEntries[i].State = PfnStateBad;
-        PfnDatabase.PfnEntries[i].RefCount = 0; // Optional if you want 0
+        PfnDatabase.PfnEntries[i].RefCount = 0;
     }
 
     // Initialize counts.
@@ -459,6 +502,8 @@ MiReleasePhysicalPage(
 --*/
 
 {
+    if (!MiIsValidPfn(PfnIndex)) return;
+
     // First, access the PFN in the database to determine its staistics.
     PPFN_ENTRY pfn = INDEX_TO_PPFN(PfnIndex);
 

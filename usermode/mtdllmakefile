@@ -10,6 +10,7 @@ PROJ_NAME = mtdll
 
 # Sources specific to MTDLL
 SRCS = programs/mtdll/dllmain.c \
+       syscalls/syscalls.asm \
        programs/mtdll/file.c \
        programs/mtdll/generic.c \
        programs/mtdll/memory.c \
@@ -22,10 +23,10 @@ SRCS = programs/mtdll/dllmain.c \
 	   programs/mtdll/error.c \
 	   programs/mtdll/synch.c \
 	   programs/mtdll/apcdispatch.asm \
-       syscalls/syscalls.asm
+	   programs/mtdll/print.c
 
 # --- Toolchain (System Defaults) ----------------------------------------------
-# Using standard PATH tools as requested (same as build_mtexe.sh)
+# Using standard PATH tools (same as build_mtexe.sh)
 
 CC      = gcc
 LD      = ld

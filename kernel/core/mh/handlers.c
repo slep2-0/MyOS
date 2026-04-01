@@ -40,11 +40,10 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
     InterlockedIncrementU64(&MeSystemTickCount);
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
-    IRQL oldIrql;
-    MsAcquireSpinlock(&MsTimerQueueLock, &oldIrql);
+    MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
     // Check the head of the sorted timer queue
     PITHREAD FirstSleepingThread = GetHeadOfTimerQueue();
-    MsReleaseSpinlock(&MsTimerQueueLock, oldIrql);
+    MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
 
     if (FirstSleepingThread && MeSystemTickCount >= FirstSleepingThread->WaitBlock.WakeupTime) {
         // Queue timer expiration DPC.
@@ -54,6 +53,7 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
     //
     // Handle thread's quantum
     //
+    
     // Do not decrement if a schedule is already pending.
     if (cpu->schedulePending) return;
 

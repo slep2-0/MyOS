@@ -50,7 +50,15 @@ MhHandleInterrupt (
     assert(MeAreInterruptsEnabled() == false);
     assert(vec_num < 256, "An interrupt higher than 255 has been encountered, this usually means corruption in stub parameter moves.");
 
+#ifdef DEBUG
+    if (((uintptr_t)__readgsbase) < PhysicalMemoryOffset) {
+        __swapgs();
+        MeBugCheck(PROCESSOR_POINTER_CORRUPTION);
+    }
+#endif
+
     PPROCESSOR cpu = MeGetCurrentProcessor();
+
     IRQL oldIrql;
     
     // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)

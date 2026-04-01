@@ -158,9 +158,10 @@ isr_common_stub64:
 .begin_call
     
     ; Call C interrupt handler
-    sub     rsp, 8
-    call    MhHandleInterrupt
-    add     rsp, 8
+    mov r12, rsp
+    and rsp, -16     ; Force 16-byte alignment safely
+    call MhHandleInterrupt
+    mov rsp, r12     ; Restore RSP to the trap frame
 
 extern Schedule
 

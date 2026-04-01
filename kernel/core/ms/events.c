@@ -40,9 +40,6 @@ MsSetEvent (
     if (event->type == SynchronizationEvent) {
         PETHREAD waiter;
         while ((waiter = MeDequeueThread(&event->waitingQueue)) != NULL) {
-            // Unlink explicitly so the thread knows it's no longer in the queue
-            waiter->ThreadListEntry.Flink = NULL;
-            waiter->ThreadListEntry.Blink = NULL;
 
             // Try to claim the thread for a Success wake
             if (__sync_val_compare_and_swap(&waiter->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
@@ -61,39 +58,20 @@ MsSetEvent (
         return MT_SUCCESS;
     }
 
-    // --- NotificationEvent Logic ---
-    PETHREAD head = NULL;
-    PETHREAD tail = NULL;
+    // Notif
     PETHREAD t;
-
     while ((t = MeDequeueThread(&event->waitingQueue)) != NULL) {
-        t->ThreadListEntry.Flink = NULL;
-        t->ThreadListEntry.Blink = NULL;
+        // MeDequeueThread already isolates the SchedulerListEntry, so no need to nullify anything else.
 
         // Only wake threads we successfully claim
         if (__sync_val_compare_and_swap(&t->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
-            if (tail) {
-                tail->ThreadListEntry.Flink = &t->ThreadListEntry;
-                t->ThreadListEntry.Blink = &tail->ThreadListEntry;
-            }
-            else {
-                head = t;
-            }
-            tail = t;
+            t->InternalThread.ThreadState = THREAD_READY;
+            MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
         }
     }
 
     event->signaled = true;
     MsReleaseSpinlock(&event->lock, flags);
-
-    t = head;
-    while (t) {
-        struct _DOUBLY_LINKED_LIST* nxtEntry = t->ThreadListEntry.Flink;
-        t->InternalThread.ThreadState = THREAD_READY;
-        MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
-        t = nxtEntry ? CONTAINING_RECORD(nxtEntry, ETHREAD, ThreadListEntry) : NULL;
-    }
-
     return MT_SUCCESS;
 }
 
@@ -200,14 +178,27 @@ MsWaitForEvent (
 
     // Unlink from queues to prevent memory corruption
     if (finalStatus == MT_TIMEOUT) {
-        // We timed out, so we might still be in the Event queue.
         MsAcquireSpinlock(&event->lock, &flags);
 
-        // If it's NULL, MsSetEvent already popped us
-        if (curr->ThreadListEntry.Flink != NULL) {
-            RemoveEntryList(&curr->ThreadListEntry);
-            curr->ThreadListEntry.Flink = NULL;
-            curr->ThreadListEntry.Blink = NULL;
+        // We need to replace this with QueueEntryRemove function.
+        if (curr->SchedulerListEntry.Flink != NULL || curr->SchedulerListEntry.Blink != NULL || event->waitingQueue.head == curr) {
+
+            if (curr->SchedulerListEntry.Blink) {
+                curr->SchedulerListEntry.Blink->Flink = curr->SchedulerListEntry.Flink;
+            }
+            else {
+                event->waitingQueue.head = CONTAINING_RECORD(curr->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
+            }
+
+            if (curr->SchedulerListEntry.Flink) {
+                curr->SchedulerListEntry.Flink->Blink = curr->SchedulerListEntry.Blink;
+            }
+            else {
+                event->waitingQueue.tail = CONTAINING_RECORD(curr->SchedulerListEntry.Blink, ETHREAD, SchedulerListEntry);
+            }
+
+            curr->SchedulerListEntry.Flink = NULL;
+            curr->SchedulerListEntry.Blink = NULL;
         }
 
         MsReleaseSpinlock(&event->lock, flags);

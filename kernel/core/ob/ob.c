@@ -109,7 +109,7 @@ MTSTATUS ObCreateObjectType(
     InsertTailList(&ObTypeDirectoryList, &NewType->TypeList);
     MsReleaseSpinlock(&ObGlobalLock, oldIrql);
 
-    // 5. Return the pointer
+    // Return the pointer
     *ReturnedObjectType = NewType;
     return MT_SUCCESS;
 }
@@ -514,8 +514,7 @@ ObpDeferObjectDeletion(
     do {
         // Get the current entry.
         Entry = ObpReaperList;
-
-        // Link our object to the linked list.
+        // Link our object  to the linked list.
         Header->NextToFree = Entry;
         // Update the list
     } while (InterlockedCompareExchangePointer(&ObpReaperList, Header, (void*)Entry) != Entry);

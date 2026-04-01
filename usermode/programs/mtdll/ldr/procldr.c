@@ -20,6 +20,7 @@ Revision History:
 #include "../includes/exports.h"
 #include "../includes/errorhandlingapi.h"
 #include "../includes/mteheader.h"
+#include "../includes/ioapi.h"
 
 // 1. LDR_DATA_TABLE_ENTRY of Dll.
 // 2. "WriteFile"
@@ -145,6 +146,7 @@ LdrpProcessImports(
     // Point to import table.
     MT_IMPORT_ENTRY* ImportTable = (MT_IMPORT_ENTRY*)(ImageBase + Header->imports_rva);
     size_t ImportCount = Header->imports_size / sizeof(MT_IMPORT_ENTRY);
+    printf(COLOR_RED, "**In MTDLL Resolve imports - ImportCount %lu**\n", ImportCount);
 
     // Iterate over imports
     for (size_t i = 0; i < ImportCount; i++)

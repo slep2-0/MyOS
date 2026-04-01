@@ -124,10 +124,12 @@ MeRaiseIrql (
         *OldIrql = MeGetCurrentProcessor()->currentIrql;
     }
 
+#ifdef DEBUG
     IRQL curr = MeGetCurrentIrql();
     if (NewIrql < curr) {
         MeBugCheck(IRQL_NOT_GREATER_OR_EQUAL);
     }
+#endif
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
     toggle_scheduler();
@@ -163,10 +165,12 @@ MeLowerIrql (
     bool prev_if = interrupts_enabled();
     __cli();
 
+#ifdef DEBUG
     IRQL curr = MeGetCurrentIrql();
     if (NewIrql > curr) {
         MeBugCheck(IRQL_NOT_LESS_OR_EQUAL);
     }
+#endif
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
 
@@ -177,7 +181,6 @@ MeLowerIrql (
     MmFullBarrier();
     
     // First check for DPC Interrupts.
-
     if (prev_if && cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }

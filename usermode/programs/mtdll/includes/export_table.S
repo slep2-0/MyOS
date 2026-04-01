@@ -68,3 +68,6 @@ EXPORT MeUserApcDispatcher, "MeUserApcDispatcher"
 /* synch.c */
 EXPORT Sleep, "Sleep"
 EXPORT WaitForSingleObject, "WaitForSingleObject"
+
+/* print.c */
+EXPORT printf, "printf"

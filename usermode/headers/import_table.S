@@ -1,4 +1,5 @@
 /* imports_table.S */
+/* IMAGE_BASE is defined in the compiler flags for mtexe makefiles. */
 
 .macro MT_IMPORT lib, func
     /* --- 1. The Strings --- */
@@ -64,6 +65,7 @@ MT_IMPORT "mtdll.mtdll", VirtualFreeEx
 MT_IMPORT "mtdll.mtdll", CreateFile
 MT_IMPORT "mtdll.mtdll", WriteFile
 MT_IMPORT "mtdll.mtdll", ReadFile
+MT_IMPORT "mtdll.mtdll", printf
 
 /* Error Handling */
 MT_IMPORT "mtdll.mtdll", GetLastError

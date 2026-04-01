@@ -274,6 +274,13 @@ MiAllocateLargePool(
 --*/
 
 {
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     // Calculate required size.
     size_t RequiredSize = NumberOfBytes + sizeof(POOL_HEADER);
 
@@ -383,7 +390,15 @@ MiAllocatePagedPool(
 --*/
 
 {
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     size_t ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
+
     uintptr_t PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
     if (!PagedVa) return NULL;
 
@@ -477,6 +492,13 @@ MmAllocatePoolWithTag(
 --*/
 
 {
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     // Declarations
     IRQL oldIrql;
     size_t ActualSize;

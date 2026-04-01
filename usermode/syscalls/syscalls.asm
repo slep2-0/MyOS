@@ -233,3 +233,10 @@ MtWaitForSingleObject:
 	syscall
 	ret
 
+; TO BE RETIRED
+global MtPrintConsole
+MtPrintConsole:
+	mov rax, 255
+	mov r10, rcx
+	syscall
+	ret

@@ -1564,6 +1564,11 @@ MTSTATUS fat32_create_file(
 	else {
 		// Copy parent path
 		int p_len = (last_slash == 0) ? 1 : last_slash; // Handle "/file.txt" vs "/A/file.txt"
+
+		if (p_len >= (int)sizeof(parent_path)) {
+			return MT_FAT32_INVALID_FILENAME;
+		}
+
 		for (int i = 0; i < p_len; i++) parent_path[i] = path[i];
 		parent_path[p_len] = '\0';
 

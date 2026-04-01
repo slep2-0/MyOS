@@ -184,3 +184,5 @@ extern uint32_t
     IN HANDLE ObjectHandle,
     IN uint32_t Milliseconds
 );
+
+extern void (*printf)(uint32_t Color, const char* fmt, ...);

@@ -369,8 +369,14 @@ MmUnmapIoSpace(
         PMMPTE Pte = MiGetPtePointer(CurrentVA);
         assert(Pte != NULL);
 
+        // Get PFN
+        PAGE_INDEX Pfn = MiTranslatePteToPfn(Pte);
+
         // Unmap the virtual address.
         MiUnmapPte(Pte);
+
+        // Free physical frame.
+        MiReleasePhysicalPage(Pfn);
 
         // Advance to next 4KiB.
         CurrentVA += VirtualPageSize;

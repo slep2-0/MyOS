@@ -74,7 +74,13 @@ MiMapPageInHyperspace(
     PPFN_ENTRY pfn = INDEX_TO_PPFN (PfnIndex);
     uint64_t physAddr = PPFN_TO_PHYSICAL_ADDRESS (pfn);
     PMMPTE pte = MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS);
+
+#ifndef MT_UP
     MI_WRITE_PTE_NO_IPI(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
+#else
+    // SMP
+    MI_WRITE_PTE(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
+#endif
 
     // Set PFN metadata.
     pfn->State = PfnStateActive;

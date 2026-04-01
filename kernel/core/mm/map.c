@@ -325,6 +325,11 @@ MiTranslatePteToPfn (
 
         Page Frame Index.
 
+    Notes:
+
+        The PTE must be mapped to a physical address in order for this function to return an actual PFN value.
+        (it doesnt have to actually BE MAPPED with the present bit, but the physical address must be written in the PTE itself)
+
 --*/
 
 {
@@ -437,6 +442,25 @@ bool MiAtomicSetPte(
     uint64_t NewValue,
     uint64_t ExpectedValue
 )
+
+/*++
+
+    Routine description:
+
+        Atomically sets the Pte given to the new PTE if it did not change while setting.
+
+    Arguments:
+
+        [IN]  volatile PMMPTE Pte - Pointer to MMPTE PTE in memory.
+        [IN]  uint64_t NewValue - The new value the will have if successful.
+        [IN]  uint64_t ExpectedValue - The expected value the PTE should hold to identify it was not changed while setting it to new value.
+
+    Return Values:
+
+        True if PTE has successfuly changed to NewValue, or false if the PTE was changed between setting it.
+
+--*/
+
 {
     uint64_t original = InterlockedCompareExchangeU64(
         (volatile uint64_t*)Pte,
