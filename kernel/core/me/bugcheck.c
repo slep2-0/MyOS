@@ -10,6 +10,7 @@
 #include "../../intrinsics/atomic.h"
 #include "../../includes/mh.h"
 #include "../../includes/ps.h"
+#include "../../includes/rtl.h"
 
 #ifndef DEBUG
 #define DEBUG
@@ -303,6 +304,7 @@ MeBugCheckEx (
 
 #ifdef DEBUG
     IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
+    bool IsAssertionFailure = false;
 #endif
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
@@ -332,6 +334,7 @@ MeBugCheckEx (
                 (char*)BugCheckParameter2,
                 (char*)BugCheckParameter3,
                 (long long)(intptr_t)BugCheckParameter4);
+            IsAssertionFailure = true;
         }
         else {
 #endif
@@ -373,7 +376,26 @@ MeBugCheckEx (
     }
     gop_printf(COLOR_YELLOW, "Current CR3: %p\n", (void*)(uintptr_t)__read_cr3());
     gop_printf(COLOR_YELLOW, "Current stack top: %p\n", (void*)(uintptr_t)__read_rsp());
-#endif
+
+    if (IsAssertionFailure) {
+        // Print backtrace to the current stack, since the bugcheck is called from assert_fail (which isnt called from an exception interrupt)
+        void* Frames[16];
+        size_t captured = RtlCaptureStackFrames(Frames, 16, 1);
+        
+        if (!captured) {
+            gop_printf(COLOR_RED, "No stack trace to print, this shouldn't be really possible.\n");
+        }
+        else {
+            gop_printf(COLOR_ORANGE, "Stack Trace:\n");
+        }
+
+        for (size_t i = 0; i < captured; i++) {
+            void* Address = Frames[i];
+            gop_printf(COLOR_LIME, "%p\n", Address);
+        }
+    }
+
+#endif // DEBUG
     __cli();
     while (1) {
         __hlt();

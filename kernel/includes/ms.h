@@ -26,6 +26,13 @@ Revision History:
 #include "annotations.h"
 #include "core.h"
 
+// PLACEHOLDER, until a translation unit includes assert.h
+#ifdef __OFFSET_GENERATOR__
+#define assert(...) do { } while(0)
+#endif
+
+extern void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line);
+
 // ------------------ STRUCTURES ------------------
 
 /**
@@ -246,6 +253,10 @@ InitializeListHead(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InitializeListHead: Head is NULL", __FILE__, __func__, __LINE__);
+#endif
     Head->Flink = Head;
     Head->Blink = Head;
 }
@@ -260,6 +271,19 @@ InsertTailList(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InsertTailList: Head is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "InsertTailList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink == NULL)
+        assert_fail("Head->Blink != NULL", "InsertTailList: Head->Blink is NULL! (Uninitialized list?)", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink->Flink != Head)
+        assert_fail("Head->Blink->Flink == Head", "InsertTailList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Blink;
     // The last element is the one before Head (circular list style)
     Blink = Head->Blink;
@@ -276,6 +300,19 @@ InsertHeadList(
     PDOUBLY_LINKED_LIST Entry
 )
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InsertHeadList: Head is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "InsertHeadList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink == NULL)
+        assert_fail("Head->Flink != NULL", "InsertHeadList: Head->Flink is NULL! (Uninitialized list?)", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink->Blink != Head)
+        assert_fail("Head->Flink->Blink == Head", "InsertHeadList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST First;
 
     // The first element is the one after Head (circular list)
@@ -295,6 +332,19 @@ RemoveHeadList(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "RemoveHeadList: Head is NULL!", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink == NULL)
+        assert_fail("Head->Flink != NULL", "RemoveHeadList: Head->Flink is NULL! (Uninitialized/Zeroed Memory)", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink == NULL)
+        assert_fail("Head->Blink != NULL", "RemoveHeadList: Head->Blink is NULL! (Uninitialized/Zeroed Memory)", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink->Blink != Head)
+        assert_fail("Head->Flink->Blink == Head", "RemoveHeadList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Entry;
     PDOUBLY_LINKED_LIST Flink;
 
@@ -303,6 +353,11 @@ RemoveHeadList(
         // List is empty
         return NULL;
     }
+
+#ifdef DEBUG
+    if (Entry->Flink == NULL)
+        assert_fail("Entry->Flink != NULL", "RemoveHeadList: Entry->Flink is NULL!", __FILE__, __func__, __LINE__);
+#endif
 
     Flink = Entry->Flink;
     Head->Flink = Flink;
@@ -319,6 +374,19 @@ RemoveEntryList(
     PDOUBLY_LINKED_LIST Entry
 )
 {
+#ifdef DEBUG
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "RemoveEntryList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry->Flink == NULL || Entry->Blink == NULL)
+        assert_fail("Entry->Flink != NULL && Entry->Blink != NULL", "RemoveEntryList: Entry links are NULL! (Double remove or uninitialized?)", __FILE__, __func__, __LINE__);
+
+    if (Entry->Flink->Blink != Entry)
+        assert_fail("Entry->Flink->Blink == Entry", "RemoveEntryList: Corrupt forward link!", __FILE__, __func__, __LINE__);
+
+    if (Entry->Blink->Flink != Entry)
+        assert_fail("Entry->Blink->Flink == Entry", "RemoveEntryList: Corrupt backward link!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Flink;
     PDOUBLY_LINKED_LIST Blink;
 

@@ -52,8 +52,8 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
 
 #define VirtualPageSize 4096ULL // Same as each physical frame.
 #define PhysicalFrameSize 4096ULL // Each physical frame.
-#define KernelVaStart 0xfffff80000000000ULL
-#define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping
+#define KernelVaStart 0xfffff80000000000ULL // The kernels .text section and onward.
+#define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping (this is where kernel space starts to reside)
 #define RECURSIVE_INDEX 0x1FF
 
 #ifndef __INTELLISENSE__
@@ -542,7 +542,7 @@ typedef struct _POOL_HEADER
         // When the block is ALLOCATED, we store actual metadata info.
         struct
         {
-            uint16_t BlockSize;  // Size of this block
+            uint16_t BlockSize;  // Size of this block (INCLUDES POOL_HEADER)
             uint16_t PoolIndex;  // Index of the slab it came from
         };
     } Metadata;
@@ -642,6 +642,7 @@ extern uint64_t MmTotalMemory;
 extern uint64_t MmTotalUsableMemory;
 extern uint64_t MmHighestUsablePhysicalAddress;
 
+#define MI_FREEPOOL_UAF_IDENTIFIER 0xDD
 
 #define USER_VA_END 0x00007FFFFFFFFFFF
 #define USER_VA_START 0x10000

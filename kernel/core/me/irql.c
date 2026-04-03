@@ -181,12 +181,12 @@ MeLowerIrql (
     MmFullBarrier();
     
     // First check for DPC Interrupts.
-    if (prev_if && cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
     // Now APC Interrupts.
-    if (prev_if && cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+    if (cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
         MhRequestSoftwareInterrupt(APC_LEVEL);
     }
 
@@ -227,12 +227,12 @@ _MeSetIrql (
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
     MmFullBarrier();
-    if (prev_if && cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
     // Now APC Interrupts.
-    if (prev_if && cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+    if (cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
         MhRequestSoftwareInterrupt(APC_LEVEL);
     }
 

@@ -4,6 +4,7 @@
  * PURPOSE:      Core Kernel Entry Point for MatanelOS.
  */
 
+#include "assert.h"
 #include "kernel.h"
 #ifndef _MSC_VER
 _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit version is deprecated.");
@@ -182,6 +183,13 @@ static void InitSystemProcess(void) {
 extern uint8_t bss_start;
 extern uint8_t bss_end;
 
+static void DbgCallback(void* vinfo) {
+    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
+    gop_printf(COLOR_RED, "**->>>>> RIP %p TOUCHED THE GLOBAL STACK CANARY!**\n", (void*)(uintptr_t)info->trap->rip);
+    FREEZE_OTHER_CPUS();
+    FREEZE();
+}
+
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 __attribute__((noreturn))
 void kernel_main(BOOT_INFO* boot_info) {
@@ -354,6 +362,13 @@ void kernel_main(BOOT_INFO* boot_info) {
 #else
     gop_printf(COLOR_RED, "System configured to run in UP mode.\n");
 #endif
+
+#ifdef DEBUG
+    // Set hardware write breakpoint on the stack chk guard so anybody writing to it would be caught.
+    MTSTATUS z = MdSetHardwareBreakpoint(DbgCallback, (void*)&__stack_chk_guard, DEBUG_ACCESS_WRITE, DEBUG_LEN_QWORD);
+    assert(MT_SUCCEEDED(z));
+#endif
+
     // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
     // Thread creations (including idle threads) must come with the IF flag set.
     Schedule();

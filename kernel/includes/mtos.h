@@ -3,6 +3,7 @@
 
 // MTOS.H - Includes all essential headers for full kernel operation.
 
+#include "../assert.h"
 #include "me.h"
 #include "ms.h"
 #include "mh.h"

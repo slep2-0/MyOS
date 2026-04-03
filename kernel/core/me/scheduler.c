@@ -26,41 +26,49 @@ extern EPROCESS PsInitialSystemProcess;
 // In Scheduler.c
 void InitScheduler(void) {
     MeGetCurrentProcessor()->schedulerEnabled = true;
-    MeGetCurrentProcessor()->idleThread = MmAllocatePoolWithTag(NonPagedPool, sizeof(ETHREAD), 'ELDI');
-    PETHREAD idleThread = MeGetCurrentProcessor()->idleThread;
-    
-    TRAP_FRAME cfm;
-    kmemset(&cfm, 0, sizeof(cfm)); // Start with a clean, all-zero context
 
-    // Set only the essential registers for starting the thread
+    PETHREAD idleThread = NULL;
+    MTSTATUS Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**)&idleThread);
+    if (MT_FAILURE(Status)) {
+        // If we can't allocate the idle thread during boot, the system is toast.
+        MeBugCheckEx(MEMORY_LIMIT_REACHED, NULL, NULL, NULL, NULL);
+    }
+
+    MeGetCurrentProcessor()->idleThread = idleThread;
+
+    // Use the unified helper to set up APC lists, PIDs, and states
+    PspInitializeThread(idleThread, &PsInitialSystemProcess, 1); // 1ms timeslice
+
+    // Idle thread specific overrides
+    idleThread->TID = 0;
+    idleThread->SystemThread = true;
+
+    // Set up the execution context
     void* idleStack = MiCreateKernelStack(false);
     assert(idleStack != NULL);
+
+    TRAP_FRAME cfm;
+    kmemset(&cfm, 0, sizeof(cfm));
     cfm.rsp = (uint64_t)idleStack;
     cfm.rip = (uint64_t)kernel_idle_checks;
+    cfm.rflags |= (1 << 9ULL); // Ensure interrupts are enabled for the idle loop
 
-    // Enable Interrupts on its RFLAGS.
-    cfm.rflags |= (1 << 9ULL);
-
-    // Assign the clean context to the idle thread
     idleThread->InternalThread.TrapRegisters = cfm;
-    idleThread->InternalThread.ThreadState = THREAD_READY;
-    idleThread->InternalThread.TimeSlice = 1; // 1ms
-    idleThread->InternalThread.TimeSliceAllocated = 1;
-    InitializeListHead(&idleThread->ThreadListEntry);
-    idleThread->TID = 0; // Idle thread, TID is 0.
     idleThread->InternalThread.StackBase = (void*)cfm.rsp;
     idleThread->InternalThread.IsLargeStack = false;
     idleThread->InternalThread.KernelStack = idleStack;
-    MeGetCurrentProcessor()->currentThread = NULL; // The idle thread would be chosen
-    idleThread->CurrentEvent = NULL; // No event.
-    idleThread->ParentProcess = &PsInitialSystemProcess;
-    idleThread->SystemThread = true;
+
+    // Link to the System Process
     PsInitialSystemProcess.MainThread = idleThread;
+
     MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
     InsertHeadList(&PsInitialSystemProcess.AllThreads, &idleThread->ThreadListEntry);
+    PsInitialSystemProcess.NumThreads++; // Maintain accurate thread count
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
-    // The ready queue starts empty
+    // Reset Scheduler state
+    // We do NOT call MeEnqueueThread here, the idle thread remains outside the ready queue.
+    MeGetCurrentProcessor()->currentThread = NULL;
     MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
 }
 

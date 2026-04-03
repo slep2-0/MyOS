@@ -632,7 +632,7 @@ MmAllocatePoolWithTag(
     header->PoolTag = Tag;
     // Decrement descriptor free count.
     Desc->FreeCount--;
-    assert((Desc->FreeCount) != SIZE_T_MAX); // Check for underflow.
+    assert((Desc->FreeCount) != UINT64_T_MAX); // Check for underflow.
     // Release spinlock.
     MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
     void* UserAddress = (void*)((uint8_t*)header + sizeof(POOL_HEADER));
@@ -776,6 +776,12 @@ MmFreePool(
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
     PPOOL_DESCRIPTOR Desc = &cpu->LookasidePools[PoolIndex];
+
+#ifdef DEBUG
+    // Overwrite the user data a UAF causes an instant crash on 0xDDDDDDDD (xD)
+    size_t UserSize = header->Metadata.BlockSize - sizeof(POOL_HEADER);
+    kmemset(buf, MI_FREEPOOL_UAF_IDENTIFIER, UserSize);
+#endif
 
     // Acquire the same lock used by the allocator
     IRQL oldIrql;

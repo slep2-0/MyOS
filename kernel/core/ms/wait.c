@@ -51,6 +51,7 @@ void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2) {
             Queue* readyQueue = &MeGetCurrentProcessor()->readyQueue;
             MsAcquireSpinlockAtDpcLevel(&readyQueue->lock);
             MeEnqueueThread(readyQueue, PsGetEThreadFromIThread(Thread));
+            MeGetCurrentProcessor()->schedulePending = true;
             MsReleaseSpinlockFromDpcLevel(&readyQueue->lock);
 
             // Re-acquire the timer queue lock at CLOCK_LEVEL

@@ -41,6 +41,13 @@ uint32_t MyThread(void* ThreadParameter) {
 
 int main(void) {
     printf(COLOR_CYAN, "Main user mode hit.\n");
+
+    if (GlobalVarBss == 0) {
+        printf(COLOR_CYAN, "Global variables are zeroed!\n");
+    }
+    else {
+        printf(COLOR_CYAN, "Global variables are not zero! GlobalVarBss: %d\n", GlobalVarBss);
+    }
    
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
     // If at any point we fail we will terminate the program with the status that failed.

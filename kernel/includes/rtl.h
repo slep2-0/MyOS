@@ -54,4 +54,61 @@ Return Value:
         *ptr++ = 0;
 }
 
+FORCEINLINE
+size_t
+RtlCaptureStackFrames(
+    void** Frames,
+    size_t FramesToCapture,
+    size_t FramesToSkip
+)
+{
+    void** rbp;
+
+    __asm__ volatile ("movq %%rbp, %0" : "=r"(rbp));
+
+    if (Frames == NULL || FramesToCapture == 0 || rbp == NULL) {
+        return 0;
+    }
+
+    while (FramesToSkip != 0) {
+        void** next = (void**)(*rbp);
+
+        if (next == NULL) {
+            return 0;
+        }
+
+        if ((uintptr_t)next <= (uintptr_t)rbp) {
+            return 0;
+        }
+
+        rbp = next;
+        FramesToSkip--;
+    }
+
+    size_t captured = 0;
+
+    while (captured < FramesToCapture) {
+        void** next = (void**)(*rbp);
+        void* ret = rbp[1];
+
+        Frames[captured++] = ret;
+
+        if (next == NULL) {
+            break;
+        }
+
+        if ((uintptr_t)next <= (uintptr_t)rbp) {
+            break;
+        }
+
+        if (((uintptr_t)next & 0xF) != 0) {
+            break;
+        }
+
+        rbp = next;
+    }
+
+    return captured;
+}
+
 #endif

@@ -90,6 +90,8 @@ MmCreateSection(
     NewSection->WholeFileSection.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE | VAD_FLAG_EXECUTE | VAD_FLAG_MAPPED_FILE;
     NewSection->WholeFileSection.IsDemandZero = 0;
 
+    if (WILL_ADD_OVERFLOW(FileEndRVA, Header.BssSize)) return MT_INVALID_IMAGE_FORMAT;
+
     // Calculate total size of the image in memory.
     // This includes the file part + the BSS part.
     NewSection->ImageSize = ALIGN_UP(FileEndRVA + Header.BssSize, VirtualPageSize);

@@ -109,6 +109,9 @@ MeRetireAPCs(
 
     if (!currentThread) return;
 
+    assert(cpu->ApcInterruptRequested == true);
+    assert(cpu->ApcRoutineActive == false);
+
     cpu->ApcRoutineActive = true;
     cpu->ApcInterruptRequested = false;
 

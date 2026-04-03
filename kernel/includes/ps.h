@@ -261,6 +261,11 @@ PsTerminateProcess(
     IN MTSTATUS ExitCode
 );
 
+void
+PspInitializeThread(
+    PETHREAD Thread, PEPROCESS Process, TimeSliceTicks TimeSlice
+);
+
 MTSTATUS
 PsTerminateThread(
     IN PETHREAD Thread,

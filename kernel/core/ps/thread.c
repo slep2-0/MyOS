@@ -62,6 +62,28 @@ PspThreadTerminationRoutine(
     PspExitThread((MTSTATUS)(uintptr_t)*SystemArgument1);
 }
 
+
+void 
+PspInitializeThread(
+    PETHREAD Thread, PEPROCESS Process, TimeSliceTicks TimeSlice
+)
+
+{
+    // Basic linking
+    InitializeListHead(&Thread->ThreadListEntry);
+    InitializeListHead(&Thread->InternalThread.ApcListHead);
+
+    // Process association
+    Thread->ParentProcess = Process;
+    Thread->InternalThread.ApcState.SavedApcProcess = Process;
+    Thread->PID = Process->PID;
+
+    // Scheduling defaults
+    Thread->InternalThread.TimeSlice = TimeSlice;
+    Thread->InternalThread.TimeSliceAllocated = TimeSlice;
+    Thread->InternalThread.ThreadState = THREAD_READY;
+}
+
 MTSTATUS
 PsCreateThread(
     PEPROCESS Process,
@@ -287,8 +309,9 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
         return Status;
     }
 
-    // Initialize list head.
-    InitializeListHead(&thread->ThreadListEntry);
+    // Use unified helper.
+    PspInitializeThread(thread, &PsInitialSystemProcess, TIMESLICE);
+    thread->SystemThread = true;
 
     // Create stack
     bool LargeStack = false;
@@ -312,10 +335,6 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     TRAP_FRAME* cfm = &thread->InternalThread.TrapRegisters;
     kmemset(cfm, 0, sizeof * cfm);
 
-    // Set our timeslice.
-    thread->InternalThread.TimeSlice = TIMESLICE;
-    thread->InternalThread.TimeSliceAllocated = TIMESLICE;
-
     // saved rsp must point to the top (aligned), not sp-8
     cfm->rsp = (uint64_t)StackTop;
     cfm->rip = (uint64_t)ThreadWrapperEx;
@@ -330,16 +349,11 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 
     // Set it's registers and others.
     thread->InternalThread.TrapRegisters = *cfm;
-    thread->InternalThread.ThreadState = THREAD_READY;
     thread->TID = PsAllocateThreadId(thread);
     if (thread->TID == MT_INVALID_HANDLE) {
         ObDereferenceObject(thread);
         return MT_INVALID_HANDLE;
     }
-    thread->CurrentEvent = NULL;
-    thread->InternalThread.ApcState.SavedApcProcess = &PsInitialSystemProcess;
-    thread->InternalThread.ApcState.AttachedToProcess = false;
-    thread->SystemThread = true;
 
     // Process stuffz
     thread->ParentProcess = &PsInitialSystemProcess; // The parent process for the system thread, is the system process.
@@ -350,9 +364,6 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     PsInitialSystemProcess.NumThreads++;
     
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
-
-    // Initialized APC List head.
-    InitializeListHead(&thread->InternalThread.ApcListHead);
 
     // Enqueue it into processor. TODO START SUSPENDED?
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
