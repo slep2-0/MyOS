@@ -20,6 +20,18 @@ Revision History:
 #include "../../includes/ob.h"
 #include "../../includes/mg.h"
 #include "../../includes/fs.h"
+#include "../../includes/ps.h"
+
+static bool
+MmpIsFileRangeValid(
+    IN uint64_t Offset,
+    IN uint64_t Size,
+    IN uint64_t FileSize
+)
+{
+    if (Size == 0) return true;
+    return Offset < FileSize && Size <= FileSize - Offset;
+}
 
 MTSTATUS
 MmCreateSection(
@@ -27,16 +39,24 @@ MmCreateSection(
     IN struct _FILE_OBJECT* FileObject
 )
 {
+    if (!SectionObject || !FileObject) return MT_INVALID_PARAM;
+
     MTE_HEADER Header;
     MTSTATUS Status;
+    size_t BytesRead = 0;
     // Assume failure.
     *SectionObject = NULL;
 
     // Read the header from the file.
-    Status = FsReadFile(FileObject, 0, &Header, sizeof(MTE_HEADER), NULL);
-    if (MT_FAILURE(Status)) {
-        return Status;
-    }
+    Status = FsReadFile(
+        FileObject,
+        0,
+        &Header,
+        sizeof(MTE_HEADER),
+        &BytesRead
+    );
+    if (MT_FAILURE(Status)) return Status;
+    if (BytesRead != sizeof(MTE_HEADER)) return MT_INVALID_IMAGE_FORMAT;
 
     // Validate header magic.
     if (kmemcmp(Header.Magic, "MTE\0", 4) != 0) {
@@ -47,10 +67,49 @@ MmCreateSection(
         return MT_INVALID_IMAGE_FORMAT;
     }
 
+    uint64_t FileEndRVA = FileObject->FileSize;
+    if (FileEndRVA < sizeof(MTE_HEADER) ||
+        Header.PreferredImageBase < USER_VA_START ||
+        Header.PreferredImageBase > MmHighestUserAddress ||
+        (Header.PreferredImageBase & (VirtualPageSize - 1)) != 0 ||
+        Header.EntryRVA >= FileEndRVA ||
+        !MmpIsFileRangeValid(Header.TextRVA, Header.TextSize, FileEndRVA) ||
+        !MmpIsFileRangeValid(Header.DataRVA, Header.DataSize, FileEndRVA) ||
+        !MmpIsFileRangeValid(Header.exports_rva, Header.exports_size, FileEndRVA) ||
+        !MmpIsFileRangeValid(Header.reloc_rva, Header.reloc_size, FileEndRVA) ||
+        !MmpIsFileRangeValid(Header.imports_rva, Header.imports_size, FileEndRVA) ||
+        Header.exports_size % sizeof(MT_EXPORT_ENTRY) != 0 ||
+        Header.reloc_size % sizeof(Rela) != 0 ||
+        Header.imports_size % sizeof(MT_IMPORT_ENTRY) != 0 ||
+        WILL_ADD_OVERFLOW(FileEndRVA, Header.BssSize) ||
+        FileEndRVA + Header.BssSize > UINTPTR_MAX - (VirtualPageSize - 1)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    uint64_t ImageSize = ALIGN_UP(
+        FileEndRVA + Header.BssSize,
+        VirtualPageSize
+    );
+    if (ImageSize == 0 ||
+        ImageSize - 1 > MmHighestUserAddress - Header.PreferredImageBase) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    if (Header.EntryRVA != 0 && Header.TextSize != 0 &&
+        (Header.EntryRVA < Header.TextRVA ||
+         Header.EntryRVA - Header.TextRVA >= Header.TextSize)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
     // Allocate the actual section object (pool)
     PMM_SECTION NewSection = NULL;
     Status = ObCreateObject(MmSectionType, sizeof(MM_SECTION), (void**)&NewSection);
     if (MT_FAILURE(Status)) return Status;
+
+    if (!ObReferenceObject(FileObject)) {
+        ObDereferenceObject(NewSection);
+        return MT_OBJECT_DELETED;
+    }
 
     // Set fields
     NewSection->FileObject = FileObject;
@@ -77,9 +136,6 @@ MmCreateSection(
     NewSection->Bss.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE;
     NewSection->Bss.IsDemandZero = 1;
 
-    // The file end RVA is just the file size.
-    uintptr_t FileEndRVA = FileObject->FileSize;
-
     // Configure the WholeFileSection.
     // This represents the chunk of virtual memory that maps directly to the file.
     // It starts at FileOffset 0 (so we can see the Header) and goes up to the end of Data.
@@ -90,11 +146,9 @@ MmCreateSection(
     NewSection->WholeFileSection.Protection = VAD_FLAG_READ | VAD_FLAG_WRITE | VAD_FLAG_EXECUTE | VAD_FLAG_MAPPED_FILE;
     NewSection->WholeFileSection.IsDemandZero = 0;
 
-    if (WILL_ADD_OVERFLOW(FileEndRVA, Header.BssSize)) return MT_INVALID_IMAGE_FORMAT;
-
     // Calculate total size of the image in memory.
     // This includes the file part + the BSS part.
-    NewSection->ImageSize = ALIGN_UP(FileEndRVA + Header.BssSize, VirtualPageSize);
+    NewSection->ImageSize = ImageSize;
 
     // Set the section object as the new section.
     *SectionObject = NewSection;
@@ -112,6 +166,13 @@ MmMapViewOfSection(
 )
 {
     PMM_SECTION Section = (PMM_SECTION)SectionObject;
+
+    if (!SectionObject || !Process || !EntryPointAddress || !BaseAddress) {
+        return MT_INVALID_PARAM;
+    }
+
+    *EntryPointAddress = NULL;
+    *BaseAddress = NULL;
 
     uintptr_t load_base = Section->PreferredBase;
 
@@ -138,20 +199,42 @@ MmMapViewOfSection(
 
     if (MT_FAILURE(Status)) goto Cleanup;
 
+    if (load_base > MmHighestUserAddress || Section->ImageSize == 0 ||
+        Section->ImageSize - 1 > MmHighestUserAddress - load_base) {
+        void* AllocationBase = (void*)load_base;
+        size_t AllocationSize = Section->WholeFileSection.VirtualSize;
+        MmFreeVirtualMemory(
+            Process,
+            &AllocationBase,
+            &AllocationSize,
+            MEM_RELEASE
+        );
+        Status = MT_INVALID_ADDRESS;
+        goto Cleanup;
+    }
+
     // Store the file and fileoffset into the vad we just got.
     // IMPORTANT: We map from FileOffset 0. This exposes the MTE Header in memory.
-    PMMVAD Vad = MiFindVad(Process, load_base);
-    if (Vad) {
-        Vad->File = Section->FileObject;
-        Vad->FileOffset = Section->WholeFileSection.FileOffset; // 0
-
-        // Increment reference count since we added another pointer
-        // Look in MiDeleteVadsProcess, it also dereferences the same file object
-        // So we must own another reference count.
-        if (Vad->File) {
-            ObReferenceObject(Vad->File);
-        }
+    MsAcquirePushLockExclusive(&Process->VadLock);
+    PMMVAD Vad = MiFindVadInternal(Process, load_base, false);
+    if (!Vad || (Section->FileObject && !ObReferenceObject(Section->FileObject))) {
+        MsReleasePushLockExclusive(&Process->VadLock);
+        void* AllocationBase = (void*)load_base;
+        size_t AllocationSize = Section->WholeFileSection.VirtualSize;
+        MmFreeVirtualMemory(
+            Process,
+            &AllocationBase,
+            &AllocationSize,
+            MEM_RELEASE
+        );
+        Status = MT_NOT_FOUND;
+        goto Cleanup;
     }
+
+    Vad->File = Section->FileObject;
+    Vad->FileOffset = Section->WholeFileSection.FileOffset; // 0
+    Vad->Flags |= VAD_FLAG_MAPPED_FILE;
+    MsReleasePushLockExclusive(&Process->VadLock);
 
     // .bss lives immediately after the file data in Virtual Memory.
     if (Section->Bss.VirtualSize > 0) {
@@ -178,7 +261,8 @@ MmMapViewOfSection(
 
             if (MT_FAILURE(Status)) {
                 void* load_Base_temp = (void*)load_base;
-                MmFreeVirtualMemory(Process, &load_Base_temp, &OverflowSize, MEM_RELEASE);
+                size_t AllocationSize = Section->WholeFileSection.VirtualSize;
+                MmFreeVirtualMemory(Process, &load_Base_temp, &AllocationSize, MEM_RELEASE);
                 goto Cleanup;
             }
         }

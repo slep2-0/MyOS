@@ -14,6 +14,7 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
 
 {
     uint32_t i;
+    bool IsPrivileged = false;
 
     try {
         /* Handle prefixes */
@@ -55,7 +56,7 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
         if (i == 15)
         {
             /* Too many prefixes. Should only happen, when the code was concurrently modified. */
-            return false;
+            leave;
         }
 
         switch (Ip[0])
@@ -63,7 +64,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
         case 0xF4: // HLT
         case 0xFA: // CLI
         case 0xFB: // STI
-            return true;
+            IsPrivileged = true;
+            leave;
 
         case 0x0F:
         {
@@ -83,7 +85,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
             case 0x35: // SYSEXIT
             case 0x78: // VMREAD
             case 0x79: // VMWRITE
-                return true;
+                IsPrivileged = true;
+                leave;
 
             case 0x00:
             {
@@ -92,7 +95,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
                 {
                 case 2: // LLDT
                 case 3: // LTR
-                    return true;
+                    IsPrivileged = true;
+                    leave;
                 }
                 break;
             }
@@ -109,7 +113,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
                 case 0xC9: // MWAIT
                 case 0xD1: // XSETBV
                 case 0xF8: // SWAPGS
-                    return true;
+                    IsPrivileged = true;
+                    leave;
                 }
 
                 /* Check MODRM Reg field */
@@ -119,7 +124,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
                 case 3: // LIDT
                 case 6: // LMSW
                 case 7: // INVLPG / SWAPGS / RDTSCP
-                    return true;
+                    IsPrivileged = true;
+                    leave;
                 }
                 break;
             }
@@ -130,7 +136,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
                 {
                 case 0x80: // INVEPT
                 case 0x81: // INVVPID
-                    return true;
+                    IsPrivileged = true;
+                    leave;
                 }
                 break;
             }
@@ -142,7 +149,8 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
                 {
                 case 0x06: // VMPTRLD, VMCLEAR, VMXON
                 case 0x07: // VMPTRST
-                    return true;
+                    IsPrivileged = true;
+                    leave;
                 }
                 break;
             }
@@ -152,9 +160,9 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
         }
         }
         } except{
-            return false;
+            IsPrivileged = false;
     }
     end_try;
 
-    return false;
+    return IsPrivileged;
 }

@@ -28,8 +28,7 @@ static FAT32_FSINFO fs;
 static BLOCK_DEVICE* disk;
 extern GOP_PARAMS gop_local;
 
-static SPINLOCK fat32_read_fat_lock = { 0 };
-static SPINLOCK fat32_write_fat_lock = { 0 };
+static SPINLOCK fat32_fat_lock = { 0 };
 static void* fat_cache_buf = NULL;
 void* fat_cache_buf2 = NULL;
 static uint32_t fat_cache_sector = UINT32_MAX;
@@ -235,7 +234,7 @@ done:
 }
 
 static inline uint32_t fat32_total_clusters(void) {
-	return (bpb.total_sectors_32 - fs.first_data_sector) / fs.sectors_per_cluster;
+	return fs.total_clusters;
 }
 
 // Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
@@ -243,7 +242,7 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 	bool isScanner = InterlockedCompareExchange32(&fat32_called_from_scanner, 0, 0);
 
 	// Do not treat reserved clusters as "free" returned to callers that iterate the chain.
-	if (cluster < 2) {
+	if (cluster < 2 || cluster > fat32_total_clusters() + 1) {
 		if (isScanner) {
 			return FAT32_READ_ERROR;
 		}
@@ -251,19 +250,11 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 	}
 
 	IRQL oldIrql;
-	MsAcquireSpinlock(&fat32_read_fat_lock, &oldIrql);
+	MsAcquireSpinlock(&fat32_fat_lock, &oldIrql);
 
-	// allocate cache buffer onceW
-	if (!fat_cache_buf) {
-		fat_cache_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, '1TAF');
-		if (!fat_cache_buf) {
-			gop_printf(0xFFFF0000, "fat32_read_fat: couldn't alloc cache buf\n");
-			MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
-			if (isScanner) {
-				return FAT32_READ_ERROR;
-			}
-			return FAT32_EOC_MIN;
-		}
+	if (!fat_cache_buf || !fat_cache_buf2) {
+		MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
+		return isScanner ? FAT32_READ_ERROR : FAT32_EOC_MIN;
 	}
 
 	uint32_t fat_offset = cluster * 4;
@@ -276,7 +267,7 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 		MTSTATUS st = read_sector(fat_sector, fat_cache_buf);
 		if (MT_FAILURE(st)) {
 			gop_printf(0xFFFF0000, "fat32_read_fat: read_sector fail for sector %u\n", fat_sector);
-			MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+			MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
 			if (isScanner) {
 				return FAT32_READ_ERROR;
 			}
@@ -296,22 +287,10 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 	}
 	else {
 		/* entry spans to next sector */
-		if (!fat_cache_buf2) {
-			fat_cache_buf2 = MmAllocatePoolWithTag(NonPagedPool, bps, '2TAF');
-			if (!fat_cache_buf2) {
-				gop_printf(0xFFFF0000, "fat32_read_fat: couldn't alloc secondary cache buf\n");
-				MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
-				if (isScanner) {
-					return FAT32_READ_ERROR;
-				}
-				return FAT32_EOC_MIN;
-			}
-		}
-
 		MTSTATUS st2 = read_sector(fat_sector + 1, fat_cache_buf2);
 		if (MT_FAILURE(st2)) {
 			gop_printf(0xFFFF0000, "fat32_read_fat: read_sector fail for next sector %u\n", fat_sector + 1);
-			MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+			MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
 			if (isScanner) {
 				return FAT32_READ_ERROR;
 			}
@@ -332,7 +311,7 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 		if (raw == 0) {
 			gop_printf(0xFFFF0000, "FAT suspicious: cluster=%u -> raw=0x%08x (ent_off=%u, fat_sector=%u, total=%u)\n",
 				cluster, raw, ent_offset, fat_sector, fat32_total_clusters());
-			MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+			MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
 			if (isScanner) {
 				return FAT32_READ_ERROR;
 			}
@@ -340,7 +319,7 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 		}
 	}
 
-	MsReleaseSpinlock(&fat32_read_fat_lock, oldIrql);
+	MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
 	return val;
 }
 
@@ -350,19 +329,17 @@ static inline uint32_t first_sector_of_cluster(uint32_t cluster) {
 
 
 static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
-	IRQL oldIrql;
-	MsAcquireSpinlock(&fat32_write_fat_lock, &oldIrql);
+	if (cluster < 2 || cluster > fat32_total_clusters() + 1) return false;
+
 	uint32_t fat_offset = cluster * 4;
 	uint32_t sec_index = fat_offset / fs.bytes_per_sector;
 	uint32_t ent_offset = fat_offset % fs.bytes_per_sector;
 	uint32_t bps = fs.bytes_per_sector;
-	if (bps == 0) { gop_printf(0xFFFF0000, "fat32_write_fat: bps==0!\n"); MsReleaseSpinlock(&fat32_write_fat_lock, oldIrql); return false; }
+	if (bps == 0) return false;
+
 	// We may need up to two buffers if the entry spans sectors.
 	void* buf1 = MmAllocatePoolWithTag(NonPagedPool, bps, '1FUB');
-	if (!buf1) {
-		MsReleaseSpinlock(&fat32_write_fat_lock, oldIrql);
-		return false;
-	}
+	if (!buf1) return false;
 	gop_printf(0x00FF00FF, "fat32_write_fat: alloc buf1=%p bps=%u ent_off=%u sec=%u\n", buf1, bps, ent_offset, sec_index);
 	void* buf2 = NULL; // Allocate only if needed
 
@@ -371,10 +348,12 @@ static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
 		buf2 = MmAllocatePoolWithTag(NonPagedPool, bps, 'fat');
 		if (!buf2) {
 			MmFreePool(buf1);
-			MsReleaseSpinlock(&fat32_write_fat_lock, oldIrql);
 			return false;
 		}
 	}
+
+	IRQL oldIrql;
+	MsAcquireSpinlock(&fat32_fat_lock, &oldIrql);
 
 	bool ok = true;
 	for (uint32_t fat_i = 0; fat_i < bpb.num_fats; ++fat_i) {
@@ -429,7 +408,8 @@ static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
 	if (buf2) {
 		MmFreePool(buf2);
 	}
-	MsReleaseSpinlock(&fat32_write_fat_lock, oldIrql);
+	if (ok) fat_cache_sector = UINT32_MAX;
+	MsReleaseSpinlock(&fat32_fat_lock, oldIrql);
 	return ok;
 }
 
@@ -853,13 +833,44 @@ static MTSTATUS fat32_update_file_entry(const char* path, uint32_t start_cluster
 MTSTATUS fat32_init(int disk_index) {
 	MTSTATUS status;
 	disk = get_block_device(disk_index);
-	if (!disk) { return MT_GENERAL_FAILURE; }
+	if (!disk || !disk->read_sector || !disk->write_sector) {
+		return MT_GENERAL_FAILURE;
+	}
 
 	void* buf = MmAllocatePoolWithTag(NonPagedPool, 512, 'TAF');
 	if (!buf) return MT_NO_MEMORY;
 	status = read_sector(BPB_SECTOR_START, buf);
-	if (MT_FAILURE(status)) { return status; } // First sector contains the BPB for FAT.
+	if (MT_FAILURE(status)) {
+		MmFreePool(buf);
+		return status;
+	}
 	kmemcpy(&bpb, buf, sizeof(bpb)); // So copy that first sector into our local BPB structure.
+	MmFreePool(buf);
+
+	bool ValidBytesPerSector = bpb.bytes_per_sector >= 512 &&
+		bpb.bytes_per_sector <= 4096 &&
+		(bpb.bytes_per_sector & (bpb.bytes_per_sector - 1)) == 0;
+	bool ValidSectorsPerCluster = bpb.sectors_per_cluster != 0 &&
+		(bpb.sectors_per_cluster & (bpb.sectors_per_cluster - 1)) == 0;
+	uint64_t FatStart = (uint64_t)BPB_SECTOR_START +
+		bpb.reserved_sector_count;
+	uint64_t FirstDataSector = FatStart +
+		((uint64_t)bpb.num_fats * bpb.fat_size_32);
+
+	if (!ValidBytesPerSector || !ValidSectorsPerCluster ||
+		bpb.reserved_sector_count == 0 || bpb.num_fats == 0 ||
+		bpb.fat_size_32 == 0 || bpb.root_cluster < 2 ||
+		bpb.total_sectors_32 == 0 || FirstDataSector > UINT32_MAX ||
+		FirstDataSector >= (uint64_t)BPB_SECTOR_START + bpb.total_sectors_32) {
+		return MT_VFS_CORRUPTED;
+	}
+
+	uint64_t TotalClusters =
+		((uint64_t)BPB_SECTOR_START + bpb.total_sectors_32 - FirstDataSector) /
+		bpb.sectors_per_cluster;
+	if (TotalClusters == 0 || TotalClusters >= FAT32_BAD_CLUSTER - 1) {
+		return MT_VFS_CORRUPTED;
+	}
 
 	// Then initialize it.
 	fs.bytes_per_sector = bpb.bytes_per_sector;
@@ -867,9 +878,29 @@ MTSTATUS fat32_init(int disk_index) {
 	fs.reserved_sector_count = bpb.reserved_sector_count;
 	fs.sectors_per_fat = bpb.fat_size_32;
 	fs.root_cluster = bpb.root_cluster;
-	fs.fat_start = BPB_SECTOR_START + bpb.reserved_sector_count; // technically also reserved_sector_count of fs. holds it as well.
-	fs.first_data_sector = fs.fat_start + bpb.num_fats * fs.sectors_per_fat; 
-	MmFreePool(buf);
+	fs.fat_start = (uint32_t)FatStart;
+	fs.first_data_sector = (uint32_t)FirstDataSector;
+	fs.total_sectors = bpb.total_sectors_32;
+	fs.total_clusters = (uint32_t)TotalClusters;
+
+	fat_cache_buf = MmAllocatePoolWithTag(
+		NonPagedPool,
+		fs.bytes_per_sector,
+		'1TAF'
+	);
+	fat_cache_buf2 = MmAllocatePoolWithTag(
+		NonPagedPool,
+		fs.bytes_per_sector,
+		'2TAF'
+	);
+	if (!fat_cache_buf || !fat_cache_buf2) {
+		if (fat_cache_buf) MmFreePool(fat_cache_buf);
+		if (fat_cache_buf2) MmFreePool(fat_cache_buf2);
+		fat_cache_buf = NULL;
+		fat_cache_buf2 = NULL;
+		return MT_NO_MEMORY;
+	}
+	fat_cache_sector = UINT32_MAX;
 	return MT_SUCCESS;
 }
 
@@ -1082,22 +1113,16 @@ MTSTATUS fat32_read_file(
 		// We can only read as much as fits in the sector OR as much as the caller asked for
 		size_t bytes_to_copy = (bytes_left < bytes_available_in_sector) ? bytes_left : bytes_available_in_sector;
 
-		// If its an unaligned read (more bytes than we can fit), we use the intermediate buffer for this.
-		bool direct_read = (offset_in_sector == 0) && (bytes_left >= bytes_per_sector);
-
-		void* target_buf = direct_read ? current_buffer_ptr : IntermediateBuffer;
-
-		status = read_sector(lba, target_buf);
+		// DMA only into the resident sector buffer. The caller may be pageable or
+		// physically scattered even when its virtual range is contiguous.
+		status = read_sector(lba, IntermediateBuffer);
 
 		if (MT_FAILURE(status)) {
 			// Read failed
 			break;
 		}
 
-		// Copy data if this was to the intermediate buffer. (not a direct read to caller buffer)
-		if (!direct_read) {
-			kmemcpy(current_buffer_ptr, (uint8_t*)IntermediateBuffer + offset_in_sector, bytes_to_copy);
-		}
+		kmemcpy(current_buffer_ptr, (uint8_t*)IntermediateBuffer + offset_in_sector, bytes_to_copy);
 
 		// Advance Pointers.
 		total_bytes_read += bytes_to_copy;
@@ -1445,8 +1470,9 @@ MTSTATUS fat32_write_file(
 		bool full_sector_overwrite = (offset_in_sector == 0) && (bytes_to_write == bytes_per_sector);
 
 		if (full_sector_overwrite) {
-			// Looks like we can write directly from the user buffer!
-			status = write_sector(lba, (void*)src_buffer_ptr);
+			// Keep DMA isolated from pageable or physically scattered callers.
+			kmemcpy(IntermediateBuffer, src_buffer_ptr, bytes_per_sector);
+			status = write_sector(lba, IntermediateBuffer);
 		}
 		else {
 			// We have to read the sector and then modify it and write it back, since it is smaller than the user buffer.
@@ -2109,6 +2135,9 @@ static MTSTATUS fat32_open_file(
 )
 
 {
+	if (!path || !FileObjectOut) return MT_INVALID_PARAM;
+	*FileObjectOut = NULL;
+
 	// Find the file entry and its parent cluster
 	FAT32_DIR_ENTRY entry;
 	uint32_t parent_cluster;
@@ -2134,6 +2163,10 @@ static MTSTATUS fat32_open_file(
 
 	size_t length = kstrlen(path) + 1;
 	FileObject->FileName = MmAllocatePoolWithTag(PagedPool, length, 'eman');
+	if (!FileObject->FileName) {
+		ObDereferenceObject(FileObject);
+		return MT_NO_MEMORY;
+	}
 	kstrncpy(FileObject->FileName, path, length);
 	// Offset starts at 0.
 	FileObject->CurrentOffset = 0;
@@ -2153,5 +2186,5 @@ void fat32_deletion_routine(void* Object)
 {
 	// We just delete the filename allocated.
 	PFILE_OBJECT FileObject = (PFILE_OBJECT)Object;
-	MmFreePool((void*)FileObject->FileName);
+	MmFreePool(FileObject->FileName);
 }

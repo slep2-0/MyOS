@@ -6,6 +6,143 @@
 SPINLOCK MsTimerQueueLock;
 DOUBLY_LINKED_LIST MsTimerQueue;
 
+static
+bool
+MspIsTimerQueued(
+    IN PITHREAD Thread
+)
+{
+    PDOUBLY_LINKED_LIST Entry = &Thread->WaitBlock.WaitBlockList;
+
+    return Entry->Flink != NULL &&
+        Entry->Blink != NULL &&
+        Entry->Flink != Entry &&
+        Entry->Blink != Entry;
+}
+
+static
+void
+MspInsertTimerQueueLocked(
+    IN PITHREAD Thread
+)
+{
+    PDOUBLY_LINKED_LIST Entry = &Thread->WaitBlock.WaitBlockList;
+
+    if (MspIsTimerQueued(Thread)) {
+        RemoveEntryList(Entry);
+    }
+
+    InitializeListHead(Entry);
+
+    if (IsListEmpty(&MsTimerQueue)) {
+        InsertTailList(&MsTimerQueue, Entry);
+        return;
+    }
+
+    PDOUBLY_LINKED_LIST Current = MsTimerQueue.Flink;
+    while (Current != &MsTimerQueue) {
+        PITHREAD Block = CONTAINING_RECORD(Current, ITHREAD, WaitBlock.WaitBlockList);
+
+        if (Thread->WaitBlock.WakeupTime < Block->WaitBlock.WakeupTime) {
+            Entry->Flink = Current;
+            Entry->Blink = Current->Blink;
+            Current->Blink->Flink = Entry;
+            Current->Blink = Entry;
+            return;
+        }
+
+        Current = Current->Flink;
+    }
+
+    InsertTailList(&MsTimerQueue, Entry);
+}
+
+void
+MsInsertTimerQueue(
+    IN PITHREAD Thread,
+    IN uint64_t WakeupTime,
+    IN int WaitReason
+)
+{
+    IRQL OldIrql;
+
+    Thread->WaitBlock.WakeupTime = WakeupTime;
+    Thread->WaitBlock.WaitReason = (WAIT_REASON)WaitReason;
+
+    MeRaiseIrql(CLOCK_LEVEL, &OldIrql);
+    MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
+    MspInsertTimerQueueLocked(Thread);
+    MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
+    MeLowerIrql(OldIrql);
+}
+
+bool
+MsRemoveTimerQueue(
+    IN PITHREAD Thread
+)
+{
+    IRQL OldIrql;
+    bool Removed = false;
+
+    MeRaiseIrql(CLOCK_LEVEL, &OldIrql);
+    MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
+
+    if (MspIsTimerQueued(Thread)) {
+        RemoveEntryList(&Thread->WaitBlock.WaitBlockList);
+        InitializeListHead(&Thread->WaitBlock.WaitBlockList);
+        Removed = true;
+    }
+
+    MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
+    MeLowerIrql(OldIrql);
+    return Removed;
+}
+
+bool
+MsClaimThreadWait(
+    IN PITHREAD Thread,
+    IN MTSTATUS CompletionStatus
+)
+{
+    return __sync_val_compare_and_swap(
+        &Thread->WaitStatus,
+        MT_PENDING,
+        CompletionStatus
+    ) == MT_PENDING;
+}
+
+void
+MsCompleteThreadWait(
+    IN PITHREAD Thread
+)
+{
+    // THREAD_BLOCKING still owns a live kernel stack on its current CPU. The
+    // scheduler observes the completed WaitStatus and makes it runnable as
+    // part of the switch-away transaction.
+    if (__sync_val_compare_and_swap(
+        &Thread->ThreadState,
+        THREAD_BLOCKED,
+        THREAD_READY
+    ) != THREAD_BLOCKED) {
+        return;
+    }
+
+    PPROCESSOR TargetProcessor = __atomic_load_n(
+        &Thread->ActiveProcessor,
+        __ATOMIC_ACQUIRE
+    );
+
+    if (!TargetProcessor) {
+        TargetProcessor = MeGetCurrentProcessor();
+    }
+
+    MeEnqueueThreadWithLock(
+        &TargetProcessor->readyQueue,
+        PsGetEThreadFromIThread(Thread)
+    );
+    TargetProcessor->schedulePending = true;
+}
+
 // Does not acquire lock.
 PITHREAD
 GetHeadOfTimerQueue(void)
@@ -17,15 +154,14 @@ GetHeadOfTimerQueue(void)
 
 void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2) {
     UNREFERENCED_PARAMETER(Dpc); UNREFERENCED_PARAMETER(Context); UNREFERENCED_PARAMETER(SysArg1); UNREFERENCED_PARAMETER(SysArg2);
-    gop_printf(COLOR_CYAN, "In TimerExpirationDPC.\n");
-
+    
+    // Raise IRQL to CLOCK_LEVEL so we dont get preempted here.
+    // (tpr)
     IRQL oldTimerIrql;
     MeRaiseIrql(CLOCK_LEVEL, &oldTimerIrql);
 
-    // Manually spin
-    while (__sync_lock_test_and_set(&MsTimerQueueLock.locked, 1)) {
-        __asm__ volatile("pause" ::: "memory");
-    }
+    // Acquire lock.
+    MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
 
     while (!IsListEmpty(&MsTimerQueue)) {
         PITHREAD Thread = GetHeadOfTimerQueue();
@@ -35,35 +171,32 @@ void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2) {
         }
 
         RemoveEntryList(&Thread->WaitBlock.WaitBlockList);
-        Thread->WaitBlock.WaitBlockList.Flink = NULL;
-        Thread->WaitBlock.WaitBlockList.Blink = NULL;
+        InitializeListHead(&Thread->WaitBlock.WaitBlockList);
 
-        if (__sync_val_compare_and_swap(&Thread->WaitStatus, MT_PENDING, MT_TIMEOUT) == MT_PENDING) {
-            Thread->ThreadState = THREAD_READY;
-
+        if (MsClaimThreadWait(Thread, MT_TIMEOUT)) {
+            PETHREAD EThread = PsGetEThreadFromIThread(Thread);
+            PEVENT Event = EThread->CurrentEvent;
 
             // Release the CLOCK_LEVEL lock temporarily
-            __sync_lock_release(&MsTimerQueueLock.locked);
+            MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
             MeLowerIrql(oldTimerIrql);
 
-            gop_printf(COLOR_CYAN, "TimerExpirationDPC: Enqueuing thread %p into processor\n", Thread);
-            // Safe to acquire readyQueue at DISPATCH_LEVEL
-            Queue* readyQueue = &MeGetCurrentProcessor()->readyQueue;
-            MsAcquireSpinlockAtDpcLevel(&readyQueue->lock);
-            MeEnqueueThread(readyQueue, PsGetEThreadFromIThread(Thread));
-            MeGetCurrentProcessor()->schedulePending = true;
-            MsReleaseSpinlockFromDpcLevel(&readyQueue->lock);
+            if (Event) {
+                IRQL eventIrql;
+                MsAcquireSpinlock(&Event->lock, &eventIrql);
+                MeRemoveThreadFromQueue(&Event->waitingQueue, EThread);
+                EThread->CurrentEvent = NULL;
+                MsReleaseSpinlock(&Event->lock, eventIrql);
+            }
+
+            MsCompleteThreadWait(Thread);
 
             // Re-acquire the timer queue lock at CLOCK_LEVEL
             MeRaiseIrql(CLOCK_LEVEL, &oldTimerIrql);
-            while (__sync_lock_test_and_set(&MsTimerQueueLock.locked, 1)) {
-                __asm__ volatile("pause" ::: "memory");
-            }
-            gop_printf(COLOR_CYAN, "TimerExpirationDPC: Claimed thread and inserted into current processor queue\n");
+            MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
         }
     }
 
-    gop_printf(COLOR_CYAN, "TimerExpirationDPC: Leaving.\n");
-    __sync_lock_release(&MsTimerQueueLock.locked);
+    MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
     MeLowerIrql(oldTimerIrql);
 }

@@ -169,11 +169,27 @@ MiFreeKernelStack(
 --*/
 
 {
-    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
-    // Declarations
     size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
     size_t GuardSize = VirtualPageSize;
     size_t TotalSize = StackSize + GuardSize;
+    uintptr_t StackTop = (uintptr_t)AllocatedStackTop;
+
+    if (!AllocatedStackTop ||
+        ((StackTop & (VirtualPageSize - 1)) != 0) ||
+        StackTop > MI_NONPAGED_POOL_END ||
+        StackTop < MI_NONPAGED_POOL_BASE + TotalSize ||
+        StackTop - TotalSize < MI_NONPAGED_POOL_BASE) {
+        PETHREAD CurrentThread = PsGetCurrentThread();
+        MeBugCheckEx(INVALID_KERNEL_STACK_ADDRESS,
+            AllocatedStackTop,
+            RETADDR(0),
+            CurrentThread,
+            CurrentThread
+                ? (void*)(uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp
+                : NULL);
+    }
+
+    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
     size_t PagesToUnMap = BYTES_TO_PAGES(StackSize);
 
     // 1. Calculate the START of the stack memory (The highest valid byte addressable page)
@@ -277,11 +293,9 @@ MmCreateProcessAddressSpace(
     MMPTE recursivePte;
     kmemset(&recursivePte, 0, sizeof(MMPTE)); // Ensure clean start
 
-    // Note: We pass NULL for the VA as it's a self-ref, we only care about the PFN and Flags.
-    MI_WRITE_PTE(&recursivePte,
-        (void*)0,
-        PFN_TO_PHYS(pfnIndex),
-        PAGE_PRESENT | PAGE_RW);
+    // This is a value being built on our stack, not a live PTE. Using the PTE
+    // mapping macro here would publish &recursivePte as the PFN reverse map.
+    recursivePte.Value = physicalAddress | PAGE_PRESENT | PAGE_RW;
 
     // Write to index 0x1FF (511)
     pml4Base[RECURSIVE_INDEX] = recursivePte.Value;
@@ -291,6 +305,12 @@ MmCreateProcessAddressSpace(
 
     // Unmap from Hyperspace.
     MiUnmapHyperSpaceMap(oldIrql);
+
+    PPFN_ENTRY Pml4Pfn = INDEX_TO_PPFN(pfnIndex);
+    Pml4Pfn->State = PfnStateActive;
+    Pml4Pfn->Flags = PFN_FLAG_NONPAGED;
+    Pml4Pfn->Descriptor.Mapping.Vad = NULL;
+    Pml4Pfn->Descriptor.Mapping.PteAddress = NULL;
 
     // Return the Physical Address.
     // The scheduler will load this into CR3 when switching to this process.
@@ -363,8 +383,7 @@ MiFreePageTableHierarchy(
         // Page is present.
         if (Level > 1 && !isLargePage) {
             // Pointer to lower level page.
-            // I am not using MiUnmapPte since its expensive here.
-            ptePtr->Value = 0;
+            MiAtomicExchangePte(ptePtr, 0);
 
             // Unmap before recursing to free up the Hyperspace slot
             MiUnmapHyperSpaceMap(oldIrql);
@@ -374,7 +393,10 @@ MiFreePageTableHierarchy(
         }
         else {
             // PT Entry or large page
-            MiUnmapPte(ptePtr);
+            // The process has no live threads. Clear locally and perform one
+            // global flush after the whole hierarchy is gone; broadcasting an
+            // IPI for every leaf while HyperLock is held invites lock cycles.
+            MiAtomicExchangePte(ptePtr, 0);
 
             // Unmap hyperspace now that we are done with the pointer
             MiUnmapHyperSpaceMap(oldIrql);
@@ -391,6 +413,9 @@ MiFreePageTableHierarchy(
     }
 
     // All children are freed, we can free the actual table now.
+    PPFN_ENTRY TablePage = INDEX_TO_PPFN(TablePfn);
+    TablePage->Descriptor.Mapping.PteAddress = NULL;
+    TablePage->Descriptor.Mapping.Vad = NULL;
     MiReleasePhysicalPage(TablePfn);
 }
 
@@ -470,14 +495,27 @@ MmCreateUserStack(
 --*/
 
 {
+    if (!Process || !OutStackTop) return MT_INVALID_PARAM;
+    *OutStackTop = NULL;
+
     // If no stack reserve size, we use the default
     if (!StackReserveSize) StackReserveSize = MI_DEFAULT_USER_STACK_SIZE;
+    if (StackReserveSize > SIZE_MAX - (VirtualPageSize - 1)) {
+        return MT_INVALID_PARAM;
+    }
+    StackReserveSize = ALIGN_UP(StackReserveSize, VirtualPageSize);
 
     // Acquire the exclusive push lock.
     MsAcquirePushLockExclusive(&Process->AddressSpaceLock);
 
     // Grab the current hint.
     uintptr_t CurrentStackHint = Process->NextStackHint;
+    if (CurrentStackHint > USER_VA_END ||
+        CurrentStackHint < USER_VA_START + VirtualPageSize ||
+        StackReserveSize > CurrentStackHint - USER_VA_START - VirtualPageSize) {
+        MsReleasePushLockExclusive(&Process->AddressSpaceLock);
+        return MT_NO_MEMORY;
+    }
 
     // Compute the desired end of the stack (and align it).
     uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
@@ -500,14 +538,13 @@ MmCreateUserStack(
     // The next hint should be the guard page.
     Process->NextStackHint = (uintptr_t)GuardPageEnd;
 
-    // Calculate the true top of the stack
+    // Calculate the true top of the stack. The caller chooses the initial
+    // execution RSP; the TEB must retain the actual allocation boundary.
     uintptr_t TrueStackTop = RealStackBase + StackReserveSize;
 
-    // Align to 16-bytes, then simulate the pushed return address
-    TrueStackTop &= ~0xFULL; // Force 16-byte alignment
-    TrueStackTop -= 8; // Subtract 8 bytes so (RSP % 16 == 8) on entry
+    TrueStackTop &= ~0xFULL;
 
-    if (OutStackTop) *OutStackTop = (void*)TrueStackTop;
+    *OutStackTop = (void*)TrueStackTop;
     goto Cleanup;
 
 CleanupWithVad:

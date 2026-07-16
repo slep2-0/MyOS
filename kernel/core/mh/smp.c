@@ -31,8 +31,8 @@ static void install_trampoline(void) {
 	size_t sz = (size_t)(_binary_build_ap_trampoline_bin_end - _binary_build_ap_trampoline_bin_start);
 	assert((sz <= AP_TRAMP_SIZE), "Size of copy must not be larger than the binary itself");
 	/* 2) Map the physical page into our page tables (virt -> AP_TRAMP_PHYS) */
-	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS, PAGE_PRESENT | PAGE_RW);
-	MI_WRITE_PTE(apPhysPte, AP_TRAMP_PHYS, AP_TRAMP_PHYS, PAGE_PRESENT | PAGE_RW);
+	MI_WRITE_PTE_RAW(pte, virt, AP_TRAMP_PHYS, PAGE_PRESENT | PAGE_RW);
+	MI_WRITE_PTE_RAW(apPhysPte, AP_TRAMP_PHYS, AP_TRAMP_PHYS, PAGE_PRESENT | PAGE_RW);
 
 	/* 3) Copy the trampoline into that mapped page */
 	kmemcpy((void*)virt, _binary_build_ap_trampoline_bin_start, sz);
@@ -45,9 +45,8 @@ static void install_trampoline(void) {
 	__asm__ volatile("invlpg (%0)" :: "r"(virt) : "memory");
 }
 
-#define CPU_STACK_SIZE (24*1024) // 24 KiB stack.
-
 extern PROCESSOR cpu0;
+PPROCESSOR MeClockProcessor = &cpu0;
 
 // Allocate PER CPU stack and populare cpus[]
 static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
@@ -64,6 +63,9 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 			// Explicitly disable interrupts for synchronization.
 			
 			bool Enabled = MeDisableInterrupts();
+			assert(cpu0.DpcData.DpcQueueDepth == 0);
+			assert(IsListEmpty(&cpu0.DpcData.DpcListHead));
+			assert(cpu0.TimerExpirationDPC.DpcData == NULL);
 			
 			// Copy all of the cpu data to here.
 			kmemcpy(&cpus[i], &cpu0, sizeof(PROCESSOR));
@@ -73,9 +75,19 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 			cpus[i].ID = i;
 			cpus[i].lapic_ID = aid;
 			cpus[i].flags = CPU_ONLINE;
+			MeClockProcessor = &cpus[i];
+			InitializeListHead(&cpus[i].DpcData.DpcListHead);
+			cpus[i].DpcData.DpcQueueDepth = 0;
+			cpus[i].DpcData.DpcLock.locked = 0;
+			InitializeListHead(&cpus[i].TimerExpirationDPC.DpcListEntry);
+			cpus[i].TimerExpirationDPC.DpcData = NULL;
+			if (cpus[i].currentThread) {
+				cpus[i].currentThread->ActiveProcessor = &cpus[i];
+			}
 
-			// Set the GS to point to new cpus[i]
+			// Both GS halves still point at cpu0 after the structure migration.
 			__writemsr(IA32_GS_BASE, (uint64_t)&cpus[i]);
+			__writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[i]);
 
 			// Re-Enable if enabled before.
 			MeEnableInterrupts(Enabled);
@@ -94,6 +106,15 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 
 		// Allocate stack -- aligned 16.
 		void* stack = MiCreateKernelStack(true);
+		if (!stack) {
+			MeBugCheckEx(
+				MEMORY_LIMIT_REACHED,
+				(void*)(uintptr_t)i,
+				(void*)(uintptr_t)aid,
+				(void*)MI_LARGE_STACK_SIZE,
+				NULL
+			);
+		}
 		cpus[i].VirtStackTop = stack;
 
 		// IST Stack setup & GDT & TSS have been moved to MeInitProcesor function.
@@ -130,6 +151,16 @@ uint32_t g_lapicAddress;
 
 // BSP Entry: start all APs.
 void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
+	if (!apic_list || cpu_count == 0 || cpu_count > MAX_CPUS) {
+		MeBugCheckEx(
+			INVALID_INITIALIZATION_PHASE,
+			apic_list,
+			(void*)(uintptr_t)cpu_count,
+			(void*)(uintptr_t)MAX_CPUS,
+			NULL
+		);
+	}
+
 	// populate cpus and per cpu stacks.
 	prepare_percpu(apic_list, cpu_count);
 	// copy trampoline
@@ -152,8 +183,8 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	uintptr_t virt = PhysicalMemoryOffset + AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET;
 	PMMPTE pte = MiGetPtePointer(virt);
 	PMMPTE apPtePhys = MiGetPtePointer((AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET));
-	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
-	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uint64_t ap_main_addr = (uint64_t)&APMain;
 	kmemcpy((void*)virt, &ap_main_addr, sizeof(ap_main_addr));
 
@@ -161,8 +192,8 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	virt = PhysicalMemoryOffset + AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET;
 	pte = MiGetPtePointer(virt);
 	apPtePhys = MiGetPtePointer((AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET));
-	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
-	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_PML4_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uintptr_t cr3 = boot_info_local.Pml4Phys;
 	kmemcpy((void*)virt, &cr3, sizeof(cr3));
 
@@ -170,8 +201,8 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	virt = PhysicalMemoryOffset + AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET;
 	pte = MiGetPtePointer(virt);
 	apPtePhys = MiGetPtePointer((AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET));
-	MI_WRITE_PTE(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
-	MI_WRITE_PTE(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(pte, virt, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+	MI_WRITE_PTE_RAW(apPtePhys, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, AP_TRAMP_PHYS + AP_TRAMP_CPUS_OFFSET, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 	uintptr_t cpuAddress = (uintptr_t)cpus;
 	kmemcpy((void*)virt, &cpuAddress, sizeof(cpuAddress));
 
@@ -210,19 +241,43 @@ MeGetProcessorBlock(
 	return MeGetCurrentProcessor();
 }
 
-static void MhSpinAndProcessIpis(void) {
+void MhSpinAndProcessIpis(void) {
 	uint64_t rflags;
+	unsigned long oldCr8;
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+	IRQL oldIrql;
+	bool oldSchedulerEnabled;
 
-	// Get currnet RFLAGS
+	// Before SMP there is no IPI to service. Never enable a second IPI while
+	// already executing on the per-CPU IPI IST stack.
+	if (!smpInitialized || (cpu->flags & CPU_DOING_IPI)) {
+		__pause();
+		return;
+	}
+
+	// Preserve the caller's interrupt and task-priority state.
 	__asm__ volatile("pushfq; pop %0" : "=rm"(rflags) :: "memory");
+	oldCr8 = __read_cr8();
+	oldIrql = cpu->currentIrql;
+	oldSchedulerEnabled = cpu->schedulerEnabled;
 
-	// Let the CPU have a window to process an interrupt in the NOP.
+	// Permit the IPI priority class while keeping the clock, DPC, and APC
+	// classes masked. A timer preemption here could otherwise schedule away
+	// from a per-CPU IST and later resume on a stack that has been reused.
+	__cli();
+	cpu->currentIrql = CLOCK_LEVEL;
+	cpu->schedulerEnabled = false;
+	__write_cr8(VECTOR_CLOCK >> 4);
 	__asm__ volatile("sti");
 	__asm__ volatile("nop");
+	__asm__ volatile("cli");
+	cpu->currentIrql = oldIrql;
+	cpu->schedulerEnabled = oldSchedulerEnabled;
+	__write_cr8(oldCr8);
 
-	// Restore original state, (interrupts off before = still off, on before = still on)
-	if (!(rflags & (1 << 9))) {
-		__asm__ volatile("cli");
+	// Restore the caller's original IF state.
+	if (rflags & (1ULL << 9)) {
+		__asm__ volatile("sti");
 	}
 
 	__asm__ volatile("pause");
@@ -241,6 +296,9 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		if (cpus[i].lapic_ID == myid) continue;
 		if (!(cpus[i].flags & CPU_ONLINE)) continue;
 
+		// Complete one target transaction before acquiring another target's
+		// mailbox. Holding several mailbox locks at once allows concurrent
+		// broadcasts to form an SMP lock cycle.
 		while (InterlockedCompareExchangeU64(&cpus[i].MailboxLock, 1, 0) == 1) {
 			MhSpinAndProcessIpis();
 		}
@@ -251,19 +309,13 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 
 		uint32_t LAPIC_ACTION_VECTOR = VECTOR_IPI;
 		lapic_send_ipi(cpus[i].lapic_ID, (uint8_t)LAPIC_ACTION_VECTOR, 0x0);
-	}
 
-	// wait for all CPUs to handle this exact IPI
-	for (uint32_t i = 0; i < g_cpuCount; i++) {
-		if (cpus[i].lapic_ID == myid) continue;
-		if (!(cpus[i].flags & CPU_ONLINE)) continue;
-	
-		// Wait for completion while still processing incoming IPIs
+		// Completion of this function still means every online CPU has
+		// processed the action, but no sender owns multiple mailbox locks.
 		while (*(volatile uint64_t*)&cpus[i].IpiSeq == seq) {
 			MhSpinAndProcessIpis();
 		}
 
-		// We let the other CPUs use this cpu mailbox.
 		InterlockedExchangeU64(&cpus[i].MailboxLock, 0);
 	}
 }

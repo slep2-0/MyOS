@@ -72,11 +72,14 @@ MtSetupSyscall(
     // Write the syscall entrypoint to LSTAR msr.
     __writemsr(IA32_LSTAR, (uint64_t)MtSyscallEntry);
 
-    // Write the FMASK (flag mask) MSR to flag IF and TF.
-    __writemsr(IA32_FMASK, (1 << 8) | (1 << 9));
+    // Do not inherit single-step, interrupts, string direction, nested-task, or
+    // supervisor-user-access state from an untrusted user RFLAGS value.
+    __writemsr(IA32_FMASK,
+        (1ULL << 8) | (1ULL << 9) | (1ULL << 10) |
+        (1ULL << 14) | (1ULL << 18));
 
-    // Write the current processor to IA32_KERNEL_GS_BASE for swapgs
-    __writemsr(IA32_KERNEL_GS_BASE, 0);
+    // User-mode syscall/interrupt entry expects swapgs to reveal this CPU.
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)MeGetCurrentProcessor());
 
     // Setup list of syscalls.
     if (!InterlockedFetch8((volatile int8_t*) & SyscallsAlreadyInitialized)) {

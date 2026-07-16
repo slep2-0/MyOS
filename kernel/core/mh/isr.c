@@ -51,7 +51,7 @@ MhHandleInterrupt (
     assert(vec_num < 256, "An interrupt higher than 255 has been encountered, this usually means corruption in stub parameter moves.");
 
 #ifdef DEBUG
-    if (((uintptr_t)__readgsbase) < PhysicalMemoryOffset) {
+    if ((uintptr_t)__readgsbase() < PhysicalMemoryOffset) {
         __swapgs();
         MeBugCheck(PROCESSOR_POINTER_CORRUPTION);
     }
@@ -178,7 +178,7 @@ MhHandleInterrupt (
         // Enable interrupts because APCs generally run with interrupts enabled 
         MeEnableInterrupts(true);
 
-        MeRetireAPCs();
+        MeRetireAPCs(trap);
 
         MeDisableInterrupts();
         MeLowerIrql(oldIrql);

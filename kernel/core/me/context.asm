@@ -9,21 +9,31 @@ section .text
 ; System V ABI: src in RDI
 global restore_context
 restore_context:
-    
-    ; RDI = &CTX_FRAME
-    mov   rax, rdi               ; RAX <- frame pointer
-    
-    ; 1 - Switch to saved stack FIRST
-    mov   rsp, [rax + TRAP_FRAME_rsp]      ; RSP <- saved stack pointer
-    
-    ; 2 - Push saved RIP onto the new stack
-    push  qword [rax + TRAP_FRAME_rip]     ; Push saved RIP for ret
+    cli
 
-    push  qword [rax + TRAP_FRAME_rflags]     ; Push saved RFLAGS
-    popfq                        ; Pop into RFLAGS
-    
-    
-    ; 3 - Restore all general-purpose registers
+    ; Kernel threads should run with live GS as the CPU pointer and the SWAPGS
+    ; shadow also pointing at the CPU. If we scheduled here from a user
+    ; interrupt, IA32_KERNEL_GS_BASE may still contain the previous user TEB.
+    mov   rbx, [gs:PROCESSOR_self]
+    mov   ecx, IA32_KERNEL_GS_BASE
+    mov   rax, rbx
+    mov   rdx, rax
+    shr   rdx, 32
+    wrmsr
+
+    ; RDI = &TRAP_FRAME. In 64-bit mode IRETQ consumes SS:RSP even when
+    ; returning to CPL 0, so every synthetic frame must contain all five
+    ; qwords. Omitting these made IRETQ read SS at the exclusive stack top.
+    mov   rax, rdi
+    mov   rdx, [rax + TRAP_FRAME_rsp]
+    mov   rsp, rdx
+    push  KERNEL_SS
+    push  rdx
+    push  qword [rax + TRAP_FRAME_rflags]
+    push  KERNEL_CS
+    push  qword [rax + TRAP_FRAME_rip]
+
+    ; Restore all general-purpose registers.
     mov   r15, [rax + TRAP_FRAME_r15]
     mov   r14, [rax + TRAP_FRAME_r14]
     mov   r13, [rax + TRAP_FRAME_r13]
@@ -39,35 +49,41 @@ restore_context:
     mov   rcx, [rax + TRAP_FRAME_rcx]
     mov   rbx, [rax + TRAP_FRAME_rbx]
 
-    ; 4 - Finally restore RAX itself
-    mov   rax, [rax + TRAP_FRAME_rax]      ; RAX <- saved RAX
+    mov   rax, [rax + TRAP_FRAME_rax]
+    iretq
 
-    ; 5 - Return to saved RIP (pops from stack)
-    ret
-
-; void restore_user_context_withswapgs(PETHREAD Thread);
-global restore_user_context_withswapgs
-restore_user_context_withswapgs:
-    ; We are in user mode, not only we restore registers, but we also switch CR3, and segments.
-    ; First, switch into the process's CR3, since we are STILL in CPL 0, the kernel mapping will still hold true.
+; void restore_user_context_to_user(PETHREAD Thread);
+global restore_user_context_to_user
+restore_user_context_to_user:
+    ; Restore a thread whose saved continuation is in CPL 3.
     cli
+
+    ; Do not depend on the previous SWAPGS pairing here. A thread can block in a
+    ; syscall with IA32_KERNEL_GS_BASE holding its user TEB, while a fresh user
+    ; thread may have no useful value there at all. Set both sides explicitly:
+    ; - KERNEL_GS_BASE must be the CPU pointer for the next syscall/interrupt.
+    ; - live GS must be the user TEB by the time IRETQ lands in CPL 3.
+    mov rbx, [gs:PROCESSOR_self]
+    mov ecx, IA32_KERNEL_GS_BASE
+    mov rax, rbx
+    mov rdx, rax
+    shr rdx, 32
+    wrmsr
 
     mov rax, [rdi + ETHREAD_ParentProcess]
     mov rax, [rax + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
-    ; Now that we are in the user mapping, we must switch to the thread's registers.
-    mov   rax, rdi ; TRAP_FRAME registers
+    ; ETHREAD begins with ITHREAD, which begins with TRAP_FRAME.
+    mov   rax, rdi
     
-    ; 2 - Push all saved interrupt registers into the stack for IRETQ
+    ; Build the privilege-changing IRETQ frame on the current kernel stack.
     push qword [rax + TRAP_FRAME_ss] ; SS
     push qword [rax + TRAP_FRAME_rsp] ; RSP
     push qword [rax + TRAP_FRAME_rflags] ; RFLAGS
     push qword [rax + TRAP_FRAME_cs] ; CS
     push qword [rax + TRAP_FRAME_rip] ; RIP
-    ; Those are all of the registers needed for IRETQ.
-    
-    ; 3 - Restore all general-purpose registers
+    ; Restore all general-purpose registers.
     mov   r15, [rax + TRAP_FRAME_r15]
     mov   r14, [rax + TRAP_FRAME_r14]
     mov   r13, [rax + TRAP_FRAME_r13]
@@ -79,42 +95,56 @@ restore_user_context_withswapgs:
     mov   rbp, [rax + TRAP_FRAME_rbp]
     mov   rdi, [rax + TRAP_FRAME_rdi]
     mov   rsi, [rax + TRAP_FRAME_rsi]
+
+    ; Set live GS to this thread's TEB at the last practical point. The shadow
+    ; was set to the CPU above, so the next SWAPGS has a deterministic pair.
+    mov   rdx, [rax + ETHREAD_Teb]
+    wrgsbase rdx
+
     mov   rdx, [rax + TRAP_FRAME_rdx]
     mov   rcx, [rax + TRAP_FRAME_rcx]
     mov   rbx, [rax + TRAP_FRAME_rbx]
 
-    ; 4 - Finally restore RAX itself
-    mov   rax, [rax + TRAP_FRAME_rax]      ; RAX <- saved RAX
-
-    ; Swap back to user mode GS.
-    swapgs
+    mov   rax, [rax + TRAP_FRAME_rax]
 
     ; Return to user mode.
     iretq
 
-    ; void restore_user_context_withoutswapgs(PETHREAD Thread);
-global restore_user_context_withoutswapgs
-restore_user_context_withoutswapgs:
-    ; We are in user mode, not only we restore registers, but we also switch CR3, and segments.
-    ; First, switch into the process's CR3, since we are STILL in CPL 0, the kernel mapping will still hold true.
+; void restore_user_context_to_kernel(PETHREAD Thread);
+global restore_user_context_to_kernel
+restore_user_context_to_kernel:
+    ; Resume a user-owned thread that blocked while still executing kernel
+    ; syscall code. Live GS stays on the CPU; KERNEL_GS_BASE becomes the TEB
+    ; that the syscall exit's SWAPGS must restore later.
     cli
+
+    ; This path resumes a user thread while its saved RIP is still kernel-side
+    ; code. Keep live GS as the CPU pointer, but restore the user GS shadow so
+    ; the later SWAPGS on syscall/interrupt exit returns to the thread's TEB.
+    mov rax, [rdi + ETHREAD_Teb]
+    mov ecx, IA32_KERNEL_GS_BASE
+    mov rdx, rax
+    shr rdx, 32
+    wrmsr
 
     mov rax, [rdi + ETHREAD_ParentProcess]
     mov rax, [rax + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
-    ; Now that we are in the user mapping, we must switch to the thread's registers.
-    mov   rax, rdi ; TRAP_FRAME registers
-    
-    ; 2 - Push all saved interrupt registers into the stack for IRETQ
-    push qword [rax + TRAP_FRAME_ss] ; SS
-    push qword [rax + TRAP_FRAME_rsp] ; RSP
-    push qword [rax + TRAP_FRAME_rflags] ; RFLAGS
-    push qword [rax + TRAP_FRAME_cs] ; CS
-    push qword [rax + TRAP_FRAME_rip] ; RIP
-    ; Those are all of the registers needed for IRETQ.
-    
-    ; 3 - Restore all general-purpose registers
+    mov   rax, rdi
+
+    ; The saved RSP/RIP came from MsYieldExecution and describe a CPL 0
+    ; continuation. Build the complete 64-bit IRETQ frame with kernel
+    ; selectors rather than reusing stale USER_CS/USER_SS fields.
+    mov   rdx, [rax + TRAP_FRAME_rsp]
+    mov   rsp, rdx
+    push  KERNEL_SS
+    push  rdx
+    push  qword [rax + TRAP_FRAME_rflags]
+    push  KERNEL_CS
+    push  qword [rax + TRAP_FRAME_rip]
+
+    ; Restore all general-purpose registers.
     mov   r15, [rax + TRAP_FRAME_r15]
     mov   r14, [rax + TRAP_FRAME_r14]
     mov   r13, [rax + TRAP_FRAME_r13]
@@ -130,10 +160,7 @@ restore_user_context_withoutswapgs:
     mov   rcx, [rax + TRAP_FRAME_rcx]
     mov   rbx, [rax + TRAP_FRAME_rbx]
 
-    ; 4 - Finally restore RAX itself
-    mov   rax, [rax + TRAP_FRAME_rax]      ; RAX <- saved RAX
+    mov   rax, [rax + TRAP_FRAME_rax]
 
-    ; Do not swap back to user GS, we are already in kernel GS (and we are returning to kernel RIP, thats the main reason)
-
-    ; Return to user mode.
+    ; IRET restores RIP, IF, and the saved post-call RSP together.
     iretq

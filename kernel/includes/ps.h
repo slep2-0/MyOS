@@ -41,8 +41,17 @@ typedef enum _
     THREAD_BLOCKED,
     THREAD_TERMINATING,
     THREAD_TERMINATED,
-    THREAD_ZOMBIE
+    THREAD_ZOMBIE,
+    // The current CPU is committing a wait but still owns the kernel stack.
+    THREAD_BLOCKING
 } THREAD_STATE, *PTHREAD_STATE;
+
+typedef enum _THREAD_TERMINATION_STATE {
+    ThreadTerminationNone = 0,
+    ThreadTerminationInstalling,
+    ThreadTerminationQueued,
+    ThreadTerminationExiting
+} THREAD_TERMINATION_STATE;
 
 typedef enum _PROCESS_STATE {
     PROCESS_RUNNING = 0, // A thread in the process is currently running
@@ -190,6 +199,7 @@ typedef struct _EPROCESS {
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
     PTEB Teb;
+    size_t UserStackSize;
     HANDLE TID;           /* thread id */
     HANDLE PID;           // Thread's process PID.
     struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
@@ -199,6 +209,7 @@ typedef struct _ETHREAD {
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
+    volatile uint32_t TerminationState;
 
     // Note that LastStatus and LastError should be stored in the TEB, by the way, the TEB is already established
     // But until I dont finish MTDLL I wont include a ptr to the TEB here.
@@ -490,6 +501,57 @@ void MeEnqueueThread(Queue* queue, PETHREAD thread)
 
     // Update tail to be the new thread
     queue->tail = thread;
+}
+
+FORCEINLINE
+bool
+MeRemoveThreadFromQueue(
+    Queue* queue,
+    PETHREAD thread
+)
+{
+    if (!queue || !thread) return false;
+
+    bool IsHead = (queue->head == thread);
+    bool IsTail = (queue->tail == thread);
+
+    if (!IsHead && !IsTail &&
+        thread->SchedulerListEntry.Flink == NULL &&
+        thread->SchedulerListEntry.Blink == NULL) {
+        return false;
+    }
+
+    PETHREAD Next = NULL;
+    PETHREAD Prev = NULL;
+
+    if (thread->SchedulerListEntry.Flink) {
+        Next = CONTAINING_RECORD(thread->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
+    }
+
+    if (thread->SchedulerListEntry.Blink) {
+        Prev = CONTAINING_RECORD(thread->SchedulerListEntry.Blink, ETHREAD, SchedulerListEntry);
+    }
+
+    if (!Prev && !IsHead) return false;
+    if (!Next && !IsTail) return false;
+
+    if (Prev) {
+        Prev->SchedulerListEntry.Flink = thread->SchedulerListEntry.Flink;
+    }
+    else {
+        queue->head = Next;
+    }
+
+    if (Next) {
+        Next->SchedulerListEntry.Blink = thread->SchedulerListEntry.Blink;
+    }
+    else {
+        queue->tail = Prev;
+    }
+
+    thread->SchedulerListEntry.Flink = NULL;
+    thread->SchedulerListEntry.Blink = NULL;
+    return true;
 }
 
 // Dequeues the head thread from the queue (No Lock).

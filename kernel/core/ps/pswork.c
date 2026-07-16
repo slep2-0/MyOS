@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ob.h"
 #include "../../assert.h"
 // globals
 void* g_StackReaperList = NULL; // head of LIFO list (casts to PSTACK_REAPER_ENTRY)
@@ -64,6 +65,17 @@ static void PsStackDeleterThread(void) {
 
 void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
 {
+    if (!StackBase || (((uintptr_t)StackBase & (VirtualPageSize - 1)) != 0)) {
+        PETHREAD CurrentThread = PsGetCurrentThread();
+        MeBugCheckEx(INVALID_KERNEL_STACK_ADDRESS,
+            StackBase,
+            RETADDR(0),
+            CurrentThread,
+            CurrentThread
+                ? (void*)(uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp
+                : NULL);
+    }
+
     PSTACK_REAPER_ENTRY node = MmAllocatePoolWithTag(NonPagedPool, sizeof(STACK_REAPER_ENTRY), 'rSpR');
     if (!node) {
         // We dont have a node to put in the deferred list, we must free the stack now to not let the system die on us.
@@ -113,5 +125,9 @@ void PsInitializeWorkerThreads(void) {
 
     // Set it as a worker thread.
     StackThread->WorkerThread = true;
+
+    // Object delete callbacks may tear down processes, VADs, handles, and
+    // stacks. Always run them from a passive-level worker stack.
+    ObInitializeReaperThread();
 }
 

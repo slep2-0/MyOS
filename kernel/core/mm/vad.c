@@ -132,6 +132,11 @@ MiAllocateVad(
     PMMVAD vad = (PMMVAD)MmAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD), ' daV'); // Little endian tag.
     if (!vad) return NULL;
 
+    // Pool allocations are not guaranteed to be zeroed. AVL links, the leaf
+    // height, and optional file ownership must start from a known state.
+    kmemset(vad, 0, sizeof(*vad));
+    vad->Height = 0;
+
     return vad;
 }
 
@@ -158,7 +163,7 @@ MiFreeVad(
 --*/
 
 {
-    return MmFreePool((void*)Vad);
+     MmFreePool(Vad);
 }
 
 static
@@ -427,7 +432,7 @@ MiGetRegionSizeInternal(
 )
 
 {
-    if (!Process) return MT_INVALID_PARAM;
+    if (!Process) return 0;
 
     if (AcquireLock) {
         // Acquire VAD lock (shared)
@@ -446,7 +451,7 @@ MiGetRegionSizeInternal(
     PMMVAD current = Process->VadRoot;
 
     // Default to the max user address, since if we dont find any the free range is upto that addr.
-    uintptr_t closestNextVa = MmHighestUserAddress;
+    uintptr_t closestNextVa = MmHighestUserAddress + 1;
 
     while (current) {
         if (VirtualAddress < current->StartVa) {
@@ -466,7 +471,7 @@ MiGetRegionSizeInternal(
         }
         else {
             // The VA falls perfectly inside this VAD.
-            size_t size = current->EndVa - current->StartVa;
+            size_t size = current->EndVa - current->StartVa + 1;
             if (AcquireLock) MsReleasePushLockShared(&Process->VadLock);
             return size;
         }
@@ -630,9 +635,11 @@ MiDeleteVadNode(
     // Find the node
     if (VadToDelete->StartVa < Root->StartVa) {
         Root->LeftChild = MiDeleteVadNode(Root->LeftChild, VadToDelete);
+        if (Root->LeftChild) Root->LeftChild->Parent = Root;
     }
     else if (VadToDelete->StartVa > Root->StartVa) {
         Root->RightChild = MiDeleteVadNode(Root->RightChild, VadToDelete);
+        if (Root->RightChild) Root->RightChild->Parent = Root;
     }
     else {
         // Node with 0 or 1 child.
@@ -655,24 +662,24 @@ MiDeleteVadNode(
         // Node with 2 children
         else {
             PMMVAD successor = MiFindMinimumVad(Root->RightChild);
-
-            // Save Root's tree links
             PMMVAD oldLeft = Root->LeftChild;
+            PMMVAD oldRight = Root->RightChild;
             PMMVAD oldParent = Root->Parent;
 
-            // Copy all of successor's data (data + tree links)
-            kmemcpy(Root, successor, sizeof(MMVAD));
+            // Physically detach the successor and transplant that node. Copying
+            // an MMVAD here duplicates file-object ownership and leaves the
+            // caller freeing a node that is still linked in the tree.
+            PMMVAD newRight = MiDeleteVadNode(oldRight, successor);
+            successor->LeftChild = oldLeft;
+            successor->RightChild = newRight;
+            successor->Parent = oldParent;
+            if (oldLeft) oldLeft->Parent = successor;
+            if (newRight) newRight->Parent = successor;
 
-            // Restore Root's original tree links
-            Root->LeftChild = oldLeft;
-            Root->Parent = oldParent;
-
-            // Update parent pointers for Root's children
-            if (Root->LeftChild) Root->LeftChild->Parent = Root;
-            if (Root->RightChild) Root->RightChild->Parent = Root; // successor's right
-
-            // Now delete the original successor
-            Root->RightChild = MiDeleteVadNode(Root->RightChild, successor);
+            Root->LeftChild = NULL;
+            Root->RightChild = NULL;
+            Root->Parent = NULL;
+            Root = successor;
         }
     }
 
@@ -715,7 +722,7 @@ MiDeleteVadNode(
 
 static
 uintptr_t
-MiFindGap(
+MiFindGapLocked(
     IN  PEPROCESS Process,
     IN  size_t NumberOfBytes,
     IN  uintptr_t SearchStart,
@@ -744,15 +751,14 @@ MiFindGap(
     if (SearchStart >= SearchEnd) return 0;                // invalid range
     if (NumberOfBytes == 0) return 0;                     // no zero-sized allocations
     if (SearchStart == 0) return 0;                       // defensive: we don't expect VA 0
+    if (NumberOfBytes > UINTPTR_MAX - (VirtualPageSize - 1)) return 0;
 
     PMMVAD vadStack[MAX_VAD_DEPTH];
     int stackTop = -1;
 
-    // Acquire the reading lock.
-    MsAcquirePushLockShared(&Process->VadLock);
-
     PMMVAD current = Process->VadRoot;
     size_t size_needed = ALIGN_UP(NumberOfBytes, VirtualPageSize);
+    if (size_needed == 0 || size_needed > SearchEnd - SearchStart) return 0;
 
     // Start from one byte before SearchStart so ALIGN_UP(lastEndVa + 1, page) == aligned SearchStart
     uintptr_t lastEndVa = SearchStart - 1;
@@ -764,7 +770,6 @@ MiFindGap(
         while (current != NULL) {
             if (stackTop + 1 >= MAX_VAD_DEPTH) {
                 // Tree is too deep (shouldn't happen if we balanced it though)
-                MsReleasePushLockShared(&Process->VadLock);
                 return 0;
             }
             vadStack[++stackTop] = current;
@@ -789,11 +794,9 @@ MiFindGap(
             // Overflow check: gapStart + size_needed must not wrap
             if (gapStart <= (uintptr_t)-1 - (size_needed - 1)) {
                 if (gapStart + size_needed <= SearchEnd) {
-                    MsReleasePushLockShared(&Process->VadLock);
                     return gapStart;
                 }
             }
-            MsReleasePushLockShared(&Process->VadLock);
             return 0;
         }
 
@@ -809,7 +812,6 @@ MiFindGap(
                 uintptr_t gapEndExclusive = gapStart + size_needed;
                 // must fit before current VAD and before SearchEnd (SearchEnd is exclusive)
                 if (gapEndExclusive <= current->StartVa && gapEndExclusive <= SearchEnd) {
-                    MsReleasePushLockShared(&Process->VadLock);
                     return gapStart;
                 }
             }
@@ -828,13 +830,11 @@ MiFindGap(
 
     if (finalGapStart <= (uintptr_t)-1 - (size_needed - 1)) {
         if (finalGapStart + size_needed <= SearchEnd) {
-            MsReleasePushLockShared(&Process->VadLock);
             return finalGapStart;
         }
     }
 
     // No gap found anywhere
-    MsReleasePushLockShared(&Process->VadLock);
     return 0;
 }
 
@@ -851,7 +851,15 @@ MmFindFreeAddressSpace(
 
 {
     if (Process && NumberOfBytes) {
-        return MiFindGap(Process, NumberOfBytes, SearchStart, SearchEnd);
+        MsAcquirePushLockShared(&Process->VadLock);
+        uintptr_t Gap = MiFindGapLocked(
+            Process,
+            NumberOfBytes,
+            SearchStart,
+            SearchEnd
+        );
+        MsReleasePushLockShared(&Process->VadLock);
+        return Gap;
     }
     return 0;
 }
@@ -884,36 +892,39 @@ MmAllocateVirtualMemory(
 --*/
 
 {
-    // Calculate pages needed
-
-    uintptr_t StartVa; 
-    MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
-
-    if (BaseAddress) {
-        StartVa = (uintptr_t)*BaseAddress;
-    }
-    else {
+    if (!Process || !BaseAddress || NumberOfBytes == 0 ||
+        NumberOfBytes > SIZE_MAX - (VirtualPageSize - 1)) {
         return MT_INVALID_PARAM;
     }
 
-    size_t Pages = BYTES_TO_PAGES(NumberOfBytes);
-    uintptr_t EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
-    bool checkForOverlap = true;
+    uintptr_t RequestedStart = (uintptr_t)*BaseAddress;
+    uintptr_t StartVa = 0;
+    uintptr_t EndVa = 0;
+    size_t AllocationBytes = 0;
+    MTSTATUS status = MT_GENERAL_FAILURE; // Default to failure
 
-    if (!StartVa) {
-        // Its + 1 because its exclusive (so we want the actual end of the page, not excluding the last one)
-        StartVa = MiFindGap(Process, NumberOfBytes, USER_VA_START, (uintptr_t)USER_VA_END + 1);
-        if (!StartVa) return MT_NOT_FOUND;
-        
-        // Update the newly found address.
-        *BaseAddress = (void*)StartVa;
-        
-        // No need to check for an overlap as if we found a sufficient gap, there is guranteed to be no overlap.
-        checkForOverlap = false;
+    if (RequestedStart != 0) {
+        StartVa = (uintptr_t)PAGE_ALIGN(RequestedStart);
+        uintptr_t LeadingBytes = RequestedStart - StartVa;
+        if (NumberOfBytes > SIZE_MAX - LeadingBytes) return MT_INVALID_PARAM;
 
-        // Calculate the end VA.
-        EndVa = StartVa + PAGES_TO_BYTES(Pages) - 1;
-    } 
+        size_t SpannedBytes = NumberOfBytes + LeadingBytes;
+        if (SpannedBytes > SIZE_MAX - (VirtualPageSize - 1)) {
+            return MT_INVALID_PARAM;
+        }
+        AllocationBytes = ALIGN_UP(SpannedBytes, VirtualPageSize);
+    }
+    else {
+        AllocationBytes = ALIGN_UP(NumberOfBytes, VirtualPageSize);
+    }
+
+    if (AllocationBytes == 0) return MT_INVALID_PARAM;
+
+    if (StartVa != 0 &&
+        (StartVa < USER_VA_START || StartVa > USER_VA_END ||
+         AllocationBytes - 1 > USER_VA_END - StartVa)) {
+        return MT_INVALID_ADDRESS;
+    }
 
     // Acquire rundown protection for process
     if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
@@ -923,8 +934,25 @@ MmAllocateVirtualMemory(
     // Acquire lock for this process VAD tree.
     MsAcquirePushLockExclusive(&Process->VadLock);
 
+    if (StartVa == 0) {
+        // Select and claim the gap under the same exclusive lock. Otherwise a
+        // second allocator can choose the same address before either inserts.
+        StartVa = MiFindGapLocked(
+            Process,
+            AllocationBytes,
+            USER_VA_START,
+            (uintptr_t)USER_VA_END + 1
+        );
+        if (!StartVa) {
+            status = MT_NOT_FOUND;
+            goto cleanup;
+        }
+    }
+
+    EndVa = StartVa + AllocationBytes - 1;
+
     // Check for overlap
-    if (checkForOverlap && MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa)) {
+    if (MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa)) {
         status = MT_CONFLICTING_ADDRESSES;
         goto cleanup;
     }
@@ -945,16 +973,17 @@ MmAllocateVirtualMemory(
 
     // Insert the VAD into the the process's tree.
     Process->VadRoot = MiInsertVadNode(Process->VadRoot, newVad);
+    Process->VadRoot->Parent = NULL;
+    *BaseAddress = (void*)StartVa;
     status = MT_SUCCESS;
-    goto cleanup;
 
 cleanup:
-    MsReleaseRundownProtection(&Process->ProcessRundown);
     MsReleasePushLockExclusive(&Process->VadLock);
+    MsReleaseRundownProtection(&Process->ProcessRundown);
     return status;
 }
 
-MTSTATUS
+bool
 MmIsAddressRangeFree(
     PEPROCESS Process,
     uintptr_t StartVa,
@@ -962,7 +991,12 @@ MmIsAddressRangeFree(
 )
 
 {
-    return MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa);
+    if (!Process || StartVa > EndVa) return false;
+
+    MsAcquirePushLockShared(&Process->VadLock);
+    bool IsFree = !MiCheckVadOverlap(Process->VadRoot, StartVa, EndVa);
+    MsReleasePushLockShared(&Process->VadLock);
+    return IsFree;
 }
 
 MTSTATUS
@@ -973,20 +1007,43 @@ MmFreeVirtualMemory(
     IN enum _FREE_TYPE FreeType
 )
 {
+    if (!Process || !BaseAddress || !NumberOfBytes) return MT_INVALID_PARAM;
+
     MTSTATUS status = MT_GENERAL_FAILURE;
     uintptr_t FreeStart = 0;
     size_t AlignedBytes = 0;
     uintptr_t FreeEnd = 0;
+    uintptr_t RequestedStart = (uintptr_t)*BaseAddress;
+    APC_STATE AttachState = { 0 };
+    bool Attached = false;
 
     // Resolve memory ranges and validate parameters
     if (FreeType == MEM_DECOMMIT) {
-        FreeStart = (uintptr_t)PAGE_ALIGN(*BaseAddress);
-        AlignedBytes = ALIGN_UP(*NumberOfBytes, VirtualPageSize);
-        if (AlignedBytes == 0) return MT_INVALID_PARAM;
+        if (*NumberOfBytes == 0 || RequestedStart < USER_VA_START ||
+            RequestedStart > USER_VA_END) {
+            return MT_INVALID_PARAM;
+        }
+
+        FreeStart = (uintptr_t)PAGE_ALIGN(RequestedStart);
+        uintptr_t LeadingBytes = RequestedStart - FreeStart;
+        if (*NumberOfBytes > SIZE_MAX - LeadingBytes) return MT_INVALID_PARAM;
+        size_t SpannedBytes = *NumberOfBytes + LeadingBytes;
+        if (SpannedBytes > SIZE_MAX - (VirtualPageSize - 1)) {
+            return MT_INVALID_PARAM;
+        }
+
+        AlignedBytes = ALIGN_UP(SpannedBytes, VirtualPageSize);
+        if (AlignedBytes == 0 || AlignedBytes - 1 > USER_VA_END - FreeStart) {
+            return MT_INVALID_ADDRESS;
+        }
         FreeEnd = FreeStart + AlignedBytes - 1;
     }
     else if (FreeType == MEM_RELEASE) {
-        FreeStart = (uintptr_t)PAGE_ALIGN(*BaseAddress);
+        FreeStart = (uintptr_t)PAGE_ALIGN(RequestedStart);
+        if (RequestedStart == 0 || RequestedStart != FreeStart ||
+            FreeStart < USER_VA_START || FreeStart > USER_VA_END) {
+            return MT_INVALID_ADDRESS;
+        }
         // NumberOfBytes is ignored for MEM_RELEASE, the entire VAD is freed based on the node.
     }
     else {
@@ -996,6 +1053,15 @@ MmFreeVirtualMemory(
     // Acquire rundown protection
     if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
         return MT_INVALID_STATE;
+    }
+
+    if (PsGetCurrentProcess() != Process) {
+        MeAttachProcess(&Process->InternalProcess, &AttachState);
+        if (!AttachState.AttachedToProcess) {
+            MsReleaseRundownProtection(&Process->ProcessRundown);
+            return MT_INVALID_STATE;
+        }
+        Attached = true;
     }
 
     // Acquire VAD lock exclusive
@@ -1034,15 +1100,18 @@ MmFreeVirtualMemory(
         PMMPTE pte = MiGetPtePointer(virtualaddr);
         if (!pte) continue;
 
-        if (pte->Soft.Present || pte->Soft.Transition) {
-            PAGE_INDEX pfn = pte->Soft.PageFrameNumber;
-            // Unmapping PTE is set by the value below.
-            // I dont use MiUnmap here since we can juse use MiReloadTLBs which is a bit faster for more than a few PTEs (depending on how many the user allocated)
+        if (pte->Hard.Present) {
+            PAGE_INDEX pfn = pte->Hard.PageFrameNumber;
+            // The exclusive VAD lock prevents a demand fault from publishing
+            // this PTE while it is being removed. Clear locally and perform a
+            // single broadcast flush after the whole range is processed.
+            MiAtomicExchangePte(pte, 0);
             MiReleasePhysicalPage(pfn);
         }
-
-        // Clear the PTE completely.
-        pte->Value = 0;
+        else {
+            // Clear demand-zero or legacy transition metadata as well.
+            MiAtomicExchangePte(pte, 0);
+        }
     }
 
     // Flush TLBs due to multiple PTEs (or maybe one :))
@@ -1055,6 +1124,10 @@ MmFreeVirtualMemory(
     if (FreeType == MEM_RELEASE) {
         // MEM_RELEASE completely deletes the VAD.
         Process->VadRoot = MiDeleteVadNode(Process->VadRoot, VadToFree);
+        if (Process->VadRoot) Process->VadRoot->Parent = NULL;
+        if ((VadToFree->Flags & VAD_FLAG_MAPPED_FILE) && VadToFree->File) {
+            ObDereferenceObject(VadToFree->File);
+        }
         MiFreeVad(VadToFree);
     }
     else if (FreeType == MEM_DECOMMIT) {
@@ -1065,6 +1138,7 @@ MmFreeVirtualMemory(
 
 cleanup:
     MsReleasePushLockExclusive(&Process->VadLock);
+    if (Attached) MeDetachProcess(&AttachState);
     MsReleaseRundownProtection(&Process->ProcessRundown);
     return status;
 }

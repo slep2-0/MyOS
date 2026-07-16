@@ -43,7 +43,7 @@ extern "C" {
 
     /* Pointer exchange */
     FORCEINLINE void* InterlockedExchangePtr(volatile void* volatile* target, void* value) {
-        return __atomic_exchange_n((void* volatile*)target, value, __ATOMIC_ACQUIRE);
+        return __atomic_exchange_n((void* volatile*)target, value, ATOMIC_ORDER);
     }
 
     /* CompareExchange (returns initial value that was at target) */

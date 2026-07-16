@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     GPLv3
- * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)
+ * PURPOSE:     GOP Driver to draw onto screen Implementation (8x16 font)
  */
 
 #include "gop.h"
@@ -11,7 +11,7 @@
 #include "../../includes/me.h"
 #include "../../includes/macros.h"
 
- // integer font scale (1 = native 8×16, 2 = 16×32, etc)
+ // integer font scale (1 = native 8x16, 2 = 16x32, etc)
 #define FONT_SCALE 1
 #define NUM_BUFFER_SIZE 128
 
@@ -608,24 +608,7 @@ int kstrncmp(const char* s1, const char* s2, size_t length) {
     return 0;
 }
 
-SPINLOCK gop_lock = { 0 };
-
-static void acquire_tmp_lock(SPINLOCK* lock) {
-    if (!lock) return;
-    // spin until we grab the lock.
-    while (__sync_lock_test_and_set(&lock->locked, 1)) {
-        __asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
-    }
-    // Memory barrier to prevent instruction reordering
-    __asm__ volatile("" ::: "memory");
-}
-
-static void release_tmp_lock(SPINLOCK* lock) {
-    if (!lock) return;
-    // Memory barrier before release
-    __asm__ __volatile("" ::: "memory");
-    __sync_lock_release(&lock->locked);
-}
+static volatile void* GopPrintOwner = NULL;
 
 extern bool isBugChecking;
 
@@ -640,8 +623,24 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     if (unlikely(owner && owner != MeGetCurrentProcessor())) return;
 
     bool prev_if = interrupts_enabled();
-    acquire_tmp_lock(&gop_lock); // well if we get a page fault down there you can say bye bye to cpu execution (deadlock), more reason to hate this function, god can we move already to gui?
-    __cli(); // Critical section
+    __cli();
+
+    void* cpuToken = MeGetCurrentProcessor();
+    if (!cpuToken) cpuToken = (void*)1;
+
+    // Printing may recurse on the same CPU while reporting a fault. Track the
+    // owning CPU instead of using a non-reentrant bit lock.
+    bool outermostPrint = false;
+    for (;;) {
+        void* printOwner = InterlockedFetchPointer(&GopPrintOwner);
+        if (printOwner == cpuToken) break;
+        if (!printOwner &&
+            InterlockedCompareExchangePointer(&GopPrintOwner, cpuToken, NULL) == NULL) {
+            outermostPrint = true;
+            break;
+        }
+        __pause();
+    }
 
     GOP_PARAMS* gop = &gop_local;
 
@@ -735,7 +734,9 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     }
 
     va_end(ap);
-    release_tmp_lock(&gop_lock);
+    if (outermostPrint) {
+        InterlockedExchangePointer(&GopPrintOwner, NULL);
+    }
     if (prev_if) __sti();
 }
 

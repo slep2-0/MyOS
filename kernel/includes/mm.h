@@ -70,43 +70,77 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
-    MiAtomicExchangePte(_pte, _val);                                        \
-    __asm__ volatile("" ::: "memory");                                      \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
                                                                             \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+    /* Device addresses above RAM do not have PFN entries. */               \
+    if (MmPfnDatabaseInitialized &&                                        \
+        (_pa / PhysicalFrameSize) < PfnDatabase.TotalPageCount) {           \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_pa);                            \
+        _pfn->Descriptor.Mapping.Vad = NULL;                                \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
         _pfn->State = PfnStateActive;                                       \
         _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
     }                                                                       \
                                                                             \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
     invlpg((void*)(uintptr_t)(_Va));                                        \
 } while (0)
+
+/* Map an alias or device page without changing PFN reverse-map ownership. */
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)                     \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    MiAtomicExchangePte(_pte, _pa | (uint64_t)(_Flags));                    \
+    __asm__ volatile("" ::: "memory");                                      \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+} while (0)
+
+#define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags)                  \
+    MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)
 
 #else /* SMP build: include TLB shootdown via IPI */
 
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
-    MiAtomicExchangePte(_pte, _val);                                        \
-    __asm__ volatile("" ::: "memory");                                      \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
                                                                             \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+    /* Device addresses above RAM do not have PFN entries. */               \
+    if (MmPfnDatabaseInitialized &&                                        \
+        (_pa / PhysicalFrameSize) < PfnDatabase.TotalPageCount) {           \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_pa);                            \
+        _pfn->Descriptor.Mapping.Vad = NULL;                                \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
         _pfn->State = PfnStateActive;                                       \
         _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
     }                                                                       \
                                                                             \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
     /* Send IPIs if SMP is initialized (and all APs are on) */              \
     if (smpInitialized && allApsInitialized) {                              \
-        IPI_PARAMS _Params;                                                 \
+        IPI_PARAMS _Params = { 0 };                                         \
+        _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
+        MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
+    }                                                                       \
+} while (0)
+
+/* Map an alias or device page without changing PFN reverse-map ownership. */
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)                     \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    MiAtomicExchangePte(_pte, _pa | (uint64_t)(_Flags));                    \
+    __asm__ volatile("" ::: "memory");                                      \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+    if (smpInitialized && allApsInitialized) {                              \
+        IPI_PARAMS _Params = { 0 };                                         \
         _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
         MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
     }                                                                       \
@@ -115,18 +149,10 @@ do {                                                                        \
 #define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags)                  \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
     MiAtomicExchangePte(_pte, _val);                                        \
     __asm__ volatile("" ::: "memory");                                      \
-                                                                            \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
-        _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
-        _pfn->State = PfnStateActive;                                       \
-        _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
-    }                                                                       \
-                                                                            \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
 } while (0)
@@ -152,6 +178,7 @@ do {                                                                        \
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags) ((void)0)
 #define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags) ((void)0)
 #define PPFN_TO_INDEX(PPFN) (0)
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
@@ -542,12 +569,16 @@ typedef struct _POOL_HEADER
         // When the block is ALLOCATED, we store actual metadata info.
         struct
         {
-            uint16_t BlockSize;  // Size of this block (INCLUDES POOL_HEADER)
+            uint64_t BlockSize;  // Size of this block (INCLUDES POOL_HEADER)
             uint16_t PoolIndex;  // Index of the slab it came from
+            uint16_t PoolType;   // POOL_TYPE used to allocate this block
         };
     } Metadata;
     uint32_t PoolTag; // Tag of pool. (default - 'ADIR')
-} POOL_HEADER, * PPOOL_HEADER;
+} __attribute__((aligned(16))) POOL_HEADER, * PPOOL_HEADER;
+
+_Static_assert(_Alignof(POOL_HEADER) >= 16, "Pool payloads require 16-byte alignment");
+_Static_assert((sizeof(POOL_HEADER) % 16) == 0, "POOL_HEADER must preserve payload alignment");
 
 typedef struct _POOL_DESCRIPTOR {
     SINGLE_LINKED_LIST FreeListHead;    // Head of the free list
@@ -916,10 +947,25 @@ MmAllocatePoolWithTag(
     IN  uint32_t Tag
 );
 
+#ifndef POOL_DEBUGGING
 void
 MmFreePool(
     IN  void* buf
 );
+#else
+// Pool debugging is on.
+
+#define MmFreePool(voidptr) do { \
+    MmFreePoolDbg(voidptr);      \
+    (voidptr) = NULL;            \
+} while(0) // No semicolon here!
+
+void
+MmFreePoolDbg(
+    IN  void* buf
+);
+
+#endif
 
 // module: mmproc.c
 
@@ -1030,7 +1076,7 @@ MmFindFreeAddressSpace(
 );
 
 MUST_USE_RESULT
-MTSTATUS
+bool
 MmIsAddressRangeFree(
     PEPROCESS Process,
     uintptr_t StartVa,

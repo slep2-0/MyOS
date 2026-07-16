@@ -42,11 +42,12 @@ Revision History:
 
 // ------------------ ENUMERATORS ------------------
 
-#define TICK_MS 4
+#define TICK_MS 10
+#define TICK_HZ (1000 / TICK_MS)
 typedef enum _TimeSliceTicks {
-	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 40 ms  */
-	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 100 ms */
-	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 250 ms */
+	LOW_TIMESLICE_TICKS = 40 / TICK_MS,
+	DEFAULT_TIMESLICE_TICKS = 100 / TICK_MS,
+	HIGH_TIMESLICE_TICKS = 250 / TICK_MS
 } TimeSliceTicks, *PTimeSliceTicks;
 
 typedef enum _WAIT_REASON {
@@ -59,7 +60,7 @@ typedef enum _DPC_PRIORITY {
 	LOW_PRIORITY = 25,
 	MEDIUM_PRIORITY = 50,
 	HIGH_PRIORITY = 75,
-	SYSTEM_PRIORITY = 99
+	//SYSTEM_PRIORITY = 99 - Unused.
 } DPC_PRIORITY;
 
 
@@ -138,7 +139,12 @@ typedef enum _BUGCHECK_CODES {
 	MSMGR_INIT_FAILED,
 	DPC_EXECUTE_FAILURE,
 	MEMORY_OVERFLOW_DETECTION,
-	PROCESSOR_POINTER_CORRUPTION
+	PROCESSOR_POINTER_CORRUPTION,
+	KERNEL_STACK_COOKIE_CORRUPTION,
+	INVALID_KERNEL_STACK_ADDRESS,
+	SCHEDULER_FAILURE,
+	PFN_TRANSITION_FAILURE,
+	PFN_RELEASE_STILL_MAPPED
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -259,7 +265,7 @@ typedef struct _APC_STATE {
 } APC_STATE, *PAPC_STATE;
 
 typedef void (*PNORMAL_ROUTINE)(void* NormalContext, void* SystemArgument1, void* SystemArgument2);
-typedef void (*PKERNEL_ROUTINE)(PAPC Apc, PNORMAL_ROUTINE NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2);
+typedef void (*PKERNEL_ROUTINE)(PAPC Apc, PNORMAL_ROUTINE* NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2);
 typedef void (*PRUNDOWN_ROUTINE)(PAPC Apc);
 
 typedef struct _APC {
@@ -303,11 +309,15 @@ typedef struct _ITHREAD {
 	// Apc Related
 	DOUBLY_LINKED_LIST ApcListHead; // Add this to hold queued APCs
 	SPINLOCK ApcQueueLock; // Spinlock for inserting/dequeuing from an APC.
+	bool UserApcActive;
 
 	PTRAP_FRAME SyscallTrap; // A pointer to the trap frame last saved by the syscall handler, ONLY SYSTEM CALLS ARE ALLOWED TO TOUCH THIS!
 
 	// Procesor Related
-	struct _PROCESSOR* ActiveProcessor; // ONLY valid when ThreadState == THREAD_RUNNING
+	// CPU that owns this thread's kernel context after its first dispatch.
+	// Wait completion queues it back there so another CPU cannot restore a
+	// stack while the owner is still finishing the switch-away path.
+	struct _PROCESSOR* ActiveProcessor;
 } ITHREAD, *PITHREAD;
 
 // Note to self: Re-organize this to match more of the KPRCB style, that style is way more consistent across the board (Separates between scheduler and Processor, yada yada)
@@ -339,7 +349,6 @@ typedef struct _PROCESSOR {
 
 	/* Statically Special Allocated DPCs */
 	struct _DPC TimerExpirationDPC;
-	struct _DPC	ReaperDPC;
 	/* End Statically Special Allocated DPCs */
 
 	// Additional DPC Fields
@@ -362,6 +371,10 @@ typedef struct _PROCESSOR {
 
 	// Scheduler Lock
 	SPINLOCK SchedulerLock;
+	bool SchedulerInterruptsEnabled;
+	bool SchedulerWasEnabled;
+	volatile uint32_t CriticalRegionDepth;
+	bool CriticalRegionSchedulerEnabled;
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -377,11 +390,17 @@ typedef struct _PROCESSOR {
 	// Syscall data
 	uint64_t UserRsp; // User saved RSP during syscall handling.
 	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
+
+	// Critical exceptions must never enter on a transient or user-controlled RSP.
+	void* IstNmiStackTop;
+	void* IstMachineCheckStackTop;
+	void* IstDebugStackTop;
 } PROCESSOR, *PPROCESSOR;
 
 
 // ------------------ FUNCTIONS ------------------
 extern volatile uint64_t MeSystemTickCount;
+extern PPROCESSOR MeClockProcessor;
 
 NORETURN
 void
@@ -399,6 +418,16 @@ MeBugCheckEx(
 	IN void* BugCheckParameter4
 );
 
+void
+MeEnableInterrupts(
+	IN bool EnabledBefore
+);
+
+bool
+MeDisableInterrupts(
+	void
+);
+
 FORCEINLINE
 PPROCESSOR
 MeGetCurrentProcessor (void)
@@ -410,16 +439,60 @@ MeGetCurrentProcessor (void)
 
 FORCEINLINE
 void
+MeEnterCriticalRegion(void)
+{
+	bool InterruptsEnabled = MeDisableInterrupts();
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+
+	if (cpu->CriticalRegionDepth == UINT32_MAX) {
+		MeBugCheckEx(SCHEDULER_FAILURE, cpu, RETADDR(0), NULL, NULL);
+	}
+
+	if (cpu->CriticalRegionDepth == 0) {
+		cpu->CriticalRegionSchedulerEnabled = cpu->schedulerEnabled;
+	}
+
+	cpu->CriticalRegionDepth++;
+	cpu->schedulerEnabled = false;
+	MeEnableInterrupts(InterruptsEnabled);
+}
+
+FORCEINLINE
+void
+MeLeaveCriticalRegion(void)
+{
+	bool InterruptsEnabled = MeDisableInterrupts();
+	PPROCESSOR cpu = MeGetCurrentProcessor();
+
+	if (cpu->CriticalRegionDepth == 0) {
+		MeBugCheckEx(SCHEDULER_FAILURE, cpu, RETADDR(0), NULL, NULL);
+	}
+
+	cpu->CriticalRegionDepth--;
+	if (cpu->CriticalRegionDepth == 0 &&
+		!InterlockedFetchU32(&cpu->SchedulerLock.locked)) {
+		cpu->schedulerEnabled = cpu->CriticalRegionSchedulerEnabled &&
+			(cpu->currentIrql < DISPATCH_LEVEL);
+	}
+
+	MeEnableInterrupts(InterruptsEnabled);
+}
+
+FORCEINLINE
+void
 MeAcquireSchedulerLock(void)
 
 {
 	PPROCESSOR cpu = MeGetCurrentProcessor();
+	bool InterruptsEnabled = MeDisableInterrupts();
 	// Acquire the spinlock. (FIXME MsAcquireSpinlockAtSynchLevel(&cpu->SchedulerLock)
 	while (__sync_lock_test_and_set(&cpu->SchedulerLock.locked, 1)) {
-		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
+		__asm__ volatile("pause" ::: "memory"); /* x86 pause - CPU relax hint */
 	}
 	// Memory barrier to prevent instruction reordering
 	__asm__ volatile("" ::: "memory");
+	cpu->SchedulerInterruptsEnabled = InterruptsEnabled;
+	cpu->SchedulerWasEnabled = cpu->schedulerEnabled;
 	cpu->schedulerEnabled = false;
 }
 
@@ -429,10 +502,14 @@ MeReleaseSchedulerLock(void)
 
 {
 	PPROCESSOR cpu = MeGetCurrentProcessor();
-	cpu->schedulerEnabled = true;
+	bool InterruptsEnabled = cpu->SchedulerInterruptsEnabled;
+	cpu->schedulerEnabled = cpu->SchedulerWasEnabled &&
+		(cpu->currentIrql < DISPATCH_LEVEL) &&
+		(cpu->CriticalRegionDepth == 0);
 	// Release the spinlock. (FIXME MsReleaseSpinlockFromSynchLevel(&cpu->SchedulerLock)
 	__asm__ volatile("" ::: "memory");
 	__sync_lock_release(&cpu->SchedulerLock.locked);
+	MeEnableInterrupts(InterruptsEnabled);
 }
 
 extern uint32_t g_cpuCount;
@@ -548,9 +625,9 @@ MeInitializeApc(
 	IN PAPC Apc,
 	IN struct _ITHREAD* TargetThread,
 	IN PRIVILEGE_MODE ApcMode,
-	IN void* KernelRoutine,
-	_In_Opt void* RundownRoutine,
-	_In_Opt void* NormalRoutine,
+	IN PKERNEL_ROUTINE KernelRoutine,
+	_In_Opt PRUNDOWN_ROUTINE RundownRoutine,
+	_In_Opt PNORMAL_ROUTINE NormalRoutine,
 	_In_Opt void* NormalContext
 );
 
@@ -568,7 +645,12 @@ MeRemoveQueueApc(
 
 void
 MeRetireAPCs(
-	void
+	IN PTRAP_FRAME TrapFrame
+);
+
+void
+MeRetireApcsOnSyscallExit(
+	IN PTRAP_FRAME SyscallFrame
 );
 
 void
@@ -608,7 +690,6 @@ MeRetireDPCs(
 );
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4);
-void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2);
 void InitScheduler(void);
 
 void
@@ -642,16 +723,6 @@ MeGetPreviousMode(
 		return KernelMode;
 	}
 }
-
-void
-MeEnableInterrupts(
-	IN bool EnabledBefore
-);
-
-bool
-MeDisableInterrupts(
-	void
-);
 
 bool
 MeAreInterruptsEnabled(

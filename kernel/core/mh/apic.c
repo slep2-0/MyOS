@@ -73,7 +73,7 @@ static void map_lapic(uint64_t lapicPhysicalAddr) {
     PMMPTE pte = MiGetPtePointer((uintptr_t)virt);
     assert(pte != NULL);
     if (!pte) return;
-    MI_WRITE_PTE(pte, virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
+    MI_WRITE_PTE_RAW(pte, virt, lapicPhysicalAddr, PAGE_PRESENT | PAGE_RW | PAGE_PCD);
 
     // store the mmio base pointer
     MeGetCurrentProcessor()->LapicAddressVirt = (volatile uint32_t*)virt;
@@ -237,13 +237,9 @@ MhRequestSoftwareInterrupt(
     // Disable interrupts, and save IF flag.
     prev_if = MeDisableInterrupts();
 
-    // Clear the flag.
-    if (RequestIrql == DISPATCH_LEVEL) {
-        cpu->DpcInterruptRequested = false;
-    }
-    else {
-        cpu->ApcInterruptRequested = false;
-    }
+    // The DPC/APC retirement routine owns clearing the request flag. Keeping
+    // it set until service prevents duplicate requests and lets the ISR verify
+    // that the interrupt corresponds to pending work.
 
     // wait until previous ICR is not busy
     lapic_wait_icr();

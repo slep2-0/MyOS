@@ -13,8 +13,8 @@ extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
 extern void restore_context(TRAP_FRAME* regs);
-extern void restore_user_context_withswapgs(PETHREAD thread);
-extern void restore_user_context_withoutswapgs(PETHREAD thread);
+extern void restore_user_context_to_user(PETHREAD thread);
+extern void restore_user_context_to_kernel(PETHREAD thread);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
@@ -49,12 +49,16 @@ void InitScheduler(void) {
 
     TRAP_FRAME cfm;
     kmemset(&cfm, 0, sizeof(cfm));
-    cfm.rsp = (uint64_t)idleStack;
+    // A C function entered through a synthetic restore must observe the same
+    // ABI stack alignment as if a call instruction had entered it.
+    cfm.rsp = (uint64_t)idleStack - 8;
     cfm.rip = (uint64_t)kernel_idle_checks;
-    cfm.rflags |= (1 << 9ULL); // Ensure interrupts are enabled for the idle loop
+    cfm.cs = KERNEL_CS;
+    cfm.ss = KERNEL_SS;
+    cfm.rflags = INITIAL_RFLAGS;
 
     idleThread->InternalThread.TrapRegisters = cfm;
-    idleThread->InternalThread.StackBase = (void*)cfm.rsp;
+    idleThread->InternalThread.StackBase = idleStack;
     idleThread->InternalThread.IsLargeStack = false;
     idleThread->InternalThread.KernelStack = idleStack;
 
@@ -63,6 +67,10 @@ void InitScheduler(void) {
 
     MsAcquirePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
     InsertHeadList(&PsInitialSystemProcess.AllThreads, &idleThread->ThreadListEntry);
+    if (PsInitialSystemProcess.NumThreads == UINT32_MAX) {
+        MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, &PsInitialSystemProcess,
+            idleThread, &PsInitialSystemProcess.AllThreads, RETADDR(0));
+    }
     PsInitialSystemProcess.NumThreads++; // Maintain accurate thread count
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
@@ -103,8 +111,20 @@ static PITHREAD MeAcquireNextScheduledThread(void) {
             if (!victimQueue->head) continue; // skip empty queues
 
             chosenThread = MeDequeueThreadWithLock(victimQueue);
-            // Found a suitable thread, return it.
-            if (chosenThread) return &chosenThread->InternalThread;
+            if (!chosenThread) continue;
+
+            // A non-NULL owner means the thread has a kernel stack associated
+            // with another CPU. Until context switching has an explicit
+            // switched-away handshake, only steal never-dispatched threads.
+            if (__atomic_load_n(
+                &chosenThread->InternalThread.ActiveProcessor,
+                __ATOMIC_ACQUIRE
+            ) != NULL) {
+                MeEnqueueThreadWithLock(victimQueue, chosenThread);
+                continue;
+            }
+
+            return &chosenThread->InternalThread;
         }
     }
 #endif
@@ -121,7 +141,7 @@ Schedule(void) {
     MeRaiseIrql(DISPATCH_LEVEL, &oldIrql); // Prevents scheduling re-entrance.
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    PITHREAD prev = MeGetCurrentProcessor()->currentThread;
+    PITHREAD current = MeGetCurrentProcessor()->currentThread;
     PITHREAD IdleThread = &MeGetCurrentProcessor()->idleThread->InternalThread;
 
     // Check if we need to delete another thread's (safe now, we are at a separate stack)
@@ -131,14 +151,34 @@ Schedule(void) {
         cpu->ZombieThread = NULL;
     }
 
-    // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
-    if (prev && prev != IdleThread && prev->ThreadState == THREAD_TERMINATING) {
-        cpu->ZombieThread = prev;
-        prev = NULL;
+    if (current && current != IdleThread &&
+        current->ThreadState == THREAD_BLOCKING) {
+        // Publish BLOCKED before checking WaitStatus. A concurrent wake either
+        // changes BLOCKED to READY and queues us, or observes BLOCKING and
+        // leaves completion for this CPU to consume below.
+        __atomic_store_n(
+            &current->ThreadState,
+            THREAD_BLOCKED,
+            __ATOMIC_SEQ_CST
+        );
+
+        if (__atomic_load_n(&current->WaitStatus, __ATOMIC_SEQ_CST) != MT_PENDING) {
+            __sync_bool_compare_and_swap(
+                &current->ThreadState,
+                THREAD_BLOCKED,
+                THREAD_RUNNING
+            );
+        }
     }
-    else if (prev && prev != IdleThread && prev->ThreadState == THREAD_RUNNING) {
+
+    // All thread's that weren't RUNNING are ignored by the Scheduler. (like BLOCKED threads when waiting or an event, ZOMBIE threads, TERMINATED, etc..)
+    if (current && current != IdleThread && current->ThreadState == THREAD_TERMINATING) {
+        cpu->ZombieThread = current;
+        current = NULL;
+    }
+    else if (current && current != IdleThread && current->ThreadState == THREAD_RUNNING) {
         // The current thread's registers were already saved in isr_stub. (look after the pushes) (also saved in MtSleepCurrentThread)
-        enqueue_runnable(prev);
+        enqueue_runnable(current);
     }
 
     PITHREAD next = MeAcquireNextScheduledThread();
@@ -166,26 +206,18 @@ Schedule(void) {
     // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);
 
-    // Hi matanel, if you ever encounter failures here, like if it goes to restore_user_context as a system thread
-    // please check that you made the same changed to InitScheduler as you made in PsCreateSystemThread, for example, Thread->SystemThread was false in the idle thread, because I forgot to set
-    // that flag in its initilization, even though I was sure its on (for normal threads that is), because in PsCreateSystemThreads it was indeed = true.
     if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
         restore_context(&next->TrapRegisters);
     }
     else {
-        // User thread - Check if we should execute swapgs, because if we will execute it when we return to kernel RIP (like in a syscall for example), then GS would point to user mode.
-        // Check RIP, if its in kernel then WE DO NOT swap.
-        // This works ONLY when there is a CLI call before doing swapgs, since we could prepare to return to user mode, and then we return with an opposite GS.
-        // ACTUALLY DO NOT create a trap frame GS, (only the offset), this should be handled carefully
-        // I do not know what the fuck do i do..
-
-        // Note that this uses MmSystemRangeStart which is PhysicalMemoryOffset (which is the start of the kernel space in the 64bit addr space)
-        // It's fine. (no need to use KernelVaStart)
-        if (next->TrapRegisters.rip >= MmSystemRangeStart) {
-            restore_user_context_withoutswapgs(PsGetEThreadFromIThread(next));
+        // Saved CS is the authoritative resume mode. Interrupt frames provide
+        // it directly, and MsYieldExecution records KERNEL_CS for a blocked
+        // syscall continuation. Address ranges are not execution-state.
+        if ((next->TrapRegisters.cs & 3) == 0) {
+            restore_user_context_to_kernel(PsGetEThreadFromIThread(next));
         }
         else {
-            restore_user_context_withswapgs(PsGetEThreadFromIThread(next));
+            restore_user_context_to_user(PsGetEThreadFromIThread(next));
         }
     }
     UNREACHABLE_CODE();

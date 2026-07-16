@@ -43,6 +43,7 @@ MsInitializeSynchronization(
     if (MT_FAILURE(status)) return status;
 
     // Initialize the timer list head.
+    MsTimerQueueLock.locked = 0;
     InitializeListHead(&MsTimerQueue);
 
     return status;

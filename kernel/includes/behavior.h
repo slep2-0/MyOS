@@ -29,6 +29,8 @@ Revision History:
 
 //#define PERFORMANCE_ANALYTICS // Uncomment to increment performance analytics global fields (like hyperspace mappings done, etc.)
 
+#define POOL_DEBUGGING // Uncomment to define that after every pool free the pointer that is given gets set to NULL.
+
 // Other Behavioural Macros TODO: 
 // POOL_TAGGING (debug pool allocs)
 

@@ -42,6 +42,8 @@ Revision History:
 #define CPUID_7_EBX_SMEP    (1UL << 7)
 #define CPUID_7_EBX_SMAP    (1UL << 20)
 
+volatile bool MeSmapEnabled = false;
+
 
 static void InitialiseControlRegisters(void) {
     unsigned long cr0 = __read_cr0();
@@ -82,7 +84,8 @@ static void InitialiseControlRegisters(void) {
     if (ebx & CPUID_7_EBX_SMEP) cr4 |= CR4_SMEP;
     else gop_printf(COLOR_YELLOW, "SMEP not available.\n");
 
-    if (ebx & CPUID_7_EBX_SMAP) cr4 |= CR4_SMAP;
+    bool HasSmap = (ebx & CPUID_7_EBX_SMAP) != 0;
+    if (HasSmap) cr4 |= CR4_SMAP;
     else gop_printf(COLOR_YELLOW, "SMAP not available.\n");
 
     // Add FSGSBASE to CR4
@@ -92,6 +95,10 @@ static void InitialiseControlRegisters(void) {
     // We MUST write these before executing LDMXCSR below.
     __write_cr0(cr0);
     __write_cr4(cr4);
+
+    if (HasSmap) {
+        MeSmapEnabled = true;
+    }
 
     // Initialize SSE Hardware
     // Now that CR4.OSFXSR is set in hardware, this instruction is valid.
@@ -132,6 +139,9 @@ static void MeInitGdtTssForCurrentProcessor(void) {
     tss->ist[1] = (uint64_t)cur->IstDFStackTop; // IDT.ist = 2
     tss->ist[2] = (uint64_t)cur->IstTimerStackTop; // IDT.ist = 3
     tss->ist[3] = (uint64_t)cur->IstIpiStackTop; // IDT.ist = 4
+    tss->ist[4] = (uint64_t)cur->IstNmiStackTop; // IDT.ist = 5
+    tss->ist[5] = (uint64_t)cur->IstMachineCheckStackTop; // IDT.ist = 6
+    tss->ist[6] = (uint64_t)cur->IstDebugStackTop; // IDT.ist = 7
 
     uint64_t tss_limit = (uint64_t)limit; // sizeof(TSS)-1
     // gdt tss descriptor
@@ -168,13 +178,6 @@ static void MeInitGdtTssForCurrentProcessor(void) {
 
 extern IDT_ENTRY64 IDT[];
 extern IDT_PTR  PIDT;
-
-static void DbgCallback(void* vinfo) {
-    DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
-    gop_printf(COLOR_RED, "**(HELLO HELLO HELLO) RIP: %lx set the DPC to something!**\n", info->trap->rip);
-    FREEZE_OTHER_CPUS();
-    FREEZE();
-}
 
 void
 MeInitializeProcessor(
@@ -213,6 +216,9 @@ MeInitializeProcessor(
     CPU->self = CPU;
     CPU->currentIrql = PASSIVE_LEVEL;
     CPU->schedulerEnabled = NULL; // since NULL is 0, it would be false.
+    CPU->SchedulerWasEnabled = false;
+    CPU->CriticalRegionDepth = 0;
+    CPU->CriticalRegionSchedulerEnabled = false;
     CPU->currentThread = NULL;
     CPU->readyQueue.head = CPU->readyQueue.tail = NULL;
     // Initialize the DPC Lock & list head.
@@ -252,23 +258,47 @@ StartInit: {
     void* IstDf = MiCreateKernelStack(true);
     void* IstIpi = MiCreateKernelStack(false);
     void* IstTimer = MiCreateKernelStack(false);
-#ifdef DEBUG
-    bool exists = (IstTimer && IstIpi && IstDf && IstPf && Rsp0) != 0;
-    assert(exists == true);
-#endif
+    void* IstNmi = MiCreateKernelStack(true);
+    void* IstMachineCheck = MiCreateKernelStack(true);
+    void* IstDebug = MiCreateKernelStack(false);
+    if (!Rsp0 || !IstPf || !IstDf || !IstIpi || !IstTimer ||
+        !IstNmi || !IstMachineCheck || !IstDebug) {
+        MeBugCheckEx(
+            MEMORY_LIMIT_REACHED,
+            CPU,
+            Rsp0,
+            IstPf,
+            IstDf
+        );
+    }
     CPU->Rsp0 = Rsp0;
     CPU->IstPFStackTop = IstPf;
     CPU->IstDFStackTop = IstDf;
     CPU->IstIpiStackTop = IstIpi;
     CPU->IstTimerStackTop = IstTimer;
+    CPU->IstNmiStackTop = IstNmi;
+    CPU->IstMachineCheckStackTop = IstMachineCheck;
+    CPU->IstDebugStackTop = IstDebug;
 
     // Create new GDT and TSS For Processor.
     // Allocate TSS.
     void* tss = MmAllocatePoolWithTag(NonPagedPool, sizeof(TSS), ' ssT'); // If fails on here, check alignment (16 byte)
+    if (!tss) {
+        MeBugCheckEx(MEMORY_LIMIT_REACHED, CPU, (void*)sizeof(TSS), NULL, NULL);
+    }
     CPU->tss = tss;
 
     // Allocate GDT.
     uint64_t* gdt = MmAllocatePoolWithTag(NonPagedPool, sizeof(uint64_t) * 7, ' TDG');
+    if (!gdt) {
+        MeBugCheckEx(
+            MEMORY_LIMIT_REACHED,
+            CPU,
+            (void*)(sizeof(uint64_t) * 7),
+            NULL,
+            NULL
+        );
+    }
     CPU->gdt = gdt;
 
     MeInitGdtTssForCurrentProcessor();
@@ -278,11 +308,11 @@ StartInit: {
     IDT[8].ist = 2; // Second one is double fault.
     IDT[VECTOR_CLOCK].ist = 3; // Third one is the LAPIC Timer.
     IDT[VECTOR_IPI].ist = 4; // Fourth one is the LAPIC IPI.
+    IDT[EXCEPTION_NON_MASKABLE_INTERRUPT].ist = 5;
+    IDT[EXCEPTION_SEVERE_MACHINE_CHECK].ist = 6;
+    IDT[EXCEPTION_SINGLE_STEP].ist = 7;
 
     // Reload IDT with set stacks.
     __lidt(&PIDT);
     }
-
-    MTSTATUS z = MdSetHardwareBreakpoint(DbgCallback, &MeGetCurrentProcessor()->TimerExpirationDPC.DeferredRoutine, DEBUG_ACCESS_WRITE, DEBUG_LEN_QWORD);
-    assert(MT_SUCCEEDED(z));
 }

@@ -103,6 +103,7 @@ int main(void) {
     GEN_COMMENT("Processor Constants");
     GEN_DEFINE(KERNEL_CS, KERNEL_CS);
     GEN_DEFINE(KERNEL_DS, KERNEL_DS);
+    GEN_DEFINE(KERNEL_SS, KERNEL_SS);
     GEN_DEFINE(USER_CS, USER_CS);
     GEN_DEFINE(USER_DS, USER_DS);
     GEN_DEFINE(INITIAL_RFLAGS, INITIAL_RFLAGS);
@@ -136,6 +137,7 @@ int main(void) {
     GEN_DEFINE(VECTOR_DPC, VECTOR_DPC);
     GEN_DEFINE(VECTOR_IPI, VECTOR_IPI);
     GEN_DEFINE(VECTOR_CLOCK, VECTOR_CLOCK);
+    GEN_DEFINE(EXCEPTION_PAGE_FAULT, EXCEPTION_PAGE_FAULT);
 
     // ========================================================================
     // 2. PROCESS & THREAD (ps.h)
@@ -150,6 +152,7 @@ int main(void) {
 
     GEN_COMMENT("ETHREAD Offsets");
     GEN_OFFSET(ETHREAD, InternalThread);
+    GEN_OFFSET(ETHREAD, Teb);
     GEN_OFFSET(ETHREAD, TID);
     GEN_OFFSET(ETHREAD, ParentProcess);
     GEN_OFFSET(ETHREAD, CurrentEvent);

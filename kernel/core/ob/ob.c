@@ -26,10 +26,54 @@ Revision History:
 // Global list of types (for debugging/enumeration)
 DOUBLY_LINKED_LIST ObTypeDirectoryList;
 SPINLOCK ObGlobalLock;
-volatile void* ObpReaperList = NULL;
+static volatile void* ObpReaperList = NULL;
+static EVENT ObpReaperEvent;
 
+static void
+ObpIncrementTypeCounter(
+    IN volatile uint32_t* Counter,
+    IN void* Owner
+)
+{
+    uint32_t Current = __atomic_load_n(Counter, __ATOMIC_ACQUIRE);
+    for (;;) {
+        if (Current == UINT32_MAX) {
+            MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, (void*)Counter,
+                Owner, RETADDR(0), NULL);
+        }
 
-DPC ObpReaperDpc;
+        uint32_t Observed = InterlockedCompareExchangeU32(
+            Counter,
+            Current + 1,
+            Current
+        );
+        if (Observed == Current) return;
+        Current = Observed;
+    }
+}
+
+static void
+ObpDecrementTypeCounter(
+    IN volatile uint32_t* Counter,
+    IN void* Owner
+)
+{
+    uint32_t Current = __atomic_load_n(Counter, __ATOMIC_ACQUIRE);
+    for (;;) {
+        if (Current == 0) {
+            MeBugCheckEx(MEMORY_DOUBLE_FREE, (void*)Counter,
+                Owner, RETADDR(0), NULL);
+        }
+
+        uint32_t Observed = InterlockedCompareExchangeU32(
+            Counter,
+            Current - 1,
+            Current
+        );
+        if (Observed == Current) return;
+        Current = Observed;
+    }
+}
 
 void ObInitialize (
     void
@@ -54,9 +98,39 @@ void ObInitialize (
 {
     ObGlobalLock.locked = false;
     InitializeListHead(&ObTypeDirectoryList);
-    // Initialize the DPC here, not at the ObpDefer function, as it would overwrite.
-    /// FIXME, This is currently unused.
-    MeInitializeDpc(&ObpReaperDpc, ReapOb, NULL, MEDIUM_PRIORITY);
+    ObpReaperEvent.lock.locked = 0;
+    ObpReaperEvent.signaled = false;
+    ObpReaperEvent.type = SynchronizationEvent;
+    ObpReaperEvent.waitingQueue.head = NULL;
+    ObpReaperEvent.waitingQueue.tail = NULL;
+}
+
+static void ObpReaperThread(void)
+{
+    for (;;) {
+        MsWaitForEvent(&ObpReaperEvent, INFINITE);
+
+        POBJECT_HEADER Header = (POBJECT_HEADER)
+            InterlockedExchangePointer(&ObpReaperList, NULL);
+        while (Header) {
+            POBJECT_HEADER Next = (POBJECT_HEADER)Header->NextToFree;
+            ObDeleteObject(Header);
+            Header = Next;
+        }
+    }
+}
+
+void ObInitializeReaperThread(void)
+{
+    PETHREAD ReaperThread = NULL;
+    MTSTATUS Status = PsCreateSystemThread((ThreadEntry)ObpReaperThread,
+        NULL, LOW_TIMESLICE_TICKS, &ReaperThread);
+    if (MT_FAILURE(Status)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)Status,
+            &ObpReaperEvent, NULL, NULL);
+    }
+
+    ReaperThread->WorkerThread = true;
 }
 
 MTSTATUS ObCreateObjectType(
@@ -140,6 +214,9 @@ ObCreateObject(
 --*/
 
 {
+    if (!ObjectType || !ObjectCreated) return MT_INVALID_PARAM;
+    *ObjectCreated = NULL;
+
     // 1. Calculate size
     size_t ActualSize = sizeof(OBJECT_HEADER) + ObjectSize;
 
@@ -147,12 +224,18 @@ ObCreateObject(
     POBJECT_HEADER Header = (POBJECT_HEADER)MmAllocatePoolWithTag(ObjectType->TypeInfo.PoolType, ActualSize, 'bObO'); // Ob Object, not bobo, lol.
     if (!Header) return MT_NO_MEMORY;
 
+    // Object delete routines must be able to consume a partially initialized
+    // body after any constructor failure. Pool contents are not an initializer.
+    kmemset(Header, 0, ActualSize);
     Header->Type = ObjectType;
     Header->PointerCount = 1; // Start with 1 reference
     Header->HandleCount = 0;
 
     // Update stats in the Type object
-    InterlockedIncrementU32((volatile uint32_t*)&ObjectType->TotalNumberOfObjects);
+    ObpIncrementTypeCounter(
+        (volatile uint32_t*)&ObjectType->TotalNumberOfObjects,
+        ObjectType
+    );
 
     // Return Body
     *ObjectCreated = OBJECT_HEADER_TO_OBJECT(Header);
@@ -190,6 +273,16 @@ ObReferenceObject(
         if (expected == 0) {
             // object is dying or dead
             return false;
+        }
+
+        if (expected == UINT64_MAX) {
+            MeBugCheckEx(
+                MEMORY_OVERFLOW_DETECTION,
+                Header,
+                (void*)(uintptr_t)expected,
+                Header->Type,
+                Object
+            );
         }
 
         uint64_t desired = expected + 1;
@@ -257,6 +350,8 @@ ObOpenObjectByPointer(
 )
 
 {
+    if (!Handle) return MT_INVALID_PARAM;
+
     // Assume failure.
     *Handle = 0;
 
@@ -310,6 +405,8 @@ ObReferenceObjectByHandle(
 --*/
 
 {
+    if (!Object) return MT_INVALID_PARAM;
+
     // Set initially to NULL. (to overwrite stack default if uninitialized)
     *Object = NULL;
     MTSTATUS Status = MT_INVALID_HANDLE;
@@ -317,7 +414,7 @@ ObReferenceObjectByHandle(
     // Check for special handles
     if (Handle < 0) {
         if (Handle == MtCurrentProcess()) {
-            if (DesiredType == PsProcessType) {
+            if (!DesiredType || DesiredType == PsProcessType) {
                 PEPROCESS CurrentProcess = PsGetCurrentProcess();
 
                 // Check if caller wants handle information
@@ -326,19 +423,20 @@ ObReferenceObjectByHandle(
                     HandleInformation->Object = CurrentProcess;
                 }
 
-                // Reference ourselves
-                ObReferenceObject(CurrentProcess);
-
-                // Return pointer.
-                *Object = CurrentProcess;
-                Status = MT_SUCCESS;
+                if (ObReferenceObject(CurrentProcess)) {
+                    *Object = CurrentProcess;
+                    Status = MT_SUCCESS;
+                }
+                else {
+                    Status = MT_OBJECT_DELETED;
+                }
             }
             else {
                 Status = MT_TYPE_MISMATCH;
             }
         }
         else if (Handle == MtCurrentThread()) {
-            if (DesiredType == PsThreadType) {
+            if (!DesiredType || DesiredType == PsThreadType) {
                 PETHREAD CurrentThread = PsGetCurrentThread();
 
                 // Check if caller wants handle information
@@ -347,21 +445,20 @@ ObReferenceObjectByHandle(
                     HandleInformation->Object = CurrentThread;
                 }
 
-                // Reference ourselves
-                ObReferenceObject(CurrentThread);
-
-                // Return pointer.
-                *Object = CurrentThread;
-                Status = MT_SUCCESS;
+                if (ObReferenceObject(CurrentThread)) {
+                    *Object = CurrentThread;
+                    Status = MT_SUCCESS;
+                }
+                else {
+                    Status = MT_OBJECT_DELETED;
+                }
             }
             else {
                 Status = MT_TYPE_MISMATCH;
             }
         }
 
-        if (MT_FAILURE(Status)) {
-            return Status;
-        }
+        return Status;
     }
 
 
@@ -370,8 +467,9 @@ ObReferenceObjectByHandle(
     if (!Process || !Process->ObjectTable) return MT_INVALID_HANDLE;
 
     // Lookup in the handle table.
-    PHANDLE_TABLE_ENTRY OutHandleEntry = NULL;
-    void* RetrievedObject = HtGetObject(Process->ObjectTable, Handle, &OutHandleEntry);
+    HANDLE_TABLE_ENTRY EntryInformation;
+    void* RetrievedObject = HtReferenceObject(Process->ObjectTable, Handle,
+        &EntryInformation);
     if (!RetrievedObject) return MT_INVALID_HANDLE;
 
     // Get the header.
@@ -380,23 +478,107 @@ ObReferenceObjectByHandle(
     // Lets check if the type matches
     if (DesiredType && Header->Type != DesiredType) {
         // Invalid type.
+        ObDereferenceObject(RetrievedObject);
         return MT_TYPE_MISMATCH;
     }
 
-    // Remove the invalid access masks.
-    DesiredAccess = DesiredAccess & DesiredType->TypeInfo.ValidAccessRights;
-
-    // Check access.
-    if ((OutHandleEntry->GrantedAccess & DesiredAccess) != DesiredAccess) {
-        // Access is invalid.
+    if (DesiredType &&
+        (DesiredAccess & ~DesiredType->TypeInfo.ValidAccessRights) != 0) {
+        ObDereferenceObject(RetrievedObject);
         return MT_ACCESS_DENIED;
     }
 
-    // Wow!! It is all good!!, reference it.
-    ObReferenceObject(RetrievedObject);
+    // Check access.
+    if ((EntryInformation.GrantedAccess & DesiredAccess) != DesiredAccess) {
+        // Access is invalid.
+        ObDereferenceObject(RetrievedObject);
+        return MT_ACCESS_DENIED;
+    }
+
+    // HtReferenceObject took the reference while the table was locked.
     *Object = RetrievedObject;
-    if (HandleInformation) *HandleInformation = *OutHandleEntry;
+    if (HandleInformation) *HandleInformation = EntryInformation;
     return MT_SUCCESS;
+}
+
+void
+ObIncrementHandleCount(
+    IN void* Object
+)
+{
+    if (!Object) {
+        MeBugCheckEx(NULL_POINTER_DEREFERENCE, RETADDR(0), NULL, NULL, NULL);
+    }
+
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if (!Header->Type) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Header, Object,
+            RETADDR(0), NULL);
+    }
+
+    uint64_t Current = __atomic_load_n(
+        (volatile uint64_t*)&Header->HandleCount,
+        __ATOMIC_ACQUIRE
+    );
+    for (;;) {
+        if (Current == UINT64_MAX) {
+            MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, Header,
+                (void*)(uintptr_t)Current, Header->Type, Object);
+        }
+
+        uint64_t Observed = InterlockedCompareExchangeU64(
+            (volatile uint64_t*)&Header->HandleCount,
+            Current + 1,
+            Current
+        );
+        if (Observed == Current) break;
+        Current = Observed;
+    }
+
+    ObpIncrementTypeCounter(
+        (volatile uint32_t*)&Header->Type->TotalNumberOfHandles,
+        Header->Type
+    );
+}
+
+void
+ObDecrementHandleCount(
+    IN void* Object
+)
+{
+    if (!Object) {
+        MeBugCheckEx(NULL_POINTER_DEREFERENCE, RETADDR(0), NULL, NULL, NULL);
+    }
+
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if (!Header->Type) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Header, Object,
+            RETADDR(0), NULL);
+    }
+
+    uint64_t Current = __atomic_load_n(
+        (volatile uint64_t*)&Header->HandleCount,
+        __ATOMIC_ACQUIRE
+    );
+    for (;;) {
+        if (Current == 0) {
+            MeBugCheckEx(MEMORY_DOUBLE_FREE, Header, Object,
+                RETADDR(0), NULL);
+        }
+
+        uint64_t Observed = InterlockedCompareExchangeU64(
+            (volatile uint64_t*)&Header->HandleCount,
+            Current - 1,
+            Current
+        );
+        if (Observed == Current) break;
+        Current = Observed;
+    }
+
+    ObpDecrementTypeCounter(
+        (volatile uint32_t*)&Header->Type->TotalNumberOfHandles,
+        Header->Type
+    );
 }
 
 MTSTATUS
@@ -468,19 +650,24 @@ ObCreateHandleForObjectEx(
 --*/
 
 {
-    if (!ObjectTable || !Object) return MT_INVALID_ADDRESS;
+    if (!ObjectTable || !Object || !ReturnedHandle) return MT_INVALID_ADDRESS;
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if ((DesiredAccess & ~Header->Type->TypeInfo.ValidAccessRights) != 0) {
+        return MT_ACCESS_DENIED;
+    }
 
-    // Create the handle.
+    // Establish the handle's ownership before publishing the table entry. A
+    // concurrent close of a guessed handle value must never see an entry whose
+    // object reference and handle count do not exist yet.
+    if (!ObReferenceObject(Object)) return MT_OBJECT_DELETED;
+    ObIncrementHandleCount(Object);
+
     HANDLE Handle = HtCreateHandle(ObjectTable, Object, DesiredAccess);
-    if (Handle == MT_INVALID_HANDLE) return MT_INVALID_CHECK;
-
-    // Increment handle count.
-    Header->HandleCount++;
-    Header->Type->TotalNumberOfHandles++;
-
-    // Reference the object.
-    ObReferenceObject(Object);
+    if (Handle == MT_INVALID_HANDLE) {
+        ObDecrementHandleCount(Object);
+        ObDereferenceObject(Object);
+        return MT_INVALID_CHECK;
+    }
 
     // Return success.
     *ReturnedHandle = Handle;
@@ -497,7 +684,7 @@ ObpDeferObjectDeletion(
 
     Routine description:
 
-       Defers object deletion to a DPC, to ensure no use after free.
+       Defers object deletion to a passive-level worker thread.
 
     Arguments:
 
@@ -519,10 +706,10 @@ ObpDeferObjectDeletion(
         // Update the list
     } while (InterlockedCompareExchangePointer(&ObpReaperList, Header, (void*)Entry) != Entry);
 
-    if (!Entry) {
-        // Looks like a DPC hasn't been queued yet, lets do so!
-        MeInsertQueueDpc(&ObpReaperDpc, NULL, NULL);
-    }
+    // Synchronization events coalesce multiple notifications. If the worker
+    // is already draining a captured list, this leaves the event signaled for
+    // the next pass.
+    MsSetEvent(&ObpReaperEvent);
 }
 
 void ObDeleteObject(
@@ -530,8 +717,14 @@ void ObDeleteObject(
 )
 
 {
-    // Pointers and handles must be 0.
-    assert(Header->HandleCount == 0 && Header->PointerCount == 0);
+    if (!Header || Header->HandleCount != 0 || Header->PointerCount != 0 ||
+        !Header->Type) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Header,
+            Header ? (void*)(uintptr_t)Header->PointerCount : NULL,
+            Header ? (void*)(uintptr_t)Header->HandleCount : NULL,
+            RETADDR(0));
+    }
+
     // Get the type initializer for the object.
     POBJECT_TYPE Type = Header->Type;
 
@@ -544,7 +737,10 @@ void ObDeleteObject(
     if (Type->TypeInfo.DeleteProcedure) Type->TypeInfo.DeleteProcedure(OBJECT_HEADER_TO_OBJECT(Header));
 
     // Update Stats
-    InterlockedDecrementU32((volatile uint32_t*)&Type->TotalNumberOfObjects);
+    ObpDecrementTypeCounter(
+        (volatile uint32_t*)&Type->TotalNumberOfObjects,
+        Type
+    );
 
     // Free Memory
     gop_printf(COLOR_RED, "Freeing the header\n");
@@ -579,17 +775,35 @@ void ObDereferenceObject(
     if (!Object) return;
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
-    uint64_t NewCount = InterlockedDecrementU64((volatile uint64_t*)&Header->PointerCount);
+    uint64_t Current = __atomic_load_n(
+        (volatile uint64_t*)&Header->PointerCount,
+        __ATOMIC_ACQUIRE
+    );
+    uint64_t NewCount;
+    for (;;) {
+        if (Current == 0) {
+            MeBugCheckEx(MEMORY_DOUBLE_FREE, Header, RETADDR(0), NULL, NULL);
+        }
+
+        NewCount = Current - 1;
+        uint64_t Observed = InterlockedCompareExchangeU64(
+            (volatile uint64_t*)&Header->PointerCount,
+            NewCount,
+            Current
+        );
+        if (Observed == Current) break;
+        Current = Observed;
+    }
 
     if (NewCount == 0) {
-        // NO HANDLES Must be open if we delete the object, its a use after free.
-        assert(Header->HandleCount == 0, "Object pointer count reached 0, but still has handles open to it.");
-        // Free Memory (defer it)
-        //ObpDeferObjectDeletion(Header);
-        /// FIXME below. If we are above DISPATCH_LEVEL we queue a DPC
-        /// Else, we just delete it immediately.
-        /// Until I can figure out what overwrites the processor DpcData, we immediately free
-        /// GDB Freezes immediately when I put a watchpoint on any address, I fucking hate and i cannot stress how much I hate GDB debugging with QEMU since its so buggy, i wish i had windbg..
-        ObDeleteObject(Header);
+        if (__atomic_load_n(
+            (volatile uint64_t*)&Header->HandleCount,
+            __ATOMIC_ACQUIRE
+        ) != 0) {
+            MeBugCheckEx(MEMORY_CORRUPT_HEADER, Header,
+                (void*)(uintptr_t)Header->HandleCount, RETADDR(0), NULL);
+        }
+
+        ObpDeferObjectDeletion(Header);
     }
 }

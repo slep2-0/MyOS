@@ -52,12 +52,76 @@ typedef struct _AHCI_PORT_CTX {
     HBA_CMD_TBL* cmd_tbl;       // Command table memory
     void* clb;                  // Cmd list buffer
     void* fis;                  // FIS receive buffer
+    SPINLOCK IoLock;            // Serializes command-slot/table publication
     BLOCK_DEVICE bdev;          // Associated BLOCK_DEVICE interface
 } AHCI_PORT_CTX;
 
 static HBA_MEM* hba_mem;
 static AHCI_PORT_CTX ports[AHCI_MAX_PORTS];
 static int port_count;
+
+#define AHCI_COMMAND_TABLE_SIZE 256U
+#define AHCI_MAX_PRDT_ENTRIES \
+    ((AHCI_COMMAND_TABLE_SIZE - offsetof(HBA_CMD_TBL, prdt_entry)) / sizeof(HBA_PRDT_ENTRY))
+#define AHCI_MAX_PRDT_BYTES (1U << 22)
+
+static MTSTATUS
+AhcipBuildPrdt(
+    IN HBA_CMD_TBL* CommandTable,
+    IN const void* Buffer,
+    IN size_t Bytes,
+    OUT uint32_t* EntryCount
+)
+{
+    if (!CommandTable || !Buffer || !Bytes || !EntryCount) {
+        return MT_INVALID_PARAM;
+    }
+
+    HBA_PRDT_ENTRY* Entries = (HBA_PRDT_ENTRY*)(
+        (uint8_t*)CommandTable + offsetof(HBA_CMD_TBL, prdt_entry)
+    );
+    uintptr_t CurrentVa = (uintptr_t)Buffer;
+    size_t Remaining = Bytes;
+    uint32_t Count = 0;
+
+    while (Remaining != 0) {
+        if (!MmIsAddressPresent(CurrentVa)) return MT_INVALID_ADDRESS;
+
+        uintptr_t PhysicalAddress = MiTranslateVirtualToPhysical((void*)CurrentVa);
+        size_t PageBytes = VirtualPageSize - VA_OFFSET(CurrentVa);
+        if (PageBytes > Remaining) PageBytes = Remaining;
+
+        if (Count != 0) {
+            HBA_PRDT_ENTRY* Previous = &Entries[Count - 1];
+            size_t PreviousBytes = (size_t)Previous->dbc + 1;
+            uintptr_t PreviousPhysical =
+                ((uintptr_t)Previous->dbau << 32) | Previous->dba;
+
+            if (PreviousPhysical + PreviousBytes == PhysicalAddress &&
+                PageBytes <= AHCI_MAX_PRDT_BYTES - PreviousBytes) {
+                Previous->dbc = (uint32_t)(PreviousBytes + PageBytes - 1);
+                CurrentVa += PageBytes;
+                Remaining -= PageBytes;
+                continue;
+            }
+        }
+
+        if (Count == AHCI_MAX_PRDT_ENTRIES) return MT_INVALID_PARAM;
+
+        HBA_PRDT_ENTRY* Entry = &Entries[Count++];
+        Entry->dba = (uint32_t)PhysicalAddress;
+        Entry->dbau = (uint32_t)(PhysicalAddress >> 32);
+        Entry->dbc = (uint32_t)(PageBytes - 1);
+        Entry->i = 0;
+
+        CurrentVa += PageBytes;
+        Remaining -= PageBytes;
+    }
+
+    Entries[Count - 1].i = 1;
+    *EntryCount = Count;
+    return MT_SUCCESS;
+}
 
 // Invalidate cache ranges of the CPU to ensure newest data is fetched from RAM.
 static inline void cache_flush_invalidate_range(void* addr, size_t len) {
@@ -204,7 +268,7 @@ static bool init_one_port(int idx) {
     p->fb = (uint32_t)(uintptr_t)fis_buf_phys;
     p->fbu = (uint32_t)((uintptr_t)fis_buf_phys >> 32);
 
-    // Allocate and zero Command Table buffers: 256 B × 32 slots
+    // Allocate and zero Command Table buffers: 256 B x 32 slots
     size_t tbl_size = 256 * 32;
     void* cmd_tbl = MmAllocateContigiousMemory(tbl_size, UINT64_T_MAX);
     if (!cmd_tbl) return false;
@@ -239,6 +303,7 @@ static bool init_one_port(int idx) {
     ctx->clb = clb;
     ctx->fis = fis_buf;
     ctx->cmd_tbl = cmd_tbl;
+    ctx->IoLock.locked = 0;
     ctx->bdev.read_sector = ahci_read_sector;
     ctx->bdev.write_sector = ahci_write_sector;
     ctx->bdev.dev_data = ctx;
@@ -327,7 +392,7 @@ MTSTATUS ahci_init(void) {
     return port_count > 0 ? MT_SUCCESS : MT_AHCI_PORT_FAILURE; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
 }
 
-MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
+static MTSTATUS AhcipReadSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) {
@@ -360,7 +425,6 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t byt
     HBA_CMD_HEADER* hdr = (HBA_CMD_HEADER*)((uint8_t*)ctx->clb + slot * sizeof(HBA_CMD_HEADER));
     hba_cmd_hdr_set_cfl(hdr, (sizeof(FIS_REG_H2D) + 3) / 4);
     hba_cmd_hdr_set_w(hdr, 0);      // Read
-    hba_cmd_hdr_set_prdtl(hdr, 1);  // One PRDT entry (Assuming bytes <= 4MB)
     hdr->prdbc = 0;                 // Reset transferred count
 
     // 5. Calculate Sector Count
@@ -387,17 +451,12 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t byt
     fis->countl = (uint8_t)(sector_count & 0xFF);
     fis->counth = (uint8_t)((sector_count >> 8) & 0xFF);
 
-    // 7. Setup PRDT
-    HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    uintptr_t buf_phys = MiTranslateVirtualToPhysical(buf);
-
-    // Validate PRDT limits (AHCI PRDT dbc is max 4MB)
+    // 7. Setup a scatter/gather PRDT for the virtual buffer.
     if (bytes > 4 * 1024 * 1024) return MT_INVALID_PARAM;
-
-    prdt->dba = (uint32_t)(uintptr_t)buf_phys;
-    prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
-    prdt->dbc = bytes - 1; // Zero-based count (e.g., 512 bytes -> 511)
-    prdt->i = 1; // Interrupt on Completion
+    uint32_t PrdtCount = 0;
+    MTSTATUS Status = AhcipBuildPrdt(cmd, buf, bytes, &PrdtCount);
+    if (MT_FAILURE(Status)) return Status;
+    hba_cmd_hdr_set_prdtl(hdr, PrdtCount);
 
     // 8. Memory Fences & Cache Flushing
     // Ensure the Table and Buffer are in RAM before the HBA fetches them
@@ -447,7 +506,18 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t byt
     return MT_SUCCESS;
 }
 
-MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
+MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
+    if (!dev || !dev->dev_data || !buf) return MT_INVALID_PARAM;
+
+    AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
+    IRQL OldIrql;
+    MsAcquireSpinlock(&ctx->IoLock, &OldIrql);
+    MTSTATUS Status = AhcipReadSectorLocked(dev, lba, buf, bytes);
+    MsReleaseSpinlock(&ctx->IoLock, OldIrql);
+    return Status;
+}
+
+static MTSTATUS AhcipWriteSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) return MT_INVALID_PARAM;
@@ -475,7 +545,6 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, siz
     hba_cmd_hdr_set_cfl(hdr, (sizeof(FIS_REG_H2D) + 3) / 4);
     hba_cmd_hdr_set_w(hdr, 1);       /* write */
     hdr->prdbc = 0;
-    hba_cmd_hdr_set_prdtl(hdr, 1);
 
     /* Build CFIS */
     FIS_REG_H2D* fis = (FIS_REG_H2D*)(&cmd->cfis);
@@ -496,19 +565,11 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, siz
     fis->countl = (uint8_t)(sector_count & 0xFF);
     fis->counth = (uint8_t)((sector_count >> 8) & 0xFF);
 
-    /* PRDT */
-    HBA_PRDT_ENTRY* prdt = &cmd->prdt_entry[0];
-    // translation DOES NOT write to the buffer, only makes translations.
-    uintptr_t buf_phys = MiTranslateVirtualToPhysical((void*)buf);
-
-#ifdef AHCI_DEBUG_PRINT
-    // gop_printf(COLOR_BLUE, "AHCI WRITE: phys: %p | virt: %p | bytes: %u\n", buf_phys, buf, bytes);
-#endif
-
-    prdt->dba = (uint32_t)(uintptr_t)buf_phys;
-    prdt->dbau = (uint32_t)(((uintptr_t)buf_phys) >> 32);
-    prdt->dbc = bytes - 1; // Set byte count (length - 1)
-    prdt->i = 1;           // Interrupt on completion
+    /* Build a scatter/gather PRDT for every physical run in the buffer. */
+    uint32_t PrdtCount = 0;
+    MTSTATUS Status = AhcipBuildPrdt(cmd, buf, bytes, &PrdtCount);
+    if (MT_FAILURE(Status)) return Status;
+    hba_cmd_hdr_set_prdtl(hdr, PrdtCount);
 
     // >>> CRITICAL: Cache Flushing for Writes <<<
     // For writes, we must ensure the data in the CPU cache is written back to RAM
@@ -556,6 +617,17 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, siz
     p->is = p->is;
 
     return MT_SUCCESS;
+}
+
+MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
+    if (!dev || !dev->dev_data || !buf) return MT_INVALID_PARAM;
+
+    AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
+    IRQL OldIrql;
+    MsAcquireSpinlock(&ctx->IoLock, &OldIrql);
+    MTSTATUS Status = AhcipWriteSectorLocked(dev, lba, buf, bytes);
+    MsReleaseSpinlock(&ctx->IoLock, OldIrql);
+    return Status;
 }
 
 

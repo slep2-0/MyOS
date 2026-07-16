@@ -72,6 +72,43 @@ static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
 static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
 static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
 
+static
+bool
+MiEnsureIntermediateTable(
+    IN PMMPTE Entry,
+    IN uintptr_t RecursiveAddress,
+    IN uint64_t Flags
+)
+{
+    for (;;) {
+        uint64_t Existing = __atomic_load_n(&Entry->Value, __ATOMIC_ACQUIRE);
+        if (Existing & PAGE_PRESENT) return true;
+
+        PAGE_INDEX PfnIndex = MiRequestPhysicalPage(PfnStateZeroed);
+        if (PfnIndex == PFN_ERROR) return false;
+
+        PPFN_ENTRY Pfn = INDEX_TO_PPFN(PfnIndex);
+        Pfn->Descriptor.Mapping.PteAddress = Entry;
+        Pfn->Descriptor.Mapping.Vad = NULL;
+        Pfn->State = PfnStateActive;
+        Pfn->Flags = PFN_FLAG_NONPAGED;
+
+        uint64_t NewValue = PFN_TO_PHYS(PfnIndex) | Flags;
+        if (MiAtomicSetPte(Entry, NewValue, Existing)) {
+            MiInvalidateTlbForVa((void*)RecursiveAddress);
+            return true;
+        }
+
+        // Another CPU installed or changed this level first. Our private,
+        // still-unpublished page can go straight back to the PFN allocator.
+        Pfn->Descriptor.Mapping.PteAddress = NULL;
+        Pfn->Descriptor.Mapping.Vad = NULL;
+        Pfn->State = PfnStateTransition;
+        Pfn->Flags = PFN_FLAG_NONE;
+        MiReleasePhysicalPage(PfnIndex);
+    }
+}
+
 PMMPTE
 MiGetPtePointer(
     IN  uintptr_t va
@@ -106,37 +143,19 @@ MiGetPtePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Table
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PT into PD
-        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
-        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+    if (!MiEnsureIntermediateTable(pde,
+        (uintptr_t)pt_from_recursive(pml4_i, pdpt_i, pd_i), intermediateFlags)) return NULL;
 
     // Return addr of PTE.
     uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
@@ -160,15 +179,9 @@ MiGetPml4ePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
     
     return (PMMPTE) & pml4_va[pml4_i];
 }
@@ -191,26 +204,14 @@ MiGetPdptePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     return (PMMPTE)&pdpt_va[pdpt_i];
 }
@@ -234,37 +235,19 @@ MiGetPdePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Table
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PT into PD
-        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
-        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+    if (!MiEnsureIntermediateTable(pde,
+        (uintptr_t)pt_from_recursive(pml4_i, pdpt_i, pd_i), intermediateFlags)) return NULL;
 
     return (PMMPTE)&pd_va[pd_i];
 }
@@ -299,7 +282,7 @@ MiInvalidateTlbForVa(
 #ifndef MT_UP
     // If SMP is initialized, send IPI.
     if (smpInitialized) {
-        IPI_PARAMS Param;
+        IPI_PARAMS Param = { 0 };
         Param.pageParams.addressToInvalidate = (uint64_t)VirtualAddress;
         MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, Param);
     }
@@ -413,21 +396,26 @@ MiUnmapPte (
     // Get the PTE's original VA.
     uintptr_t origVa = MiTranslatePteToVa(pte);
 
-    // Atomically exchange old info with new info to avoid races.
-    MMPTE newPte;
-    
-    // Zero out newPte
-    kmemset(&newPte, 0, sizeof(MMPTE));
+    // Hardware and software PTE formats reuse bit positions. In particular,
+    // Hard.User is Soft.Transition, so copying hardware bits after clearing
+    // Present invents a transition PTE. Translate protections explicitly.
+    MMPTE Expected;
+    MMPTE NewPte;
+    do {
+        Expected.Value = __atomic_load_n(&pte->Value, __ATOMIC_ACQUIRE);
+        NewPte.Value = 0;
 
-    // Keep only the protection flags. (so transition function set know which flags it had)
-    newPte.Hard.Write = pte->Hard.Write;
-    newPte.Hard.User = pte->Hard.User;
-    newPte.Hard.NoExecute = pte->Hard.NoExecute;
-
-    // Setting a transition PTE is at another function.
-    
-    // Exchange now.
-    InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
+        if (Expected.Hard.Present) {
+            NewPte.Soft.SoftwareFlags |= PROT_KERNEL_READ;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.Write
+                ? PROT_KERNEL_WRITE : 0;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.User
+                ? PROT_KERNEL_USER : 0;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.NoExecute
+                ? PROT_KERNEL_NOEXECUTE : 0;
+            NewPte.Soft.NoExecute = Expected.Hard.NoExecute;
+        }
+    } while (!MiAtomicSetPte(pte, NewPte.Value, Expected.Value));
 
     // Invalidate TLBs
     if (origVa) MiInvalidateTlbForVa((void*)origVa);
@@ -528,11 +516,14 @@ MiAtomicSetTransitionPte(
     Transition.Soft.SoftwareFlags |= (Pte->Hard.NoExecute) ? PROT_KERNEL_NOEXECUTE : 0;
     Transition.Soft.SoftwareFlags |= (Pte->Hard.User) ? PROT_KERNEL_USER : 0;
 
-    // Atomic compare exchange, if the PTE changed within the exchange, we do not set the value, and abort.
-    if (!InterlockedCompareExchangeU64((volatile uint64_t*)Pte, Transition.Value, Expected.Value)) return false;
-
-    // Exchange successful!
-    return true;
+    // Compare-exchange returns the value observed before the operation. Zero
+    // is a perfectly valid expected PTE, so testing this as a boolean inverts
+    // the common success case.
+    return InterlockedCompareExchangeU64(
+        (volatile uint64_t*)Pte,
+        Transition.Value,
+        Expected.Value
+    ) == Expected.Value;
 }
 
 // Reloads CR3 to flush all TLBs (slow flush)
@@ -544,7 +535,7 @@ MiReloadTLBs(
 {
     __write_cr3(__read_cr3());
 #ifndef MT_UP
-    IPI_PARAMS param;
+    IPI_PARAMS param = { 0 };
     MhSendActionToCpusAndWait(CPU_ACTION_FLUSH_CR3, param);
 #endif
 }

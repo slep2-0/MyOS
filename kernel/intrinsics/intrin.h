@@ -38,6 +38,10 @@
 #include <stdbool.h>
 #include "../includes/annotations.h"
 
+// Set after CR4.SMAP has been enabled.  STAC/CLAC are invalid instructions on
+// processors that do not advertise SMAP, so all C callers must use this gate.
+extern volatile bool MeSmapEnabled;
+
 // Disable interrupts (cli)
 FORCEINLINE
 void __cli(void) {
@@ -46,12 +50,16 @@ void __cli(void) {
 
 // Enable supervisor access to user memory (STAC)
 FORCEINLINE void __stac(void) {
-    __asm__ volatile("stac" ::: "memory");
+    if (MeSmapEnabled) {
+        __asm__ volatile("stac" ::: "memory");
+    }
 }
 
 // Disable supervisor access to user memory (CLAC)
 FORCEINLINE void __clac(void) {
-    __asm__ volatile("clac" ::: "memory");
+    if (MeSmapEnabled) {
+        __asm__ volatile("clac" ::: "memory");
+    }
 }
 
 // Enable interrupts (sti)

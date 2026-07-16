@@ -31,8 +31,6 @@ MsInitializeMutexObject (
 --*/
 
 {
-
-    // Start of function
     if (!mut) return MT_INVALID_ADDRESS;
 
     bool isValid = MmIsAddressPresent((uintptr_t)mut);
@@ -41,31 +39,10 @@ MsInitializeMutexObject (
         return MT_INVALID_ADDRESS;
     }
 
-    IRQL oldirql;
-    MsAcquireSpinlock(&mut->lock, &oldirql);
-
-    assert((mut->ownerTid) == 0, "Mutex must not be owned already in initialization.");
-    if (mut->ownerTid) {
-        MsReleaseSpinlock(&mut->lock, oldirql);
-        return MT_MUTEX_ALREADY_OWNED;
-    }
-
-    mut->ownerTid = 0;
-    mut->locked = false;
-    mut->ownerThread = NULL;
-
-    // Initialize the event state (event->lock is separate and must be preallocated)
-    // Initialize waiting queue under event lock for safety
-    {
-        IRQL eflags;
-        MsAcquireSpinlock(&mut->SynchEvent.lock, &eflags);
-        mut->SynchEvent.type = SynchronizationEvent;
-        mut->SynchEvent.signaled = false;
-        mut->SynchEvent.waitingQueue.head = mut->SynchEvent.waitingQueue.tail = NULL;
-        MsReleaseSpinlock(&mut->SynchEvent.lock, eflags);
-    }
-
-    MsReleaseSpinlock(&mut->lock, oldirql);
+    // The caller supplies raw resident storage. Acquiring either embedded lock
+    // before initializing it can spin forever on stale pool contents.
+    kmemset(mut, 0, sizeof(*mut));
+    mut->SynchEvent.type = SynchronizationEvent;
     return MT_SUCCESS;
 }
 
@@ -106,6 +83,11 @@ MsAcquireMutexObject (
     for (;;) {
         MsAcquireSpinlock(&mut->lock, &mflags);
         PETHREAD currThread = PsGetCurrentThread();
+
+        if (mut->locked && mut->ownerThread == currThread) {
+            MsReleaseSpinlock(&mut->lock, mflags);
+            return MT_MUTEX_ALREADY_OWNED;
+        }
 
         if (!mut->locked) {
             mut->locked = true;
@@ -159,8 +141,9 @@ MsReleaseMutexObject (
     IRQL mflags;
     MsAcquireSpinlock(&mut->lock, &mflags);
 
-    assert((mut->ownerTid) != 0, "Attempted release of mutex when it has no owner.");
-    if (!mut->ownerTid) {
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    if (!mut->locked || !mut->ownerTid ||
+        mut->ownerThread != CurrentThread) {
         MsReleaseSpinlock(&mut->lock, mflags);
         return MT_MUTEX_NOT_OWNED;
     }

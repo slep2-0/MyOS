@@ -36,18 +36,20 @@ extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
 static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
-    // Increment system ticks.
-    InterlockedIncrementU64(&MeSystemTickCount);
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
-    MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
-    // Check the head of the sorted timer queue
-    PITHREAD FirstSleepingThread = GetHeadOfTimerQueue();
-    MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
+    // The LAPIC timer fires on every CPU. Only the BSP owns the global clock
+    // and global timer queue; scheduler quantum accounting remains per-CPU.
+    if (cpu == MeClockProcessor) {
+        InterlockedIncrementU64(&MeSystemTickCount);
 
-    if (FirstSleepingThread && MeSystemTickCount >= FirstSleepingThread->WaitBlock.WakeupTime) {
-        // Queue timer expiration DPC.
-        MeInsertQueueDpc(&cpu->TimerExpirationDPC, NULL, NULL);
+        MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
+        PITHREAD FirstSleepingThread = GetHeadOfTimerQueue();
+        MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
+
+        if (FirstSleepingThread && MeSystemTickCount >= FirstSleepingThread->WaitBlock.WakeupTime) {
+            MeInsertQueueDpc(&cpu->TimerExpirationDPC, NULL, NULL);
+        }
     }
     
     //
@@ -63,7 +65,7 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
     PITHREAD currentThread = cpu->currentThread;
 
     // Atomic decrement, if there is still time, return.
-    if (__sync_sub_and_fetch(&currentThread->TimeSlice, 1) > 0) {
+    if (InterlockedDecrement32((volatile int32_t*) & currentThread->TimeSlice) > 0) {
         return;
     }
 
@@ -161,6 +163,13 @@ void MiInterprocessorInterrupt (
         cpu->ApcInterruptRequested = true;
         MhRequestSoftwareInterrupt(APC_LEVEL);
         break;
+    case CPU_ACTION_REQUEST_DPC:
+        // A DPC should be executed in this CPU, request interrupt.
+        cpu->DpcInterruptRequested = true;
+        if (!cpu->DpcRoutineActive) {
+            MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+        }
+        break;
     }
 
     MmFullBarrier();
@@ -210,7 +219,10 @@ MiPageFault (
     --*/
 
     
-    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
+    // The saved CS says where the faulting instruction actually executed.
+    // ITHREAD.PreviousMode says who entered the kernel and is not equivalent:
+    // a syscall bug still faults at CPL 0.
+    PRIVILEGE_MODE PreviousMode = ((trap->cs & 3) == 3) ? UserMode : KernelMode;
     MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);

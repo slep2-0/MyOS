@@ -107,8 +107,9 @@ void kernel_idle_checks(void) {
     }
     while (1) {
         if (MeGetCurrentProcessor()->ZombieThread) {
-            // Delete the last thread.
-            Schedule();
+            // Schedule is a restore-only primitive. Capture a fresh idle
+            // continuation before using it to reap the previous thread.
+            MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
         }
         __hlt();
         //Schedule();
@@ -135,12 +136,18 @@ static void test(MUTEX* mut) {
 
 static void MeCreateInitialUserModeProcess(void) {
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
-    HANDLE hProcess;
-    PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    HANDLE hProcess = MT_INVALID_HANDLE;
+    MTSTATUS status = PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    if (MT_FAILURE(status)) {
+        gop_printf(COLOR_RED, "Failed to create initial user process: %x\n", status);
+        return;
+    }
+
     // Always free handles, important.
-    MTSTATUS st = HtClose(hProcess);
-    assert(MT_SUCCEEDED(st));
-    UNREFERENCED_PARAMETER(hProcess);
+    status = HtClose(hProcess);
+    if (MT_FAILURE(status)) {
+        gop_printf(COLOR_RED, "Failed to close initial process handle: %x\n", status);
+    }
 }
 
 // All CPUs
@@ -149,16 +156,48 @@ uint32_t cpu_count = 0;
 uint32_t lapicAddress;
 bool smpInitialized;
 
-/// The Stack Overflow check only checks for minor overflows, that don't completely smash the stack, yet do change the canaries (since it only checks in function epilogue)
-/// Complete stack smashes are guarded with the guard page in MiCreateKernelStack.
+/// Stack cookies detect any overwritten function frame; they do not prove that
+/// the stack reached its guard page. Complete exhaustion is guarded separately
+/// by MiCreateKernelStack's unmapped page.
 #ifdef DEBUG
 // Stack Canary GCC
 volatile uintptr_t __stack_chk_guard;
 
+static
+void
+KiInitializeStackCookie(void)
+{
+    uint64_t Candidate = 0;
+
+    for (int Attempt = 0; Attempt < 64; Attempt++) {
+        if (__rdrand64(&Candidate)) {
+            break;
+        }
+    }
+
+    if (Candidate == 0) {
+        Candidate = __rdtsc();
+    }
+
+    if (Candidate == 0) {
+        Candidate = 0xDEADC0DEDEADC0DE;
+    }
+
+    __stack_chk_guard = Candidate;
+}
+
 __attribute__((noreturn))
 void __stack_chk_fail(void) {
     __cli();
-    MeBugCheckEx(KERNEL_STACK_OVERFLOWN, (void*)__builtin_return_address(0), NULL, NULL, NULL);
+    PETHREAD Thread = PsGetCurrentThread();
+    void* SavedRsp = Thread
+        ? (void*)(uintptr_t)Thread->InternalThread.TrapRegisters.rsp
+        : NULL;
+    MeBugCheckEx(KERNEL_STACK_COOKIE_CORRUPTION,
+        (void*)__builtin_return_address(0),
+        (void*)(uintptr_t)__read_rsp(),
+        Thread,
+        SavedRsp);
 }
 #endif
 
@@ -177,6 +216,10 @@ static void InitSystemProcess(void) {
     PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
     InitializeListHead(&PsInitialSystemProcess.AllThreads);
     PsInitialSystemProcess.ObjectTable = HtCreateHandleTable(&PsInitialSystemProcess);
+    if (!PsInitialSystemProcess.ObjectTable) {
+        MeBugCheckEx(MEMORY_LIMIT_REACHED, &PsInitialSystemProcess,
+            (void*)(uintptr_t)RETADDR(0), NULL, NULL);
+    }
     PsInitialSystemProcess.Flags |= ProcessBreakOnTermination;
 }
 
@@ -199,6 +242,10 @@ void kernel_main(BOOT_INFO* boot_info) {
     // Zero the BSS.
     size_t len = &bss_end - &bss_start;
     RtlZeroMemory(&bss_start, len);
+#ifdef DEBUG
+    // No protected C frame may span a change to the global stack guard.
+    KiInitializeStackCookie();
+#endif
     // Create the local boot struct.
     init_boot_info(boot_info);
     gop_clear_screen(&gop_local, 0); // 0 is just black. (0x0000000)
@@ -256,32 +303,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     InitSystemProcess();
     _MeSetIrql(PASSIVE_LEVEL);
 
-#ifdef DEBUG
-    {
-        uint64_t temp_canary = 0;
-        bool rdrand_ok = false;
-        for (int n = 0; n < 64; n++) {
-            if (__rdrand64(&temp_canary)) {
-                rdrand_ok = true;
-                break;
-            }
-        }
-
-        if (rdrand_ok) {
-            __stack_chk_guard = temp_canary;
-        }
-        else {
-            // rdrand didnt give a value, use timestamp of CPU cycles.
-            __stack_chk_guard = __rdtsc();
-        }
-
-        // The canary should never be zero.
-        if (__stack_chk_guard == 0) {
-            __stack_chk_guard = 0xDEADC0DEDEADC0DE; // fallback
-        }
-    }
-#endif
-
     /* Initiate Scheduler */
     InitScheduler();
 
@@ -302,7 +323,11 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
 
     // Initialize worker threads. (all thread creation must be after sched init)
-    PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
+    st = PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)st,
+            NULL, NULL, NULL);
+    }
 
     MTSTATUS status = FsInitialize();
     if (MT_FAILURE(status)) {
@@ -339,13 +364,29 @@ void kernel_main(BOOT_INFO* boot_info) {
     MUTEX* sharedMutex = MmAllocatePoolWithTag(NonPagedPool, sizeof(MUTEX), ' TUM');
     if (!sharedMutex) { gop_printf(COLOR_RED, "It's null\n"); __hlt(); }
     status = MsInitializeMutexObject(sharedMutex);
-    PsCreateSystemThread((ThreadEntry)test, sharedMutex, DEFAULT_TIMESLICE_TICKS, NULL);
-    PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess, NULL, DEFAULT_TIMESLICE_TICKS, NULL); // I have tested 5+ threads, works perfectly as it should. ( SMP UPDATED - Tested with 4 threads, MUTEX and scheduling works perfectly :) )
+    if (MT_FAILURE(status)) {
+        MeBugCheckEx(MSMGR_INIT_FAILED, (void*)(uintptr_t)status,
+            sharedMutex, NULL, NULL);
+    }
+
+    status = PsCreateSystemThread((ThreadEntry)test, sharedMutex,
+        DEFAULT_TIMESLICE_TICKS, NULL);
+    if (MT_FAILURE(status)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)status,
+            (void*)test, NULL, NULL);
+    }
+
+    status = PsCreateSystemThread((ThreadEntry)MeCreateInitialUserModeProcess,
+        NULL, DEFAULT_TIMESLICE_TICKS, NULL);
+    if (MT_FAILURE(status)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)status,
+            (void*)MeCreateInitialUserModeProcess, NULL, NULL);
+    }
     /* Enable LAPIC & SMP Now. */
     lapic_init_cpu();
     lapic_enable(); // call again.
     lapic_timer_calibrate();
-    init_lapic_timer(100); // 10ms, must be called before other APs
+    init_lapic_timer(TICK_HZ); // Must be called before other APs.
 #ifndef MT_UP
     /* Enable SMP */
     status = MhParseLAPICs((uint8_t*)apic_list, MAX_CPUS, &cpu_count, &lapicAddress);

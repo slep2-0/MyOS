@@ -21,12 +21,19 @@ static bool validate_acpi_chksum(uint8_t* data, size_t len) {
 extern BOOT_INFO boot_info_local;
 
 static void map_physical_range(uint64_t phys, size_t length, uint32_t flags) {
-	uint64_t start = phys & 0xFFFULL;
-	uint64_t end = ((phys + length) + VirtualPageSize - 1) & 0xFFFULL;
+	if (length == 0 || phys > UINT64_MAX - length) return;
+
+	uint64_t rangeEnd = phys + length;
+	if (rangeEnd > UINT64_MAX - (VirtualPageSize - 1)) return;
+
+	uint64_t start = phys & ~(VirtualPageSize - 1);
+	uint64_t end = (rangeEnd + VirtualPageSize - 1) &
+		~(VirtualPageSize - 1);
 	for (uint64_t p = start; p < end; p += VirtualPageSize) {
 		uintptr_t v = (p + PhysicalMemoryOffset);
 		PMMPTE pte = MiGetPtePointer(v);
-		MI_WRITE_PTE(pte, v, p, flags);
+		if (!pte) return;
+		MI_WRITE_PTE_RAW(pte, v, p, flags);
 	}
 }
 
@@ -116,9 +123,12 @@ MhRebootComputer (
 	case 0: // Memory mapped (MMIO)
 		phys = fadt->ResetReg.Address;
 		// Map one page containing the reset register itself.
-		PMMPTE pte = MiGetPtePointer((uintptr_t)phys);
-		MI_WRITE_PTE(pte, phys, phys, PAGE_PRESENT | PAGE_RW | PAGE_PWT | PAGE_PCD);
-		volatile uint8_t* reg = (volatile uint8_t*)phys;
+		uintptr_t virt = (uintptr_t)phys + PhysicalMemoryOffset;
+		PMMPTE pte = MiGetPtePointer(virt);
+		if (!pte) return;
+		MI_WRITE_PTE_RAW(pte, virt, phys,
+			PAGE_PRESENT | PAGE_RW | PAGE_PWT | PAGE_PCD);
+		volatile uint8_t* reg = (volatile uint8_t*)virt;
 		*reg = fadt->ResetValue;
 		break;
 	default:
@@ -140,10 +150,16 @@ MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint
 	uint8_t* end = (uint8_t*)madt + madt->h.Length;
 
 	while (ptr < end && count < maxCPUs) {
+		if ((size_t)(end - ptr) < 2) return MT_INVALID_STATE;
+
 		uint8_t type = ptr[0];
 		uint8_t len = ptr[1];
+		if (len < 2 || (size_t)(end - ptr) < len) {
+			return MT_INVALID_STATE;
+		}
 
 		if (type == MADT_LAPIC) {
+			if (len < sizeof(MADT_LOCAL_APIC)) return MT_INVALID_STATE;
 			// Found a LAPIC table.
 			MADT_LOCAL_APIC* lapic = (MADT_LOCAL_APIC*)ptr;
 			if (lapic->Flags & 1) {

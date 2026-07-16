@@ -42,12 +42,11 @@ MsSetEvent (
         while ((waiter = MeDequeueThread(&event->waitingQueue)) != NULL) {
 
             // Try to claim the thread for a Success wake
-            if (__sync_val_compare_and_swap(&waiter->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
+            if (MsClaimThreadWait(&waiter->InternalThread, MT_SUCCESS)) {
                 event->signaled = false;
                 MsReleaseSpinlock(&event->lock, flags);
 
-                waiter->InternalThread.ThreadState = THREAD_READY;
-                MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, waiter);
+                MsCompleteThreadWait(&waiter->InternalThread);
                 return MT_SUCCESS;
             }
             // If failed, the timer claimed it. Loop to find the next valid waiter.
@@ -64,9 +63,8 @@ MsSetEvent (
         // MeDequeueThread already isolates the SchedulerListEntry, so no need to nullify anything else.
 
         // Only wake threads we successfully claim
-        if (__sync_val_compare_and_swap(&t->InternalThread.WaitStatus, MT_PENDING, MT_SUCCESS) == MT_PENDING) {
-            t->InternalThread.ThreadState = THREAD_READY;
-            MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
+        if (MsClaimThreadWait(&t->InternalThread, MT_SUCCESS)) {
+            MsCompleteThreadWait(&t->InternalThread);
         }
     }
 
@@ -126,45 +124,23 @@ MsWaitForEvent (
     // Setup atomic claim and block state
     curr->InternalThread.WaitStatus = MT_PENDING;
     curr->CurrentEvent = event;
-    curr->InternalThread.ThreadState = THREAD_BLOCKED;
+    curr->InternalThread.ThreadState = THREAD_BLOCKING;
 
     // Enqueue into the Event waiting queue
     MeEnqueueThread(&event->waitingQueue, curr);
-    MsReleaseSpinlock(&event->lock, flags);
 
     // Enqueue into Timer Queue if a valid timeout is provided
     if (Milliseconds != INFINITE) {
-        uint64_t Ticks = (Milliseconds + TICK_MS - 1) / TICK_MS;
-
-        IRQL tflags;
-        MsAcquireSpinlock(&MsTimerQueueLock, &tflags);
-
-        curr->InternalThread.WaitBlock.WakeupTime = MeSystemTickCount + Ticks;
-        curr->InternalThread.WaitBlock.WaitReason = Sleeping; // Or a new WaitReason
-
-        // --- Insert SORTED into MeTimerQueue ---
-        if (IsListEmpty(&MsTimerQueue)) {
-            InsertTailList(&MsTimerQueue, &curr->InternalThread.WaitBlock.WaitBlockList);
-        }
-        else {
-            PDOUBLY_LINKED_LIST CurrentNode = MsTimerQueue.Flink;
-            bool Inserted = false;
-            while (CurrentNode != &MsTimerQueue) {
-                PITHREAD Block = CONTAINING_RECORD(CurrentNode, ITHREAD, WaitBlock.WaitBlockList);
-                if (curr->InternalThread.WaitBlock.WakeupTime < Block->WaitBlock.WakeupTime) {
-                    curr->InternalThread.WaitBlock.WaitBlockList.Flink = CurrentNode;
-                    curr->InternalThread.WaitBlock.WaitBlockList.Blink = CurrentNode->Blink;
-                    CurrentNode->Blink->Flink = &curr->InternalThread.WaitBlock.WaitBlockList;
-                    CurrentNode->Blink = &curr->InternalThread.WaitBlock.WaitBlockList;
-                    Inserted = true;
-                    break;
-                }
-                CurrentNode = CurrentNode->Flink;
-            }
-            if (!Inserted) InsertTailList(&MsTimerQueue, &curr->InternalThread.WaitBlock.WaitBlockList);
-        }
-        MsReleaseSpinlock(&MsTimerQueueLock, tflags);
+        uint64_t Ticks = Milliseconds / TICK_MS;
+        if (Milliseconds % TICK_MS) Ticks++;
+        uint64_t Now = __atomic_load_n(&MeSystemTickCount, __ATOMIC_ACQUIRE);
+        uint64_t WakeupTime = Ticks > UINT64_MAX - Now
+            ? UINT64_MAX
+            : Now + Ticks;
+        MsInsertTimerQueue(&curr->InternalThread, WakeupTime, Sleeping);
     }
+
+    MsReleaseSpinlock(&event->lock, flags);
 
 #ifdef DEBUG
     gop_printf(COLOR_PURPLE, "Sleeping current thread: %p (owner %s)\n", PsGetCurrentThread(), PsGetCurrentProcess()->ImageName);
@@ -179,41 +155,14 @@ MsWaitForEvent (
     // Unlink from queues to prevent memory corruption
     if (finalStatus == MT_TIMEOUT) {
         MsAcquireSpinlock(&event->lock, &flags);
-
-        // We need to replace this with QueueEntryRemove function.
-        if (curr->SchedulerListEntry.Flink != NULL || curr->SchedulerListEntry.Blink != NULL || event->waitingQueue.head == curr) {
-
-            if (curr->SchedulerListEntry.Blink) {
-                curr->SchedulerListEntry.Blink->Flink = curr->SchedulerListEntry.Flink;
-            }
-            else {
-                event->waitingQueue.head = CONTAINING_RECORD(curr->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
-            }
-
-            if (curr->SchedulerListEntry.Flink) {
-                curr->SchedulerListEntry.Flink->Blink = curr->SchedulerListEntry.Blink;
-            }
-            else {
-                event->waitingQueue.tail = CONTAINING_RECORD(curr->SchedulerListEntry.Blink, ETHREAD, SchedulerListEntry);
-            }
-
-            curr->SchedulerListEntry.Flink = NULL;
-            curr->SchedulerListEntry.Blink = NULL;
-        }
-
+        MeRemoveThreadFromQueue(&event->waitingQueue, curr);
         MsReleaseSpinlock(&event->lock, flags);
     }
     else if (finalStatus == MT_SUCCESS && Milliseconds != INFINITE) {
         // Event woke us, so we might still be in the Timer queue.
-        IRQL tflags;
-        MsAcquireSpinlock(&MsTimerQueueLock, &tflags);
-        if (curr->InternalThread.WaitBlock.WaitBlockList.Flink != NULL) { // If NULL, DPC popped us
-            RemoveEntryList(&curr->InternalThread.WaitBlock.WaitBlockList);
-            curr->InternalThread.WaitBlock.WaitBlockList.Flink = NULL;
-            curr->InternalThread.WaitBlock.WaitBlockList.Blink = NULL;
-        }
-        MsReleaseSpinlock(&MsTimerQueueLock, tflags);
+        MsRemoveTimerQueue(&curr->InternalThread);
     }
 
+    curr->CurrentEvent = NULL;
     return finalStatus;
 }

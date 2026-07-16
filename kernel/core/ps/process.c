@@ -43,6 +43,7 @@ typedef struct _MTDLL_CACHE_ENTRY {
 bool PsMtdllRvasSaved = false;                 // Flag to track if cache is built
 size_t PsMtdllExportCount = 0;                 // How many valid exports we actually cached
 MTDLL_CACHE_ENTRY* PsMtdllExportCache = NULL;  // Pointer to our dynamic cache array
+static PUSH_LOCK PsMtdllCacheLock;
 
 static 
 bool 
@@ -92,19 +93,25 @@ PspFindMtdllEntryRva(
     IN const char* RoutineName
 )
 {
+    if (!RoutineName) return NULL;
+
+    void* RequestedRva = NULL;
+    MsAcquirePushLockExclusive(&PsMtdllCacheLock);
+
     // If already cached use it.
     if (PsMtdllRvasSaved && PsMtdllExportCache != NULL) {
         for (size_t i = 0; i < PsMtdllExportCount; ++i) {
             if (kstrcmp(PsMtdllExportCache[i].RoutineName, RoutineName) == 0) {
-                return PsMtdllExportCache[i].RoutineRva;
+                RequestedRva = PsMtdllExportCache[i].RoutineRva;
+                break;
             }
         }
-        return NULL; // Cache exists, but the requested routine isn't in it
+        goto Cleanup;
     }
 
     // No cache yet, file object required.
     if (MtdllObject == NULL) {
-        return NULL;
+        goto Cleanup;
     }
 
     MTE_HEADER hdr;
@@ -113,38 +120,51 @@ PspFindMtdllEntryRva(
 
     // Read MTE header
     st = FsReadFile(MtdllObject, 0, &hdr, sizeof(hdr), &br);
-    if (MT_FAILURE(st) || br < sizeof(hdr)) return NULL;
+    if (MT_FAILURE(st) || br != sizeof(hdr)) goto Cleanup;
 
     if (hdr.Magic[0] != 'M' || hdr.Magic[1] != 'T' || hdr.Magic[2] != 'E' || hdr.Magic[3] != '\0') {
-        return NULL;
+        goto Cleanup;
     }
 
-    if (hdr.exports_rva == 0 || hdr.exports_size < sizeof(MT_EXPORT_ENTRY) || hdr.exports_size > MtdllObject->FileSize) return NULL;
+    if (hdr.exports_rva == 0 ||
+        hdr.exports_rva > MtdllObject->FileSize ||
+        hdr.exports_size < sizeof(MT_EXPORT_ENTRY) ||
+        hdr.exports_size % sizeof(MT_EXPORT_ENTRY) != 0 ||
+        hdr.exports_size > MtdllObject->FileSize - hdr.exports_rva) {
+        goto Cleanup;
+    }
 
     size_t max_entries = hdr.exports_size / sizeof(MT_EXPORT_ENTRY);
-    if (max_entries == 0) return NULL;
+    if (max_entries == 0 || max_entries > SIZE_MAX / sizeof(MTDLL_CACHE_ENTRY)) {
+        goto Cleanup;
+    }
 
     // Allocate memory for the cache based on max_entries
     PsMtdllExportCache = (MTDLL_CACHE_ENTRY*)MmAllocatePoolWithTag(NonPagedPool, max_entries * sizeof(MTDLL_CACHE_ENTRY), 'CACH');
     if (PsMtdllExportCache == NULL) {
-        return NULL; // Allocation failed, bail out
+        goto Cleanup;
     }
+    kmemset(PsMtdllExportCache, 0, max_entries * sizeof(MTDLL_CACHE_ENTRY));
+    PsMtdllExportCount = 0;
 
     MT_EXPORT_ENTRY entry;
     char namebuf[MAX_EXPORTED_FUNC_NAME];
-    void* requested_rva = NULL; // Keep track of the one the user actually asked for
 
     // Loop through the disk entries and save.
     for (size_t i = 0; i < max_entries; ++i) {
         uint64_t entry_off = hdr.exports_rva + (uint64_t)(i * sizeof(MT_EXPORT_ENTRY));
 
         st = FsReadFile(MtdllObject, entry_off, &entry, sizeof(entry), &br);
-        if (MT_FAILURE(st) || br < sizeof(entry)) {
+        if (MT_FAILURE(st) || br != sizeof(entry)) {
             break;
         }
 
         uint64_t name_rva_calculated = entry.name_rva;
-        if (name_rva_calculated == 0 || name_rva_calculated >= MtdllObject->FileSize) continue;
+        if (name_rva_calculated == 0 ||
+            name_rva_calculated >= MtdllObject->FileSize ||
+            entry.func_rva >= MtdllObject->FileSize) {
+            continue;
+        }
 
         if (ReadStringFromFile(MtdllObject, name_rva_calculated, namebuf, sizeof(namebuf)) != 0) {
             continue;
@@ -156,7 +176,7 @@ PspFindMtdllEntryRva(
 
         // Check if this is the routine the caller originally wanted
         if (kstrcmp(namebuf, RoutineName) == 0) {
-            requested_rva = PsMtdllExportCache[PsMtdllExportCount].RoutineRva;
+            RequestedRva = PsMtdllExportCache[PsMtdllExportCount].RoutineRva;
         }
 
         PsMtdllExportCount++;
@@ -165,7 +185,9 @@ PspFindMtdllEntryRva(
     // Cached, now set the global.
     PsMtdllRvasSaved = true;
 
-    return requested_rva; // Returns the RVA if found, or NULL if it wasn't in the table
+Cleanup:
+    MsReleasePushLockExclusive(&PsMtdllCacheLock);
+    return RequestedRva;
 }
 
 // MTDLL Entries must be cached for this function to work.
@@ -216,20 +238,28 @@ static
 MTSTATUS
 PspRelocateImage(
     IN void* ImageBase,
-    IN MTE_HEADER* Header
+    IN MTE_HEADER* Header,
+    IN size_t ImageSize
 )
 {
-    // Calculate the difference between where it is and where it wants to be
-    int64_t delta = (uintptr_t)ImageBase - (uintptr_t)Header->PreferredImageBase;
+    if (!ImageBase || !Header || ImageSize < sizeof(*Header)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
 
     // If loaded at preferred address, no work needed
-    if (delta == 0) return MT_SUCCESS;
+    if ((uintptr_t)ImageBase == (uintptr_t)Header->PreferredImageBase) {
+        return MT_SUCCESS;
+    }
 
     // null check
     if (Header->reloc_rva == 0 || Header->reloc_size == 0) {
-        // Warning: Loaded at wrong address but no relocations found? 
-        // Code might crash, but technically not a failure of this function.
-        return MT_SUCCESS;
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    if (Header->reloc_size % sizeof(Rela) != 0 ||
+        Header->reloc_rva > ImageSize ||
+        Header->reloc_size > ImageSize - Header->reloc_rva) {
+        return MT_INVALID_IMAGE_FORMAT;
     }
 
     // Point to the relocation table
@@ -242,6 +272,12 @@ PspRelocateImage(
 
         // We only care about R_X86_64_RELATIVE (Type 8)
         if ((entry->r_info & 0xFFFFFFFF) == R_X86_64_RELATIVE) {
+            if (entry->r_offset > ImageSize - sizeof(uintptr_t)) {
+                return MT_INVALID_IMAGE_FORMAT;
+            }
+            if (entry->r_addend < 0 || (uint64_t)entry->r_addend >= ImageSize) {
+                return MT_INVALID_IMAGE_FORMAT;
+            }
 
             // Pointer to the address we need to fix
             uintptr_t* target_ptr = (uintptr_t*)((uintptr_t)ImageBase + entry->r_offset);
@@ -282,8 +318,16 @@ PsCreateProcess(
 --*/
 
 {
-    MTSTATUS Status;
-    PEPROCESS Process, Parent;
+    if (!ExecutablePath || !ProcessHandle) return MT_INVALID_PARAM;
+    *ProcessHandle = MT_INVALID_HANDLE;
+
+    MTSTATUS Status = MT_GENERAL_FAILURE;
+    PEPROCESS Process = NULL;
+    PEPROCESS Parent = NULL;
+    PFILE_OBJECT MtdllObject = NULL;
+    PFILE_OBJECT FileObject = NULL;
+    HANDLE hProcess = MT_INVALID_HANDLE;
+    bool ProcessHandleCreated = false;
     // If we have a parent process, attempt to see if the parent process has the access to create another process.
     if (ParentProcess) {
         Status = ObReferenceObjectByHandle(
@@ -312,6 +356,10 @@ PsCreateProcess(
     Status = MT_GENERAL_FAILURE;
     // Setup the process now, create its PID.
     Process->PID = PsAllocateProcessId(Process);
+    if (Process->PID == MT_INVALID_HANDLE) {
+        Status = MT_NO_RESOURCES;
+        goto CleanupWithRef;
+    }
 
     // Set its parent process handle.
     Process->ParentProcess = ParentProcess;
@@ -319,7 +367,10 @@ PsCreateProcess(
     // Set its image name.
     char filename[24];
     bool mtexeok = GetBaseName(ExecutablePath, filename, sizeof(filename));
-    if (!mtexeok || filename[0] == '\0') goto CleanupWithRef;
+    if (!mtexeok || filename[0] == '\0') {
+        Status = MT_INVALID_IMAGE_FORMAT;
+        goto CleanupWithRef;
+    }
     kstrncpy(Process->ImageName, filename, sizeof(Process->ImageName));
 
     // Set initial state
@@ -334,11 +385,13 @@ PsCreateProcess(
 
     // Create object table.
     PHANDLE_TABLE HandleTable = HtCreateHandleTable(Process);
-    if (!HandleTable) goto CleanupWithRef;
+    if (!HandleTable) {
+        Status = MT_NO_MEMORY;
+        goto CleanupWithRef;
+    }
     Process->ObjectTable = HandleTable;
 
     // Open MTDLL for the process. (ALWAYS needed to map it into memory, code below also uses it)
-    PFILE_OBJECT MtdllObject = NULL;
     HANDLE MtdllHandle;
 
     Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, &MtdllHandle);
@@ -353,7 +406,7 @@ PsCreateProcess(
     // (PspFindMtdllEntry will safely use the cache and ignore MtdllObject if PsMtdllRvasSaved is true)
     void* MtdllInitializeProcessRva = PspFindMtdllEntryRva(MtdllObject, MTDLL_TARGET_ENTRY);
     if (!MtdllInitializeProcessRva) {
-        ObDereferenceObject(MtdllObject);
+        Status = MT_INVALID_IMAGE_FORMAT;
         goto CleanupWithRef;
     }
 
@@ -384,11 +437,20 @@ PsCreateProcess(
     // We wrap this in a try/except because we are touching user memory
     try {
         // Verify magic in memory just in case
-        if (LoadedHeader->Magic[0] == 'M' && LoadedHeader->Magic[1] == 'T' && LoadedHeader->Magic[2] == 'E') {
+        if (LoadedHeader->Magic[0] == 'M' && LoadedHeader->Magic[1] == 'T' &&
+            LoadedHeader->Magic[2] == 'E' && LoadedHeader->Magic[3] == '\0') {
+            Status = MT_SUCCESS;
             // Check to relocate ONLY IF the base address isnt the preferred image base.
             if (LoadedHeader->PreferredImageBase != (uint64_t)MtdllBase) {
-                PspRelocateImage(MtdllBase, LoadedHeader);
+                Status = PspRelocateImage(
+                    MtdllBase,
+                    LoadedHeader,
+                    ((PMM_SECTION)MtdllSection)->ImageSize
+                );
             }
+        }
+        else {
+            Status = MT_INVALID_IMAGE_FORMAT;
         }
     } except{
          Status = GetExceptionCode();
@@ -414,8 +476,6 @@ PsCreateProcess(
     HANDLE FileHandle;
     Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    PFILE_OBJECT FileObject = NULL;
-
     // Reference the handle, and then close it so only the pointer reference remains (this)
     Status = ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
     HtClose(FileHandle);
@@ -445,6 +505,7 @@ PsCreateProcess(
     // Create PEB.
     PMTDLL_BASIC_TYPES BasicTypes = NULL;
     Status = MmCreatePeb(Process, (void**)&Process->Peb, (void**)&BasicTypes);
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Attempt to set the entry point in the PEB.
     // Attach to process first.
@@ -455,7 +516,7 @@ PsCreateProcess(
     try {
         // For now peb is guranteed to be zeroed since allocating a PFN in fault.c is zeroed, but ill still set it to 0
         Process->Peb->BeingDebugged = false;
-        Process->Peb->ImageBase = StartAddress;
+        Process->Peb->ImageBase = ExecutableBaseAddress;
         BasicTypes->EpochCreation = MeGetEpoch();
 
         // Init basic MTDLL types as well.
@@ -481,9 +542,9 @@ PsCreateProcess(
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Create a handle for the process.
-    HANDLE hProcess;
     Status = ObCreateHandleForObject(Process, DesiredAccess, &hProcess);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+    ProcessHandleCreated = true;
     
 
     // Create a main thread for the process.
@@ -496,18 +557,17 @@ PsCreateProcess(
 #endif
 
     Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, MtdllInitializeProcess);
-    if (MT_FAILURE(Status)) {
-        // This is a failure, since there is now a handle to the process, we must close it.
-        // Destroy the handle.
-        HtClose(hProcess);
-        goto CleanupWithRef;
-    }
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // We are, successful.
-    if (ProcessHandle) *ProcessHandle = hProcess;
+    *ProcessHandle = hProcess;
     Status = MT_SUCCESS;
 
 CleanupWithRef:
+    if (MT_FAILURE(Status) && ProcessHandleCreated) {
+        HtClose(hProcess);
+        ProcessHandleCreated = false;
+    }
 #ifdef DEBUG
     if (MT_FAILURE(Status)) {
         char buf[144];
@@ -519,13 +579,10 @@ CleanupWithRef:
     // If not, it would reach reference 0, and PspDeleteProcess would execute.
     ObDereferenceObject(Process);
 
-    if (MT_FAILURE(Status)) {
-        // We dereference these file pointers only on failure
-        // If not, then they are used by MmAccessFault, and their dereference
-        // comes when the process dies. (See MmpDeleteSection triggered by PsTerminateProcess)
-        if (FileObject) ObDereferenceObject(FileObject);
-        if (MtdllObject) ObDereferenceObject(MtdllObject);
-    }
+    // Sections and mapped VADs hold their own references. These are only the
+    // process-creation routine's temporary references.
+    if (FileObject) ObDereferenceObject(FileObject);
+    if (MtdllObject) ObDereferenceObject(MtdllObject);
     // [[fallthrough]]
 Cleanup:
     if (Parent) ObDereferenceObject(Parent);
@@ -561,7 +618,6 @@ PsTerminateProcess(
 #ifdef DEBUG
     gop_printf(COLOR_MAGENTA, "**PsTerminateProcess called on process %p with name %s, ExitCode is %x (MTSTATUS)**\n", Process, Process->ImageName, ExitCode);
 #endif
-    PETHREAD Thread = NULL;
     MTSTATUS Status = MT_NOTHING_TO_TERMINATE;
     bool SeenOurselves = false;
     PETHREAD current = PsGetCurrentThread();
@@ -589,24 +645,84 @@ PsTerminateProcess(
     if (FlagBefore & ProcessBeingTerminated) return MT_PROCESS_IS_TERMINATING;
 
     Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
+    Process->ExitStatus = ExitCode;
 
-    // Begin terminating all process threads.
-    Thread = PsGetNextProcessThread(Process, Thread);
-    while (Thread) {
+    // Snapshot referenced thread pointers. A live-list cursor is unsafe here:
+    // a target can exit on another CPU and self-link its list entry before the
+    // next lookup, which would silently truncate process termination.
+    MsAcquirePushLockShared(&Process->ThreadListLock);
+    uint32_t ThreadCapacity = Process->NumThreads;
+    MsReleasePushLockShared(&Process->ThreadListLock);
+
+    PETHREAD* Threads = NULL;
+    if (ThreadCapacity != 0) {
+        Threads = MmAllocatePoolWithTag(
+            NonPagedPool,
+            (size_t)ThreadCapacity * sizeof(*Threads),
+            'pTsP'
+        );
+        if (!Threads) {
+            MeBugCheckEx(
+                MEMORY_LIMIT_REACHED,
+                Process,
+                (void*)(uintptr_t)ThreadCapacity,
+                NULL,
+                NULL
+            );
+        }
+    }
+
+    uint32_t ThreadCount = 0;
+    bool ThreadListOverflow = false;
+    MsAcquirePushLockShared(&Process->ThreadListLock);
+    PDOUBLY_LINKED_LIST ListHead = &Process->AllThreads;
+    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
+         Entry != ListHead;
+         Entry = Entry->Flink) {
+        if (ThreadCount == ThreadCapacity) {
+            ThreadListOverflow = true;
+            break;
+        }
+
+        PETHREAD Thread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
+        if (ObReferenceObject(Thread)) {
+            Threads[ThreadCount++] = Thread;
+        }
+    }
+    MsReleasePushLockShared(&Process->ThreadListLock);
+
+    if (ThreadListOverflow) {
+        for (uint32_t Index = 0; Index < ThreadCount; Index++) {
+            ObDereferenceObject(Threads[Index]);
+        }
+        if (Threads) MmFreePool(Threads);
+        MeBugCheckEx(
+            MEMORY_OVERFLOW_DETECTION,
+            Process,
+            (void*)(uintptr_t)ThreadCapacity,
+            (void*)(uintptr_t)ThreadCount,
+            &Process->AllThreads
+        );
+    }
+
+    for (uint32_t Index = 0; Index < ThreadCount; Index++) {
+        PETHREAD Thread = Threads[Index];
         if (Thread == current) {
             SeenOurselves = true;
-            Thread = PsGetNextProcessThread(Process, Thread);
+            ObDereferenceObject(Thread);
             continue;
         }
 
-        // Exterminate the thread from this world (system32)
-        PsTerminateThread(Thread, ExitCode);
-        // Get the next victim for our massacre.
-        Thread = PsGetNextProcessThread(Process, Thread);
-
-        // One got exterminated, so we mark it a successful mission.
-        Status = MT_SUCCESS;
+        MTSTATUS ThreadStatus = PsTerminateThread(Thread, ExitCode);
+        ObDereferenceObject(Thread);
+        if (MT_FAILURE(ThreadStatus)) {
+            Status = ThreadStatus;
+        }
+        else if (Status == MT_NOTHING_TO_TERMINATE) {
+            Status = MT_SUCCESS;
+        }
     }
+    if (Threads) MmFreePool(Threads);
 
     if (SeenOurselves) {
         // noreturn
@@ -649,8 +765,10 @@ PsDeleteProcess(
     // Delete all VADs owned by process.
     MiTerminateVadsProcess(Process);
     
-    // Delete its CID.
-    PsFreeCid(Process->PID);
+    // Delete its CID if construction reached CID allocation.
+    if (Process->PID > 0 && Process->PID != MT_INVALID_HANDLE) {
+        PsFreeCid(Process->PID);
+    }
 
     // Delete its handle table, this if statement should only pass if the process has failed creation.
     // The other place where the process handle table is deleted, is in the last thread termination in PspExitThread.
@@ -663,8 +781,10 @@ PsDeleteProcess(
         Process->ObjectTable = NULL;
     }
 
-    // Delete its address space.
-    MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);
+    // Delete its address space if construction reached page-table creation.
+    if (Process->InternalProcess.PageDirectoryPhysical) {
+        MmDeleteProcessAddressSpace(Process, Process->InternalProcess.PageDirectoryPhysical);
+    }
 
     // EPROCESS Would be deleted after function return.
 }

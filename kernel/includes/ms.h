@@ -244,6 +244,30 @@ MsReleasePushLockShared(
 
 PITHREAD
 GetHeadOfTimerQueue(void);
+
+void
+MsInsertTimerQueue(
+    IN PITHREAD Thread,
+    IN uint64_t WakeupTime,
+    IN int WaitReason
+);
+
+bool
+MsRemoveTimerQueue(
+    IN PITHREAD Thread
+);
+
+bool
+MsClaimThreadWait(
+    IN PITHREAD Thread,
+    IN MTSTATUS CompletionStatus
+);
+
+void
+MsCompleteThreadWait(
+    IN PITHREAD Thread
+);
+
 void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2);
 
 FORCEINLINE
@@ -393,7 +417,7 @@ RemoveEntryList(
     Flink = Entry->Flink;
     Blink = Entry->Blink;
 
-    /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
+    /* Normal (minimal) unlink â€” identical to Windows' RemoveEntryList */
     Blink->Flink = Flink;
     Flink->Blink = Blink;
 

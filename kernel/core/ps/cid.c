@@ -132,7 +132,9 @@ PsLookupProcessByProcessId(
 --*/
 
 {
-    return HtGetObject(PspCidTable, ProcessId, NULL);
+    // Take the object reference while the CID table entry is locked. Looking
+    // up a raw pointer and referencing it afterwards races object deletion.
+    return HtReferenceObject(PspCidTable, ProcessId, NULL);
 }
 
 PETHREAD
@@ -157,7 +159,7 @@ PsLookupThreadByThreadId(
 --*/
 
 {
-    return HtGetObject(PspCidTable, ThreadId, NULL);
+    return HtReferenceObject(PspCidTable, ThreadId, NULL);
 }
 
 void

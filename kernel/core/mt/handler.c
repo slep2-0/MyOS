@@ -50,10 +50,12 @@ MtSyscallHandler(
 --*/
 
 {
+    PITHREAD CurrentThread = MeGetCurrentThread();
+
     // Set previous mode to user mode, this is a system call.
     // The reason why this is set to UserMode because any pointers given to the system calls
     // must be validated (and try except only happens when previousmode is usermode)
-    MeGetCurrentThread()->PreviousMode = UserMode;
+    CurrentThread->PreviousMode = UserMode;
 
     // Increment system call count (cool)
     MeGetCurrentProcessor()->SystemCallCount++;
@@ -63,8 +65,12 @@ MtSyscallHandler(
     // And DO NOT grab the UserRsp after this sti call, as it may change immediately even, save it to a local.
     //uint64_t* UserStack = (uint64_t*)MeGetCurrentProcessor()->UserRsp;
 
+    // Publish the syscall frame before enabling preemption. A timer may switch
+    // this thread immediately after STI, and blocking syscalls need this frame.
+    CurrentThread->SyscallTrap = TrapFrame;
+
     // Enable interrupts, its safe now.
-    __sti();    
+    __sti();
     // Grab arguments
     // The return value is stored in RAX, and I dont want to do more assembly
     // Spare me.
@@ -77,7 +83,7 @@ MtSyscallHandler(
     if (SyscallNumber >= MAX_SYSCALLS || Ssdt[SyscallNumber] == NULL) {
         gop_printf(COLOR_WHITE, "**{SYSCALL-FAIURE} (%lu) Syscall number passed %lu when its over max syscalls or NULL.", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber);
         *ReturnValue = MT_INVALID_SYSTEM_SERVICE;
-        return;
+        goto Exit;
     }
 
     // Arugments are in RDI RSI RDX R10 (not RCX in Syscalls, since CPU clobbers it for RIP) R8 R9
@@ -91,11 +97,12 @@ MtSyscallHandler(
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
 
-    // Copy into the current threads PITHREAD a pointer to this trap frame so the syscall can touch it (like MtContinue)
-    MeGetCurrentThread()->SyscallTrap = TrapFrame;
-
     gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lx | ARG2: %lx | ARG3: %lx**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
     
     // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
+
+Exit:
+    MeRetireApcsOnSyscallExit(TrapFrame);
+    CurrentThread->SyscallTrap = NULL;
 }

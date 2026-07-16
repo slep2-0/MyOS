@@ -170,8 +170,10 @@ long_mode_entry:
 
 .set_stack_to_ours:
     ; RAX = Our CPU pointer
-    ; Just set RSP to ours.
+    ; Enter APMain with normal SysV function-entry alignment. A real CALL would
+    ; have pushed an eight-byte return address; APMain is a non-returning JMP.
     mov rsp, [rax + PROCESSOR_VirtStackTop]
+    sub rsp, 8
 
     ; Continue normal execution.
     mov rsi, AP_TRAMP_PHYS + AP_TRAMP_APMAIN_OFFSET

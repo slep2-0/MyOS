@@ -27,6 +27,55 @@ Revision History:
 #include "../../assert.h"
 
 static
+void
+MtpCaptureSyscallReturnFrame(
+    IN PITHREAD Thread,
+    IN MTSTATUS ReturnStatus
+)
+{
+    PTRAP_FRAME Source = Thread->SyscallTrap;
+    PTRAP_FRAME Target = &Thread->TrapRegisters;
+
+    assert(Source != NULL);
+
+    // TrapRegisters is also the timer/interrupt scheduler save area. Publish
+    // this return frame with local preemption disabled and keep interrupts off
+    // until the immediately following Schedule call consumes it.
+    MeDisableInterrupts();
+
+    Target->r15 = Source->r15;
+    Target->r14 = Source->r14;
+    Target->r13 = Source->r13;
+    Target->r12 = Source->r12;
+    Target->r11 = Source->r11;
+    Target->r10 = Source->r10;
+    Target->r9 = Source->r9;
+    Target->r8 = Source->r8;
+    Target->rbp = Source->rbp;
+    Target->rdi = Source->rdi;
+    Target->rsi = Source->rsi;
+    Target->rdx = Source->rdx;
+    Target->rcx = Source->rcx;
+    Target->rbx = Source->rbx;
+    Target->rax = ReturnStatus;
+
+    Target->vector = 0;
+    Target->error_code = 0;
+
+    // In the syscall entry frame, RCX is the user return RIP, R11 is user RFLAGS,
+    // and the TRAP_FRAME.vector slot holds the saved user RSP.
+    Target->rip = Source->rcx;
+    Target->cs = USER_CS;
+    Target->rflags = Source->r11 | (1ULL << 9);
+    Target->rsp = Source->vector;
+    Target->ss = USER_SS;
+
+    // This points into the syscall's abandoned kernel-stack frame. It is only
+    // valid until the return context above has been captured.
+    Thread->SyscallTrap = NULL;
+}
+
+static
 VAD_FLAGS
 MtpUserAllocationTypeToVadFlags(
     IN USER_PROTECTION_TYPE AllocationType
@@ -167,6 +216,10 @@ MtAllocateVirtualMemory(
             Flags = VAD_FLAG_READ | VAD_FLAG_WRITE;
             break;
 
+        case PAGE_READONLY:
+            Flags = VAD_FLAG_READ;
+            break;
+
         case PAGE_NOACCESS:
             Flags = VAD_FLAG_RESERVED;
             break;
@@ -243,6 +296,7 @@ MtOpenProcess(
 
     HANDLE OutHandleBefore;
     Status = ObOpenObjectByPointer((void*)Process, PsProcessType, DesiredAccess, &OutHandleBefore);
+    ObDereferenceObject(Process);
     if (MT_FAILURE(Status)) return Status;
 
     // Attempt to write to user memory
@@ -285,7 +339,8 @@ MtTerminateProcess(
 {
     PEPROCESS ProcessToTerminate;
     MTSTATUS Status;
-    if (ProcessHandle == MtCurrentProcess()) {
+    bool IsCurrentProcess = ProcessHandle == MtCurrentProcess();
+    if (IsCurrentProcess) {
         ProcessToTerminate = PsGetCurrentProcess();
         ObReferenceObject(ProcessToTerminate);
         gop_printf(COLOR_RED, "[PROCESS-TERMINATE] Process (%s) called upon to terminate itself from this existence of the virtual world. | Status: %x\n", ProcessToTerminate->ImageName, ExitStatus);
@@ -310,11 +365,15 @@ MtTerminateProcess(
         );
     }
 
-    // Dereference.
-    ObDereferenceObject(ProcessToTerminate);
+    // Self-termination does not return, so release its temporary reference
+    // before entering the exit path. Remote targets stay referenced through
+    // PsTerminateProcess so a concurrent close cannot invalidate the pointer.
+    if (IsCurrentProcess) ObDereferenceObject(ProcessToTerminate);
 
     // Kill the process.
     Status = PsTerminateProcess(ProcessToTerminate, ExitStatus);
+
+    if (!IsCurrentProcess) ObDereferenceObject(ProcessToTerminate);
 
     // Return status, if it wasnt ourselves who were killed.
     return Status;
@@ -352,6 +411,8 @@ MtReadFile(
 {
     // We must be at IRQL that is less or equal than APC_LEVEL (so we can bring in pageable memory, both for user memory and kernel memory)
     assert(MeGetCurrentIrql() <= APC_LEVEL);
+    if (BufferSize == 0) return MT_INVALID_PARAM;
+
     // Attempt reference of handle.
     MTSTATUS Status;
     PFILE_OBJECT FileObject;
@@ -401,6 +462,13 @@ MtReadFile(
         BufferSize,
         &KernelBytesRead
     );
+
+    // Do not copy if an internal filesystem violates the buffer contract.
+    if (KernelBytesRead > BufferSize) {
+        MmFreePool(KernelBuffer);
+        ObDereferenceObject(FileObject);
+        return MT_IO_ERROR;
+    }
 
     // If we got EOF we dont return a full failure, and we still copy the data.
     // Else, we got a failure and we free and return.
@@ -452,6 +520,8 @@ MtWriteFile(
 {
     // We must be at IRQL that is less or equal than APC_LEVEL (so we can bring in pageable memory, both for user memory and kernel memory)
     assert(MeGetCurrentIrql() <= APC_LEVEL);
+    if (BufferSize == 0) return MT_INVALID_PARAM;
+
     // Attempt reference of handle.
     MTSTATUS Status;
     PFILE_OBJECT FileObject;
@@ -512,6 +582,12 @@ MtWriteFile(
         BufferSize,
         &KernelBytesWritten
     );
+
+    if (KernelBytesWritten > BufferSize) {
+        MmFreePool(KernelBuffer);
+        ObDereferenceObject(FileObject);
+        return MT_IO_ERROR;
+    }
 
     // If we got EOF we dont return a full failure, and we still copy the data.
     // Else, we got a failure and we free and return.
@@ -617,9 +693,14 @@ MtTerminateThread(
     // Attempt to reference thread, or if it is ourselves use ourselves.
     MTSTATUS Status;
     PETHREAD Thread;
-    if (ThreadHandle == MtCurrentThread()) {
+    bool IsCurrentThread = ThreadHandle == MtCurrentThread();
+    if (IsCurrentThread) {
         // Check if we are the last thread of the process.
-        if (PsGetCurrentProcess()->NumThreads == 1) {
+        PEPROCESS CurrentProcess = PsGetCurrentProcess();
+        MsAcquirePushLockShared(&CurrentProcess->ThreadListLock);
+        bool IsLastThread = CurrentProcess->NumThreads == 1;
+        MsReleasePushLockShared(&CurrentProcess->ThreadListLock);
+        if (IsLastThread) {
             // Illegal. (MtTerminateProcess(MtCurrentProcess(), status) must be called instead)
             return MT_CANT_TERMINATE_SELF;
         }
@@ -652,11 +733,14 @@ MtTerminateThread(
         return Status;
     }
 
-    // Dereference thread (that we referenced earlier).
-    ObDereferenceObject(Thread);
+    // Keep a remote target alive until its termination APC is safely queued.
+    // A self-termination path never returns to release the reference.
+    if (IsCurrentThread) ObDereferenceObject(Thread);
 
     // Call internal function.
-    return PsTerminateThread(Thread, ExitStatus);
+    Status = PsTerminateThread(Thread, ExitStatus);
+    if (!IsCurrentThread) ObDereferenceObject(Thread);
+    return Status;
 }
 
 MTSTATUS
@@ -686,7 +770,6 @@ MtQueryVirtualMemory(
 --*/
 
 {
-    assert((uintptr_t)BaseAddress <= MmHighestUserAddress);
     if (!MI_IS_CANONICAL_ADDR(BaseAddress) || (uintptr_t)BaseAddress > MmHighestUserAddress) return MT_INVALID_ADDRESS;
 
     // Check if the process is ours.
@@ -840,9 +923,54 @@ MtProtectVirtualMemory(
 
     if (MT_FAILURE(Status)) return Status;
 
-    // All validations have been passed, now time to do the actual stuff.
-    uintptr_t ProtectStart = (uintptr_t)PAGE_ALIGN(CapturedBaseAddress);
-    uintptr_t ProtectEnd = ProtectStart + ALIGN_UP(CapturedRegionSize, VirtualPageSize) - 1;
+    // Resolve the page-aligned range without allowing a zero-length request or
+    // integer wraparound to turn it into an unrelated address range.
+    uintptr_t RequestedStart = (uintptr_t)CapturedBaseAddress;
+    if (CapturedRegionSize == 0 || RequestedStart < USER_VA_START ||
+        RequestedStart > MmHighestUserAddress) {
+        ObDereferenceObject(Process);
+        return MT_INVALID_PARAM;
+    }
+
+    uintptr_t ProtectStart = (uintptr_t)PAGE_ALIGN(RequestedStart);
+    uintptr_t LeadingBytes = RequestedStart - ProtectStart;
+    if (CapturedRegionSize > SIZE_MAX - LeadingBytes) {
+        ObDereferenceObject(Process);
+        return MT_INVALID_PARAM;
+    }
+
+    size_t SpannedRegionSize = CapturedRegionSize + LeadingBytes;
+    if (SpannedRegionSize > SIZE_MAX - (VirtualPageSize - 1)) {
+        ObDereferenceObject(Process);
+        return MT_INVALID_PARAM;
+    }
+
+    size_t AlignedRegionSize = ALIGN_UP(SpannedRegionSize, VirtualPageSize);
+    if (AlignedRegionSize == 0 ||
+        AlignedRegionSize - 1 > MmHighestUserAddress - ProtectStart) {
+        ObDereferenceObject(Process);
+        return MT_INVALID_ADDRESS;
+    }
+
+    uintptr_t ProtectEnd = ProtectStart + AlignedRegionSize - 1;
+    USER_PROTECTION_TYPE ReturnedOldProtection;
+    APC_STATE AttachState = { 0 };
+    bool Attached = false;
+
+    if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
+        ObDereferenceObject(Process);
+        return MT_PROCESS_IS_TERMINATING;
+    }
+
+    if (PsGetCurrentProcess() != Process) {
+        MeAttachProcess(&Process->InternalProcess, &AttachState);
+        if (!AttachState.AttachedToProcess) {
+            MsReleaseRundownProtection(&Process->ProcessRundown);
+            ObDereferenceObject(Process);
+            return MT_INVALID_STATE;
+        }
+        Attached = true;
+    }
 
     // Acquire exclusive.
     MsAcquirePushLockExclusive(&Process->VadLock);
@@ -852,27 +980,23 @@ MtProtectVirtualMemory(
     // Validate VAD exists and entirely encompasses the request.
     if (!Vad || ProtectEnd > Vad->EndVa) {
         MsReleasePushLockExclusive(&Process->VadLock);
+        if (Attached) MeDetachProcess(&AttachState);
+        MsReleaseRundownProtection(&Process->ProcessRundown);
         ObDereferenceObject(Process);
         return MT_INVALID_ADDRESS;
     }
 
-    try {
-        *OldProtection = MtpVadFlagsToUserAllocationType(Vad->Flags);
-        gop_printf(COLOR_RED, "**[SYSCALL-VIRTPROT] Returning OldProtection %x**\n", MtpVadFlagsToUserAllocationType(Vad->Flags));
-        *RegionSize = (ProtectEnd - ProtectStart) + 1;
-    } except{
-        MsReleasePushLockExclusive(&Process->VadLock);
-        ObDereferenceObject(Process);
-        return GetExceptionCode();
-    } end_try;
+    ReturnedOldProtection = MtpVadFlagsToUserAllocationType(Vad->Flags);
 
-    VAD_FLAGS NewVadFlags = MtpUserAllocationTypeToVadFlags(NewProtection);
+    const VAD_FLAGS ProtectionStateMask = VAD_FLAG_READ | VAD_FLAG_WRITE |
+        VAD_FLAG_EXECUTE | VAD_FLAG_RESERVED;
+    VAD_FLAGS NewVadFlags = (Vad->Flags & ~ProtectionStateMask) |
+        MtpUserAllocationTypeToVadFlags(NewProtection);
 
     // If programmer == dumb (or forgetful)
     if (Vad->Flags == NewVadFlags) {
         MsReleasePushLockExclusive(&Process->VadLock);
-        ObDereferenceObject(Process);
-        return MT_SUCCESS;
+        goto WriteOutputs;
     }
 
     // Determine which split
@@ -889,8 +1013,34 @@ MtProtectVirtualMemory(
         if (LeftVad) MiFreeVad(LeftVad);
         if (RightVad) MiFreeVad(RightVad);
         MsReleasePushLockExclusive(&Process->VadLock);
+        if (Attached) MeDetachProcess(&AttachState);
+        MsReleaseRundownProtection(&Process->ProcessRundown);
         ObDereferenceObject(Process);
         return MT_NO_RESOURCES;
+    }
+
+    bool LeftFileReferenced = false;
+    bool RightFileReferenced = false;
+    if ((Vad->Flags & VAD_FLAG_MAPPED_FILE) && Vad->File) {
+        if (NeedsLeftSplit) {
+            LeftFileReferenced = ObReferenceObject(Vad->File);
+        }
+        if (NeedsRightSplit) {
+            RightFileReferenced = ObReferenceObject(Vad->File);
+        }
+
+        if ((NeedsLeftSplit && !LeftFileReferenced) ||
+            (NeedsRightSplit && !RightFileReferenced)) {
+            if (LeftFileReferenced) ObDereferenceObject(Vad->File);
+            if (RightFileReferenced) ObDereferenceObject(Vad->File);
+            if (LeftVad) MiFreeVad(LeftVad);
+            if (RightVad) MiFreeVad(RightVad);
+            MsReleasePushLockExclusive(&Process->VadLock);
+            if (Attached) MeDetachProcess(&AttachState);
+            MsReleaseRundownProtection(&Process->ProcessRundown);
+            ObDereferenceObject(Process);
+            return MT_OBJECT_DELETED;
+        }
     }
 
     // Shrink the middle vad to avoid expanding the first node.
@@ -945,21 +1095,30 @@ MtProtectVirtualMemory(
             if (Expected.Hard.Present) {
                 switch (NewProtection) {
                 case PAGE_NOACCESS:
-                    New.Hard.Present = 0;
+                    // Keep ownership of the PFN and revoke CPL3 access. Simply
+                    // clearing Present would reinterpret the hardware User bit
+                    // as the software Transition bit in this PTE layout.
+                    New.Hard.User = 0;
+                    New.Hard.Write = 0;
+                    New.Hard.NoExecute = 1;
                     break;
                 case PAGE_EXECUTE_READWRITE:
+                    New.Hard.User = 1;
                     New.Hard.Write = 1;
                     New.Hard.NoExecute = 0;
                     break;
                 case PAGE_EXECUTE_READ:
+                    New.Hard.User = 1;
                     New.Hard.Write = 0;
                     New.Hard.NoExecute = 0;
                     break;
                 case PAGE_READWRITE:
+                    New.Hard.User = 1;
                     New.Hard.Write = 1;
                     New.Hard.NoExecute = 1;
                     break;
                 case PAGE_READONLY:
+                    New.Hard.User = 1;
                     New.Hard.Write = 0;
                     New.Hard.NoExecute = 1;
                     break;
@@ -967,9 +1126,11 @@ MtProtectVirtualMemory(
             }
             else {
                 // Swapped out, update software flags.
+                New.Soft.SoftwareFlags &= ~(PROT_KERNEL_READ |
+                    PROT_KERNEL_WRITE | PROT_KERNEL_NOEXECUTE);
                 New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_READ) ? PROT_KERNEL_READ : 0;
                 New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_WRITE) ? PROT_KERNEL_WRITE : 0;
-                New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_EXECUTE) ? PROT_KERNEL_NOEXECUTE : 0;
+                New.Soft.SoftwareFlags |= (NewVadFlags & VAD_FLAG_EXECUTE) ? 0 : PROT_KERNEL_NOEXECUTE;
                 New.Soft.SoftwareFlags |= PROT_KERNEL_USER;
             }
 
@@ -980,6 +1141,32 @@ MtProtectVirtualMemory(
     MiReloadTLBs();
 
     MsReleasePushLockExclusive(&Process->VadLock);
+
+WriteOutputs:
+    if (Attached) MeDetachProcess(&AttachState);
+
+    // User output pages are deliberately touched after dropping VadLock. A
+    // fault here must be able to acquire that lock to resolve the output page.
+    try {
+        *BaseAddress = (void*)ProtectStart;
+        *RegionSize = AlignedRegionSize;
+        *OldProtection = ReturnedOldProtection;
+    } except{
+        MsReleaseRundownProtection(&Process->ProcessRundown);
+        ObDereferenceObject(Process);
+        return GetExceptionCode();
+    }
+    end_try;
+
+#ifdef DEBUG
+    gop_printf(
+        COLOR_RED,
+        "**[SYSCALL-VIRTPROT] Returning OldProtection %x**\n",
+        ReturnedOldProtection
+    );
+#endif
+
+    MsReleaseRundownProtection(&Process->ProcessRundown);
     ObDereferenceObject(Process);
     return MT_SUCCESS;
 }
@@ -1071,6 +1258,10 @@ MtCreateThread(
     MTSTATUS Status = ProbeForRead(ThreadHandle, sizeof(HANDLE), _Alignof(HANDLE));
     if (MT_FAILURE(Status)) return Status;
 
+    // The initial RIP is restored through a user trap frame.
+    Status = ProbeForRead((const void*)StartRoutine, 1, _Alignof(char));
+    if (MT_FAILURE(Status)) return Status;
+
     PEPROCESS Process;
     if (ProcessHandle == MtCurrentProcess()) {
         Process = PsGetCurrentProcess();
@@ -1111,6 +1302,7 @@ MtCreateThread(
         try {
             *ThreadHandle = KThreadHandle;
         } except{
+            HtCloseEx(Process->ObjectTable, KThreadHandle);
             ObDereferenceObject(Process);
             return GetExceptionCode();
         }
@@ -1121,29 +1313,52 @@ MtCreateThread(
     return Status;
 }
 
-void
+extern NORETURN void restore_user_context_to_user(PETHREAD Thread);
+
+NORETURN void
 MtContinue(
     PTRAP_FRAME OldTrapFrame
 )
 
 {
-    assert(MeGetCurrentProcessor()->ApcRoutineActive == true);
+    PETHREAD Thread = PsGetCurrentThread();
+    TRAP_FRAME RestoredFrame;
+    MTSTATUS Status = ProbeForRead(OldTrapFrame, sizeof(RestoredFrame),
+        _Alignof(TRAP_FRAME));
+    if (MT_FAILURE(Status) || !Thread->InternalThread.UserApcActive ||
+        Thread->InternalThread.PreviousMode != UserMode) {
+        PspExitThread(MT_APC_ERROR);
+    }
 
-    // Access the current thread trap frame.
-    PTRAP_FRAME CurrentTrap = MeGetCurrentThread()->SyscallTrap;
-
-    // Attempt to copy the old trap frame into the current one.
-    // This would essentially return the thread to his old trap context before the user mode APC Dipatch.
-    // First, turn off the flag.
-    MeGetCurrentProcessor()->ApcRoutineActive = false;
-
+    Status = MT_SUCCESS;
     try {
-        kmemcpy(CurrentTrap, OldTrapFrame, sizeof(TRAP_FRAME));
+        kmemcpy(&RestoredFrame, OldTrapFrame, sizeof(RestoredFrame));
     } except{
-        assert(false, "Exception in copying TRAP_FRAME, this shouldn't happen.");
-        PsTerminateThread(PsGetCurrentThread(), MT_APC_ERROR);
+        Status = GetExceptionCode();
     }
     end_try;
+
+    if (MT_FAILURE(Status) || RestoredFrame.cs != USER_CS ||
+        RestoredFrame.ss != USER_SS || !RestoredFrame.rip ||
+        !RestoredFrame.rsp ||
+        !MI_IS_CANONICAL_ADDR(RestoredFrame.rip) ||
+        !MI_IS_CANONICAL_ADDR(RestoredFrame.rsp) ||
+        RestoredFrame.rip > MmHighestUserAddress ||
+        RestoredFrame.rsp > MmHighestUserAddress) {
+        PspExitThread(MT_APC_ERROR);
+    }
+
+    RestoredFrame.vector = 0;
+    RestoredFrame.error_code = 0;
+    RestoredFrame.cs = USER_CS;
+    RestoredFrame.ss = USER_SS;
+    RestoredFrame.rflags = (RestoredFrame.rflags & 0x8D5ULL) | 0x202ULL;
+
+    Thread->InternalThread.TrapRegisters = RestoredFrame;
+    Thread->InternalThread.UserApcActive = false;
+    Thread->InternalThread.SyscallTrap = NULL;
+    MeGetCurrentProcessor()->ApcRoutineActive = false;
+    restore_user_context_to_user(Thread);
 }
 
 MTSTATUS
@@ -1152,66 +1367,46 @@ MtSleep(
 )
 
 {
+    PITHREAD CurrentThread = MeGetCurrentThread();
+
     if (Milliseconds == 0) {
-        // Yield the rest of the current quantum
-        MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
+        if (CurrentThread->PreviousMode == UserMode && CurrentThread->SyscallTrap) {
+            MtpCaptureSyscallReturnFrame(CurrentThread, MT_SUCCESS);
+            Schedule();
+            UNREACHABLE_CODE();
+        }
+
+        // Yield the rest of the current quantum for kernel callers.
+        MsYieldExecution(&CurrentThread->TrapRegisters);
         return MT_SUCCESS;
     }
 
-    PITHREAD CurrentThread = MeGetCurrentThread();
+    // Convert to ticks without overflowing on a very large interval.
+    uint64_t Ticks = Milliseconds / TICK_MS;
+    if (Milliseconds % TICK_MS) Ticks++;
+    uint64_t Now = __atomic_load_n(&MeSystemTickCount, __ATOMIC_ACQUIRE);
+    uint64_t WakeupTime = Ticks > UINT64_MAX - Now
+        ? UINT64_MAX
+        : Now + Ticks;
 
-    // Convert MS to ticks (rounding up to ensure at least 1 tick)
-    uint64_t Ticks = (Milliseconds + TICK_MS - 1) / TICK_MS;
-
-    // Acquire lock at CLOCK.
-    IRQL OldIrql;
-    MeRaiseIrql(CLOCK_LEVEL, &OldIrql);
-    while (__sync_lock_test_and_set(&MsTimerQueueLock.locked, 1)) {
-        __asm__ volatile("pause" ::: "memory");
-    }
-
-    // Set waitblock info.
-    CurrentThread->WaitBlock.WakeupTime = MeSystemTickCount + Ticks;
-    CurrentThread->WaitBlock.WaitReason = Sleeping;
-    CurrentThread->ThreadState = THREAD_BLOCKED;
+    // Do not let the local scheduler observe THREAD_BLOCKING before the timer
+    // registration that can eventually wake it exists.
+    bool InterruptsEnabled = MeDisableInterrupts();
     CurrentThread->WaitStatus = MT_PENDING;
+    CurrentThread->ThreadState = THREAD_BLOCKING;
+    MsInsertTimerQueue(CurrentThread, WakeupTime, Sleeping);
+    MeEnableInterrupts(InterruptsEnabled);
 
-    // Insert SORTED into MeTimerQueue (Ascending order)
-    if (IsListEmpty(&MsTimerQueue)) {
-        InsertTailList(&MsTimerQueue, &CurrentThread->WaitBlock.WaitBlockList);
+    if (CurrentThread->PreviousMode == UserMode && CurrentThread->SyscallTrap) {
+        MtpCaptureSyscallReturnFrame(CurrentThread, MT_SUCCESS);
+        Schedule();
+        UNREACHABLE_CODE();
     }
-    else {
-        // List isn't empty, find the thread that has a wakeup timer higher than ours
-        // then insert below him (keep ascending order)
-        PDOUBLY_LINKED_LIST Current = MsTimerQueue.Flink;
-        bool Inserted = false;
-        while (Current != &MsTimerQueue) {
-            PITHREAD Block = CONTAINING_RECORD(Current, ITHREAD, WaitBlock.WaitBlockList);
-
-            if (CurrentThread->WaitBlock.WakeupTime < Block->WaitBlock.WakeupTime) {
-                // Insert before this element
-                CurrentThread->WaitBlock.WaitBlockList.Flink = Current;
-                CurrentThread->WaitBlock.WaitBlockList.Blink = Current->Blink;
-                Current->Blink->Flink = &CurrentThread->WaitBlock.WaitBlockList;
-                Current->Blink = &CurrentThread->WaitBlock.WaitBlockList;
-                Inserted = true;
-                break;
-            }
-
-            Current = Current->Flink;
-        }
-        if (!Inserted) {
-            InsertTailList(&MsTimerQueue, &CurrentThread->WaitBlock.WaitBlockList);
-        }
-    }
-
-    // Release lock.
-    __sync_lock_release(&MsTimerQueueLock.locked);
-    MeLowerIrql(OldIrql);
 
     // Context switch away
     MsYieldExecution(&CurrentThread->TrapRegisters);
-
+    
+    // Returning here means the sleep is over.
     return MT_SUCCESS;
 }
 

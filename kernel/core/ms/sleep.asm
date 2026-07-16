@@ -15,6 +15,14 @@ MsYieldExecution:
     cmp dword [gs:PROCESSOR_currentIrql], DISPATCH_LEVEL
     jae .BugCheckIrql
 
+    ; Preserve the caller's flags before CLI. The saved continuation must
+    ; resume with the original IF state, not with our handoff masking.
+    pushfq
+
+    ; TrapRegisters is shared with the interrupt-driven scheduler save path.
+    ; Keep this publication atomic through the handoff to Schedule.
+    cli
+
     ; rdi - threads registers
     ; save general-purpose registers into thread ctx
     mov     [rdi + TRAP_FRAME_r15], r15
@@ -33,17 +41,24 @@ MsYieldExecution:
     mov     [rdi + TRAP_FRAME_rbx], rbx
     mov     [rdi + TRAP_FRAME_rax], rax
 
-    ; save RSP
-    mov     [rdi + TRAP_FRAME_rsp], rsp
+    ; Recover the pre-CLI flags and restore RSP to its function-entry value.
+    pop     rbx
+    mov     [rdi + TRAP_FRAME_rflags], rbx
 
-    ; save RIP: the return address on the stack is at [rsp] (caller pushed it when it called MtSleepCurrentThread)
-    mov     rbx, [rsp]          ; rbx = address after the `call MtSleepCurrentThread` in caller
+    ; Save the caller's post-call RSP.  [rsp] is the return address, so
+    ; restoring the entry RSP itself would replay that slot and leak eight
+    ; bytes on every yield.
+    lea     rbx, [rsp + 8]
+    mov     [rdi + TRAP_FRAME_rsp], rbx
+
+    ; Save RIP: the return address on the stack is at [rsp].
+    mov     rbx, [rsp]
     mov     [rdi + TRAP_FRAME_rip], rbx
 
-    ; save RFLAGS
-    pushfq  ; push RFLAGS onto the stack
-    pop     rbx ; pop it into RBX
-    mov     [rdi + TRAP_FRAME_rflags], rbx   ; store it.
+    ; This continuation resumes after MsYieldExecution in CPL 0, even when the
+    ; owning thread is a user thread. Record that fact explicitly so the
+    ; scheduler never has to infer the required GS/IRET path from RIP.
+    mov     qword [rdi + TRAP_FRAME_cs], KERNEL_CS
 
     ; Now call scheduler to pick another thread.
     ; scheduler must not return to this code; it should context-switch away.

@@ -70,8 +70,22 @@ HtGetObject(
     _Out_Opt PHANDLE_TABLE_ENTRY* OutEntry
 );
 
+MUST_USE_RESULT
+void*
+HtReferenceObject(
+    IN PHANDLE_TABLE Table,
+    IN HANDLE Handle,
+    _Out_Opt PHANDLE_TABLE_ENTRY OutInformation
+);
+
 MTSTATUS
 HtClose(
+    IN HANDLE Handle
+);
+
+MTSTATUS
+HtCloseEx(
+    IN PHANDLE_TABLE Table,
     IN HANDLE Handle
 );
 

@@ -46,8 +46,17 @@ void APMain(void) {
         assert(false, "All APs must be initialized fully and successfully.");
         gop_printf(COLOR_RED, "**Fatal error, AP Failed to initialize, index below 0.**\n");
         __hlt();
-	}
+    }
     __writemsr(IA32_GS_BASE, (uint64_t)&cpus[idx]);
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[idx]);
+
+    // Pool lookaside descriptors are per-CPU. They must exist before the TSS
+    // and GDT allocations performed by MeInitializeProcessor below.
+    MTSTATUS status = MiInitializePoolSystem();
+    if (MT_FAILURE(status)) {
+        MeBugCheckEx(POOL_INIT_FAILURE, (void*)(uintptr_t)status,
+            &cpus[idx], NULL, NULL);
+    }
 
     // Self invalidate all TLBs
     __write_cr3(__read_cr3());
@@ -71,7 +80,7 @@ void APMain(void) {
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();
     lapic_enable();
-    init_lapic_timer(100);
+    init_lapic_timer(TICK_HZ);
 	__sti();
     Schedule();
 	for (;;) __hlt();

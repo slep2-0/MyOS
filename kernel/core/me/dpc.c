@@ -12,38 +12,6 @@
 #include "../../includes/ob.h"
 #include "../../includes/md.h"
 
-//Statically made DPC Routines.
-
-extern volatile void* ObpReaperList;
-
-void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2) {
-    /*
-    DeferredContext - Ignored
-    SystemArgument1 - Ignored
-    SystemArgument2 - Ignored
-    */
-
-    POBJECT_HEADER head, cur;
-
-    UNREFERENCED_PARAMETER(DeferredContext);
-    UNREFERENCED_PARAMETER(SystemArgument1);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-    UNREFERENCED_PARAMETER(dpc); // Switched to global, freeing this would cause in MEMORY_CORRUPT_HEADER.
-
-    // Atomically take the list
-    head = (POBJECT_HEADER)InterlockedExchangePointer(&ObpReaperList, NULL);
-
-    // Walk the captured chain and free each header
-    while (head) {
-        cur = head;
-        head = (POBJECT_HEADER)head->NextToFree;
-        ObDeleteObject(cur);
-    }
-
-}
-
-//End
-
 bool
 MeInsertQueueDpc(
     IN PDPC Dpc,
@@ -79,6 +47,8 @@ MeInsertQueueDpc(
     PDPC_DATA DpcData;
     PPROCESSOR Cpu;
     bool Inserted = false;
+    bool RequestInterrupt = false;
+    PPROCESSOR RequestCpu = NULL;
     IRQL OldIrql;
 
     if (!Dpc->DeferredRoutine) {
@@ -124,7 +94,8 @@ MeInsertQueueDpc(
         Dpc->SystemArgument2 = SystemArgument2;
 
         // Insert Head (High Priority) or Tail (Normal)
-        if (Dpc->priority == HIGH_PRIORITY) {
+        // >= to keep when i'll bring back SYSTEM_PRIORITY, so it wont put them at normal level.
+        if (Dpc->priority >= HIGH_PRIORITY) {
             InsertHeadList(&DpcData->DpcListHead, &Dpc->DpcListEntry);
         }
         else {
@@ -147,12 +118,8 @@ MeInsertQueueDpc(
 
                 // Always mark that an interrupt is needed eventually
                 Cpu->DpcInterruptRequested = true;
-
-                // Cannot request an interrupt on DISPATCH_LEVEL already.
-                if (MeGetCurrentIrql() < DISPATCH_LEVEL) {
-                    // Request an interrupt from HAL.
-                    MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
-                }
+                RequestInterrupt = true;
+                RequestCpu = Cpu;
             }
         }
     }
@@ -160,6 +127,11 @@ MeInsertQueueDpc(
     // Release Lock and Restore IRQL
     MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
     MeLowerIrql(OldIrql);
+
+    if (RequestInterrupt && RequestCpu != MeGetCurrentProcessor()) {
+        IPI_PARAMS IpiParams = { 0 };
+        MhSendActionToSpecificCpuAndWait(RequestCpu, CPU_ACTION_REQUEST_DPC, IpiParams);
+    }
 
     return Inserted;
 }
@@ -190,11 +162,12 @@ MeRemoveQueueDpc(
 
 {
     PDPC_DATA DpcData;
-    bool Enable;
     bool Removed = false;
+    IRQL OldIrql;
 
-    // Disable interrupts manually since we aren't raising IRQL yet
-    Enable = MeDisableInterrupts();
+    // DpcData's lock is an at-DPC-level lock. Raising first both satisfies
+    // that contract and prevents a local DPC interrupt from racing removal.
+    MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
     DpcData = (PDPC_DATA)Dpc->DpcData;
 
@@ -204,9 +177,12 @@ MeRemoveQueueDpc(
 
         // Check if still queued
         if (DpcData == Dpc->DpcData) {
-            DpcData->DpcQueueDepth -= 1;
+            assert(DpcData->DpcQueueDepth != 0);
+            if (DpcData->DpcQueueDepth != 0) {
+                DpcData->DpcQueueDepth -= 1;
+            }
             RemoveEntryList(&Dpc->DpcListEntry);
-            Dpc->DpcData = NULL; // Mark as not queued
+            InterlockedExchangePointer(&Dpc->DpcData, NULL); // Mark as not queued
             Removed = true;
         }
 
@@ -214,8 +190,7 @@ MeRemoveQueueDpc(
         MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
     }
 
-    // Restore Interrupts
-    MeEnableInterrupts(Enable);
+    MeLowerIrql(OldIrql);
     return Removed;
 }
 
@@ -245,9 +220,6 @@ MeRetireDPCs(
 --*/
 
 {
-#ifdef DEBUG
-    gop_printf(COLOR_WHITE, "Retiring DPCs!\n");
-#endif
     // Few assertions.
     assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
     assert(MeAreInterruptsEnabled() == false);
@@ -265,94 +237,75 @@ MeRetireDPCs(
 
     DpcData = &Cpu->DpcData;
 
-    // Outer Loop: Process until queue is empty
-    do {
-        Cpu->DpcRoutineActive = true;
+    Cpu->DpcRoutineActive = true;
 
-        // Process Timer Expiration -- Unused for now, until we introduce MsWaitForSingleObject (will replace MsWaitForEvent n stuff), and also MeDelayExecutionThread
-        /*
-        if (Cpu->TimerRequest != 0) {
-            TimerHand = Cpu->TimerHand;
-            Cpu->TimerRequest = 0;
+    // Process Timer Expiration -- Unused for now, until we introduce MsWaitForSingleObject (will replace MsWaitForEvent n stuff), and also MeDelayExecutionThread
+    /*
+    if (Cpu->TimerRequest != 0) {
+        TimerHand = Cpu->TimerHand;
+        Cpu->TimerRequest = 0;
 
-            __sti(); // Enable interrupts for timer processing
-            MeTimerExpiration(TimerHand);
-            __cli(); // Disable again
+        __sti(); // Enable interrupts for timer processing
+        MeTimerExpiration(TimerHand);
+        __cli(); // Disable again
+    }
+    */
+    UNREFERENCED_PARAMETER(TimerHand);
+
+    for (;;) {
+        MsAcquireSpinlockAtDpcLevel(&DpcData->DpcLock);
+
+        Entry = DpcData->DpcListHead.Flink;
+        if (Entry == &DpcData->DpcListHead) {
+            Cpu->DpcRoutineActive = false;
+            Cpu->DpcInterruptRequested = false;
+            MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
+            break;
         }
-        */
-        UNREFERENCED_PARAMETER(TimerHand);
 
-        // Process DPC Queue
+        RemoveEntryList(Entry);
+        Dpc = CONTAINING_RECORD(Entry, DPC, DpcListEntry);
+
+        DeferredRoutine = Dpc->DeferredRoutine;
+        DeferredContext = Dpc->DeferredContext;
+        SystemArgument1 = Dpc->SystemArgument1;
+        SystemArgument2 = Dpc->SystemArgument2;
+
+        // Clear DpcData while the entry is unlinked so the routine may requeue itself.
+        InterlockedExchangePointer(&Dpc->DpcData, NULL);
+        assert(DpcData->DpcQueueDepth != 0);
         if (DpcData->DpcQueueDepth != 0) {
+            DpcData->DpcQueueDepth -= 1;
+        }
 
-            // Inner Loop: Pop one, run one
-            do {
-                // Lock
-                MsAcquireSpinlockAtDpcLevel(&DpcData->DpcLock);
+        MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
 
-                Entry = DpcData->DpcListHead.Flink;
+        // Enable Interrupts for execution
+        __sti();
 
-                if (Entry != &DpcData->DpcListHead) {
-                    // Remove from List
-                    RemoveEntryList(Entry);
-                    Dpc = CONTAINING_RECORD(Entry, DPC, DpcListEntry);
-                    // Capture Context
-                    DeferredRoutine = Dpc->DeferredRoutine;
-                    DeferredContext = Dpc->DeferredContext;
-                    SystemArgument1 = Dpc->SystemArgument1;
-                    SystemArgument2 = Dpc->SystemArgument2;
-
-                    // Changes must be set before others can modify.
-                    MmFullBarrier();
-
-                    // Clear DpcData so it can be re-queued inside its own routine
-                    Dpc->DpcData = NULL;
-                    DpcData->DpcQueueDepth -= 1;
-
-                    // Release Lock
-                    MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
-
-                    // Enable Interrupts for execution
-                    __sti();
-
-                    // Execute
-                    Cpu->CurrentDeferredRoutine = Dpc;
+        Cpu->CurrentDeferredRoutine = Dpc;
 #ifdef DEBUG
-                    gop_printf(COLOR_WHITE, "I'm about to execute DPC %p | Routine: %p | SysArg1: %p | SysArg2: %p | Priority: %d\n", Dpc, Dpc->DeferredRoutine, Dpc->SystemArgument1, Dpc->SystemArgument2, Dpc->priority);
-                    if (!DeferredRoutine) {
-                        // NULL DPC routine.
-                        MeBugCheckEx(
-                            DPC_EXECUTE_FAILURE,
-                            (void*)(uintptr_t)Dpc,
-                            NULL,
-                            NULL,
-                            NULL
-                        );
-                    }
+        if (!DeferredRoutine) {
+            // NULL DPC routine.
+            MeBugCheckEx(
+                DPC_EXECUTE_FAILURE,
+                (void*)(uintptr_t)Dpc,
+                NULL,
+                NULL,
+                NULL
+            );
+        }
 #endif
 
-                    DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
-                    Cpu->CurrentDeferredRoutine = NULL;
+        DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
+        Cpu->CurrentDeferredRoutine = NULL;
 
-                    // Assertion, incase the DPC changed the IRQL level.
-                    assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
+        // Assertion, incase the DPC changed the IRQL level.
+        assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
 
-                    // Disable Interrupts for next loop iteration
-                    __cli();
-
-                }
-                else {
-                    // List was empty
-                    MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
-                }
-
-            } while (DpcData->DpcQueueDepth != 0);
-        }
-
-        Cpu->DpcRoutineActive = false;
-        Cpu->DpcInterruptRequested = false;
-
-    } while (DpcData->DpcQueueDepth != 0);
+        // Disable Interrupts for next loop iteration
+        __cli();
+    }
 
     // Return statement, assert that interrupts are disabled.
     assert(MeAreInterruptsEnabled() == false, "Interrupts must not enabled at DPC Retirement exit");

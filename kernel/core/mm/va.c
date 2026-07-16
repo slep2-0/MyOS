@@ -167,20 +167,22 @@ MiBitmapTestAndSetBitLocked(
 }
 
 FORCEINLINE
-void
+bool
 MiBitmapClearBitLocked(
     uint64_t* bitmap,
     size_t bit
 )
 
-// Description: Clears a bit from locked in the bitmap.
-// Return Values: None.
+// Description: Clears a bit atomically in the bitmap.
+// Return Values: True if the bit was set before it was cleared.
 
 {
     size_t q = bit >> 6;
     size_t b = bit & 63;
-    // ~ signifies the opposite of the set.
-    InterlockedAndU64((volatile uint64_t*)&bitmap[q], ~(1ULL << b));
+    uint64_t mask = 1ULL << b;
+    uint64_t old_qword = __sync_fetch_and_and(&bitmap[q], ~mask);
+
+    return (old_qword & mask) != 0;
 }
 
 FORCEINLINE
@@ -244,12 +246,16 @@ MiAllocatePoolVa(
     uintptr_t poolBase;
     volatile uint64_t* hintIndexPtr;
 
-    // Calculate pages needed, rounding up.
+    // Calculate pages needed without allowing the round-up to wrap.
+    if (NumberOfBytes == 0 ||
+        NumberOfBytes > SIZE_MAX - (VirtualPageSize - 1)) {
+        return 0;
+    }
+
     size_t NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
-    if (NumberOfPages == 0) return 0;
 
     // Set-up pool specific parameters.
-    if (PoolType == NonPagedPool) {
+    if (PoolType == NonPagedPool || PoolType == NonPagedPoolNx) {
         total_pages = NONPAGED_POOL_VA_TOTAL_PAGES;
         hint = (size_t)InterlockedFetchU64(&g_NonpagedPoolHintIndex);
         bitmap = g_NonpagedPoolVaBitmap;
@@ -268,7 +274,9 @@ MiAllocatePoolVa(
         return 0;
     }
 
-    total_qwords = total_pages / 64;
+    if (!bitmap || NumberOfPages > total_pages) return 0;
+
+    total_qwords = (total_pages + 63) / 64;
 
     // SINGLE PAGE ALLOCATION
     if (NumberOfPages == 1) {
@@ -281,7 +289,9 @@ MiAllocatePoolVa(
             // rescan loop
             while (true)
             {
-                uint64_t qword = bitmap[q_idx];
+                uint64_t qword = InterlockedFetchU64(
+                    (volatile uint64_t*)&bitmap[q_idx]
+                );
                 if (qword == 0xFFFFFFFFFFFFFFFFULL) {
                     break; // This qword is full, move to the next q_idx
                 }
@@ -289,6 +299,9 @@ MiAllocatePoolVa(
                 uint64_t inverted_qword = ~qword;
                 unsigned long bit_index_in_qword = __builtin_ctzll(inverted_qword);
                 size_t global_bit_idx = (q_idx * 64) + bit_index_in_qword;
+
+                // The final bitmap qword may contain padding bits.
+                if (global_bit_idx >= total_pages) break;
 
                 if (MiBitmapTestAndSetBitLocked(bitmap, global_bit_idx)) {
                     // We successfully claimed it!
@@ -342,7 +355,7 @@ MiAllocatePoolVa(
                     // WE FAILED! Another CPU grabbed a bit in our run.
                     // We must roll back all the bits we *did* claim.
                     for (size_t k = 0; k < j; k++) {
-                        MiBitmapClearBitLocked(bitmap, start_of_run_idx + k);
+                        (void)MiBitmapClearBitLocked(bitmap, start_of_run_idx + k);
                     }
 
                     // Reset contiguous_found and continue the outer search
@@ -389,28 +402,69 @@ MiFreePoolVaContiguous(
 --*/
 
 {
-    size_t NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
+    size_t NumberOfPages;
+    size_t total_pages;
     uint64_t* bitmap;
     uintptr_t poolBase;
     uintptr_t poolEnd;
 
-    if (PoolType == NonPagedPool) {
+    if (NumberOfBytes == 0 ||
+        NumberOfBytes > SIZE_MAX - (VirtualPageSize - 1)) {
+        MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                     (void*)(uintptr_t)NumberOfBytes, RETADDR(0), NULL);
+    }
+
+    NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
+
+    if (PoolType == NonPagedPool || PoolType == NonPagedPoolNx) {
         poolBase = MI_NONPAGED_POOL_BASE;
         poolEnd = MI_NONPAGED_POOL_END;
         bitmap = g_NonpagedPoolVaBitmap;
+        total_pages = NONPAGED_POOL_VA_TOTAL_PAGES;
     }
-    else {
+    else if (PoolType == PagedPool) {
         poolBase = MI_PAGED_POOL_BASE;
         poolEnd = MI_PAGED_POOL_END;
         bitmap = g_PagedPoolVaBitmap;
+        total_pages = PAGED_POOL_VA_TOTAL_PAGES;
+    }
+    else {
+        MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                     (void*)(uintptr_t)PoolType, RETADDR(0), NULL);
     }
 
-    if (va < poolBase || va >= poolEnd) return;
+    if (!bitmap || va < poolBase || va >= poolEnd ||
+        ((va - poolBase) & (VirtualPageSize - 1)) != 0) {
+        MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                     (void*)poolBase, (void*)poolEnd, RETADDR(0));
+    }
 
     size_t start_idx = MiVaToIndex(poolBase, va);
 
+    if (NumberOfPages > total_pages ||
+        start_idx > total_pages - NumberOfPages) {
+        MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                     (void*)(uintptr_t)NumberOfPages,
+                     (void*)(uintptr_t)total_pages, RETADDR(0));
+    }
+
+    // Validate the entire allocation before changing the bitmap. This turns a
+    // bad size or ordinary double-free into a fault at the actual caller.
+    for (size_t i = 0; i < NumberOfPages; i++) {
+        if (!MiBitmapTestBit(bitmap, start_idx + i)) {
+            MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                         (void*)(uintptr_t)(start_idx + i),
+                         (void*)(uintptr_t)NumberOfPages, RETADDR(0));
+        }
+    }
+
     // Loop and free all bits in the range
     for (size_t i = 0; i < NumberOfPages; i++) {
-        MiBitmapClearBitLocked(bitmap, start_idx + i);
+        if (!MiBitmapClearBitLocked(bitmap, start_idx + i)) {
+            // A concurrent second free raced the validation above.
+            MeBugCheckEx(MEMORY_INVALID_FREE, (void*)va,
+                         (void*)(uintptr_t)(start_idx + i),
+                         (void*)(uintptr_t)NumberOfPages, RETADDR(0));
+        }
     }
 }

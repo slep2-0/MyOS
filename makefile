@@ -12,7 +12,7 @@ ASMFLAGS_ELF = -f elf64 -Ibuild/
 ASMFLAGS_BIN = -f bin -Ibuild/
 
 # Base CFLAGS (no optimization level hardcoded here)
-# The -mgeneral-regs-only only restricts the compiler from our XMM Usage, but assembly will save it (future, or maybe now, didnt update ts)
+# Context switches currently preserve general-purpose registers only.
 CFLAGS = -std=gnu11 \
          -m64 -fno-inline -ffreestanding -c \
          -fdiagnostics-color=always \
@@ -25,12 +25,16 @@ CFLAGS = -std=gnu11 \
          -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
          -mcmodel=large -mno-red-zone -MMD -MP -fno-pie -fno-pic
 
+# Assembly consumes generated C structure offsets. Any layout-bearing header
+# change must rebuild the generator and offsets before NASM runs.
+OFFSET_HEADERS := $(wildcard kernel/*.h kernel/includes/*.h kernel/intrinsics/*.h)
+
 # Scheduler special flags (frame-pointer and no tail-call)
 SCHED_EXTRA = -fno-optimize-sibling-calls
 
 # Set optimization based on DEBUG
 ifeq ($(DEBUG),1)
-    CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -fstack-clash-protection -Wstack-usage=4096 # Larger than 4KiB and we will get a compile hard error.
+    CFLAGS += -DDEBUG -O0 -g -fstack-protector-strong -mstack-protector-guard=global -fstack-clash-protection -Wstack-usage=4096 # Larger than 4KiB and we will get a compile hard error.
     HOST_CC += -DDEBUG # Had to add this, I remember there was a #define DEBUG in the include, and it miscounted the offset, and so SMP failed.
 else
     CFLAGS += -O2
@@ -48,22 +52,27 @@ else
     SCHED_CFLAGS = $(filter-out -O2,$(CFLAGS)) $(SCHED_EXTRA)
 endif
 
+# kernel_main initializes the global stack cookie. Its translation unit cannot
+# contain a protected frame that spans that initialization.
+BOOT_CFLAGS = $(filter-out -fstack-protector% -mstack-protector-guard=%,$(SCHED_CFLAGS))
+
 # Linker flags
 LDFLAGS = -T kernel/linker.ld -static -nostdlib -m elf_x86_64
 
 # Targets
-all: clearlog build/os-image.img
+all: clearlog
+	@$(MAKE) build/os-image.img
 
 clearlog:
 	@echo "" > log.txt
 
 clean:
-	rm -f build/*.o build/*.elf build/os-image.img build/gen_offsets build/offsets.inc
+	rm -f build/*.o build/*.d build/*.bin build/*.elf build/os-image.img build/gen_offsets build/offsets.inc
 
 # Compile C files with common CFLAGS
 build/kernel.o: kernel/kernel.c
 	mkdir -p build
-	$(CC) $(SCHED_CFLAGS) $< -o $@ >> log.txt 2>&1
+	$(CC) $(BOOT_CFLAGS) $< -o $@ >> log.txt 2>&1
 
 build/assert.o: kernel/assert.c
 	mkdir -p build
@@ -282,7 +291,7 @@ build/wait.o: kernel/core/ms/wait.c
 	$(CC) $(CFLAGS) $< -o $@ >> log.txt 2>&1
 
 # Define the Offset generator
-build/gen_offsets: kernel/gen_offsets.c
+build/gen_offsets: kernel/gen_offsets.c $(OFFSET_HEADERS)
 	mkdir -p build
 	$(HOST_CC) -m64 -I. -o $@ $<
 

@@ -219,6 +219,21 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case PROCESSOR_POINTER_CORRUPTION:
         *s = "PROCESSOR_POINTER_CORRUPTION";
         break;
+    case KERNEL_STACK_COOKIE_CORRUPTION:
+        *s = "KERNEL_STACK_COOKIE_CORRUPTION";
+        break;
+    case INVALID_KERNEL_STACK_ADDRESS:
+        *s = "INVALID_KERNEL_STACK_ADDRESS";
+        break;
+    case SCHEDULER_FAILURE:
+        *s = "SCHEDULER_FAILURE";
+        break;
+    case PFN_TRANSITION_FAILURE:
+        *s = "PFN_TRANSITION_FAILURE";
+        break;
+    case PFN_RELEASE_STILL_MAPPED:
+        *s = "PFN_RELEASE_STILL_MAPPED";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -356,18 +371,19 @@ MeBugCheckEx (
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
-    HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
-    gop_printf(0xFFFFFF00, "Current Thread ID: %d (User Mode Thread: %s)\n", currTid, (PsGetCurrentThread()->SystemThread) ? "No" : "Yes");
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    HANDLE currTid = CurrentThread ? CurrentThread->TID : (HANDLE)-1;
+    gop_printf(0xFFFFFF00, "Current Thread ID: %d (User Mode Thread: %s)\n",
+        currTid, CurrentThread ? (CurrentThread->SystemThread ? "No" : "Yes") : "Unknown");
     if (smpInitialized) {
         gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
 #ifdef DEBUG
     // Thread information
-    PETHREAD CurrentThread = PsGetCurrentThread();
     if (CurrentThread) {
         // Display thread debug info
-        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.StackBase; // high address
+        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.KernelStack; // high address
         uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
         uintptr_t StackLimit = StackBase - StackSize; // low address (bottom of stack)
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
