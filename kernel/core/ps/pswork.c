@@ -37,7 +37,12 @@ static void PsStackDeleterThread(void) {
 #endif
     for (;;) {
         // Wait until there is work (or force wake).
-        MsWaitForEvent(&g_StackReaperEvent, INFINITE);
+        MsWaitForSingleObject(
+            &g_StackReaperEvent,
+            KernelMode,
+            false,
+            INFINITE
+        );
 
         // Atomically steal the whole list
         PSTACK_REAPER_ENTRY head = PopAllStacks();
@@ -76,7 +81,7 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
                 : NULL);
     }
 
-    PSTACK_REAPER_ENTRY node = MmAllocatePoolWithTag(NonPagedPool, sizeof(STACK_REAPER_ENTRY), 'rSpR');
+    PSTACK_REAPER_ENTRY node = (PSTACK_REAPER_ENTRY)MmAllocatePoolWithTag(NonPagedPool, sizeof(STACK_REAPER_ENTRY), 'rSpR');
     if (!node) {
         // We dont have a node to put in the deferred list, we must free the stack now to not let the system die on us.
         MiFreeKernelStack(StackBase, IsLarge);
@@ -104,10 +109,7 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
 
 void PsInitializeWorkerThreads(void) {
     // Setup the event.
-    g_StackReaperEvent.lock.locked = 0;
-    g_StackReaperEvent.signaled = false;
-    g_StackReaperEvent.type = SynchronizationEvent;
-    g_StackReaperEvent.waitingQueue.head = g_StackReaperEvent.waitingQueue.tail = NULL;
+    MsInitializeEvent(&g_StackReaperEvent, DispatcherSynchronizationEvent, false);
 
     // We just create a system thread for freeing stacks.
     PETHREAD StackThread = NULL;

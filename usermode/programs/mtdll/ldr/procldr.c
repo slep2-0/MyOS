@@ -54,8 +54,8 @@ LdrpResolveImport(
     for (size_t i = 0; i < ExportCount; i++) {
         MT_EXPORT_ENTRY* Entry = &ExportTable[i];
 
-        const char* ExportFunctionName = (ImageBase + Entry->name_rva);
-        const void* ExportFunctionAddress = (ImageBase + Entry->func_rva);
+        const char* ExportFunctionName = (const char*)(ImageBase + Entry->name_rva);
+        void* ExportFunctionAddress = (void*)(ImageBase + Entry->func_rva);
 
         // If this is the function that the import required, we now use it.
         if (strcmp(FunctionName, ExportFunctionName) == 0) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdarg.h>
 #include "mtdll.h"
 
 
@@ -24,4 +25,6 @@
 #define COLOR_TEAL       0xFF008080
 #define COLOR_OLIVE      0xFF808000
 
+int vsnprintf(char* str, size_t size, const char* format, va_list ap);
+int snprintf(char* str, size_t size, const char* format, ...);
 void printf(uint32_t Color, const char* fmt, ...);

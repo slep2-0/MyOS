@@ -49,6 +49,10 @@ void APMain(void) {
     }
     __writemsr(IA32_GS_BASE, (uint64_t)&cpus[idx]);
     __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[idx]);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupApMainEntered
+    );
 
     // Pool lookaside descriptors are per-CPU. They must exist before the TSS
     // and GDT allocations performed by MeInitializeProcessor below.
@@ -69,19 +73,38 @@ void APMain(void) {
     
     // Initialize the MM For current core (init PAT)
     MmInitSystem(SYSTEM_PHASE_INITIALIZE_PAT_ONLY, NULL);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupExecutiveReady
+    );
 
     // Initialize the idle thread.
     InitScheduler();
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupSchedulerReady
+    );
 
-	// mark as online and clear being unavailable
-	InterlockedOrU64(&cpus[idx].flags, CPU_ONLINE); 
-    InterlockedAndU64(&cpus[idx].flags, ~CPU_UNAVAILABLE);   // clear unavailable
-    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, MeGetCurrentProcessor()->VirtStackTop, MeGetCurrentProcessor());
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();
     lapic_enable();
     init_lapic_timer(TICK_HZ);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupLapicReady
+    );
+
+    // ProcessorStateOnline is the final publication. Once the BSP observes it with an
+    // acquire load, the local LAPIC can accept an IPI and all prior AP state is
+    // visible. IF remains clear briefly; the LAPIC retains the IPI until STI.
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupOnline
+    );
+    InterlockedStoreRelease(&cpus[idx].State, ProcessorStateOnline);
+    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, MeGetCurrentProcessor()->VirtStackTop, MeGetCurrentProcessor());
 	__sti();
+
     Schedule();
 	for (;;) __hlt();
 }

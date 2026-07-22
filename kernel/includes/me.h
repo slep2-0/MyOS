@@ -50,9 +50,11 @@ typedef enum _TimeSliceTicks {
 	HIGH_TIMESLICE_TICKS = 250 / TICK_MS
 } TimeSliceTicks, *PTimeSliceTicks;
 
+// Describes which subsystem owns cleanup of the thread's active wait block.
 typedef enum _WAIT_REASON {
-	Mutex = 0,
-	Sleeping = 1,
+	WaitReasonNone, // The thread has no active wait.
+	WaitReasonSleep,
+	WaitReasonDispatcherObject
 } WAIT_REASON;
 
 typedef enum _DPC_PRIORITY {
@@ -144,7 +146,13 @@ typedef enum _BUGCHECK_CODES {
 	INVALID_KERNEL_STACK_ADDRESS,
 	SCHEDULER_FAILURE,
 	PFN_TRANSITION_FAILURE,
-	PFN_RELEASE_STILL_MAPPED
+	PFN_RELEASE_STILL_MAPPED,
+	WAIT_STATE_FAILURE,
+	PIT_TIMER_FAILURE,
+	TIMEBASE_INITIALIZATION_FAILURE,
+	SMP_SYNCHRONIZATION_TIMEOUT,
+	WRONG_DISPATCHER_HEADER,
+	SEMAPHORE_LIMIT_REACHED,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -157,10 +165,18 @@ typedef struct _DEBUG_ENTRY {
 } DEBUG_ENTRY;
 
 typedef struct _WAIT_BLOCK {
-	struct _DOUBLY_LINKED_LIST WaitBlockList;	// List entry of the current wait block of the thread.
-	void* Object;								// Pointer to the object it is currently waiting on (indicated which one by WaitReason)
-	enum _WAIT_REASON WaitReason;				// Defines which object the thread is currently waiting on (indicated by the _WAIT_REASON Enumerator)
-	uint64_t WakeupTime;						// The remaining time until wakeup (represented by each APIC Tick)
+	DOUBLY_LINKED_LIST ObjectListEntry; // Links this thread into one dispatcher object's wait list.
+	DOUBLY_LINKED_LIST TimerListEntry;  // Independently links the same wait into the timer queue.
+	PDISPATCHER_HEADER Object;          // Dispatcher object being waited on, or NULL for a pure sleep.
+	enum _WAIT_REASON WaitReason;       // Selects the subsystem responsible for wait cleanup.
+
+	/*
+	WaitReason is intentionally explicit even though Object often implies it.
+	Timer expiration and termination use it to choose the correct cleanup path
+	and to detect a stale or corrupt wait block before touching another queue.
+	*/
+
+	uint64_t WakeupTime; // Absolute system-tick deadline; zero when no timer is registered.
 } WAIT_BLOCK, *PWAIT_BLOCK;
 
 typedef struct _TRAP_FRAME {
@@ -225,16 +241,26 @@ typedef struct _DPC {
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
 
-	// Determines to which CPU this DPC is supposed to be executed on, this allows multiple re-entracy.
-	uint8_t CpuNumber; // 0xFF means current CPU, else its per lapic id.
+	// Selects the target processor for the DPC.
+	uint8_t CpuNumber; // DPC_TARGET_CURRENT means the inserting CPU; otherwise this is a processor-array index.
 } DPC, *PDPC;
 
-typedef enum _CPU_FLAGS {
-	CPU_ONLINE = 1 << 0,  // 0b0001
-	CPU_HALTED = 1 << 1,  // 0b0010
-	CPU_DOING_IPI = 1 << 2,  // 0b0100
-	CPU_UNAVAILABLE = 1 << 3   // 0b1000
-} CPU_FLAGS;
+typedef enum _PROCESSOR_STATE {
+	ProcessorStateUninitialized = 0,
+	ProcessorStateUnavailable,
+	ProcessorStateOnline,
+	ProcessorStateHalted
+} PROCESSOR_STATE;
+
+typedef enum _PROCESSOR_STARTUP_STAGE {
+	ProcessorStartupNotStarted = 0,
+	ProcessorStartupAllocated,
+	ProcessorStartupApMainEntered,
+	ProcessorStartupExecutiveReady,
+	ProcessorStartupSchedulerReady,
+	ProcessorStartupLapicReady,
+	ProcessorStartupOnline
+} PROCESSOR_STARTUP_STAGE;
 
 // DPC Embedded struct into CPU.
 typedef struct _DPC_DATA {
@@ -262,6 +288,12 @@ typedef struct _APC_STATE {
 	bool AttachedToProcess;
 	IRQL PreviousIrql;
 	bool SavedThreadAttached;
+
+	// APC queue state. KernelMode and UserMode are the queue indexes.
+	DOUBLY_LINKED_LIST ApcListHead[2];
+	bool KernelApcPending;
+	bool KernelApcInProgress;
+	bool UserApcPending;
 } APC_STATE, *PAPC_STATE;
 
 typedef void (*PNORMAL_ROUTINE)(void* NormalContext, void* SystemArgument1, void* SystemArgument2);
@@ -269,9 +301,9 @@ typedef void (*PKERNEL_ROUTINE)(PAPC Apc, PNORMAL_ROUTINE* NormalRoutine, void**
 typedef void (*PRUNDOWN_ROUTINE)(PAPC Apc);
 
 typedef struct _APC {
-	uint8_t ApcType;             // Normal, Special, Rundown
-	uint8_t ApcMode;             // KernelMode or UserMode
-	uint8_t Inserted;            // Bool that represents if the APC has been queued or not.
+	uint8_t ApcType;             // Reserved APC subtype; currently initialized to zero and not consulted.
+	uint8_t ApcMode;             // KernelMode or UserMode; also selects ApcState.ApcListHead.
+	uint8_t Inserted;            // Nonzero while linked into the target thread's APC queue.
 
 	struct _ITHREAD* Thread;     // The target thread that will execute this APC
 	struct _DOUBLY_LINKED_LIST ApcListEntry; // Node for the thread's APC queue
@@ -282,18 +314,20 @@ typedef struct _APC {
 	PNORMAL_ROUTINE NormalRoutine;
 
 	// Context / Arguments
-	void* NormalContext;         // User defined context data (example could be from CreateFileAsyn)
+	void* NormalContext;         // Caller-supplied context passed to the normal routine.
 	void* SystemArgument1;       // OS arg1
 	void* SystemArgument2;       // OS arg2
 } APC, * PAPC;
 
 typedef struct _IPROCESS {
+	struct _DISPATCHER_HEADER Header; // Used for waiting on a process until termination.
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
 	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
 	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;
 
 typedef struct _ITHREAD {
+	struct _DISPATCHER_HEADER Header; // Used for waiting on a thread until termination.
 	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack (allocated), used for also freeing it by the memory manager (Mm).
@@ -303,13 +337,22 @@ typedef struct _ITHREAD {
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
-	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
-	volatile uint32_t WaitStatus;						   // Time left for waiting.
+	struct _WAIT_BLOCK WaitBlock; // Embedded registration for the thread's single active wait.
+	volatile uint32_t WaitStatus;						   // Atomic wait result: MT_PENDING until one wake source claims completion.
+	// Mutex ownership tracking.
+	//
+	// This is the LIST HEAD for every mutex currently owned by this thread.
+	// Each owned MUTEX is linked here through MUTEX.OwnerListEntry.
+	// OwnedMutexesListLock protects only these list links. The mutex's
+	// Header.Lock protects its OwnerThread, SignalState, and Abandoned state.
+	// If both locks are needed, acquire the mutex Header.Lock first, then this
+	// thread's OwnedMutexesListLock. Never acquire them in the opposite order.
+	DOUBLY_LINKED_LIST OwnedMutexListHead;
+	SPINLOCK OwnedMutexesListLock;
 
 	// Apc Related
-	DOUBLY_LINKED_LIST ApcListHead; // Add this to hold queued APCs
-	SPINLOCK ApcQueueLock; // Spinlock for inserting/dequeuing from an APC.
-	bool UserApcActive;
+	SPINLOCK ApcQueueLock; // Protects APC queues, Inserted, and APC pending/progress state.
+	bool UserApcActive;    // True after a user APC frame is injected and until MtContinue returns from it.
 
 	PTRAP_FRAME SyscallTrap; // A pointer to the trap frame last saved by the syscall handler, ONLY SYSTEM CALLS ARE ALLOWED TO TOUCH THIS!
 
@@ -324,7 +367,7 @@ typedef struct _ITHREAD {
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
-	enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which LAPIC & IOAPIC interrupts are masked
+	enum _IRQL currentIrql; // Current CPU IRQL; controls CR8-based local interrupt priority masking.
 	volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
 	struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
@@ -335,7 +378,9 @@ typedef struct _PROCESSOR {
 	void* Rsp0; // General RSP for interrupts & syscalls (entry only) & exceptions.
 	void* IstPFStackTop; // Page Fault IST Stack
 	void* IstDFStackTop; // Double Fault IST Stack
-	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
+	volatile PROCESSOR_STATE State; // Mutually exclusive processor lifecycle state.
+	volatile bool IpiRoutineActive; // Independent of State: an online CPU may be handling an IPI.
+	volatile uint32_t StartupStage; // PROCESSOR_STARTUP_STAGE, published during AP startup.
 	bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
@@ -358,7 +403,7 @@ typedef struct _PROCESSOR {
 	uintptr_t TimerHand;                 // Context for timer expiration (unused)
 
 	// Additional APC Fields
-	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs (or in a user mode APC)
+	volatile bool ApcRoutineActive; // True only while this CPU is executing MeRetireAPCs.
 
 	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;
@@ -367,7 +412,6 @@ typedef struct _PROCESSOR {
 
 	// Interrupt requests
 	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
-	volatile bool ApcInterruptRequested; // True if we requested an interrupt for asynchronous procedure calls.
 
 	// Scheduler Lock
 	SPINLOCK SchedulerLock;
@@ -402,6 +446,13 @@ typedef struct _PROCESSOR {
 extern volatile uint64_t MeSystemTickCount;
 extern PPROCESSOR MeClockProcessor;
 
+#define INIT_WAIT_BLOCK(ThreadPtr, WaitObject, Reason, WakeTime)       \
+    do {                                                               \
+        (ThreadPtr)->WaitBlock.Object     = (WaitObject);              \
+        (ThreadPtr)->WaitBlock.WaitReason = (Reason);                  \
+        (ThreadPtr)->WaitBlock.WakeupTime = (WakeTime);                \
+    } while (0)
+
 NORETURN
 void
 MeBugCheck(
@@ -416,6 +467,11 @@ MeBugCheckEx(
 	IN void* BugCheckParameter2,
 	IN void* BugCheckParameter3,
 	IN void* BugCheckParameter4
+);
+
+bool
+MeIsBugCheckActive(
+	void
 );
 
 void
@@ -602,6 +658,18 @@ MeGetCurrentProcessorNumber(
 	return (uint32_t)__readgsqword(FIELD_OFFSET(PROCESSOR, ID));
 }
 
+FORCEINLINE
+void
+MeClearWaitBlock(
+	PITHREAD Thread
+)
+
+{
+	Thread->WaitBlock.Object = NULL;
+	Thread->WaitBlock.WaitReason = WaitReasonNone;
+	Thread->WaitBlock.WakeupTime = 0;
+}
+
 void
 MeInitializeProcessor(
 	IN PPROCESSOR CPU,
@@ -677,6 +745,11 @@ MeInsertQueueDpc(
 	IN PDPC Dpc,
 	IN void* SystemArgument1,
 	IN void* SystemArgument2
+);
+
+void
+MeRequestCurrentDpcInterrupt(
+	void
 );
 
 bool

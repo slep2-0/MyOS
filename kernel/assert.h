@@ -1,6 +1,6 @@
 /*
  * PROJECT:     MatanelOS Kernel
- * LICENSE:     NONE
+ * LICENSE:     GPLv3
  * PURPOSE:		Runtime Assertion Implementation.
  */
 

@@ -24,14 +24,6 @@
 #endif
 
 #define SELF_REF_IDX 0x1FF 
-
-static void* kmemcpy(void* dest, const void* src, size_t len) {
-    uint8_t* d = (uint8_t*)dest;
-    const uint8_t* s = (const uint8_t*)src;
-    for (size_t i = 0; i < len; i++) d[i] = s[i];
-    return dest;
-}
-
 // --- STRUCTS ---
 
 typedef struct {
@@ -74,7 +66,6 @@ typedef struct {
 
     UINT64 KernelStackTop;
     uintptr_t Pml4Phys;
-    uint16_t TssSelector;
     uintptr_t AcpiRsdpPhys;
 } BOOT_INFO;
 
@@ -122,6 +113,7 @@ EFI_GUID gEfiFileInfoGuid = EFI_FILE_INFO_ID;
 #define PTE_PRESENT (1ULL << 0)
 #define PTE_RW (1ULL << 1)
 #define PTE_PS (1ULL << 7)
+#define PTE_ADDRESS_MASK 0x000FFFFFFFFFF000ULL
 
 #define PAGE_SIZE_4K 0x1000ULL
 #define KERNEL_VA_START 0xfffff80000000000ULL
@@ -205,6 +197,25 @@ STATIC EFI_STATUS map_page_4k(UINT64 virt, UINT64 phys, UINT64 pte_flags) {
     return EFI_SUCCESS;
 }
 
+static UINT64* find_page_4k(UINT64 virt) {
+    if (!Pml4Virt) return NULL;
+
+    UINT64 entry = Pml4Virt[IDX_PML4(virt)];
+    if (!(entry & PTE_PRESENT) || (entry & PTE_PS)) return NULL;
+    UINT64* pdpt = (UINT64*)(UINTN)(entry & PTE_ADDRESS_MASK);
+
+    entry = pdpt[IDX_PDPT(virt)];
+    if (!(entry & PTE_PRESENT) || (entry & PTE_PS)) return NULL;
+    UINT64* pd = (UINT64*)(UINTN)(entry & PTE_ADDRESS_MASK);
+
+    entry = pd[IDX_PD(virt)];
+    if (!(entry & PTE_PRESENT) || (entry & PTE_PS)) return NULL;
+    UINT64* pt = (UINT64*)(UINTN)(entry & PTE_ADDRESS_MASK);
+
+    UINT64* pte = &pt[IDX_PT(virt)];
+    return (*pte & PTE_PRESENT) ? pte : NULL;
+}
+
 static EFI_STATUS map_range(UINTN StartAddrPhys, UINTN EndAddrPhys, UINTN VirtBase, UINT64 flags) {
     UINTN p = StartAddrPhys;
     UINTN v = VirtBase;
@@ -234,9 +245,17 @@ static UINT64 get_elf_entry_if_present(VOID* buf, UINTN size) {
 }
 
 STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
+    if (FileSize < sizeof(Elf64_Ehdr)) return EFI_LOAD_ERROR;
+
     Elf64_Ehdr* eh = (Elf64_Ehdr*)KernelBuffer;
     if (!(eh->e_ident[0] == 0x7f && eh->e_ident[1] == 'E' && eh->e_ident[2] == 'L' && eh->e_ident[3] == 'F' && eh->e_ident[4] == 2)) {
         return map_range((UINTN)KernelBuffer, (UINTN)KernelBuffer + FileSize, (UINTN)KERNEL_VA_START, PTE_PRESENT | PTE_RW);
+    }
+
+    if (eh->e_phentsize != sizeof(Elf64_Phdr) ||
+        eh->e_phoff > FileSize ||
+        eh->e_phnum > (FileSize - eh->e_phoff) / sizeof(Elf64_Phdr)) {
+        return EFI_LOAD_ERROR;
     }
 
     Elf64_Phdr* ph = (Elf64_Phdr*)((UINT8*)eh + eh->e_phoff);
@@ -248,6 +267,13 @@ STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
         UINT64 seg_filesz = ph[i].p_filesz;
         UINT64 seg_off = ph[i].p_offset;
 
+        if (seg_filesz > seg_memsz ||
+            seg_off > FileSize ||
+            seg_filesz > FileSize - seg_off ||
+            seg_vstart > ~0ULL - seg_memsz) {
+            return EFI_LOAD_ERROR;
+        }
+
         UINT64 page_vstart = round_down64(seg_vstart, PAGE_SIZE_4K);
         UINT64 page_vend = round_up64(seg_vstart + seg_memsz, PAGE_SIZE_4K);
 
@@ -255,10 +281,33 @@ STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
         if (ph[i].p_flags & PF_W) flags |= PTE_RW;
 
         for (UINT64 v = page_vstart; v < page_vend; v += PAGE_SIZE_4K) {
-            EFI_PHYSICAL_ADDRESS phys_page = 0;
-            gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &phys_page);
-            VOID* dest = (VOID*)(UINTN)phys_page;
-            ZeroMem(dest, PAGE_SIZE_4K);
+            UINT64* existing_pte = find_page_4k(v);
+            EFI_PHYSICAL_ADDRESS phys_page;
+            VOID* dest;
+
+            if (existing_pte) {
+                phys_page = *existing_pte & PTE_ADDRESS_MASK;
+                dest = (VOID*)(UINTN)phys_page;
+                *existing_pte |= flags & PTE_RW;
+            }
+            else {
+                phys_page = 0;
+                EFI_STATUS Status = gBS->AllocatePages(
+                    AllocateAnyPages,
+                    EfiLoaderData,
+                    1,
+                    &phys_page
+                );
+                if (EFI_ERROR(Status)) return Status;
+
+                dest = (VOID*)(UINTN)phys_page;
+                ZeroMem(dest, PAGE_SIZE_4K);
+                Status = map_page_4k(v, (UINT64)phys_page, flags);
+                if (EFI_ERROR(Status)) {
+                    gBS->FreePages(phys_page, 1);
+                    return Status;
+                }
+            }
 
             INT64 seg_page_off = (INT64)v - (INT64)seg_vstart;
             UINT64 copy_len = 0;
@@ -267,7 +316,7 @@ STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
 
             if (seg_page_off < 0) {
                 copy_dest_off = (UINT64)(-seg_page_off);
-                if (seg_filesz > copy_dest_off) copy_len = seg_filesz - copy_dest_off;
+                copy_len = seg_filesz;
                 if (copy_len > PAGE_SIZE_4K - copy_dest_off) copy_len = PAGE_SIZE_4K - copy_dest_off;
                 copy_src_off = seg_off;
             }
@@ -280,37 +329,9 @@ STATIC EFI_STATUS map_elf_segments(VOID* KernelBuffer, UINTN FileSize) {
             }
 
             if (copy_len > 0) CopyMem((UINT8*)dest + copy_dest_off, (UINT8*)KernelBuffer + copy_src_off, copy_len);
-            map_page_4k(v, (UINT64)phys_page, flags);
         }
     }
     return EFI_SUCCESS;
-}
-
-static EFI_STATUS patch_kernel_image_with_tss(void* kernel_buf, UINTN kernel_size,
-    uint64_t tss_base, uint32_t tss_limit,
-    uint16_t* out_selector) {
-    if (!kernel_buf || kernel_size < 8) return EFI_INVALID_PARAMETER;
-    const uint64_t pattern[5] = { 0, 0x00AF9A000000FFFFULL, 0x00CF92000000FFFFULL, 0x00AFFA000000FFFFULL, 0x00CFF2000000FFFFULL };
-
-    uint8_t* scan = (uint8_t*)kernel_buf;
-    for (uint8_t* p = scan; p + 40 <= scan + kernel_size; p += 8) {
-        bool match = true;
-        for (int i = 0; i < 5; ++i) {
-            uint64_t val;
-            kmemcpy(&val, p + i * 8, sizeof(uint64_t));
-            if (val != pattern[i]) { match = false; break; }
-        }
-        if (!match) continue;
-
-        uint64_t low = ((uint64_t)(tss_limit & 0xFFFFULL)) | ((uint64_t)(tss_base & 0xFFFFFFULL) << 16) | (0x0089ULL << 40) | ((uint64_t)(tss_limit & 0xF0000ULL) << 32) | ((uint64_t)(tss_base & 0xFF000000ULL) << 32);
-        uint64_t high = (uint64_t)(tss_base >> 32);
-
-        kmemcpy(p + 40, &low, 8);
-        kmemcpy(p + 48, &high, 8);
-        *out_selector = (uint16_t)(5 * 8);
-        return EFI_SUCCESS;
-    }
-    return EFI_NOT_FOUND;
 }
 
 // Helper to prevent the "Rug Pull" crash
@@ -394,35 +415,19 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE* Syste
 
     // 4) Allocations (Stacks & TSS)
     EFI_PHYSICAL_ADDRESS StackPhysBase = 0;
+    // IMPORTANT: When you change me (StackPages), update the number in kernel/includes/efi.h, KERNEL_STACK_SIZE_IN_BYTES.
+    // Not doing so will cause probable kernel corruption.
     const UINTN StackPages = 8;
     gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, StackPages, &StackPhysBase);
     const UINT64 StackVirtTop = StackPhysBase + PHYS_MEM_OFFSET + (StackPages * PAGE_SIZE_4K);
 
-    gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &DoubleFaultStackPhys);
-    gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &PageFaultStackPhys);
-    gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &TimerStackPhys);
-    gBS->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &IpiStackPhys);
-
     // 5) Build Mappings
     map_range((UINTN)StackPhysBase, (UINTN)(StackPhysBase + StackPages * PAGE_SIZE_4K), (UINTN)(StackPhysBase + PHYS_MEM_OFFSET), PTE_PRESENT | PTE_RW);
-    map_range_identity((UINTN)&gTss, (UINTN)&gTss + sizeof(TSS), PTE_PRESENT | PTE_RW);
-    map_range_identity((UINTN)DoubleFaultStackPhys, (UINTN)DoubleFaultStackPhys + 4096, PTE_PRESENT | PTE_RW);
-    map_range_identity((UINTN)PageFaultStackPhys, (UINTN)PageFaultStackPhys + 4096, PTE_PRESENT | PTE_RW);
-    map_range_identity((UINTN)TimerStackPhys, (UINTN)TimerStackPhys + 4096, PTE_PRESENT | PTE_RW);
-    map_range_identity((UINTN)IpiStackPhys, (UINTN)IpiStackPhys + 4096, PTE_PRESENT | PTE_RW);
-
-    // 6) TSS Init
-    ZeroMem(&gTss, sizeof(TSS));
-    gTss.ist[0] = (uint64_t)PageFaultStackPhys + 4096;
-    gTss.ist[1] = (uint64_t)DoubleFaultStackPhys + 4096;
-    gTss.ist[2] = (uint64_t)TimerStackPhys + 4096;
-    gTss.ist[3] = (uint64_t)IpiStackPhys + 4096;
-
-    uint16_t selector = 0;
-    patch_kernel_image_with_tss(KernelBuffer, FileSize, (uint64_t)(uintptr_t)&gTss, sizeof(TSS), &selector);
+    // 6) TSS Init has been moved to kernel creation.
 
     // 7) Map Kernel & PHYS_MEM_OFFSET
-    map_elf_segments(KernelBuffer, FileSize);
+    Status = map_elf_segments(KernelBuffer, FileSize);
+    if (EFI_ERROR(Status)) return Status;
     map_range(0x10000, 0x100000000ULL, PHYS_MEM_OFFSET + 0x10000, PTE_PRESENT | PTE_RW);
 
     if (GopParamsLocal.FrameBufferSize > 0) {
@@ -447,7 +452,6 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE* Syste
     for (UINTN i = 0; i < 32; i++) BootInfo->AhciBarBases[i] = (i < ahciCount) ? barBases[i] : 0;
     BootInfo->KernelStackTop = StackVirtTop;
     BootInfo->Pml4Phys = (UINT64)(UINTN)Pml4Virt;
-    BootInfo->TssSelector = selector;
     BootInfo->AcpiRsdpPhys = acpi_rsdp_addr;
 
     // B) Allocate Final Map Buffer (With huge padding)
@@ -502,7 +506,7 @@ EFI_STATUS EFIAPI UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE* Syste
     UINT64 entry_va = get_elf_entry_if_present(KernelBuffer, FileSize);
     if (entry_va == 0) entry_va = KERNEL_VA_START;
 
-    typedef void (*KERNEL_ENTRY)(BOOT_INFO*);
+    typedef void (__attribute__((sysv_abi)) *KERNEL_ENTRY)(BOOT_INFO*);
     KERNEL_ENTRY KernelEntry = (KERNEL_ENTRY)(UINTN)entry_va;
 
     KernelEntry(BootInfo);

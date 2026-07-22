@@ -28,6 +28,7 @@ Revision History:
 #include "ht.h"
 #include "ob.h"
 #include "core.h"
+#include "../../shared/include/accessrights.h"
 
 // Exception Includes
 #include "exception.h"
@@ -68,40 +69,6 @@ typedef enum _PS_PHASE_ROUTINE {
 } PS_PHASE_ROUTINE;
 
 // ------------------ STRUCTURES ------------------
-
-//
-// Standard / Common Access Rights
-//
-#define MT_SYNCHRONIZE 0x00100000  // Wait on the object (e.g., WaitForSingleObject)
-
-//
-// Thread Access Rights
-//
-#define MT_THREAD_TERMINATE          0x0001    // Terminate the thread
-#define MT_THREAD_SUSPEND_RESUME     0x0002    // Suspend or resume thread execution
-#define MT_THREAD_SET_CONTEXT        0x0004    // Modify thread CPU context (registers, RIP/RSP)
-#define MT_THREAD_GET_CONTEXT        0x0008    // Read thread CPU context
-#define MT_THREAD_QUERY_INFO         0x0010    // Query thread info (state, priority, etc.)
-#define MT_THREAD_SET_INFO           0x0020    // Modify thread info (priority, name, affinity)
-
-#define MT_THREAD_ALL_ACCESS         (MT_SYNCHRONIZE | 0x003F)    // Request all valid thread access rights
-
-
-//
-// Process Access Rights
-//
-#define MT_PROCESS_TERMINATE          0x0001  // Kill the process
-#define MT_PROCESS_CREATE_THREAD      0x0002  // Create a new thread inside process
-#define MT_PROCESS_VM_OPERATION       0x0004  // Allocate/Protect/Free process memory
-#define MT_PROCESS_VM_READ            0x0008  // Read from process memory
-#define MT_PROCESS_VM_WRITE           0x0010  // Write to process memory
-#define MT_PROCESS_DUP_HANDLE         0x0020  // Duplicate a handle into this process
-#define MT_PROCESS_SET_INFO           0x0040  // Modify process properties/metadata
-#define MT_PROCESS_QUERY_INFO         0x0080  // Query process details (PID, exit code, etc.)
-#define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
-#define MT_PROCESS_CREATE_PROCESS     0x0200  // Create a new process.
-
-#define MT_PROCESS_ALL_ACCESS         (MT_SYNCHRONIZE | 0x03FF)  // Everything above
 
 #define MTDLL_PATH "mtdll.mtdll" // root dir
 
@@ -179,8 +146,8 @@ typedef struct _EPROCESS {
     // Thread infos
     struct _ETHREAD* MainThread; // Pointer to the main thread created for the process.
     PUSH_LOCK ThreadListLock; // Protects synchronization in AllThreads.
-    DOUBLY_LINKED_LIST AllThreads; // A linked list of pointers to the current threads of the process. (inserted with each new creation)
-    uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
+    DOUBLY_LINKED_LIST AllThreads; // Thread objects remain linked until final object deletion.
+    uint32_t NumThreads; // Number of live threads; exited referenced objects may remain in AllThreads.
     PUSH_LOCK AddressSpaceLock; // A push lock designed to protect synchronization in creating the next stack for another thread in the PROCESS.
     uintptr_t NextStackHint; // Top down search for the next stack.
 
@@ -202,7 +169,6 @@ typedef struct _ETHREAD {
     size_t UserStackSize;
     HANDLE TID;           /* thread id */
     HANDLE PID;           // Thread's process PID.
-    struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
     struct _DOUBLY_LINKED_LIST SchedulerListEntry; // Forward and backward links that the scheduler enqueues and dequeues threads from.
@@ -255,6 +221,8 @@ PsCreateThread(
     TimeSliceTicks TimeSlice,
     ThreadEntry MtdllEntrypoint
 );
+
+#define MtYield() MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
 
 extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread);

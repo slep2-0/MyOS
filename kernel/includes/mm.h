@@ -243,12 +243,18 @@ do {                                                                        \
 #define MI_PAGED_POOL_END        (MI_PAGED_POOL_BASE + MI_PAGED_POOL_SIZE)
 
 // Address Manipulation And Checks
+#ifdef MATANELOS_INTELLISENSE
+/* MSVC's language service cannot parse GNU statement expressions. */
+#define MI_IS_CANONICAL_ADDR(va) \
+    ((((uint64_t)(va) >> 48) == 0) || (((uint64_t)(va) >> 48) == 0xFFFF))
+#else
 #define MI_IS_CANONICAL_ADDR(va) \
 ({ \
     uint64_t _va = (uint64_t)(va); \
     uint64_t _mask = ~((1ULL << 48) - 1); /* bits 63:48 */ \
     ((_va & _mask) == 0 || (_va & _mask) == _mask); \
 })
+#endif
 
 #define PFN_TO_PHYS(Pfn) PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(Pfn))
 #define PHYS_TO_INDEX(PhysicalAddress) PPFN_TO_INDEX(PHYSICAL_TO_PPFN(PhysicalAddress))
@@ -318,7 +324,11 @@ typedef enum _PFN_FLAGS {
     PFN_FLAG_LOCKED_FOR_IO = (1U << 3)  // Page is pinned for DMA, etc.
 } PFN_FLAGS;
 
-typedef enum _VAD_FLAGS {
+// VAD protection and backing flags are combined as a bitmask. Keep the
+// storage type separate from the enum constants so MSVC accepts combinations
+// such as VAD_FLAG_READ | VAD_FLAG_WRITE without enum conversion errors.
+typedef uint32_t VAD_FLAGS;
+enum _VAD_FLAGS {
     VAD_FLAG_NONE = 0, // No flags, base value.
     VAD_FLAG_READ = (1U << 0),  // Allowed to read from this address.
     VAD_FLAG_WRITE = (1U << 1),    // Allowed to write to this address
@@ -328,7 +338,7 @@ typedef enum _VAD_FLAGS {
     VAD_FLAG_COPY_ON_WRITE = (1U << 5), // Allocation comes from a shared physical memory address(s), this can be shared between executables.
     VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
     VAD_FLAG_GUARD_PAGE = (1U << 7), // This allocation signifies a guard page, if a memory operation is performed on this page, an MT_GUARD_PAGE_VIOLATION exception is raised, and the page turns to a normal stack page.
-} VAD_FLAGS;
+};
 
 typedef enum _PAGE_FLAGS {
     PAGE_PRESENT = 1 << 0,  // Bit 0
@@ -393,11 +403,6 @@ typedef enum _FAULT_OPERATION {
     WriteOperation = 2,
     ExecuteOperation = 10,
 } FAULT_OPERATION, *PFAULT_OPERATION;
-
-typedef enum _PRIVILEGE_MODE {
-    KernelMode = 0,
-    UserMode = 1
-} PRIVILEGE_MODE, * PPRIVILEGE_MODE;
 
 typedef enum _MEMORY_CACHING_TYPE {
 
@@ -659,19 +664,19 @@ typedef struct _MM_SECTION {
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
 
 // Global Externals for signals & constants.
-extern bool MmPfnDatabaseInitialized;
-extern PAGE_INDEX MmHighestPfn;
-extern uintptr_t MmSystemRangeStart;
-extern uintptr_t MmHighestUserAddress;
-extern uintptr_t MmUserStartAddress;
-extern uintptr_t MmUserProbeAddress;
-extern uintptr_t MmNonPagedPoolStart;
-extern uintptr_t MmNonPagedPoolEnd;
-extern uintptr_t MmPagedPoolStart;
-extern uintptr_t MmPagedPoolEnd;
-extern uint64_t MmTotalMemory;
-extern uint64_t MmTotalUsableMemory;
-extern uint64_t MmHighestUsablePhysicalAddress;
+extern bool MmPfnDatabaseInitialized; // Returns if PFN Database has been initialized, should be true after kernel initalization.
+extern PAGE_INDEX MmHighestPfn; // Highest PFN Index in the PFN Database. 
+extern uintptr_t MmSystemRangeStart; // Start address of the kernel range in a 64bit system.
+extern uintptr_t MmHighestUserAddress; // The highest user mode address in a 64bit system.
+extern uintptr_t MmUserStartAddress; // The lowest user mode address, this is defined by the OS, and can be 0, in our case, it is USER_VA_START (0x10000)
+extern uintptr_t MmUserProbeAddress; // The probe address in usermode, if an address is higher than this, the check fails, and returns false (see ProbeForRead)
+extern uintptr_t MmNonPagedPoolStart; // Address where NonPagedPool starts, contains nX.
+extern uintptr_t MmNonPagedPoolEnd; // Address where NonPagedPool ends.
+extern uintptr_t MmPagedPoolStart; // Address where PagedPool starts.
+extern uintptr_t MmPagedPoolEnd; // Address where PagedPool ends.
+extern uint64_t MmTotalMemory; // Total memory in the system, (UNUSED, 0)
+extern uint64_t MmTotalUsableMemory; // Total usable memory, in bytes.
+extern uint64_t MmHighestUsablePhysicalAddress; // Highest usable physical address in the system, may contain MMIO holes above, or below.
 
 #define MI_FREEPOOL_UAF_IDENTIFIER 0xDD
 
@@ -688,7 +693,7 @@ kmemset (
     void* dest, int64_t val, uint64_t len
 ) 
 {
-    uint8_t* ptr = dest;
+    uint8_t* ptr = (uint8_t*)dest;
     for (size_t i = 0; i < (size_t)len; i++) {
         ptr[i] = (uint8_t)val;
     }
@@ -790,14 +795,17 @@ MiRetrieveLastFaultyAddress(
 }
 
 FORCEINLINE
-void
+uint64_t
 MiAtomicExchangePte(
     PMMPTE PtePtr,
     uint64_t NewPteValue
 )
 
 {
-    InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
+    return InterlockedExchangeU64(
+        (volatile uint64_t*)PtePtr,
+        NewPteValue
+    );
 }
 
 FORCEINLINE

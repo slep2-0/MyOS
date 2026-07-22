@@ -11,6 +11,7 @@
 
 #define LAPIC_PAGE_SIZE    0x1000
 #define LAPIC_MAP_FLAGS (PAGE_PRESENT | PAGE_RW | PAGE_PCD)
+#define LAPIC_ICR_TIMEOUT_MS 100ULL
 
 // LAPIC register offsets (32-bit registers)
 enum {
@@ -48,10 +49,33 @@ void lapic_mmio_write(uint32_t off, uint32_t val) {
     (void)MeGetCurrentProcessor()->LapicAddressVirt[0]; // Serializing read
 }
 
-// Wait for ICR delivery to complete (ICR low: bit 12 = Delivery Status)
-static void lapic_wait_icr(void) {
-    while (lapic_mmio_read(LAPIC_ICR_LOW) & (1 << 12)) {
-        /* spin */
+// Wait for ICR delivery to complete (ICR low: bit 12 = Delivery Status).
+static void
+lapic_wait_icr(
+    SMP_TIMEOUT_STAGE TimeoutStage,
+    uint8_t ApicId,
+    uint8_t Vector,
+    uint32_t Flags
+)
+{
+    uint64_t StartTsc = MhReadTsc();
+    uint32_t IcrLow;
+
+    while (((IcrLow = lapic_mmio_read(LAPIC_ICR_LOW)) & (1U << 12)) != 0) {
+        if (MhTscTimeoutExpired(StartTsc, LAPIC_ICR_TIMEOUT_MS)) {
+            uintptr_t Request = (uintptr_t)Flags |
+                ((uintptr_t)Vector << 32) |
+                ((uintptr_t)ApicId << 40);
+
+            MeBugCheckEx(
+                SMP_SYNCHRONIZATION_TIMEOUT,
+                (void*)(uintptr_t)TimeoutStage,
+                MeGetCurrentProcessor(),
+                (void*)Request,
+                (void*)(uintptr_t)IcrLow
+            );
+        }
+
         __pause();
     }
 }
@@ -127,10 +151,45 @@ void lapic_init_cpu(void) {
 // vector - IDT Vector number
 // flags - specified cpu flags, 0 for none.
 void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags) {
+    bool InterruptsEnabled = MeDisableInterrupts();
+
+    // The ICR belongs to this sender CPU. Prevent a local interrupt from
+    // starting another ICR transaction between the high and low writes.
+    lapic_wait_icr(SmpTimeoutIcrIdle, apic_id, vector, flags);
+
     uint32_t high = ((uint32_t)apic_id) << 24;
     lapic_mmio_write(LAPIC_ICR_HIGH, high);
     lapic_mmio_write(LAPIC_ICR_LOW, (uint32_t)vector | flags);
-    lapic_wait_icr();
+    lapic_wait_icr(SmpTimeoutIcrDelivery, apic_id, vector, flags);
+
+    MeEnableInterrupts(InterruptsEnabled);
+}
+
+void
+MhRequestBugCheckFreeze(
+    void
+)
+{
+    bool InterruptsEnabled = MeDisableInterrupts();
+    PPROCESSOR Cpu = MeGetCurrentProcessor();
+
+    // A bugcheck may be reporting a failed IPI transaction, so this path must
+    // neither acquire an SMP mailbox nor wait for ICR completion. If the ICR
+    // is available, broadcast an NMI to every other processor. Their NMI
+    // handlers observe isBugChecking and halt without entering bugcheck again.
+    if (Cpu && Cpu->LapicAddressVirt &&
+        !(lapic_mmio_read(LAPIC_ICR_LOW) & (1U << 12))) {
+        const uint32_t DeliveryModeNmi = 4U << 8;
+        const uint32_t AllExcludingSelf = 3U << 18;
+
+        lapic_mmio_write(LAPIC_ICR_HIGH, 0);
+        lapic_mmio_write(
+            LAPIC_ICR_LOW,
+            DeliveryModeNmi | AllExcludingSelf
+        );
+    }
+
+    MeEnableInterrupts(InterruptsEnabled);
 }
 
 void lapic_eoi(void) {
@@ -206,7 +265,8 @@ MhRequestSoftwareInterrupt(
 
         This function is used to request a software interrupt to the current processor.
 
-        N.B: The function will 100% have the interrupt executed when it returns.
+        Returning means the LAPIC accepted the request. Actual handler entry
+        may remain pending until IF and the current TPR allow the vector.
 
     Arguments:
 
@@ -226,23 +286,20 @@ MhRequestSoftwareInterrupt(
 --*/
 
 {
-    bool prev_if;
+    // The caller must publish its DPC/APC request while local interrupts are
+    // disabled. Disabling only after entry would leave a retirement window
+    // between publication and this function call.
+    bool prev_if = MeDisableInterrupts();
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    assert(cpu->DpcInterruptRequested == true || cpu->ApcInterruptRequested == true);
+    assert(prev_if == false,
+        "Software interrupt requests must be published with interrupts disabled");
 
     // We only support DISPATCH_LEVEL.
     assert(RequestIrql == DISPATCH_LEVEL || RequestIrql == APC_LEVEL);
     if (RequestIrql != DISPATCH_LEVEL && RequestIrql != APC_LEVEL) MeBugCheckEx(INVALID_INTERRUPT_REQUEST, (void*)RETADDR(0), (void*)RequestIrql, NULL, NULL);
 
-    // Disable interrupts, and save IF flag.
-    prev_if = MeDisableInterrupts();
-
-    // The DPC/APC retirement routine owns clearing the request flag. Keeping
-    // it set until service prevents duplicate requests and lets the ISR verify
-    // that the interrupt corresponds to pending work.
-
-    // wait until previous ICR is not busy
-    lapic_wait_icr();
+    // DPC retirement owns its processor request flag. APC delivery instead
+    // rechecks the current thread's queues, so a stale APC vector is harmless.
 
     // For a self IPI we can use the destination shorthand
     uint32_t icr_low;
@@ -253,12 +310,25 @@ MhRequestSoftwareInterrupt(
         icr_low = (uint32_t)VECTOR_APC | (1U << 18);
     }
 
+    // Wait until the previous local ICR transaction is no longer busy.
+    lapic_wait_icr(
+        SmpTimeoutIcrIdle,
+        (uint8_t)cpu->lapic_ID,
+        (uint8_t)(icr_low & 0xFFU),
+        icr_low & ~0xFFU
+    );
+
     // ICR high is ignored when shorthand is used, but zero it for clarity.
     lapic_mmio_write(LAPIC_ICR_HIGH, 0);
     lapic_mmio_write(LAPIC_ICR_LOW, icr_low);
 
     // wait for delivery to complete
-    lapic_wait_icr();
+    lapic_wait_icr(
+        SmpTimeoutIcrDelivery,
+        (uint8_t)cpu->lapic_ID,
+        (uint8_t)(icr_low & 0xFFU),
+        icr_low & ~0xFFU
+    );
 
     // restore interrupts
     MeEnableInterrupts(prev_if);

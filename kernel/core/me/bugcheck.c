@@ -24,6 +24,14 @@ extern bool smpInitialized;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
+bool
+MeIsBugCheckActive(
+    void
+)
+{
+    return InterlockedLoadAcquire(&isBugChecking);
+}
+
 // switched to uint64_t and not BUGCHECK_CODES since the custom ones arent in that enum, and compiler throws an error.
 /// Note that this is bad, even though a switch statement is great and all with a jump table (all though this does not have one because its not a dense switch)
 /// this still exposes to reverse engineers an easy way to get to the bugcheck code (even though this is open source!), and also it is bloat, since we should just
@@ -234,6 +242,18 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case PFN_RELEASE_STILL_MAPPED:
         *s = "PFN_RELEASE_STILL_MAPPED";
         break;
+    case WAIT_STATE_FAILURE:
+        *s = "WAIT_STATE_FAILURE";
+        break;
+    case PIT_TIMER_FAILURE:
+        *s = "PIT_TIMER_FAILURE";
+        break;
+    case TIMEBASE_INITIALIZATION_FAILURE:
+        *s = "TIMEBASE_INITIALIZATION_FAILURE";
+        break;
+    case SMP_SYNCHRONIZATION_TIMEOUT:
+        *s = "SMP_SYNCHRONIZATION_TIMEOUT";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -301,21 +321,25 @@ MeBugCheckEx (
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
-    if (smpInitialized) {
-        // If all other cores are online, we obviously want to stop them.
-        IPI_PARAMS dummy = { 0 };
-        MhSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
-    }
 
-    // atomically check & set isBugChecking
+    bool FreezeOtherProcessors = smp_cpu_count > 1;
+
+    // Claim bugcheck ownership before stopping other CPUs. In particular, do
+    // not use the synchronous SMP mailbox here: this bugcheck may be reporting
+    // that the mailbox or IPI completion path timed out.
     bool prev = InterlockedExchangeBool(&isBugChecking, true);
 
     if (prev == 1) {
         while (1) __hlt();
     }
 
-    // Acquire exclusive ownership to this processor for framebuffer access.
-    MgAcquireExclusiveGopOwnerShip();
+    if (FreezeOtherProcessors) {
+        MhRequestBugCheckFreeze();
+    }
+
+    // A frozen CPU may have owned the normal GOP print lock. Bugcheck takes
+    // ownership directly so the diagnostic screen cannot wait on that CPU.
+    MgClaimGopForBugCheck();
 
 #ifdef DEBUG
     IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
@@ -367,6 +391,32 @@ MeBugCheckEx (
         }
 #endif
     }
+
+    if (BugCheckCode == SMP_SYNCHRONIZATION_TIMEOUT && BugCheckParameter2) {
+        PPROCESSOR TargetProcessor = (PPROCESSOR)BugCheckParameter2;
+
+        gop_printf(
+            COLOR_WHITE,
+            "SMP stage: %u | Target index: %u | LAPIC ID: %u\n"
+            "Target state: %u | IPI active: %u | Mailbox: %llu | IPI sequence: %llu | Startup stage: %u\n",
+            (unsigned int)(uintptr_t)BugCheckParameter1,
+            (unsigned int)TargetProcessor->ID,
+            (unsigned int)TargetProcessor->lapic_ID,
+            (unsigned int)InterlockedLoadAcquire(&TargetProcessor->State),
+            (unsigned int)InterlockedLoadAcquire(
+                &TargetProcessor->IpiRoutineActive
+            ),
+            (unsigned long long)InterlockedLoadAcquire(
+                &TargetProcessor->MailboxLock
+            ),
+            (unsigned long long)InterlockedLoadAcquire(
+                &TargetProcessor->IpiSeq
+            ),
+            (unsigned int)InterlockedLoadAcquire(
+                &TargetProcessor->StartupStage
+            )
+        );
+    }
 #ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
@@ -375,8 +425,8 @@ MeBugCheckEx (
     HANDLE currTid = CurrentThread ? CurrentThread->TID : (HANDLE)-1;
     gop_printf(0xFFFFFF00, "Current Thread ID: %d (User Mode Thread: %s)\n",
         currTid, CurrentThread ? (CurrentThread->SystemThread ? "No" : "Yes") : "Unknown");
-    if (smpInitialized) {
-        gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
+    if (FreezeOtherProcessors) {
+        gop_printf(COLOR_LIME, "Requested NMI halt on all other CPUs.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
 #ifdef DEBUG

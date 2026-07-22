@@ -22,6 +22,11 @@ typedef enum _IRQL {
 	HIGH_LEVEL = 31
 } IRQL, * PIRQL;
 
+typedef enum _PRIVILEGE_MODE {
+	KernelMode = 0,
+	UserMode = 1
+} PRIVILEGE_MODE, * PPRIVILEGE_MODE;
+
 typedef struct _SINGLE_LINKED_LIST {
 	struct _SINGLE_LINKED_LIST* Next;
 } SINGLE_LINKED_LIST, * PSINGLE_LINKED_LIST;

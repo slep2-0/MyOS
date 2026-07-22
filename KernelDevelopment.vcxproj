@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>MakeFileProj</Keyword>
+    <ProjectGuid>{44588EFD-7C3C-47BC-962E-2FC444351CBF}</ProjectGuid>
+    <RootNamespace>KernelDevelopment</RootNamespace>
+    <ProjectName>MatanelOS</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <NMakeBuildCommandLine>call "$(ProjectDir)build_windows.bat" $(Configuration)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>call "$(ProjectDir)clean_windows.bat" &amp;&amp; call "$(ProjectDir)build_windows.bat" $(Configuration)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>call "$(ProjectDir)clean_windows.bat"</NMakeCleanCommandLine>
+    <NMakeOutput>$(ProjectDir)build\windows\$(Configuration)\matanelos.img</NMakeOutput>
+    <NMakeIncludeSearchPath>$(ProjectDir)tools\windows\intellisense;$(ProjectDir)shared\include;$(ProjectDir);$(ProjectDir)kernel;$(ProjectDir)kernel\includes;$(ProjectDir)kernel\intrinsics;$(ProjectDir)usermode\headers;$(ProjectDir)usermode\programs\mtdll\includes;$(ProjectDir)boot\Include;$(ProjectDir)boot\Include\X64</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes>$(ProjectDir)tools\windows\intellisense\freestanding_compat.h</NMakeForcedIncludes>
+    <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
+    <AdditionalOptions>/std:c11 /wd4047 /wd4293 /wd4311 /wd4312</AdditionalOptions>
+  </PropertyGroup>
+  <!-- BEGIN GENERATED PROJECT ITEMS -->
+  <ItemGroup>
+    <ClCompile Include="boot\bootloader_uefi.c" />
+    <ClCompile Include="boot\uefi_runtime.c" />
+    <ClCompile Include="kernel\assert.c" />
+    <ClCompile Include="kernel\core\exp\exception.c" />
+    <ClCompile Include="kernel\core\exp\instruction.c" />
+    <ClCompile Include="kernel\core\exp\probe.c" />
+    <ClCompile Include="kernel\core\exp\raise.c" />
+    <ClCompile Include="kernel\core\ht\handle.c" />
+    <ClCompile Include="kernel\core\md\debugfunctions.c" />
+    <ClCompile Include="kernel\core\me\apc.c" />
+    <ClCompile Include="kernel\core\me\attach.c" />
+    <ClCompile Include="kernel\core\me\bugcheck.c" />
+    <ClCompile Include="kernel\core\me\dpc.c" />
+    <ClCompile Include="kernel\core\me\irql.c" />
+    <ClCompile Include="kernel\core\me\meinit.c" />
+    <ClCompile Include="kernel\core\me\scheduler.c" />
+    <ClCompile Include="kernel\core\mh\acpi.c" />
+    <ClCompile Include="kernel\core\mh\ap_main.c" />
+    <ClCompile Include="kernel\core\mh\apic.c" />
+    <ClCompile Include="kernel\core\mh\handlers.c" />
+    <ClCompile Include="kernel\core\mh\idt.c" />
+    <ClCompile Include="kernel\core\mh\isr.c" />
+    <ClCompile Include="kernel\core\mh\pit.c" />
+    <ClCompile Include="kernel\core\mh\smp.c" />
+    <ClCompile Include="kernel\core\mh\time.c" />
+    <ClCompile Include="kernel\core\mm\fault.c" />
+    <ClCompile Include="kernel\core\mm\hypermap.c" />
+    <ClCompile Include="kernel\core\mm\map.c" />
+    <ClCompile Include="kernel\core\mm\mminit.c" />
+    <ClCompile Include="kernel\core\mm\mmio.c" />
+    <ClCompile Include="kernel\core\mm\mmproc.c" />
+    <ClCompile Include="kernel\core\mm\pfn.c" />
+    <ClCompile Include="kernel\core\mm\pool.c" />
+    <ClCompile Include="kernel\core\mm\section.c" />
+    <ClCompile Include="kernel\core\mm\va.c" />
+    <ClCompile Include="kernel\core\mm\vad.c" />
+    <ClCompile Include="kernel\core\ms\events.c" />
+    <ClCompile Include="kernel\core\ms\mutex.c" />
+    <ClCompile Include="kernel\core\ms\pushlock.c" />
+    <ClCompile Include="kernel\core\ms\rundown.c" />
+    <ClCompile Include="kernel\core\ms\semaphore.c" />
+    <ClCompile Include="kernel\core\ms\spinlock.c" />
+    <ClCompile Include="kernel\core\ms\synchinit.c" />
+    <ClCompile Include="kernel\core\ms\wait.c" />
+    <ClCompile Include="kernel\core\mt\handler.c" />
+    <ClCompile Include="kernel\core\mt\setup.c" />
+    <ClCompile Include="kernel\core\mt\systemcalls.c" />
+    <ClCompile Include="kernel\core\ob\ob.c" />
+    <ClCompile Include="kernel\core\ps\cid.c" />
+    <ClCompile Include="kernel\core\ps\process.c" />
+    <ClCompile Include="kernel\core\ps\psmgr.c" />
+    <ClCompile Include="kernel\core\ps\pswork.c" />
+    <ClCompile Include="kernel\core\ps\thread.c" />
+    <ClCompile Include="kernel\drivers\ahci\ahci.c" />
+    <ClCompile Include="kernel\drivers\blk\block.c" />
+    <ClCompile Include="kernel\drivers\gop\gop.c" />
+    <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
+    <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
+    <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
+    <ClCompile Include="usermode\programs\mtdll\error.c" />
+    <ClCompile Include="usermode\programs\mtdll\file.c" />
+    <ClCompile Include="usermode\programs\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
+    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\mtdll\memory.c" />
+    <ClCompile Include="usermode\programs\mtdll\print.c" />
+    <ClCompile Include="usermode\programs\mtdll\process.c" />
+    <ClCompile Include="usermode\programs\mtdll\string.c" />
+    <ClCompile Include="usermode\programs\mtdll\synch.c" />
+    <ClCompile Include="usermode\programs\mtdll\thread.c" />
+    <ClCompile Include="usermode\programs\terminateMyself\main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kernel\assert.h" />
+    <ClInclude Include="kernel\drivers\ahci\ahci.h" />
+    <ClInclude Include="kernel\drivers\blk\block.h" />
+    <ClInclude Include="kernel\drivers\gop\font8x16.h" />
+    <ClInclude Include="kernel\drivers\gop\gop.h" />
+    <ClInclude Include="kernel\filesystem\fat32\fat32.h" />
+    <ClInclude Include="kernel\includes\annotations.h" />
+    <ClInclude Include="kernel\includes\behavior.h" />
+    <ClInclude Include="kernel\includes\core.h" />
+    <ClInclude Include="kernel\includes\efi.h" />
+    <ClInclude Include="kernel\includes\exception.h" />
+    <ClInclude Include="kernel\includes\fs.h" />
+    <ClInclude Include="kernel\includes\ht.h" />
+    <ClInclude Include="kernel\includes\macros.h" />
+    <ClInclude Include="kernel\includes\md.h" />
+    <ClInclude Include="kernel\includes\me.h" />
+    <ClInclude Include="kernel\includes\mg.h" />
+    <ClInclude Include="kernel\includes\mh.h" />
+    <ClInclude Include="kernel\includes\mm.h" />
+    <ClInclude Include="kernel\includes\ms.h" />
+    <ClInclude Include="kernel\includes\mt.h" />
+    <ClInclude Include="kernel\includes\mtos.h" />
+    <ClInclude Include="kernel\includes\ob.h" />
+    <ClInclude Include="kernel\includes\ps.h" />
+    <ClInclude Include="kernel\includes\rtl.h" />
+    <ClInclude Include="kernel\includes\stdarg_myos.h" />
+    <ClInclude Include="kernel\intrinsics\atomic.h" />
+    <ClInclude Include="kernel\intrinsics\intrin.h" />
+    <ClInclude Include="kernel\kernel.h" />
+    <ClInclude Include="kernel\mtstatus.h" />
+    <ClInclude Include="kernel\time.h" />
+    <ClInclude Include="shared\include\accessrights.h" />
+    <ClInclude Include="shared\include\annotations.h" />
+    <ClInclude Include="shared\include\errorcodes.h" />
+    <ClInclude Include="shared\include\mtstatus.h" />
+    <ClInclude Include="tools\windows\intellisense\cpuid.h" />
+    <ClInclude Include="tools\windows\intellisense\freestanding_compat.h" />
+    <ClInclude Include="tools\windows\intellisense\stdarg.h" />
+    <ClInclude Include="tools\windows\intellisense\stdatomic.h" />
+    <ClInclude Include="tools\windows\intellisense\stdbool.h" />
+    <ClInclude Include="tools\windows\intellisense\stddef.h" />
+    <ClInclude Include="tools\windows\intellisense\stdint.h" />
+    <ClInclude Include="usermode\headers\accessrights.h" />
+    <ClInclude Include="usermode\headers\errorhandlingapi.h" />
+    <ClInclude Include="usermode\headers\MatanelOS.h" />
+    <ClInclude Include="usermode\headers\mtstatus.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\accessrights.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\core.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\exports.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\mteheader.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\pstypes.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build_windows.bat" />
+    <None Include="clean_windows.bat" />
+    <None Include="initial_setup.bat" />
+    <None Include="kernel\core\me\context.asm" />
+    <None Include="kernel\core\mh\ap_trampoline.asm" />
+    <None Include="kernel\core\mh\cpuid.asm" />
+    <None Include="kernel\core\mh\isr_stub.asm" />
+    <None Include="kernel\core\ms\sleep.asm" />
+    <None Include="kernel\core\mt\entry.asm" />
+    <None Include="kernel\gen_offsets.c" />
+    <None Include="kernel\kernel_entry.asm" />
+    <None Include="kernel\linker.ld" />
+    <None Include="reset_intellisense.bat" />
+    <None Include="run_windows.bat" />
+    <None Include="tools\windows\bootstrap.bat" />
+    <None Include="tools\windows\build.py" />
+    <None Include="tools\windows\freestanding_runtime.asm" />
+    <None Include="tools\windows\make_image.py" />
+    <None Include="tools\windows\README.md" />
+    <None Include="tools\windows\reset_intellisense.py" />
+    <None Include="tools\windows\setup.ps1" />
+    <None Include="tools\windows\sync_vcxproj_files.py" />
+    <None Include="usermode\crt0.S" />
+    <None Include="usermode\header.S" />
+    <None Include="usermode\headers\import_table.S" />
+    <None Include="usermode\mtdll.ld" />
+    <None Include="usermode\mtexe.ld" />
+    <None Include="usermode\programs\mtdll\apcdispatch.asm" />
+    <None Include="usermode\programs\mtdll\includes\export_table.S" />
+    <None Include="usermode\syscalls\syscalls.asm" />
+  </ItemGroup>
+  <!-- END GENERATED PROJECT ITEMS -->
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

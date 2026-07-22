@@ -52,23 +52,34 @@ PspRundownThreadApcs(
     IN PITHREAD Thread
 )
 {
-    for (;;) {
-        IRQL OldIrql;
-        MsAcquireSpinlock(&Thread->ApcQueueLock, &OldIrql);
+    DOUBLY_LINKED_LIST RundownList;
+    InitializeListHead(&RundownList);
 
-        PDOUBLY_LINKED_LIST Entry = RemoveHeadList(&Thread->ApcListHead);
-        if (!Entry) {
-            MsReleaseSpinlock(&Thread->ApcQueueLock, OldIrql);
-            return;
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Thread->ApcQueueLock, &OldIrql);
+
+    for (uint32_t Mode = KernelMode; Mode <= UserMode; Mode++) {
+        PDOUBLY_LINKED_LIST ApcList =
+            &Thread->ApcState.ApcListHead[Mode];
+        PDOUBLY_LINKED_LIST Entry;
+
+        while ((Entry = RemoveHeadList(ApcList)) != NULL) {
+            PAPC Apc = CONTAINING_RECORD(Entry, APC, ApcListEntry);
+            Apc->Inserted = 0;
+            InsertTailList(&RundownList, Entry);
         }
+    }
+
+    InterlockedStoreRelease(&Thread->ApcState.KernelApcPending, false);
+    InterlockedStoreRelease(&Thread->ApcState.UserApcPending, false);
+    MsReleaseSpinlock(&Thread->ApcQueueLock, OldIrql);
+
+    for (;;) {
+        PDOUBLY_LINKED_LIST Entry = RemoveHeadList(&RundownList);
+        if (!Entry) break;
 
         PAPC Apc = CONTAINING_RECORD(Entry, APC, ApcListEntry);
-        Apc->Inserted = 0;
-        MsReleaseSpinlock(&Thread->ApcQueueLock, OldIrql);
-
-        if (Apc->RundownRoutine) {
-            Apc->RundownRoutine(Apc);
-        }
+        if (Apc->RundownRoutine) Apc->RundownRoutine(Apc);
     }
 }
 
@@ -77,9 +88,8 @@ PspBeginThreadExit(
     IN PETHREAD Thread
 )
 {
-    uint32_t State = __atomic_load_n(
-        &Thread->TerminationState,
-        __ATOMIC_ACQUIRE
+    uint32_t State = InterlockedLoadAcquire(
+        &Thread->TerminationState
     );
 
     for (;;) {
@@ -87,9 +97,8 @@ PspBeginThreadExit(
         // changes this state before it can request delivery.
         if (State == ThreadTerminationInstalling) {
             __pause();
-            State = __atomic_load_n(
-                &Thread->TerminationState,
-                __ATOMIC_ACQUIRE
+            State = InterlockedLoadAcquire(
+                &Thread->TerminationState
             );
             continue;
         }
@@ -139,8 +148,25 @@ PspInitializeThread(
 {
     // Basic linking
     InitializeListHead(&Thread->ThreadListEntry);
-    InitializeListHead(&Thread->InternalThread.ApcListHead);
+    InitializeListHead(
+        &Thread->InternalThread.ApcState.ApcListHead[KernelMode]
+    );
+    InitializeListHead(
+        &Thread->InternalThread.ApcState.ApcListHead[UserMode]
+    );
+    InitializeListHead(&Thread->InternalThread.WaitBlock.ObjectListEntry);
+    InitializeListHead(&Thread->InternalThread.WaitBlock.TimerListEntry);
+    InitializeListHead(&Thread->InternalThread.OwnedMutexListHead);
+    Thread->InternalThread.OwnedMutexesListLock.locked = 0;
+    Thread->InternalThread.WaitBlock.Object = NULL;
+    Thread->InternalThread.WaitBlock.WaitReason = WaitReasonNone;
+    Thread->InternalThread.WaitBlock.WakeupTime = 0;
+    Thread->InternalThread.WaitStatus = MT_SUCCESS;
     Thread->InternalThread.UserApcActive = false;
+    Thread->InternalThread.ApcQueueLock.locked = 0;
+    Thread->InternalThread.ApcState.KernelApcInProgress = false;
+    Thread->InternalThread.ApcState.KernelApcPending = false;
+    Thread->InternalThread.ApcState.UserApcPending = false;
     Thread->TerminationState = ThreadTerminationNone;
 
     // Process association
@@ -152,6 +178,9 @@ PspInitializeThread(
     Thread->InternalThread.TimeSlice = TimeSlice;
     Thread->InternalThread.TimeSliceAllocated = TimeSlice;
     Thread->InternalThread.ThreadState = THREAD_READY;
+
+    // Dispatcher Header Initialization
+    MsInitializeDispatcherHeader(&Thread->InternalThread.Header, 0, DispatcherThread);
 }
 
 MTSTATUS
@@ -197,7 +226,7 @@ PsCreateThread(
     }
     RundownAcquired = true;
 
-    if (__atomic_load_n(&ParentProcess->Flags, __ATOMIC_ACQUIRE) &
+    if (InterlockedLoadAcquire(&ParentProcess->Flags) &
         (ProcessBeingTerminated | ProcessBeingDeleted)) {
         Status = MT_PROCESS_IS_TERMINATING;
         goto Cleanup;
@@ -414,9 +443,6 @@ PsCreateThread(
     ParentProcess->NumThreads++;
     MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
 
-    // Initialize APC List head.
-    InitializeListHead(&Thread->InternalThread.ApcListHead);
-
     // Successful.
     Status = MT_SUCCESS;
 
@@ -537,21 +563,62 @@ PspWakeThreadForTermination(
         return;
     }
 
+    WAIT_REASON WaitReason = IThread->WaitBlock.WaitReason;
+    PDISPATCHER_HEADER WaitObject = IThread->WaitBlock.Object;
+
     // Winning WaitStatus transfers wake ownership from the timer/event path
     // to us. Remove both possible wait registrations before making it ready.
     MsRemoveTimerQueue(IThread);
 
-    PEVENT Event = Thread->CurrentEvent;
-    if (Event) {
-        IRQL EventIrql;
-        MsAcquireSpinlock(&Event->lock, &EventIrql);
-        if (Thread->CurrentEvent == Event) {
-            MeRemoveThreadFromQueue(&Event->waitingQueue, Thread);
-            Thread->CurrentEvent = NULL;
+    if (WaitReason == WaitReasonDispatcherObject) {
+        IRQL DispatcherIrql;
+        MsAcquireSpinlock(&WaitObject->Lock, &DispatcherIrql);
+
+        // Recheck after spinlock acquirement
+        if (IThread->WaitBlock.WaitReason != WaitReasonDispatcherObject ||
+            IThread->WaitBlock.Object != WaitObject) {
+            MeBugCheckEx(
+                WAIT_STATE_FAILURE,
+                IThread,
+                (void*)(uintptr_t)IThread->WaitBlock.WaitReason,
+                IThread->WaitBlock.Object,
+                WaitObject
+            );
         }
-        MsReleaseSpinlock(&Event->lock, EventIrql);
+
+        // Link out the thread from the object list entry
+        PDOUBLY_LINKED_LIST Entry = &IThread->WaitBlock.ObjectListEntry;
+
+        if (!IsListEmpty(Entry)) {
+            // If the list isn't empty, unlink
+            RemoveEntryList(Entry);
+            InitializeListHead(Entry);
+        }
+        
+        MsReleaseSpinlock(&WaitObject->Lock, DispatcherIrql);
+    }
+    else if (WaitReason == WaitReasonSleep) {
+        if (WaitObject != NULL) {
+            MeBugCheckEx(
+                WAIT_STATE_FAILURE,
+                IThread,
+                (void*)(uintptr_t)WaitReason,
+                WaitObject,
+                (void*)PspWakeThreadForTermination
+            );
+        }
+    }
+    else {
+        MeBugCheckEx(
+            WAIT_STATE_FAILURE,
+            IThread,
+            (void*)(uintptr_t)WaitReason,
+            WaitObject,
+            (void*)PspWakeThreadForTermination
+        );
     }
 
+    MeClearWaitBlock(IThread);
     MsCompleteThreadWait(IThread);
 }
 
@@ -610,17 +677,25 @@ PsTerminateThread(
 
     // Publish the APC and the queued state under the same lock used by APC
     // retirement, then request delivery after releasing it.
+    // This bypasses MeInsertQueueApc because this path already owns the thread's
+    // termination state and ordinary APC insertion is now intentionally closed.
     PPROCESSOR TargetProcessor = NULL;
     IRQL OldIrql;
     MsAcquireSpinlock(&IThread->ApcQueueLock, &OldIrql);
     ExitApc->SystemArgument1 = (void*)(uintptr_t)ExitStatus;
     ExitApc->SystemArgument2 = NULL;
     ExitApc->Inserted = 1;
-    InsertTailList(&IThread->ApcListHead, &ExitApc->ApcListEntry);
-    __atomic_store_n(
+    InsertTailList(
+        &IThread->ApcState.ApcListHead[KernelMode],
+        &ExitApc->ApcListEntry
+    );
+    InterlockedStoreRelease(
+        &IThread->ApcState.KernelApcPending,
+        true
+    );
+    InterlockedStoreRelease(
         &Thread->TerminationState,
-        ThreadTerminationQueued,
-        __ATOMIC_RELEASE
+        ThreadTerminationQueued
     );
     if (IThread->ThreadState == THREAD_RUNNING &&
         IThread->ActiveProcessor != NULL) {
@@ -631,7 +706,11 @@ PsTerminateThread(
     if (TargetProcessor) {
         PPROCESSOR CurrentProcessor = MeGetCurrentProcessor();
         if (TargetProcessor == CurrentProcessor) {
-            CurrentProcessor->ApcInterruptRequested = true;
+            bool InterruptsEnabled = MeDisableInterrupts();
+            if (CurrentProcessor->currentThread == IThread) {
+                MhRequestSoftwareInterrupt(APC_LEVEL);
+            }
+            MeEnableInterrupts(InterruptsEnabled);
         }
         else {
             IPI_PARAMS IpiParams = { 0 };
@@ -662,6 +741,34 @@ PsDeleteThread(
     PETHREAD Thread = (PETHREAD)Object;
 
     bool IsKernelThread = PsIsKernelThread(Thread);
+
+    // Keep ThreadListEntry linked throughout thread exit. Process thread-list
+    // iterators hold an object reference to keep their cursor alive, so final
+    // object deletion is the point at which the entry can safely be removed.
+    // 
+    // Thread is Thread B.
+    // 
+    // Turns from: Thread A <-> Thread B <-> Thread C
+    //
+    // to: Thread A <-> Thread C
+    //
+    PEPROCESS ParentProcess = Thread->ParentProcess;
+    if (ParentProcess) {
+        MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
+
+        PDOUBLY_LINKED_LIST Entry = &Thread->ThreadListEntry;
+        if (Entry->Flink != NULL && Entry->Blink != NULL &&
+            Entry->Flink != Entry && Entry->Blink != Entry) {
+            RemoveEntryList(Entry);
+            InitializeListHead(Entry);
+        }
+
+        if (ParentProcess->MainThread == Thread) {
+            ParentProcess->MainThread = NULL;
+        }
+
+        MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
+    }
 
     // Free TID only if construction reached CID allocation.
     if (Thread->TID > 0 && Thread->TID != MT_INVALID_HANDLE) {
@@ -756,7 +863,9 @@ PspExitThread(
     // Acquire process lock before we modify thread entries.
     MsAcquirePushLockExclusive(&CurrentProcess->ThreadListLock);
 
-    // Remove us from the process thread list.
+    // Verify that the active thread is still represented in the process list.
+    // The entry remains linked until PsDeleteThread so referenced iterators can
+    // safely use it as their cursor after this thread has exited.
     PDOUBLY_LINKED_LIST listHead = &CurrentProcess->AllThreads;
     PDOUBLY_LINKED_LIST entry = listHead->Flink;
     bool ThreadFound = false;
@@ -764,12 +873,6 @@ PspExitThread(
     while (entry != listHead) {
         PETHREAD iter = CONTAINING_RECORD(entry, ETHREAD, ThreadListEntry);
         if (iter == Thread) {
-            // Remove entry
-            entry->Blink->Flink = entry->Flink;
-            entry->Flink->Blink = entry->Blink;
-
-            // Set entry to point at itself
-            InitializeListHead(&Thread->ThreadListEntry);
             ThreadFound = true;
             break;
         }
@@ -786,8 +889,8 @@ PspExitThread(
         );
     }
 
-    // No new thread may publish into a process once its final live thread has
-    // left the list. In-flight creators are drained below before table teardown.
+    // NumThreads counts live threads, while AllThreads may retain exited thread
+    // objects until their final references are released.
     CurrentProcess->NumThreads--;
     bool LastThread = CurrentProcess->NumThreads == 0;
     if (LastThread) {
@@ -795,14 +898,24 @@ PspExitThread(
             (volatile int32_t*)&CurrentProcess->Flags,
             ProcessBeingTerminated
         );
-        CurrentProcess->InternalProcess.ProcessState = PROCESS_TERMINATING;
-        CurrentProcess->ExitStatus = ExitStatus;
     }
 
     if (CurrentProcess->MainThread == Thread) {
-        CurrentProcess->MainThread = IsListEmpty(listHead)
-            ? NULL
-            : CONTAINING_RECORD(listHead->Flink, ETHREAD, ThreadListEntry);
+        CurrentProcess->MainThread = NULL;
+        for (entry = listHead->Flink; entry != listHead; entry = entry->Flink) {
+            PETHREAD Candidate = CONTAINING_RECORD(
+                entry,
+                ETHREAD,
+                ThreadListEntry
+            );
+            if (Candidate != Thread &&
+                InterlockedLoadAcquire(
+                    &Candidate->TerminationState
+                ) != ThreadTerminationExiting) {
+                CurrentProcess->MainThread = Candidate;
+                break;
+            }
+        }
     }
 
     // Release it now.
@@ -825,16 +938,158 @@ PspExitThread(
         // This is the last thread of the process, we clear its handle table.
         HtDeleteHandleTable(CurrentProcess->ObjectTable);
         CurrentProcess->ObjectTable = NULL;
+
+        // This is where the process terminates.
+        // Acquire the process dispatcher header lock.
+        IRQL prevIrql;
+        MsAcquireSpinlock(&CurrentProcess->InternalProcess.Header.Lock, &prevIrql);
+
+        // Publish the final state and status under the same lock as the
+        // persistent process signal. A resumed waiter must not observe
+        // PROCESS_TERMINATING after termination completed.
+        CurrentProcess->InternalProcess.ProcessState = PROCESS_TERMINATED;
+        CurrentProcess->ExitStatus = ExitStatus;
+        CurrentProcess->InternalProcess.Header.SignalState = 1;
+
+        // Wake up everyone!
+        PITHREAD WaitingThread = MspDequeueNextWaitThreadLocked(&CurrentProcess->InternalProcess.Header.WaitListHead);
+
+        while (WaitingThread != NULL) {
+            // Try to claim the thread for a successful wake
+            if (MsClaimThreadWait(WaitingThread, MT_SUCCESS)) {
+                // Completion can acquire scheduler locks, so finish it outside
+                // the process dispatcher's lock.
+                MsReleaseSpinlock(&CurrentProcess->InternalProcess.Header.Lock, prevIrql);
+
+                MsRemoveTimerQueue(WaitingThread);
+                MsCompleteThreadWait(WaitingThread);
+
+                MsAcquireSpinlock(&CurrentProcess->InternalProcess.Header.Lock, &prevIrql);
+            }
+
+            // We failed to claim the thread, retry with next waiter if any
+            WaitingThread = MspDequeueNextWaitThreadLocked(&CurrentProcess->InternalProcess.Header.WaitListHead);
+        }
+
+        MsReleaseSpinlock(&CurrentProcess->InternalProcess.Header.Lock, prevIrql);
     }
 
-    // Todo termination ports for a process (so when it dies the user process can like show a message to parent process or sum shit)
+    // TODO termination ports for a process (so when it dies the user process can like show a message to parent process)
 
-    // Todo process the thread's mutexes and waits (unwait all threads waiting on this), along with flushing its APCs.
+    // APC rundown was completed before this terminal teardown path began.
+
+    // Abandon every mutex still owned by this thread. Remove one list entry
+    // under the owner-list lock, release it, then process that mutex separately.
+    while (1) {
+        IRQL prevIrqlion;
+        MsAcquireSpinlock(&Thread->InternalThread.OwnedMutexesListLock, &prevIrqlion);
+
+        // Remove one owned-mutex entry from the dying thread's list.
+        PDOUBLY_LINKED_LIST Head = RemoveHeadList(&Thread->InternalThread.OwnedMutexListHead);
+
+        // Restore a removed mutex entry to its self-linked state before the
+        // mutex is either handed off or left available and abandoned.
+        if (Head != NULL) {
+            InitializeListHead(Head);
+        }
+
+        // Release the lock.
+        MsReleaseSpinlock(&Thread->InternalThread.OwnedMutexesListLock, prevIrqlion);
+
+        if (Head == NULL) {
+            break;
+        }
+
+        // Recover the mutex containing this owner-list entry.
+        PMUTEX Mutex = CONTAINING_RECORD(Head, MUTEX, OwnerListEntry);
+
+        // Now acquire the Mutex dispatcher lock
+        MsAcquireSpinlock(&Mutex->Header.Lock, &prevIrqlion);
+
+        // The mutex must still name the dying thread because its owner-list
+        // entry was removed before acquiring this dispatcher lock.
+        assert(Mutex->OwnerThread == Thread);
+
+        // Track whether abandonment was transferred directly to a waiter.
+        bool WaiterFound = false;
+
+        // Find the first waiter whose pending wait can still be claimed.
+        PITHREAD WaitingThread = MspDequeueNextWaitThreadLocked(&Mutex->Header.WaitListHead);
+
+        while (WaitingThread != NULL) {
+            if (MsClaimThreadWait(WaitingThread, MT_MUTEX_ABANDONED)) {
+                WaiterFound = true;
+                // Transfer ownership directly to the claimed waiting thread.
+                Mutex->Abandoned = false;
+                Mutex->OwnerThread = PsGetEThreadFromIThread(WaitingThread);
+                Mutex->Header.SignalState = 0; // Mutex held by owner thread
+                
+                // With the mutex lock held, take the replacement owner's list
+                // lock and link the mutex using the documented lock order.
+                MsAcquireSpinlockAtDpcLevel(&WaitingThread->OwnedMutexesListLock);
+                InsertTailList(&WaitingThread->OwnedMutexListHead, &Mutex->OwnerListEntry);
+                MsReleaseSpinlockFromDpcLevel(&WaitingThread->OwnedMutexesListLock);
+
+                // Drop the mutex lock before timer removal and wait completion.
+                MsReleaseSpinlock(&Mutex->Header.Lock, prevIrqlion);
+                MsRemoveTimerQueue(WaitingThread);
+                MsCompleteThreadWait(WaitingThread);
+
+                // Reacquire so the common loop cleanup releases one held lock.
+                MsAcquireSpinlock(&Mutex->Header.Lock, &prevIrqlion);
+                break;
+            }
+
+            WaitingThread = MspDequeueNextWaitThreadLocked(&Mutex->Header.WaitListHead);
+        }
+
+        if (!WaiterFound) {
+            // No waiter won. Leave the mutex available but marked abandoned so
+            // the next immediate acquirer receives MT_MUTEX_ABANDONED.
+            Mutex->Abandoned = true;
+            Mutex->OwnerThread = NULL;
+            Mutex->Header.SignalState = 1;
+        }
+
+        // Release the lock for the next loop.
+        MsReleaseSpinlock(&Mutex->Header.Lock, prevIrqlion);
+    }
+
+    assert(IsListEmpty(&Thread->InternalThread.OwnedMutexListHead));
 
     // Finally, terminate this thread from the scheduler.
     MeDisableInterrupts();
     Thread->ExitStatus = ExitStatus;
     Thread->InternalThread.ThreadState = THREAD_TERMINATING;
+
+    // Acquire the thread dispatcher header lock.
+    IRQL prevIrql;
+    MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &prevIrql);
+
+    // 1 Indicates Process/Thread exit (termination)
+    Thread->InternalThread.Header.SignalState = 1;
+
+    // Wake up everyone that are waiting on this thread's termination.
+    PITHREAD WaitingThread = MspDequeueNextWaitThreadLocked(&Thread->InternalThread.Header.WaitListHead);
+
+    while (WaitingThread != NULL) {
+        // Try to claim the thread for a successful wake
+        if (MsClaimThreadWait(WaitingThread, MT_SUCCESS)) {
+            // Completion can acquire scheduler locks, so finish it outside
+            // the thread dispatcher's lock.
+            MsReleaseSpinlock(&Thread->InternalThread.Header.Lock, prevIrql);
+
+            MsRemoveTimerQueue(WaitingThread);
+            MsCompleteThreadWait(WaitingThread);
+
+            MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &prevIrql);
+        }
+
+        // We failed to claim the thread, retry with next waiter if any
+        WaitingThread = MspDequeueNextWaitThreadLocked(&Thread->InternalThread.Header.WaitListHead);
+    }
+
+    MsReleaseSpinlock(&Thread->InternalThread.Header.Lock, prevIrql);
 
     // Schedule away.
     Schedule();

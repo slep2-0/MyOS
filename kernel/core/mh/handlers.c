@@ -107,17 +107,19 @@ void MiInterprocessorInterrupt (
 
 {
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    InterlockedOrU64(&cpu->flags, CPU_DOING_IPI);
+    InterlockedStore(&cpu->IpiRoutineActive, true);
+    uint64_t IpiSequence = InterlockedLoadAcquire(&cpu->IpiSeq);
+    UNREFERENCED_PARAMETER(IpiSequence);
     uint64_t addr = cpu->IpiParameter.debugRegs.address;
     CPU_ACTION action = cpu->IpiAction;
     int idx = find_available_debug_reg();
     switch (action) {
     case CPU_ACTION_STOP:
         // explicit action to halt, since we are in an interrupt, unless an NMI somehow comes, we will stay stopped.
-        // clear the flag before we halt so BSP can continue iterations
-        cpu->IpiSeq = 0;
-        MmFullBarrier();
-        InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+        // Complete the mailbox transaction, then publish the terminal state.
+        InterlockedStoreRelease(&cpu->IpiSeq, 0);
+        InterlockedStoreRelease(&cpu->IpiRoutineActive, false);
+        InterlockedStoreRelease(&cpu->State, ProcessorStateHalted);
         __cli();
         for (;;) __hlt();
     case CPU_ACTION_PERFORM_TLB_SHOOTDOWN:
@@ -160,21 +162,17 @@ void MiInterprocessorInterrupt (
         break;
     case CPU_ACTION_REQUEST_APC:
         // An APC should be executed in this CPU, request interrupt.
-        cpu->ApcInterruptRequested = true;
         MhRequestSoftwareInterrupt(APC_LEVEL);
         break;
     case CPU_ACTION_REQUEST_DPC:
-        // A DPC should be executed in this CPU, request interrupt.
-        cpu->DpcInterruptRequested = true;
-        if (!cpu->DpcRoutineActive) {
-            MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
-        }
+        // We are now on the target CPU, so publish and request as one local
+        // interrupt-disabled transaction.
+        MeRequestCurrentDpcInterrupt();
         break;
     }
 
-    MmFullBarrier();
-    cpu->IpiSeq = 0;
-    InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+    InterlockedStoreRelease(&cpu->IpiSeq, 0);
+    InterlockedStoreRelease(&cpu->IpiRoutineActive, false);
 
     // End of Interrupt for LAPIC is signaled at function return.
 }
@@ -223,6 +221,7 @@ MiPageFault (
     // ITHREAD.PreviousMode says who entered the kernel and is not equivalent:
     // a syscall bug still faults at CPL 0.
     PRIVILEGE_MODE PreviousMode = ((trap->cs & 3) == 3) ? UserMode : KernelMode;
+    assert(PreviousMode == MeGetPreviousMode(), "testion bugion");
     MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
@@ -384,12 +383,11 @@ MiDebugTrap (
             if (dr6 & (1ULL << i)) {
                 /* If a callback is registered, call it. Provide both address and context. */
                 if (MeGetCurrentProcessor()->DebugEntry[i].Callback) {
-                    DBG_CALLBACK_INFO info = {
-                        .Address = MeGetCurrentProcessor()->DebugEntry[i].Address,
-                        .trap = trap,
-                        .BreakIdx = i,
-                        .Dr6 = dr6
-                    };
+                    DBG_CALLBACK_INFO info;
+                    info.Address = MeGetCurrentProcessor()->DebugEntry[i].Address;
+                    info.trap = trap;
+                    info.BreakIdx = i;
+                    info.Dr6 = dr6;
 
                     /* Call the user-registered callback. It receives &info (void*). */
                     MeGetCurrentProcessor()->DebugEntry[i].Callback(&info);
@@ -446,6 +444,14 @@ MiNonMaskableInterrupt (
 
     --*/
     UNREFERENCED_PARAMETER(trap);
+
+    // Bugcheck CPU freezing deliberately uses an NMI so it does not depend on
+    // IF, TPR, or the synchronous IPI mailbox that may itself have failed.
+    if (MeIsBugCheckActive()) {
+        __cli();
+        for (;;) __hlt();
+    }
+
     MeBugCheck(NON_MASKABLE_INTERRUPT);
 }
 
@@ -545,8 +551,8 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     // Terminate the thread, todo exp.
     // We must not return to the thread, at all.
     assert(Thread->SystemThread == false, "System thread #GPF when PrevMode == UserMode");
-    Thread->InternalThread.TimeSlice = 1;
-    Thread->InternalThread.TimeSliceAllocated = 1;
+    Thread->InternalThread.TimeSlice = (TimeSliceTicks)1;
+    Thread->InternalThread.TimeSliceAllocated = (TimeSliceTicks)1;
     MeGetCurrentProcessor()->schedulePending = true;
     gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating user mode thread (Process Name: %s) ptr %p for %x | RIP: %p\n", PsGetCurrentProcess()->ImageName, Thread, Status, (void*)(uintptr_t)trap->rip);
     PsTerminateThread(Thread, Status);

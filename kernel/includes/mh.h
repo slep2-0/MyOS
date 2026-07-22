@@ -453,6 +453,19 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter);
 void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION action, IPI_PARAMS parameter);
 void MhSpinAndProcessIpis(void);
 
+typedef enum _SMP_TIMEOUT_STAGE {
+	SmpTimeoutApOnline = 1,
+	SmpTimeoutMailboxAcquire,
+	SmpTimeoutIpiCompletion,
+	SmpTimeoutIcrIdle,
+	SmpTimeoutIcrDelivery
+} SMP_TIMEOUT_STAGE;
+
+void MhInitializeTscTimebase(void);
+uint64_t MhReadTsc(void);
+uint64_t MhGetTscTicksPerMillisecond(void);
+bool MhTscTimeoutExpired(uint64_t StartTsc, uint64_t Milliseconds);
+
 extern int smp_cpu_count;
 extern bool smpInitialized;
 extern bool allApsInitialized;
@@ -474,6 +487,7 @@ void lapic_init_siv(void);
 // vector - IDT Vector number
 // flags - specified cpu flags, 0 for none.
 void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags);
+void MhRequestBugCheckFreeze(void);
 int init_lapic_timer(uint32_t hz);           // calibrate + start periodic timer at `hz` (returns 0 on success)
 void pit_sleep_ms(uint32_t ms);
 void lapic_timer_calibrate(void);

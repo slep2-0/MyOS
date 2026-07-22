@@ -10,6 +10,10 @@
 #include "../../includes/me.h"
 #include <stdint.h>
 
+#define SMP_AP_ONLINE_TIMEOUT_MS       5000ULL
+#define SMP_MAILBOX_TIMEOUT_MS         2000ULL
+#define SMP_IPI_COMPLETION_TIMEOUT_MS  2000ULL
+
 extern uint8_t _binary_build_ap_trampoline_bin_start[];
 extern uint8_t _binary_build_ap_trampoline_bin_end[];
 
@@ -74,7 +78,9 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 			cpus[i].self = &cpus[i];
 			cpus[i].ID = i;
 			cpus[i].lapic_ID = aid;
-			cpus[i].flags = CPU_ONLINE;
+			cpus[i].State = ProcessorStateOnline;
+			cpus[i].IpiRoutineActive = false;
+			cpus[i].StartupStage = ProcessorStartupOnline;
 			MeClockProcessor = &cpus[i];
 			InitializeListHead(&cpus[i].DpcData.DpcListHead);
 			cpus[i].DpcData.DpcQueueDepth = 0;
@@ -119,8 +125,10 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 
 		// IST Stack setup & GDT & TSS have been moved to MeInitProcesor function.
 
-		// CPU Flags
-		cpus[i].flags |= CPU_UNAVAILABLE; // Start unavailable.
+		// The AP cannot receive normal work until ap_main publishes Online.
+		cpus[i].State = ProcessorStateUnavailable;
+		cpus[i].IpiRoutineActive = false;
+		cpus[i].StartupStage = ProcessorStartupAllocated;
 		cpus[i].schedulePending = false;
 
 		// DPCs & Queue
@@ -148,6 +156,24 @@ static void send_startup_ipis(uint8_t apic_id) {
 uint8_t g_apic_list[MAX_CPUS];
 uint32_t g_cpuCount = 1; // Must be 1, to include the BSP.
 uint32_t g_lapicAddress;
+static volatile uint64_t MhIpiSequence = 1;
+
+static NORETURN void
+MhpSmpTimeout(
+	SMP_TIMEOUT_STAGE Stage,
+	PPROCESSOR TargetProcessor,
+	uintptr_t Detail1,
+	uintptr_t Detail2
+)
+{
+	MeBugCheckEx(
+		SMP_SYNCHRONIZATION_TIMEOUT,
+		(void*)(uintptr_t)Stage,
+		TargetProcessor,
+		(void*)Detail1,
+		(void*)Detail2
+	);
+}
 
 // BSP Entry: start all APs.
 void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
@@ -216,7 +242,22 @@ void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddre
 	// over - Application Processors (the other CPUs) should execute trampoline and call ap_main();
 	// now, we wait until all are online.
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
-		while (!(cpus[i].flags & CPU_ONLINE)) {
+		uint64_t StartTsc = MhReadTsc();
+
+		while (InterlockedLoadAcquire(&cpus[i].State) != ProcessorStateOnline) {
+			if (MhTscTimeoutExpired(StartTsc, SMP_AP_ONLINE_TIMEOUT_MS)) {
+				MhpSmpTimeout(
+					SmpTimeoutApOnline,
+					&cpus[i],
+					(uintptr_t)InterlockedLoadAcquire(
+					    &cpus[i].State
+					),
+					(uintptr_t)InterlockedLoadAcquire(
+					    &cpus[i].StartupStage
+					)
+				);
+			}
+
 			__pause();
 		}
 	}
@@ -250,7 +291,7 @@ void MhSpinAndProcessIpis(void) {
 
 	// Before SMP there is no IPI to service. Never enable a second IPI while
 	// already executing on the per-CPU IPI IST stack.
-	if (!smpInitialized || (cpu->flags & CPU_DOING_IPI)) {
+	if (!smpInitialized || InterlockedLoadAcquire(&cpu->IpiRoutineActive)) {
 		__pause();
 		return;
 	}
@@ -283,40 +324,89 @@ void MhSpinAndProcessIpis(void) {
 	__asm__ volatile("pause");
 }
 
+static void
+MhpAcquireMailbox(
+	PPROCESSOR TargetProcessor
+)
+{
+	uint64_t StartTsc = MhReadTsc();
+
+	while (InterlockedCompareExchangeU64(
+		&TargetProcessor->MailboxLock,
+		1,
+		0
+	) != 0) {
+		if (MhTscTimeoutExpired(StartTsc, SMP_MAILBOX_TIMEOUT_MS)) {
+			MhpSmpTimeout(
+				SmpTimeoutMailboxAcquire,
+				TargetProcessor,
+				(uintptr_t)InterlockedLoadAcquire(
+				    &TargetProcessor->MailboxLock
+				),
+				(uintptr_t)InterlockedLoadAcquire(
+				    &TargetProcessor->IpiSeq
+				)
+			);
+		}
+
+		MhSpinAndProcessIpis();
+	}
+}
+
+static void
+MhpWaitForIpiCompletion(
+	PPROCESSOR TargetProcessor,
+	uint64_t Sequence
+)
+{
+	uint64_t StartTsc = MhReadTsc();
+
+	while (InterlockedLoadAcquire(
+	    &TargetProcessor->IpiSeq
+	) == Sequence) {
+		if (MhTscTimeoutExpired(StartTsc, SMP_IPI_COMPLETION_TIMEOUT_MS)) {
+			MhpSmpTimeout(
+				SmpTimeoutIpiCompletion,
+				TargetProcessor,
+				(uintptr_t)Sequence,
+				(uintptr_t)InterlockedLoadAcquire(
+				    &TargetProcessor->IpiSeq
+				)
+			);
+		}
+
+		MhSpinAndProcessIpis();
+	}
+}
+
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	if (!g_cpuCount || !smpInitialized) return;
 	uint8_t myid = my_lapic_id();
 
-	static uint64_t g_ipiSeq = 1; // Global sequence of IPIs made.
-	uint64_t seq = InterlockedIncrementU64(&g_ipiSeq);
-
-	__asm__ volatile("mfence" ::: "memory");
+	uint64_t seq = InterlockedIncrementU64(&MhIpiSequence);
 
 	for (uint32_t i = 0; i < g_cpuCount; i++) {
 		if (cpus[i].lapic_ID == myid) continue;
-		if (!(cpus[i].flags & CPU_ONLINE)) continue;
+		if (InterlockedLoadAcquire(&cpus[i].State) != ProcessorStateOnline) continue;
+		PPROCESSOR TargetProcessor = &cpus[i];
 
 		// Complete one target transaction before acquiring another target's
 		// mailbox. Holding several mailbox locks at once allows concurrent
 		// broadcasts to form an SMP lock cycle.
-		while (InterlockedCompareExchangeU64(&cpus[i].MailboxLock, 1, 0) == 1) {
-			MhSpinAndProcessIpis();
-		}
+		MhpAcquireMailbox(TargetProcessor);
 
-		cpus[i].IpiAction = action;
-		cpus[i].IpiParameter = parameter;
-		cpus[i].IpiSeq = seq; // assign sequence number
+		TargetProcessor->IpiAction = action;
+		TargetProcessor->IpiParameter = parameter;
+		InterlockedStoreRelease(&TargetProcessor->IpiSeq, seq);
 
 		uint32_t LAPIC_ACTION_VECTOR = VECTOR_IPI;
-		lapic_send_ipi(cpus[i].lapic_ID, (uint8_t)LAPIC_ACTION_VECTOR, 0x0);
+		lapic_send_ipi(TargetProcessor->lapic_ID, (uint8_t)LAPIC_ACTION_VECTOR, 0x0);
 
 		// Completion of this function still means every online CPU has
 		// processed the action, but no sender owns multiple mailbox locks.
-		while (*(volatile uint64_t*)&cpus[i].IpiSeq == seq) {
-			MhSpinAndProcessIpis();
-		}
+		MhpWaitForIpiCompletion(TargetProcessor, seq);
 
-		InterlockedExchangeU64(&cpus[i].MailboxLock, 0);
+		InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
 	}
 }
 
@@ -328,33 +418,28 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 
 	// Prevent sending an IPI to ourselves and ensure the target is online.
 	if (TargetProcessor->lapic_ID == myid) return;
-	if (!(TargetProcessor->flags & CPU_ONLINE)) return;
+	if (InterlockedLoadAcquire(
+	    &TargetProcessor->State
+	) != ProcessorStateOnline) return;
 
 	// Generate a unique sequence number for this IPI request.
-	static uint64_t g_ipiSeq = 1;
-	uint64_t seq = InterlockedIncrementU64(&g_ipiSeq);
-
-	__asm__ volatile("mfence" ::: "memory");
+	uint64_t seq = InterlockedIncrementU64(&MhIpiSequence);
 
 	// Acquire the mailbox lock for the target processor.
 	// If the lock is held, we spin and process any incoming IPIs for ourselves.
-	while (InterlockedCompareExchangeU64(&TargetProcessor->MailboxLock, 1, 0) == 1) {
-		MhSpinAndProcessIpis();
-	}
+	MhpAcquireMailbox(TargetProcessor);
 
 	// Assign the action, parameters, and sequence number to the target's mailbox.
 	TargetProcessor->IpiAction = action;
 	TargetProcessor->IpiParameter = parameter;
-	TargetProcessor->IpiSeq = seq;
+	InterlockedStoreRelease(&TargetProcessor->IpiSeq, seq);
 
 	// Send the IPI using the global IPI vector.
 	lapic_send_ipi(TargetProcessor->lapic_ID, (uint8_t)VECTOR_IPI, 0x0);
 
 	// Wait for the target processor to finish handling the IPI.
 	// The target will clear or update its IpiSeq upon completion.
-	while (*(volatile uint64_t*)&TargetProcessor->IpiSeq == seq) {
-		MhSpinAndProcessIpis();
-	}
+	MhpWaitForIpiCompletion(TargetProcessor, seq);
 
 	// Release the mailbox lock so other processors can send requests to this CPU.
 	InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);

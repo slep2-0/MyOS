@@ -1,7 +1,6 @@
 #include "assert.h"
 
-__attribute__((noreturn))
-void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line) {
+NORETURN void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line) {
     // Getting here means a runtime assertion has failed (assert())
     (void)(func);
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Kernel">
+      <UniqueIdentifier>{A60C89AD-2F06-416E-B5A4-E33743B292B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="User mode">
+      <UniqueIdentifier>{B3E42EC9-A0C2-4C15-A8E7-45254C090E61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Build tools">
+      <UniqueIdentifier>{F934142F-80D6-46ED-9BAC-17414817FC6D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="kernel\**\*.c" Exclude="kernel\gen_offsets.c"><Filter>Kernel</Filter></ClCompile>
+    <ClCompile Include="usermode\**\*.c"><Filter>User mode</Filter></ClCompile>
+    <ClInclude Include="kernel\**\*.h"><Filter>Kernel</Filter></ClInclude>
+    <ClInclude Include="usermode\**\*.h"><Filter>User mode</Filter></ClInclude>
+    <None Include="kernel\**\*.asm"><Filter>Kernel</Filter></None>
+    <None Include="kernel\gen_offsets.c"><Filter>Build tools</Filter></None>
+    <None Include="usermode\**\*.asm"><Filter>User mode</Filter></None>
+    <None Include="usermode\**\*.S"><Filter>User mode</Filter></None>
+    <None Include="kernel\linker.ld"><Filter>Kernel</Filter></None>
+    <None Include="usermode\mtdll.ld"><Filter>User mode</Filter></None>
+    <None Include="usermode\mtexe.ld"><Filter>User mode</Filter></None>
+    <None Include="build_windows.bat"><Filter>Build tools</Filter></None>
+    <None Include="clean_windows.bat"><Filter>Build tools</Filter></None>
+    <None Include="initial_setup.bat"><Filter>Build tools</Filter></None>
+    <None Include="run_windows.bat"><Filter>Build tools</Filter></None>
+    <None Include="reset_intellisense.bat"><Filter>Build tools</Filter></None>
+    <None Include="tools\windows\*.py"><Filter>Build tools</Filter></None>
+    <None Include="tools\windows\*.ps1"><Filter>Build tools</Filter></None>
+    <None Include="tools\windows\*.bat"><Filter>Build tools</Filter></None>
+    <None Include="tools\windows\*.asm"><Filter>Build tools</Filter></None>
+    <None Include="tools\windows\README.md"><Filter>Build tools</Filter></None>
+  </ItemGroup>
+</Project>

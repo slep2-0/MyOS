@@ -12,6 +12,29 @@
 #include "../../includes/ob.h"
 #include "../../includes/md.h"
 
+void
+MeRequestCurrentDpcInterrupt(
+    void
+)
+{
+    bool InterruptsEnabled = MeDisableInterrupts();
+    PPROCESSOR Cpu = MeGetCurrentProcessor();
+
+    // Publishing the request and posting the self-IPI must be one local-CPU
+    // transaction. Otherwise a timer/DPC interrupt can retire the request in
+    // the gap and leave MhRequestSoftwareInterrupt with no request to service.
+    InterlockedStoreRelease(
+        &Cpu->DpcInterruptRequested,
+        true
+    );
+
+    if (!InterlockedLoadAcquire(&Cpu->DpcRoutineActive)) {
+        MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
+    }
+
+    MeEnableInterrupts(InterruptsEnabled);
+}
+
 bool
 MeInsertQueueDpc(
     IN PDPC Dpc,
@@ -69,7 +92,7 @@ MeInsertQueueDpc(
 #endif
     }
 
-    // Raise IRQL to HIGH_LEVEL to prevent all interrupts while we touch the processor DPC queue. (prevent corruption)
+    // Disable local interrupt delivery while publishing into a processor's DPC queue.
     MeRaiseIrql(HIGH_LEVEL, &OldIrql);
 
     if (Dpc->CpuNumber < MeGetActiveProcessorCount() && Dpc->CpuNumber != DPC_TARGET_CURRENT) {
@@ -81,7 +104,7 @@ MeInsertQueueDpc(
 
     DpcData = &Cpu->DpcData;
 
-    // Acquire the DpcData lock for the current processor.
+    // Acquire the selected target processor's DPC queue lock.
     MsAcquireSpinlockAtDpcLevel(&DpcData->DpcLock);
 
     // Atomic operation to check if this DPC is already queued.
@@ -106,25 +129,28 @@ MeInsertQueueDpc(
         // Increment request rate
         Cpu->DpcRequestRate++;
 
-        // Check if we need to request an interurpt
-        // We only request if a DPC isnt currently running.
-        // And we haven't already requested an interrupt for a DPC.
-        if ((Cpu->DpcRoutineActive == false) &&
-            (Cpu->DpcInterruptRequested == false)) {
+        // Publish one interrupt request when retirement is not already active
+        // and another request has not already been coalesced for this CPU.
+        if (!InterlockedLoadAcquire(&Cpu->DpcRoutineActive) &&
+            !InterlockedLoadAcquire(&Cpu->DpcInterruptRequested)) {
 
-            // If the DPC priority is higher than lowest, or we are to deep in the queue depth, retire DPCs immediately.
+            // Normal/high priority DPCs request prompt retirement. Low-priority
+            // DPCs wait until queue depth reaches the configured threshold.
             if ((Dpc->priority != LOW_PRIORITY) ||
                 (DpcData->DpcQueueDepth >= Cpu->MaximumDpcQueueDepth)) {
 
-                // Always mark that an interrupt is needed eventually
-                Cpu->DpcInterruptRequested = true;
+                // Publish the request under the queue lock; issue it after unlock.
+                InterlockedStoreRelease(
+                    &Cpu->DpcInterruptRequested,
+                    true
+                );
                 RequestInterrupt = true;
                 RequestCpu = Cpu;
             }
         }
     }
 
-    // Release Lock and Restore IRQL
+    // Release the queue lock and restore the caller's IRQL.
     MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
     MeLowerIrql(OldIrql);
 
@@ -237,9 +263,9 @@ MeRetireDPCs(
 
     DpcData = &Cpu->DpcData;
 
-    Cpu->DpcRoutineActive = true;
+    InterlockedStoreRelease(&Cpu->DpcRoutineActive, true);
 
-    // Process Timer Expiration -- Unused for now, until we introduce MsWaitForSingleObject (will replace MsWaitForEvent n stuff), and also MeDelayExecutionThread
+    // Legacy per-CPU timer hook. Dispatcher timeouts now use TimerExpirationDPC.
     /*
     if (Cpu->TimerRequest != 0) {
         TimerHand = Cpu->TimerHand;
@@ -257,8 +283,14 @@ MeRetireDPCs(
 
         Entry = DpcData->DpcListHead.Flink;
         if (Entry == &DpcData->DpcListHead) {
-            Cpu->DpcRoutineActive = false;
-            Cpu->DpcInterruptRequested = false;
+            InterlockedStoreRelease(
+                &Cpu->DpcRoutineActive,
+                false
+            );
+            InterlockedStoreRelease(
+                &Cpu->DpcInterruptRequested,
+                false
+            );
             MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
             break;
         }
@@ -327,7 +359,7 @@ MeSetTargetProcessorDpc(
     Arguments:
 
         [IN] PDPC DpcAllocated - Pointer to DPC allocated in resident memory (e.g, pool alloc)
-        [IN] uint32_t CpuNumber - LAPIC ID Of the certain CPU Core to be ran on.
+        [IN] uint32_t CpuNumber - Processor-array index on which the DPC should run.
 
     Return Values:
 

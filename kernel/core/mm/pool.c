@@ -109,6 +109,8 @@ MiRefillPool(
 
         Refills the specified pool with a block of its size.
 
+        PagedPool are NOT allocated here.
+
     Arguments:
 
         [IN]    PPOOL_DESCRIPTOR Desc - Pointer to descriptor.
@@ -128,6 +130,9 @@ MiRefillPool(
     //size_t Iterations = 0;
     /* If I ever return back freeing to global pool, I should check that Desc->BlockSize == VirtualPageSize, else it wont use it.
     * Since we have memory corruptions for larger block sizes..
+    * make sure, that if we do use this, that if the page is Nx, the PTE should be changed prperly
+    * 
+    * 
     // Acquire the spinlock for atomicity.
     MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
 
@@ -442,10 +447,7 @@ MiAllocatePagedPool(
 
             // Acquire its PTE.
             PMMPTE Pte = MiGetPtePointer(currVa);
-            if (!Pte) {
-                assert(false, "Acquiring PTE pointer after it was valid before resulted in NULL, severe bug.");
-                break;
-            }
+            assert(Pte != NULL, "Acquiring PTE pointer after it was valid before resulted in NULL, severe bug.");
 
             // Clear PTE.
             MiUnmapPte(Pte);
@@ -833,7 +835,10 @@ MmFreePool(
 
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
-            if (unlikely(!pte)) goto advance;
+            if (unlikely(!pte)) {
+                assert(false, "Couldnt get PagedPool PTE, for some odd reason.");
+                goto advance;
+            }
 
             // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.
             if (pte->Hard.Present) {

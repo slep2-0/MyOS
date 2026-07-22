@@ -511,7 +511,7 @@ MiReleasePhysicalPage(
     assert((pfn->RefCount) > 0, "Refcount is 0 while releasing. Double Free");
 #endif
 
-    uint32_t RefCount = __atomic_load_n(&pfn->RefCount, __ATOMIC_ACQUIRE);
+    uint32_t RefCount = InterlockedLoadAcquire(&pfn->RefCount);
     for (;;) {
         if (RefCount == 0) {
             MeBugCheckEx(

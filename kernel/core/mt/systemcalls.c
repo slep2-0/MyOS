@@ -80,22 +80,48 @@ VAD_FLAGS
 MtpUserAllocationTypeToVadFlags(
     IN USER_PROTECTION_TYPE AllocationType
 )
-
 {
+    VAD_FLAGS Flags = VAD_FLAG_NONE;
+
     switch (AllocationType) {
-        case PAGE_EXECUTE_READWRITE:
-            return VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE;
-        case PAGE_EXECUTE_READ:
-            return VAD_FLAG_EXECUTE | VAD_FLAG_READ;
-        case PAGE_READWRITE:
-            return VAD_FLAG_READ | VAD_FLAG_WRITE;
-        case PAGE_READONLY:
-            return VAD_FLAG_READ;
-        case PAGE_NOACCESS:
-            return VAD_FLAG_RESERVED;
+    case PAGE_EXECUTE_READWRITE:
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_EXECUTE);
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_READ);
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_WRITE);
+        break;
+
+    case PAGE_EXECUTE_READ:
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_EXECUTE);
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_READ);
+        break;
+
+    case PAGE_READWRITE:
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_READ);
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_WRITE);
+        break;
+
+    case PAGE_READONLY:
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_READ);
+        break;
+
+    case PAGE_NOACCESS:
+        Flags = (VAD_FLAGS)((unsigned int)Flags |
+            (unsigned int)VAD_FLAG_RESERVED);
+        break;
+
+    default:
+        break;
     }
 
-    return VAD_FLAG_NONE;
+    return Flags;
 }
 
 static
@@ -988,8 +1014,11 @@ MtProtectVirtualMemory(
 
     ReturnedOldProtection = MtpVadFlagsToUserAllocationType(Vad->Flags);
 
+    // Strip out protection VAD Flags and keep other ones
     const VAD_FLAGS ProtectionStateMask = VAD_FLAG_READ | VAD_FLAG_WRITE |
         VAD_FLAG_EXECUTE | VAD_FLAG_RESERVED;
+
+    // Install new vad flags.
     VAD_FLAGS NewVadFlags = (Vad->Flags & ~ProtectionStateMask) |
         MtpUserAllocationTypeToVadFlags(NewProtection);
 
@@ -1384,7 +1413,7 @@ MtSleep(
     // Convert to ticks without overflowing on a very large interval.
     uint64_t Ticks = Milliseconds / TICK_MS;
     if (Milliseconds % TICK_MS) Ticks++;
-    uint64_t Now = __atomic_load_n(&MeSystemTickCount, __ATOMIC_ACQUIRE);
+    uint64_t Now = InterlockedLoadAcquire(&MeSystemTickCount);
     uint64_t WakeupTime = Ticks > UINT64_MAX - Now
         ? UINT64_MAX
         : Now + Ticks;
@@ -1394,7 +1423,11 @@ MtSleep(
     bool InterruptsEnabled = MeDisableInterrupts();
     CurrentThread->WaitStatus = MT_PENDING;
     CurrentThread->ThreadState = THREAD_BLOCKING;
-    MsInsertTimerQueue(CurrentThread, WakeupTime, Sleeping);
+
+    // Initialize the wait block
+    INIT_WAIT_BLOCK(CurrentThread, NULL, WaitReasonSleep, WakeupTime);
+    
+    MsInsertTimerQueue(CurrentThread, WakeupTime);
     MeEnableInterrupts(InterruptsEnabled);
 
     if (CurrentThread->PreviousMode == UserMode && CurrentThread->SyscallTrap) {
@@ -1413,13 +1446,13 @@ MtSleep(
 MTSTATUS
 MtWaitForSingleObject(
     IN HANDLE ObjectHandle,
-    IN uint64_t Milliseconds
+    IN uint64_t Milliseconds,
+    IN bool Alertable
 )
 
 {
     MTSTATUS Status;
     void* Object = NULL;
-    POBJECT_HEADER Header;
 
     // Reference the object, get its type.
     Status = ObReferenceObjectByHandle(
@@ -1432,19 +1465,8 @@ MtWaitForSingleObject(
 
     if (MT_FAILURE(Status)) return Status;
 
-    Header = OBJECT_TO_OBJECT_HEADER(Object);
-
-    // Route based on object type
-    if (Header->Type == MsEventType) {
-        Status = MsWaitForEvent((PEVENT)Object, Milliseconds);
-    }
-    else if (Header->Type == MsMutexType) {
-        Status = MsAcquireMutexObject((PMUTEX)Object);
-    }
-    else {
-        // Object type is invalid (for now) (need to add support for processes/threads/files)
-        Status = MT_INVALID_PARAM;
-    }
+    // Call internal function
+    Status = MsWaitForSingleObject(Object, UserMode, Alertable, Milliseconds);
 
     ObDereferenceObject(Object);
     return Status;

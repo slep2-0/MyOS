@@ -1,48 +1,33 @@
-# Ignore all .exe files (binaries) anywhere
-*.exe
-
-# Ignore all object files
+.vs/
+.vscode/
+/build/
+/build_environment/
+/x64/
+/MatanelOS/
+.build_*/
+log.txt
+*.log
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+*.opendb
+*.ipch
 *.o
 *.obj
-
-# Ignore all compiled libraries
+*.exe
 *.dll
-*.so
-*.dylib
 *.lib
 *.a
-
-# Generic ignore, like disassembly, texts, and bash scripts that are made for my machine, you may request them.
-*.dis
-*.txt
-*.sh
-*.bash
-*.i
+*.efi
+*.elf
+*.bin
 *.img
-*.s
-
-# Ignore all build output folders (adjust paths if needed)
-tools/buildtools/cross-compiler-gcc/bin/
-tools/buildtools/cross-compiler-gcc/libexec/
-
-# Ignore general build folders
-build/
-out/
-bin/
-obj/
-
-# Ignore the entire tools folder
-/tools/
-/tools64/
-/tools64_bak/
-uefiboot/
-/uefiboot/
-
-# Ignore temporary files
-*.tmp
-*.log
-
-# Ignore other common binaries or generated files
-*.class
-*.pyc
-*.pyo
+*.mtdll
+*.mtexe
+*.pdb
+*.ilk
+OVMF_VARS*.fd
+__pycache__/
+*.py[cod]
+/Intel-Manual-x86-IA32.pdf

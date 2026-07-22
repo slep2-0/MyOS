@@ -1095,27 +1095,44 @@ MmFreeVirtualMemory(
         }
     }
 
-    // Unmap PTEs and release physical pages
+    // Keep removed PFNs reserved until all CPUs have discarded the stale
+    // translations. Batching bounds stack use without requiring an allocation
+    // in the virtual-memory free path.
+    PAGE_INDEX PfnsToRelease[32];
+    size_t PfnCount = 0;
+    uintptr_t FlushStart = FreeStart;
+
+    // Unmap PTEs, flush stale translations, then release physical pages.
     for (uintptr_t virtualaddr = FreeStart; virtualaddr <= FreeEnd; virtualaddr += VirtualPageSize) {
         PMMPTE pte = MiGetPtePointer(virtualaddr);
-        if (!pte) continue;
-
-        if (pte->Hard.Present) {
-            PAGE_INDEX pfn = pte->Hard.PageFrameNumber;
-            // The exclusive VAD lock prevents a demand fault from publishing
-            // this PTE while it is being removed. Clear locally and perform a
-            // single broadcast flush after the whole range is processed.
-            MiAtomicExchangePte(pte, 0);
-            MiReleasePhysicalPage(pfn);
-        }
-        else {
+        if (pte) {
             // Clear demand-zero or legacy transition metadata as well.
-            MiAtomicExchangePte(pte, 0);
+            MMPTE OldPte;
+            OldPte.Value = MiAtomicExchangePte(pte, 0);
+            if (OldPte.Hard.Present) {
+                PfnsToRelease[PfnCount++] = OldPte.Hard.PageFrameNumber;
+            }
+        }
+
+        bool LastPte = FreeEnd - virtualaddr < VirtualPageSize;
+        if (PfnCount == sizeof(PfnsToRelease) / sizeof(PfnsToRelease[0]) ||
+            LastPte) {
+            bool OnePte = PAGE_ALIGN(FlushStart) == PAGE_ALIGN(virtualaddr);
+            if (OnePte) {
+                MiInvalidateTlbForVa((void*)FlushStart);
+            }
+            else {
+                MiReloadTLBs();
+            }
+
+            for (size_t Index = 0; Index < PfnCount; Index++) {
+                MiReleasePhysicalPage(PfnsToRelease[Index]);
+            }
+
+            PfnCount = 0;
+            FlushStart = virtualaddr + VirtualPageSize;
         }
     }
-
-    // Flush TLBs due to multiple PTEs (or maybe one :))
-    MiReloadTLBs();
 
     // Update the new base address.
     *BaseAddress = (void*)FreeStart;

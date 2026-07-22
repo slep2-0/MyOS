@@ -21,9 +21,8 @@ restore_context:
     shr   rdx, 32
     wrmsr
 
-    ; RDI = &TRAP_FRAME. In 64-bit mode IRETQ consumes SS:RSP even when
-    ; returning to CPL 0, so every synthetic frame must contain all five
-    ; qwords. Omitting these made IRETQ read SS at the exclusive stack top.
+    ; In 64-bit mode IRETQ consumes SS:RSP even when CPL does not change.
+    ; Build the complete five-qword frame below the saved post-call RSP.
     mov   rax, rdi
     mov   rdx, [rax + TRAP_FRAME_rsp]
     mov   rsp, rdx
@@ -74,8 +73,10 @@ restore_user_context_to_user:
     mov rax, [rax + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
-    ; ETHREAD begins with ITHREAD, which begins with TRAP_FRAME.
-    mov   rax, rdi
+    ; Preserve the TEB before restoring RDI, then address the trap frame at its
+    ; generated offset. ITHREAD now begins with a dispatcher header.
+    mov   rdx, [rdi + ETHREAD_Teb]
+    lea   rax, [rdi + ETHREAD_InternalThread + ITHREAD_TrapRegisters]
     
     ; Build the privilege-changing IRETQ frame on the current kernel stack.
     push qword [rax + TRAP_FRAME_ss] ; SS
@@ -98,7 +99,6 @@ restore_user_context_to_user:
 
     ; Set live GS to this thread's TEB at the last practical point. The shadow
     ; was set to the CPU above, so the next SWAPGS has a deterministic pair.
-    mov   rdx, [rax + ETHREAD_Teb]
     wrgsbase rdx
 
     mov   rdx, [rax + TRAP_FRAME_rdx]
@@ -131,11 +131,11 @@ restore_user_context_to_kernel:
     mov rax, [rax + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
-    mov   rax, rdi
+    ; ITHREAD begins with a dispatcher header, not the saved trap frame.
+    lea   rax, [rdi + ETHREAD_InternalThread + ITHREAD_TrapRegisters]
 
     ; The saved RSP/RIP came from MsYieldExecution and describe a CPL 0
-    ; continuation. Build the complete 64-bit IRETQ frame with kernel
-    ; selectors rather than reusing stale USER_CS/USER_SS fields.
+    ; continuation. Long-mode IRETQ still requires the complete frame.
     mov   rdx, [rax + TRAP_FRAME_rsp]
     mov   rsp, rdx
     push  KERNEL_SS

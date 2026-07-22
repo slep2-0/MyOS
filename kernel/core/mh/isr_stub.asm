@@ -233,6 +233,7 @@ extern Schedule
     ; continuation in the thread.
     mov rsi, rsp
     mov rdi, [gs:PROCESSOR_currentThread]
+    add rdi, ITHREAD_TrapRegisters
     mov rcx, SIZEOF_TRAP_FRAME / 8
     cld
     rep movsq

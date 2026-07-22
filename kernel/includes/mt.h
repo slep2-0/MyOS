@@ -155,7 +155,8 @@ MtSleep(
 MTSTATUS
 MtWaitForSingleObject(
     IN HANDLE ObjectHandle,
-    IN uint64_t Milliseconds
+    IN uint64_t Milliseconds,
+    IN bool Alertable
 );
 
 MTSTATUS

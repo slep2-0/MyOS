@@ -81,7 +81,7 @@ void ObInitialize(void);
 void ObInitializeReaperThread(void);
 
 MTSTATUS ObCreateObjectType(
-    IN char* TypeName,
+    IN const char* TypeName,
     IN POBJECT_TYPE_INITIALIZER ObjectTypeInitializer,
     OUT POBJECT_TYPE* ObjectType
 );

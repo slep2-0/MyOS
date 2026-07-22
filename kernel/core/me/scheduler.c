@@ -37,7 +37,7 @@ void InitScheduler(void) {
     MeGetCurrentProcessor()->idleThread = idleThread;
 
     // Use the unified helper to set up APC lists, PIDs, and states
-    PspInitializeThread(idleThread, &PsInitialSystemProcess, 1); // 1ms timeslice
+    PspInitializeThread(idleThread, &PsInitialSystemProcess, (TimeSliceTicks)1); // 1ms timeslice
 
     // Idle thread specific overrides
     idleThread->TID = 0;
@@ -82,7 +82,6 @@ void InitScheduler(void) {
 
 // Enqueue the thread if it's still RUNNING.
 static void enqueue_runnable(PITHREAD t) {
-    assert((t) != 0);
     if (t->ThreadState == THREAD_RUNNING) {
         t->ThreadState = THREAD_READY;
         t->TimeSlice = t->TimeSliceAllocated;
@@ -116,9 +115,8 @@ static PITHREAD MeAcquireNextScheduledThread(void) {
             // A non-NULL owner means the thread has a kernel stack associated
             // with another CPU. Until context switching has an explicit
             // switched-away handshake, only steal never-dispatched threads.
-            if (__atomic_load_n(
-                &chosenThread->InternalThread.ActiveProcessor,
-                __ATOMIC_ACQUIRE
+            if (InterlockedLoadAcquire(
+                &chosenThread->InternalThread.ActiveProcessor
             ) != NULL) {
                 MeEnqueueThreadWithLock(victimQueue, chosenThread);
                 continue;
@@ -132,6 +130,20 @@ static PITHREAD MeAcquireNextScheduledThread(void) {
     // No thread found.
     return NULL;
 }
+
+#ifdef DEBUG
+FORCEINLINE
+bool
+MepIsCanonicalAddress(
+    IN uintptr_t Address
+)
+{
+    uintptr_t UpperBits = Address >> 48;
+    uintptr_t SignExtension = ((Address >> 47) & 1) ? 0xFFFF : 0;
+
+    return UpperBits == SignExtension;
+}
+#endif
 
 NORETURN
 void 
@@ -156,13 +168,12 @@ Schedule(void) {
         // Publish BLOCKED before checking WaitStatus. A concurrent wake either
         // changes BLOCKED to READY and queues us, or observes BLOCKING and
         // leaves completion for this CPU to consume below.
-        __atomic_store_n(
+        InterlockedStore(
             &current->ThreadState,
-            THREAD_BLOCKED,
-            __ATOMIC_SEQ_CST
+            THREAD_BLOCKED
         );
 
-        if (__atomic_load_n(&current->WaitStatus, __ATOMIC_SEQ_CST) != MT_PENDING) {
+        if (InterlockedLoad(&current->WaitStatus) != MT_PENDING) {
             __sync_bool_compare_and_swap(
                 &current->ThreadState,
                 THREAD_BLOCKED,
@@ -187,6 +198,49 @@ Schedule(void) {
         next = IdleThread;
     }
 
+#ifdef DEBUG
+    assert(IdleThread != NULL);
+    assert(next != NULL);
+    assert(next->KernelStack != NULL);
+    assert(next == IdleThread || next->ThreadState == THREAD_READY,
+        "Scheduler selected a thread that was not ready.");
+    assert(next->ActiveProcessor == NULL || next->ActiveProcessor == cpu,
+        "Scheduler selected a thread owned by another processor.");
+
+    uintptr_t StackTop = (uintptr_t)next->KernelStack;
+    size_t StackSize = next->IsLargeStack
+        ? MI_LARGE_STACK_SIZE
+        : MI_STACK_SIZE;
+    assert(StackTop >= StackSize);
+    uintptr_t StackLimit = StackTop - StackSize;
+
+    uintptr_t SavedRip = (uintptr_t)next->TrapRegisters.rip;
+    uintptr_t SavedRsp = (uintptr_t)next->TrapRegisters.rsp;
+    uint64_t SavedCs = next->TrapRegisters.cs;
+
+    assert(SavedCs == KERNEL_CS || SavedCs == USER_CS,
+        "Saved context has an invalid code selector.");
+    assert(SavedRip != 0 && MepIsCanonicalAddress(SavedRip),
+        "Saved context has a noncanonical RIP.");
+
+    if (SavedCs == KERNEL_CS) {
+        // Kernel stacks grow down from KernelStack. KernelStack itself is the
+        // first byte above the allocation and is therefore an exclusive bound.
+        assert(SavedRsp >= StackLimit && SavedRsp < StackTop,
+            "Saved kernel RSP is outside the thread's kernel stack.");
+    }
+    else {
+        assert(SavedRsp != 0 && MepIsCanonicalAddress(SavedRsp),
+            "Saved user context has a noncanonical RSP.");
+        assert(SavedRip <= MmHighestUserAddress &&
+            SavedRsp <= MmHighestUserAddress,
+            "Saved user context points outside user address space.");
+        assert(next->TrapRegisters.ss == USER_SS,
+            "Saved user context has an invalid stack selector.");
+    }
+
+#endif
+
     next->ThreadState = THREAD_RUNNING;
     next->ActiveProcessor = cpu; // Set the thread's current CPU as this.
     MeGetCurrentProcessor()->currentThread = next;
@@ -195,9 +249,14 @@ Schedule(void) {
     // If so, request the interrupt.
     IRQL apcQueueIrql;
     MsAcquireSpinlock(&next->ApcQueueLock, &apcQueueIrql);
-    if (next->ApcListHead.Flink != &next->ApcListHead) {
-        cpu->ApcInterruptRequested = true;
-    }
+    InterlockedStoreRelease(
+        &next->ApcState.KernelApcPending,
+        !IsListEmpty(&next->ApcState.ApcListHead[KernelMode])
+    );
+    InterlockedStoreRelease(
+        &next->ApcState.UserApcPending,
+        !IsListEmpty(&next->ApcState.ApcListHead[UserMode])
+    );
     MsReleaseSpinlock(&next->ApcQueueLock, apcQueueIrql);
 
     // Disable interrupts, we must not scheduled away now.
@@ -220,5 +279,6 @@ Schedule(void) {
             restore_user_context_to_user(PsGetEThreadFromIThread(next));
         }
     }
+
     UNREACHABLE_CODE();
 }

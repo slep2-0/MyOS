@@ -21,34 +21,9 @@ Revision History:
 
 #include "../mtstatus.h"
 #include "ob.h"
+#include "../../shared/include/accessrights.h"
 
 #define MAX_PATH 256
-
-#define MT_FILE_READ_DATA            0x0001  // file & pipe
-#define MT_FILE_LIST_DIRECTORY       0x0001  // directory
-
-#define MT_FILE_WRITE_DATA           0x0002  // file & pipe
-#define MT_FILE_ADD_FILE             0x0002  // directory
-
-#define MT_FILE_APPEND_DATA          0x0004  // file
-#define MT_FILE_ADD_SUBDIRECTORY     0x0004  // directory
-#define MT_FILE_CREATE_PIPE_INSTANCE 0x0004  // named pipe
-
-#define MT_FILE_READ_EA              0x0008  // file & directory
-#define MT_FILE_WRITE_EA             0x0010  // file & directory
-
-#define MT_FILE_EXECUTE              0x0020  // file
-#define MT_FILE_TRAVERSE             0x0020  // directory
-
-#define MT_FILE_DELETE_CHILD         0x0040  // directory
-
-#define MT_FILE_READ_ATTRIBUTES      0x0080  // all
-#define MT_FILE_WRITE_ATTRIBUTES     0x0100  // all
-#define MT_FILE_ALL_ACCESS           0x01FF  // everything above
-
-#define MT_FILE_GENERIC_READ  ( MT_FILE_READ_DATA    | MT_FILE_READ_ATTRIBUTES | MT_FILE_READ_EA )
-#define MT_FILE_GENERIC_WRITE ( MT_FILE_WRITE_DATA   | MT_FILE_WRITE_ATTRIBUTES | MT_FILE_WRITE_EA | MT_FILE_APPEND_DATA )
-#define MT_FILE_GENERIC_EXECUTE ( MT_FILE_READ_ATTRIBUTES | MT_FILE_EXECUTE )
 
 // PFILE_OBJECT->Flags
 typedef enum _MT_FILE_OBJECT_FLAGS {

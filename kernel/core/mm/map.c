@@ -81,7 +81,7 @@ MiEnsureIntermediateTable(
 )
 {
     for (;;) {
-        uint64_t Existing = __atomic_load_n(&Entry->Value, __ATOMIC_ACQUIRE);
+        uint64_t Existing = InterlockedLoadAcquire(&Entry->Value);
         if (Existing & PAGE_PRESENT) return true;
 
         PAGE_INDEX PfnIndex = MiRequestPhysicalPage(PfnStateZeroed);
@@ -388,6 +388,10 @@ MiUnmapPte (
 
         None.       
 
+    Notes:
+
+        This function invalidates the TLB for the PTE, but if you manually change the PTE, you must invalidate the TLBs yourself, also, before releasing the physical page associated.
+
 --*/
 
 {
@@ -402,7 +406,7 @@ MiUnmapPte (
     MMPTE Expected;
     MMPTE NewPte;
     do {
-        Expected.Value = __atomic_load_n(&pte->Value, __ATOMIC_ACQUIRE);
+        Expected.Value = InterlockedLoadAcquire(&pte->Value);
         NewPte.Value = 0;
 
         if (Expected.Hard.Present) {
@@ -527,6 +531,7 @@ MiAtomicSetTransitionPte(
 }
 
 // Reloads CR3 to flush all TLBs (slow flush)
+// Sends IPI on SMP
 void
 MiReloadTLBs(
     void
@@ -593,9 +598,7 @@ MmIsAddressPresent(
 
     Notes:
 
-        This function shouldn't be used in low IRQL situations, as addresses can very well be paged out to disk.
-        (In IRQL equal or higher than DISPATCH_LEVEL, this function is safe, as blocking operations are forbidden, which means memory cannot be paged out)
-
+        This function shouldn't be used, atleast not reliably, as addresses can very well be paged out to disk.
 --*/
 
 {

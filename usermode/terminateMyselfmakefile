@@ -22,7 +22,8 @@ NASM    = nasm
 AS      = as
 XXD     = xxd
 
-BUILD_DIR = build/user
+OUT_DIR   = build/user
+BUILD_DIR = $(OUT_DIR)/.obj/$(PROJ_NAME)
 
 # --- Logic: Select Linker Script ----------------------------------------------
 
@@ -42,7 +43,7 @@ else
     $(error Invalid TYPE specified. Use TYPE=MTEXE or TYPE=MTDLL)
 endif
 
-FINAL_OUT = $(BUILD_DIR)/$(PROJ_NAME).$(OUT_EXT)
+FINAL_OUT = $(OUT_DIR)/$(PROJ_NAME).$(OUT_EXT)
 
 # --- Flags --------------------------------------------------------------------
 
@@ -50,7 +51,7 @@ FINAL_OUT = $(BUILD_DIR)/$(PROJ_NAME).$(OUT_EXT)
 # -m64: Enforce 64-bit
 # -I...: Add include paths for mtexe headers
 BASE_CFLAGS = -std=gnu11 \
-         -m64 -ffreestanding -nostdlib -fno-builtin -c \
+         -m64 -mgeneral-regs-only -ffreestanding -nostdlib -fno-builtin -c \
          -fdiagnostics-color=always \
          -Wall -Wextra -Wno-unused-function \
          -mno-red-zone -fno-pie \
@@ -95,6 +96,7 @@ all: $(FINAL_OUT)
 
 # 1. Create Build Directory
 $(BUILD_DIR):
+	@mkdir -p $(OUT_DIR)
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(dir $(OBJS))
 
@@ -139,6 +141,6 @@ dump: $(FINAL_OUT)
 	@$(XXD) -g 1 $< | head -n 8
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(FINAL_OUT)
 
 -include $(OBJS:.o=.d)

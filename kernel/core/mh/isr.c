@@ -200,7 +200,7 @@ MhHandleInterrupt (
     // TODO KINTERRUPT
 }
 
-void init_interrupts() {
+void init_interrupts(void) {
 	install_idt();
     _MeSetIrql(PASSIVE_LEVEL);
 }

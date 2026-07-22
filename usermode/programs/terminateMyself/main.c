@@ -27,13 +27,17 @@
 volatile int GlobalVarData = 1;
 volatile int GlobalVarBss;
 
-uint32_t MyThread(void* ThreadParameter) {
+static uint32_t MyThread(void* ThreadParameter) {
     (void)(ThreadParameter);
     printf(COLOR_LIME, "**Hit MyThread**\n");
 
     for (;;) {
         printf(COLOR_LIME, "In MyThread Sleep loop...\n");
         Sleep(1000);
+        ERROR_CODE SleepError = GetLastError();
+        if (SleepError != 0) {
+            printf(COLOR_RED, "**Sleep failed with error %u**\n", SleepError);
+        }
     }
 
     return 1;
@@ -107,12 +111,16 @@ int main(void) {
 
     // Create thread.
     ThreadHandle = CreateThread((THREAD_START_ROUTINE)MyThread, NULL);
+    if (ThreadHandle == MT_INVALID_HANDLE) {
+        ExitCode = MT_THREAD_CREATION_FAILURE;
+        goto failure;
+    }
 
     // Done, infinite loop.
     goto success;
 
 failure:
-    TerminateProcess(MtCurrentProcess(), GetLastError());
+    TerminateProcess(MtCurrentProcess(), ExitCode);
 success:
     while (true) {
         counter++;

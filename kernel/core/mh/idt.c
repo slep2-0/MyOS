@@ -21,7 +21,7 @@ void set_idt_gate(int n, unsigned long int handler) {
 }
 
 /* Populate IDT: exceptions, IRQ, and then finally load it. */
-void install_idt() {
+void install_idt(void) {
     /* REMAP the PIC so IRQs start at vector 0x20 */
     __outbyte(0x20, 0x11); // initialize master PIC
     __outbyte(0xA0, 0x11); // initialize slave PIC

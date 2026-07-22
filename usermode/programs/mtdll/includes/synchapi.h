@@ -11,5 +11,6 @@ Sleep(
 uint32_t
 WaitForSingleObject(
 	IN HANDLE ObjectHandle,
-	IN uint32_t Milliseconds
+	IN uint32_t Milliseconds,
+	IN bool Alertable
 );

@@ -78,7 +78,11 @@ extern uint8_t kernel_end;
 #define FIELD_OFFSET(t,f)       ((uint32_t)__builtin_offsetof(t,f))
 #endif
 
+// Unsigned UINT64
 #define WILL_ADD_OVERFLOW(a, b) ((a) > SIZE_MAX - (b))
+
+// Unsigned value
+#define WILL_SUBTRACT_UNDERFLOW(a, b) ((a) < (b))
 
 // System V ABI Calling convention (Integer arguments)
 // Argument 1: RDI

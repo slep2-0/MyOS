@@ -55,7 +55,7 @@ MsAcquirePushLockShared(
     MeEnterCriticalRegion();
 
     for (;;) {
-        uint64_t Value = __atomic_load_n(&Lock->Value, ATOMIC_ORDER);
+        uint64_t Value = InterlockedLoad(&Lock->Value);
 
         if (Value & PL_LOCK_BIT) {
             MhSpinAndProcessIpis();
@@ -85,7 +85,7 @@ MsReleasePushLockShared(
     assert(Lock != NULL);
 
     for (;;) {
-        uint64_t Value = __atomic_load_n(&Lock->Value, ATOMIC_ORDER);
+        uint64_t Value = InterlockedLoad(&Lock->Value);
 
         assert((Value & PL_LOCK_BIT) == 0, "Shared release observed an exclusive owner.");
         assert((Value & (PL_WAIT_BIT | PL_WAKE_BIT)) == 0);

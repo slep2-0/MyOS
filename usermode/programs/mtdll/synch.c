@@ -15,11 +15,12 @@ Sleep(
 uint32_t
 WaitForSingleObject(
 	IN HANDLE ObjectHandle,
-	IN uint32_t Milliseconds
+	IN uint32_t Milliseconds,
+	IN bool Alertable
 )
 
 {
-	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, Milliseconds);
+	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, Milliseconds, Alertable);
 	SetLastError(MtStatusToLastError(Status));
 	SetLastStatus(Status);
 

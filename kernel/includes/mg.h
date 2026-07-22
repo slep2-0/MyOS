@@ -101,5 +101,6 @@ kmemchr(const void* buf, int c, size_t n)
 
 void MgAcquireExclusiveGopOwnerShip(void);
 void MgReleaseExclusiveGopOwnerShip(void);
+void MgClaimGopForBugCheck(void);
 
 #endif

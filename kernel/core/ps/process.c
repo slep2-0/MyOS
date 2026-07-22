@@ -361,6 +361,9 @@ PsCreateProcess(
         goto CleanupWithRef;
     }
 
+    // Initialize Dispatcher Header
+    MsInitializeDispatcherHeader(&Process->InternalProcess.Header, 0, DispatcherProcess);
+
     // Set its parent process handle.
     Process->ParentProcess = ParentProcess;
 
@@ -647,82 +650,29 @@ PsTerminateProcess(
     Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
     Process->ExitStatus = ExitCode;
 
-    // Snapshot referenced thread pointers. A live-list cursor is unsafe here:
-    // a target can exit on another CPU and self-link its list entry before the
-    // next lookup, which would silently truncate process termination.
-    MsAcquirePushLockShared(&Process->ThreadListLock);
-    uint32_t ThreadCapacity = Process->NumThreads;
-    MsReleasePushLockShared(&Process->ThreadListLock);
-
-    PETHREAD* Threads = NULL;
-    if (ThreadCapacity != 0) {
-        Threads = MmAllocatePoolWithTag(
-            NonPagedPool,
-            (size_t)ThreadCapacity * sizeof(*Threads),
-            'pTsP'
-        );
-        if (!Threads) {
-            MeBugCheckEx(
-                MEMORY_LIMIT_REACHED,
-                Process,
-                (void*)(uintptr_t)ThreadCapacity,
-                NULL,
-                NULL
-            );
-        }
-    }
-
-    uint32_t ThreadCount = 0;
-    bool ThreadListOverflow = false;
-    MsAcquirePushLockShared(&Process->ThreadListLock);
-    PDOUBLY_LINKED_LIST ListHead = &Process->AllThreads;
-    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
-         Entry != ListHead;
-         Entry = Entry->Flink) {
-        if (ThreadCount == ThreadCapacity) {
-            ThreadListOverflow = true;
-            break;
-        }
-
-        PETHREAD Thread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
-        if (ObReferenceObject(Thread)) {
-            Threads[ThreadCount++] = Thread;
-        }
-    }
-    MsReleasePushLockShared(&Process->ThreadListLock);
-
-    if (ThreadListOverflow) {
-        for (uint32_t Index = 0; Index < ThreadCount; Index++) {
-            ObDereferenceObject(Threads[Index]);
-        }
-        if (Threads) MmFreePool(Threads);
-        MeBugCheckEx(
-            MEMORY_OVERFLOW_DETECTION,
-            Process,
-            (void*)(uintptr_t)ThreadCapacity,
-            (void*)(uintptr_t)ThreadCount,
-            &Process->AllThreads
-        );
-    }
-
-    for (uint32_t Index = 0; Index < ThreadCount; Index++) {
-        PETHREAD Thread = Threads[Index];
+    // PsGetNextProcessThread transfers a safe reference from the previous
+    // cursor to the next one while holding ThreadListLock. Thread list entries
+    // remain linked until object deletion, so a referenced cursor cannot be
+    // self-linked by concurrent thread exit.
+    PETHREAD Thread = PsGetNextProcessThread(Process, NULL);
+    while (Thread) {
         if (Thread == current) {
             SeenOurselves = true;
-            ObDereferenceObject(Thread);
-            continue;
+        }
+        else {
+            MTSTATUS ThreadStatus = PsTerminateThread(Thread, ExitCode);
+            if (MT_FAILURE(ThreadStatus)) {
+                Status = ThreadStatus;
+            }
+            else if (Status == MT_NOTHING_TO_TERMINATE) {
+                Status = MT_SUCCESS;
+            }
         }
 
-        MTSTATUS ThreadStatus = PsTerminateThread(Thread, ExitCode);
-        ObDereferenceObject(Thread);
-        if (MT_FAILURE(ThreadStatus)) {
-            Status = ThreadStatus;
-        }
-        else if (Status == MT_NOTHING_TO_TERMINATE) {
-            Status = MT_SUCCESS;
-        }
+        // This call dereferences Thread after it has referenced the next
+        // object under the process thread-list lock.
+        Thread = PsGetNextProcessThread(Process, Thread);
     }
-    if (Threads) MmFreePool(Threads);
 
     if (SeenOurselves) {
         // noreturn
@@ -805,34 +755,23 @@ PsGetNextProcessThread(
     // Check if we are already starting in another thread list.
     if (LastThread) {
         Entry = LastThread->ThreadListEntry.Flink;
-        if (Entry == &LastThread->ThreadListEntry) {
-            // If the thread points to itself (it was removed) (even though this shouldnt happen as we acquire a shared push lock)
-            // We will set entry to NULL, which will go to cleanup.
-            Entry = NULL;
-        }
     }
     else {
         // Start at beginnininng -- that shit made me laugh (29/01/2026 5:00:04 PM)
         Entry = ListHead->Flink;
     }
 
-    if (Entry == NULL) {
-        goto Cleanup;
-    }
-
     // Set the list head and start the loop.
     while (ListHead != Entry) {
         // While the pointers arent equal (we arent back the start), we enumerate for the next thread.
         FoundThread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
-        // First use of MT_SUCCEEDED btw.
-        if (MT_SUCCEEDED(ObReferenceObjectByPointer(FoundThread, PsThreadType))) break;
+        if (ObReferenceObject(FoundThread)) break;
            
         // Nothing found, keep loopin.
         FoundThread = NULL;
         Entry = Entry->Flink;
     }
 
-Cleanup:
     // Unlock process.
     MsReleasePushLockShared(&Process->ThreadListLock);
     if (LastThread) {

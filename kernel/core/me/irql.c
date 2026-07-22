@@ -182,12 +182,17 @@ MeLowerIrql (
     MmFullBarrier();
     
     // First check for DPC Interrupts.
-    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+    if (InterlockedLoadAcquire(&cpu->DpcInterruptRequested) &&
+        !InterlockedLoadAcquire(&cpu->DpcRoutineActive) &&
+        NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
     // Now APC Interrupts.
-    if (cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+    PITHREAD Thread = MeGetCurrentThread();
+    if (NewIrql <= APC_LEVEL && Thread &&
+        InterlockedLoadAcquire(&Thread->ApcState.KernelApcPending) &&
+        !cpu->ApcRoutineActive) {
         MhRequestSoftwareInterrupt(APC_LEVEL);
     }
 
@@ -228,12 +233,17 @@ _MeSetIrql (
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
     MmFullBarrier();
-    if (cpu->DpcInterruptRequested && !cpu->DpcRoutineActive && NewIrql <= DISPATCH_LEVEL) {
+    if (InterlockedLoadAcquire(&cpu->DpcInterruptRequested) &&
+        !InterlockedLoadAcquire(&cpu->DpcRoutineActive) &&
+        NewIrql <= DISPATCH_LEVEL) {
         MhRequestSoftwareInterrupt(DISPATCH_LEVEL);
     }
 
     // Now APC Interrupts.
-    if (cpu->ApcInterruptRequested && !cpu->ApcRoutineActive && NewIrql <= APC_LEVEL) {
+    PITHREAD Thread = MeGetCurrentThread();
+    if (NewIrql <= APC_LEVEL && Thread &&
+        InterlockedLoadAcquire(&Thread->ApcState.KernelApcPending) &&
+        !cpu->ApcRoutineActive) {
         MhRequestSoftwareInterrupt(APC_LEVEL);
     }
 

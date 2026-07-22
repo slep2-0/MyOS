@@ -17,7 +17,7 @@ MsInitializeSynchronization(
     kmemset(&ObjectTypeInitializer, 0, sizeof(OBJECT_TYPE_INITIALIZER));
 
     // Mutexes
-    char* Name = "Mutex";
+    const char* Name = "Mutex";
     ObjectTypeInitializer.PoolType = NonPagedPool;
 #ifdef DEBUG
     ObjectTypeInitializer.DumpProcedure = NULL; // TODO DUMP PROC!

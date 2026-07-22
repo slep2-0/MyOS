@@ -12,7 +12,7 @@ typedef __builtin_va_list va_list;
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "includes/mtdll.h"
+#include "includes/ioapi.h"
 
 // Helper: Safely place a character into the buffer
 static inline void put_char(char** buf, size_t* left, char c) {

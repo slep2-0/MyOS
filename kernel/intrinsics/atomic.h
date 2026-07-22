@@ -30,6 +30,35 @@ extern "C" {
 
 #define ATOMIC_ORDER __ATOMIC_SEQ_CST
 
+    /*
+     * Type-preserving atomic publication helpers.
+     *
+     * These are macros because C has no function overloading: the same helper
+     * must accept integers, booleans, enums, and pointers without discarding
+     * their type. Callers use these names instead of compiler builtins; the
+     * compiler-specific implementation remains isolated in this header.
+     */
+
+     // Sequentially consistent atomic load: participates in one global order.
+#define InterlockedLoad(Target) \
+    __atomic_load_n((Target), __ATOMIC_SEQ_CST)
+
+// Acquire load: later memory operations cannot move before this load.
+#define InterlockedLoadAcquire(Target) \
+    __atomic_load_n((Target), __ATOMIC_ACQUIRE)
+
+// Relaxed load: atomic read only, with no synchronization ordering.
+#define InterlockedLoadRelaxed(Target) \
+    __atomic_load_n((Target), __ATOMIC_RELAXED)
+
+// Sequentially consistent atomic store: participates in one global order.
+#define InterlockedStore(Target, Value) \
+    __atomic_store_n((Target), (Value), __ATOMIC_SEQ_CST)
+
+// Release store: earlier memory operations cannot move after this store.
+#define InterlockedStoreRelease(Target, Value) \
+    __atomic_store_n((Target), (Value), __ATOMIC_RELEASE)
+
    /* Exchange (returns previous value) */
     FORCEINLINE int8_t  InterlockedExchange8(volatile int8_t* target, int8_t  value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }
     FORCEINLINE int16_t InterlockedExchange16(volatile int16_t* target, int16_t value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }

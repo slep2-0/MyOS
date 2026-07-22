@@ -27,7 +27,7 @@ MsAcquireRundownProtection (
 {
 	uint64_t expected, desired;
 	do {
-		expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+		expected = InterlockedLoad(&rundown->Count);
 
 		// If teardown has started we refuse.
 		if (expected & TEARDOWN_ACTIVE) return false;
@@ -66,7 +66,7 @@ MsReleaseRundownProtection (
 --*/
 
 {
-	uint64_t expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+	uint64_t expected = InterlockedLoad(&rundown->Count);
 	for (;;) {
 		if ((expected & REFERENCE_COUNT) == 0) {
 			MeBugCheckEx(
@@ -106,7 +106,7 @@ void MsWaitForRundownProtectionRelease (
 --*/
 
 {
-	uint64_t expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+	uint64_t expected = InterlockedLoad(&rundown->Count);
 	for (;;) {
 		uint64_t desired = expected | TEARDOWN_ACTIVE;
 
@@ -124,7 +124,7 @@ void MsWaitForRundownProtectionRelease (
 	}
 
 	// Spin until no references remain 
-	while ((__atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST) & REFERENCE_COUNT) != 0) {
+	while ((InterlockedLoad(&rundown->Count) & REFERENCE_COUNT) != 0) {
 		__pause();
 	}
 }

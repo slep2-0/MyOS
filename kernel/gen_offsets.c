@@ -57,7 +57,7 @@ int main(void) {
     GEN_OFFSET(PROCESSOR, lapic_ID);
     GEN_OFFSET(PROCESSOR, VirtStackTop);
     GEN_OFFSET(PROCESSOR, tss);
-    GEN_OFFSET(PROCESSOR, flags);
+    GEN_OFFSET(PROCESSOR, State);
     GEN_OFFSET(PROCESSOR, schedulePending);
     GEN_OFFSET(PROCESSOR, LapicAddressVirt);
     GEN_OFFSET(PROCESSOR, TimerExpirationDPC);
@@ -155,7 +155,6 @@ int main(void) {
     GEN_OFFSET(ETHREAD, Teb);
     GEN_OFFSET(ETHREAD, TID);
     GEN_OFFSET(ETHREAD, ParentProcess);
-    GEN_OFFSET(ETHREAD, CurrentEvent);
 
     GEN_COMMENT("Thread State Enums");
     GEN_DEFINE(THREAD_RUNNING, THREAD_RUNNING);
@@ -183,9 +182,10 @@ int main(void) {
     // ========================================================================
     GEN_COMMENT("Spinlock & Mutex");
     GEN_OFFSET(SPINLOCK, locked);
-    GEN_OFFSET(MUTEX, ownerTid);
-    GEN_OFFSET(MUTEX, locked);
-    GEN_OFFSET(MUTEX, ownerThread);
+    GEN_OFFSET(MUTEX, Header);
+    GEN_OFFSET(MUTEX, OwnerThread);
+    GEN_OFFSET(MUTEX, Abandoned);
+    GEN_OFFSET(MUTEX, OwnerListEntry);
 
     // ========================================================================
     // 5. BEHAVIOR (behavior.h)

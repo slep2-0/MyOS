@@ -28,6 +28,11 @@ typedef uint32_t ACCESS_MASK;
 
 typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
 
+bool
+CloseHandle(
+    IN HANDLE hObject
+);
+
 /// This example is using the legacy kernel structures.
 /// Usage: CONTAINING_RECORD(ptr, struct, ptr_member)
 /// Example: 
@@ -129,7 +134,7 @@ RemoveEntryList(
     Flink = Entry->Flink;
     Blink = Entry->Blink;
 
-    /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
+    /* Normal (minimal) unlink - identical to Windows' RemoveEntryList */
     Blink->Flink = Flink;
     Flink->Blink = Blink;
 
@@ -272,7 +277,8 @@ MtSleep(
 MTSTATUS
 MtWaitForSingleObject(
     IN HANDLE ObjectHandle,
-    IN uint64_t Milliseconds
+    IN uint64_t Milliseconds,
+    IN bool Alertable
 );
 
 MTSTATUS

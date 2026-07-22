@@ -63,7 +63,7 @@ MsYieldExecution:
     ; Now call scheduler to pick another thread.
     ; scheduler must not return to this code; it should context-switch away.
     sub rsp, 8 ; RSP %16 == 0
-    call    Schedule
+    call    Schedule ; Shouldnt this be switched to a JMP instead?
     
     ; never returns here
     int 18 ; Machine Check Exception.

@@ -35,7 +35,7 @@ ObpIncrementTypeCounter(
     IN void* Owner
 )
 {
-    uint32_t Current = __atomic_load_n(Counter, __ATOMIC_ACQUIRE);
+    uint32_t Current = InterlockedLoadAcquire(Counter);
     for (;;) {
         if (Current == UINT32_MAX) {
             MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, (void*)Counter,
@@ -58,7 +58,7 @@ ObpDecrementTypeCounter(
     IN void* Owner
 )
 {
-    uint32_t Current = __atomic_load_n(Counter, __ATOMIC_ACQUIRE);
+    uint32_t Current = InterlockedLoadAcquire(Counter);
     for (;;) {
         if (Current == 0) {
             MeBugCheckEx(MEMORY_DOUBLE_FREE, (void*)Counter,
@@ -98,17 +98,20 @@ void ObInitialize (
 {
     ObGlobalLock.locked = false;
     InitializeListHead(&ObTypeDirectoryList);
-    ObpReaperEvent.lock.locked = 0;
-    ObpReaperEvent.signaled = false;
-    ObpReaperEvent.type = SynchronizationEvent;
-    ObpReaperEvent.waitingQueue.head = NULL;
-    ObpReaperEvent.waitingQueue.tail = NULL;
+
+    // Initialize event
+    MsInitializeEvent(&ObpReaperEvent, DispatcherSynchronizationEvent, false);
 }
 
 static void ObpReaperThread(void)
 {
     for (;;) {
-        MsWaitForEvent(&ObpReaperEvent, INFINITE);
+        MsWaitForSingleObject(
+            &ObpReaperEvent,
+            KernelMode,
+            false,
+            INFINITE
+        );
 
         POBJECT_HEADER Header = (POBJECT_HEADER)
             InterlockedExchangePointer(&ObpReaperList, NULL);
@@ -134,7 +137,7 @@ void ObInitializeReaperThread(void)
 }
 
 MTSTATUS ObCreateObjectType(
-    IN char* TypeName,
+    IN const char* TypeName,
     IN POBJECT_TYPE_INITIALIZER ObjectTypeInitializer,
     OUT POBJECT_TYPE* ReturnedObjectType
 ) 
@@ -267,7 +270,7 @@ ObReferenceObject(
     if (!Object) return false;
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
-    uint64_t expected = __atomic_load_n((volatile uint64_t*)&Header->PointerCount, __ATOMIC_SEQ_CST);
+    uint64_t expected = InterlockedLoad((volatile uint64_t*)&Header->PointerCount);
 
     for (;;) {
         if (expected == 0) {
@@ -516,9 +519,8 @@ ObIncrementHandleCount(
             RETADDR(0), NULL);
     }
 
-    uint64_t Current = __atomic_load_n(
-        (volatile uint64_t*)&Header->HandleCount,
-        __ATOMIC_ACQUIRE
+    uint64_t Current = InterlockedLoadAcquire(
+        (volatile uint64_t*)&Header->HandleCount
     );
     for (;;) {
         if (Current == UINT64_MAX) {
@@ -556,9 +558,8 @@ ObDecrementHandleCount(
             RETADDR(0), NULL);
     }
 
-    uint64_t Current = __atomic_load_n(
-        (volatile uint64_t*)&Header->HandleCount,
-        __ATOMIC_ACQUIRE
+    uint64_t Current = InterlockedLoadAcquire(
+        (volatile uint64_t*)&Header->HandleCount
     );
     for (;;) {
         if (Current == 0) {
@@ -775,9 +776,8 @@ void ObDereferenceObject(
     if (!Object) return;
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
-    uint64_t Current = __atomic_load_n(
-        (volatile uint64_t*)&Header->PointerCount,
-        __ATOMIC_ACQUIRE
+    uint64_t Current = InterlockedLoadAcquire(
+        (volatile uint64_t*)&Header->PointerCount
     );
     uint64_t NewCount;
     for (;;) {
@@ -796,9 +796,8 @@ void ObDereferenceObject(
     }
 
     if (NewCount == 0) {
-        if (__atomic_load_n(
-            (volatile uint64_t*)&Header->HandleCount,
-            __ATOMIC_ACQUIRE
+        if (InterlockedLoadAcquire(
+            (volatile uint64_t*)&Header->HandleCount
         ) != 0) {
             MeBugCheckEx(MEMORY_CORRUPT_HEADER, Header,
                 (void*)(uintptr_t)Header->HandleCount, RETADDR(0), NULL);

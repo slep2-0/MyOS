@@ -615,6 +615,10 @@ extern bool isBugChecking;
 #ifdef DISABLE_GOP
 USED static void gop_printfz(uint32_t color, const char* fmt, ...) {
 #else
+
+// This function will SLOW interrupts incoming by 30% or more.
+// For example, putting a Sleep before a gop_printf is done, will slow the Sleep timer by an additional 30-ish percent, since it performs __cli
+// which causes pending interrupts to wait (LAPIC Timer for example, which will then will not be done, meaning it will not advance the global tickcount.
 void gop_printf(uint32_t color, const char* fmt, ...) {
 #endif
     // Re-entrancy check: If we already own it, we are safe to print, 
@@ -755,4 +759,15 @@ void MgAcquireExclusiveGopOwnerShip(void) {
 void MgReleaseExclusiveGopOwnerShip(void) {
     // Trust the caller, just set the ExclusiveOwnerShip pointer to NULL.
     InterlockedExchangePointer(&ExclusiveOwnerShip, NULL);
+}
+
+void MgClaimGopForBugCheck(void) {
+    void* me = (void*)MeGetCurrentProcessor();
+    if (!me) me = (void*)1;
+
+    // Another CPU may have been interrupted while printing. Bugcheck is the
+    // sole remaining writer after the NMI freeze request, so waiting on the
+    // ordinary owner would risk hiding the stop code forever.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, me);
+    InterlockedExchangePointer(&GopPrintOwner, NULL);
 }

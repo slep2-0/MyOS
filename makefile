@@ -22,12 +22,12 @@ CFLAGS = -std=gnu11 \
          -Wno-unused-function \
          -Wall -Wextra -Werror -Wmissing-prototypes \
          -Wstrict-prototypes -Wno-multichar -Wshadow -Wcast-align \
-         -fdebug-prefix-map="/home/kali/Desktop/Operating System=C:/Users/matanel/Desktop/Projects/KernelDevelopment" \
+         -fdebug-prefix-map="$(CURDIR)=." \
          -mcmodel=large -mno-red-zone -MMD -MP -fno-pie -fno-pic
 
 # Assembly consumes generated C structure offsets. Any layout-bearing header
 # change must rebuild the generator and offsets before NASM runs.
-OFFSET_HEADERS := $(wildcard kernel/*.h kernel/includes/*.h kernel/intrinsics/*.h)
+OFFSET_HEADERS := $(wildcard kernel/*.h kernel/includes/*.h kernel/intrinsics/*.h shared/include/*.h)
 
 # Scheduler special flags (frame-pointer and no tail-call)
 SCHED_EXTRA = -fno-optimize-sibling-calls
