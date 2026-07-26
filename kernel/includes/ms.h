@@ -164,6 +164,10 @@ typedef struct _MUTEX {
     // Links this mutex into OwnerThread's owned-mutex list. The owning
     // thread's OwnedMutexesListLock protects this entry's list links.
     DOUBLY_LINKED_LIST OwnerListEntry;
+    // Object-manager mutex acquisitions retain one reference per recursion
+    // level. This keeps an owned mutex alive even if its last handle closes.
+    // Embedded kernel mutexes leave this at zero.
+    uint32_t ObjectOwnerReferences;
 } MUTEX, *PMUTEX;
 
 typedef struct _SEMPAHORE {
@@ -214,6 +218,7 @@ extern DOUBLY_LINKED_LIST MsTimerQueue;
 
 extern POBJECT_TYPE MsEventType;
 extern POBJECT_TYPE MsMutexType;
+extern POBJECT_TYPE MsSemaphoreType;
 
 //#ifndef MT_UP
 void
@@ -265,6 +270,12 @@ MsWaitForRundownProtectionRelease(
 MTSTATUS
 MsSetEvent(
     IN PEVENT event
+);
+
+MTSTATUS
+MsSetEventEx(
+    IN PEVENT Event,
+    _Out_Opt bool* PreviousState
 );
 
 MTSTATUS
@@ -334,7 +345,7 @@ MsInitializeEvent(
     IN bool StartSignaled
 );
 
-void
+bool
 MsResetEvent(
     IN PEVENT Event
 );
@@ -350,6 +361,13 @@ int32_t
 MsReleaseSemaphore(
     IN PSEMAPHORE Semaphore,
     IN int32_t Adjustment
+);
+
+MTSTATUS
+MsReleaseSemaphoreChecked(
+    IN PSEMAPHORE Semaphore,
+    IN int32_t Adjustment,
+    _Out_Opt int32_t* PreviousCount
 );
 
 MTSTATUS

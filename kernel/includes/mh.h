@@ -169,10 +169,6 @@ enum {
     CPUID_FEAT_EDX_PBE = 1 << 31
 };
 
-enum MSRs {
-    MSR_EFER = 0xC0000080,
-};
-
 // ------------------ STRUCTURES ------------------
 
 #pragma pack(push, 1)

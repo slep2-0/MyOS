@@ -990,6 +990,9 @@ MmIsAddressRangeFree(
     uintptr_t EndVa
 )
 
+// Note, this returns a bool that may later be incorrect, due to spinlock release
+// Its better to change the function so it doesnt hold the lock, and you hold it so you 100% verify the address range is free.
+
 {
     if (!Process || StartVa > EndVa) return false;
 

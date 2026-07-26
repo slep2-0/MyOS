@@ -1396,7 +1396,7 @@ Stress3Waiter(
             &Stress3RequestedMode
         );
         uint64_t Timeout = Mode == Stress3WaitForSignal
-            ? INFINITE
+            ? MT_INFINITE
             : Mode == Stress3WaitForTimeout
                 ? STRESS3_TIMEOUT_MS
                 : STRESS3_RACE_TIMEOUT_MS;
@@ -1449,7 +1449,7 @@ Stress3Controller(
             &Stress3Event,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         if (Status != MT_SUCCESS) {
             Stress3BugCheck(
@@ -2346,7 +2346,7 @@ Stress4BWaiter(
             Event,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         InterlockedStoreRelease(
             &Stress4BCompletionStatus[Index],
@@ -3454,7 +3454,7 @@ Stress5AWaiter(
             &Stress5ASemaphore,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         InterlockedStoreRelease(&Stress5ACompletionStatus[Index], Status);
         InterlockedStoreRelease(&Stress5ACompletedEpoch[Index], Epoch);
@@ -4270,7 +4270,7 @@ Stress5BContentionWorker(
             &Stress5BContentionMutex,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         if (Status != MT_SUCCESS) {
             Stress5BBugCheck(
@@ -4333,7 +4333,7 @@ Stress5BOwnerWorker(
             &Context->Mutexes[Index],
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         if (Status != MT_SUCCESS) {
             Stress5BBugCheck(
@@ -4361,7 +4361,7 @@ Stress5BAbandonWaiter(
         Context->Mutex,
         KernelMode,
         false,
-        INFINITE
+        MT_INFINITE
     );
     if (Status != MT_SUCCESS && Status != MT_MUTEX_ABANDONED) {
         Stress5BBugCheck(
@@ -4417,7 +4417,7 @@ Stress5BRaceOwner(
         Context->Mutex,
         KernelMode,
         false,
-        INFINITE
+        MT_INFINITE
     );
     if (Status != MT_SUCCESS) {
         Stress5BBugCheck(
@@ -4453,7 +4453,7 @@ Stress5BRunBasicSemantics(void)
         &Mutex,
         KernelMode,
         false,
-        INFINITE
+        MT_INFINITE
     );
     if (Status != MT_SUCCESS) {
         Stress5BBugCheck(
@@ -4465,7 +4465,7 @@ Stress5BRunBasicSemantics(void)
     }
     Stress5BReadAndValidateMutex(&Mutex, CurrentThread, 0, false);
 
-    Status = MsWaitForSingleObject(&Mutex, KernelMode, false, INFINITE);
+    Status = MsWaitForSingleObject(&Mutex, KernelMode, false, MT_INFINITE);
     if (Status != MT_SUCCESS) {
         Stress5BBugCheck(
             Stress5BBasicStatusFailure,
@@ -4645,7 +4645,7 @@ Stress5BRunManyOwnedExit(void)
             &Mutexes[Index],
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         if (Status != MT_MUTEX_ABANDONED) {
             Stress5BBugCheck(
@@ -4820,7 +4820,7 @@ Stress5BRunReleaseTerminationRaces(void)
             &Mutex,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         MTSTATUS ExpectedStatus = Abandoned
             ? MT_MUTEX_ABANDONED
@@ -4877,6 +4877,1144 @@ Stress5BController(void)
     Stress5BRunReleaseTerminationRaces();
 
     gop_printf(COLOR_GREEN, "STRESS 5B PASS\n");
+}
+
+typedef enum _STRESS5C_FAILURE {
+    Stress5CUnexpectedStatus = 1,
+    Stress5CUnexpectedState,
+    Stress5CAccessCheckFailure,
+    Stress5CClosedHandleFailure,
+    Stress5CWaitRegistrationFailure,
+    Stress5CObjectCountLeak,
+    Stress5CHandleCountLeak,
+    Stress5CWorkerFailure
+} STRESS5C_FAILURE;
+
+typedef struct _STRESS5C_WAIT_CONTEXT {
+    volatile bool Start;
+    HANDLE Handle;
+    volatile MTSTATUS Status;
+} STRESS5C_WAIT_CONTEXT;
+
+typedef struct _STRESS5C_OWNER_CONTEXT {
+    volatile bool Start;
+    volatile MTSTATUS Status;
+} STRESS5C_OWNER_CONTEXT;
+
+NORETURN
+static void
+Stress5CBugCheck(
+    STRESS5C_FAILURE Failure,
+    void* Detail1,
+    void* Detail2
+)
+{
+    MeBugCheckEx(
+        WAIT_STATE_FAILURE,
+        (void*)(uintptr_t)0x5C,
+        (void*)(uintptr_t)Failure,
+        Detail1,
+        Detail2
+    );
+}
+
+static void
+Stress5CRequireStatus(
+    MTSTATUS Actual,
+    MTSTATUS Expected,
+    void* Detail
+)
+{
+    if (Actual != Expected) {
+        Stress5CBugCheck(
+            Stress5CUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Actual
+        );
+    }
+}
+
+static void
+Stress5CWaitForTypeCounts(
+    POBJECT_TYPE Type,
+    uintptr_t TypeTag,
+    uint32_t ExpectedObjects,
+    uint32_t ExpectedHandles
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    for (;;) {
+        uint32_t Objects = InterlockedLoadAcquire(
+            (volatile uint32_t*)&Type->TotalNumberOfObjects
+        );
+        uint32_t Handles = InterlockedLoadAcquire(
+            (volatile uint32_t*)&Type->TotalNumberOfHandles
+        );
+        if (Objects == ExpectedObjects && Handles == ExpectedHandles) {
+            return;
+        }
+
+        if (Stress5BWatchdogExpired(StartTsc)) {
+            Stress5CBugCheck(
+                Handles == ExpectedHandles
+                    ? Stress5CObjectCountLeak
+                    : Stress5CHandleCountLeak,
+                (void*)TypeTag,
+                (void*)(uintptr_t)(
+                    ((uint64_t)(ExpectedObjects & 0xFF) << 56) |
+                    ((uint64_t)(ExpectedHandles & 0xFF) << 48) |
+                    ((uint64_t)Objects << 32) |
+                    Handles
+                )
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5CWaitForDispatcherRegistration(
+    PDISPATCHER_HEADER Header
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    for (;;) {
+        IRQL OldIrql;
+        MsAcquireSpinlock(&Header->Lock, &OldIrql);
+        bool Registered = !IsListEmpty(&Header->WaitListHead);
+        MsReleaseSpinlock(&Header->Lock, OldIrql);
+        if (Registered) return;
+
+        if (Stress5BWatchdogExpired(StartTsc)) {
+            Stress5CBugCheck(
+                Stress5CWaitRegistrationFailure,
+                Header,
+                NULL
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5CHandleWaiter(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS5C_WAIT_CONTEXT* Context = Parameter;
+    Stress5BWaitForFlag(&Context->Start, Context);
+    MTSTATUS Status = MtWaitForSingleObject(
+        Context->Handle,
+        MT_INFINITE,
+        false
+    );
+    InterlockedStoreRelease(&Context->Status, Status);
+}
+
+static void
+Stress5CCloseOwnedMutexWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS5C_OWNER_CONTEXT* Context = Parameter;
+    Stress5BWaitForFlag(&Context->Start, Context);
+
+    HANDLE Handle = MT_INVALID_HANDLE;
+    MTSTATUS Status = MtCreateMutex(
+        &Handle,
+        MT_MUTEX_ALL_ACCESS,
+        true,
+        NULL
+    );
+    if (Status == MT_SUCCESS) {
+        Status = MtClose(Handle);
+    }
+    InterlockedStoreRelease(&Context->Status, Status);
+}
+
+static void
+Stress5CTestEvents(void)
+{
+    HANDLE Handle = MT_INVALID_HANDLE;
+    MTSTATUS Status = MtCreateEvent(
+        &Handle,
+        MT_EVENT_ALL_ACCESS,
+        SynchronizationEvent,
+        false,
+        NULL
+    );
+    Stress5CRequireStatus(Status, MT_SUCCESS, (void*)0x5C10);
+
+    bool State = true;
+    Stress5CRequireStatus(MtQueryEvent(Handle, &State), MT_SUCCESS, (void*)0x5C11);
+    if (State) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C11, NULL);
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_TIMEOUT, (void*)0x5C12);
+
+    bool PreviousState = true;
+    Stress5CRequireStatus(MtSetEvent(Handle, &PreviousState), MT_SUCCESS, (void*)0x5C13);
+    if (PreviousState) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C13, NULL);
+    Stress5CRequireStatus(MtSetEvent(Handle, &PreviousState), MT_SUCCESS, (void*)0x5C14);
+    if (!PreviousState) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C14, NULL);
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C15);
+    Stress5CRequireStatus(MtQueryEvent(Handle, &State), MT_SUCCESS, (void*)0x5C16);
+    if (State) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C16, NULL);
+    Stress5CRequireStatus(MtResetEvent(Handle, &PreviousState), MT_SUCCESS, (void*)0x5C17);
+    if (PreviousState) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C17, NULL);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C18);
+    Stress5CRequireStatus(MtClose(Handle), MT_INVALID_HANDLE, (void*)0x5C19);
+
+    Handle = MT_INVALID_HANDLE;
+    Stress5CRequireStatus(
+        MtCreateEvent(&Handle, MT_SYNCHRONIZE, NotificationEvent, false, NULL),
+        MT_SUCCESS,
+        (void*)0x5C1A
+    );
+    Stress5CRequireStatus(MtSetEvent(Handle, NULL), MT_ACCESS_DENIED, (void*)0x5C1B);
+    Stress5CRequireStatus(MtQueryEvent(Handle, &State), MT_ACCESS_DENIED, (void*)0x5C1C);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C1D);
+}
+
+static void
+Stress5CTestSemaphores(void)
+{
+    HANDLE Handle = MT_INVALID_HANDLE;
+    Stress5CRequireStatus(
+        MtCreateSemaphore(&Handle, MT_SEMAPHORE_ALL_ACCESS, -1, 1, NULL),
+        MT_INVALID_PARAM,
+        (void*)0x5C20
+    );
+    Stress5CRequireStatus(
+        MtCreateSemaphore(&Handle, MT_SEMAPHORE_ALL_ACCESS, 0, 0, NULL),
+        MT_INVALID_PARAM,
+        (void*)0x5C21
+    );
+    Stress5CRequireStatus(
+        MtCreateSemaphore(&Handle, MT_SEMAPHORE_ALL_ACCESS, 1, 2, NULL),
+        MT_SUCCESS,
+        (void*)0x5C22
+    );
+
+    SEMAPHORE_BASIC_INFORMATION Information;
+    Stress5CRequireStatus(MtQuerySemaphore(Handle, &Information), MT_SUCCESS, (void*)0x5C23);
+    if (Information.CurrentCount != 1 || Information.MaximumCount != 2) {
+        Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C23, (void*)(uintptr_t)Information.CurrentCount);
+    }
+
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C24);
+    int32_t PreviousCount = -1;
+    Stress5CRequireStatus(MtReleaseSemaphore(Handle, 2, &PreviousCount), MT_SUCCESS, (void*)0x5C25);
+    if (PreviousCount != 0) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C25, (void*)(uintptr_t)PreviousCount);
+    Stress5CRequireStatus(
+        MtReleaseSemaphore(Handle, 1, NULL),
+        MT_SEMAPHORE_LIMIT_EXCEEDED,
+        (void*)0x5C26
+    );
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C27);
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C28);
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_TIMEOUT, (void*)0x5C29);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C2A);
+
+    Stress5CRequireStatus(
+        MtCreateSemaphore(&Handle, MT_SYNCHRONIZE, 0, 1, NULL),
+        MT_SUCCESS,
+        (void*)0x5C2B
+    );
+    Stress5CRequireStatus(MtReleaseSemaphore(Handle, 1, NULL), MT_ACCESS_DENIED, (void*)0x5C2C);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C2D);
+}
+
+static void
+Stress5CTestMutexes(void)
+{
+    HANDLE Handle = MT_INVALID_HANDLE;
+    Stress5CRequireStatus(
+        MtCreateMutex(&Handle, MT_MUTEX_ALL_ACCESS, false, NULL),
+        MT_SUCCESS,
+        (void*)0x5C30
+    );
+
+    MUTEX_BASIC_INFORMATION Information;
+    Stress5CRequireStatus(MtQueryMutex(Handle, &Information), MT_SUCCESS, (void*)0x5C31);
+    if (Information.SignalState != 1 || Information.OwnedByCaller) {
+        Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C31, (void*)(uintptr_t)Information.SignalState);
+    }
+
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C32);
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_SUCCESS, (void*)0x5C33);
+    Stress5CRequireStatus(MtQueryMutex(Handle, &Information), MT_SUCCESS, (void*)0x5C34);
+    if (Information.SignalState != -1 || !Information.OwnedByCaller) {
+        Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C34, (void*)(uintptr_t)(uint32_t)Information.SignalState);
+    }
+
+    int32_t PreviousCount = 0;
+    Stress5CRequireStatus(MtReleaseMutex(Handle, &PreviousCount), MT_SUCCESS, (void*)0x5C35);
+    if (PreviousCount != -1) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C35, (void*)(uintptr_t)(uint32_t)PreviousCount);
+    Stress5CRequireStatus(MtReleaseMutex(Handle, &PreviousCount), MT_SUCCESS, (void*)0x5C36);
+    if (PreviousCount != 0) Stress5CBugCheck(Stress5CUnexpectedState, (void*)0x5C36, (void*)(uintptr_t)PreviousCount);
+    Stress5CRequireStatus(MtReleaseMutex(Handle, NULL), MT_MUTEX_NOT_OWNED, (void*)0x5C37);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C38);
+
+    Stress5CRequireStatus(
+        MtCreateMutex(&Handle, MT_MUTEX_QUERY_STATE, false, NULL),
+        MT_SUCCESS,
+        (void*)0x5C39
+    );
+    Stress5CRequireStatus(MtWaitForSingleObject(Handle, 0, false), MT_ACCESS_DENIED, (void*)0x5C3A);
+    Stress5CRequireStatus(MtReleaseMutex(Handle, NULL), MT_ACCESS_DENIED, (void*)0x5C3B);
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C3C);
+}
+
+static void
+Stress5CTestCloseWhileWaiting(void)
+{
+    HANDLE Handle = MT_INVALID_HANDLE;
+    Stress5CRequireStatus(
+        MtCreateEvent(&Handle, MT_EVENT_ALL_ACCESS, SynchronizationEvent, false, NULL),
+        MT_SUCCESS,
+        (void*)0x5C40
+    );
+
+    void* Object = NULL;
+    Stress5CRequireStatus(
+        ObReferenceObjectByHandle(Handle, MT_SYNCHRONIZE, MsEventType, &Object, NULL),
+        MT_SUCCESS,
+        (void*)0x5C41
+    );
+
+    STRESS5C_WAIT_CONTEXT Context = {
+        .Handle = Handle,
+        .Status = MT_PENDING
+    };
+    PETHREAD Thread = Stress5BCreateRetainedThread(Stress5CHandleWaiter, &Context);
+    InterlockedStoreRelease(&Context.Start, true);
+    Stress5CWaitForDispatcherRegistration((PDISPATCHER_HEADER)Object);
+
+    Stress5CRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5C42);
+    bool ClosedState = false;
+    Stress5CRequireStatus(MtQueryEvent(Handle, &ClosedState), MT_INVALID_HANDLE, (void*)0x5C43);
+    Stress5CRequireStatus(MsSetEvent((PEVENT)Object), MT_SUCCESS, (void*)0x5C44);
+    Stress5BJoinThread(Thread, (void*)0x5C45);
+    Stress5CRequireStatus(InterlockedLoadAcquire(&Context.Status), MT_SUCCESS, (void*)0x5C46);
+    ObDereferenceObject(Object);
+}
+
+static void
+Stress5CTestCloseWhileOwning(void)
+{
+    STRESS5C_OWNER_CONTEXT Context = { .Status = MT_PENDING };
+    PETHREAD Thread = Stress5BCreateRetainedThread(
+        Stress5CCloseOwnedMutexWorker,
+        &Context
+    );
+    InterlockedStoreRelease(&Context.Start, true);
+    Stress5BJoinThread(Thread, (void*)0x5C50);
+    Stress5CRequireStatus(
+        InterlockedLoadAcquire(&Context.Status),
+        MT_SUCCESS,
+        (void*)0x5C51
+    );
+}
+
+static void
+Stress5CController(void)
+{
+    uint32_t EventObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsEventType->TotalNumberOfObjects
+    );
+    uint32_t EventHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsEventType->TotalNumberOfHandles
+    );
+    uint32_t MutexObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsMutexType->TotalNumberOfObjects
+    );
+    uint32_t MutexHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsMutexType->TotalNumberOfHandles
+    );
+    uint32_t SemaphoreObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsSemaphoreType->TotalNumberOfObjects
+    );
+    uint32_t SemaphoreHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&MsSemaphoreType->TotalNumberOfHandles
+    );
+
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 5C START (user handles/lifetime, %u CPUs)\n",
+        MeGetActiveProcessorCount()
+    );
+
+    Stress5CTestEvents();
+    Stress5CTestSemaphores();
+    Stress5CTestMutexes();
+    Stress5CTestCloseWhileWaiting();
+    Stress5CTestCloseWhileOwning();
+
+    Stress5CWaitForTypeCounts(MsEventType, 1, EventObjects, EventHandles);
+    Stress5CWaitForTypeCounts(MsMutexType, 2, MutexObjects, MutexHandles);
+    Stress5CWaitForTypeCounts(
+        MsSemaphoreType,
+        3,
+        SemaphoreObjects,
+        SemaphoreHandles
+    );
+
+    gop_printf(COLOR_GREEN, "STRESS 5C PASS\n");
+}
+
+#define STRESS5D_WAITER_COUNT       4U
+#define STRESS5D_RACE_ROUNDS        32U
+#define STRESS5D_WAIT_TIMEOUT_MS    30000ULL
+#define STRESS5D_WATCHDOG_SECONDS   30ULL
+#define STRESS5D_EXIT_STATUS        MT_GENERAL_FAILURE
+
+typedef enum _STRESS5D_FAILURE {
+    Stress5DUnexpectedStatus = 1,
+    Stress5DSelfWaitFailure,
+    Stress5DThreadStateFailure,
+    Stress5DProcessStateFailure,
+    Stress5DWaitRegistrationFailure,
+    Stress5DProtocolTimeout,
+    Stress5DThreadReferenceFailure,
+    Stress5DObjectCountLeak,
+    Stress5DHandleCountLeak
+} STRESS5D_FAILURE;
+
+typedef struct _STRESS5D_TARGET_CONTEXT {
+    volatile bool Start;
+    volatile bool Ready;
+} STRESS5D_TARGET_CONTEXT;
+
+typedef struct _STRESS5D_WAIT_CONTEXT {
+    volatile bool Start;
+    HANDLE Handle;
+    volatile MTSTATUS Status;
+} STRESS5D_WAIT_CONTEXT;
+
+NORETURN
+static void
+Stress5DBugCheck(
+    STRESS5D_FAILURE Failure,
+    void* Detail1,
+    void* Detail2
+)
+{
+    // P1 identifies Stress 5D, P2 is the exact failed invariant, and P3/P4
+    // contain the phase-specific status, object, count, or round number.
+    MeBugCheckEx(
+        WAIT_STATE_FAILURE,
+        (void*)(uintptr_t)0x5D,
+        (void*)(uintptr_t)Failure,
+        Detail1,
+        Detail2
+    );
+}
+
+static bool
+Stress5DWatchdogExpired(
+    uint64_t StartTsc
+)
+{
+    uint64_t Now = __rdtsc();
+    return Now >= StartTsc &&
+        Now - StartTsc >
+            STRESS5D_WATCHDOG_SECONDS * Stress2CTscTicksPerSecond;
+}
+
+static void
+Stress5DRequireStatus(
+    MTSTATUS Actual,
+    MTSTATUS Expected,
+    void* Detail
+)
+{
+    if (Actual != Expected) {
+        Stress5DBugCheck(
+            Stress5DUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Actual
+        );
+    }
+}
+
+static void
+Stress5DWaitForFlag(
+    volatile bool* Flag,
+    void* Detail
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    while (!InterlockedLoadAcquire(Flag)) {
+        if (Stress5DWatchdogExpired(StartTsc)) {
+            Stress5DBugCheck(
+                Stress5DProtocolTimeout,
+                Detail,
+                (void*)Flag
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static PETHREAD
+Stress5DCreateRetainedThread(
+    ThreadEntry Entry,
+    THREAD_PARAMETER Parameter
+)
+{
+    // Stress 5D workers begin behind their Start flag, so this reference is
+    // acquired before the worker can return and enter its exit path.
+    PETHREAD Thread = StressSuiteCreateThread(Entry, Parameter);
+    if (!ObReferenceObject(Thread)) {
+        Stress5DBugCheck(
+            Stress5DThreadReferenceFailure,
+            Thread,
+            (void*)Entry
+        );
+    }
+    return Thread;
+}
+
+static void
+Stress5DJoinThread(
+    PETHREAD Thread,
+    void* Detail
+)
+{
+    MTSTATUS Status = MsWaitForSingleObject(
+        &Thread->InternalThread.Header,
+        KernelMode,
+        false,
+        STRESS5D_WAIT_TIMEOUT_MS
+    );
+    if (Status != MT_SUCCESS) {
+        Stress5DBugCheck(
+            Stress5DUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Status
+        );
+    }
+    ObDereferenceObject(Thread);
+}
+
+static void
+Stress5DWaitForRegistrations(
+    PDISPATCHER_HEADER Header,
+    uint32_t ExpectedCount,
+    void* Detail
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    for (;;) {
+        uint32_t Count = 0;
+        IRQL OldIrql;
+        MsAcquireSpinlock(&Header->Lock, &OldIrql);
+        PDOUBLY_LINKED_LIST Head = &Header->WaitListHead;
+        for (PDOUBLY_LINKED_LIST Entry = Head->Flink;
+             Entry != Head && Count <= ExpectedCount;
+             Entry = Entry->Flink) {
+            Count++;
+        }
+        MsReleaseSpinlock(&Header->Lock, OldIrql);
+
+        if (Count == ExpectedCount) return;
+        if (Count > ExpectedCount || Stress5DWatchdogExpired(StartTsc)) {
+            Stress5DBugCheck(
+                Stress5DWaitRegistrationFailure,
+                Detail,
+                (void*)(uintptr_t)Count
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5DWaitForTypeCounts(
+    POBJECT_TYPE Type,
+    uint32_t ExpectedObjects,
+    uint32_t ExpectedHandles
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    for (;;) {
+        uint32_t Objects = InterlockedLoadAcquire(
+            (volatile uint32_t*)&Type->TotalNumberOfObjects
+        );
+        uint32_t Handles = InterlockedLoadAcquire(
+            (volatile uint32_t*)&Type->TotalNumberOfHandles
+        );
+        if (Objects == ExpectedObjects && Handles == ExpectedHandles) return;
+
+        if (Stress5DWatchdogExpired(StartTsc)) {
+            bool ObjectMismatch = Objects != ExpectedObjects;
+            Stress5DBugCheck(
+                ObjectMismatch
+                    ? Stress5DObjectCountLeak
+                    : Stress5DHandleCountLeak,
+                Type,
+                (void*)(uintptr_t)(
+                    ((uint64_t)(ObjectMismatch ? ExpectedObjects : ExpectedHandles) << 32) |
+                    (ObjectMismatch ? Objects : Handles)
+                )
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5DSettleObjectCounts(void)
+{
+    uint32_t LastThreadObjects = UINT32_MAX;
+    uint32_t LastThreadHandles = UINT32_MAX;
+    uint32_t LastProcessObjects = UINT32_MAX;
+    uint32_t LastProcessHandles = UINT32_MAX;
+    uint64_t StartTsc = __rdtsc();
+    uint64_t StableTsc = StartTsc;
+
+    for (;;) {
+        uint32_t ThreadObjects = InterlockedLoadAcquire(
+            (volatile uint32_t*)&PsThreadType->TotalNumberOfObjects
+        );
+        uint32_t ThreadHandles = InterlockedLoadAcquire(
+            (volatile uint32_t*)&PsThreadType->TotalNumberOfHandles
+        );
+        uint32_t ProcessObjects = InterlockedLoadAcquire(
+            (volatile uint32_t*)&PsProcessType->TotalNumberOfObjects
+        );
+        uint32_t ProcessHandles = InterlockedLoadAcquire(
+            (volatile uint32_t*)&PsProcessType->TotalNumberOfHandles
+        );
+
+        if (ThreadObjects != LastThreadObjects ||
+            ThreadHandles != LastThreadHandles ||
+            ProcessObjects != LastProcessObjects ||
+            ProcessHandles != LastProcessHandles) {
+            LastThreadObjects = ThreadObjects;
+            LastThreadHandles = ThreadHandles;
+            LastProcessObjects = ProcessObjects;
+            LastProcessHandles = ProcessHandles;
+            StableTsc = __rdtsc();
+        }
+        else if (__rdtsc() - StableTsc > Stress2CTscTicksPerSecond / 10) {
+            return;
+        }
+
+        if (Stress5DWatchdogExpired(StartTsc)) {
+            Stress5DBugCheck(
+                Stress5DProtocolTimeout,
+                PsThreadType,
+                PsProcessType
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5DTargetWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS5D_TARGET_CONTEXT* Context = Parameter;
+    Stress5DWaitForFlag(&Context->Start, Context);
+    InterlockedStoreRelease(&Context->Ready, true);
+
+    // The controller terminates this thread remotely. Yielding keeps APC
+    // delivery and migration active without giving the worker a natural exit.
+    for (;;) {
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5DHandleWaiter(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS5D_WAIT_CONTEXT* Context = Parameter;
+    Stress5DWaitForFlag(&Context->Start, Context);
+    MTSTATUS Status = MtWaitForSingleObject(
+        Context->Handle,
+        STRESS5D_WAIT_TIMEOUT_MS,
+        false
+    );
+    InterlockedStoreRelease(&Context->Status, Status);
+}
+
+static void
+Stress5DTestSelfWaits(void)
+{
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(MtCurrentThread(), 0, false),
+        MT_INVALID_PARAM,
+        (void*)0x5D10
+    );
+
+    // An ordinary handle to the current thread must follow the same policy as
+    // its pseudo-handle; this proves the check happens after handle resolution.
+    HANDLE Handle = MT_INVALID_HANDLE;
+    Stress5DRequireStatus(
+        ObCreateHandleForObject(PsGetCurrentThread(), MT_SYNCHRONIZE, &Handle),
+        MT_SUCCESS,
+        (void*)0x5D12
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(Handle, 0, false),
+        MT_INVALID_PARAM,
+        (void*)0x5D13
+    );
+    Stress5DRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5D14);
+
+    gop_printf(COLOR_GREEN, "STRESS 5D self-wait policy PASS\n");
+}
+
+static void
+Stress5DTestAttachedProcessSelfWaits(
+    PEPROCESS Process
+)
+{
+    // PsInitialSystemProcess is static rather than object-manager allocated, so
+    // its pseudo-handle cannot be referenced. Attach to the real test process
+    // to exercise current-process pseudo and ordinary handles legitimately.
+    APC_STATE ApcState;
+    MeAttachProcess(&Process->InternalProcess, &ApcState);
+
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(MtCurrentProcess(), 0, false),
+        MT_INVALID_PARAM,
+        (void*)0x5D11
+    );
+
+    HANDLE Handle = MT_INVALID_HANDLE;
+    Stress5DRequireStatus(
+        ObCreateHandleForObject(PsGetCurrentProcess(), MT_SYNCHRONIZE, &Handle),
+        MT_SUCCESS,
+        (void*)0x5D15
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(Handle, 0, false),
+        MT_INVALID_PARAM,
+        (void*)0x5D16
+    );
+    Stress5DRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)0x5D17);
+
+    MeDetachProcess(&ApcState);
+}
+
+static void
+Stress5DTestThreadLifetime(void)
+{
+    STRESS5D_TARGET_CONTEXT TargetContext = { 0 };
+    PETHREAD Target = Stress5DCreateRetainedThread(
+        Stress5DTargetWorker,
+        &TargetContext
+    );
+
+    HANDLE PrimaryHandle = MT_INVALID_HANDLE;
+    HANDLE ObserverHandle = MT_INVALID_HANDLE;
+    Stress5DRequireStatus(
+        ObCreateHandleForObject(Target, MT_SYNCHRONIZE, &PrimaryHandle),
+        MT_SUCCESS,
+        (void*)0x5D20
+    );
+    Stress5DRequireStatus(
+        ObCreateHandleForObject(Target, MT_SYNCHRONIZE, &ObserverHandle),
+        MT_SUCCESS,
+        (void*)0x5D21
+    );
+
+    InterlockedStoreRelease(&TargetContext.Start, true);
+    Stress5DWaitForFlag(&TargetContext.Ready, &TargetContext);
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(PrimaryHandle, 0, false),
+        MT_TIMEOUT,
+        (void*)0x5D22
+    );
+
+    STRESS5D_WAIT_CONTEXT Contexts[STRESS5D_WAITER_COUNT] = { 0 };
+    PETHREAD Waiters[STRESS5D_WAITER_COUNT] = { 0 };
+    for (uint32_t Index = 0; Index < STRESS5D_WAITER_COUNT; Index++) {
+        Contexts[Index].Handle = PrimaryHandle;
+        Contexts[Index].Status = MT_PENDING;
+        Waiters[Index] = Stress5DCreateRetainedThread(
+            Stress5DHandleWaiter,
+            &Contexts[Index]
+        );
+        InterlockedStoreRelease(&Contexts[Index].Start, true);
+    }
+    Stress5DWaitForRegistrations(
+        &Target->InternalThread.Header,
+        STRESS5D_WAITER_COUNT,
+        (void*)0x5D23
+    );
+
+    // Every waiter now owns an object reference inside MtWaitForSingleObject,
+    // so closing the creator's handle must not invalidate their wait blocks.
+    Stress5DRequireStatus(MtClose(PrimaryHandle), MT_SUCCESS, (void*)0x5D24);
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(PrimaryHandle, 0, false),
+        MT_INVALID_HANDLE,
+        (void*)0x5D25
+    );
+
+    Stress5DRequireStatus(
+        PsTerminateThread(Target, STRESS5D_EXIT_STATUS),
+        MT_SUCCESS,
+        (void*)0x5D26
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(
+            ObserverHandle,
+            STRESS5D_WAIT_TIMEOUT_MS,
+            false
+        ),
+        MT_SUCCESS,
+        (void*)0x5D27
+    );
+
+    for (uint32_t Index = 0; Index < STRESS5D_WAITER_COUNT; Index++) {
+        Stress5DJoinThread(
+            Waiters[Index],
+            (void*)(uintptr_t)(0x5D28U + Index)
+        );
+        Stress5DRequireStatus(
+            InterlockedLoadAcquire(&Contexts[Index].Status),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0x5D2CU + Index)
+        );
+    }
+
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Target->InternalThread.Header.Lock, &OldIrql);
+    bool ValidTerminalState =
+        Target->InternalThread.Header.SignalState == 1 &&
+        Target->ExitStatus == STRESS5D_EXIT_STATUS;
+    MsReleaseSpinlock(&Target->InternalThread.Header.Lock, OldIrql);
+    if (!ValidTerminalState) {
+        Stress5DBugCheck(
+            Stress5DThreadStateFailure,
+            Target,
+            (void*)(uintptr_t)Target->ExitStatus
+        );
+    }
+
+    // Thread termination is a persistent notification: every later wait must
+    // succeed without consuming the signal.
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ObserverHandle, 0, false),
+        MT_SUCCESS,
+        (void*)0x5D30
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ObserverHandle, 0, false),
+        MT_SUCCESS,
+        (void*)0x5D31
+    );
+    Stress5DRequireStatus(MtClose(ObserverHandle), MT_SUCCESS, (void*)0x5D32);
+    Stress5DJoinThread(Target, (void*)0x5D33);
+
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 5D thread lifetime PASS (%u waiters)\n",
+        STRESS5D_WAITER_COUNT
+    );
+}
+
+static void
+Stress5DTestThreadExitRaces(void)
+{
+    for (uint32_t Round = 0; Round < STRESS5D_RACE_ROUNDS; Round++) {
+        STRESS5D_TARGET_CONTEXT TargetContext = { 0 };
+        PETHREAD Target = Stress5DCreateRetainedThread(
+            Stress5DTargetWorker,
+            &TargetContext
+        );
+        HANDLE Handle = MT_INVALID_HANDLE;
+        Stress5DRequireStatus(
+            ObCreateHandleForObject(Target, MT_SYNCHRONIZE, &Handle),
+            MT_SUCCESS,
+            (void*)(uintptr_t)Round
+        );
+
+        InterlockedStoreRelease(&TargetContext.Start, true);
+        Stress5DWaitForFlag(&TargetContext.Ready, &TargetContext);
+
+        STRESS5D_WAIT_CONTEXT WaitContext = {
+            .Handle = Handle,
+            .Status = MT_PENDING
+        };
+        PETHREAD Waiter = Stress5DCreateRetainedThread(
+            Stress5DHandleWaiter,
+            &WaitContext
+        );
+        InterlockedStoreRelease(&WaitContext.Start, true);
+
+        // Odd rounds let the waiter register first. Even rounds request exit
+        // immediately. SMP runs additionally exercise genuine concurrent races.
+        if (Round & 1U) {
+            MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+        }
+        Stress5DRequireStatus(
+            PsTerminateThread(Target, STRESS5D_EXIT_STATUS),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0x5D80U + Round)
+        );
+
+        Stress5DJoinThread(
+            Waiter,
+            (void*)(uintptr_t)(0x5DA0U + Round)
+        );
+        Stress5DRequireStatus(
+            InterlockedLoadAcquire(&WaitContext.Status),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0x5DC0U + Round)
+        );
+        Stress5DRequireStatus(
+            MtWaitForSingleObject(Handle, 0, false),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0x5DE0U + Round)
+        );
+        Stress5DRequireStatus(MtClose(Handle), MT_SUCCESS, (void*)Target);
+        Stress5DJoinThread(Target, (void*)(uintptr_t)(0x5E00U + Round));
+    }
+
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 5D thread exit races PASS (%u rounds)\n",
+        STRESS5D_RACE_ROUNDS
+    );
+}
+
+static PETHREAD
+Stress5DWaitForProcessWorker(
+    PEPROCESS Process
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    for (;;) {
+        PETHREAD MainThread = NULL;
+        MsAcquirePushLockShared(&Process->ThreadListLock);
+        if (Process->NumThreads >= 2 && Process->MainThread != NULL &&
+            ObReferenceObject(Process->MainThread)) {
+            MainThread = Process->MainThread;
+        }
+        MsReleasePushLockShared(&Process->ThreadListLock);
+        if (MainThread) return MainThread;
+
+        if (Stress5DWatchdogExpired(StartTsc)) {
+            Stress5DBugCheck(
+                Stress5DProtocolTimeout,
+                Process,
+                (void*)(uintptr_t)Process->NumThreads
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+Stress5DTestProcessLifetime(void)
+{
+    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    Stress5DRequireStatus(
+        PsCreateProcess(
+            "terminateMyself.mtexe",
+            &ProcessHandle,
+            MT_PROCESS_ALL_ACCESS,
+            0
+        ),
+        MT_SUCCESS,
+        (void*)0x5D40
+    );
+
+    PEPROCESS Process = NULL;
+    Stress5DRequireStatus(
+        ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_ALL_ACCESS,
+            PsProcessType,
+            (void**)&Process,
+            NULL
+        ),
+        MT_SUCCESS,
+        (void*)0x5D41
+    );
+
+    HANDLE ObserverHandle = MT_INVALID_HANDLE;
+    Stress5DRequireStatus(
+        ObCreateHandleForObject(Process, MT_SYNCHRONIZE, &ObserverHandle),
+        MT_SUCCESS,
+        (void*)0x5D42
+    );
+    Stress5DTestAttachedProcessSelfWaits(Process);
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ProcessHandle, 0, false),
+        MT_TIMEOUT,
+        (void*)0x5D43
+    );
+
+    // terminateMyself creates a sleeping worker before its main thread exits.
+    // Capturing MainThread while NumThreads >= 2 gives us a stable reference to
+    // the original main thread, even after the process promotes its worker.
+    PETHREAD OriginalMainThread = Stress5DWaitForProcessWorker(Process);
+
+    STRESS5D_WAIT_CONTEXT Contexts[STRESS5D_WAITER_COUNT] = { 0 };
+    PETHREAD Waiters[STRESS5D_WAITER_COUNT] = { 0 };
+    for (uint32_t Index = 0; Index < STRESS5D_WAITER_COUNT; Index++) {
+        Contexts[Index].Handle = ProcessHandle;
+        Contexts[Index].Status = MT_PENDING;
+        Waiters[Index] = Stress5DCreateRetainedThread(
+            Stress5DHandleWaiter,
+            &Contexts[Index]
+        );
+        InterlockedStoreRelease(&Contexts[Index].Start, true);
+    }
+    Stress5DWaitForRegistrations(
+        &Process->InternalProcess.Header,
+        STRESS5D_WAITER_COUNT,
+        (void*)0x5D44
+    );
+
+    Stress5DRequireStatus(MtClose(ProcessHandle), MT_SUCCESS, (void*)0x5D45);
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ProcessHandle, 0, false),
+        MT_INVALID_HANDLE,
+        (void*)0x5D46
+    );
+
+    // The main thread may terminate, but the persistent process signal must
+    // remain clear while its sleeping worker is still alive.
+    MTSTATUS MainWaitStatus = MsWaitForSingleObject(
+        &OriginalMainThread->InternalThread.Header,
+        KernelMode,
+        false,
+        STRESS5D_WAIT_TIMEOUT_MS
+    );
+    if (MainWaitStatus != MT_SUCCESS) {
+        Stress5DBugCheck(
+            Stress5DUnexpectedStatus,
+            (void*)0x5D47,
+            (void*)(uintptr_t)MainWaitStatus
+        );
+    }
+    ObDereferenceObject(OriginalMainThread);
+
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &OldIrql);
+    bool ProcessSignaled = Process->InternalProcess.Header.SignalState != 0;
+    PROCESS_STATE ProcessState = Process->InternalProcess.ProcessState;
+    MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, OldIrql);
+
+    MsAcquirePushLockShared(&Process->ThreadListLock);
+    uint32_t RemainingThreads = Process->NumThreads;
+    MsReleasePushLockShared(&Process->ThreadListLock);
+    if (ProcessSignaled || ProcessState == PROCESS_TERMINATED ||
+        RemainingThreads == 0) {
+        Stress5DBugCheck(
+            Stress5DProcessStateFailure,
+            Process,
+            (void*)(uintptr_t)RemainingThreads
+        );
+    }
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ObserverHandle, 0, false),
+        MT_TIMEOUT,
+        (void*)0x5D48
+    );
+
+    Stress5DRequireStatus(
+        PsTerminateProcess(Process, STRESS5D_EXIT_STATUS),
+        MT_SUCCESS,
+        (void*)0x5D49
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(
+            ObserverHandle,
+            STRESS5D_WAIT_TIMEOUT_MS,
+            false
+        ),
+        MT_SUCCESS,
+        (void*)0x5D4A
+    );
+
+    for (uint32_t Index = 0; Index < STRESS5D_WAITER_COUNT; Index++) {
+        Stress5DJoinThread(
+            Waiters[Index],
+            (void*)(uintptr_t)(0x5D4BU + Index)
+        );
+        Stress5DRequireStatus(
+            InterlockedLoadAcquire(&Contexts[Index].Status),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0x5D50U + Index)
+        );
+    }
+
+    MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &OldIrql);
+    bool ValidTerminalState =
+        Process->InternalProcess.Header.SignalState == 1 &&
+        Process->InternalProcess.ProcessState == PROCESS_TERMINATED &&
+        Process->ExitStatus == STRESS5D_EXIT_STATUS;
+    MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, OldIrql);
+    if (!ValidTerminalState) {
+        Stress5DBugCheck(
+            Stress5DProcessStateFailure,
+            Process,
+            (void*)(uintptr_t)Process->ExitStatus
+        );
+    }
+
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ObserverHandle, 0, false),
+        MT_SUCCESS,
+        (void*)0x5D54
+    );
+    Stress5DRequireStatus(
+        MtWaitForSingleObject(ObserverHandle, 0, false),
+        MT_SUCCESS,
+        (void*)0x5D55
+    );
+    Stress5DRequireStatus(MtClose(ObserverHandle), MT_SUCCESS, (void*)0x5D56);
+    ObDereferenceObject(Process);
+
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 5D process lifetime PASS (main exit + %u waiters)\n",
+        STRESS5D_WAITER_COUNT
+    );
+}
+
+static void
+Stress5DController(void)
+{
+    Stress5DSettleObjectCounts();
+    uint32_t ThreadObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsThreadType->TotalNumberOfObjects
+    );
+    uint32_t ThreadHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsThreadType->TotalNumberOfHandles
+    );
+    uint32_t ProcessObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsProcessType->TotalNumberOfObjects
+    );
+    uint32_t ProcessHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsProcessType->TotalNumberOfHandles
+    );
+
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 5D START (thread/process handles, %u CPUs)\n",
+        MeGetActiveProcessorCount()
+    );
+
+    Stress5DTestSelfWaits();
+    Stress5DTestThreadLifetime();
+    Stress5DTestThreadExitRaces();
+    Stress5DTestProcessLifetime();
+
+    Stress5DWaitForTypeCounts(PsThreadType, ThreadObjects, ThreadHandles);
+    Stress5DWaitForTypeCounts(PsProcessType, ProcessObjects, ProcessHandles);
+    gop_printf(COLOR_GREEN, "STRESS 5D PASS\n");
 }
 
 NORETURN
@@ -4954,6 +6092,8 @@ StressSuiteController(
     InterlockedStoreRelease(&Stress5AActive, false);
 
     Stress5BController();
+    Stress5CController();
+    Stress5DController();
 
     gop_printf(COLOR_GREEN, "STRESS SUITE ALL PASS\n");
 
@@ -5080,6 +6220,23 @@ void kernel_main(BOOT_INFO* boot_info) {
     allApsInitialized = true;
 #endif
 
+    // Deferred object deletion and kernel-stack reclamation must be online
+    // before tests begin creating and closing object-manager handles. The
+    // stress controller never returns, so initializing these workers below
+    // its Schedule() call leaves zero-reference objects queued forever.
+    st = PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)st,
+            NULL, NULL, NULL);
+    }
+
+    // Stress 5D creates a real user process, so the executable and MTDLL must
+    // be reachable through the mounted filesystem before the suite starts.
+    st = FsInitialize();
+    if (MT_FAILURE(st)) {
+        MeBugCheck(FILESYSTEM_PANIC);
+    }
+
     uint32_t StressProcessorCount = MeGetActiveProcessorCount();
     if (StressProcessorCount == 0 || StressProcessorCount > MAX_CPUS) {
         Stress4BugCheck(
@@ -5117,18 +6274,6 @@ void kernel_main(BOOT_INFO* boot_info) {
     }
     else {
         gop_printf_forced(0xFF0000FF, "[-] Still identity-mapped\n");
-    }
-
-    // Initialize worker threads. (all thread creation must be after sched init)
-    st = PsInitializeSystem(PS_PHASE_INITIALIZE_WORKER_THREADS);
-    if (MT_FAILURE(st)) {
-        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)st,
-            NULL, NULL, NULL);
-    }
-
-    MTSTATUS status = FsInitialize();
-    if (MT_FAILURE(status)) {
-        MeBugCheck(FILESYSTEM_PANIC);
     }
 
     /* SYSTEM IS FULLY INITIALIZED. (except SMP and APIC) */

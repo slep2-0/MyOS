@@ -82,15 +82,19 @@ MTSTATUS FsInitialize(void) {
 	// First initialize other FS Related stuff (FAT32, AHCI, etc..)
 	MTSTATUS status = ahci_init();
 	if (MT_FAILURE(status)) {
+#ifdef DEBUG
 		gop_printf(COLOR_RED, "AHCI | Status failure: %x", status);
 		FREEZE();
+#endif
 		return status;
 	}
 	// Mount FAT32 on MAIN_FS_DEVICE
 	status = fat32_driver.init(MAIN_FS_DEVICE);
 	if (MT_FAILURE(status)) {
+#ifdef DEBUG
 		gop_printf(COLOR_RED, "FAT32 | Status failure: %x", status);
 		FREEZE();
+#endif
 		return status;
 	}
 	mounted_fs[mount_count++] = (MOUNTED_FS){ .driver = &fat32_driver, .device_id = MAIN_FS_DEVICE, .mount_point = "/"};
@@ -188,17 +192,6 @@ MTSTATUS FsCreateDirectory(
 	}
 
 	return Status;
-}
-
-MTSTATUS FsRemoveDirectoryRecursive(
-	IN PFILE_OBJECT DirectoryObject
-)
-
-{
-	MOUNTED_FS* fs = vfs_find_fs_for_path(DirectoryObject->FileName);
-	if (!fs || !fs->driver || !fs->driver->RemoveDirectoryRecursive) return MT_NOT_IMPLEMENTED;
-
-	return fs->driver->RemoveDirectoryRecursive(DirectoryObject);
 }
 
 MTSTATUS FsCreateFile(

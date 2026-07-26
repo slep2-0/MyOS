@@ -27,23 +27,17 @@ A later true MSVC source port is possible, but it is a separate ABI project:
 
 ## One-time setup
 
-Run from the repository root:
+Run from a normal Command Prompt:
 
 ```bat
-initial_setup.bat
+tools\windows\bootstrap.bat
 ```
 
-The script installs or checks Python, LLVM, NASM, and QEMU through `winget`.
-It creates an isolated Python environment under the ignored
-`build_environment` directory, installs `pyfatfs`, locates QEMU's bundled EDK2
-firmware, and records all verified paths in an ignored toolchain manifest.
+The script installs/checks LLVM, NASM, Python, and `pyfatfs`. QEMU is optional
+for compiling. The current machine's QEMU and OVMF locations are detected by
+the run command.
 
-The setup is per checkout. Building before running it, or moving the checkout
-to another machine, produces a clear error directing you back to
-`initial_setup.bat`. `tools\windows\bootstrap.bat` remains as a compatibility
-alias.
-
-Optional overrides honored by `initial_setup.bat`:
+Optional environment overrides:
 
 ```text
 LLVM_BIN=C:\path\to\llvm\bin
@@ -117,6 +111,6 @@ offsets are generated from LLVM IR for the `x86_64-none-elf` target, so they do
 not inherit Windows' LLP64 structure model.
 
 Debug builds retain the global stack protector and exempt `kernel.c` while it
-initializes the cookie, matching the existing Makefile. LLVM does not implement
+initializes the cookie, matching the established kernel build behavior. LLVM does not implement
 `-fstack-clash-protection` for this bare-metal target, so that GCC-only flag is
 omitted; `-Wframe-larger-than=4096` supplies the compile-time large-frame check.

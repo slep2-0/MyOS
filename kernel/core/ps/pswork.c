@@ -41,7 +41,7 @@ static void PsStackDeleterThread(void) {
             &g_StackReaperEvent,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
 
         // Atomically steal the whole list

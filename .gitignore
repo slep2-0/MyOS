@@ -2,6 +2,7 @@
 .vscode/
 /build/
 /build_environment/
+/usermode/build/
 /x64/
 /MatanelOS/
 .build_*/
@@ -15,6 +16,7 @@ log.txt
 *.ipch
 *.o
 *.obj
+*.d
 *.exe
 *.dll
 *.lib
@@ -31,3 +33,11 @@ OVMF_VARS*.fd
 __pycache__/
 *.py[cod]
 /Intel-Manual-x86-IA32.pdf
+
+# Local development notes and private Codex planning.
+/checklist.md
+/features_checklist.md
+
+# Private local IDA helper; not part of MatanelOS.
+/c_semantics_ida.py
+/c_semantics_ida_README.md

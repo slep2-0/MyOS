@@ -159,7 +159,7 @@ MiFreeKernelStack(
 
     Arguments:
 
-        [IN]    void* AllocatedStackBase - The pointer given by MiCreateKernelStack
+        [IN]    void* AllocatedStackTop - The pointer given by MiCreateKernelStack
         [IN]    bool LargeStack - Signifies if the stack being deleted is a MI_LARGE_STACK_SIZE bytes long (true), or MI_STACK_SIZE bytes long (false)
 
     Return Values:

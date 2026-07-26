@@ -17,6 +17,8 @@ Revision History:
 --*/
 
 #include "../../includes/ms.h"
+#include "../../includes/me.h"
+#include "../../includes/mg.h"
 #include "../../assert.h"
 
 void
@@ -57,10 +59,11 @@ MsInitializeSemaphore(
     Semaphore->Limit = Limit;
 }
 
-int32_t
-MsReleaseSemaphore(
+MTSTATUS
+MsReleaseSemaphoreChecked(
     IN PSEMAPHORE Semaphore,
-    IN int32_t Adjustment
+    IN int32_t Adjustment,
+    _Out_Opt int32_t* PreviousCount
 )
 
 /*++
@@ -82,7 +85,8 @@ MsReleaseSemaphore(
 --*/
 
 {
-    assert(Adjustment > 0);
+    if (!Semaphore) return MT_INVALID_ADDRESS;
+    if (Adjustment <= 0) return MT_INVALID_PARAM;
 
     // Lock the dispatcher object.
     IRQL dispatcherIrql;
@@ -92,20 +96,15 @@ MsReleaseSemaphore(
     // The caller must not provide an adjustment that would go over the limit.
     // Also make it immune to signed overflow.
     if (Adjustment > Semaphore->Limit - Semaphore->Header.SignalState) {
-        // You cannot add the count higher than its limit.
-        // Normally this would raise an exception, but there is no kernel exception handler yet, so this is a fatal error.
         MsReleaseSpinlock(&Semaphore->Header.Lock, dispatcherIrql);
-        MeBugCheckEx(
-            SEMAPHORE_LIMIT_REACHED,
-            Semaphore,
-            (void*)(uintptr_t)Adjustment,
-            MeGetCurrentThread(),
-            NULL
-        );
+        return MT_SEMAPHORE_LIMIT_EXCEEDED;
     }
 
     // Save the previous permit count for the return value.
     int32_t PreviousSignal = Semaphore->Header.SignalState;
+    if (PreviousCount) {
+        *PreviousCount = PreviousSignal;
+    }
 
     // Publish the released permits while holding the dispatcher lock.
     Semaphore->Header.SignalState += Adjustment;
@@ -145,6 +144,29 @@ MsReleaseSemaphore(
     // Release the lock.
     MsReleaseSpinlock(&Semaphore->Header.Lock, dispatcherIrql);
 
-    // Return the permit count observed before this release.
-    return PreviousSignal;
+    return MT_SUCCESS;
+}
+
+int32_t
+MsReleaseSemaphore(
+    IN PSEMAPHORE Semaphore,
+    IN int32_t Adjustment
+)
+{
+    int32_t PreviousCount = 0;
+    MTSTATUS Status = MsReleaseSemaphoreChecked(
+        Semaphore,
+        Adjustment,
+        &PreviousCount
+    );
+    if (MT_FAILURE(Status)) {
+        MeBugCheckEx(
+            SEMAPHORE_LIMIT_REACHED,
+            Semaphore,
+            (void*)(uintptr_t)Adjustment,
+            MeGetCurrentThread(),
+            (void*)(uintptr_t)Status
+        );
+    }
+    return PreviousCount;
 }

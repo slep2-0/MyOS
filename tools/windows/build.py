@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -21,7 +20,6 @@ from make_image import create_image
 
 ROOT = Path(__file__).resolve().parents[2]
 WINDOWS_BUILD = ROOT / "build" / "windows"
-SETUP_MANIFEST = ROOT / "build_environment" / "toolchain.json"
 TARGET_TRIPLE = "x86_64-none-elf"
 
 KERNEL_SLOW_PATHS = {
@@ -57,8 +55,6 @@ MTDLL_C = [
 ]
 
 MTDLL_GAS = [
-    "usermode/header.S",
-    "usermode/programs/mtdll/includes/export_table.S",
 ]
 
 MTDLL_NASM = [
@@ -68,9 +64,7 @@ MTDLL_NASM = [
 
 MTEXE_C = ["usermode/programs/terminateMyself/main.c"]
 MTEXE_GAS = [
-    "usermode/header.S",
     "usermode/crt0.S",
-    "usermode/headers/import_table.S",
 ]
 MTEXE_NASM = ["tools/windows/freestanding_runtime.asm"]
 
@@ -86,9 +80,7 @@ class Tools:
     lld_link: Path
     objcopy: Path
     nasm: Path
-    qemu: Path
-    ovmf_code: Path
-    ovmf_vars: Path
+    qemu: Path | None
 
 
 @dataclass(frozen=True)
@@ -98,45 +90,48 @@ class CompileJob:
     cwd: Path
 
 
+def _program_candidates(name: str, environment_directory: str | None) -> Iterable[Path]:
+    if environment_directory:
+        value = os.environ.get(environment_directory)
+        if value:
+            candidate = Path(value)
+            yield candidate / name if candidate.is_dir() else candidate
+    located = shutil.which(name)
+    if located:
+        yield Path(located)
+
+
+def _find_required(name: str, environment_directory: str | None, fallbacks: Sequence[Path]) -> Path:
+    for candidate in [*_program_candidates(name, environment_directory), *fallbacks]:
+        if candidate.is_file():
+            return candidate.resolve()
+    variable = f" or %{environment_directory}%" if environment_directory else ""
+    raise BuildFailure(f"Could not find {name} on PATH{variable}. Run tools\\windows\\bootstrap.bat.")
+
+
 def discover_tools() -> Tools:
-    if not SETUP_MANIFEST.is_file():
-        raise BuildFailure(
-            "The build environment has not been initialized. Run initial_setup.bat once, "
-            "then build the solution again."
-        )
-    try:
-        configuration = json.loads(SETUP_MANIFEST.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise BuildFailure(
-            "The build environment manifest is invalid. Run initial_setup.bat again."
-        ) from exc
-
-    if configuration.get("schema") != 1:
-        raise BuildFailure("The build environment is outdated. Run initial_setup.bat again.")
-
-    def configured_file(key: str) -> Path:
-        value = configuration.get(key)
-        if not isinstance(value, str):
-            raise BuildFailure(
-                f"The build environment is missing '{key}'. Run initial_setup.bat again."
-            )
-        path = Path(value)
-        if not path.is_file():
-            raise BuildFailure(
-                f"Configured tool no longer exists: {path}. Run initial_setup.bat again."
-            )
-        return path.resolve()
-
-    return Tools(
-        clang=configured_file("clang"),
-        lld=configured_file("lld"),
-        lld_link=configured_file("lld_link"),
-        objcopy=configured_file("objcopy"),
-        nasm=configured_file("nasm"),
-        qemu=configured_file("qemu"),
-        ovmf_code=configured_file("ovmf_code"),
-        ovmf_vars=configured_file("ovmf_vars"),
+    llvm = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "LLVM" / "bin"
+    clang = _find_required("clang.exe", "LLVM_BIN", [llvm / "clang.exe"])
+    lld = _find_required("ld.lld.exe", "LLVM_BIN", [llvm / "ld.lld.exe"])
+    lld_link = _find_required("lld-link.exe", "LLVM_BIN", [llvm / "lld-link.exe"])
+    objcopy = _find_required("llvm-objcopy.exe", "LLVM_BIN", [llvm / "llvm-objcopy.exe"])
+    nasm = _find_required(
+        "nasm.exe",
+        "NASM_BIN",
+        [
+            ROOT / "tools" / "nasm.exe",
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "NASM" / "nasm.exe",
+        ],
     )
+    qemu = None
+    for candidate in [
+        *_program_candidates("qemu-system-x86_64.exe", "QEMU_BIN"),
+        Path(r"C:\msys64\mingw64\bin\qemu-system-x86_64.exe"),
+    ]:
+        if candidate.is_file():
+            qemu = candidate.resolve()
+            break
+    return Tools(clang, lld, lld_link, objcopy, nasm, qemu)
 
 
 def _quote_command(command: Sequence[str]) -> str:
@@ -512,24 +507,24 @@ def _user_c_flags(*, pic: bool, executable: bool) -> list[str]:
         "-ffreestanding",
         "-nostdlib",
         "-fno-builtin",
+        "-fno-asynchronous-unwind-tables",
+        "-ffunction-sections",
+        "-fdata-sections",
         "-c",
         *_diagnostic_flags(),
         "-Wall",
         "-Wextra",
         "-Wno-unused-function",
-        "-fno-pie",
         "-O0",
         "-g",
         "-I",
         str(ROOT / "usermode/headers"),
     ]
     if pic:
-        flags.append("-fPIC")
+        flags.extend(["-fPIC", "-fvisibility=hidden", "-DMTDLL_BUILD"])
         flags.extend(["-I", str(ROOT / "usermode/programs/mtdll/includes")])
     else:
-        flags.append("-fno-pic")
-    if executable:
-        flags.append("-DIMAGE_BASE=0x10000")
+        flags.extend(["-fPIE", "-fvisibility=hidden"])
     return flags
 
 
@@ -545,7 +540,9 @@ def _build_user_component(
     pic: bool,
     executable: bool,
     workers: int,
-) -> Path:
+    module_name: str,
+    dependencies: dict[str, Path] | None = None,
+) -> tuple[Path, Path]:
     object_root = output.parent / f"obj/{name}"
     c_flags = _user_c_flags(pic=pic, executable=executable)
     _fingerprint(object_root, [str(tools.clang), str(tools.nasm), name, *c_flags])
@@ -562,8 +559,8 @@ def _build_user_component(
         if not _needs_rebuild(source, obj, header_time):
             continue
         obj.parent.mkdir(parents=True, exist_ok=True)
-        # .S files are preprocessed assembly and intentionally consume the
-        # same IMAGE_BASE/PIC defines as their component's C sources.
+        # .S files are preprocessed assembly and consume the same ABI and
+        # import/export marker definitions as their component's C sources.
         flags = c_flags
         jobs.append(
             CompileJob(
@@ -581,27 +578,90 @@ def _build_user_component(
             obj.parent.mkdir(parents=True, exist_ok=True)
             _run([str(tools.nasm), "-f", "elf64", str(source), "-o", str(obj)])
 
+    dependencies = dependencies or {}
+    discovery_elf = object_root / f"{name}.discovery.elf"
     temporary_elf = object_root / f"{name}.elf"
-    link_flags = ["-Bsymbolic", "--no-undefined", "-T", str(linker_script), "-m", "elf_x86_64"]
+    common_link_flags = [
+        "--no-undefined",
+        "-z",
+        "now",
+        "-z",
+        "notext",
+        "-z",
+        "norelro",
+        "-T",
+        str(linker_script),
+        "-m",
+        "elf_x86_64",
+    ]
     if pic:
-        # The custom MTDLL export table intentionally stores absolute symbol
-        # addresses and carries their dynamic relocations into the flat image.
-        link_flags[0:0] = ["-shared", "-z", "notext"]
+        common_link_flags[0:0] = [
+            "-shared",
+            "-Bsymbolic",
+            f"--soname={module_name}",
+        ]
     else:
-        link_flags.insert(0, "-static")
-    link_time = max(path.stat().st_mtime for path in objects)
-    if not temporary_elf.is_file() or temporary_elf.stat().st_mtime < max(link_time, linker_script.stat().st_mtime):
-        _run([str(tools.lld), *link_flags, "-o", str(temporary_elf), *map(str, objects)])
-    if _needs_rebuild(temporary_elf, output):
-        _run([str(tools.objcopy), "-O", "binary", str(temporary_elf), str(output)])
-    print(f"[{name.upper()}] {output}")
-    return output
+        common_link_flags[0:0] = ["-pie", "--no-dynamic-linker"]
+
+    dependency_files = list(dependencies.values())
+
+    def link(elf: Path, metadata_size: int) -> None:
+        _run(
+            [
+                str(tools.lld),
+                *common_link_flags,
+                f"--defsym=__mt_metadata_size=0x{metadata_size:x}",
+                f"--Map={elf.with_suffix('.map')}",
+                "-o",
+                str(elf),
+                *map(str, objects),
+                *map(str, dependency_files),
+            ]
+        )
+
+    # The first link discovers how many dynamic imports, exports, and base
+    # relocations LLD emitted. The second link reserves exactly that much MTE
+    # metadata before BSS so every runtime RVA remains stable.
+    link(discovery_elf, 0x1000)
+    packer = ROOT / "tools/mte/mte_pack.py"
+    dependency_arguments = [
+        argument
+        for module, dependency in dependencies.items()
+        for argument in ("--dependency", f"{module}={dependency}")
+    ]
+    result = _run(
+        [
+            sys.executable,
+            str(packer),
+            str(discovery_elf),
+            "--print-metadata-size",
+            *dependency_arguments,
+        ],
+        capture=True,
+    )
+    try:
+        metadata_size = int((result.stdout or "").strip(), 0)
+    except ValueError as exc:
+        raise BuildFailure("MTE packer did not return a metadata size") from exc
+    link(temporary_elf, metadata_size)
+    _run(
+        [
+            sys.executable,
+            str(packer),
+            str(temporary_elf),
+            str(output),
+            "--metadata-size",
+            hex(metadata_size),
+            *dependency_arguments,
+        ]
+    )
+    return output, temporary_elf
 
 
 def build_usermode(tools: Tools, configuration: str, workers: int) -> tuple[Path, Path]:
     output_directory = WINDOWS_BUILD / configuration.lower()
     output_directory.mkdir(parents=True, exist_ok=True)
-    mtdll = _build_user_component(
+    mtdll, mtdll_elf = _build_user_component(
         tools,
         "mtdll",
         MTDLL_C,
@@ -612,8 +672,9 @@ def build_usermode(tools: Tools, configuration: str, workers: int) -> tuple[Path
         pic=True,
         executable=False,
         workers=workers,
+        module_name="mtdll.mtdll",
     )
-    program = _build_user_component(
+    program, _ = _build_user_component(
         tools,
         "terminateMyself",
         MTEXE_C,
@@ -624,6 +685,8 @@ def build_usermode(tools: Tools, configuration: str, workers: int) -> tuple[Path
         pic=False,
         executable=True,
         workers=workers,
+        module_name="terminateMyself.mtexe",
+        dependencies={"mtdll.mtdll": mtdll_elf},
     )
     return mtdll, program
 
@@ -709,8 +772,15 @@ def build_image(
 
 
 def run_qemu(tools: Tools, image: Path, cpus: int) -> None:
+    if tools.qemu is None:
+        raise BuildFailure("qemu-system-x86_64.exe was not found. Set QEMU_BIN or run bootstrap.bat.")
+    ovmf_directory = Path(os.environ.get("MATANELOS_OVMF", str(Path.home() / "Desktop/OSBuild/uefiboot")))
+    code = ovmf_directory / "OVMF_CODE.fd"
+    vars_template = ovmf_directory / "OVMF_VARS.fd"
+    if not code.is_file() or not vars_template.is_file():
+        raise BuildFailure(f"OVMF_CODE.fd and OVMF_VARS.fd were not found in {ovmf_directory}")
     runtime_vars = image.parent / "OVMF_VARS.fd"
-    shutil.copy2(tools.ovmf_vars, runtime_vars)
+    shutil.copy2(vars_template, runtime_vars)
     qemu_log = image.parent / "qemu_io.log"
     _run(
         [
@@ -728,7 +798,7 @@ def run_qemu(tools: Tools, image: Path, cpus: int) -> None:
             "-D",
             str(qemu_log),
             "-drive",
-            f"file={tools.ovmf_code},if=pflash,format=raw,readonly=on",
+            f"file={code},if=pflash,format=raw,readonly=on",
             "-drive",
             f"file={runtime_vars},if=pflash,format=raw",
             "-device",

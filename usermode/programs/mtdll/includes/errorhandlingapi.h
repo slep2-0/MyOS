@@ -20,16 +20,17 @@ Revision History:
 
 #include "annotations.h"
 #include "mtstatus.h"
+#include "mtapi.h"
 #include "../../../../shared/include/errorcodes.h"
 
 
 // Functions definitions themselves.
 
-ERROR_CODE GetLastError(
+MTDLL_API ERROR_CODE GetLastError(
 	void
 );
 
-void SetLastError(
+MTDLL_API void SetLastError(
 	ERROR_CODE dwErrorCode
 );
 
@@ -160,6 +161,8 @@ MtStatusToLastError(MTSTATUS Status)
     case MT_MUTEX_NOT_OWNED:
     case MT_INVALID_LOCK:
         return ERROR_INVALID_PARAMETER; // Or ERROR_ACCESS_DENIED depending on semantics
+    case MT_SEMAPHORE_LIMIT_EXCEEDED:
+        return ERROR_TOO_MANY_POSTS;
 
         // -------------------------
         // Process / Thread / User Mode

@@ -222,13 +222,104 @@ MtSleep:
 ; MTSTATUS
 ; MtWaitForSingleObject(
 ;     IN HANDLE ObjectHandle,
-;     IN uint64_t Milliseconds
+;     IN uint64_t Milliseconds,
+;     IN bool Alertable
 ; );
 ; Syscall number is 14.
 
 global MtWaitForSingleObject
 MtWaitForSingleObject:
 	mov rax, 14
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtCreateEvent(PHANDLE, ACCESS_MASK, EVENT_TYPE, bool, const char*);
+; Syscall number is 15.
+global MtCreateEvent
+MtCreateEvent:
+	mov rax, 15
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtQueryEvent(HANDLE, bool*);
+; Syscall number is 16.
+global MtQueryEvent
+MtQueryEvent:
+	mov rax, 16
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtSetEvent(HANDLE, bool*);
+; Syscall number is 17.
+global MtSetEvent
+MtSetEvent:
+	mov rax, 17
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtResetEvent(HANDLE, bool*);
+; Syscall number is 18.
+global MtResetEvent
+MtResetEvent:
+	mov rax, 18
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtCreateMutex(PHANDLE, ACCESS_MASK, bool, const char*);
+; Syscall number is 19.
+global MtCreateMutex
+MtCreateMutex:
+	mov rax, 19
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtQueryMutex(HANDLE, MUTEX_BASIC_INFORMATION*);
+; Syscall number is 20.
+global MtQueryMutex
+MtQueryMutex:
+	mov rax, 20
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtReleaseMutex(HANDLE, int32_t*);
+; Syscall number is 21.
+global MtReleaseMutex
+MtReleaseMutex:
+	mov rax, 21
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtCreateSemaphore(PHANDLE, ACCESS_MASK, int32_t, int32_t, const char*);
+; Syscall number is 22.
+global MtCreateSemaphore
+MtCreateSemaphore:
+	mov rax, 22
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtQuerySemaphore(HANDLE, SEMAPHORE_BASIC_INFORMATION*);
+; Syscall number is 23.
+global MtQuerySemaphore
+MtQuerySemaphore:
+	mov rax, 23
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtReleaseSemaphore(HANDLE, int32_t, int32_t*);
+; Syscall number is 24.
+global MtReleaseSemaphore
+MtReleaseSemaphore:
+	mov rax, 24
 	mov r10, rcx
 	syscall
 	ret

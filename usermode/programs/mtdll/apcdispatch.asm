@@ -3,6 +3,7 @@
 
 %define Syscall_MtContinue 12
 
+section .text.mtapi progbits alloc exec nowrite align=16
 global MeUserApcDispatcher
 MeUserApcDispatcher:
 	; Save the context pointer, passed in r8

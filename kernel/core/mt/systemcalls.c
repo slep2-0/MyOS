@@ -704,6 +704,24 @@ MtClose(
     IN HANDLE hObject
 )
 
+/*++
+
+    Routine description:
+
+        Closes a handle in the calling process and releases the handle's object
+        reference.
+
+    Arguments:
+
+        hObject - Handle owned by the calling process.
+
+    Return Values:
+
+        MT_SUCCESS on success, or MT_INVALID_HANDLE for an invalid, closed, or
+        non-closeable pseudo handle.
+
+--*/
+
 {
     // Easiest syscall yet, just call internal function.
     return HtClose(hObject);
@@ -1443,12 +1461,68 @@ MtSleep(
     return MT_SUCCESS;
 }
 
+static void
+MtpRetainMutexOwnershipReference(
+    IN PMUTEX Mutex
+)
+{
+    // The syscall already owns a transient reference, so this cannot fail
+    // unless object reference accounting is corrupt.
+    if (!ObReferenceObject(Mutex)) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Mutex, RETADDR(0), NULL, NULL);
+    }
+
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Mutex->Header.Lock, &OldIrql);
+    assert(Mutex->OwnerThread == PsGetCurrentThread());
+    if (Mutex->ObjectOwnerReferences == UINT32_MAX) {
+        MsReleaseSpinlock(&Mutex->Header.Lock, OldIrql);
+        MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, Mutex, RETADDR(0), NULL, NULL);
+    }
+    Mutex->ObjectOwnerReferences++;
+    MsReleaseSpinlock(&Mutex->Header.Lock, OldIrql);
+}
+
+static void
+MtpReleaseMutexOwnershipReference(
+    IN PMUTEX Mutex
+)
+{
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Mutex->Header.Lock, &OldIrql);
+    assert(Mutex->ObjectOwnerReferences != 0);
+    Mutex->ObjectOwnerReferences--;
+    MsReleaseSpinlock(&Mutex->Header.Lock, OldIrql);
+
+    ObDereferenceObject(Mutex);
+}
+
 MTSTATUS
 MtWaitForSingleObject(
     IN HANDLE ObjectHandle,
     IN uint64_t Milliseconds,
     IN bool Alertable
 )
+
+/*++
+
+    Routine description:
+
+        Resolves a waitable handle with MT_SYNCHRONIZE access and waits for its
+        dispatcher object. The object remains referenced for the entire wait.
+
+    Arguments:
+
+        ObjectHandle - Handle to a waitable dispatcher object.
+        Milliseconds - Relative timeout in milliseconds, zero, or MT_INFINITE.
+        Alertable - Requests alertable behavior when user APC waits are added.
+
+    Return Values:
+
+        MT_SUCCESS, MT_TIMEOUT, MT_MUTEX_ABANDONED, or an object-manager/wait
+        failure status.
+
+--*/
 
 {
     MTSTATUS Status;
@@ -1465,10 +1539,760 @@ MtWaitForSingleObject(
 
     if (MT_FAILURE(Status)) return Status;
 
+    // Reject self waits explicitly, else, it would cause a user thread deadlock, until termination.
+    if (Object == PsGetCurrentProcess() || Object == PsGetCurrentThread()) {
+        ObDereferenceObject(Object);
+        return MT_INVALID_PARAM;
+    }
+
     // Call internal function
     Status = MsWaitForSingleObject(Object, UserMode, Alertable, Milliseconds);
 
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if (Header->Type == MsMutexType &&
+        (Status == MT_SUCCESS || Status == MT_MUTEX_ABANDONED)) {
+        // Mutex ownership outlives this syscall. Retain one reference for each
+        // recursive acquisition so closing the last handle cannot free an
+        // owned mutex still linked in the current thread's owner list.
+        MtpRetainMutexOwnershipReference((PMUTEX)Object);
+    }
+
     ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtCreateEvent(
+    OUT PHANDLE EventHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN EVENT_TYPE EventType,
+    IN bool InitialState,
+    _In_Opt const char* Name // unsupported currently
+)
+
+/*++
+
+    Routine description:
+
+        Creates and initializes an unnamed event object and publishes a handle
+        in the calling process.
+
+    Arguments:
+
+        EventHandle - Receives the new handle.
+        DesiredAccess - Access mask granted to the new handle.
+        EventType - NotificationEvent or SynchronizationEvent.
+        InitialState - Initial signaled state.
+        Name - Reserved; named objects are not implemented.
+
+    Return Values:
+
+        MT_SUCCESS or a parameter, probing, allocation, access, or handle-table
+        failure status.
+
+--*/
+
+{
+    if (Name != NULL) {
+        // Names arent supported currently.
+        return MT_NOT_IMPLEMENTED;
+    }
+
+    if (EventType != NotificationEvent && EventType != SynchronizationEvent) {
+        return MT_INVALID_PARAM;
+    }
+
+    // Validate OUT arg.
+    MTSTATUS Status = ProbeForRead(EventHandle, sizeof(HANDLE), _Alignof(HANDLE));
+    if (MT_FAILURE(Status)) {
+        return Status;
+    }
+
+    // If names are supported and one is given, then search for the object name database if it is in there (atomically or anything or locks idk)
+    // And acquire it with EVENT_ALL_ACCESS, currently there arent names so we dont do that, if they want cross-process events they can use DuplicateHandle, which isnt implemented currently.
+    void* Object = NULL;
+    Status = ObCreateObject(MsEventType, sizeof(EVENT), &Object);
+    if (MT_FAILURE(Status)) {
+        return Status;
+    }
+
+    // Object is created and has the initial reference count.
+    // Initialize the Event.
+    DISPATCHER_TYPE Type = (EventType == NotificationEvent) ? DispatcherNotificationEvent : DispatcherSynchronizationEvent;
+    MsInitializeEvent((PEVENT)Object, Type, InitialState);
+
+    // Create the handle and return.
+    HANDLE CapturedHandle = MT_INVALID_HANDLE;
+    Status = ObCreateHandleForObject(Object, DesiredAccess, &CapturedHandle);
+
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Object);
+        return Status;
+    }
+
+    // Handle is created, attempt to give back to user.
+    try {
+        *EventHandle = CapturedHandle;
+    }
+    except{
+        // The handle was published only in the kernel table, so remove it and
+        // then release the creator's original reference.
+        HtClose(CapturedHandle);
+        ObDereferenceObject(Object);
+        return GetExceptionCode();
+    }
+    end_try;
+
+    // The handle now owns the lasting reference; release the creator reference.
+    ObDereferenceObject(Object);
+    return MT_SUCCESS;
+}
+
+MTSTATUS
+MtQueryEvent(
+    IN HANDLE EventHandle,
+    OUT bool* SignalState
+)
+
+/*++
+
+    Routine description:
+
+        Queries an event's current signaled state through a handle with
+        MT_EVENT_QUERY_STATE access.
+
+    Arguments:
+
+        EventHandle - Handle to an event object.
+        SignalState - Receives true when the event is signaled.
+
+    Return Values:
+
+        MT_SUCCESS or a probing, handle, type, or access failure status.
+
+--*/
+
+{
+    MTSTATUS Status = ProbeForRead(SignalState, sizeof(bool), _Alignof(bool));
+    if (MT_FAILURE(Status)) return Status;
+
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(EventHandle, MT_EVENT_QUERY_STATE, MsEventType, &Object, NULL);
+    if (MT_FAILURE(Status)) return Status;
+
+    PEVENT Event = (PEVENT)Object;
+    // dumb assertion tho
+    assert(Event->Header.Type == DispatcherSynchronizationEvent || Event->Header.Type == DispatcherNotificationEvent);
+
+    // Acquire dispatcher lock and check signal state.
+    bool Signaled = false;
+    IRQL dispatcherIrql;
+    MsAcquireSpinlock(&Event->Header.Lock, &dispatcherIrql);
+    Signaled = Event->Header.SignalState;
+    MsReleaseSpinlock(&Event->Header.Lock, dispatcherIrql);
+
+    try {
+        *SignalState = Signaled;
+        Status = MT_SUCCESS;
+    }
+    except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtSetEvent(
+    IN HANDLE EventHandle,
+    _Out_Opt bool* PreviousState
+)
+
+/*++
+
+    Routine description:
+
+        Atomically records the previous state and signals an event through a
+        handle with MT_EVENT_MODIFY_STATE access.
+
+    Arguments:
+
+        EventHandle - Handle to an event object.
+        PreviousState - Optionally receives the state before this operation.
+
+    Return Values:
+
+        MT_SUCCESS or a probing, handle, type, access, or dispatcher failure.
+
+--*/
+
+{
+    MTSTATUS Status;
+
+    if (PreviousState) {
+        Status = ProbeForRead(PreviousState, sizeof(bool), _Alignof(bool));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        EventHandle,
+        MT_EVENT_MODIFY_STATE,
+        MsEventType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+    PEVENT Event = (PEVENT)Object;
+
+    bool SignalState = false;
+    Status = MsSetEventEx(Event, PreviousState ? &SignalState : NULL);
+    ObDereferenceObject(Object);
+
+    if (PreviousState) {
+        try {
+            *PreviousState = SignalState;
+        }
+        except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
+    return Status;
+}
+
+MTSTATUS
+MtResetEvent(
+    IN HANDLE EventHandle,
+    _Out_Opt bool* PreviousState
+)
+
+/*++
+
+    Routine description:
+
+        Atomically records the previous state and resets an event through a
+        handle with MT_EVENT_MODIFY_STATE access.
+
+    Arguments:
+
+        EventHandle - Handle to an event object.
+        PreviousState - Optionally receives the state before this operation.
+
+    Return Values:
+
+        MT_SUCCESS or a probing, handle, type, or access failure status.
+
+--*/
+
+{
+    MTSTATUS Status;
+    if (PreviousState) {
+        Status = ProbeForRead(PreviousState, sizeof(bool), _Alignof(bool));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        EventHandle,
+        MT_EVENT_MODIFY_STATE,
+        MsEventType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+    PEVENT Event = (PEVENT)Object;
+
+    bool SignalState = MsResetEvent(Event);
+    ObDereferenceObject(Object);
+
+    if (PreviousState) {
+        try {
+            *PreviousState = SignalState;
+        }
+        except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
+    return Status;
+}
+
+MTSTATUS
+MtCreateMutex(
+    OUT PHANDLE MutexHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN bool InitialOwner,
+    _In_Opt const char* Name
+)
+
+/*++
+
+    Routine description:
+
+        Creates an unnamed mutex object, optionally acquires initial ownership,
+        and publishes a handle in the calling process.
+
+    Arguments:
+
+        MutexHandle - Receives the new mutex handle.
+        DesiredAccess - Access mask granted to the new handle.
+        InitialOwner - Acquires the mutex for the caller before publication.
+        Name - Reserved; named objects are not implemented.
+
+    Return Values:
+
+        MT_SUCCESS or a parameter, probing, allocation, access, wait, or
+        handle-table failure status.
+
+--*/
+
+{
+    if (Name != NULL) {
+        return MT_NOT_IMPLEMENTED;
+    }
+
+    // Validate mutex out handle
+    MTSTATUS Status = ProbeForRead(MutexHandle, sizeof(HANDLE), _Alignof(HANDLE));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Create the mutex
+    void* Object = NULL;
+    Status = ObCreateObject(MsMutexType, sizeof(MUTEX), &Object);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Initialize it
+    PMUTEX Mutex = (PMUTEX)Object;
+    Status = MsInitializeMutexObject(Mutex);
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Object);
+        return Status;
+    }
+
+    // Create the handle before acquiring the mutex (if InitalOwner)
+    // For now I'll use a Cleanup goto bcz idc
+    HANDLE OutMutexHandle = MT_INVALID_HANDLE;
+    bool InitialOwnershipReferenced = false;
+    Status = ObCreateHandleForObject(Object, DesiredAccess, &OutMutexHandle);
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // If the user wants to be the initial owner
+    // Acquire the mutex before writing back the handle to avoid races (actually to avoid programmer mistakes but ok)
+    // Should be instant acquire.
+    if (InitialOwner) {
+        Status = MsWaitForSingleObject(Mutex, KernelMode, false, 0);
+        assert(MT_SUCCEEDED(Status));
+        if (MT_FAILURE(Status)) goto Cleanup;
+        MtpRetainMutexOwnershipReference(Mutex);
+        InitialOwnershipReferenced = true;
+    }
+
+    // Alright, write back to the user now
+    try {
+        *MutexHandle = OutMutexHandle;
+        Status = MT_SUCCESS;
+    } except{
+        Status = GetExceptionCode();
+        leave;
+    }
+    end_try;
+
+Cleanup:
+    if (MT_FAILURE(Status)) {
+        if (InitialOwnershipReferenced) {
+            MTSTATUS ReleaseStatus = MsReleaseMutexObject(Mutex);
+            assert(ReleaseStatus == MT_SUCCESS);
+            (void)ReleaseStatus;
+            MtpReleaseMutexOwnershipReference(Mutex);
+        }
+        if (OutMutexHandle != MT_INVALID_HANDLE) {
+            HtClose(OutMutexHandle);
+        }
+    }
+
+    // The handle and any initial-ownership reference now carry the lasting
+    // lifetime. Release ObCreateObject's original reference in every path.
+    ObDereferenceObject(Object);
+
+    return Status;
+}
+
+MTSTATUS
+MtQueryMutex(
+    IN HANDLE MutexHandle,
+    OUT MUTEX_BASIC_INFORMATION* Information
+)
+
+/*++
+
+    Routine description:
+
+        Returns a consistent snapshot of a mutex's signal, ownership, and
+        abandonment state through MT_MUTEX_QUERY_STATE access.
+
+    Arguments:
+
+        MutexHandle - Handle to a mutex object.
+        Information - Receives MUTEX_BASIC_INFORMATION.
+
+    Return Values:
+
+        MT_SUCCESS or a probing, handle, type, or access failure status.
+
+--*/
+
+{
+    // Validate pointer
+    MTSTATUS Status = ProbeForRead(Information, sizeof(MUTEX_BASIC_INFORMATION), _Alignof(MUTEX_BASIC_INFORMATION));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Validate handle
+    void* Object;
+    Status = ObReferenceObjectByHandle(
+        MutexHandle,
+        MT_MUTEX_QUERY_STATE,
+        MsMutexType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Extract the header info now under its lock
+    PMUTEX Mutex = (PMUTEX)Object;
+    MUTEX_BASIC_INFORMATION KernelInfo;
+    IRQL dispatcherIrql;
+    MsAcquireSpinlock(&Mutex->Header.Lock, &dispatcherIrql);
+    KernelInfo.Abandoned = Mutex->Abandoned;
+    KernelInfo.OwnedByCaller = (Mutex->OwnerThread == PsGetCurrentThread());
+    KernelInfo.SignalState = Mutex->Header.SignalState;
+    MsReleaseSpinlock(&Mutex->Header.Lock, dispatcherIrql);
+
+    // Dereference the object, we dont need it anymore.
+    ObDereferenceObject(Object);
+    Status = MT_SUCCESS;
+
+    // Alright attempt to return it back to the user.
+    try {
+        kmemcpy(Information, &KernelInfo, sizeof(KernelInfo));
+    }
+    except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    return Status;
+}
+
+MTSTATUS
+MtReleaseMutex(
+    IN HANDLE MutexHandle,
+    _Out_Opt int32_t* PreviousCount
+)
+
+/*++
+
+    Routine description:
+
+        Releases one recursion level of a mutex owned by the calling thread and
+        drops the corresponding ownership-held object reference.
+
+    Arguments:
+
+        MutexHandle - Handle to the owned mutex.
+        PreviousCount - Optionally receives the pre-release signal state.
+
+    Return Values:
+
+        MT_SUCCESS, MT_MUTEX_NOT_OWNED, or a probing/handle/type/access failure.
+
+--*/
+
+{
+    // Validate the pointer if present
+    MTSTATUS Status;
+    if (PreviousCount) {
+        Status = ProbeForRead(PreviousCount, sizeof(int32_t), _Alignof(int32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    // Validate handle
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        MutexHandle,
+        MT_SYNCHRONIZE,
+        MsMutexType,
+        &Object,
+        NULL
+    );
+    
+    if (MT_FAILURE(Status)) return Status;
+    PMUTEX Mutex = (PMUTEX)Object;
+    int32_t KPreviousCount;
+
+    // Check if user wants a prev count.
+    if (PreviousCount) {
+        IRQL dispatcherIrql;
+        MsAcquireSpinlock(&Mutex->Header.Lock, &dispatcherIrql);
+        KPreviousCount = Mutex->Header.SignalState;
+        MsReleaseSpinlock(&Mutex->Header.Lock, dispatcherIrql);
+    }
+
+    // Release mutex
+    Status = MsReleaseMutexObject(Mutex);
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Object);
+        return Status;
+    }
+
+    // Each successful user acquisition retained one owner reference. Drop one
+    // for this release, including recursive releases.
+    MtpReleaseMutexOwnershipReference(Mutex);
+
+    // Write back to user if he wants a prev count.
+    // Failure here means the mutex has been released, should we return a warning success instead of a failure?
+    if (PreviousCount) {
+        try {
+            *PreviousCount = KPreviousCount;
+            Status = MT_SUCCESS;
+        }
+        except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtCreateSemaphore(
+    OUT PHANDLE SemaphoreHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN int32_t InitialCount,
+    IN int32_t MaximumCount,
+    _In_Opt const char* Name // unsupported currently
+)
+
+/*++
+
+    Routine description:
+
+        Creates an unnamed semaphore with the requested initial and maximum
+        permit counts and publishes a handle in the calling process.
+
+    Arguments:
+
+        SemaphoreHandle - Receives the new semaphore handle.
+        DesiredAccess - Access mask granted to the new handle.
+        InitialCount - Initial available permit count.
+        MaximumCount - Maximum permit count.
+        Name - Reserved; named objects are not implemented.
+
+    Return Values:
+
+        MT_SUCCESS or a parameter, probing, allocation, access, or handle-table
+        failure status.
+
+--*/
+
+{
+    if (Name != NULL) {
+        return MT_NOT_IMPLEMENTED;
+    }
+
+    if (InitialCount < 0 || MaximumCount <= 0 || InitialCount > MaximumCount) {
+        // Validate usermode params before we give this to the internal kernel function, there it would actually bugcheck (or assert)
+        return MT_INVALID_PARAM;
+    }
+
+    // Validate handle
+    MTSTATUS Status = ProbeForRead(SemaphoreHandle, sizeof(HANDLE), _Alignof(HANDLE));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Alright, create the object.
+    void* Object = NULL;
+    Status = ObCreateObject(MsSemaphoreType, sizeof(SEMAPHORE), &Object);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Now initalize the semaphore
+    PSEMAPHORE Semaphore = (PSEMAPHORE)Object;
+    MsInitializeSemaphore(Semaphore, InitialCount, MaximumCount);
+
+    // Good, create the handle for it now.
+    HANDLE KSemaphoreHandle = MT_INVALID_HANDLE;
+    Status = ObCreateHandleForObject(Object, DesiredAccess, &KSemaphoreHandle);
+    if (MT_FAILURE(Status)) {
+        ObDereferenceObject(Object);
+        return Status;
+    }
+
+    // Write the handle back to the user
+    try {
+        *SemaphoreHandle = KSemaphoreHandle;
+        Status = MT_SUCCESS;
+    }
+    except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    if (MT_FAILURE(Status)) {
+        HtClose(KSemaphoreHandle);
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtQuerySemaphore(
+    IN HANDLE SemaphoreHandle,
+    OUT SEMAPHORE_BASIC_INFORMATION* Information
+)
+
+/*++
+
+    Routine description:
+
+        Returns a consistent semaphore count/limit snapshot through
+        MT_SEMAPHORE_QUERY_STATE access.
+
+    Arguments:
+
+        SemaphoreHandle - Handle to a semaphore object.
+        Information - Receives SEMAPHORE_BASIC_INFORMATION.
+
+    Return Values:
+
+        MT_SUCCESS or a probing, handle, type, or access failure status.
+
+--*/
+
+{
+    // Validate ptr before
+    MTSTATUS Status = ProbeForRead(Information, sizeof(SEMAPHORE_BASIC_INFORMATION), _Alignof(SEMAPHORE_BASIC_INFORMATION));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Reference
+    void* Object;
+    Status = ObReferenceObjectByHandle(
+        SemaphoreHandle,
+        MT_SEMAPHORE_QUERY_STATE,
+        MsSemaphoreType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Acquire lock
+    IRQL dispatcherIrql;
+    SEMAPHORE_BASIC_INFORMATION KInfo;
+    PSEMAPHORE Semaphore = (PSEMAPHORE)Object;
+    MsAcquireSpinlock(&Semaphore->Header.Lock, &dispatcherIrql);
+
+    // Write counts while locked.
+    KInfo.CurrentCount = Semaphore->Header.SignalState;
+    KInfo.MaximumCount = Semaphore->Limit;
+    
+    MsReleaseSpinlock(&Semaphore->Header.Lock, dispatcherIrql);
+
+    // Dereference object, not needed.
+    ObDereferenceObject(Object);
+
+    // Write back to user.
+    try {
+        kmemcpy(Information, &KInfo, sizeof(SEMAPHORE_BASIC_INFORMATION));
+        Status = MT_SUCCESS;
+    } except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    return Status;
+}
+
+MTSTATUS
+MtReleaseSemaphore(
+    IN HANDLE SemaphoreHandle,
+    IN int32_t ReleaseCount,
+    _Out_Opt int32_t* PreviousCount
+)
+
+/*++
+
+    Routine description:
+
+        Atomically validates and releases semaphore permits through
+        MT_SEMAPHORE_MODIFY_STATE access.
+
+    Arguments:
+
+        SemaphoreHandle - Handle to a semaphore object.
+        ReleaseCount - Positive number of permits to release.
+        PreviousCount - Optionally receives the count before the release.
+
+    Return Values:
+
+        MT_SUCCESS, MT_SEMAPHORE_LIMIT_EXCEEDED, or a parameter, probing,
+        handle, type, or access failure status.
+
+--*/
+
+{
+    // Basic validation first for a semaphore
+    if (ReleaseCount <= 0) {
+        return MT_INVALID_PARAM;
+    }
+
+    MTSTATUS Status;
+    if (PreviousCount) {
+        Status = ProbeForRead(PreviousCount, sizeof(int32_t), _Alignof(int32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    // Attempt reference
+    void* Object;
+    Status = ObReferenceObjectByHandle(
+        SemaphoreHandle,
+        MT_SEMAPHORE_MODIFY_STATE,
+        MsSemaphoreType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    PSEMAPHORE Semaphore = (PSEMAPHORE)Object;
+
+    int32_t KPreviousCount = 0;
+    Status = MsReleaseSemaphoreChecked(
+        Semaphore,
+        ReleaseCount,
+        &KPreviousCount
+    );
+    ObDereferenceObject(Object);
+    if (MT_FAILURE(Status)) return Status;
+
+    // Attempt to transfer prevcount if wanted
+    if (PreviousCount) {
+        try {
+            *PreviousCount = KPreviousCount;
+            Status = MT_SUCCESS;
+        } except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
     return Status;
 }
 

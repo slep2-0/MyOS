@@ -20,27 +20,18 @@ Revision History:
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "mtapi.h"
 
-// Include other MatanelOS user mode headers. (defaults)
+// Include the public MatanelOS definitions. MTSTATUS remains opt-in.
+#include "../../shared/include/MatanelOS.h"
 #include "errorhandlingapi.h"
-#include "accessrights.h"
 
 // Internal ones have to be added manually by user, like in Windows.
-
-typedef struct {
-    uint64_t module_name_rva;
-    uint64_t function_name_rva;
-    uint64_t func_ptr_addr_rva;
-} MT_IMPORT;
 
 // Imported functions from MTDLL that are needed for user mode executable operation:
 // Basic definitions.
 typedef int32_t HANDLE, * PHANDLE;
 typedef uint32_t ACCESS_MASK;
-#define IN // Takes REQUIRED INPUT
-#define OUT // Supplies REQUIRED OUTPUT
-#define _In_Opt // Takes OPTIONAL INPUT if given.
-#define _Out_Opt // OPTIONALLY Supplies OUTPUT if given.
 #define MtCurrentProcess() -1 // Special handle signifying current process.
 #define MtCurrentThread() -2 // Special handle signifying current thread.
 
@@ -64,75 +55,89 @@ typedef struct _MEMORY_BASIC_INFORMATION {
 
 typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
 
-extern char* (*strchr)(const char* s, int c);
-extern char* (*strncat)(char* dest, const char* src, size_t max_len);
-extern int   (*strncmp)(const char* s1, const char* s2, size_t length);
-extern int   (*strcmp)(const char* s1, const char* s2);
-extern char* (*strncpy)(char* dst, const char* src, size_t n);
-extern char* (*strcpy)(char* dst, const char* src);
-extern size_t(*strlen)(const char* str);
+MTDLL_API char* strchr(const char* s, int c);
+MTDLL_API char* strncat(char* dest, const char* src, size_t max_len);
+MTDLL_API int strncmp(const char* s1, const char* s2, size_t length);
+MTDLL_API int strcmp(const char* s1, const char* s2);
+MTDLL_API char* strncpy(char* dst, const char* src, size_t n);
+MTDLL_API char* strcpy(char* dst, const char* src);
+MTDLL_API size_t strlen(const char* str);
 
-extern bool (*TerminateThread)(
+MTDLL_API bool
+CloseHandle(
+    IN HANDLE ObjectHandle
+);
+
+MTDLL_API bool
+TerminateThread(
     IN HANDLE ThreadHandle,
     IN uint32_t ExitStatus
 );
 
-extern HANDLE
-(*CreateThread)(
+MTDLL_API HANDLE
+CreateThread(
     IN THREAD_START_ROUTINE StartRoutine,
     IN void* ThreadParameter
 );
 
-extern HANDLE
-(*CreateRemoteThread)(
+MTDLL_API HANDLE
+CreateRemoteThread(
     IN HANDLE ProcessHandle,
     IN THREAD_START_ROUTINE StartRoutine,
     IN void* ThreadParameter
 );
 
-extern HANDLE(*OpenProcess)(
+MTDLL_API HANDLE
+OpenProcess(
     IN  ACCESS_MASK DesiredAccess,
     IN  uint32_t ProcessId
 );
 
-extern bool (*TerminateProcess)(
+MTDLL_API bool
+TerminateProcess(
     IN  HANDLE ProcessHandle,
     IN  uint32_t ExitCode
 );
 
-extern void* (*VirtualAlloc)(
+MTDLL_API void*
+VirtualAlloc(
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
     IN USER_PROTECTION_TYPE AllocationType
 );
 
-extern void* (*VirtualAllocEx)(
+MTDLL_API void*
+VirtualAllocEx(
     IN HANDLE ProcessHandle,
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,
     IN USER_PROTECTION_TYPE AllocationType
 );
 
-extern bool (*VirtualQuery)(
+MTDLL_API bool
+VirtualQuery(
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 );
 
-extern bool (*VirtualQueryEx)(
+MTDLL_API bool
+VirtualQueryEx(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 );
 
 
-extern bool (*VirtualProtect)(
+MTDLL_API bool
+VirtualProtect(
     IN void* BaseAddress,
     IN size_t RegionSize,
     IN USER_PROTECTION_TYPE NewProtection,
     OUT USER_PROTECTION_TYPE* OldProtection
 );
 
-extern bool (*VirtualProtectEx)(
+MTDLL_API bool
+VirtualProtectEx(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     IN size_t RegionSize,
@@ -140,25 +145,29 @@ extern bool (*VirtualProtectEx)(
     OUT USER_PROTECTION_TYPE* OldProtection
 );
 
-extern bool (*VirtualFree)(
+MTDLL_API bool
+VirtualFree(
     IN void* BaseAddress,
     IN size_t NumberOfBytes,
     IN FREE_TYPE FreeType
 );
 
-extern bool (*VirtualFreeEx)(
+MTDLL_API bool
+VirtualFreeEx(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     IN size_t NumberOfBytes,
     IN FREE_TYPE FreeType
 );
 
-extern HANDLE(*CreateFile)(
+MTDLL_API HANDLE
+CreateFile(
     IN  const char* FileName,
     IN  ACCESS_MASK DesiredAccess
 );
 
-extern bool (*WriteFile)(
+MTDLL_API bool
+WriteFile(
     IN HANDLE FileHandle,
     IN uint32_t FileOffset,
     IN void* Buffer,
@@ -166,7 +175,8 @@ extern bool (*WriteFile)(
     _Out_Opt size_t* BytesWritten
 );
 
-extern bool (*ReadFile)(
+MTDLL_API bool
+ReadFile(
     IN HANDLE FileHandle,
     IN uint32_t FileOffset,
     OUT void* Buffer,
@@ -174,15 +184,72 @@ extern bool (*ReadFile)(
     _Out_Opt size_t* BytesRead
 );
 
-extern void
-(*Sleep)(
+MTDLL_API void
+Sleep(
     IN uint32_t Milliseconds
 );
 
-extern uint32_t
-(*WaitForSingleObject)(
+MTDLL_API uint32_t
+WaitForSingleObject(
     IN HANDLE ObjectHandle,
     IN uint32_t Milliseconds
 );
 
-extern void (*printf)(uint32_t Color, const char* fmt, ...);
+MTDLL_API uint32_t
+WaitForSingleObjectEx(
+    IN HANDLE ObjectHandle,
+    IN uint32_t Milliseconds,
+    IN bool Alertable
+);
+
+MTDLL_API HANDLE
+CreateEvent(
+    IN EVENT_TYPE EventType,
+    IN bool InitialState,
+    _In_Opt const char* Name
+);
+
+MTDLL_API bool
+QueryEvent(
+    IN HANDLE EventHandle,
+    OUT bool* SignalState
+);
+
+MTDLL_API bool SetEvent(IN HANDLE EventHandle);
+MTDLL_API bool ResetEvent(IN HANDLE EventHandle);
+
+MTDLL_API HANDLE
+CreateMutex(
+    IN bool InitialOwner,
+    _In_Opt const char* Name
+);
+
+MTDLL_API bool
+QueryMutex(
+    IN HANDLE MutexHandle,
+    OUT PMUTEX_BASIC_INFORMATION Information
+);
+
+MTDLL_API bool ReleaseMutex(IN HANDLE MutexHandle);
+
+MTDLL_API HANDLE
+CreateSemaphore(
+    IN int32_t InitialCount,
+    IN int32_t MaximumCount,
+    _In_Opt const char* Name
+);
+
+MTDLL_API bool
+QuerySemaphore(
+    IN HANDLE SemaphoreHandle,
+    OUT PSEMAPHORE_BASIC_INFORMATION Information
+);
+
+MTDLL_API bool
+ReleaseSemaphore(
+    IN HANDLE SemaphoreHandle,
+    IN int32_t ReleaseCount,
+    _Out_Opt int32_t* PreviousCount
+);
+
+MTDLL_API void printf(uint32_t Color, const char* fmt, ...);

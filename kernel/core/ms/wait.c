@@ -446,7 +446,7 @@ MsWaitForSingleObject(
     InsertTailList(&Header->WaitListHead, &Thread->InternalThread.WaitBlock.ObjectListEntry);
 
     // Now put inside timer queue IF a valid timeout is provided
-    if (TimeoutMs != INFINITE) {
+    if (TimeoutMs != MT_INFINITE) {
         // Convert the relative millisecond timeout to timer ticks.
         uint64_t Ticks = TimeoutMs / TICK_MS;
         

@@ -31,6 +31,7 @@ ProbeForRead(
     Routine description:
 
         Checks if the given user address is within the correct bounds and alignment of access.
+        The function checks internally after type alignment check if the PreviousMode is KernelMode to return, that means Kernel supplied callers pointers will not be checked.
 
     Arguments:
 
@@ -57,6 +58,11 @@ ProbeForRead(
     // Check Alignment
     if (((uint64_t)Address & (Alignment - 1)) != 0) {
         return MT_DATATYPE_MISALIGNMENT;
+    }
+
+    // Now kernel mode should pass.
+    if (MeGetPreviousMode() == KernelMode) {
+        return MT_SUCCESS;
     }
 
     uint64_t Start = (uint64_t)Address;

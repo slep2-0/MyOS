@@ -5,6 +5,7 @@
     */
 
 #include "../../includes/me.h"
+#include "../../includes/mh.h"
 #include "../../assert.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
@@ -146,7 +147,7 @@ MepIsCanonicalAddress(
 #endif
 
 NORETURN
-void 
+void
 Schedule(void) {
     //gop_printf(COLOR_PURPLE, "**In scheduler, IRQL: %d**\n", MeGetCurrentIrql());
     IRQL oldIrql;
@@ -241,12 +242,10 @@ Schedule(void) {
 
 #endif
 
-    next->ThreadState = THREAD_RUNNING;
-    next->ActiveProcessor = cpu; // Set the thread's current CPU as this.
-    MeGetCurrentProcessor()->currentThread = next;
-
-    // Check if this thread has any APCs queued to it
-    // If so, request the interrupt.
+    // A privilege-changing interrupt consults TSS.RSP0 before any entry stub
+    // can run. Resolve shared APC state before the final interrupt-disabled
+    // publication window so an IPI sender cannot wait on this CPU while this
+    // CPU spins on a lock owned by the sender.
     IRQL apcQueueIrql;
     MsAcquireSpinlock(&next->ApcQueueLock, &apcQueueIrql);
     InterlockedStoreRelease(
@@ -259,9 +258,16 @@ Schedule(void) {
     );
     MsReleaseSpinlock(&next->ApcQueueLock, apcQueueIrql);
 
-    // Disable interrupts, we must not scheduled away now.
+    // currentThread, TSS.RSP0, and the restored context describe one selected
+    // thread. Publish them atomically against local interrupts. Schedule never
+    // returns; the selected trap frame supplies the eventual IF state.
     MeDisableInterrupts();
-    
+    next->ThreadState = THREAD_RUNNING;
+    next->ActiveProcessor = cpu;
+    assert(cpu->tss != NULL);
+    ((TSS*)cpu->tss)->rsp0 = (uint64_t)next->KernelStack;
+    cpu->currentThread = next;
+
     // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);
 

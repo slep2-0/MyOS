@@ -43,6 +43,7 @@ MsReleasePushLockExclusive(
     );
 
     assert(Previous == PL_LOCK_BIT, "Exclusive push lock released without ownership.");
+    (void)Previous;
     MeLeaveCriticalRegion();
 }
 

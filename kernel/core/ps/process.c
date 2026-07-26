@@ -246,14 +246,8 @@ PspRelocateImage(
         return MT_INVALID_IMAGE_FORMAT;
     }
 
-    // If loaded at preferred address, no work needed
-    if ((uintptr_t)ImageBase == (uintptr_t)Header->PreferredImageBase) {
+    if (Header->reloc_size == 0) {
         return MT_SUCCESS;
-    }
-
-    // null check
-    if (Header->reloc_rva == 0 || Header->reloc_size == 0) {
-        return MT_INVALID_IMAGE_FORMAT;
     }
 
     if (Header->reloc_size % sizeof(Rela) != 0 ||
@@ -270,21 +264,18 @@ PspRelocateImage(
     for (size_t i = 0; i < count; i++) {
         Rela* entry = &reloc_table[i];
 
-        // We only care about R_X86_64_RELATIVE (Type 8)
-        if ((entry->r_info & 0xFFFFFFFF) == R_X86_64_RELATIVE) {
-            if (entry->r_offset > ImageSize - sizeof(uintptr_t)) {
-                return MT_INVALID_IMAGE_FORMAT;
-            }
-            if (entry->r_addend < 0 || (uint64_t)entry->r_addend >= ImageSize) {
-                return MT_INVALID_IMAGE_FORMAT;
-            }
-
-            // Pointer to the address we need to fix
-            uintptr_t* target_ptr = (uintptr_t*)((uintptr_t)ImageBase + entry->r_offset);
-
-            // Apply the fix: NewBase + Addend
-            *target_ptr = (uintptr_t)ImageBase + entry->r_addend;
+        // The MTE packer emits only normalized image-relative relocations.
+        if ((entry->r_info & 0xFFFFFFFF) != R_X86_64_RELATIVE ||
+            (entry->r_info >> 32) != 0 ||
+            entry->r_offset > ImageSize - sizeof(uintptr_t) ||
+            entry->r_addend < 0 ||
+            (uint64_t)entry->r_addend >= ImageSize) {
+            return MT_INVALID_IMAGE_FORMAT;
         }
+
+        uintptr_t* target_ptr =
+            (uintptr_t*)((uintptr_t)ImageBase + entry->r_offset);
+        *target_ptr = (uintptr_t)ImageBase + (uintptr_t)entry->r_addend;
     }
 
     return MT_SUCCESS;
@@ -442,15 +433,11 @@ PsCreateProcess(
         // Verify magic in memory just in case
         if (LoadedHeader->Magic[0] == 'M' && LoadedHeader->Magic[1] == 'T' &&
             LoadedHeader->Magic[2] == 'E' && LoadedHeader->Magic[3] == '\0') {
-            Status = MT_SUCCESS;
-            // Check to relocate ONLY IF the base address isnt the preferred image base.
-            if (LoadedHeader->PreferredImageBase != (uint64_t)MtdllBase) {
-                Status = PspRelocateImage(
-                    MtdllBase,
-                    LoadedHeader,
-                    ((PMM_SECTION)MtdllSection)->ImageSize
-                );
-            }
+            Status = PspRelocateImage(
+                MtdllBase,
+                LoadedHeader,
+                ((PMM_SECTION)MtdllSection)->ImageSize
+            );
         }
         else {
             Status = MT_INVALID_IMAGE_FORMAT;
@@ -503,6 +490,32 @@ PsCreateProcess(
     void* ExecutableBaseAddress = NULL;
     Status = MmMapViewOfSection(SectionObject, Process, &StartAddress, &ExecutableBaseAddress);
     // MmpDeleteSection closes the file handle.
+    if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // RELA entries are zero-backed in the file and must be applied even when
+    // the image lands at its preferred base. The MTE packer has already
+    // converted ELF load-bias addends into image-relative addends.
+    APC_STATE ExecutableRelocApcState;
+    MeAttachProcess(&Process->InternalProcess, &ExecutableRelocApcState);
+    try {
+        MTE_HEADER* ExecutableHeader = (MTE_HEADER*)ExecutableBaseAddress;
+        if (ExecutableHeader->Magic[0] == 'M' &&
+            ExecutableHeader->Magic[1] == 'T' &&
+            ExecutableHeader->Magic[2] == 'E' &&
+            ExecutableHeader->Magic[3] == '\0') {
+            Status = PspRelocateImage(
+                ExecutableBaseAddress,
+                ExecutableHeader,
+                ((PMM_SECTION)SectionObject)->ImageSize
+            );
+        }
+        else {
+            Status = MT_INVALID_IMAGE_FORMAT;
+        }
+    } except {
+        Status = GetExceptionCode();
+    } end_try;
+    MeDetachProcess(&ExecutableRelocApcState);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Create PEB.

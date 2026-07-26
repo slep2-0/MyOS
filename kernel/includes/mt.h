@@ -20,6 +20,7 @@ Revision History:
 #define X86_MATANEL_MT_H
 
 #include "core.h"
+#include "../../shared/include/synchapi.h"
 
 // Maximum number of syscalls
 #define MAX_SYSCALLS 256
@@ -157,6 +158,78 @@ MtWaitForSingleObject(
     IN HANDLE ObjectHandle,
     IN uint64_t Milliseconds,
     IN bool Alertable
+);
+
+// eventz
+MTSTATUS
+MtCreateEvent(
+    OUT PHANDLE EventHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN EVENT_TYPE EventType,
+    IN bool InitialState,
+    _In_Opt const char* Name // unsupported currently
+);
+
+MTSTATUS
+MtQueryEvent(
+    IN HANDLE EventHandle,
+    OUT bool* SignalState
+);
+
+MTSTATUS
+MtSetEvent(
+    IN HANDLE EventHandle,
+    _Out_Opt bool* PreviousState
+);
+
+MTSTATUS
+MtResetEvent(
+    IN HANDLE EventHandle,
+    _Out_Opt bool* PreviousState
+);
+
+// mutex
+MTSTATUS
+MtCreateMutex(
+    OUT PHANDLE MutexHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN bool InitialOwner,
+    _In_Opt const char* Name // unsupported currently
+);
+
+MTSTATUS
+MtQueryMutex(
+    IN HANDLE MutexHandle,
+    OUT MUTEX_BASIC_INFORMATION* Information
+);
+
+MTSTATUS
+MtReleaseMutex(
+    IN HANDLE MutexHandle,
+    _Out_Opt int32_t* PreviousCount
+);
+
+// sempa phore
+MTSTATUS
+MtCreateSemaphore(
+    OUT PHANDLE SemaphoreHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN int32_t InitialCount,
+    IN int32_t MaximumCount,
+    _In_Opt const char* Name // unsupported currently
+);
+
+MTSTATUS
+MtQuerySemaphore(
+    IN HANDLE SemaphoreHandle,
+    OUT SEMAPHORE_BASIC_INFORMATION* Information
+);
+
+MTSTATUS
+MtReleaseSemaphore(
+    IN HANDLE SemaphoreHandle,
+    IN int32_t ReleaseCount,
+    _Out_Opt int32_t* PreviousCount
 );
 
 MTSTATUS

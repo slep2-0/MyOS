@@ -57,7 +57,6 @@ def _collect() -> tuple[list[Path], list[Path], list[Path]]:
     for name in (
         "build_windows.bat",
         "clean_windows.bat",
-        "initial_setup.bat",
         "run_windows.bat",
         "reset_intellisense.bat",
     ):
@@ -65,7 +64,7 @@ def _collect() -> tuple[list[Path], list[Path], list[Path]]:
 
     tools = ROOT / "tools/windows"
     for path in tools.iterdir():
-        if path.is_file() and path.suffix.lower() in {".py", ".ps1", ".bat", ".asm", ".md"}:
+        if path.is_file() and path.suffix.lower() in {".py", ".bat", ".asm", ".md"}:
             none_items.add(path)
 
     return _sorted(compile_items), _sorted(include_items), _sorted(none_items)

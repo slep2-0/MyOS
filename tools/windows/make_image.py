@@ -8,7 +8,6 @@ import binascii
 import shutil
 import struct
 import tempfile
-import warnings
 import uuid
 from pathlib import Path
 
@@ -97,17 +96,11 @@ def _format_and_populate_fat32(
     files: list[tuple[Path, str]],
 ) -> None:
     try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="pkg_resources is deprecated as an API.*",
-                category=UserWarning,
-            )
-            from pyfatfs.PyFat import PyFat
-            from pyfatfs.PyFatFS import PyFatFS
+        from pyfatfs.PyFat import PyFat
+        from pyfatfs.PyFatFS import PyFatFS
     except ImportError as exc:
         raise RuntimeError(
-            "pyfatfs is required. Run initial_setup.bat first."
+            "pyfatfs is required. Run tools\\windows\\bootstrap.bat first."
         ) from exc
 
     partition_file.touch()

@@ -17,7 +17,7 @@ typedef int32_t MTSTATUS;
 /* Wait completion values are results, not failures. */
 #define MT_TIMEOUT ((MTSTATUS)0x00000102L)
 #define MT_PENDING ((MTSTATUS)0x00000103L)
-#define INFINITE   UINT64_MAX
+#define MT_INFINITE UINT64_MAX
 
 /* General */
 #define MT_SUCCESS               ((MTSTATUS)0x00000000L)
@@ -98,6 +98,9 @@ typedef int32_t MTSTATUS;
 
 /* Event */
 #define MT_EVENT_ALREADY_SIGNALED ((MTSTATUS)0xC6000001L)
+
+/* Semaphore shares upper half of event */
+#define MT_SEMAPHORE_LIMIT_EXCEEDED ((MTSTATUS)0xC6500000L)
 
 /* Process */
 #define MT_PROCESS_IS_TERMINATING ((MTSTATUS)0xC7000000L)

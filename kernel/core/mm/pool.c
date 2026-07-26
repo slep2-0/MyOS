@@ -485,7 +485,7 @@ MmAllocatePoolWithTag(
     Arguments:
 
         [IN]    enum _POOL_TYPE - POOL_TYPE Enumerator, specifying the type of pool that will be allocated.
-        [IN]    size_t NumberOfBytes - Number of bytes needed to allocate.
+        [IN]    size_t NumberOfBytes - Number of bytes to allocate.
         [IN]    uint32_t Tag - A 4 byte integer that signifies the current allocation, in big endian (e.g 'TSET' - "TEST")
 
     Return Values:
@@ -506,6 +506,11 @@ MmAllocatePoolWithTag(
 --*/
 
 {
+    if (PoolType == NonPagedPoolCacheAligned || PoolType == PagedPoolCacheAligned) {
+        //RaiseStatus
+        return NULL;
+    }
+
     if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
 #ifdef DEBUG
         MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
@@ -571,8 +576,7 @@ MmAllocatePoolWithTag(
     ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
     cpu = MeGetCurrentProcessor();
 
-
-    // It's NonPagedPool OR NonPagedPooLNx. Find the correct slab.
+    // It's NonPagedPool OR NonPagedPoolNx. Find the correct slab.
     PPOOL_DESCRIPTOR TypeDescriptor = NULL;
 
     if (PoolType == NonPagedPool) {

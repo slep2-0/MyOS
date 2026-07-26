@@ -1,9 +1,29 @@
 #include "../../includes/ms.h"
 #include "../../includes/ob.h"
 #include "../../includes/ps.h"
+#include "../../assert.h"
 
 POBJECT_TYPE MsEventType;
 POBJECT_TYPE MsMutexType;
+POBJECT_TYPE MsSemaphoreType;
+
+static void
+MspDeleteSynchronizationObject(
+    IN void* Object
+)
+{
+    PDISPATCHER_HEADER Header = (PDISPATCHER_HEADER)Object;
+    assert(Header != NULL);
+    assert(IsListEmpty(&Header->WaitListHead));
+
+    if (Header->Type == DispatcherMutex) {
+        PMUTEX Mutex = (PMUTEX)Object;
+        assert(Mutex->OwnerThread == NULL);
+        assert(IsListEmpty(&Mutex->OwnerListEntry));
+        assert(Mutex->ObjectOwnerReferences == 0);
+        (void)Mutex;
+    }
+}
 
 MTSTATUS
 MsInitializeSynchronization(
@@ -24,8 +44,8 @@ MsInitializeSynchronization(
 #else
     ObjectTypeInitializer.DumpProcedure = NULL;
 #endif
-    ObjectTypeInitializer.DeleteProcedure = NULL;
-    ObjectTypeInitializer.ValidAccessRights = MT_SYNCHRONIZE;
+    ObjectTypeInitializer.DeleteProcedure = MspDeleteSynchronizationObject;
+    ObjectTypeInitializer.ValidAccessRights = MT_MUTEX_ALL_ACCESS;
     status = ObCreateObjectType(Name, &ObjectTypeInitializer, &MsMutexType);
     if (MT_FAILURE(status)) return status;
 
@@ -37,9 +57,22 @@ MsInitializeSynchronization(
 #else
     ObjectTypeInitializer.DumpProcedure = NULL;
 #endif
-    ObjectTypeInitializer.DeleteProcedure = NULL;
-    ObjectTypeInitializer.ValidAccessRights = MT_SYNCHRONIZE;
+    ObjectTypeInitializer.DeleteProcedure = MspDeleteSynchronizationObject;
+    ObjectTypeInitializer.ValidAccessRights = MT_EVENT_ALL_ACCESS;
     status = ObCreateObjectType(Name, &ObjectTypeInitializer, &MsEventType);
+    if (MT_FAILURE(status)) return status;
+
+    // Semaphores
+    Name = "Semaphore";
+    ObjectTypeInitializer.PoolType = NonPagedPool;
+#ifdef DEBUG
+    ObjectTypeInitializer.DumpProcedure = NULL; // TODO DUMP PROC!
+#else
+    ObjectTypeInitializer.DumpProcedure = NULL;
+#endif
+    ObjectTypeInitializer.DeleteProcedure = MspDeleteSynchronizationObject;
+    ObjectTypeInitializer.ValidAccessRights = MT_SEMAPHORE_ALL_ACCESS;
+    status = ObCreateObjectType(Name, &ObjectTypeInitializer, &MsSemaphoreType);
     if (MT_FAILURE(status)) return status;
 
     // Initialize the timer list head.

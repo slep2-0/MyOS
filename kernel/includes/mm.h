@@ -594,48 +594,12 @@ typedef struct _POOL_DESCRIPTOR {
     enum _POOL_TYPE PoolType;           // The type of the pools this descriptor holds.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
 
-typedef struct {
-    uint64_t r_offset; /* Address (RVA) */
-    uint64_t r_info;   /* Relocation type and symbol index */
-    int64_t  r_addend; /* Addend */
-} Rela;
+#include "../../shared/include/mte.h"
 
-#define R_X86_64_RELATIVE 8
+typedef MTE_RELOCATION Rela;
+#define R_X86_64_RELATIVE MTE_RELOCATION_X86_64_RELATIVE
 
-#pragma pack(push, 1)
-typedef struct {
-    uint8_t  Magic[4];
-    uint64_t PreferredImageBase; /* __image_base */
-    uint64_t EntryRVA;           /* __entry_rva */
-    uint64_t TextRVA;            /* __text_rva */
-    uint64_t TextSize;
-    uint64_t DataRVA;
-    uint64_t DataSize;
-    uint64_t BssSize;
-    uint64_t exports_rva;
-    uint64_t exports_size;
-    uint64_t reloc_rva;
-    uint64_t reloc_size;
-    uint64_t imports_rva; // RVA To import array, then absolute addresses.
-    uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
-} MTE_HEADER;
-#pragma pack(pop)
-
-VALIDATE_SIZE(MTE_HEADER, 128);
-
-// Exports are RVA
-typedef struct {
-    uint64_t name_rva;
-    uint64_t func_rva;
-} MT_EXPORT_ENTRY;
-
-// Imports are RVA.
-typedef struct {
-    uint64_t lib_name_rva;   // RVA to string "kernel32.dll"
-    uint64_t func_name_rva;  // RVA to string "PrintString"
-    uint64_t iat_addr_rva;   // RVA to the function pointer to be patched
-} MT_IMPORT_ENTRY;
+VALIDATE_SIZE(MTE_HEADER, MTE_HEADER_SIZE);
 
 // Represents a section in the file (.text, .data)
 typedef struct _MM_SUBSECTION {

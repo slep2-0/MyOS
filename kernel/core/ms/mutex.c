@@ -114,7 +114,7 @@ MsInitializeMutexObject (
 //        /* Enqueue under the event lock inside MsWaitForEvent; release mut->lock first */
 //        MsReleaseSpinlock(&mut->lock, mflags);
 //
-//        MsWaitForEvent(&mut->SynchEvent, INFINITE);
+//        MsWaitForEvent(&mut->SynchEvent, MT_INFINITE);
 //
 //        /* When MsWaitForEvent returns we loop and try again atomically */
 //    }

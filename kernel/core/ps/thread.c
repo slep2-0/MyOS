@@ -1010,6 +1010,13 @@ PspExitThread(
         // entry was removed before acquiring this dispatcher lock.
         assert(Mutex->OwnerThread == Thread);
 
+        // User-visible mutex acquisitions retain one object reference per
+        // recursion level. Ownership is ending here, so detach the dead
+        // owner's references while the mutex state is still locked. A waiter
+        // receiving ownership retains its own reference when its wait returns.
+        uint32_t ObjectOwnerReferences = Mutex->ObjectOwnerReferences;
+        Mutex->ObjectOwnerReferences = 0;
+
         // Track whether abandonment was transferred directly to a waiter.
         bool WaiterFound = false;
 
@@ -1053,6 +1060,11 @@ PspExitThread(
 
         // Release the lock for the next loop.
         MsReleaseSpinlock(&Mutex->Header.Lock, prevIrqlion);
+
+        while (ObjectOwnerReferences != 0) {
+            ObDereferenceObject(Mutex);
+            ObjectOwnerReferences--;
+        }
     }
 
     assert(IsListEmpty(&Thread->InternalThread.OwnedMutexListHead));

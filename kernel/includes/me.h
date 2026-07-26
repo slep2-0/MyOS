@@ -23,6 +23,7 @@ Revision History:
 #define MSR_LASTBRANCH_TOS  0x1C9
 #define MSR_LASTBRANCH_FROM0 0x680
 #define MSR_LASTBRANCH_TO0   0x6C0
+#define MSR_EFER 0xC0000080
 #define DPC_TARGET_CURRENT  0xFF
 
 #include <stdint.h>

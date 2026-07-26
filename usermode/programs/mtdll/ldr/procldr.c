@@ -27,6 +27,35 @@ Revision History:
 // 3. The address of the replaceable pointer in .data
 
 static
+bool
+LdrpImageRangeValid(
+    IN uint64_t Rva,
+    IN uint64_t Size,
+    IN uint64_t ImageSize
+)
+{
+    if (Size == 0) return Rva <= ImageSize;
+    return Rva < ImageSize && Size <= ImageSize - Rva;
+}
+
+static
+const char*
+LdrpImageString(
+    IN uint8_t* ImageBase,
+    IN uint64_t ImageSize,
+    IN uint64_t StringRva
+)
+{
+    if (!LdrpImageRangeValid(StringRva, 1, ImageSize)) return NULL;
+
+    const char* String = (const char*)(ImageBase + StringRva);
+    for (uint64_t Index = StringRva; Index < ImageSize; Index++) {
+        if (ImageBase[Index] == '\0') return String;
+    }
+    return NULL;
+}
+
+static
 MTSTATUS
 LdrpResolveImport(
     IN PLDR_DATA_TABLE_ENTRY DllEntry,
@@ -37,14 +66,29 @@ LdrpResolveImport(
 // Shouldnt we use an array of function names and IatSlots so we can fill them in faster instead of function calling each iteration?
 
 {
+    if (!DllEntry || !FunctionName || !IatSlotPointer || !DllEntry->Base ||
+        DllEntry->SizeOfImage < sizeof(MTE_HEADER)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
     // Grab image base.
     uint8_t* ImageBase = (uint8_t*)DllEntry->Base;
+    uint64_t ImageSize = DllEntry->SizeOfImage;
 
     // Use the export table of the DllEntry given to load into the Iat.
     MTE_HEADER* Header = (MTE_HEADER*)ImageBase;
 
-    // Validate we have exports.
-    if (Header->exports_size == 0) return MT_NOT_FOUND;
+    if (Header->Magic[0] != 'M' || Header->Magic[1] != 'T' ||
+        Header->Magic[2] != 'E' || Header->Magic[3] != '\0' ||
+        Header->exports_size == 0 ||
+        Header->exports_size % sizeof(MT_EXPORT_ENTRY) != 0 ||
+        !LdrpImageRangeValid(
+            Header->exports_rva,
+            Header->exports_size,
+            ImageSize
+        )) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
 
     // Iterate over the export table to find the required export for the import.
     MT_EXPORT_ENTRY* ExportTable = (MT_EXPORT_ENTRY*)(ImageBase + Header->exports_rva);
@@ -54,7 +98,15 @@ LdrpResolveImport(
     for (size_t i = 0; i < ExportCount; i++) {
         MT_EXPORT_ENTRY* Entry = &ExportTable[i];
 
-        const char* ExportFunctionName = (const char*)(ImageBase + Entry->name_rva);
+        const char* ExportFunctionName = LdrpImageString(
+            ImageBase,
+            ImageSize,
+            Entry->name_rva
+        );
+        if (!ExportFunctionName ||
+            !LdrpImageRangeValid(Entry->func_rva, 1, ImageSize)) {
+            return MT_INVALID_IMAGE_FORMAT;
+        }
         void* ExportFunctionAddress = (void*)(ImageBase + Entry->func_rva);
 
         // If this is the function that the import required, we now use it.
@@ -133,15 +185,33 @@ LdrpProcessImports(
     // Declaration of status (function scope)
     MTSTATUS Status;
 
+    if (!ExecutableEntry || !PebPointer || !ExecutableEntry->Base ||
+        ExecutableEntry->SizeOfImage < sizeof(MTE_HEADER)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
     // Get the image base of the executable.
     uint8_t* ImageBase = (uint8_t*)ExecutableEntry->Base;
+    uint64_t ImageSize = ExecutableEntry->SizeOfImage;
 
     // 2. Read the MTE Header (Assumes header is at offset 0)
     MTE_HEADER* Header = (MTE_HEADER*)ImageBase;
 
-    // Validate we have imports
-    // We return success since technically the process doesnt have any (it should always, always have though, unless it is using manual syscalls???, malware..)
+    if (Header->Magic[0] != 'M' || Header->Magic[1] != 'T' ||
+        Header->Magic[2] != 'E' || Header->Magic[3] != '\0') {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // An image with no imports is valid; it may issue native syscalls itself.
     if (Header->imports_size == 0) return MT_SUCCESS;
+    if (Header->imports_size % sizeof(MT_IMPORT_ENTRY) != 0 ||
+        !LdrpImageRangeValid(
+            Header->imports_rva,
+            Header->imports_size,
+            ImageSize
+        )) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
 
     // Point to import table.
     MT_IMPORT_ENTRY* ImportTable = (MT_IMPORT_ENTRY*)(ImageBase + Header->imports_rva);
@@ -153,9 +223,24 @@ LdrpProcessImports(
     {
         MT_IMPORT_ENTRY* Entry = &ImportTable[i];
 
-        // Imports are RVA.
-        const char* LibName = (const char*)(ImageBase + Entry->lib_name_rva);
-        const char* FuncName = (const char*)(ImageBase + Entry->func_name_rva);
+        const char* LibName = LdrpImageString(
+            ImageBase,
+            ImageSize,
+            Entry->lib_name_rva
+        );
+        const char* FuncName = LdrpImageString(
+            ImageBase,
+            ImageSize,
+            Entry->func_name_rva
+        );
+        if (!LibName || !FuncName ||
+            !LdrpImageRangeValid(
+                Entry->iat_addr_rva,
+                sizeof(void*),
+                ImageSize
+            )) {
+            return MT_INVALID_IMAGE_FORMAT;
+        }
 
         // The address of the IAT to patch to new function ptr.
         void** IatSlot = (void**)(ImageBase + Entry->iat_addr_rva);

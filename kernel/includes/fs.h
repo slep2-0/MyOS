@@ -105,7 +105,6 @@ typedef struct FS_DRIVER {
     MTSTATUS(*ListDirectory)(IN PFILE_OBJECT DirectoryObject,
         OUT char* listings,
         IN size_t max_len);
-    MTSTATUS(*RemoveDirectoryRecursive)(IN PFILE_OBJECT DirectoryObject);
     MTSTATUS(*CreateDirectory)(
         IN  const char* path,
         OUT PFILE_OBJECT* OutDirectoryObject
@@ -158,10 +157,6 @@ MTSTATUS FsListDirectory(
 MTSTATUS FsCreateDirectory(
     IN  const char* path,
     OUT PHANDLE OutDirectoryObject
-);
-
-MTSTATUS FsRemoveDirectoryRecursive(
-    IN PFILE_OBJECT DirectoryObject
 );
 
 #endif

@@ -32,11 +32,8 @@ typedef struct {
     void* Handler;
 } SYSCALL_INIT_ENTRY;
 
-// TODO Proper SSDT with offsets to handlers from SSDT base instead of raw pointers (for security)
-// Along with validating that the handler is in the .text section of the kernel
-// and idk implement patchguard on the way
-// patchguard works by queuing DPCs and KTIMERs, not by making a system thread
-// (so its always hidden), honestly microsoft engineers are brilliant.
+// TODO Proper SSDT with offsets to handlers from SSDT base instead of raw pointers (for security) - dont.
+// Along with validating that the handler is in the .text section of the kernel - maybe.
 SYSCALL_INIT_ENTRY SyscallTable[] = {
     // Syscalls are here.
     {.Num = 0, .Handler = MtAllocateVirtualMemory},
@@ -54,6 +51,16 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 12, .Handler = MtContinue},
     {.Num = 13, .Handler = MtSleep},
     {.Num = 14, .Handler = MtWaitForSingleObject},
+    {.Num = 15, .Handler = MtCreateEvent},
+    {.Num = 16, .Handler = MtQueryEvent},
+    {.Num = 17, .Handler = MtSetEvent},
+    {.Num = 18, .Handler = MtResetEvent},
+    {.Num = 19, .Handler = MtCreateMutex},
+    {.Num = 20, .Handler = MtQueryMutex},
+    {.Num = 21, .Handler = MtReleaseMutex},
+    {.Num = 22, .Handler = MtCreateSemaphore},
+    {.Num = 23, .Handler = MtQuerySemaphore},
+    {.Num = 24, .Handler = MtReleaseSemaphore},
     {.Num = 255, .Handler = MtPrintConsole}
 };
 

@@ -65,12 +65,12 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 			// So we infinite looped.
 
 			// Explicitly disable interrupts for synchronization.
-			
+
 			bool Enabled = MeDisableInterrupts();
 			assert(cpu0.DpcData.DpcQueueDepth == 0);
 			assert(IsListEmpty(&cpu0.DpcData.DpcListHead));
 			assert(cpu0.TimerExpirationDPC.DpcData == NULL);
-			
+
 			// Copy all of the cpu data to here.
 			kmemcpy(&cpus[i], &cpu0, sizeof(PROCESSOR));
 
@@ -393,6 +393,12 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		// Complete one target transaction before acquiring another target's
 		// mailbox. Holding several mailbox locks at once allows concurrent
 		// broadcasts to form an SMP lock cycle.
+		//
+		// Keep the sender schedulable state fixed through the transaction.
+		// Interrupts remain enabled, so this CPU can service a crossing IPI,
+		// but it cannot be switched out after the target has acknowledged the
+		// request and before MailboxLock is released.
+		MeEnterCriticalRegion();
 		MhpAcquireMailbox(TargetProcessor);
 
 		TargetProcessor->IpiAction = action;
@@ -407,6 +413,7 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		MhpWaitForIpiCompletion(TargetProcessor, seq);
 
 		InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
+		MeLeaveCriticalRegion();
 	}
 }
 
@@ -427,6 +434,7 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 
 	// Acquire the mailbox lock for the target processor.
 	// If the lock is held, we spin and process any incoming IPIs for ourselves.
+	MeEnterCriticalRegion();
 	MhpAcquireMailbox(TargetProcessor);
 
 	// Assign the action, parameters, and sequence number to the target's mailbox.
@@ -443,4 +451,5 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 
 	// Release the mailbox lock so other processors can send requests to this CPU.
 	InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
+	MeLeaveCriticalRegion();
 }

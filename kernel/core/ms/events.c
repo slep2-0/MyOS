@@ -70,10 +70,11 @@ MsInitializeEvent(
     MsInitializeDispatcherHeader(&Event->Header, StartSignaled, EventDispatcherType);
 }
 
-MTSTATUS 
-MsSetEvent (
-    IN  PEVENT event
-) 
+MTSTATUS
+MsSetEventEx(
+    IN PEVENT event,
+    _Out_Opt bool* PreviousState
+)
 
 /*++
 
@@ -98,6 +99,10 @@ MsSetEvent (
     // Acquire Dispatcher lock
     IRQL prevIrql;
     MsAcquireSpinlock(&event->Header.Lock, &prevIrql);
+
+    if (PreviousState) {
+        *PreviousState = event->Header.SignalState != 0;
+    }
 
     // Check dispatcher type
     if (event->Header.Type == DispatcherSynchronizationEvent) {
@@ -171,13 +176,21 @@ MsSetEvent (
             WRONG_DISPATCHER_HEADER,
             event,
             (void*)(uintptr_t)event->Header.Type,
-            MsSetEvent,
+            MsSetEventEx,
             NULL
         );
     }
 }
 
-void
+MTSTATUS
+MsSetEvent(
+    IN PEVENT Event
+)
+{
+    return MsSetEventEx(Event, NULL);
+}
+
+bool
 MsResetEvent(
     IN PEVENT Event
 )
@@ -201,8 +214,10 @@ MsResetEvent(
 {
     IRQL prevIrql;
     MsAcquireSpinlock(&Event->Header.Lock, &prevIrql);
+    bool PreviousState = Event->Header.SignalState != 0;
     Event->Header.SignalState = 0;
     MsReleaseSpinlock(&Event->Header.Lock, prevIrql);
+    return PreviousState;
 }
 
 ///*
@@ -266,7 +281,7 @@ MsResetEvent(
 //    MeEnqueueThread(&event->waitingQueue, curr);
 //
 //    // Enqueue into Timer Queue if a valid timeout is provided
-//    if (Milliseconds != INFINITE) {
+//    if (Milliseconds != MT_INFINITE) {
 //        uint64_t Ticks = Milliseconds / TICK_MS;
 //        if (Milliseconds % TICK_MS) Ticks++;
 //        uint64_t Now = InterlockedLoadAcquire(&MeSystemTickCount);
@@ -294,7 +309,7 @@ MsResetEvent(
 //        MeRemoveThreadFromQueue(&event->waitingQueue, curr);
 //        MsReleaseSpinlock(&event->lock, flags);
 //    }
-//    else if (finalStatus == MT_SUCCESS && Milliseconds != INFINITE) {
+//    else if (finalStatus == MT_SUCCESS && Milliseconds != MT_INFINITE) {
 //        // Event woke us, so we might still be in the Timer queue.
 //        MsRemoveTimerQueue(&curr->InternalThread);
 //    }

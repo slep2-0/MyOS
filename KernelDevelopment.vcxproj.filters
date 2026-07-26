@@ -25,11 +25,9 @@
     <None Include="usermode\mtexe.ld"><Filter>User mode</Filter></None>
     <None Include="build_windows.bat"><Filter>Build tools</Filter></None>
     <None Include="clean_windows.bat"><Filter>Build tools</Filter></None>
-    <None Include="initial_setup.bat"><Filter>Build tools</Filter></None>
     <None Include="run_windows.bat"><Filter>Build tools</Filter></None>
     <None Include="reset_intellisense.bat"><Filter>Build tools</Filter></None>
     <None Include="tools\windows\*.py"><Filter>Build tools</Filter></None>
-    <None Include="tools\windows\*.ps1"><Filter>Build tools</Filter></None>
     <None Include="tools\windows\*.bat"><Filter>Build tools</Filter></None>
     <None Include="tools\windows\*.asm"><Filter>Build tools</Filter></None>
     <None Include="tools\windows\README.md"><Filter>Build tools</Filter></None>

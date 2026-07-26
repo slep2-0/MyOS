@@ -110,7 +110,7 @@ static void ObpReaperThread(void)
             &ObpReaperEvent,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
 
         POBJECT_HEADER Header = (POBJECT_HEADER)

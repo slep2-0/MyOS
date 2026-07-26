@@ -19,15 +19,16 @@ Revision History:
 --*/
 
 #include "../../shared/include/errorcodes.h"
+#include "mtapi.h"
 
 
 // Error handling API from MTDLL.
 
-extern ERROR_CODE (*GetLastError)(
+MTDLL_API ERROR_CODE GetLastError(
 	void
 );
 
-extern void (*SetLastError)(
+MTDLL_API void SetLastError(
 	ERROR_CODE dwErrorCode
 );
 

@@ -3,19 +3,19 @@
 #include "mtdll.h"
 #include <stdbool.h>
 
-bool
+MTDLL_API bool
 TerminateThread(
 	IN HANDLE ThreadHandle,
 	IN uint32_t ExitStatus
 );
 
-HANDLE
+MTDLL_API HANDLE
 CreateThread(
 	IN THREAD_START_ROUTINE StartRoutine,
 	IN void* ThreadParameter
 );
 
-HANDLE
+MTDLL_API HANDLE
 CreateRemoteThread(
 	IN HANDLE ProcessHandle,
 	IN THREAD_START_ROUTINE StartRoutine,
