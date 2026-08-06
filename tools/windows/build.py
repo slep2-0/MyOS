@@ -16,11 +16,23 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from make_image import create_image
+from seh_translate import TranslationError, translate_file
 
 
 ROOT = Path(__file__).resolve().parents[2]
 WINDOWS_BUILD = ROOT / "build" / "windows"
 TARGET_TRIPLE = "x86_64-none-elf"
+MTDLL_MODULE_NAME = "mtdll.mtdll"
+MTDLL_PRODUCER_DEFINE = "MATANELOS_BUILDING_MTDLL"
+MTDLL_PRIVATE_INCLUDE = ROOT / "usermode/programs/mtdll/includes"
+
+STRESS_MODES = {
+    "normal": 0,
+    "full-suite": 0,
+    "cold-boot": 1,
+    "randomized": 2,
+    "exception-chain": 3,
+}
 
 KERNEL_SLOW_PATHS = {
     "kernel/core/me/irql.c",
@@ -41,6 +53,7 @@ KERNEL_ASM = [
 
 MTDLL_C = [
     "usermode/programs/mtdll/dllmain.c",
+    "usermode/programs/mtdll/exception.c",
     "usermode/programs/mtdll/file.c",
     "usermode/programs/mtdll/generic.c",
     "usermode/programs/mtdll/memory.c",
@@ -67,6 +80,18 @@ MTEXE_GAS = [
     "usermode/crt0.S",
 ]
 MTEXE_NASM = ["tools/windows/freestanding_runtime.asm"]
+
+EXCEPTION_TEST_MTDLL_C = [
+    "usermode/programs/mtdll/tests/exception_chain.c",
+]
+EXCEPTION_TEST_MTDLL_NASM = [
+    "usermode/programs/mtdll/tests/language_context.asm",
+]
+EXCEPTION_TEST_MTEXE_C = [
+    "usermode/programs/exceptionChainTest/main.c",
+]
+EXCEPTION_TEST_DEFINE = "MATANELOS_EXCEPTION_CHAIN_TEST"
+EXCEPTION_TEST_INCLUDE = ROOT / "usermode/tests"
 
 
 class BuildFailure(RuntimeError):
@@ -228,7 +253,12 @@ def _target_flags() -> list[str]:
     return [f"--target={TARGET_TRIPLE}", "-m64", "-mgeneral-regs-only", "-mno-red-zone"]
 
 
-def _kernel_common_flags(configuration: str, gdb: bool) -> list[str]:
+def _kernel_common_flags(
+    configuration: str,
+    gdb: bool,
+    stress_mode: str,
+    stress_duration_seconds: int,
+) -> list[str]:
     flags = [
         *_target_flags(),
         "-std=gnu11",
@@ -251,6 +281,9 @@ def _kernel_common_flags(configuration: str, gdb: bool) -> list[str]:
         "-mcmodel=large",
         "-fno-pie",
         "-fno-pic",
+        f"-DMT_STRESS_MODE={STRESS_MODES[stress_mode]}",
+        f"-DMT_STRESS_AUTOMATION={int(stress_mode != 'normal')}",
+        f"-DMT_STRESS_DURATION_SECONDS={stress_duration_seconds}",
     ]
     if configuration == "Debug":
         flags.extend(
@@ -401,10 +434,22 @@ def _generate_offsets(tools: Tools, configuration: str, gdb: bool, output: Path)
     print(f"[OFFSETS] {output}")
 
 
-def build_kernel(tools: Tools, configuration: str, gdb: bool, workers: int) -> tuple[Path, Path]:
+def build_kernel(
+    tools: Tools,
+    configuration: str,
+    gdb: bool,
+    workers: int,
+    stress_mode: str = "normal",
+    stress_duration_seconds: int = 1800,
+) -> tuple[Path, Path]:
     config_directory = WINDOWS_BUILD / configuration.lower()
     object_root = config_directory / "obj/kernel"
-    base_flags = _kernel_common_flags(configuration, gdb)
+    base_flags = _kernel_common_flags(
+        configuration,
+        gdb,
+        stress_mode,
+        stress_duration_seconds,
+    )
     _fingerprint(object_root, [str(tools.clang), str(tools.nasm), configuration, str(gdb), *base_flags])
 
     sources = sorted(
@@ -500,7 +545,13 @@ def build_kernel(tools: Tools, configuration: str, gdb: bool, workers: int) -> t
     return kernel_elf, kernel_bin
 
 
-def _user_c_flags(*, pic: bool, executable: bool) -> list[str]:
+def _user_c_flags(
+    *,
+    pic: bool,
+    executable: bool,
+    defines: Sequence[str] = (),
+    include_directories: Sequence[Path] = (),
+) -> list[str]:
     flags = [
         *_target_flags(),
         "-std=gnu11",
@@ -508,6 +559,7 @@ def _user_c_flags(*, pic: bool, executable: bool) -> list[str]:
         "-nostdlib",
         "-fno-builtin",
         "-fno-asynchronous-unwind-tables",
+        "-fno-omit-frame-pointer",
         "-ffunction-sections",
         "-fdata-sections",
         "-c",
@@ -518,13 +570,16 @@ def _user_c_flags(*, pic: bool, executable: bool) -> list[str]:
         "-O0",
         "-g",
         "-I",
-        str(ROOT / "usermode/headers"),
+        str(ROOT / "shared/include"),
     ]
     if pic:
-        flags.extend(["-fPIC", "-fvisibility=hidden", "-DMTDLL_BUILD"])
-        flags.extend(["-I", str(ROOT / "usermode/programs/mtdll/includes")])
+        flags.extend(["-fPIC", "-fvisibility=hidden"])
     else:
         flags.extend(["-fPIE", "-fvisibility=hidden"])
+    for define in defines:
+        flags.append(f"-D{define}")
+    for include_directory in include_directories:
+        flags.extend(["-I", str(include_directory)])
     return flags
 
 
@@ -542,9 +597,32 @@ def _build_user_component(
     workers: int,
     module_name: str,
     dependencies: dict[str, Path] | None = None,
+    defines: Sequence[str] = (),
+    include_directories: Sequence[Path] = (),
 ) -> tuple[Path, Path]:
+    defines = tuple(defines)
+    include_directories = tuple(include_directories)
+    owns_mtdll_exports = MTDLL_PRODUCER_DEFINE in defines
+    if owns_mtdll_exports != (module_name == MTDLL_MODULE_NAME):
+        raise BuildFailure(
+            f"{MTDLL_PRODUCER_DEFINE} must be defined by "
+            f"{MTDLL_MODULE_NAME} and no other component"
+        )
+    if (
+        MTDLL_PRIVATE_INCLUDE in include_directories
+        and module_name != MTDLL_MODULE_NAME
+    ):
+        raise BuildFailure(
+            "MTDLL's private include directory cannot be used by another component"
+        )
+
     object_root = output.parent / f"obj/{name}"
-    c_flags = _user_c_flags(pic=pic, executable=executable)
+    c_flags = _user_c_flags(
+        pic=pic,
+        executable=executable,
+        defines=defines,
+        include_directories=include_directories,
+    )
     _fingerprint(object_root, [str(tools.clang), str(tools.nasm), name, *c_flags])
     header_time = _newest([
         *(ROOT / "usermode").rglob("*.h"),
@@ -552,7 +630,7 @@ def _build_user_component(
     ])
     objects: list[Path] = []
     jobs: list[CompileJob] = []
-    for relative in [*gas_sources, *c_sources]:
+    for relative in gas_sources:
         source = ROOT / relative
         obj = _object_path(object_root, source)
         objects.append(obj)
@@ -566,6 +644,47 @@ def _build_user_component(
             CompileJob(
                 f"CC {source.relative_to(ROOT)}",
                 tuple([str(tools.clang), *flags, str(source), "-o", str(obj)]),
+                ROOT,
+            )
+        )
+
+    generated_root = output.parent / "generated" / name
+    for relative in c_sources:
+        original_source = ROOT / relative
+        generated_source = (
+            generated_root / Path(relative)
+        ).with_suffix(".seh.c")
+        try:
+            translated = translate_file(
+                original_source,
+                generated_source,
+                Path(relative).as_posix(),
+            )
+        except TranslationError as error:
+            raise BuildFailure(str(error)) from error
+
+        compile_source = generated_source if translated else original_source
+        obj = _object_path(object_root, original_source)
+        objects.append(obj)
+        dependency_time = max(
+            header_time,
+            generated_source.stat().st_mtime if translated else 0.0,
+        )
+        if not _needs_rebuild(original_source, obj, dependency_time):
+            continue
+        obj.parent.mkdir(parents=True, exist_ok=True)
+        jobs.append(
+            CompileJob(
+                f"CC {original_source.relative_to(ROOT)}",
+                tuple(
+                    [
+                        str(tools.clang),
+                        *c_flags,
+                        str(compile_source),
+                        "-o",
+                        str(obj),
+                    ]
+                ),
                 ROOT,
             )
         )
@@ -658,26 +777,52 @@ def _build_user_component(
     return output, temporary_elf
 
 
-def build_usermode(tools: Tools, configuration: str, workers: int) -> tuple[Path, Path]:
+def build_usermode(
+    tools: Tools,
+    configuration: str,
+    workers: int,
+    stress_mode: str = "normal",
+) -> tuple[Path, Path]:
     output_directory = WINDOWS_BUILD / configuration.lower()
     output_directory.mkdir(parents=True, exist_ok=True)
+    exception_test = stress_mode == "exception-chain"
+    mtdll_sources = [
+        *MTDLL_C,
+        *(EXCEPTION_TEST_MTDLL_C if exception_test else ()),
+    ]
+    mtdll_defines = [
+        MTDLL_PRODUCER_DEFINE,
+        *((EXCEPTION_TEST_DEFINE,) if exception_test else ()),
+    ]
+    mtdll_includes = [
+        MTDLL_PRIVATE_INCLUDE,
+        *((EXCEPTION_TEST_INCLUDE,) if exception_test else ()),
+    ]
+    mtdll_nasm_sources = [
+        *MTDLL_NASM,
+        *(EXCEPTION_TEST_MTDLL_NASM if exception_test else ()),
+    ]
     mtdll, mtdll_elf = _build_user_component(
         tools,
         "mtdll",
-        MTDLL_C,
+        mtdll_sources,
         MTDLL_GAS,
-        MTDLL_NASM,
+        mtdll_nasm_sources,
         ROOT / "usermode/mtdll.ld",
         output_directory / "mtdll.mtdll",
         pic=True,
         executable=False,
         workers=workers,
-        module_name="mtdll.mtdll",
+        module_name=MTDLL_MODULE_NAME,
+        defines=mtdll_defines,
+        include_directories=mtdll_includes,
     )
+    program_name = "exceptionChainTest" if exception_test else "terminateMyself"
+    program_sources = EXCEPTION_TEST_MTEXE_C if exception_test else MTEXE_C
     program, _ = _build_user_component(
         tools,
-        "terminateMyself",
-        MTEXE_C,
+        program_name,
+        program_sources,
         MTEXE_GAS,
         MTEXE_NASM,
         ROOT / "usermode/mtexe.ld",
@@ -686,7 +831,8 @@ def build_usermode(tools: Tools, configuration: str, workers: int) -> tuple[Path
         executable=True,
         workers=workers,
         module_name="terminateMyself.mtexe",
-        dependencies={"mtdll.mtdll": mtdll_elf},
+        dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+        include_directories=(EXCEPTION_TEST_INCLUDE,) if exception_test else (),
     )
     return mtdll, program
 
@@ -827,11 +973,28 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--gdb", action="store_true")
     parser.add_argument("--cpus", type=int, choices=range(1, 65), default=4, metavar="1-64")
     parser.add_argument("--jobs", type=int, default=min(os.cpu_count() or 1, 12))
+    parser.add_argument(
+        "--stress-mode",
+        choices=sorted(STRESS_MODES),
+        default="normal",
+        help="select an isolated kernel stress mode (default: normal)",
+    )
+    parser.add_argument(
+        "--stress-duration-seconds",
+        type=int,
+        default=1800,
+        metavar="SECONDS",
+        help="duration of the randomized stress mode (default: 1800)",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
+    if args.stress_duration_seconds <= 0:
+        print("BUILD ERROR: --stress-duration-seconds must be positive", file=sys.stderr)
+        return 1
+
     if args.action == "clean":
         shutil.rmtree(WINDOWS_BUILD, ignore_errors=True)
         print(f"[CLEAN] Removed {WINDOWS_BUILD}")
@@ -848,9 +1011,21 @@ def main() -> int:
         if args.target in {"all", "bootloader", "image"}:
             bootloader = build_bootloader(tools, args.configuration, args.jobs)
         if args.target in {"all", "kernel"}:
-            kernel, _ = build_kernel(tools, args.configuration, args.gdb, args.jobs)
+            kernel, _ = build_kernel(
+                tools,
+                args.configuration,
+                args.gdb,
+                args.jobs,
+                args.stress_mode,
+                args.stress_duration_seconds,
+            )
         if args.target in {"all", "usermode"}:
-            mtdll, program = build_usermode(tools, args.configuration, args.jobs)
+            mtdll, program = build_usermode(
+                tools,
+                args.configuration,
+                args.jobs,
+                args.stress_mode,
+            )
         if args.target in {"all", "image"}:
             image = build_image(args.configuration, bootloader, kernel, mtdll, program)
         else:

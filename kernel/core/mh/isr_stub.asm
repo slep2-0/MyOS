@@ -192,10 +192,10 @@ extern Schedule
     jmp .check_for_schedule
 
 .check_for_schedule:
-    ; (if we are at DISPATCH_LEVEL schedulerEnabled should be false)
-    ; Now let's check if the scheduler is enabled, so we can't pre-empt the current running thread, even if it's timeslice has expired.
-    cmp byte [gs:PROCESSOR_schedulerEnabled], 0 ; Changed to direct comparison, as the load from before loaded additional 7 bytes after schedulerEnabled, which corrupted it, I hate silent bugs.
-    jz .exit
+    ; MhHandleInterrupt restores the interrupted IRQL before returning here.
+    ; DISPATCH_LEVEL and above are the sole preemption barrier.
+    cmp dword [gs:PROCESSOR_currentIrql], DISPATCH_LEVEL
+    jae .exit
 
     ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
     cmp byte [gs:PROCESSOR_schedulePending], 0
@@ -247,8 +247,24 @@ extern Schedule
     jmp Schedule
     int 8 ; Double Fault if we reached here, which we should never.
 
+extern MePrepareUserDispatchForReturn
+
 .exit:
     cli
+
+    ; Make sure that if there are user APCs in the list, we queue them and execute them when returning to user code
+    ; If we do not return to user code, the function will not request a software interrupt
+    ; Else, the moment we return to user code from iretq, the interrupt should execute.
+    
+    ; If there are any exceptions o to be delivered, the function will redirect execution to the MTDLL Exception dispatcher
+    ; and attempt handling of the exception.
+    ; Same goes for APCs, redirection will be applied to MeUserApcDispatcher
+    mov r12, rsp
+    mov rdi, r12
+    and rsp, -16
+    call MePrepareUserDispatchForReturn
+    mov rsp, r12
+
     ; cleanup the IST stack (in older versions, it didnt and it could have overflown overtime, and probably would have with continuous thread use.)
     ; first pop all gprs
     pop    r15

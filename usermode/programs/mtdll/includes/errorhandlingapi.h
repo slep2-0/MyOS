@@ -18,21 +18,7 @@ Revision History:
 
 --*/
 
-#include "annotations.h"
-#include "mtstatus.h"
-#include "mtapi.h"
-#include "../../../../shared/include/errorcodes.h"
-
-
-// Functions definitions themselves.
-
-MTDLL_API ERROR_CODE GetLastError(
-	void
-);
-
-MTDLL_API void SetLastError(
-	ERROR_CODE dwErrorCode
-);
+#include "mtdll.h"
 
 void SetLastStatus(
     MTSTATUS dwStatusCode
@@ -195,3 +181,5 @@ MtStatusToLastError(MTSTATUS Status)
         return ERROR_GEN_FAILURE;
     }
 }
+
+// soon to be raise exception

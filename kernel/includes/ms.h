@@ -378,6 +378,13 @@ MsWaitForSingleObject(
     IN uint64_t TimeoutMs
 );
 
+MTSTATUS
+MsDelayExecution(
+    IN PRIVILEGE_MODE WaitMode,
+    IN bool Alertable,
+    IN uint64_t Milliseconds
+);
+
 PITHREAD
 MspDequeueNextWaitThreadLocked(
     PDOUBLY_LINKED_LIST HeaderWaitListHead

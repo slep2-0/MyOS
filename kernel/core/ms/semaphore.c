@@ -154,6 +154,9 @@ MsReleaseSemaphore(
 )
 {
     int32_t PreviousCount = 0;
+
+    // Its okay to bugcheck on failure, since user mode semaphores are pre-checked by the Syscall handler
+    // So bugchecking would mean kernel/driver failure
     MTSTATUS Status = MsReleaseSemaphoreChecked(
         Semaphore,
         Adjustment,

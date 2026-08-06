@@ -26,6 +26,7 @@ Revision History:
 
 POBJECT_TYPE MmSectionType = NULL;
 
+// PAT aka Page Attribute Table, fine grained control for paging cache flags.
 static
 bool
 MiIsPATAvailable(void)
@@ -108,7 +109,6 @@ MmInitSystem(
 --*/
 
 {
-    // Currently we only support the first and only phase.
     if (Phase == SYSTEM_PHASE_INITIALIZE_ALL) {
 
         // Initialize PAT (Page Attribute Table)
@@ -188,7 +188,6 @@ MiMoveUefiDataToHigherHalf(
 
         [IN]    PBOOT_INFO BootInformation - The boot information supplied by the UEFI Bootloader.
 
-
     Return Values:
 
         None.
@@ -211,7 +210,7 @@ MiMoveUefiDataToHigherHalf(
     assert(gop_local.FrameBufferBase != Phys);
     assert((void*)gop_local.FrameBufferBase != NULL);
 
-    // Unmap the previous PTE. (was a 1:1 identity map, so thats why we use the phys addr)
+    // Unmap the previous PTE. (is a 1:1 identity map, so thats why we use the phys addr)
     MiUnmapPte(MiGetPtePointer(Phys));
 
 #ifdef DEBUG

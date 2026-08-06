@@ -117,8 +117,6 @@ typedef struct FS_DRIVER {
 
 // ------------------ FUNCTIONS ------------------
 extern POBJECT_TYPE FsFileType;
-typedef int32_t HANDLE, * PHANDLE;
-typedef uint32_t ACCESS_MASK;
 
 MTSTATUS FsInitialize(void);
 

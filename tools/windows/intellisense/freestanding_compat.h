@@ -81,6 +81,8 @@
 #define __atomic_compare_exchange_n(target, expected, desired, weak, success, failure) \
     ((void)(target), (void)(expected), (void)(desired), (void)(weak),                  \
      (void)(success), (void)(failure), true)
+#define __atomic_fetch_add(target, value, order) \
+    ((void)(value), (void)(order), *(target))
 
 #define __sync_bool_compare_and_swap(target, old_value, new_value) \
     ((void)(target), (void)(old_value), (void)(new_value), true)

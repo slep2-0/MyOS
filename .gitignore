@@ -41,3 +41,6 @@ __pycache__/
 # Private local IDA helper; not part of MatanelOS.
 /c_semantics_ida.py
 /c_semantics_ida_README.md
+
+# Local source line counter.
+/countLines.py

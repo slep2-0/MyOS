@@ -26,58 +26,9 @@ Revision History:
 // Other file includes
 #include "me.h"
 #include "core.h"
+#include "../../shared/include/mtexception.h"
 
 // ------------------ STRUCTURES ------------------
-
-//struct _CONTEXT;
-
-#define EXCEPTION_MAXIMUM_PARAMETERS 15
-typedef struct _EXCEPTION_RECORD {
-    MTSTATUS ExceptionCode;
-    uint32_t ExceptionFlags;
-    struct _EXCEPTION_RECORD* ExceptionRecord; // For nested exceptions
-    void* ExceptionAddress;                     // RIP at time of fault
-    //struct _CONTEXT ExceptionContext;
-} EXCEPTION_RECORD, * PEXCEPTION_RECORD;
-
-typedef enum _EXCEPTION_DISPOSITION {
-    ExceptionContinueExecution = 0,
-    ExceptionContinueSearch = 1,
-    ExceptionNestedException = 2,
-    ExceptionCollidedUnwind = 3
-} EXCEPTION_DISPOSITION;
-
-typedef struct _CONTEXT {
-    uint64_t RFlags;
-    uint64_t Dr0;
-    uint64_t Dr1;
-    uint64_t Dr2;
-    uint64_t Dr3;
-    uint64_t Dr6;
-    uint64_t Dr7;
-    uint64_t Rax;
-    uint64_t Rcx;
-    uint64_t Rdx;
-    uint64_t Rbx;
-    uint64_t Rsp;
-    uint64_t Rbp;
-    uint64_t Rsi;
-    uint64_t Rdi;
-    uint64_t R8;
-    uint64_t R9;
-    uint64_t R10;
-    uint64_t R11;
-    uint64_t R12;
-    uint64_t R13;
-    uint64_t R14;
-    uint64_t R15;
-    uint64_t Rip;
-} CONTEXT, * PCONTEXT;
-
-typedef struct _EXCEPTION_REGISTRATION_RECORD {
-    struct _EXCEPTION_REGISTRATION_RECORD* Next;
-    enum _EXCEPTION_DISPOSITION(*Handler)(struct _EXCEPTION_RECORD* arg1, void* Frame, struct _CONTEXT* arg2, void* DispCtx);
-} EXCEPTION_REGISTRATION_RECORD;
 
 typedef struct _EX_FRAME_REGISTRATION {
     PETHREAD Thread;
@@ -100,14 +51,67 @@ uint64_t MiSearchExceptionTable(uint64_t rip);
 // ------------------ FUNCTIONS ------------------
 
 extern PETHREAD PsGetCurrentThread(void);
-extern bool ExpCaptureContext(IN PCONTEXT Context);
 
-EXCEPTION_DISPOSITION MeStandardHandler(
-    PEXCEPTION_RECORD ExceptionRecord,
-    void* EstablisherFrame,
-    PCONTEXT ContextRecord,
-    void* DispatcherContext
+void
+ExpCaptureContextFromTrapFrame(
+    IN const TRAP_FRAME* TrapFrame,
+    OUT PCONTEXT Context
 );
+
+// user context only
+MTSTATUS
+ExpApplyUserContextToTrapFrame(
+    IN const CONTEXT* Context,
+    IN OUT PTRAP_FRAME TrapFrame
+);
+
+void
+ExpInitializeExceptionRecord(
+    MTSTATUS Status,
+    const TRAP_FRAME* TrapFrame,
+    PEXCEPTION_RECORD ExceptionRecord
+);
+
+void
+ExpInitializeAccessViolationRecord(
+    MTSTATUS Status,
+    const TRAP_FRAME* TrapFrame,
+    uint64_t FaultAddress,
+    uint64_t PageFaultErrorCode,
+    PEXCEPTION_RECORD ExceptionRecord
+);
+
+MTSTATUS
+ExpPublishUserException(
+    IN const EXCEPTION_RECORD* ExceptionRecord
+);
+
+MTSTATUS
+ExpPrepareUserExceptionDispatch(
+    IN OUT PTRAP_FRAME TrapFrame
+);
+
+#ifdef DEBUG
+void
+ExpTestContextConversion(
+    void
+);
+
+void
+ExpTestExceptionRecordConstruction(
+    void
+);
+
+void
+ExpTestUserExceptionPublication(
+    void
+);
+
+void
+ExpTestUserExceptionDispatchFrame(
+    IN PETHREAD TargetThread
+);
+#endif
 
 // macros
 // Try except blocks mean we will most likely touch user accessible memory, so stac and clac are always included no matter the previousmode.
@@ -185,12 +189,20 @@ ProbeForRead(
     IN uint32_t Alignment
 );
 
-// raise.c
-// unused func.
+NORETURN
 void
 ExpRaiseStatus(
-    IN MTSTATUS Status,
-    IN uint64_t Rip
+    IN MTSTATUS Status
 );
+
+FORCEINLINE
+PRIVILEGE_MODE
+ExpGetFaultMode(
+    IN const TRAP_FRAME* TrapFrame
+)
+
+{
+    return ((TrapFrame->cs & 0x3u) == 0x3u) ? UserMode : KernelMode;
+}
 
 #endif

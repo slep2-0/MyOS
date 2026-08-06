@@ -12,7 +12,6 @@
 #define THREAD_STACK_SIZE (1024*24) // 24 KiB
 #define THREAD_ALIGNMENT 16
 #define MTDLL_THREAD_ROUTINE "LdrInitializeThread"
-#define MAX_LOADER_LIST_ENTRIES 1024u
 
 // Clean exit for a thread—never returns!
 static void ThreadExit(void) {
@@ -58,6 +57,22 @@ PspRundownThreadApcs(
     IRQL OldIrql;
     MsAcquireSpinlock(&Thread->ApcQueueLock, &OldIrql);
 
+    // Immediately set Queuable to false
+    // This is also set when beginning a thread exit, which isnt a problem.
+    // This is so NO APCs will be queued when thread should be terminating.
+    InterlockedStore(&Thread->ApcQueueable, false);
+
+    bool WasSuspended = Thread->SuspendCount != 0;
+    bool SuspendApcQueued = Thread->SuspendAPC.Inserted != 0;
+    bool SuspendApcActive = Thread->SuspendApcActive;
+    Thread->SuspendCount = 0;
+
+    if (SuspendApcQueued) {
+        // Rundown will remove the queued APC, so no invocation remains active.
+        assert(SuspendApcActive);
+        Thread->SuspendApcActive = false;
+    }
+
     for (uint32_t Mode = KernelMode; Mode <= UserMode; Mode++) {
         PDOUBLY_LINKED_LIST ApcList =
             &Thread->ApcState.ApcListHead[Mode];
@@ -80,6 +95,16 @@ PspRundownThreadApcs(
 
         PAPC Apc = CONTAINING_RECORD(Entry, APC, ApcListEntry);
         if (Apc->RundownRoutine) Apc->RundownRoutine(Apc);
+    }
+
+    if (WasSuspended && SuspendApcActive && !SuspendApcQueued) {
+        /*
+         * The suspend APC has already left its queue and may be executing or
+         * blocked on the private semaphore. Give it one permit so it can see
+         * SuspendCount == 0 and ApcQueueable == false, clear its active state,
+         * and return through the termination path.
+         */
+        MsReleaseSemaphore(&Thread->SuspendSemaphore, 1);
     }
 }
 
@@ -129,16 +154,81 @@ PspThreadTerminationRoutine(
 )
 
 {
-    UNREFERENCED_PARAMETER(Apc); UNREFERENCED_PARAMETER(NormalContext); UNREFERENCED_PARAMETER(NormalRoutine); UNREFERENCED_PARAMETER(SystemArgument1); UNREFERENCED_PARAMETER(SystemArgument2);
+    UNREFERENCED_PARAMETER(NormalContext);
+    UNREFERENCED_PARAMETER(NormalRoutine);
+    UNREFERENCED_PARAMETER(SystemArgument2);
     // Call PspExitThread, we are terminating this thread.
+    // Rundown would delete this APC, since its allocated.
+    MTSTATUS ExitStatus = (MTSTATUS)(uintptr_t)*SystemArgument1;
+
     Apc->RundownRoutine(Apc);
 
     // Set APC Routine as non active in the current CPU, as PspExitThread is a NORETURN
     MeGetCurrentProcessor()->ApcRoutineActive = false;
 
-    PspExitThread((MTSTATUS)(uintptr_t)*SystemArgument1);
+    PspExitThread(ExitStatus);
 }
 
+static
+void
+PspSuspendThreadApc(
+    void* NormalContext, void* SystemArgument1, void* SystemArgument
+)
+
+{
+    // The suspend APC does not use its two system arguments.
+    UNREFERENCED_PARAMETER(SystemArgument); UNREFERENCED_PARAMETER(SystemArgument1);
+
+    PITHREAD Thread = (PITHREAD)NormalContext;
+
+    for (;;) {
+        /*
+         * Run in the target thread's context and wait behind its private resume
+         * gate. If resume arrived before this APC, the stored permit makes this
+         * wait return immediately. Otherwise the target parks here.
+         */
+        MTSTATUS Status = MsWaitForSingleObject(
+            &Thread->SuspendSemaphore,
+            KernelMode,
+            false,
+            INFINITE
+        );
+        if (Status != MT_SUCCESS) {
+            MeBugCheckEx(
+                WAIT_STATE_FAILURE,
+                Thread,
+                &Thread->SuspendSemaphore,
+                (void*)(uintptr_t)Status,
+                (void*)PspSuspendThreadApc
+            );
+        }
+
+        /*
+         * Resume and a new suspend can race while this APC is waking. Inspect
+         * the logical count under the same lock used by both operations.
+         */
+        IRQL OldIrql;
+        MsAcquireSpinlock(&Thread->ApcQueueLock, &OldIrql);
+
+        if (Thread->SuspendCount == 0 || !Thread->ApcQueueable) {
+            /*
+             * No suspension remains, or termination is tearing this thread
+             * down. Relinquish ownership only while holding ApcQueueLock so a
+             * simultaneous 0 -> 1 suspend either reuses us or queues a new APC.
+             */
+            Thread->SuspendApcActive = false;
+            MsReleaseSpinlock(&Thread->ApcQueueLock, OldIrql);
+            return;
+        }
+
+        /*
+         * Another suspend changed the count back above zero before this wake
+         * completed. Keep ownership and wait again instead of queuing a second
+         * invocation of the embedded APC.
+         */
+        MsReleaseSpinlock(&Thread->ApcQueueLock, OldIrql);
+    }
+}
 
 void 
 PspInitializeThread(
@@ -162,12 +252,23 @@ PspInitializeThread(
     Thread->InternalThread.WaitBlock.WaitReason = WaitReasonNone;
     Thread->InternalThread.WaitBlock.WakeupTime = 0;
     Thread->InternalThread.WaitStatus = MT_SUCCESS;
+    Thread->InternalThread.WaitCompletionComplete = true;
     Thread->InternalThread.UserApcActive = false;
     Thread->InternalThread.ApcQueueLock.locked = 0;
     Thread->InternalThread.ApcState.KernelApcInProgress = false;
     Thread->InternalThread.ApcState.KernelApcPending = false;
     Thread->InternalThread.ApcState.UserApcPending = false;
     Thread->TerminationState = ThreadTerminationNone;
+    Thread->ExitStatus = MT_PENDING; // STILL_ACTIVE in Usermode
+
+    // Exceptions
+    Thread->InternalThread.UserExceptionPending = false;
+    Thread->InternalThread.UserExceptionActive = false;
+    kmemset(
+        &Thread->InternalThread.PendingExceptionRecord,
+        0,
+        sizeof(Thread->InternalThread.PendingExceptionRecord)
+    );
 
     // Process association
     Thread->ParentProcess = Process;
@@ -178,6 +279,20 @@ PspInitializeThread(
     Thread->InternalThread.TimeSlice = TimeSlice;
     Thread->InternalThread.TimeSliceAllocated = TimeSlice;
     Thread->InternalThread.ThreadState = THREAD_READY;
+
+    // The semaphore stores at most one early-resume permit. Its initial zero
+    // closes the gate, but SuspendCount == 0 means no APC will wait on it yet.
+    MsInitializeSemaphore(&Thread->InternalThread.SuspendSemaphore, 0, 1);
+    Thread->InternalThread.SuspendCount = 0;
+    Thread->InternalThread.SuspendApcActive = false;
+   
+    // Initialize SuspendAPC
+    MeInitializeApc(&Thread->InternalThread.SuspendAPC, &Thread->InternalThread, KernelMode, NULL, NULL, PspSuspendThreadApc, Thread);
+
+    // Kernel & Special APCs
+    Thread->InternalThread.KernelApcDisable = 0;
+    Thread->InternalThread.SpecialApcDisable = 0;
+    Thread->InternalThread.ApcQueueable = true;
 
     // Dispatcher Header Initialization
     MsInitializeDispatcherHeader(&Thread->InternalThread.Header, 0, DispatcherThread);
@@ -313,6 +428,7 @@ PsCreateThread(
         Teb->UniqueProcessId = ParentProcess->PID;
         Teb->MtTib.StackBase = Thread->InternalThread.StackBase;
         Teb->MtTib.StackLimit = (void*)(((uintptr_t)Thread->InternalThread.StackBase - StackSize));
+        Teb->MtTib.ExceptionList = MT_EXCEPTION_CHAIN_END;
         Status = MT_SUCCESS;
     } except{
         // Page fault on user addr.
@@ -341,66 +457,13 @@ PsCreateThread(
     }
     else {
         // This is a process new thread, set execution entrypoint to LdrInitializeThread.
-        // Since a thread is already created, this means the entries are already cached in memory
-        // so a file object isnt require for PspFindMtdllEntryRva
-        void* LdrInitializeThreadRva = PspFindMtdllEntryRva(NULL, MTDLL_THREAD_ROUTINE);
-
-        if (!LdrInitializeThreadRva) {
-            Status = MT_NOT_FOUND;
-            goto Cleanup;
-        }
-
-        uintptr_t LdrInitializeThreadAddress = 0;
-        
-        // Try to find MTDLL base in the target address space. This matters for
-        // CreateRemoteThread: its PEB is not mapped by the caller's CR3.
-        APC_STATE LoaderApcState;
-        kmemset(&LoaderApcState, 0, sizeof(LoaderApcState));
-        MeAttachProcess(&ParentProcess->InternalProcess, &LoaderApcState);
-
-        try {
-            PPEB Peb = ParentProcess->Peb;
-
-            PDOUBLY_LINKED_LIST Head = &Peb->LoaderData.LoadedModuleList;
-            PDOUBLY_LINKED_LIST Current = Peb->LoaderData.LoadedModuleList.Flink;
-            uint32_t EntriesVisited = 0;
-
-            while (Head != Current && EntriesVisited++ < MAX_LOADER_LIST_ENTRIES) {
-                if (!MI_IS_CANONICAL_ADDR(Current) ||
-                    (uintptr_t)Current > MmHighestUserAddress) {
-                    Status = MT_INVALID_ADDRESS;
-                    break;
-                }
-
-                LDR_DATA_TABLE_ENTRY* Entry = CONTAINING_RECORD(Current, LDR_DATA_TABLE_ENTRY, LoadedModuleList);
-
-                if (kstrncmp(Entry->FullName, MTDLL_PATH, sizeof(MTDLL_PATH)) == 0) {
-                    uintptr_t MtdllBase = (uintptr_t)Entry->Base;
-                    uintptr_t RoutineRva = (uintptr_t)LdrInitializeThreadRva;
-                    if (MtdllBase <= MmHighestUserAddress &&
-                        RoutineRva <= MmHighestUserAddress - MtdllBase) {
-                        LdrInitializeThreadAddress = MtdllBase + RoutineRva;
-                    }
-                    break;
-                }
-
-                Current = Current->Flink;
-            }
-
-            if (Head != Current &&
-                EntriesVisited >= MAX_LOADER_LIST_ENTRIES &&
-                !LdrInitializeThreadAddress) {
-                Status = MT_INVALID_STATE;
-            }
-
-        } except{
-            Status = GetExceptionCode();
-        }
-        end_try;
-
-        MeDetachProcess(&LoaderApcState);
-
-        if (MT_FAILURE(Status)) goto Cleanup;
+        // The process stores the trusted MTDLL mapping base in EPROCESS. Do
+        // not walk its user-writable PEB loader list to choose a kernel-created
+        // thread's initial instruction pointer.
+        uintptr_t LdrInitializeThreadAddress = PspFindMtdllEntryAddress(
+            MTDLL_THREAD_ROUTINE,
+            Thread
+        );
 
         if (!LdrInitializeThreadAddress) {
             Status = MT_NOT_FOUND;
@@ -640,6 +703,11 @@ PsTerminateThread(
         return MT_SUCCESS;
     }
 
+    // Do not terminate system threads
+    if (Thread->SystemThread) {
+        return MT_ACCESS_DENIED;
+    }
+
     PITHREAD IThread = &Thread->InternalThread;
 
     // Allocate the termination APC.
@@ -664,11 +732,13 @@ PsTerminateThread(
     // Flush ordinary APCs only after termination ownership is exclusive.
     PspRundownThreadApcs(IThread);
 
-    // Initialize it.
+    // Queue termination as a user APC. Its kernel routine executes only when
+    // the target has a complete CPL3 return frame, after the interrupted
+    // syscall has released transient object references and other resources.
     MeInitializeApc(
         ExitApc,
         &Thread->InternalThread,
-        KernelMode,
+        UserMode,
         PspThreadTerminationRoutine,
         PspThreadRundown,
         NULL,
@@ -682,15 +752,16 @@ PsTerminateThread(
     PPROCESSOR TargetProcessor = NULL;
     IRQL OldIrql;
     MsAcquireSpinlock(&IThread->ApcQueueLock, &OldIrql);
+
     ExitApc->SystemArgument1 = (void*)(uintptr_t)ExitStatus;
     ExitApc->SystemArgument2 = NULL;
     ExitApc->Inserted = 1;
     InsertTailList(
-        &IThread->ApcState.ApcListHead[KernelMode],
+        &IThread->ApcState.ApcListHead[UserMode],
         &ExitApc->ApcListEntry
     );
     InterlockedStoreRelease(
-        &IThread->ApcState.KernelApcPending,
+        &IThread->ApcState.UserApcPending,
         true
     );
     InterlockedStoreRelease(
@@ -1071,14 +1142,16 @@ PspExitThread(
 
     // Finally, terminate this thread from the scheduler.
     MeDisableInterrupts();
-    Thread->ExitStatus = ExitStatus;
     Thread->InternalThread.ThreadState = THREAD_TERMINATING;
 
     // Acquire the thread dispatcher header lock.
     IRQL prevIrql;
     MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &prevIrql);
 
-    // 1 Indicates Process/Thread exit (termination)
+    // Publish the final status under the same lock as the persistent thread
+    // signal. Querying the exit code and waiting for termination therefore
+    // observe one atomic terminal transition.
+    Thread->ExitStatus = ExitStatus;
     Thread->InternalThread.Header.SignalState = 1;
 
     // Wake up everyone that are waiting on this thread's termination.

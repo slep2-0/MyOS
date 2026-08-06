@@ -5,8 +5,8 @@
 %include "offsets.inc"
 
 section .text
-; void restore_context(TRAP_FRAME* src);
-; System V ABI: src in RDI
+; void restore_context(PITHREAD Thread);
+; System V ABI: Thread in RDI
 global restore_context
 restore_context:
     cli
@@ -21,9 +21,15 @@ restore_context:
     shr   rdx, 32
     wrmsr
 
+    ; A kernel thread may have blocked while attached to another process.
+    ; Restore the active APC process, not necessarily ETHREAD.ParentProcess.
+    mov   rax, [rdi + ITHREAD_ApcState + APC_STATE_SavedApcProcess]
+    mov   rax, [rax + EPROCESS_InternalProcess + IPROCESS_PageDirectoryPhysical]
+    mov   cr3, rax
+
     ; In 64-bit mode IRETQ consumes SS:RSP even when CPL does not change.
     ; Build the complete five-qword frame below the saved post-call RSP.
-    mov   rax, rdi
+    lea   rax, [rdi + ITHREAD_TrapRegisters]
     mov   rdx, [rax + TRAP_FRAME_rsp]
     mov   rsp, rdx
     push  KERNEL_SS
@@ -69,8 +75,8 @@ restore_user_context_to_user:
     shr rdx, 32
     wrmsr
 
-    mov rax, [rdi + ETHREAD_ParentProcess]
-    mov rax, [rax + IPROCESS_PageDirectoryPhysical]
+    mov rax, [rdi + ETHREAD_InternalThread + ITHREAD_ApcState + APC_STATE_SavedApcProcess]
+    mov rax, [rax + EPROCESS_InternalProcess + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
     ; Preserve the TEB before restoring RDI, then address the trap frame at its
@@ -127,8 +133,8 @@ restore_user_context_to_kernel:
     shr rdx, 32
     wrmsr
 
-    mov rax, [rdi + ETHREAD_ParentProcess]
-    mov rax, [rax + IPROCESS_PageDirectoryPhysical]
+    mov rax, [rdi + ETHREAD_InternalThread + ITHREAD_ApcState + APC_STATE_SavedApcProcess]
+    mov rax, [rax + EPROCESS_InternalProcess + IPROCESS_PageDirectoryPhysical]
     mov cr3, rax ; Exchange.
 
     ; ITHREAD begins with a dispatcher header, not the saved trap frame.

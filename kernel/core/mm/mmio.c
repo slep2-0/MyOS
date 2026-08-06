@@ -361,7 +361,7 @@ MmMapIoSpace(
         uint64_t PteValue = (CurrentPhys & ~0xFFFULL) |
             PAGE_PRESENT | PAGE_RW | CacheFlags;
         MiAtomicExchangePte(pte, PteValue);
-        invlpg((void*)CurrentVA);
+        MiInvalidateTlbForVa((void*)CurrentVA);
 
         CurrentPhys += PhysicalFrameSize;
         CurrentVA += VirtualPageSize;
@@ -375,9 +375,9 @@ failure:
         uintptr_t MappedVa = VA + (i * VirtualPageSize);
         PMMPTE Pte = MiGetPtePointer(MappedVa);
         if (Pte) MiAtomicExchangePte(Pte, 0);
-        invlpg((void*)MappedVa);
+        MiInvalidateTlbForVa((void*)MappedVa);
     }
-    MiReloadTLBs();
+    //MiReloadTLBs(); - Commented out since we invalidate the TLBs for each specified page anyway.
     MiFreePoolVaContiguous(VA, MappingBytes, NonPagedPool);
     return NULL;
 }
@@ -436,10 +436,10 @@ MmUnmapIoSpace(
         PMMPTE Pte = MiGetPtePointer(CurrentVA);
         assert(Pte != NULL);
         if (Pte) MiAtomicExchangePte(Pte, 0);
-        invlpg((void*)CurrentVA);
+        MiInvalidateTlbForVa((void*)CurrentVA);
     }
 
     // MMIO frames belong to the device/firmware, not to the PFN allocator.
-    MiReloadTLBs();
+    //MiReloadTLBs(); - Commented out since we invalidate the TLBs for each specified page anyway.
     MiFreePoolVaContiguous(MappingBase, MappingBytes, NonPagedPool);
 }

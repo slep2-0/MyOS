@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "annotations.h"
 #include "../mtstatus.h"
+#include "../../shared/include/mttypes.h"
 
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,
@@ -30,11 +31,6 @@ typedef enum _PRIVILEGE_MODE {
 typedef struct _SINGLE_LINKED_LIST {
 	struct _SINGLE_LINKED_LIST* Next;
 } SINGLE_LINKED_LIST, * PSINGLE_LINKED_LIST;
-
-typedef struct _DOUBLY_LINKED_LIST {
-	struct _DOUBLY_LINKED_LIST* Blink;
-	struct _DOUBLY_LINKED_LIST* Flink;
-} DOUBLY_LINKED_LIST, * PDOUBLY_LINKED_LIST;
 
 struct _ITHREAD;
 typedef struct _ITHREAD ITHREAD;
@@ -60,9 +56,6 @@ struct _TRAP_FRAME;
 typedef struct _TRAP_FRAME TRAP_FRAME;
 typedef TRAP_FRAME* PTRAP_FRAME;
 
-typedef int32_t HANDLE, * PHANDLE;
-typedef uint32_t ACCESS_MASK;
-
 struct _FILE_OBJECT;
 typedef struct _FILE_OBJECT FILE_OBJECT;
 typedef FILE_OBJECT* PFILE_OBJECT;
@@ -71,11 +64,6 @@ struct _OBJECT_TYPE;
 typedef struct _OBJECT_TYPE OBJECT_TYPE;
 typedef OBJECT_TYPE* POBJECT_TYPE;
 
-typedef enum _FREE_TYPE {
-	MEM_RELEASE, // Release the entire region, base address must be the same that returned from MtAllocateVirtualMemory
-	MEM_DECOMMIT // Decommit the region specified by the NumberOfBytes argument.
-} FREE_TYPE;
-
 struct _APC;
 typedef struct _APC APC;
 typedef APC* PAPC;
@@ -83,7 +71,5 @@ typedef APC* PAPC;
 struct _DPC;
 typedef struct _DPC DPC;
 typedef DPC* PDPC;
-
-typedef uint32_t(*THREAD_START_ROUTINE)(void* Argument);
 
 #endif // MATANEL_CORE_H

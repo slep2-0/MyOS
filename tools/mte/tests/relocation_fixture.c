@@ -1,4 +1,4 @@
-#include "../../../usermode/headers/mtapi.h"
+#include "mtapi.h"
 
 int FixtureValue = 0x12345678;
 int* FixturePointer = &FixtureValue;

@@ -20,28 +20,11 @@ Revision History:
 #define X86_MATANEL_MT_H
 
 #include "core.h"
-#include "../../shared/include/synchapi.h"
+#include "../../shared/include/mtnative.h"
 
 // Maximum number of syscalls
 #define MAX_SYSCALLS 256
 typedef uint64_t(*SyscallHandler)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
-
-#define MtCurrentProcess() -1
-#define MtCurrentThread() -2
-
-typedef enum _USER_PROTECTION_TYPE {
-    PAGE_EXECUTE_READ = 0x10, // PRESENT
-    PAGE_EXECUTE_READWRITE = 0x20, // PRESENT | RW
-    PAGE_READWRITE = 0x30, // PRESENT | RW | NX
-    PAGE_READONLY = 0x40, // PRESENT | NX
-    PAGE_NOACCESS = 0x50 // NONE.
-} USER_PROTECTION_TYPE;
-
-typedef struct _MEMORY_BASIC_INFORMATION {
-    void* BaseAddress;
-    size_t RegionSize;
-    USER_PROTECTION_TYPE Protection;
-} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
 
 void
 MtSetupSyscall(
@@ -53,189 +36,11 @@ MtSyscallHandler(
     IN PTRAP_FRAME TrapFrame
 );
 
-// System calls
-MTSTATUS
-MtAllocateVirtualMemory(
-    IN HANDLE Process,
-    _In_Opt _Out_Opt void** BaseAddress,
-    IN size_t NumberOfBytes,
-    IN uint8_t AllocationType
-);
-
-MTSTATUS
-MtOpenProcess(
-    IN uint32_t ProcessId,
-    OUT PHANDLE ProcessHandle,
-    IN ACCESS_MASK DesiredAccess
-);
-
-MTSTATUS
-MtTerminateProcess(
-    IN HANDLE ProcessHandle,
-    IN MTSTATUS ExitStatus
-);
-
-MTSTATUS
-MtReadFile(
-    IN HANDLE FileHandle,
-    IN uint64_t FileOffset,
-    OUT void* Buffer,
-    IN size_t BufferSize,
-    _Out_Opt size_t* BytesRead
-);
-
-MTSTATUS
-MtWriteFile(
-    IN HANDLE FileHandle,
-    IN uint64_t FileOffset,
-    IN void* Buffer,
-    IN size_t BufferSize,
-    _Out_Opt size_t* BytesWritten
-);
-
-MTSTATUS
-MtCreateFile(
-    IN const char* path,
-    IN ACCESS_MASK DesiredAccess,
-    OUT PHANDLE FileHandleOut
-);
-
-MTSTATUS
-MtClose(
-    IN HANDLE hObject
-);
-
-MTSTATUS
-MtTerminateThread(
-    IN HANDLE ThreadHandle,
-    IN MTSTATUS ExitStatus
-);
-
-MTSTATUS
-MtQueryVirtualMemory(
-    IN HANDLE ProcessHandle,
-    IN void* BaseAddress,
-    OUT PMEMORY_BASIC_INFORMATION MemoryInformation
-);
-
-MTSTATUS
-MtProtectVirtualMemory(
-    IN HANDLE ProcessHandle,
-    IN OUT void** BaseAddress,
-    IN OUT size_t* RegionSize,
-    IN USER_PROTECTION_TYPE NewProtection,
-    OUT USER_PROTECTION_TYPE* OldProtection
-);
-
-MTSTATUS
-MtFreeVirtualMemory(
-    IN HANDLE ProcessHandle,
-    IN OUT void** BaseAddress,
-    IN OUT size_t* NumberOfBytes,
-    IN enum _FREE_TYPE FreeType
-);
-
-MTSTATUS
-MtCreateThread(
-    IN HANDLE ProcessHandle,
-    IN THREAD_START_ROUTINE StartRoutine,
-    IN void* Argument,
-    OUT PHANDLE ThreadHandle
-);
-
-NORETURN void
-MtContinue(
-    PTRAP_FRAME OldTrapFrame
-);
-
-MTSTATUS
-MtSleep(
-    IN uint64_t Milliseconds
-);
-
-MTSTATUS
-MtWaitForSingleObject(
-    IN HANDLE ObjectHandle,
-    IN uint64_t Milliseconds,
-    IN bool Alertable
-);
-
-// eventz
-MTSTATUS
-MtCreateEvent(
-    OUT PHANDLE EventHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN EVENT_TYPE EventType,
-    IN bool InitialState,
-    _In_Opt const char* Name // unsupported currently
-);
-
-MTSTATUS
-MtQueryEvent(
-    IN HANDLE EventHandle,
-    OUT bool* SignalState
-);
-
-MTSTATUS
-MtSetEvent(
-    IN HANDLE EventHandle,
-    _Out_Opt bool* PreviousState
-);
-
-MTSTATUS
-MtResetEvent(
-    IN HANDLE EventHandle,
-    _Out_Opt bool* PreviousState
-);
-
-// mutex
-MTSTATUS
-MtCreateMutex(
-    OUT PHANDLE MutexHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN bool InitialOwner,
-    _In_Opt const char* Name // unsupported currently
-);
-
-MTSTATUS
-MtQueryMutex(
-    IN HANDLE MutexHandle,
-    OUT MUTEX_BASIC_INFORMATION* Information
-);
-
-MTSTATUS
-MtReleaseMutex(
-    IN HANDLE MutexHandle,
-    _Out_Opt int32_t* PreviousCount
-);
-
-// sempa phore
-MTSTATUS
-MtCreateSemaphore(
-    OUT PHANDLE SemaphoreHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN int32_t InitialCount,
-    IN int32_t MaximumCount,
-    _In_Opt const char* Name // unsupported currently
-);
-
-MTSTATUS
-MtQuerySemaphore(
-    IN HANDLE SemaphoreHandle,
-    OUT SEMAPHORE_BASIC_INFORMATION* Information
-);
-
-MTSTATUS
-MtReleaseSemaphore(
-    IN HANDLE SemaphoreHandle,
-    IN int32_t ReleaseCount,
-    _Out_Opt int32_t* PreviousCount
-);
-
-MTSTATUS
-MtPrintConsole(
-    IN uint32_t Color,
-    IN const char* String
+NORETURN
+void
+MtpScheduleBlockedSyscall(
+    IN PITHREAD Thread,
+    IN MTSTATUS ReturnStatus
 );
 
 #endif

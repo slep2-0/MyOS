@@ -53,3 +53,24 @@ TerminateProcess(
 
     return MT_SUCCEEDED(Status);
 }
+
+bool
+GetExitCodeProcess(
+    IN  HANDLE ProcessHandle,
+    OUT uint32_t* ExitCode
+)
+
+{
+    PROCESS_BASIC_INFORMATION BasicInfo;
+    MTSTATUS Status = MtQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &BasicInfo, sizeof(PROCESS_BASIC_INFORMATION), NULL);
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+
+    bool Success = MT_SUCCEEDED(Status);
+
+    if (Success) {
+        *ExitCode = BasicInfo.ExitStatus;
+    }
+
+    return Success;
+}

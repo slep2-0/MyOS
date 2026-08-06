@@ -34,11 +34,15 @@ MsAcquireSpinlock (
 	if (!lock) return;
 	// spin until we grab the lock.
 	MeRaiseIrql(DISPATCH_LEVEL, OldIrql);
+
+#ifndef MT_UP
 	while (__sync_lock_test_and_set(&lock->locked, 1)) {
 		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
 	}
 	// Memory barrier to prevent instruction reordering
 	__asm__ volatile("" ::: "memory");
+#endif
+
 }
 
 void 
@@ -65,8 +69,10 @@ MsReleaseSpinlock (
 {
 	if (!lock) return;
 	// Memory barrier before release
+#ifndef MT_UP
 	__asm__ volatile("" ::: "memory");
 	__sync_lock_release(&lock->locked);
+#endif
 	MeLowerIrql(OldIrql);
 }
 
@@ -88,12 +94,14 @@ MsAcquireSpinlockAtDpcLevel(
 		);
 	}
 	
+#ifndef MT_UP
 	// Acquire the spinlock.
 	while (__sync_lock_test_and_set(&Lock->locked, 1)) {
 		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
 	}
 	// Memory barrier to prevent instruction reordering
 	__asm__ volatile("" ::: "memory");
+#endif
 }
 
 void
@@ -114,9 +122,11 @@ MsReleaseSpinlockFromDpcLevel(
 		);
 	}
 
+#ifndef MT_UP
 	// Release the spinlock.
 	__asm__ volatile("" ::: "memory");
 	__sync_lock_release(&Lock->locked);
+#endif
 }
 
 #endif

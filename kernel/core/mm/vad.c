@@ -24,6 +24,80 @@ Revision History:
 #include "../../assert.h"
 #include "../../includes/exception.h"
 
+#ifdef DEBUG
+static
+int
+MipValidateVadNodeLocked(
+    IN PMMVAD Node,
+    IN PMMVAD ExpectedParent,
+    IN PEPROCESS Process,
+    IN PMMVAD RemovedNode,
+    IN uint32_t Depth
+)
+{
+    if (!Node) return -1;
+
+    assert(Depth < 128, "VAD tree contains a cycle or excessive depth.");
+    assert(Node != RemovedNode, "Deleted VAD remains linked in the tree.");
+    assert(Node->Parent == ExpectedParent, "VAD parent pointer is incorrect.");
+    assert(Node->OwningProcess == Process, "VAD belongs to the wrong process.");
+    assert(Node->StartVa <= Node->EndVa, "VAD has an inverted address range.");
+
+    if (Node->LeftChild) {
+        assert(Node->LeftChild->EndVa < Node->StartVa,
+            "Left VAD overlaps or follows its parent.");
+    }
+    if (Node->RightChild) {
+        assert(Node->EndVa < Node->RightChild->StartVa,
+            "Right VAD overlaps or precedes its parent.");
+    }
+
+    int LeftHeight = MipValidateVadNodeLocked(
+        Node->LeftChild,
+        Node,
+        Process,
+        RemovedNode,
+        Depth + 1
+    );
+    int RightHeight = MipValidateVadNodeLocked(
+        Node->RightChild,
+        Node,
+        Process,
+        RemovedNode,
+        Depth + 1
+    );
+    int ExpectedHeight = 1 + MAX(LeftHeight, RightHeight);
+
+    assert(Node->Height == ExpectedHeight, "VAD height is stale.");
+    assert(RightHeight - LeftHeight >= -1 &&
+        RightHeight - LeftHeight <= 1,
+        "VAD tree is not AVL balanced.");
+
+    return ExpectedHeight;
+}
+
+static
+void
+MipValidateVadTreeLocked(
+    IN PEPROCESS Process,
+    IN PMMVAD RemovedNode
+)
+{
+    if (Process->VadRoot) {
+        assert(Process->VadRoot->Parent == NULL,
+            "VAD root has a parent.");
+    }
+
+    (void)MipValidateVadNodeLocked(
+        Process->VadRoot,
+        NULL,
+        Process,
+        RemovedNode,
+        0
+    );
+}
+#endif
+
 FORCEINLINE
 int
 MiGetNodeHeight(
@@ -974,6 +1048,9 @@ MmAllocateVirtualMemory(
     // Insert the VAD into the the process's tree.
     Process->VadRoot = MiInsertVadNode(Process->VadRoot, newVad);
     Process->VadRoot->Parent = NULL;
+#ifdef DEBUG
+    MipValidateVadTreeLocked(Process, NULL);
+#endif
     *BaseAddress = (void*)StartVa;
     status = MT_SUCCESS;
 
@@ -1145,6 +1222,9 @@ MmFreeVirtualMemory(
         // MEM_RELEASE completely deletes the VAD.
         Process->VadRoot = MiDeleteVadNode(Process->VadRoot, VadToFree);
         if (Process->VadRoot) Process->VadRoot->Parent = NULL;
+#ifdef DEBUG
+        MipValidateVadTreeLocked(Process, VadToFree);
+#endif
         if ((VadToFree->Flags & VAD_FLAG_MAPPED_FILE) && VadToFree->File) {
             ObDereferenceObject(VadToFree->File);
         }

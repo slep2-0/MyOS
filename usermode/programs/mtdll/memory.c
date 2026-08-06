@@ -21,6 +21,41 @@ Revision History:
 #include "includes/errorhandlingapi.h"
 
 void*
+memcpy(
+    void* Destination,
+    const void* Source,
+    size_t Size
+)
+
+{
+    uint8_t* DestinationBytes = (uint8_t*)Destination;
+    const uint8_t* SourceBytes = (const uint8_t*)Source;
+
+    for (size_t Index = 0; Index < Size; Index++) {
+        DestinationBytes[Index] = SourceBytes[Index];
+    }
+
+    return Destination;
+}
+
+void* 
+memset(
+    void* Destination,
+    int Value,
+    size_t Size
+)
+
+{
+    unsigned char* Bytes = (unsigned char*)Destination;
+
+    while (Size--) {
+        *Bytes++ = (unsigned char)Value;
+    }
+
+    return Destination;
+}
+
+void*
 VirtualAlloc(
     _In_Opt _Out_Opt void** BaseAddress,
     IN size_t AllocationSize,

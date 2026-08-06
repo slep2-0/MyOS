@@ -198,40 +198,29 @@ PspFindMtdllEntryAddress(
 )
 
 {
+    if (!RoutineName || !Thread || !Thread->ParentProcess) {
+        return 0;
+    }
+
     void* FunctionRva = PspFindMtdllEntryRva(NULL, RoutineName);
 
     if (!FunctionRva) {
         return 0;
     }
 
-    uintptr_t ActualAddress = 0;
     PEPROCESS Process = Thread->ParentProcess;
+    uintptr_t MtdllBase = (uintptr_t)Process->MtdllBase;
+    uintptr_t FunctionOffset = (uintptr_t)FunctionRva;
 
-    // Try to find MTDLL base in memory using the PEB.
-    try {
-        PPEB Peb = Process->Peb;
-
-        PDOUBLY_LINKED_LIST Head = &Peb->LoaderData.LoadedModuleList;
-        PDOUBLY_LINKED_LIST Current = Peb->LoaderData.LoadedModuleList.Flink;
-
-        while (Head != Current) {
-            LDR_DATA_TABLE_ENTRY* Entry = CONTAINING_RECORD(Current, LDR_DATA_TABLE_ENTRY, LoadedModuleList);
-
-            if (kstrcmp(Entry->FullName, MTDLL_PATH) == 0) {
-                // This is MTDLL, add base + entry.
-                ActualAddress = (uintptr_t)Entry->Base + (uintptr_t)FunctionRva;
-                break;
-            }
-
-            Current = Current->Flink;
-        }
-
-    } except{
+    // The PEB loader list belongs to user mode and cannot be trusted to choose
+    // a privileged dispatch target. Resolve the kernel-cached RVA against the
+    // base recorded when this process's MTDLL section was mapped.
+    if (!MtdllBase || MtdllBase > MmHighestUserAddress ||
+        FunctionOffset > MmHighestUserAddress - MtdllBase) {
         return 0;
     }
-    end_try;
 
-    return ActualAddress;
+    return MtdllBase + FunctionOffset;
 }
 
 static
@@ -250,22 +239,24 @@ PspRelocateImage(
         return MT_SUCCESS;
     }
 
-    if (Header->reloc_size % sizeof(Rela) != 0 ||
+    if (Header->reloc_size % sizeof(MTE_RELOCATION) != 0 ||
         Header->reloc_rva > ImageSize ||
         Header->reloc_size > ImageSize - Header->reloc_rva) {
         return MT_INVALID_IMAGE_FORMAT;
     }
 
     // Point to the relocation table
-    Rela* reloc_table = (Rela*)((uintptr_t)ImageBase + Header->reloc_rva);
-    size_t count = Header->reloc_size / sizeof(Rela);
+    MTE_RELOCATION* reloc_table =
+        (MTE_RELOCATION*)((uintptr_t)ImageBase + Header->reloc_rva);
+    size_t count = Header->reloc_size / sizeof(MTE_RELOCATION);
 
     // Iterate and Fix
     for (size_t i = 0; i < count; i++) {
-        Rela* entry = &reloc_table[i];
+        MTE_RELOCATION* entry = &reloc_table[i];
 
         // The MTE packer emits only normalized image-relative relocations.
-        if ((entry->r_info & 0xFFFFFFFF) != R_X86_64_RELATIVE ||
+        if ((entry->r_info & 0xFFFFFFFF) !=
+            MTE_RELOCATION_X86_64_RELATIVE ||
             (entry->r_info >> 32) != 0 ||
             entry->r_offset > ImageSize - sizeof(uintptr_t) ||
             entry->r_addend < 0 ||
@@ -342,6 +333,11 @@ PsCreateProcess(
     Status = ObCreateObject(PsProcessType, sizeof(EPROCESS), (void*)&Process);
     if (MT_FAILURE(Status)) goto Cleanup;
 
+    // No MTDLL mapping is trusted until its image has been mapped, validated,
+    // and relocated successfully below.
+    Process->MtdllSection = NULL;
+    Process->MtdllBase = NULL;
+
     // CleanupWithRef from now on.
     // Assume failure status.
     Status = MT_GENERAL_FAILURE;
@@ -354,6 +350,7 @@ PsCreateProcess(
 
     // Initialize Dispatcher Header
     MsInitializeDispatcherHeader(&Process->InternalProcess.Header, 0, DispatcherProcess);
+    Process->ExitStatus = MT_PENDING;
 
     // Set its parent process handle.
     Process->ParentProcess = ParentProcess;
@@ -449,6 +446,11 @@ PsCreateProcess(
     MeDetachProcess(&RelocApcState);
 
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+
+    // Publish the trusted mapping base only after image validation and
+    // relocation have completed. Kernel dispatch paths never consult the
+    // user-writable PEB loader list for this address.
+    Process->MtdllBase = MtdllBase;
     
     // Actual LdrInitializeProcess of MTDLL.
     void* MtdllInitializeProcess = (void*)((uintptr_t)MtdllBase + (uintptr_t)MtdllInitializeProcessRva);
@@ -657,11 +659,24 @@ PsTerminateProcess(
     MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
     
     // Set the process as terminating in its flags.
-    PROCESS_FLAGS FlagBefore = InterlockedOr32((volatile int32_t*)&Process->Flags, ProcessBeingTerminated);
-    if (FlagBefore & ProcessBeingTerminated) return MT_PROCESS_IS_TERMINATING;
+    int32_t PreviousFlags = InterlockedOr32(
+        (volatile int32_t*) & Process->Flags,
+        ProcessBeingTerminated
+    );
 
-    Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
-    Process->ExitStatus = ExitCode;
+    if (PreviousFlags & ProcessBeingTerminated) {
+        return MT_PROCESS_IS_TERMINATING;
+    }
+
+    IRQL oldIrql;
+    MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &oldIrql);
+
+    if (Process->InternalProcess.ProcessState != PROCESS_TERMINATED) {
+        Process->InternalProcess.ProcessState = PROCESS_TERMINATING;
+        Process->ExitStatus = ExitCode;
+    }
+
+    MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, oldIrql);
 
     // PsGetNextProcessThread transfers a safe reference from the previous
     // cursor to the next one while holding ThreadListLock. Thread list entries

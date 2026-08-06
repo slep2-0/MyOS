@@ -1,6 +1,6 @@
 // Include standard header.
-#include "../../headers/MatanelOS.h"
-#include "../../headers/mtstatus.h"
+#include <MatanelOS.h>
+#include <mtstatus.h>
 
 /// Colors definitions for easier access
 #define COLOR_RED        0xFFFF0000
@@ -66,7 +66,7 @@ int main(void) {
     }
 
     // Write.
-    char Hello[] = "ascendz mcdonalds adiravraham ofirs";
+    char Hello[] = "ben zonaaaaaaaaaaaaaaa";
     bool Worked = WriteFile(FileHandle, 0, Hello, strlen(Hello), NULL);
     if (!Worked) {
         ExitCode = MT_FAT32_INVALID_FILENAME;

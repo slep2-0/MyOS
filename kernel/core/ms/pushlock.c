@@ -22,7 +22,8 @@ MsAcquirePushLockExclusive(
 )
 {
     assert(Lock != NULL);
-    MeEnterCriticalRegion();
+    assert(MeGetCurrentIrql() <= APC_LEVEL,
+        "Push locks may wait and cannot be acquired at DISPATCH_LEVEL.");
 
     while (InterlockedCompareExchangeU64(&Lock->Value, PL_LOCK_BIT, 0) != 0) {
         MhSpinAndProcessIpis();
@@ -44,7 +45,6 @@ MsReleasePushLockExclusive(
 
     assert(Previous == PL_LOCK_BIT, "Exclusive push lock released without ownership.");
     (void)Previous;
-    MeLeaveCriticalRegion();
 }
 
 void
@@ -53,7 +53,8 @@ MsAcquirePushLockShared(
 )
 {
     assert(Lock != NULL);
-    MeEnterCriticalRegion();
+    assert(MeGetCurrentIrql() <= APC_LEVEL,
+        "Push locks may wait and cannot be acquired at DISPATCH_LEVEL.");
 
     for (;;) {
         uint64_t Value = InterlockedLoad(&Lock->Value);
@@ -97,7 +98,6 @@ MsReleasePushLockShared(
             Value - PL_SHARE_INC,
             Value
         ) == Value) {
-            MeLeaveCriticalRegion();
             return;
         }
 

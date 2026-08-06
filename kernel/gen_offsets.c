@@ -50,7 +50,6 @@ int main(void) {
     GEN_COMMENT("PROCESSOR Structure Offsets (gs:[...])");
     GEN_OFFSET(PROCESSOR, self);
     GEN_OFFSET(PROCESSOR, currentIrql);
-    GEN_OFFSET(PROCESSOR, schedulerEnabled);
     GEN_OFFSET(PROCESSOR, currentThread);
     GEN_OFFSET(PROCESSOR, readyQueue);
     GEN_OFFSET(PROCESSOR, ID);
@@ -91,11 +90,15 @@ int main(void) {
 
     GEN_COMMENT("ITHREAD Offsets (Internal Thread)");
     GEN_OFFSET(ITHREAD, TrapRegisters);
+    GEN_OFFSET(ITHREAD, ApcState);
     GEN_OFFSET(ITHREAD, ThreadState);
     GEN_OFFSET(ITHREAD, StackBase);
     GEN_OFFSET(ITHREAD, IsLargeStack);
     GEN_OFFSET(ITHREAD, PreviousMode);
     GEN_OFFSET(ITHREAD, KernelStack);
+
+    GEN_COMMENT("APC_STATE Offsets");
+    GEN_OFFSET(APC_STATE, SavedApcProcess);
 
     GEN_COMMENT("IPROCESS Offsets (Internal Process)");
     GEN_OFFSET(IPROCESS, PageDirectoryPhysical);

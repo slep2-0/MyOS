@@ -71,6 +71,7 @@ MtSyscallHandler(
 
     // Enable interrupts, its safe now.
     __sti();
+
     // Grab arguments
     // The return value is stored in RAX, and I dont want to do more assembly
     // Spare me.
@@ -102,7 +103,31 @@ MtSyscallHandler(
     // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
 
-Exit:
-    MeRetireApcsOnSyscallExit(TrapFrame);
+Exit: {
+    MeDisableInterrupts();
+    // SYSCALL saves only the 15 GPRs followed by user RSP. RCX and R11 carry
+    // the architectural return RIP/RFLAGS. Expand that compact layout into a
+    // complete CPL3 frame so user APC injection has real CS/SS/RSP fields.
+    TRAP_FRAME UserFrame;
+    kmemset(&UserFrame, 0, sizeof(UserFrame));
+    kmemcpy(&UserFrame, TrapFrame, FIELD_OFFSET(TRAP_FRAME, vector));
+    UserFrame.rip = TrapFrame->rcx;
+    UserFrame.cs = USER_CS;
+    UserFrame.rflags = TrapFrame->r11;
+    UserFrame.rsp = TrapFrame->vector;
+    UserFrame.ss = USER_SS;
+    MePrepareUserDispatchForReturn(&UserFrame);
+
+    kmemcpy(
+        TrapFrame,
+        &UserFrame,
+        FIELD_OFFSET(TRAP_FRAME, vector)
+    );
+
+    TrapFrame->rcx = UserFrame.rip;
+    TrapFrame->r11 = UserFrame.rflags;
+    TrapFrame->vector = UserFrame.rsp;
+
     CurrentThread->SyscallTrap = NULL;
+    }
 }

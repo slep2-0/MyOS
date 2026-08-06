@@ -15,6 +15,9 @@ from mte_pack import ElfImage, MTE_RELOCATION, metadata_size, pack_image, analyz
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).resolve().parent / "tests/relocation_fixture.c"
+NATIVE_HEADER_FIXTURE = (
+    Path(__file__).resolve().parent / "tests/native_header_fixture.c"
+)
 LINKER_SCRIPT = ROOT / "usermode/mtdll.ld"
 HEADER = struct.Struct("<4s13Q20s")
 
@@ -47,13 +50,31 @@ def main() -> int:
                 args.clang,
                 "--target=x86_64-none-elf",
                 "-m64",
+                "-std=gnu11",
+                "-ffreestanding",
+                "-nostdlib",
+                "-fno-builtin",
+                "-fsyntax-only",
+                "-I",
+                str(ROOT / "shared/include"),
+                str(NATIVE_HEADER_FIXTURE),
+            ]
+        )
+
+        run(
+            [
+                args.clang,
+                "--target=x86_64-none-elf",
+                "-m64",
                 "-ffreestanding",
                 "-nostdlib",
                 "-fno-builtin",
                 "-fno-asynchronous-unwind-tables",
                 "-fPIC",
                 "-fvisibility=hidden",
-                "-DMTDLL_BUILD",
+                "-DMATANELOS_BUILDING_MTDLL",
+                "-I",
+                str(ROOT / "shared/include"),
                 "-c",
                 str(FIXTURE),
                 "-o",
@@ -138,7 +159,10 @@ def main() -> int:
         if rebased_image + addend_rva != 0x500000 + expected_addend:
             raise RuntimeError("rebased relocation arithmetic is incorrect")
 
-    print("[MTE TEST] PASS (export discovery + normalized base relocation)")
+    print(
+        "[MTE TEST] PASS "
+        "(native header + export discovery + normalized base relocation)"
+    )
     return 0
 
 

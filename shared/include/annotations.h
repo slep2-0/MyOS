@@ -38,6 +38,7 @@
 #define PACKED __attribute__((packed))
 #define COMPILE_WARNING(msg) __attribute__((warning(msg)))
 #define COMPILE_ERROR(msg) __attribute__((error(msg)))
+#define RETURNS_TWICE __attribute__((returns_twice))
 
 #if defined(__i386__) || defined(__x86_64__)
 #define SYSV_ABI __attribute__((sysv_abi))
@@ -70,6 +71,7 @@
 #define PACKED
 #define COMPILE_WARNING(msg) __declspec(deprecated(msg))
 #define COMPILE_ERROR(msg)
+#define RETURNS_TWICE
 #define SYSV_ABI
 #define MS_ABI
 #define NOINLINE __declspec(noinline)
@@ -85,6 +87,7 @@
 #define PACKED
 #define COMPILE_WARNING(msg)
 #define COMPILE_ERROR(msg)
+#define RETURNS_TWICE
 #define SYSV_ABI
 #define MS_ABI
 #define NOINLINE
@@ -106,5 +109,21 @@
         offsetof(struc, member) == (offset),                         \
         "The offset of " #member " in " #struc " is not " #offset \
     )
+
+// Address Manipulation And Checks
+#ifdef MATANELOS_INTELLISENSE
+#ifndef MI_IS_CANONICAL_ADDR
+/* MSVC's language service cannot parse GNU statement expressions. */
+#define MI_IS_CANONICAL_ADDR(va) \
+    ((((uint64_t)(va) >> 48) == 0) || (((uint64_t)(va) >> 48) == 0xFFFF))
+#else
+#define MI_IS_CANONICAL_ADDR(va) \
+({ \
+    uint64_t _va = (uint64_t)(va); \
+    uint64_t _mask = ~((1ULL << 48) - 1); /* bits 63:48 */ \
+    ((_va & _mask) == 0 || (_va & _mask) == _mask); \
+})
+#endif
+#endif
 
 #endif /* MATANELOS_SHARED_ANNOTATIONS_H */

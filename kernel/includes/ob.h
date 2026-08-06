@@ -75,8 +75,6 @@ extern POBJECT_TYPE PsProcessType;
 extern POBJECT_TYPE PsThreadType;
 extern POBJECT_TYPE MmSectionType;
 
-typedef uint32_t ACCESS_MASK;
-
 void ObInitialize(void);
 void ObInitializeReaperThread(void);
 

@@ -2,6 +2,7 @@
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/mt.h"
 #include "../../assert.h"
 
 SPINLOCK MsTimerQueueLock;
@@ -120,9 +121,16 @@ MsCompleteThreadWait(
     assert(IsListEmpty(&Thread->WaitBlock.TimerListEntry));
     assert(Thread->WaitStatus != MT_PENDING);
 
+    // WaitStatus selects one winner, but the target CPU must not reuse its
+    // embedded wait block until that winner has finished queue cleanup.
+    InterlockedStoreRelease(
+        &Thread->WaitCompletionComplete,
+        true
+    );
+
     // THREAD_BLOCKING still owns a live kernel stack on its current CPU. The
-    // scheduler observes the completed WaitStatus and makes it runnable as
-    // part of the switch-away transaction.
+    // scheduler observes WaitCompletionComplete and makes it runnable as part
+    // of the switch-away transaction.
     // See the THREAD_BLOCKING handshake in the scheduler switch-away path.
     if (__sync_val_compare_and_swap(
         &Thread->ThreadState,
@@ -249,6 +257,114 @@ void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2) {
     MeLowerIrql(oldTimerIrql);
 }
 
+MTSTATUS
+MsDelayExecution(
+    IN PRIVILEGE_MODE WaitMode,
+    IN bool Alertable,
+    IN uint64_t Milliseconds
+)
+
+/*++
+
+    Routine Description:
+
+        Delays the current thread for at least the requested relative interval.
+        This routine is shared by native user-mode callers and kernel threads.
+
+    Arguments:
+
+        WaitMode -
+
+            Identifies whether the request originated in kernel mode or user
+            mode. This will select stack-paging behavior when it is added.
+
+        Alertable -
+
+            Requests an alertable delay. APC interruption is not implemented
+            yet, so the value is currently retained only by the API contract.
+
+        Milliseconds -
+
+            Relative delay in milliseconds. Zero yields the remainder of the
+            current quantum without entering the timer queue.
+
+    Return Value:
+
+        Returns MT_SUCCESS after the delay expires, or the status published by
+        another wait-completion source if it wins the wait first.
+
+--*/
+
+{
+    assert(WaitMode == KernelMode || WaitMode == UserMode);
+    assert(MeGetCurrentIrql() <= APC_LEVEL);
+    UNREFERENCED_PARAMETER(WaitMode);
+    UNREFERENCED_PARAMETER(Alertable);
+
+    PITHREAD CurrentThread = MeGetCurrentThread();
+
+    if (Milliseconds == 0) {
+        // A zero interval is a scheduling yield, not a timer-backed wait.
+        if (WaitMode == UserMode && CurrentThread->SyscallTrap != NULL) {
+            MtpScheduleBlockedSyscall(CurrentThread, MT_SUCCESS);
+        }
+
+        MsYieldExecution(&CurrentThread->TrapRegisters);
+        return MT_SUCCESS;
+    }
+
+    // Convert milliseconds to ticks and round a partial tick upward so the
+    // thread cannot resume before the requested interval has elapsed.
+    uint64_t Ticks = Milliseconds / TICK_MS;
+    if (Milliseconds % TICK_MS) Ticks++;
+
+    uint64_t Now = InterlockedLoadAcquire(&MeSystemTickCount);
+    uint64_t WakeupTime = WILL_ADD_OVERFLOW(Now, Ticks)
+        ? UINT64_MAX
+        : Now + Ticks;
+
+    // Publish THREAD_BLOCKING only after interrupts are disabled locally. The
+    // timer registration and scheduler switch-away handshake then appear as
+    // one uninterrupted operation to this processor.
+    bool InterruptsEnabled = MeDisableInterrupts();
+    CurrentThread->WaitStatus = MT_PENDING;
+    InterlockedStoreRelease(
+        &CurrentThread->WaitCompletionComplete,
+        false
+    );
+    CurrentThread->ThreadState = THREAD_BLOCKING;
+    INIT_WAIT_BLOCK(
+        CurrentThread,
+        NULL,
+        WaitReasonSleep,
+        WakeupTime
+    );
+    MsInsertTimerQueue(CurrentThread, WakeupTime);
+    MeEnableInterrupts(InterruptsEnabled);
+
+    // A blocked syscall must retain a CPL3 return frame for user APC and
+    // exception delivery. Kernel callers instead resume their saved C
+    // continuation below after the timer completes.
+    if (WaitMode == UserMode && CurrentThread->SyscallTrap != NULL) {
+        MtpScheduleBlockedSyscall(CurrentThread, MT_SUCCESS);
+    }
+
+    // Save a kernel continuation and let the scheduler run another thread.
+    // This path works for system threads and for a user thread inside a syscall.
+    MsYieldExecution(&CurrentThread->TrapRegisters);
+
+    // The winning wake source removes all registrations before publishing
+    // completion and making this thread runnable again.
+    assert(InterlockedLoadAcquire(
+        &CurrentThread->WaitCompletionComplete
+    ));
+
+    MTSTATUS CompletionStatus = CurrentThread->WaitStatus;
+    return CompletionStatus == MT_TIMEOUT
+        ? MT_SUCCESS
+        : CompletionStatus;
+}
+
 static
 bool
 MspCanSatisfyDispatcherObject(
@@ -336,7 +452,7 @@ MspSatisfyDispatcherObject(
         assert(Header->SignalState > 0 || Mutex->OwnerThread == Thread);
 
         if (Header->SignalState == INT32_MIN) {
-            return MT_MUTEX_LIMIT_EXCEEDED; // Would terminate
+            return MT_MUTEX_LIMIT_EXCEEDED; // Would terminate -> FIXME Status Raise for user mode __try except, then termination if no handler with mutex limit exceeded.
         }
 
         // SignalState alone tracks recursion: 1 is free, 0 is the first
@@ -438,6 +554,10 @@ MsWaitForSingleObject(
 
     // The object cannot satisfy the wait now, so register and park the thread.
     Thread->InternalThread.WaitStatus = MT_PENDING;
+    InterlockedStoreRelease(
+        &Thread->InternalThread.WaitCompletionComplete,
+        false
+    );
     Thread->InternalThread.ThreadState = THREAD_BLOCKING;
     Thread->InternalThread.WaitBlock.Object = Header;
     Thread->InternalThread.WaitBlock.WaitReason = WaitReasonDispatcherObject;
@@ -451,7 +571,7 @@ MsWaitForSingleObject(
         uint64_t Ticks = TimeoutMs / TICK_MS;
         
         // Round up so any nonzero sub-tick timeout waits for at least one tick.
-        if (TimeoutMs    % TICK_MS) Ticks++;
+        if (TimeoutMs % TICK_MS) Ticks++;
 
         // Calculate absolute time in the system to wake the thread up
         uint64_t Now = InterlockedLoadAcquire(&MeSystemTickCount);
@@ -471,6 +591,9 @@ MsWaitForSingleObject(
     // The winning wake source published the final status before making this
     // thread runnable. This may be success, timeout, abandonment, or teardown.
     MTSTATUS finalStatus = Thread->InternalThread.WaitStatus;
+    assert(InterlockedLoadAcquire(
+        &Thread->InternalThread.WaitCompletionComplete
+    ));
 
     // The winning wake path removes both queue registrations before completing
     // the wait; MsCompleteThreadWait asserts that ownership rule.

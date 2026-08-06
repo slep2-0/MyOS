@@ -119,7 +119,7 @@ MTSTATUS
 MmAccessFault(
     IN  uint64_t FaultBits,
     IN  uint64_t VirtualAddress,
-    IN  PRIVILEGE_MODE PreviousMode,
+    IN  PRIVILEGE_MODE FaultMode,
     IN  PTRAP_FRAME TrapFrame
 )
 
@@ -141,7 +141,7 @@ MmAccessFault(
 
         [IN]    FaultBits - The error code pushed by the CPU.
         [IN]    VirtualAddress - The Memory Address Referenced (CR2)
-        [IN]    PreviousMode - Supplies the mode (kernel or user) where the fault occured.
+        [IN]    FaultMode - Supplies the mode (kernel or user) where the fault occured.
         [IN]    TrapFrame - Trap information at fault.
 
     Return Values:
@@ -161,7 +161,7 @@ MmAccessFault(
     // Page-table helpers only accept canonical addresses. Validate CR2 before
     // constructing any recursive-map pointer from it.
     if (!MI_IS_CANONICAL_ADDR(VirtualAddress)) {
-        if (PreviousMode == UserMode) {
+        if (FaultMode == UserMode) {
             return MT_ACCESS_VIOLATION;
         }
 
@@ -182,12 +182,12 @@ MmAccessFault(
     IRQL PreviousIrql = MeGetCurrentIrql();
 
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, PreviousMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | FaultMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, FaultMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
     if (!ReferencedPte) {
         // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
-        if (PreviousMode == UserMode) {
+        if (FaultMode == UserMode) {
             return MT_ACCESS_VIOLATION;
         }
 
@@ -219,11 +219,15 @@ MmAccessFault(
 
     // Now we check for each address in the system, and handle the request based on that.
     if (VirtualAddress >= MmSystemRangeStart) {
-        if (PreviousMode == UserMode) {
+        if (FaultMode == UserMode) {
             // User mode access in kernel memory, invalid.
             return MT_ACCESS_VIOLATION;
         }
 
+        //
+        // FaultMode == KernelMode from now on.
+        //
+        
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
         if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
             // Guard pages for kernel mode do not raise an exception and fill in the PTE, this is only for user mode.
@@ -629,26 +633,39 @@ MmAccessFault(
     // This comment means execution is impossible to reach here, as we sanitized all (valid) addresses in the 48bit paging hierarchy.
     // If it does reach here, look below.
 
-BugCheck:
-    // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL or ATTEMPTED_WRITE_TO_READONLY_MEMORY are handled above.
+BugCheck: {
+    // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL are handled above.
+
+    FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(TrapFrame->error_code);
 
     // Check if its a NoExecute page violation
     if (ReferencedPte->Hard.Present && ReferencedPte->Hard.NoExecute && OperationDone == ExecuteOperation) {
         MeBugCheckEx(
             ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)ReferencedPte,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
     }
-    
+
+    // Check if we have attempted to write on a readonly page.
+    if (OperationDone == WriteOperation && ReferencedPte->Hard.Write == 0 && ReferencedPte->Hard.Present) {
+        MeBugCheckEx(
+            ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+            (void*)VirtualAddress,
+            (void*)ReferencedPte,
+            (void*)TrapFrame->rip,
+            (void*)FaultBits
+        );
+    }
+
     // Check if its a guard page violation
     if (ReferencedPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
         MeBugCheckEx(
             GUARD_PAGE_DEREFERENCE,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -659,7 +676,7 @@ BugCheck:
         MeBugCheckEx(
             PAGE_FAULT_IN_FREED_NONPAGED_POOL,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -670,7 +687,7 @@ BugCheck:
         MeBugCheckEx(
             PAGE_FAULT_IN_FREED_PAGED_POOL,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -680,38 +697,9 @@ BugCheck:
     MeBugCheckEx(
         PAGE_FAULT,
         (void*)VirtualAddress,
-        (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+        (void*)OperationDone,
         (void*)TrapFrame->rip,
         (void*)FaultBits
     );
-}
-
-bool
-MmInvalidAccessAllowed(
-    void
-)
-
-/*++
-
-    Routine description:
-        (UNUSED, ALWAYS FALSE)
-        This function determines if invalid access (e.g, a null pointer dereference), is allowed within the current context.
-
-    Arguments:
-
-        None.
-
-    Return Values:
-
-        True if invalid access is allowed, false otherwise.
-
-    Notes:
-
-        This routine is unused, but will be kept for future modifications if any.
-
---*/
-
-
-{
-    return false;
+    }
 }

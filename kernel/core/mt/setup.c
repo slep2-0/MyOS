@@ -49,7 +49,7 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 10, .Handler = MtFreeVirtualMemory},
     {.Num = 11, .Handler = MtCreateThread},
     {.Num = 12, .Handler = MtContinue},
-    {.Num = 13, .Handler = MtSleep},
+    {.Num = 13, .Handler = MtDelayExecution},
     {.Num = 14, .Handler = MtWaitForSingleObject},
     {.Num = 15, .Handler = MtCreateEvent},
     {.Num = 16, .Handler = MtQueryEvent},
@@ -61,6 +61,11 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 22, .Handler = MtCreateSemaphore},
     {.Num = 23, .Handler = MtQuerySemaphore},
     {.Num = 24, .Handler = MtReleaseSemaphore},
+    {.Num = 25, .Handler = MtQueryInformationProcess},
+    {.Num = 26, .Handler = MtQueryInformationThread},
+    {.Num = 27, .Handler = MtSuspendThread},
+    {.Num = 28, .Handler = MtResumeThread},
+    {.Num = 29, .Handler = MtRaiseException},
     {.Num = 255, .Handler = MtPrintConsole}
 };
 

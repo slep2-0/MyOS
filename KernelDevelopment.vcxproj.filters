@@ -12,24 +12,541 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="kernel\**\*.c" Exclude="kernel\gen_offsets.c"><Filter>Kernel</Filter></ClCompile>
-    <ClCompile Include="usermode\**\*.c"><Filter>User mode</Filter></ClCompile>
-    <ClInclude Include="kernel\**\*.h"><Filter>Kernel</Filter></ClInclude>
-    <ClInclude Include="usermode\**\*.h"><Filter>User mode</Filter></ClInclude>
-    <None Include="kernel\**\*.asm"><Filter>Kernel</Filter></None>
-    <None Include="kernel\gen_offsets.c"><Filter>Build tools</Filter></None>
-    <None Include="usermode\**\*.asm"><Filter>User mode</Filter></None>
-    <None Include="usermode\**\*.S"><Filter>User mode</Filter></None>
-    <None Include="kernel\linker.ld"><Filter>Kernel</Filter></None>
-    <None Include="usermode\mtdll.ld"><Filter>User mode</Filter></None>
-    <None Include="usermode\mtexe.ld"><Filter>User mode</Filter></None>
-    <None Include="build_windows.bat"><Filter>Build tools</Filter></None>
-    <None Include="clean_windows.bat"><Filter>Build tools</Filter></None>
-    <None Include="run_windows.bat"><Filter>Build tools</Filter></None>
-    <None Include="reset_intellisense.bat"><Filter>Build tools</Filter></None>
-    <None Include="tools\windows\*.py"><Filter>Build tools</Filter></None>
-    <None Include="tools\windows\*.bat"><Filter>Build tools</Filter></None>
-    <None Include="tools\windows\*.asm"><Filter>Build tools</Filter></None>
-    <None Include="tools\windows\README.md"><Filter>Build tools</Filter></None>
+    <ClCompile Include="kernel\core\exp\exception.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\exp\instruction.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\exp\probe.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\exp\raise.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ht\handle.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\md\debugfunctions.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\apc.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\attach.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\bugcheck.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\dpc.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\irql.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\meinit.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\me\scheduler.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\acpi.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\apic.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\ap_main.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\handlers.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\idt.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\isr.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\pit.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\smp.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mh\time.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\fault.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\hypermap.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\map.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\mminit.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\mmio.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\mmproc.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\pfn.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\pool.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\section.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\va.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mm\vad.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\events.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\mutex.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\pushlock.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\rundown.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\semaphore.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\spinlock.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\synchinit.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ms\wait.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mt\handler.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mt\setup.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\mt\systemcalls.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ob\ob.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ps\cid.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ps\process.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ps\psmgr.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ps\pswork.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ps\thread.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\drivers\ahci\ahci.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\drivers\blk\block.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\drivers\gop\gop.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\filesystem\fat32\fat32.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\filesystem\vfs\vfs.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\kernel.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\error.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\exception.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\file.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\generic.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\memory.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\print.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\process.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\string.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\synch.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\mtdll\thread.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClCompile Include="usermode\programs\terminateMyself\main.c">
+      <Filter>User mode</Filter>
+    </ClCompile>
+    <ClInclude Include="kernel\drivers\ahci\ahci.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\drivers\blk\block.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\drivers\gop\font8x16.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\drivers\gop\gop.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\filesystem\fat32\fat32.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\annotations.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\behavior.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\core.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\efi.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\exception.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\fs.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\ht.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\macros.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\md.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\me.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\mg.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\mh.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\mm.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\ms.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\mt.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\mtos.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\ob.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\ps.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\rtl.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\includes\stdarg_myos.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\intrinsics\atomic.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\intrinsics\intrin.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\kernel.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\mtstatus.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\time.h">
+      <Filter>Kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\exports.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h">
+      <Filter>User mode</Filter>
+    </ClInclude>
+    <None Include="kernel\core\mh\ap_trampoline.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\core\mh\cpuid.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\core\mh\isr_stub.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\core\ms\sleep.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\core\mt\entry.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\kernel_entry.asm">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="kernel\gen_offsets.c">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="usermode\syscalls\syscalls.asm">
+      <Filter>User mode</Filter>
+    </None>
+    <None Include="kernel\linker.ld">
+      <Filter>Kernel</Filter>
+    </None>
+    <None Include="usermode\mtdll.ld">
+      <Filter>User mode</Filter>
+    </None>
+    <None Include="usermode\mtexe.ld">
+      <Filter>User mode</Filter>
+    </None>
+    <None Include="build_windows.bat">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="clean_windows.bat">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="run_windows.bat">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="reset_intellisense.bat">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="tools\windows\make_image.py">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="tools\windows\reset_intellisense.py">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="tools\windows\sync_vcxproj_files.py">
+      <Filter>Build tools</Filter>
+    </None>
+    <None Include="tools\windows\README.md">
+      <Filter>Build tools</Filter>
+    </None>
+    <ClCompile Include="boot\bootloader_uefi.c" />
+    <ClCompile Include="boot\uefi_runtime.c" />
+    <ClCompile Include="kernel\assert.c" />
+    <ClCompile Include="kernel\core\exp\exception.c" />
+    <ClCompile Include="kernel\core\exp\instruction.c" />
+    <ClCompile Include="kernel\core\exp\probe.c" />
+    <ClCompile Include="kernel\core\exp\raise.c" />
+    <ClCompile Include="kernel\core\ht\handle.c" />
+    <ClCompile Include="kernel\core\md\debugfunctions.c" />
+    <ClCompile Include="kernel\core\me\apc.c" />
+    <ClCompile Include="kernel\core\me\attach.c" />
+    <ClCompile Include="kernel\core\me\bugcheck.c" />
+    <ClCompile Include="kernel\core\me\dpc.c" />
+    <ClCompile Include="kernel\core\me\irql.c" />
+    <ClCompile Include="kernel\core\me\meinit.c" />
+    <ClCompile Include="kernel\core\me\scheduler.c" />
+    <ClCompile Include="kernel\core\mh\acpi.c" />
+    <ClCompile Include="kernel\core\mh\ap_main.c" />
+    <ClCompile Include="kernel\core\mh\apic.c" />
+    <ClCompile Include="kernel\core\mh\handlers.c" />
+    <ClCompile Include="kernel\core\mh\idt.c" />
+    <ClCompile Include="kernel\core\mh\isr.c" />
+    <ClCompile Include="kernel\core\mh\pit.c" />
+    <ClCompile Include="kernel\core\mh\smp.c" />
+    <ClCompile Include="kernel\core\mh\time.c" />
+    <ClCompile Include="kernel\core\mm\fault.c" />
+    <ClCompile Include="kernel\core\mm\hypermap.c" />
+    <ClCompile Include="kernel\core\mm\map.c" />
+    <ClCompile Include="kernel\core\mm\mminit.c" />
+    <ClCompile Include="kernel\core\mm\mmio.c" />
+    <ClCompile Include="kernel\core\mm\mmproc.c" />
+    <ClCompile Include="kernel\core\mm\pfn.c" />
+    <ClCompile Include="kernel\core\mm\pool.c" />
+    <ClCompile Include="kernel\core\mm\section.c" />
+    <ClCompile Include="kernel\core\mm\va.c" />
+    <ClCompile Include="kernel\core\mm\vad.c" />
+    <ClCompile Include="kernel\core\ms\events.c" />
+    <ClCompile Include="kernel\core\ms\mutex.c" />
+    <ClCompile Include="kernel\core\ms\pushlock.c" />
+    <ClCompile Include="kernel\core\ms\rundown.c" />
+    <ClCompile Include="kernel\core\ms\semaphore.c" />
+    <ClCompile Include="kernel\core\ms\spinlock.c" />
+    <ClCompile Include="kernel\core\ms\synchinit.c" />
+    <ClCompile Include="kernel\core\ms\wait.c" />
+    <ClCompile Include="kernel\core\mt\handler.c" />
+    <ClCompile Include="kernel\core\mt\setup.c" />
+    <ClCompile Include="kernel\core\mt\systemcalls.c" />
+    <ClCompile Include="kernel\core\ob\ob.c" />
+    <ClCompile Include="kernel\core\ps\cid.c" />
+    <ClCompile Include="kernel\core\ps\process.c" />
+    <ClCompile Include="kernel\core\ps\psmgr.c" />
+    <ClCompile Include="kernel\core\ps\pswork.c" />
+    <ClCompile Include="kernel\core\ps\thread.c" />
+    <ClCompile Include="kernel\drivers\ahci\ahci.c" />
+    <ClCompile Include="kernel\drivers\blk\block.c" />
+    <ClCompile Include="kernel\drivers\gop\gop.c" />
+    <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
+    <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
+    <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
+    <ClCompile Include="usermode\programs\mtdll\error.c" />
+    <ClCompile Include="usermode\programs\mtdll\exception.c" />
+    <ClCompile Include="usermode\programs\mtdll\file.c" />
+    <ClCompile Include="usermode\programs\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
+    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\mtdll\memory.c" />
+    <ClCompile Include="usermode\programs\mtdll\print.c" />
+    <ClCompile Include="usermode\programs\mtdll\process.c" />
+    <ClCompile Include="usermode\programs\mtdll\string.c" />
+    <ClCompile Include="usermode\programs\mtdll\synch.c" />
+    <ClCompile Include="usermode\programs\mtdll\thread.c" />
+    <ClCompile Include="usermode\programs\terminateMyself\main.c" />
+    <ClCompile Include="kernel\core\me\suspend.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kernel\assert.h" />
+    <ClInclude Include="kernel\drivers\ahci\ahci.h" />
+    <ClInclude Include="kernel\drivers\blk\block.h" />
+    <ClInclude Include="kernel\drivers\gop\font8x16.h" />
+    <ClInclude Include="kernel\drivers\gop\gop.h" />
+    <ClInclude Include="kernel\filesystem\fat32\fat32.h" />
+    <ClInclude Include="kernel\includes\annotations.h" />
+    <ClInclude Include="kernel\includes\behavior.h" />
+    <ClInclude Include="kernel\includes\core.h" />
+    <ClInclude Include="kernel\includes\efi.h" />
+    <ClInclude Include="kernel\includes\exception.h" />
+    <ClInclude Include="kernel\includes\fs.h" />
+    <ClInclude Include="kernel\includes\ht.h" />
+    <ClInclude Include="kernel\includes\macros.h" />
+    <ClInclude Include="kernel\includes\md.h" />
+    <ClInclude Include="kernel\includes\me.h" />
+    <ClInclude Include="kernel\includes\mg.h" />
+    <ClInclude Include="kernel\includes\mh.h" />
+    <ClInclude Include="kernel\includes\mm.h" />
+    <ClInclude Include="kernel\includes\ms.h" />
+    <ClInclude Include="kernel\includes\mt.h" />
+    <ClInclude Include="kernel\includes\mtos.h" />
+    <ClInclude Include="kernel\includes\ob.h" />
+    <ClInclude Include="kernel\includes\ps.h" />
+    <ClInclude Include="kernel\includes\rtl.h" />
+    <ClInclude Include="kernel\includes\stdarg_myos.h" />
+    <ClInclude Include="kernel\intrinsics\atomic.h" />
+    <ClInclude Include="kernel\intrinsics\intrin.h" />
+    <ClInclude Include="kernel\kernel.h" />
+    <ClInclude Include="kernel\mtstatus.h" />
+    <ClInclude Include="kernel\time.h" />
+    <ClInclude Include="shared\include\accessrights.h" />
+    <ClInclude Include="shared\include\annotations.h" />
+    <ClInclude Include="shared\include\errorcodes.h" />
+    <ClInclude Include="shared\include\MatanelOS.h" />
+    <ClInclude Include="shared\include\mtapi.h" />
+    <ClInclude Include="shared\include\mte.h" />
+    <ClInclude Include="shared\include\mtnative.h" />
+    <ClInclude Include="shared\include\mtstatus.h" />
+    <ClInclude Include="shared\include\mttypes.h" />
+    <ClInclude Include="shared\include\synchapi.h" />
+    <ClInclude Include="tools\windows\intellisense\cpuid.h" />
+    <ClInclude Include="tools\windows\intellisense\freestanding_compat.h" />
+    <ClInclude Include="tools\windows\intellisense\stdarg.h" />
+    <ClInclude Include="tools\windows\intellisense\stdatomic.h" />
+    <ClInclude Include="tools\windows\intellisense\stdbool.h" />
+    <ClInclude Include="tools\windows\intellisense\stddef.h" />
+    <ClInclude Include="tools\windows\intellisense\stdint.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\accessrights.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\exports.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
+    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
+    <ClInclude Include="shared\include\mtexception.h" />
+    <ClInclude Include="shared\include\mtlanguage.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernel\core\me\context.asm" />
+    <None Include="kernel\core\mh\ap_trampoline.asm" />
+    <None Include="kernel\core\mh\cpuid.asm" />
+    <None Include="kernel\core\mh\isr_stub.asm" />
+    <None Include="kernel\core\ms\sleep.asm" />
+    <None Include="kernel\core\mt\entry.asm" />
+    <None Include="kernel\kernel_entry.asm" />
+    <None Include="tools\windows\bootstrap.bat" />
+    <None Include="tools\windows\build.py" />
+    <None Include="tools\windows\seh_translate.py" />
+    <None Include="tools\windows\test_seh_translate.py" />
+    <None Include="tools\windows\tests\fixtures\seh_lexical.c" />
+    <None Include="tools\windows\tests\fixtures\seh_malformed.c" />
+    <None Include="tools\windows\tests\fixtures\seh_valid.c" />
+    <None Include="tools\windows\freestanding_runtime.asm" />
+    <None Include="tools\windows\make_image.py" />
+    <None Include="tools\windows\reset_intellisense.py" />
+    <None Include="tools\windows\sync_vcxproj_files.py" />
+    <None Include="usermode\crt0.S" />
+    <None Include="usermode\programs\mtdll\apcdispatch.asm" />
+    <None Include="usermode\syscalls\syscalls.asm" />
   </ItemGroup>
 </Project>

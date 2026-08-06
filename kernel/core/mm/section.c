@@ -79,7 +79,7 @@ MmCreateSection(
         !MmpIsFileRangeValid(Header.reloc_rva, Header.reloc_size, FileEndRVA) ||
         !MmpIsFileRangeValid(Header.imports_rva, Header.imports_size, FileEndRVA) ||
         Header.exports_size % sizeof(MT_EXPORT_ENTRY) != 0 ||
-        Header.reloc_size % sizeof(Rela) != 0 ||
+        Header.reloc_size % sizeof(MTE_RELOCATION) != 0 ||
         Header.imports_size % sizeof(MT_IMPORT_ENTRY) != 0 ||
         WILL_ADD_OVERFLOW(FileEndRVA, Header.BssSize) ||
         FileEndRVA + Header.BssSize > UINTPTR_MAX - (VirtualPageSize - 1)) {

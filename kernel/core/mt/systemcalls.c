@@ -26,12 +26,38 @@ Revision History:
 #include "../../includes/fs.h"
 #include "../../assert.h"
 
-static
+NORETURN
 void
-MtpCaptureSyscallReturnFrame(
+MtpScheduleBlockedSyscall(
     IN PITHREAD Thread,
     IN MTSTATUS ReturnStatus
 )
+
+/*++
+
+    Routine Description:
+
+        Captures a blocked user syscall's eventual CPL3 return frame in the
+        scheduler-owned register area, then switches away without preserving a
+        kernel continuation inside the syscall.
+
+    Arguments:
+
+        Thread -
+
+            Current user thread whose live syscall frame will be captured.
+
+        ReturnStatus -
+
+            Native status placed in RAX when the thread resumes in user mode.
+
+    Return Value:
+
+        This routine does not return. The thread later resumes directly at the
+        user instruction following SYSCALL.
+
+--*/
+
 {
     PTRAP_FRAME Source = Thread->SyscallTrap;
     PTRAP_FRAME Target = &Thread->TrapRegisters;
@@ -62,17 +88,20 @@ MtpCaptureSyscallReturnFrame(
     Target->vector = 0;
     Target->error_code = 0;
 
-    // In the syscall entry frame, RCX is the user return RIP, R11 is user RFLAGS,
-    // and the TRAP_FRAME.vector slot holds the saved user RSP.
+    // SYSCALL saved the user return RIP in RCX, user RFLAGS in R11, and the
+    // entry stub saved the user RSP in the otherwise-unused vector slot.
     Target->rip = Source->rcx;
     Target->cs = USER_CS;
     Target->rflags = Source->r11 | (1ULL << 9);
     Target->rsp = Source->vector;
     Target->ss = USER_SS;
 
-    // This points into the syscall's abandoned kernel-stack frame. It is only
-    // valid until the return context above has been captured.
+    // The captured context now owns the return path. Do not retain a pointer
+    // into the syscall stack that Schedule is about to abandon.
     Thread->SyscallTrap = NULL;
+
+    Schedule();
+    UNREACHABLE_CODE();
 }
 
 static
@@ -329,7 +358,7 @@ MtOpenProcess(
     try {
         *ProcessHandle = OutHandleBefore;
     } except{
-        // User gave invalid pointer, we return failure 
+        // User gave invalid pointer, we return failure
         HtClose(OutHandleBefore);
         return GetExceptionCode();
     }
@@ -643,7 +672,7 @@ MtWriteFile(
     return MT_SUCCESS;
 }
 
-MTSTATUS 
+MTSTATUS
 MtCreateFile(
     IN const char* path,
     IN ACCESS_MASK DesiredAccess,
@@ -819,7 +848,7 @@ MtQueryVirtualMemory(
     // Check if the process is ours.
     PEPROCESS Process;
     MTSTATUS Status;
-    
+
     if (ProcessHandle == MtCurrentProcess()) {
         // Our process.
         Process = PsGetCurrentProcess();
@@ -1292,7 +1321,7 @@ MtFreeVirtualMemory(
     return Status;
 }
 
-MTSTATUS 
+MTSTATUS
 MtCreateThread(
     IN HANDLE ProcessHandle,
     IN THREAD_START_ROUTINE StartRoutine,
@@ -1364,101 +1393,141 @@ extern NORETURN void restore_user_context_to_user(PETHREAD Thread);
 
 NORETURN void
 MtContinue(
-    PTRAP_FRAME OldTrapFrame
+    IN const CONTEXT* ContextRecord
 )
+
+/*++
+
+    Routine description:
+
+        Completes a user APC OR a user exception after its normal routine returns in MTDLL. The
+        supplied public CONTEXT describes the user execution state that was
+        interrupted when the APC/exception was delivered.
+
+        The context is copied from user memory, validated, converted into a
+        fresh kernel TRAP_FRAME, and restored directly to user mode. This
+        service never returns to the MTDLL dispatcher.
+
+    Arguments:
+
+        [IN] ContextRecord - User-mode CONTEXT saved by APC/exception delivery.
+
+    Return Values:
+
+        None. Invalid state or context terminates the calling thread with
+        MT_APC_ERROR; a valid context resumes through IRETQ.
+
+--*/
 
 {
     PETHREAD Thread = PsGetCurrentThread();
-    TRAP_FRAME RestoredFrame;
-    MTSTATUS Status = ProbeForRead(OldTrapFrame, sizeof(RestoredFrame),
-        _Alignof(TRAP_FRAME));
-    if (MT_FAILURE(Status) || !Thread->InternalThread.UserApcActive ||
+    bool UserApcActive =
+        Thread->InternalThread.UserApcActive;
+
+    bool UserExceptionActive =
+        InterlockedLoadAcquire(
+            &Thread->InternalThread.UserExceptionActive
+        );
+
+    // Catch both illegal situations
+    // A user APC and an exception cannot be active at the same time
+    // Or if both are false, MtContinue is illegal to be called.
+    if (UserApcActive == UserExceptionActive ||
         Thread->InternalThread.PreviousMode != UserMode) {
+        PspExitThread(MT_INVALID_STATE);
+    }
+
+    // Enforce NONCONTINUABLE in the kernel, since user mode apps can STILL call MtContinue themselves, with a noncontinuable exception.
+    if (UserExceptionActive &&
+        (Thread->InternalThread.PendingExceptionRecord.ExceptionFlags &
+            MT_EXCEPTION_NONCONTINUABLE)) {
+        PspExitThread(MT_INVALID_STATE);
+    }
+
+    CONTEXT CapturedContext;
+    MTSTATUS Status = ProbeForRead(
+        ContextRecord,
+        sizeof(CapturedContext),
+        _Alignof(CONTEXT)
+    );
+    if (MT_FAILURE(Status)) {
         PspExitThread(MT_APC_ERROR);
     }
 
     Status = MT_SUCCESS;
     try {
-        kmemcpy(&RestoredFrame, OldTrapFrame, sizeof(RestoredFrame));
+        kmemcpy(&CapturedContext, ContextRecord, sizeof(CapturedContext));
     } except{
         Status = GetExceptionCode();
     }
     end_try;
 
-    if (MT_FAILURE(Status) || RestoredFrame.cs != USER_CS ||
-        RestoredFrame.ss != USER_SS || !RestoredFrame.rip ||
-        !RestoredFrame.rsp ||
-        !MI_IS_CANONICAL_ADDR(RestoredFrame.rip) ||
-        !MI_IS_CANONICAL_ADDR(RestoredFrame.rsp) ||
-        RestoredFrame.rip > MmHighestUserAddress ||
-        RestoredFrame.rsp > MmHighestUserAddress) {
+    if (MT_FAILURE(Status)) {
         PspExitThread(MT_APC_ERROR);
     }
 
-    RestoredFrame.vector = 0;
-    RestoredFrame.error_code = 0;
-    RestoredFrame.cs = USER_CS;
-    RestoredFrame.ss = USER_SS;
-    RestoredFrame.rflags = (RestoredFrame.rflags & 0x8D5ULL) | 0x202ULL;
+    TRAP_FRAME RestoredFrame = { 0 };
+    Status = ExpApplyUserContextToTrapFrame(
+        &CapturedContext,
+        &RestoredFrame
+    );
+    if (MT_FAILURE(Status)) {
+        PspExitThread(MT_APC_ERROR);
+    }
+
+    // Disable interrupts from here, if we get scheduled after setting RestoredFrame, the ISR will overwrite RestoredFrame inside of TrapRegisters.
+    MeDisableInterrupts();
 
     Thread->InternalThread.TrapRegisters = RestoredFrame;
-    Thread->InternalThread.UserApcActive = false;
+
+    if (UserApcActive) {
+        Thread->InternalThread.UserApcActive = false;
+    }
+    else {
+        InterlockedStoreRelease(
+            &Thread->InternalThread.UserExceptionActive,
+            false
+        );
+    }
+
     Thread->InternalThread.SyscallTrap = NULL;
     MeGetCurrentProcessor()->ApcRoutineActive = false;
+    MePrepareUserDispatchForReturn(&Thread->InternalThread.TrapRegisters);
     restore_user_context_to_user(Thread);
 }
 
 MTSTATUS
-MtSleep(
+MtDelayExecution(
+    IN bool Alertable,
     IN uint64_t Milliseconds
 )
 
+/*++
+
+    Routine Description:
+
+        Delays execution of the calling user thread for a relative interval.
+        The native service delegates the wait mechanics to MsDelayExecution.
+
+    Arguments:
+
+        Alertable -
+
+            Requests alertable delay semantics. APC interruption is reserved
+            until alertable dispatcher waits are implemented.
+
+        Milliseconds -
+
+            Relative delay in milliseconds. Zero yields the current quantum.
+
+    Return Value:
+
+        Returns the completion status from MsDelayExecution.
+
+--*/
+
 {
-    PITHREAD CurrentThread = MeGetCurrentThread();
-
-    if (Milliseconds == 0) {
-        if (CurrentThread->PreviousMode == UserMode && CurrentThread->SyscallTrap) {
-            MtpCaptureSyscallReturnFrame(CurrentThread, MT_SUCCESS);
-            Schedule();
-            UNREACHABLE_CODE();
-        }
-
-        // Yield the rest of the current quantum for kernel callers.
-        MsYieldExecution(&CurrentThread->TrapRegisters);
-        return MT_SUCCESS;
-    }
-
-    // Convert to ticks without overflowing on a very large interval.
-    uint64_t Ticks = Milliseconds / TICK_MS;
-    if (Milliseconds % TICK_MS) Ticks++;
-    uint64_t Now = InterlockedLoadAcquire(&MeSystemTickCount);
-    uint64_t WakeupTime = Ticks > UINT64_MAX - Now
-        ? UINT64_MAX
-        : Now + Ticks;
-
-    // Do not let the local scheduler observe THREAD_BLOCKING before the timer
-    // registration that can eventually wake it exists.
-    bool InterruptsEnabled = MeDisableInterrupts();
-    CurrentThread->WaitStatus = MT_PENDING;
-    CurrentThread->ThreadState = THREAD_BLOCKING;
-
-    // Initialize the wait block
-    INIT_WAIT_BLOCK(CurrentThread, NULL, WaitReasonSleep, WakeupTime);
-    
-    MsInsertTimerQueue(CurrentThread, WakeupTime);
-    MeEnableInterrupts(InterruptsEnabled);
-
-    if (CurrentThread->PreviousMode == UserMode && CurrentThread->SyscallTrap) {
-        MtpCaptureSyscallReturnFrame(CurrentThread, MT_SUCCESS);
-        Schedule();
-        UNREACHABLE_CODE();
-    }
-
-    // Context switch away
-    MsYieldExecution(&CurrentThread->TrapRegisters);
-    
-    // Returning here means the sleep is over.
-    return MT_SUCCESS;
+    return MsDelayExecution(UserMode, Alertable, Milliseconds);
 }
 
 static void
@@ -2031,7 +2100,7 @@ MtReleaseMutex(
         &Object,
         NULL
     );
-    
+
     if (MT_FAILURE(Status)) return Status;
     PMUTEX Mutex = (PMUTEX)Object;
     int32_t KPreviousCount;
@@ -2202,7 +2271,7 @@ MtQuerySemaphore(
     // Write counts while locked.
     KInfo.CurrentCount = Semaphore->Header.SignalState;
     KInfo.MaximumCount = Semaphore->Limit;
-    
+
     MsReleaseSpinlock(&Semaphore->Header.Lock, dispatcherIrql);
 
     // Dereference object, not needed.
@@ -2294,6 +2363,409 @@ MtReleaseSemaphore(
     }
 
     return Status;
+}
+
+MTSTATUS
+MtQueryInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT void* ProcessInformation,
+    IN size_t ProcessInformationLength,
+    _Out_Opt uint32_t* ReturnLength
+)
+
+/*++
+
+    Routine description:
+
+        Queries information about a process through a handle with
+        MT_PROCESS_QUERY_INFO access. ProcessBasicInformation returns a
+        synchronized snapshot of identity, PEB, and exit status. ExitStatus is
+        MT_PENDING until the process dispatcher object becomes permanently
+        signaled, then it is the final published process status.
+
+    Arguments:
+
+        ProcessHandle - Handle to the process to query.
+        ProcessInformationClass - Selects the requested information structure.
+        ProcessInformation - Receives the selected process information.
+        ProcessInformationLength - Size in bytes of ProcessInformation.
+        ReturnLength - Optionally receives the required information size.
+
+    Return Values:
+
+        MT_SUCCESS or an information-class, length, probing, handle, type, or
+        access failure status.
+
+--*/
+
+{
+    // Validate pointers
+    MTSTATUS Status = ProbeForRead(ProcessInformation, ProcessInformationLength, _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+
+    if (ReturnLength) {
+        Status = ProbeForRead(ReturnLength, sizeof(uint32_t), _Alignof(uint32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    // Attempt reference
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        MT_PROCESS_QUERY_INFO,
+        PsProcessType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    PEPROCESS Process = (PEPROCESS)Object;
+
+    // From now dereference is a must when exiting.
+    // Now check for the process info class, see if it even matches the size.
+    switch (ProcessInformationClass) {
+    case ProcessBasicInformation:
+
+        // Validate the info size is corect.
+        if (ProcessInformationLength != sizeof(PROCESS_BASIC_INFORMATION)) {
+            Status = MT_INFO_LENGTH_MISMATCH;
+
+            if (ReturnLength) {
+                try {
+                    *ReturnLength = sizeof(PROCESS_BASIC_INFORMATION);
+                } except{
+                    // Its an access violation, but do we overwrite the Status?
+                    Status = GetExceptionCode();
+                }
+                end_try;
+            }
+
+            break;
+        }
+
+        // Valid procinfo, fill it in.
+        PROCESS_BASIC_INFORMATION KProcInfo = { 0 };
+
+        IRQL OldIrql;
+        MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &OldIrql);
+
+        bool ProcessStillRunning =
+            Process->InternalProcess.Header.SignalState == 0;
+
+        KProcInfo.ExitStatus = ProcessStillRunning
+            ? MT_PENDING
+            : Process->ExitStatus;
+
+        KProcInfo.PebBaseAddress = Process->Peb;
+        KProcInfo.UniqueProcessId = Process->PID;
+        KProcInfo.ParentUniqueProcessId = Process->ParentProcess;
+
+        MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, OldIrql);
+
+        try {
+            *(PROCESS_BASIC_INFORMATION*)ProcessInformation = KProcInfo;
+        } except{
+            Status = GetExceptionCode();
+            break;
+        }
+        end_try;
+
+        if (ReturnLength) {
+            try {
+                *ReturnLength = sizeof(PROCESS_BASIC_INFORMATION);
+            } except{
+                // Its an access violation, but do we overwrite the Status?
+                Status = GetExceptionCode();
+                break;
+            }
+            end_try;
+        }
+
+        break;
+    default:
+        Status = MT_INVALID_INFO_CLASS;
+        break;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtQueryInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    OUT void* ThreadInformation,
+    IN size_t ThreadInformationLength,
+    _Out_Opt uint32_t* ReturnLength
+)
+
+/*++
+
+    Routine description:
+
+        Queries information about a thread through a handle with
+        MT_THREAD_QUERY_INFO access. ThreadBasicInformation returns a
+        synchronized snapshot of identity, TEB, and exit status. ExitStatus is
+        MT_PENDING until the thread dispatcher object becomes permanently
+        signaled, then it is the final published thread status.
+
+    Arguments:
+
+        ThreadHandle - Handle to the thread to query.
+        ThreadInformationClass - Selects the requested information structure.
+        ThreadInformation - Receives the selected thread information.
+        ThreadInformationLength - Size in bytes of ThreadInformation.
+        ReturnLength - Optionally receives the required information size.
+
+    Return Values:
+
+        MT_SUCCESS or an information-class, length, probing, handle, type, or
+        access failure status.
+
+--*/
+
+{
+    // Validate pointers
+    MTSTATUS Status = ProbeForRead(ThreadInformation, ThreadInformationLength, _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+
+    if (ReturnLength) {
+        Status = ProbeForRead(ReturnLength, sizeof(uint32_t), _Alignof(uint32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    // Reference thread
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        ThreadHandle,
+        MT_THREAD_QUERY_INFO,
+        PsThreadType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    PETHREAD Thread = (PETHREAD)Object;
+
+    switch (ThreadInformationClass) {
+    case ThreadBasicInformation:
+
+        // Validate the info size is corect.
+        if (ThreadInformationLength != sizeof(THREAD_BASIC_INFORMATION)) {
+            Status = MT_INFO_LENGTH_MISMATCH;
+
+            if (ReturnLength) {
+                try {
+                    *ReturnLength = sizeof(THREAD_BASIC_INFORMATION);
+                } except{
+                    // Its an access violation, but do we overwrite the Status?
+                    Status = GetExceptionCode();
+                }
+                end_try;
+            }
+
+            break;
+        }
+
+        // Valid procinfo, fill it in.
+        THREAD_BASIC_INFORMATION KPThreadInfo = { 0 };
+
+        IRQL OldIrql;
+        MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &OldIrql);
+
+        bool ThreadStillRunning =
+            Thread->InternalThread.Header.SignalState == 0;
+
+        KPThreadInfo.ExitStatus = ThreadStillRunning
+            ? MT_PENDING
+            : Thread->ExitStatus;
+
+        KPThreadInfo.TebBaseAddress = Thread->Teb;
+        KPThreadInfo.UniqueThreadId = Thread->TID;
+        KPThreadInfo.UniqueProcessId = Thread->ParentProcess->PID;
+
+        MsReleaseSpinlock(&Thread->InternalThread.Header.Lock, OldIrql);
+
+        try {
+            *(THREAD_BASIC_INFORMATION*)ThreadInformation = KPThreadInfo;
+        } except{
+            Status = GetExceptionCode();
+            break;
+        }
+        end_try;
+
+        if (ReturnLength) {
+            try {
+                *ReturnLength = sizeof(THREAD_BASIC_INFORMATION);
+            } except{
+                    // Its an access violation, but do we overwrite the Status?
+                    Status = GetExceptionCode();
+                    break;
+            }
+            end_try;
+        }
+
+        break;
+    default:
+        Status = MT_INVALID_INFO_CLASS;
+        break;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtSuspendThread(
+    IN HANDLE ThreadHandle,
+    _Out_Opt uint32_t* PreviousSuspendCount
+)
+
+{
+    // If pointer is present validate it
+    MTSTATUS Status;
+    if (PreviousSuspendCount) {
+        Status = ProbeForRead(PreviousSuspendCount, sizeof(uint32_t), _Alignof(uint32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    void* Object;
+    Status = ObReferenceObjectByHandle(
+        ThreadHandle,
+        MT_THREAD_SUSPEND_RESUME,
+        PsThreadType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // We can cast to PITHREAD too since its guranteed to be at the top of ETHREAD, but we will abide to the kernel, brainwash.
+    PETHREAD Thread = (PETHREAD)Object;
+
+    // Call kernel function
+
+    uint32_t KPrevCount = 0;
+
+    Status = MeSuspendThread(&Thread->InternalThread, &KPrevCount);
+
+    // Attempt to get back to the user.
+    if (MT_SUCCEEDED(Status) && PreviousSuspendCount) {
+        try {
+            *PreviousSuspendCount = KPrevCount;
+        } except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtResumeThread(
+    IN HANDLE ThreadHandle,
+    _Out_Opt uint32_t* PreviousSuspendCount
+)
+
+{
+    // If pointer is present validate it
+    MTSTATUS Status;
+    if (PreviousSuspendCount) {
+        Status = ProbeForRead(PreviousSuspendCount, sizeof(uint32_t), _Alignof(uint32_t));
+        if (MT_FAILURE(Status)) return Status;
+    }
+
+    void* Object;
+    Status = ObReferenceObjectByHandle(
+        ThreadHandle,
+        MT_THREAD_SUSPEND_RESUME,
+        PsThreadType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // We can cast to PITHREAD too since its guranteed to be at the top of ETHREAD, but we will abide to the kernel, brainwash.
+    PETHREAD Thread = (PETHREAD)Object;
+
+    // Call kernel function
+
+    uint32_t KPrevCount = 0;
+
+    Status = MeResumeThread(&Thread->InternalThread, &KPrevCount);
+
+    // Attempt to get back to the user.
+    if (MT_SUCCEEDED(Status) && PreviousSuspendCount) {
+        try {
+            *PreviousSuspendCount = KPrevCount;
+        } except{
+            Status = GetExceptionCode();
+        }
+        end_try;
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtRaiseException(
+    IN const EXCEPTION_RECORD* ExceptionRecord
+    /* IN PCONTEXT ContextRecord */ // unused, when debugger supports arrives, then this can be used.
+    // honestly i have no idea why its even here, but ok.
+    /* IN bool FirstChance */ // when dbg arrives
+)
+
+/*++
+
+    Routine description:
+
+        The routine raises an exception, registers the current thread exception pending status
+        and delivers the exception to MTDLL in user mode when returning from this system call.
+
+    Arguments:
+
+        [IN] ExceptionRecord - Pointer to exception record structure on the user mode stack
+
+    Return Values:
+
+        This function maybe returns, when one of the following situations occur -
+
+        Copying the stack exception record to the kernel has failed, could be a
+        MT_DATATYPE_MISALIGNMENT, MT_ACCESS_VIOLATION, or any other ProbeForRead/try except exception code.
+        This also returns an error if ExpPublishUserException fails.
+
+        The Handler has chosen to Continue execution, possibly with modified registers.
+
+--*/
+
+{
+    MTSTATUS Status = ProbeForRead(ExceptionRecord, sizeof(EXCEPTION_RECORD), _Alignof(EXCEPTION_RECORD));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Copy over the stack EXCEPTION_RECORD to here
+    // This could also be heap allocated, saying stack is kinda half-truth.
+    EXCEPTION_RECORD KExceptionRecord;
+    
+    try {
+        kmemcpy(&KExceptionRecord, ExceptionRecord, sizeof(EXCEPTION_RECORD));
+    } except {
+        return GetExceptionCode();
+    }
+    end_try;
+
+    // We can do real work now.
+    // Real work - call 1 function, easy.
+    // All we do is publish the exception so at system call exit, interrupt exit or scheduler exit, because the last things can still happen here.
+    // Or if it returns a failure then a failure
+    return ExpPublishUserException(&KExceptionRecord);
 }
 
 // THIS SYSCALL SHOULD NOT STAY! SINCE GOP IS TO BE RETIRED WHEN FULL OS - SYSCALL NUM - 696969

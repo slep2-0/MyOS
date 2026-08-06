@@ -7,13 +7,14 @@
 #include "../../includes/me.h"
 #include "../../includes/mh.h"
 #include "../../assert.h"
+
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
 #include "../../includes/ob.h"
 extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
-extern void restore_context(TRAP_FRAME* regs);
+extern void restore_context(PITHREAD Thread);
 extern void restore_user_context_to_user(PETHREAD thread);
 extern void restore_user_context_to_kernel(PETHREAD thread);
 
@@ -24,10 +25,7 @@ extern void kernel_idle_checks(void);
 
 extern EPROCESS PsInitialSystemProcess;
 
-// In Scheduler.c
 void InitScheduler(void) {
-    MeGetCurrentProcessor()->schedulerEnabled = true;
-
     PETHREAD idleThread = NULL;
     MTSTATUS Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**)&idleThread);
     if (MT_FAILURE(Status)) {
@@ -146,6 +144,51 @@ MepIsCanonicalAddress(
 }
 #endif
 
+void
+MePrepareUserDispatchForReturn(
+    PTRAP_FRAME TrapFrame
+)
+
+// Function will check if user exception is pending, if it is, it will prepare exception delivery for return
+// If a user exception preperation fails, the function terminates the current thread
+// If there is no user exception, the function will instead prepare for user APCs return, if there are any
+// This is all checked on the current thread.
+
+{
+    PITHREAD Thread = MeGetCurrentThread();
+
+    // Must return to user code only.
+    if (!Thread || !TrapFrame || (TrapFrame->cs & 3) != 3) {
+        return;
+    }
+
+    bool UserExceptionActive = InterlockedLoadAcquire(&Thread->UserExceptionActive);
+    bool UserApcActive = Thread->UserApcActive;
+
+    if (UserExceptionActive || UserApcActive) {
+        // Already returning into a dispatcher. Never stack another one.
+        return;
+    }
+
+    if (InterlockedLoadAcquire(&Thread->UserExceptionPending)) {
+        MTSTATUS Status = ExpPrepareUserExceptionDispatch(TrapFrame);
+
+        if (Status != MT_SUCCESS) {
+            // Pending existed, so this is a real delivery failure.
+            // Apply deterministic termination policy, we do not deliver an APC.
+            PspExitThread(
+                (MTSTATUS)Thread->PendingExceptionRecord.ExceptionCode
+            );
+        }
+
+        // Success means the frame now enters MeUserExceptionDispatcher, trap frame has changed.
+        return;
+    }
+
+    // No pending/active exception: APC delivery is allowed.
+    MePrepareUserApcForReturn(TrapFrame);
+}
+
 NORETURN
 void
 Schedule(void) {
@@ -166,15 +209,20 @@ Schedule(void) {
 
     if (current && current != IdleThread &&
         current->ThreadState == THREAD_BLOCKING) {
-        // Publish BLOCKED before checking WaitStatus. A concurrent wake either
+        // Publish BLOCKED before checking completion. A concurrent wake either
         // changes BLOCKED to READY and queues us, or observes BLOCKING and
-        // leaves completion for this CPU to consume below.
+        // leaves this CPU to cancel the switch below.
         InterlockedStore(
             &current->ThreadState,
             THREAD_BLOCKED
         );
 
-        if (InterlockedLoad(&current->WaitStatus) != MT_PENDING) {
+        // WaitStatus is claimed before queue cleanup. Waiting for the separate
+        // completion publication prevents this CPU from returning from the
+        // wait and reusing WaitBlock while the winning CPU still owns cleanup.
+        if (InterlockedLoadAcquire(
+                &current->WaitCompletionComplete
+            )) {
             __sync_bool_compare_and_swap(
                 &current->ThreadState,
                 THREAD_BLOCKED,
@@ -258,9 +306,10 @@ Schedule(void) {
     );
     MsReleaseSpinlock(&next->ApcQueueLock, apcQueueIrql);
 
-    // currentThread, TSS.RSP0, and the restored context describe one selected
-    // thread. Publish them atomically against local interrupts. Schedule never
-    // returns; the selected trap frame supplies the eventual IF state.
+    // currentThread, TSS.RSP0, CR3, and the restored context describe one
+    // selected thread. Publish them atomically against local interrupts.
+    // Schedule never returns; the selected trap frame supplies the eventual
+    // IF state.
     MeDisableInterrupts();
     next->ThreadState = THREAD_RUNNING;
     next->ActiveProcessor = cpu;
@@ -268,11 +317,28 @@ Schedule(void) {
     ((TSS*)cpu->tss)->rsp0 = (uint64_t)next->KernelStack;
     cpu->currentThread = next;
 
+    // Dispatch preparation can write an exception or APC frame to the
+    // selected thread's user stack. Switch address spaces before that work;
+    // otherwise a schedule from another process can publish the frame into
+    // the outgoing process at the same virtual address.
+    PEPROCESS ActiveProcess = next->ApcState.SavedApcProcess;
+    assert(ActiveProcess != NULL);
+    uintptr_t TargetCr3 =
+        ActiveProcess->InternalProcess.PageDirectoryPhysical;
+    assert(TargetCr3 != 0);
+    if (__read_cr3() != TargetCr3) {
+        __write_cr3(TargetCr3);
+    }
+
     // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);
 
+    // Check any user exceptions and redirect execution to the mtdll exception handler if there are any.
+    // Check any user apcs and request a software interrupt when returning to user mode if there are any.
+    MePrepareUserDispatchForReturn(&next->TrapRegisters);
+
     if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
-        restore_context(&next->TrapRegisters);
+        restore_context(next);
     }
     else {
         // Saved CS is the authoritative resume mode. Interrupt frames provide

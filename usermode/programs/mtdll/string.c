@@ -81,6 +81,7 @@ char* strcpy(char* dst, const char* src) {
 //-----------------------------------------------------------------------------
 // strncpy: Copy up to n characters from src to dst.
 //           Assumes dst is large enough.
+//           Gurantess NUL Termination.
 //-----------------------------------------------------------------------------
 char* strncpy(char* dst, const char* src, size_t n) {
     if (n == 0) return dst;

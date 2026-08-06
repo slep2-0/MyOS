@@ -69,9 +69,11 @@ MeAttachProcess(
 	ApcState->AttachedToProcess = true;
 	ApcState->SavedThreadAttached = CurrentThread->ApcState.AttachedToProcess;
 
-	// Raise to SYNCH and lock scheduler.
-	// TODO SYNCH
-	MeAcquireSchedulerLock();
+	// Publish the active process and CR3 as one non-preemptible transition.
+	// The thread becomes schedulable again before this routine returns; context
+	// restore reloads CR3 from the thread's active APC process.
+	IRQL OldIrql;
+	MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 
 	// Switch identity to new process.
 	CurrentThread->ApcState.SavedApcProcess = PsGetEProcessFromIProcess(Process);
@@ -84,6 +86,8 @@ MeAttachProcess(
 	if (ApcState->SavedCr3 != TargetCr3) {
 		__write_cr3(TargetCr3);
 	}
+
+	MeLowerIrql(OldIrql);
 }
 
 void
@@ -112,7 +116,10 @@ MeDetachProcess(
 	if (unlikely(!CurrentThread)) return;
 	if (!ApcState->AttachedToProcess) return;
 
-	// Restore original CR3.
+	// Restore the active process and CR3 atomically against preemption.
+	IRQL OldIrql;
+	MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+
 	uint64_t CurrentCr3 = __read_cr3();
 	if (CurrentCr3 != ApcState->SavedCr3) {
 		__write_cr3(ApcState->SavedCr3);
@@ -122,9 +129,7 @@ MeDetachProcess(
 	CurrentThread->ApcState.SavedApcProcess = ApcState->SavedApcProcess;
 	CurrentThread->ApcState.AttachedToProcess = ApcState->SavedThreadAttached;
 
-	// Restore scheduler lock / IRQL.
-	// TODO SYNCH LEVEL
-	MeReleaseSchedulerLock();
+	MeLowerIrql(OldIrql);
 
 	// Clear attached state.
 	ApcState->AttachedToProcess = false;

@@ -64,3 +64,62 @@ CreateRemoteThread(
     SetLastStatus(Status);
     return ThreadHandle;
 }
+
+bool
+GetExitCodeThread(
+    IN HANDLE ThreadHandle,
+    OUT uint32_t* ExitCode
+)
+
+{
+    THREAD_BASIC_INFORMATION BasicInfo;
+    MTSTATUS Status = MtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &BasicInfo, sizeof(THREAD_BASIC_INFORMATION), NULL);
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+
+    bool Success = MT_SUCCEEDED(Status);
+
+    if (Success) {
+        *ExitCode = BasicInfo.ExitStatus;
+    }
+
+    return Success;
+}
+
+MTDLL_API uint32_t
+SuspendThread(
+    IN HANDLE ThreadHandle
+)
+
+{
+    uint32_t PreviousCount;
+    MTSTATUS Status = MtSuspendThread(ThreadHandle, &PreviousCount);
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+
+    if (MT_FAILURE(Status)) {
+        return UINT32_MAX;
+    }
+    else {
+        return PreviousCount;
+    }
+}
+
+MTDLL_API uint32_t
+ResumeThread(
+    IN HANDLE ThreadHandle
+)
+
+{
+    uint32_t PreviousCount;
+    MTSTATUS Status = MtResumeThread(ThreadHandle, &PreviousCount);
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+
+    if (MT_FAILURE(Status)) {
+        return UINT32_MAX;
+    }
+    else {
+        return PreviousCount;
+    }
+}

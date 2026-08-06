@@ -525,7 +525,7 @@ MhHandleInterrupt (
 );
 
 void MiLapicInterrupt(
-	bool schedulerEnabled,
+	IRQL InterruptedIrql,
 	PTRAP_FRAME trap
 );
 

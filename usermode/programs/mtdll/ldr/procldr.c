@@ -19,7 +19,7 @@ Revision History:
 #include "../includes/mtdll.h"
 #include "../includes/exports.h"
 #include "../includes/errorhandlingapi.h"
-#include "../includes/mteheader.h"
+#include "mte.h"
 #include "../includes/ioapi.h"
 
 // 1. LDR_DATA_TABLE_ENTRY of Dll.

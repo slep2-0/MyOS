@@ -215,10 +215,6 @@ MeInitializeProcessor(
 
     CPU->self = CPU;
     CPU->currentIrql = PASSIVE_LEVEL;
-    CPU->schedulerEnabled = NULL; // since NULL is 0, it would be false.
-    CPU->SchedulerWasEnabled = false;
-    CPU->CriticalRegionDepth = 0;
-    CPU->CriticalRegionSchedulerEnabled = false;
     CPU->currentThread = NULL;
     CPU->readyQueue.head = CPU->readyQueue.tail = NULL;
     // Initialize the DPC Lock & list head.

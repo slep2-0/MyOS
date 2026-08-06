@@ -7,7 +7,6 @@
 #include "../../includes/me.h"
 #include "../../intrinsics/atomic.h"
 #include "../../intrinsics/intrin.h"
-#include <stdatomic.h>
 
 static inline bool interrupts_enabled(void) {
     unsigned long flags;
@@ -86,14 +85,6 @@ static void update_apic_irqs(IRQL newLevel) {
 }
 */
 
-static inline void toggle_scheduler(void) {
-    // schedulerEnabled should be true only at IRQL < DISPATCH_LEVEL
-    if (!InterlockedFetchU32(&MeGetCurrentProcessor()->SchedulerLock.locked) &&
-        MeGetCurrentProcessor()->CriticalRegionDepth == 0) {
-        MeGetCurrentProcessor()->schedulerEnabled = (MeGetCurrentIrql() < DISPATCH_LEVEL);
-    }
-}
-
 // PUBLIC API
 
 void 
@@ -133,7 +124,6 @@ MeRaiseIrql (
 #endif
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
-    toggle_scheduler();
     update_apic_irqs(NewIrql);
     if (prev_if) __sti();
 }
@@ -175,7 +165,6 @@ MeLowerIrql (
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
 
-    toggle_scheduler();
     update_apic_irqs(NewIrql);
 
     PPROCESSOR cpu = MeGetCurrentProcessor();
@@ -228,7 +217,6 @@ _MeSetIrql (
     __cli();
 
     MeGetCurrentProcessor()->currentIrql = NewIrql;
-    toggle_scheduler();
     update_apic_irqs(NewIrql);
 
     PPROCESSOR cpu = MeGetCurrentProcessor();

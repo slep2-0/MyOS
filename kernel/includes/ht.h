@@ -54,13 +54,7 @@ typedef struct _HANDLE_TABLE {
     uint32_t HandleCount;
 } HANDLE_TABLE, *PHANDLE_TABLE;
 
-// --------------- TYPE DEFINES ---------------
-
-typedef int32_t HANDLE, * PHANDLE;
-
 // --------------- FUNCTIONS ---------------
-
-typedef uint32_t ACCESS_MASK;
 
 MUST_USE_RESULT
 void*

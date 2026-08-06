@@ -24,6 +24,65 @@ extern bool smpInitialized;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
+#if defined(MT_STRESS_AUTOMATION) && MT_STRESS_AUTOMATION
+#define MT_AUTOMATION_DEBUG_PORT 0x402
+#define MT_AUTOMATION_EXIT_PORT  0xF4
+#define MT_AUTOMATION_EXIT_FAIL  0x11
+
+static void
+MepWriteAutomationText(
+    const char* Text
+)
+{
+    while (*Text != '\0') {
+        __outbyte(MT_AUTOMATION_DEBUG_PORT, (uint8_t)*Text++);
+    }
+}
+
+static void
+MepWriteAutomationHex(
+    uint64_t Value
+)
+{
+    static const char Digits[] = "0123456789abcdef";
+
+    MepWriteAutomationText("0x");
+    for (int Shift = 60; Shift >= 0; Shift -= 4) {
+        __outbyte(
+            MT_AUTOMATION_DEBUG_PORT,
+            (uint8_t)Digits[(Value >> Shift) & 0xFULL]
+        );
+    }
+}
+
+static void
+MepExitAutomationBugCheck(
+    uint64_t BugCheckCode,
+    void* Parameter1,
+    void* Parameter2,
+    void* Parameter3,
+    void* Parameter4
+)
+{
+    MepWriteAutomationText("MT-STRESS BUGCHECK code=");
+    MepWriteAutomationHex(BugCheckCode);
+    MepWriteAutomationText(" p1=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter1);
+    MepWriteAutomationText(" p2=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter2);
+    MepWriteAutomationText(" p3=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter3);
+    MepWriteAutomationText(" p4=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter4);
+    MepWriteAutomationText("\n");
+
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+#endif
+
 bool
 MeIsBugCheckActive(
     void
@@ -332,6 +391,16 @@ MeBugCheckEx (
     if (prev == 1) {
         while (1) __hlt();
     }
+
+#if defined(MT_STRESS_AUTOMATION) && MT_STRESS_AUTOMATION
+    MepExitAutomationBugCheck(
+        BugCheckCode,
+        BugCheckParameter1,
+        BugCheckParameter2,
+        BugCheckParameter3,
+        BugCheckParameter4
+    );
+#endif
 
     if (FreezeOtherProcessors) {
         MhRequestBugCheckFreeze();

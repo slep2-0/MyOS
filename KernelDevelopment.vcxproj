@@ -41,7 +41,7 @@
     <NMakeReBuildCommandLine>call "$(ProjectDir)clean_windows.bat" &amp;&amp; call "$(ProjectDir)build_windows.bat" $(Configuration)</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine>call "$(ProjectDir)clean_windows.bat"</NMakeCleanCommandLine>
     <NMakeOutput>$(ProjectDir)build\windows\$(Configuration)\matanelos.img</NMakeOutput>
-    <NMakeIncludeSearchPath>$(ProjectDir)tools\windows\intellisense;$(ProjectDir)shared\include;$(ProjectDir);$(ProjectDir)kernel;$(ProjectDir)kernel\includes;$(ProjectDir)kernel\intrinsics;$(ProjectDir)usermode\headers;$(ProjectDir)usermode\programs\mtdll\includes;$(ProjectDir)boot\Include;$(ProjectDir)boot\Include\X64</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>$(ProjectDir)tools\windows\intellisense;$(ProjectDir)shared\include;$(ProjectDir);$(ProjectDir)kernel;$(ProjectDir)kernel\includes;$(ProjectDir)kernel\intrinsics;$(ProjectDir)usermode\programs\mtdll\includes;$(ProjectDir)boot\Include;$(ProjectDir)boot\Include\X64</NMakeIncludeSearchPath>
     <NMakeForcedIncludes>$(ProjectDir)tools\windows\intellisense\freestanding_compat.h</NMakeForcedIncludes>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
@@ -65,6 +65,7 @@
     <ClCompile Include="kernel\core\me\irql.c" />
     <ClCompile Include="kernel\core\me\meinit.c" />
     <ClCompile Include="kernel\core\me\scheduler.c" />
+    <ClCompile Include="kernel\core\me\suspend.c" />
     <ClCompile Include="kernel\core\mh\acpi.c" />
     <ClCompile Include="kernel\core\mh\ap_main.c" />
     <ClCompile Include="kernel\core\mh\apic.c" />
@@ -108,8 +109,10 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="usermode\programs\exceptionChainTest\main.c" />
     <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
     <ClCompile Include="usermode\programs\mtdll\error.c" />
+    <ClCompile Include="usermode\programs\mtdll\exception.c" />
     <ClCompile Include="usermode\programs\mtdll\file.c" />
     <ClCompile Include="usermode\programs\mtdll\generic.c" />
     <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
@@ -119,6 +122,7 @@
     <ClCompile Include="usermode\programs\mtdll\process.c" />
     <ClCompile Include="usermode\programs\mtdll\string.c" />
     <ClCompile Include="usermode\programs\mtdll\synch.c" />
+    <ClCompile Include="usermode\programs\mtdll\tests\exception_chain.c" />
     <ClCompile Include="usermode\programs\mtdll\thread.c" />
     <ClCompile Include="usermode\programs\terminateMyself\main.c" />
   </ItemGroup>
@@ -158,8 +162,13 @@
     <ClInclude Include="shared\include\annotations.h" />
     <ClInclude Include="shared\include\errorcodes.h" />
     <ClInclude Include="shared\include\MatanelOS.h" />
+    <ClInclude Include="shared\include\mtapi.h" />
     <ClInclude Include="shared\include\mte.h" />
+    <ClInclude Include="shared\include\mtexception.h" />
+    <ClInclude Include="shared\include\mtlanguage.h" />
+    <ClInclude Include="shared\include\mtnative.h" />
     <ClInclude Include="shared\include\mtstatus.h" />
+    <ClInclude Include="shared\include\mttypes.h" />
     <ClInclude Include="shared\include\synchapi.h" />
     <ClInclude Include="tools\windows\intellisense\cpuid.h" />
     <ClInclude Include="tools\windows\intellisense\freestanding_compat.h" />
@@ -168,23 +177,16 @@
     <ClInclude Include="tools\windows\intellisense\stdbool.h" />
     <ClInclude Include="tools\windows\intellisense\stddef.h" />
     <ClInclude Include="tools\windows\intellisense\stdint.h" />
-    <ClInclude Include="usermode\headers\accessrights.h" />
-    <ClInclude Include="usermode\headers\errorhandlingapi.h" />
-    <ClInclude Include="usermode\headers\MatanelOS.h" />
-    <ClInclude Include="usermode\headers\mtapi.h" />
-    <ClInclude Include="usermode\headers\mtstatus.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\accessrights.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\annotations.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\core.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\exports.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\mteheader.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\pstypes.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
+    <ClInclude Include="usermode\tests\exception_chain_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="build_windows.bat" />
@@ -206,11 +208,16 @@
     <None Include="tools\windows\make_image.py" />
     <None Include="tools\windows\README.md" />
     <None Include="tools\windows\reset_intellisense.py" />
+    <None Include="tools\windows\seh_translate.py" />
+    <None Include="tools\windows\stress_exception_chain.py" />
+    <None Include="tools\windows\stress_gate5.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
+    <None Include="tools\windows\test_seh_translate.py" />
     <None Include="usermode\crt0.S" />
     <None Include="usermode\mtdll.ld" />
     <None Include="usermode\mtexe.ld" />
     <None Include="usermode\programs\mtdll\apcdispatch.asm" />
+    <None Include="usermode\programs\mtdll\tests\language_context.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
   </ItemGroup>
   <!-- END GENERATED PROJECT ITEMS -->

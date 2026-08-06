@@ -18,6 +18,10 @@
 
 ; ARGUMENTS TO DELIVER (IN ORDER): rdi, rsi, rdx, (rcx to r10), r8, r9, (rest on stack)
 
+; Native syscall stubs are exported by MTDLL through the generated MTE export
+; directory so applications can opt into the unstable mtnative.h interface.
+section .text.mtapi progbits alloc exec nowrite align=16
+
 ; MTSTATUS
 ; MtAllocateVirtualMemory(
 ;     IN HANDLE Process,
@@ -204,16 +208,24 @@ MtCreateThread:
 	syscall
 	ret
 
-; MtContinue is not here, syscall number is 12. (look at apcdispatch.asm)
+; NORETURN void MtContinue(const CONTEXT* ContextRecord);
+; Syscall number is 12.
+global MtContinue
+MtContinue:
+	mov rax, 12
+	mov r10, rcx
+	syscall
+	ud2
 
 ; MTSTATUS
-; MtSleep(
+; MtDelayExecution(
+;     IN bool Alertable,
 ;     IN uint64_t Milliseconds
 ; );
 ; Syscall number is 13.
 
-global MtSleep
-MtSleep:
+global MtDelayExecution
+MtDelayExecution:
 	mov rax, 13
 	mov r10, rcx
 	syscall
@@ -323,6 +335,74 @@ MtReleaseSemaphore:
 	mov r10, rcx
 	syscall
 	ret
+
+
+; MTSTATUS
+; MtQueryInformationProcess(
+;     IN HANDLE ProcessHandle,
+;     IN PROCESSINFOCLASS ProcessInformationClass,
+;     OUT void* ProcessInformation,
+;     IN size_t ProcessInformationLength,
+;     _Out_Opt uint32_t* ReturnLength
+; )
+; Syscall number is 25
+global MtQueryInformationProcess
+MtQueryInformationProcess:
+	mov rax, 25
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtQueryInformationThread(
+;     IN HANDLE ThreadHandle,
+;     IN THREADINFOCLASS ThreadInformationClass,
+;     OUT void* ThreadInformation,
+;     IN size_t ThreadInformationLength,
+;     _Out_Opt uint32_t* ReturnLength
+; )
+; Syscall number is 26
+global MtQueryInformationThread
+MtQueryInformationThread:
+	mov rax, 26
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtSuspendThread(
+;     IN HANDLE ThreadHandle,
+;     _Out_Opt uint32_t* PreviousSuspendCount
+; );
+; Syscall number is 27
+global MtSuspendThread
+MtSuspendThread:
+	mov rax, 27
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS
+; MtResumeThread(
+;     IN HANDLE ThreadHandle,
+;     _Out_Opt uint32_t* PreviousSuspendCount
+; );
+; Syscall number is 28
+global MtResumeThread
+MtResumeThread:
+	mov rax, 28
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtRaiseException(const EXCEPTION_RECORD*);
+; Syscall number is 29.
+global MtRaiseException
+MtRaiseException:
+    mov rax, 29
+    mov r10, rcx
+    syscall
+    ret
 
 ; TO BE RETIRED
 global MtPrintConsole

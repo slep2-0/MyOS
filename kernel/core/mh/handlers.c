@@ -35,7 +35,7 @@ extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
-static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
+static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap) {
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
     // The LAPIC timer fires on every CPU. Only the BSP owns the global clock
@@ -59,8 +59,9 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
     // Do not decrement if a schedule is already pending.
     if (cpu->schedulePending) return;
 
-    // If scheduler is locked or no thread is running, return.
-    if (!schedulerEnabled || !cpu->currentThread) return;
+    // The timer itself executes above DISPATCH_LEVEL. Preemption eligibility is
+    // determined from the IRQL that the clock interrupt interrupted.
+    if (InterruptedIrql >= DISPATCH_LEVEL || !cpu->currentThread) return;
 
     PITHREAD currentThread = cpu->currentThread;
 
@@ -82,8 +83,8 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
 
 extern void lapic_eoi(void);
 
-void MiLapicInterrupt(bool schedulerEnabled, PTRAP_FRAME trap) {
-    MiHandleTimer(schedulerEnabled, trap);
+void MiLapicInterrupt(IRQL InterruptedIrql, PTRAP_FRAME trap) {
+    MiHandleTimer(InterruptedIrql, trap);
     lapic_eoi(); // Signal end of interrupt.
 }
 
@@ -218,42 +219,38 @@ MiPageFault (
 
     
     // The saved CS says where the faulting instruction actually executed.
-    // ITHREAD.PreviousMode says who entered the kernel and is not equivalent:
     // a syscall bug still faults at CPL 0.
-    PRIVILEGE_MODE PreviousMode = ((trap->cs & 3) == 3) ? UserMode : KernelMode;
-    assert(PreviousMode == MeGetPreviousMode(), "testion bugion");
-    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
+    PRIVILEGE_MODE FaultMode = ExpGetFaultMode(trap);
+    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, FaultMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
-        // If there are no exceptions handlers (for user mode, we check the FS exception (todo TEB)) (for kernel mode we check the section by linker script)
-        // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
+        // If there are no exceptions handlers (for user mode, we check the exception handlers) (for kernel mode we check the section by linker script, future will be normal exception handling)
+        // - For user mode, MTDLL handling (or on determinstic function failure, termination), for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
 
         // Set thread last exception status.
         PsGetCurrentThread()->LastStatus = status;
 
-        if (PreviousMode == UserMode) {
-#if 0
-            if (false);
-            /* Unimplemented yet.
-            if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
-                ExpDispatchException(trap);
-                return;
+        if (FaultMode == UserMode) {
+            EXCEPTION_RECORD Record;
+
+            // Initialize the access violation exception record with the page fault exception variables.
+            ExpInitializeAccessViolationRecord(status, trap, fault_addr, trap->error_code, &Record);
+
+            // Publish the access violation record now
+            MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+            if (MT_FAILURE(PublishStatus)) {
+                // Invalid state status returned, just terminate the thread, no exception handling can be provided.
+                PspExitThread(status);
             }
-            */
-            else {
-#endif
-                // Terminate thread that caused violation.
-                PsTerminateThread(PsGetCurrentThread(), status);
-                // We arent allowed to continue.
-                MeGetCurrentProcessor()->schedulePending = true;
-                return;
-#if 0
-            }
-#endif
+
+            // All good now, when we return to the interrupt ISR assembly stub, at the exit route it will see if there are any exceptions to be delivered
+            // And when it sees this published exception, it will redirect RIP to MTDLL Exception handling.
+            return;
         }
         else {
             // Kernel mode, we see if we have an exception handler for this.
@@ -342,15 +339,23 @@ MiDivideByZero (
 
     --*/
     
-    // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION. TODO
-    if (MeGetPreviousMode() == UserMode) {
-        PsTerminateThread(PsGetCurrentThread(), MT_INTEGER_DIVIDE_BY_ZERO);
-        // We arent allowed to continue.
-        MeGetCurrentProcessor()->schedulePending = true;
+    if (ExpGetFaultMode(trap) == UserMode) {
+        // User mode has faulted, publish a fault for MTDLL to handle the exception.
+        EXCEPTION_RECORD Record;
+        ExpInitializeExceptionRecord(MT_INTEGER_DIVIDE_BY_ZERO, trap, &Record);
+
+        // Publish it
+        MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+        if (MT_FAILURE(PublishStatus)) {
+            PspExitThread(MT_INTEGER_DIVIDE_BY_ZERO);
+        }
+
+        // Usermode will now handle the exception.
+        return;
     }
 
     MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
-
 }
 
 void 
@@ -488,6 +493,22 @@ void MiBoundsCheck(PTRAP_FRAME trap) {
 }
 
 void MiInvalidOpcode(PTRAP_FRAME trap) {
+
+    if (ExpGetFaultMode(trap) == UserMode) {
+        // Let user mode handle the fault if it can.
+        EXCEPTION_RECORD Record;
+        ExpInitializeExceptionRecord(MT_ILLEGAL_INSTRUCTION, trap, &Record);
+
+        MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+        if (MT_FAILURE(PublishStatus)) {
+            PspExitThread(MT_ILLEGAL_INSTRUCTION);
+        }
+
+        // Return the handling to user mode.
+        return;
+    }
+
     MeBugCheckEx(INVALID_OPCODE, (void*)trap->rip, NULL, NULL, NULL);
 }
 
@@ -521,7 +542,7 @@ void MiStackSegmentOverrun(PTRAP_FRAME trap) {
 
 void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     PETHREAD Thread = PsGetCurrentThread();
-    if (MeGetPreviousMode() == KernelMode) {
+    if (ExpGetFaultMode(trap) == KernelMode || Thread->SystemThread) {
         // important exception, view error code and bugcheck with it
         // its also a very useless exception, as a general protection fault is the most
         // general thing in the world, like the word general was made for this fault
@@ -532,8 +553,6 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     }
 
     // User thread (and mode), we send an exception.
-    // TODO Exceptions.
-    // For now, terminate the user thread.
     MTSTATUS Status = MT_ACCESS_VIOLATION;
 
     // Enable access to user mode memory so we dont page fault on accessing its RIP.
@@ -548,14 +567,18 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
         __clac();
     }
 
-    // Terminate the thread, todo exp.
-    // We must not return to the thread, at all.
-    assert(Thread->SystemThread == false, "System thread #GPF when PrevMode == UserMode");
-    Thread->InternalThread.TimeSlice = (TimeSliceTicks)1;
-    Thread->InternalThread.TimeSliceAllocated = (TimeSliceTicks)1;
-    MeGetCurrentProcessor()->schedulePending = true;
-    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating user mode thread (Process Name: %s) ptr %p for %x | RIP: %p\n", PsGetCurrentProcess()->ImageName, Thread, Status, (void*)(uintptr_t)trap->rip);
-    PsTerminateThread(Thread, Status);
+    // Let user mode exception handling, handle this.
+    EXCEPTION_RECORD Record;
+    ExpInitializeExceptionRecord(Status, trap, &Record);
+
+    MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+    if (MT_FAILURE(PublishStatus)) {
+        PspExitThread(Status);
+    }
+
+    // User mode will handle it.
+    return;
 }
 
 void MiFloatingPointError(PTRAP_FRAME trap) {

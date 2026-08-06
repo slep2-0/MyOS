@@ -36,6 +36,7 @@ MtSyscallEntry:
     ; Lets use the stack pointer as a scratch to set itself
     ; Its not dangerous or anything, really.
     mov rsp, [gs:PROCESSOR_currentThread]
+
     ; RSP - PITHREAD
     mov rsp, [rsp + ITHREAD_KernelStack]
 

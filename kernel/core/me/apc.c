@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
+#include "../../includes/exception.h"
 #include "../../assert.h"
 
 #define DISPATCHER_FUNC_NAME "MeUserApcDispatcher"
@@ -46,9 +47,9 @@ MeInitializeApc(
 
     // NormalContext is meaningful only when a NormalRoutine will receive it.
     assert(NormalRoutine != NULL || NormalContext == NULL);
+    assert(KernelRoutine != NULL || NormalRoutine != NULL);
 
     // Initialize the APC Standard fields.
-    Apc->ApcType = 0;
     Apc->Thread = TargetThread;
     Apc->ApcMode = ApcMode;
     Apc->Inserted = 0;
@@ -61,8 +62,144 @@ MeInitializeApc(
     Apc->RundownRoutine = RundownRoutine;
     Apc->NormalRoutine = NormalRoutine;
 
-    // Initialize the list head.
+    // Initialize the list entry.
     InitializeListHead(&Apc->ApcListEntry);
+}
+
+static
+void
+MepInsertApc(
+    PDOUBLY_LINKED_LIST ApcList,
+    PAPC Apc
+)
+{
+    /*
+     * The caller must hold the APC-list lock.
+     *
+     * Queue invariant:
+     *
+     *     Special APCs -> Normal APCs
+     *
+     * FIFO ordering is preserved within each class.
+     */
+
+    const bool IsSpecialApc =
+        Apc->ApcMode == KernelMode &&
+        Apc->NormalRoutine == NULL;
+
+    if (!IsSpecialApc)
+    {
+        // Normal APCs are always inserted after all existing APCs.
+        InsertTailList(
+            ApcList,
+            &Apc->ApcListEntry
+        );
+
+        return;
+    }
+
+    assert(
+        ApcList ==
+        &Apc->Thread->ApcState.ApcListHead[KernelMode]
+    );
+
+    /*
+     * Start at the tail and skip normal APCs until we find:
+     *
+     * The last queued special APC 
+     * or
+     * The list head if no special APC exists.
+     */
+    PDOUBLY_LINKED_LIST InsertionPoint = ApcList->Blink;
+
+    while (InsertionPoint != ApcList)
+    {
+        PAPC QueuedApc = CONTAINING_RECORD(
+            InsertionPoint,
+            APC,
+            ApcListEntry
+        );
+
+        const bool IsQueuedApcSpecial =
+            QueuedApc->NormalRoutine == NULL;
+
+        if (IsQueuedApcSpecial)
+        {
+            break;
+        }
+
+        InsertionPoint = InsertionPoint->Blink;
+    }
+
+    /*
+     * Despite its name, InsertHeadList inserts immediately after the
+     * supplied list entry. Therefore this inserts the APC after the
+     * final special APC and before the first normal APC.
+     */
+    InsertHeadList(
+        InsertionPoint,
+        &Apc->ApcListEntry
+    );
+}
+
+bool
+MepInsertQueueApcLocked(
+    IN PAPC Apc,
+    IN void* SystemArgument1,
+    IN void* SystemArgument2,
+    OUT PPROCESSOR* TargetProcessor
+)
+{
+    assert(Apc != NULL);
+    assert(Apc->Thread != NULL);
+    assert(TargetProcessor != NULL);
+    assert(Apc->ApcMode == KernelMode || Apc->ApcMode == UserMode);
+
+    PITHREAD Thread = Apc->Thread;
+    *TargetProcessor = NULL;
+
+    /*
+     * ApcQueueable and Inserted are tested while the same lock protects their
+     * modification, so termination, removal, and insertion have one ordering.
+     */
+    if (Apc->Inserted ||
+        InterlockedLoadAcquire(&Thread->ApcQueueable) == false) {
+        return false;
+    }
+
+    Apc->SystemArgument1 = SystemArgument1;
+    Apc->SystemArgument2 = SystemArgument2;
+    Apc->Inserted = 1;
+
+    MepInsertApc(
+        &Thread->ApcState.ApcListHead[Apc->ApcMode],
+        Apc
+    );
+
+    if (Apc->ApcMode == KernelMode) {
+        InterlockedStoreRelease(
+            &Thread->ApcState.KernelApcPending,
+            true
+        );
+    }
+    else {
+        InterlockedStoreRelease(
+            &Thread->ApcState.UserApcPending,
+            true
+        );
+    }
+
+    if (Thread->ThreadState == THREAD_RUNNING &&
+        Thread->ActiveProcessor != NULL) {
+        /*
+         * The target is executing right now, so its CPU must be nudged after
+         * ApcQueueLock is released. A non-running thread needs no interrupt:
+         * the pending flag remains set until its next dispatch.
+         */
+        *TargetProcessor = Thread->ActiveProcessor;
+    }
+
+    return true;
 }
 
 bool
@@ -81,46 +218,19 @@ MeInsertQueueApc(
 
     bool Inserted = false;
     PITHREAD Thread = Apc->Thread;
+    // CPU to nudge after queue publication, if the target is currently running.
     PPROCESSOR TargetProcessor = NULL;
 
     // Acquire the APC lock
     IRQL oldIrql;
     MsAcquireSpinlock(&Thread->ApcQueueLock, &oldIrql);
 
-    // Double-check after acquiring the lock to prevent race conditions
-    PETHREAD EThread = PsGetEThreadFromIThread(Thread);
-    if (!Apc->Inserted &&
-        InterlockedLoadAcquire(&EThread->TerminationState) ==
-        ThreadTerminationNone) {
-        Apc->SystemArgument1 = SystemArgument1;
-        Apc->SystemArgument2 = SystemArgument2;
-        Apc->Inserted = 1;
-
-        // Queue the APC in the list for its delivery mode.
-        InsertTailList(
-            &Thread->ApcState.ApcListHead[Apc->ApcMode],
-            &Apc->ApcListEntry
-        );
-        Inserted = true;
-
-        if (Apc->ApcMode == KernelMode) {
-            InterlockedStoreRelease(
-                &Thread->ApcState.KernelApcPending,
-                true
-            );
-        }
-        else {
-            InterlockedStoreRelease(
-                &Thread->ApcState.UserApcPending,
-                true
-            );
-        }
-
-        if (Thread->ThreadState == THREAD_RUNNING &&
-            Thread->ActiveProcessor != NULL) {
-            TargetProcessor = Thread->ActiveProcessor;
-        }
-    }
+    Inserted = MepInsertQueueApcLocked(
+        Apc,
+        SystemArgument1,
+        SystemArgument2,
+        &TargetProcessor
+    );
 
     MsReleaseSpinlock(&Thread->ApcQueueLock, oldIrql);
 
@@ -162,7 +272,13 @@ MeRetireAPCs(
 
     // A vector may be stale, and a second vector may already be pending while
     // the first one drains the queue. Treat either case as a harmless nudge.
-    if (cpu->ApcRoutineActive) return;
+    if (cpu->ApcRoutineActive) {
+        return;
+    }
+
+    // A nonzero kernel special APC disable prohibits all APCs from being executed on this thread.
+    // No need for interlocked or a spinlock, this is only modified by the current thread
+    if (currentThread->SpecialApcDisable) return;
 
     cpu->ApcRoutineActive = true;
 
@@ -173,11 +289,34 @@ MeRetireAPCs(
 
         PDOUBLY_LINKED_LIST KernelList =
             &currentThread->ApcState.ApcListHead[KernelMode];
+
+        // If the kernel list is empty, just break out of the kernel APC loop.
         if (IsListEmpty(KernelList)) {
             InterlockedStoreRelease(
                 &currentThread->ApcState.KernelApcPending,
                 false
             );
+            MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
+            break;
+        }
+
+        // Before removing, see if its a kernel APC and we are allowed to run it
+        // If its a special APC, we will run it.
+        PDOUBLY_LINKED_LIST FirstEntry = KernelList->Flink;
+        PAPC InspectionApc =
+            CONTAINING_RECORD(FirstEntry, APC, ApcListEntry);
+
+        bool NormalApcDisabled =
+            currentThread->KernelApcDisable != 0 ||
+            currentThread->ApcState.KernelApcInProgress;
+
+        bool IsSpecial = MeIsSpecialApc(InspectionApc);
+
+        // Check which type of APC.
+        if (!IsSpecial && NormalApcDisabled) {
+            // Kernel APC, we are not allowed to execute this
+            // The neat thing is, since we ordered the APC Insertion by special APCs first, we dont have to iterate anymore
+            // We can just break, since it is guranteed that there are no more special APCs in the list
             MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
             break;
         }
@@ -205,17 +344,48 @@ MeRetireAPCs(
 
         // KernelApcInProgress describes a normal kernel APC, not the entire
         // software interrupt or a special APC's KernelRoutine.
-        if (NormalRoutine) {
+        // NormalRoutines might touch user code and so must run in PASSIVE_LEVEL.
+        if (!IsSpecial && NormalRoutine) {
             MsAcquireSpinlock(&currentThread->ApcQueueLock, &oldIrql);
             currentThread->ApcState.KernelApcInProgress = true;
             MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
 
+            // Let more special APCs execute while we run the normal routines
+            cpu->ApcRoutineActive = false;
+
+            MeLowerIrql(PASSIVE_LEVEL);
             NormalRoutine(NormalContext, SysArg1, SysArg2);
+
+            IRQL PrevIrql;
+            MeRaiseIrql(APC_LEVEL, &PrevIrql);
+
+            // Normal routine came back (remember, it is preemptable)
+            // Refresh CPU Ptr.
+            cpu = MeGetCurrentProcessor();
+
+            // The normal routine must not change the IRQL without changing it back at its exit.
+            if (PrevIrql != PASSIVE_LEVEL) {
+                MeBugCheckEx(
+                    FATAL_IRQL_CORRUPTION,
+                    Apc,
+                    NormalRoutine,
+                    currentThread,
+                    NULL
+                );
+            }
 
             MsAcquireSpinlock(&currentThread->ApcQueueLock, &oldIrql);
             currentThread->ApcState.KernelApcInProgress = false;
             MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
+
+            cpu->ApcRoutineActive = true;
         }
+    }
+
+    // First check if kernel APCs are disabled or not (this disables user apcs too)
+    if (currentThread->KernelApcDisable) {
+        cpu->ApcRoutineActive = false;
+        return;
     }
 
     // User APCs need a complete frame that returns to CPL3. Leave them pending
@@ -239,8 +409,11 @@ MeRetireAPCs(
             &currentThread->ApcState.UserApcPending,
             true
         );
+
+        // We also must not return when exceptions are active too.
         if (!TrapFrame || ((TrapFrame->cs & 3) != 3) ||
-            currentThread->UserApcActive) {
+            currentThread->UserApcActive ||
+            InterlockedLoadAcquire(&currentThread->UserExceptionActive)) {
             MsReleaseSpinlock(&currentThread->ApcQueueLock, oldIrql);
             break;
         }
@@ -272,24 +445,33 @@ MeRetireAPCs(
         if (!NormalRoutine) continue;
 
         PTRAP_FRAME Trap = TrapFrame;
+        CONTEXT ContextRecord;
+        ExpCaptureContextFromTrapFrame(Trap, &ContextRecord);
+
         uint64_t Dispatcher = (uint64_t)PspFindMtdllEntryAddress(
             DISPATCHER_FUNC_NAME,
             PsGetEThreadFromIThread(currentThread)
         );
 
         if (!Dispatcher || Dispatcher > MmHighestUserAddress ||
-            Trap->rsp <= (128 + sizeof(TRAP_FRAME) + 8)) {
+            !MI_IS_CANONICAL_ADDR(Trap->rsp) ||
+            Trap->rsp > MmHighestUserAddress ||
+            Trap->rsp <= (128 + sizeof(CONTEXT) + 15 + 8)) {
             MmFreePool(Apc);
             cpu->ApcRoutineActive = false;
             PspExitThread(MT_APC_ERROR);
         }
 
         uint64_t UserStack = Trap->rsp - 128;
-        UserStack -= sizeof(TRAP_FRAME);
+        UserStack -= sizeof(CONTEXT);
         UserStack &= ~0x0FULL;
 
         try {
-            kmemcpy((void*)UserStack, Trap, sizeof(TRAP_FRAME));
+            kmemcpy(
+                (void*)UserStack,
+                &ContextRecord,
+                sizeof(ContextRecord)
+            );
         } except{
             MmFreePool(Apc);
             cpu->ApcRoutineActive = false;
@@ -411,4 +593,92 @@ MeRemoveQueueApc(
     MsReleaseSpinlock(&Thread->ApcQueueLock, oldIrql);
 
     return Removed;
+}
+
+void
+MiCheckForKernelApcDelivery(
+    void
+)
+
+/*
+
+    Routine Description:
+
+        This function checks to detemine if a kernel APC can be delivered
+        immediately to the current thread or a kernel APC interrupt should
+        be requested. On entry to this routine the following conditions are
+        true:
+
+        1. Special kernel APCs are enabled for the current thread.
+
+        2. Normal kernel APCs may also be enabled for the current thread.
+
+        3. The kernel APC queue is not empty.
+
+    Arguments:
+
+        None
+
+    Return Value:
+
+        None
+
+    Notes:
+
+        This routine is ONLY called by kernel code that leaves a guarded
+        or critcial region.
+*/
+
+{
+    // If the IRQL is passive level, then the kernel APCs can be flushed immediately
+    InterlockedStoreRelease(&MeGetCurrentThread()->ApcState.KernelApcPending, true);
+    bool InterruptsEnabled = MeDisableInterrupts();
+    MhRequestSoftwareInterrupt(APC_LEVEL);
+    MeEnableInterrupts(InterruptsEnabled);
+}
+
+void
+MePrepareUserApcForReturn(
+    PTRAP_FRAME ReturnFrame
+)
+
+/*
+
+    Routine Description:
+
+        This function checks if user APCs are queued and so requests an interrupt for them, so when return for user code happens the APCs will execute.
+
+    Arguments:
+
+        ReturnFrame - Pointer to TRAP_FRAME the thread will return to user mode code to.
+
+    Return Value:
+
+        None
+*/
+
+{
+    bool InterruptsEnabled = MeDisableInterrupts();
+    assert(InterruptsEnabled == false);
+    (void)InterruptsEnabled;
+
+    PITHREAD Thread = MeGetCurrentThread();
+
+    if (!Thread || !ReturnFrame) {
+        return;
+    }
+
+    if ((ReturnFrame->cs & 3) != 3) {
+        return; // We must return to user code only.
+    }
+
+    if (Thread->UserApcActive || InterlockedLoadAcquire(&Thread->UserExceptionActive)) {
+        return; // Already executing a user apc, or, a user exception is active.
+    }
+
+    assert(Thread->KernelApcDisable == 0 && Thread->SpecialApcDisable == 0);
+
+    if (InterlockedLoadAcquire(&Thread->ApcState.UserApcPending)) {
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+    }
 }

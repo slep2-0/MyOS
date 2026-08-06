@@ -104,7 +104,6 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 		// Initialize basic values.
 		cpus[i].self = &cpus[i];
 		cpus[i].currentIrql = PASSIVE_LEVEL;
-		cpus[i].schedulerEnabled = false;
 		cpus[i].currentThread = NULL;
 		kmemset(&cpus[i].readyQueue, 0, sizeof(cpus[i].readyQueue));
 		cpus[i].ID = i;
@@ -287,7 +286,6 @@ void MhSpinAndProcessIpis(void) {
 	unsigned long oldCr8;
 	PPROCESSOR cpu = MeGetCurrentProcessor();
 	IRQL oldIrql;
-	bool oldSchedulerEnabled;
 
 	// Before SMP there is no IPI to service. Never enable a second IPI while
 	// already executing on the per-CPU IPI IST stack.
@@ -300,20 +298,17 @@ void MhSpinAndProcessIpis(void) {
 	__asm__ volatile("pushfq; pop %0" : "=rm"(rflags) :: "memory");
 	oldCr8 = __read_cr8();
 	oldIrql = cpu->currentIrql;
-	oldSchedulerEnabled = cpu->schedulerEnabled;
 
 	// Permit the IPI priority class while keeping the clock, DPC, and APC
 	// classes masked. A timer preemption here could otherwise schedule away
 	// from a per-CPU IST and later resume on a stack that has been reused.
 	__cli();
 	cpu->currentIrql = CLOCK_LEVEL;
-	cpu->schedulerEnabled = false;
 	__write_cr8(VECTOR_CLOCK >> 4);
 	__asm__ volatile("sti");
 	__asm__ volatile("nop");
 	__asm__ volatile("cli");
 	cpu->currentIrql = oldIrql;
-	cpu->schedulerEnabled = oldSchedulerEnabled;
 	__write_cr8(oldCr8);
 
 	// Restore the caller's original IF state.
@@ -381,6 +376,7 @@ MhpWaitForIpiCompletion(
 
 void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	if (!g_cpuCount || !smpInitialized) return;
+	assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
 	uint8_t myid = my_lapic_id();
 
 	uint64_t seq = InterlockedIncrementU64(&MhIpiSequence);
@@ -394,11 +390,10 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		// mailbox. Holding several mailbox locks at once allows concurrent
 		// broadcasts to form an SMP lock cycle.
 		//
-		// Keep the sender schedulable state fixed through the transaction.
-		// Interrupts remain enabled, so this CPU can service a crossing IPI,
-		// but it cannot be switched out after the target has acknowledged the
-		// request and before MailboxLock is released.
-		MeEnterCriticalRegion();
+		// Keep this CPU on the same thread until the mailbox transaction is
+		// complete. IPI_LEVEL remains unmasked, so crossing IPIs still run.
+		IRQL OldIrql;
+		MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 		MhpAcquireMailbox(TargetProcessor);
 
 		TargetProcessor->IpiAction = action;
@@ -413,7 +408,7 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 		MhpWaitForIpiCompletion(TargetProcessor, seq);
 
 		InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
-		MeLeaveCriticalRegion();
+		MeLowerIrql(OldIrql);
 	}
 }
 
@@ -428,13 +423,16 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 	if (InterlockedLoadAcquire(
 	    &TargetProcessor->State
 	) != ProcessorStateOnline) return;
+	assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
 
 	// Generate a unique sequence number for this IPI request.
 	uint64_t seq = InterlockedIncrementU64(&MhIpiSequence);
 
 	// Acquire the mailbox lock for the target processor.
-	// If the lock is held, we spin and process any incoming IPIs for ourselves.
-	MeEnterCriticalRegion();
+	// DISPATCH_LEVEL prevents a thread switch while the mailbox transaction is
+	// live. MhSpinAndProcessIpis still admits the higher-priority IPI vector.
+	IRQL OldIrql;
+	MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 	MhpAcquireMailbox(TargetProcessor);
 
 	// Assign the action, parameters, and sequence number to the target's mailbox.
@@ -451,5 +449,5 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 
 	// Release the mailbox lock so other processors can send requests to this CPU.
 	InterlockedExchangeU64(&TargetProcessor->MailboxLock, 0);
-	MeLeaveCriticalRegion();
+	MeLowerIrql(OldIrql);
 }

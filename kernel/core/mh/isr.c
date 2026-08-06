@@ -56,37 +56,7 @@ MhHandleInterrupt (
         MeBugCheck(PROCESSOR_POINTER_CORRUPTION);
     }
 #endif
-
-    PPROCESSOR cpu = MeGetCurrentProcessor();
-
     IRQL oldIrql;
-    
-    // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)
-    bool schedulerEnabled = cpu->schedulerEnabled;
-
-    // Save the PreviousMode to current thread.
-    PITHREAD currentThread = cpu->currentThread;
-    PRIVILEGE_MODE OldMode = KernelMode; // Default safety
-
-    if (currentThread) {
-        OldMode = currentThread->PreviousMode;
-    }
-
-    // Determine the mode for this interrupt context
-    // If we came from User land, we are now entering the kernel for the first time in this stack.
-    // If we came from Kernel mode, we are just nesting.
-    PRIVILEGE_MODE TrapMode;
-    if ((trap->cs & 0x3) == 0x3) {
-        TrapMode = UserMode;
-    }
-    else {
-        TrapMode = KernelMode;
-    }
-
-    // Set the mode for the duration of the ISR
-    if (currentThread) {
-        currentThread->PreviousMode = TrapMode;
-    }
 
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:
@@ -148,7 +118,7 @@ MhHandleInterrupt (
         break;
     case VECTOR_CLOCK:
         MeRaiseIrql(CLOCK_LEVEL, &oldIrql);
-        MiLapicInterrupt(schedulerEnabled, trap);
+        MiLapicInterrupt(oldIrql, trap);
         MeLowerIrql(oldIrql);
         break;
     case VECTOR_IPI:
@@ -189,10 +159,6 @@ MhHandleInterrupt (
         break;
     default:
         break;
-    }
-
-    if (currentThread) {
-        currentThread->PreviousMode = OldMode;
     }
 
     assert(MeAreInterruptsEnabled() == false);

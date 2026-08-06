@@ -191,6 +191,11 @@ FORCEINLINE void __outword(unsigned short port, unsigned short val) {
     __asm__ volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
+// Write port (outl)
+FORCEINLINE void __outdword(unsigned short port, uint32_t val) {
+    __asm__ volatile ("outl %0, %1" : : "a"(val), "Nd"(port));
+}
+
 // Read port (inb)
 FORCEINLINE unsigned char __inbyte(unsigned short port) {
     unsigned char ret;
@@ -264,6 +269,17 @@ FORCEINLINE uint64_t __readgsqword(uint64_t offset) {
     __asm__ volatile (
         "movq %%gs:(%1), %0"
         : "=r"(value)
+        : "r"(offset)
+        : "memory"
+        );
+    return value;
+}
+
+FORCEINLINE uint8_t __readgsbyte(uint64_t offset) {
+    uint8_t value;
+    __asm__ volatile (
+        "movb %%gs:(%1), %0"
+        : "=q"(value)
         : "r"(offset)
         : "memory"
         );

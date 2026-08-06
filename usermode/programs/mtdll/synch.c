@@ -37,7 +37,7 @@ Sleep(
 )
 
 {
-	MTSTATUS Status = MtSleep(Milliseconds);
+	MTSTATUS Status = MtDelayExecution(false, Milliseconds);
 	SetLastStatus(Status);
 	SetLastError(MtStatusToLastError(Status));
 }

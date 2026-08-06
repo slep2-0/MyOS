@@ -302,7 +302,6 @@ typedef uint64_t PAGE_INDEX;
 // All valid section rights
 #define MT_SECTION_ALL_ACCESS        0x003F
 
-typedef int32_t HANDLE, * PHANDLE;
 // ------------------ ENUMERATORS ------------------
 
 typedef enum _PFN_STATE {
@@ -596,9 +595,6 @@ typedef struct _POOL_DESCRIPTOR {
 
 #include "../../shared/include/mte.h"
 
-typedef MTE_RELOCATION Rela;
-#define R_X86_64_RELATIVE MTE_RELOCATION_X86_64_RELATIVE
-
 VALIDATE_SIZE(MTE_HEADER, MTE_HEADER_SIZE);
 
 // Represents a section in the file (.text, .data)
@@ -805,11 +801,6 @@ MiIsWithinBoundsOfReleasePhysicalPage(
 void
 MiReleasePhysicalPage(
     IN  PAGE_INDEX PfnIndex
-);
-
-void
-MiUnlinkPageFromList(
-    PPFN_ENTRY pfn
 );
 
 void
@@ -1097,14 +1088,8 @@ MTSTATUS
 MmAccessFault(
     IN  uint64_t FaultBits,
     IN  uint64_t VirtualAddress,
-    IN  PRIVILEGE_MODE PreviousMode,
+    IN  PRIVILEGE_MODE FaultMode,
     IN  PTRAP_FRAME TrapFrame
-);
-
-MUST_USE_RESULT
-bool
-MmInvalidAccessAllowed(
-    void
 );
 
 // module: mmio.c
