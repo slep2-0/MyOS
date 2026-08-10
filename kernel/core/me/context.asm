@@ -5,8 +5,8 @@
 %include "offsets.inc"
 
 section .text
-; void restore_context(PITHREAD Thread);
-; System V ABI: Thread in RDI
+; void restore_context(PITHREAD Thread, PITHREAD PreviousThread);
+; System V ABI: Thread in RDI, PreviousThread in RSI
 global restore_context
 restore_context:
     cli
@@ -32,6 +32,26 @@ restore_context:
     lea   rax, [rdi + ITHREAD_TrapRegisters]
     mov   rdx, [rax + TRAP_FRAME_rsp]
     mov   rsp, rdx
+
+    ; The kernel stack has been replaced, we will now NULL out the previous thread ActiveProcessor
+    ; Why do it when only we switched stacks? Because once the ActiveProcessor becomes NULL,
+    ; another processor might start to use the thread, and so consume his stack, so we must be in a safe stack
+    ; that no other processor might touch to continue.
+
+    ; A NULL PreviousThread means there is no outgoing stack owner to release.
+    test rsi, rsi
+    jz .no_previous_thread
+
+    ; RDI and RSI are both the same thread
+    ; most likely this is the only thread to be enqueued in the system
+    ; we must not null ourselves out
+    cmp rsi, rdi
+    je .no_previous_thread
+
+    ; NULL out ActiveProcessor
+    mov qword [rsi + ITHREAD_ActiveProcessor], 0
+
+.no_previous_thread:
     push  KERNEL_SS
     push  rdx
     push  qword [rax + TRAP_FRAME_rflags]
@@ -57,7 +77,8 @@ restore_context:
     mov   rax, [rax + TRAP_FRAME_rax]
     iretq
 
-; void restore_user_context_to_user(PETHREAD Thread);
+; void restore_user_context_to_user(PETHREAD Thread, PITHREAD PreviousThread);
+; System V ABI: Thread in RDI, PreviousThread in RSI
 global restore_user_context_to_user
 restore_user_context_to_user:
     ; Restore a thread whose saved continuation is in CPL 3.
@@ -83,7 +104,28 @@ restore_user_context_to_user:
     ; generated offset. ITHREAD now begins with a dispatcher header.
     mov   rdx, [rdi + ETHREAD_Teb]
     lea   rax, [rdi + ETHREAD_InternalThread + ITHREAD_TrapRegisters]
-    
+
+    ; Move from PreviousThread's stack onto NextThread's kernel stack.
+    mov rsp, [rdi + ETHREAD_InternalThread + ITHREAD_KernelStack]
+
+    ; The kernel stack has been replaced, we will now NULL out the previous thread ActiveProcessor
+    ; Why do it when only we switched stacks? Because once the ActiveProcessor becomes NULL,
+    ; another processor might start to use the thread, and so consume his stack, so we must be in a safe stack
+    ; that no other processor might touch to continue.
+
+    ; A NULL PreviousThread means there is no outgoing stack owner to release.
+    test rsi, rsi
+    jz .no_previous_thread_userion
+
+    ; We must not NULL out our own thread ActiveProcessor
+    lea rcx, [rdi + ETHREAD_InternalThread]
+    cmp rsi, rcx
+    je .no_previous_thread_userion
+
+    ; NULL Out ActiveProcessor
+    mov qword [rsi + ITHREAD_ActiveProcessor], 0
+
+.no_previous_thread_userion:
     ; Build the privilege-changing IRETQ frame on the current kernel stack.
     push qword [rax + TRAP_FRAME_ss] ; SS
     push qword [rax + TRAP_FRAME_rsp] ; RSP
@@ -116,7 +158,8 @@ restore_user_context_to_user:
     ; Return to user mode.
     iretq
 
-; void restore_user_context_to_kernel(PETHREAD Thread);
+; void restore_user_context_to_kernel(PETHREAD Thread, PITHREAD PreviousThread);
+; System V ABI: Thread in RDI, PreviousThread in RSI
 global restore_user_context_to_kernel
 restore_user_context_to_kernel:
     ; Resume a user-owned thread that blocked while still executing kernel
@@ -144,6 +187,27 @@ restore_user_context_to_kernel:
     ; continuation. Long-mode IRETQ still requires the complete frame.
     mov   rdx, [rax + TRAP_FRAME_rsp]
     mov   rsp, rdx
+
+    ; The kernel stack has been replaced, we will now NULL out the previous thread ActiveProcessor
+    ; Why do it when only we switched stacks? Because once the ActiveProcessor becomes NULL,
+    ; another processor might start to use the thread, and so consume his stack, so we must be in a safe stack
+    ; that no other processor might touch to continue.
+
+    ; A NULL PreviousThread means there is no outgoing stack owner to release.
+    test rsi, rsi
+    jz .no_previous_thread_kernelios
+
+    ; RDI is the selected ETHREAD while RSI is the outgoing ITHREAD.
+    ; Do not release ownership when the scheduler selected the same thread.
+    lea rcx, [rdi + ETHREAD_InternalThread]
+    cmp rsi, rcx
+    je .no_previous_thread_kernelios
+
+    ; NULL out ActiveProcessor
+    mov qword [rsi + ITHREAD_ActiveProcessor], 0
+
+.no_previous_thread_kernelios:
+
     push  KERNEL_SS
     push  rdx
     push  qword [rax + TRAP_FRAME_rflags]

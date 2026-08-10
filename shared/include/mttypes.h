@@ -61,6 +61,7 @@ typedef struct _PEB {
     uint8_t BeingDebugged;
     void* ImageBase;
     PEB_LDR_DATA LoaderData;
+    void* ProcessHeap;
 } PEB, *PPEB;
 
 struct _EXCEPTION_REGISTRATION_RECORD;

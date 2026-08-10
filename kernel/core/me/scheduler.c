@@ -14,9 +14,9 @@
 extern PROCESSOR cpus[];
 
 // assembly stubs to save and restore register contexts.
-extern void restore_context(PITHREAD Thread);
-extern void restore_user_context_to_user(PETHREAD thread);
-extern void restore_user_context_to_kernel(PETHREAD thread);
+extern void restore_context(PITHREAD Thread, PITHREAD PreviousThread);
+extern void restore_user_context_to_user(PETHREAD thread, PITHREAD PreviousThread);
+extern void restore_user_context_to_kernel(PETHREAD thread, PITHREAD PreviousThread);
 
 // Idle thread, runs when no other is ready.
 // Stack for idle thread
@@ -91,6 +91,127 @@ static void enqueue_runnable(PITHREAD t) {
 extern uint32_t g_cpuCount; // extern the global cpu count. (gotten from smp)
 extern bool smpInitialized;
 
+static
+inline
+bool
+MepReadyQueueContainsThreadLocked(
+    IN Queue* ReadyQueue,
+    IN PETHREAD Thread
+)
+{
+    PETHREAD Current = ReadyQueue->head;
+
+    while (Current != NULL) {
+        if (Current == Thread) {
+            return true;
+        }
+
+        PDOUBLY_LINKED_LIST NextEntry =
+            Current->SchedulerListEntry.Flink;
+
+        Current = NextEntry
+            ? CONTAINING_RECORD(
+                NextEntry,
+                ETHREAD,
+                SchedulerListEntry
+            )
+            : NULL;
+    }
+
+    return false;
+}
+
+bool
+MepMigrateReadyThread(
+    PETHREAD Thread,
+    PPROCESSOR Source,
+    PPROCESSOR Destination
+)
+
+/*++
+
+    Routine description : 
+    
+        Performs a ready queue migration on the Destination CPU.
+
+        This is used for load balancing, when 1 CPU readyQueue has too many threads on it, while other CPUs have much lesser.
+
+    Arguments:
+
+        Thread - The thread to migrate to Destination from Source
+        Source - The source processor, that hosts the thread in its readyQueue
+        Destination - The dedstination processor which will host the thread in its readyQueue
+
+    Return Values:
+
+        True if the thread was moved, false otherwise
+
+--*/
+
+{
+    if (!Thread || !Source || !Destination) return false;
+
+    // The source CPU must not be the destination CPU
+    if (Source == Destination) return false;
+
+    // Acquire both CPU locks in ascending PROCESSOR.ID order
+    // Small boolean optimization to not calculate the exact same thing later
+    bool AcquireDestinationFirst = false;
+    bool Moved = false;
+
+    IRQL prevIrql;
+    if (Source->ID > Destination->ID) {
+        AcquireDestinationFirst = true;
+
+        MsAcquireSpinlock(&Destination->readyQueue.lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&Source->readyQueue.lock);
+    }
+    else {
+        MsAcquireSpinlock(&Source->readyQueue.lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&Destination->readyQueue.lock);
+    }
+
+    // Verify that the Thread is actually linked in the Source ready queue
+    if (!MepReadyQueueContainsThreadLocked(&Source->readyQueue, Thread)) goto Cleanup;
+
+    // To migrate a thread it must not be running or blocking (or terminating).
+    if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY) goto Cleanup;
+
+    // The thread must not be factually running inside of a processor.
+    if (InterlockedLoadAcquire(
+        &Thread->InternalThread.ActiveProcessor
+    ) != NULL) {
+        goto Cleanup;
+    }
+
+    // Thread is validated, remove it from Source queue and insert it in the Destination
+    if (!MeRemoveThreadFromQueue(&Source->readyQueue, Thread)) {
+        assert(false, "readyQueue corruption detected in the current CPU even though it was locked");
+        goto Cleanup;
+    }
+
+    // Enqueue to dest
+    MeEnqueueThread(&Destination->readyQueue, Thread);
+
+    Moved = true;
+
+Cleanup:
+    if (AcquireDestinationFirst) {
+        MsReleaseSpinlockFromDpcLevel(&Source->readyQueue.lock);
+        MsReleaseSpinlock(&Destination->readyQueue.lock, prevIrql);
+    }
+    else {
+        MsReleaseSpinlockFromDpcLevel(&Destination->readyQueue.lock);
+        MsReleaseSpinlock(&Source->readyQueue.lock, prevIrql);
+    }
+
+    if (Moved) {
+        InterlockedStoreRelease(&Destination->schedulePending, true);
+    }
+
+    return Moved;
+}
+
 // The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
 static PITHREAD MeAcquireNextScheduledThread(void) {
     // First, lets try to get from our own queue.
@@ -106,7 +227,14 @@ static PITHREAD MeAcquireNextScheduledThread(void) {
             // The reason I used the self pointer here, is because the BSP in the cpus array, is empty except for 4 fields, as its main struct is cpu0, 
             // which is defined at the kernel main, so we access it through self, view SMP.C prepare_percpu for more info.
             Queue* victimQueue = &cpus[i].self->readyQueue;
-            if (!victimQueue->head) continue; // skip empty queues
+
+            IRQL prevIrql;
+            MsAcquireSpinlock(&victimQueue->lock, &prevIrql);
+            if (!victimQueue->head) {
+                MsReleaseSpinlock(&victimQueue->lock, prevIrql);
+                continue; // skip empty queues
+            }
+            MsReleaseSpinlock(&victimQueue->lock, prevIrql);
 
             chosenThread = MeDequeueThreadWithLock(victimQueue);
             if (!chosenThread) continue;
@@ -243,6 +371,9 @@ Schedule(void) {
 
     PITHREAD next = MeAcquireNextScheduledThread();
 
+    // Save the current thread as the previous thread for setting his ActiveProcessor as NULL when its switched away.
+    PITHREAD PreviousThread = cpu->currentThread;
+
     if (!next) {
         next = IdleThread;
     }
@@ -253,8 +384,13 @@ Schedule(void) {
     assert(next->KernelStack != NULL);
     assert(next == IdleThread || next->ThreadState == THREAD_READY,
         "Scheduler selected a thread that was not ready.");
-    assert(next->ActiveProcessor == NULL || next->ActiveProcessor == cpu,
-        "Scheduler selected a thread owned by another processor.");
+    // A selected READY thread is normally unowned. The only valid exception
+    // is selecting the outgoing thread again without changing CPUs.
+    assert(
+        next->ActiveProcessor == NULL ||
+        (next == PreviousThread && next->ActiveProcessor == cpu),
+        "Scheduler selected a thread whose stack is still owned."
+    );
 
     uintptr_t StackTop = (uintptr_t)next->KernelStack;
     size_t StackSize = next->IsLargeStack
@@ -338,17 +474,17 @@ Schedule(void) {
     MePrepareUserDispatchForReturn(&next->TrapRegisters);
 
     if (PsIsKernelThread(PsGetEThreadFromIThread(next))) {
-        restore_context(next);
+        restore_context(next, PreviousThread);
     }
     else {
         // Saved CS is the authoritative resume mode. Interrupt frames provide
         // it directly, and MsYieldExecution records KERNEL_CS for a blocked
         // syscall continuation. Address ranges are not execution-state.
         if ((next->TrapRegisters.cs & 3) == 0) {
-            restore_user_context_to_kernel(PsGetEThreadFromIThread(next));
+            restore_user_context_to_kernel(PsGetEThreadFromIThread(next), PreviousThread);
         }
         else {
-            restore_user_context_to_user(PsGetEThreadFromIThread(next));
+            restore_user_context_to_user(PsGetEThreadFromIThread(next), PreviousThread);
         }
     }
 

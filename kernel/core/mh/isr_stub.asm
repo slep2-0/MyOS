@@ -201,10 +201,10 @@ extern Schedule
     cmp byte [gs:PROCESSOR_schedulePending], 0
     jz .exit ; No schedule pending...
 
-    ; A same-CPL interrupt normally has no hardware RSP/SS slots. Only switch
-    ; from a frame known to be complete: any user-to-kernel transition, the
-    ; timer IST, or the page-fault IST. Other kernel interrupts defer the
-    ; request until the next timer tick.
+    ; In 64-bit mode, hardware pushes SS:RSP for every interrupt frame. Preserve
+    ; the established immediate scheduling points: returns from user mode,
+    ; clock interrupts, and page faults. Other kernel events defer the pending
+    ; request until the next clock tick.
     test byte [rsp + TRAP_FRAME_cs], 3
     jnz .schedule_frame_is_complete
 

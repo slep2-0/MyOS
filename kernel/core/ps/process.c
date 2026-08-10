@@ -43,7 +43,9 @@ typedef struct _MTDLL_CACHE_ENTRY {
 bool PsMtdllRvasSaved = false;                 // Flag to track if cache is built
 size_t PsMtdllExportCount = 0;                 // How many valid exports we actually cached
 MTDLL_CACHE_ENTRY* PsMtdllExportCache = NULL;  // Pointer to our dynamic cache array
-static PUSH_LOCK PsMtdllCacheLock;
+// A zero-initialized static PUSH_LOCK is in the same state produced by
+// MsInitializePushLock and is ready before the MTDLL cache is first used.
+static PUSH_LOCK PsMtdllCacheLock = { 0 };
 
 static 
 bool 
@@ -332,6 +334,12 @@ PsCreateProcess(
     // Create the EPROCESS Object.
     Status = ObCreateObject(PsProcessType, sizeof(EPROCESS), (void*)&Process);
     if (MT_FAILURE(Status)) goto Cleanup;
+
+    // Initialize the push locks first
+    MsInitializePushLock(&Process->ProcessLock);
+    MsInitializePushLock(&Process->ThreadListLock);
+    MsInitializePushLock(&Process->AddressSpaceLock);
+    MsInitializePushLock(&Process->VadLock);
 
     // No MTDLL mapping is trusted until its image has been mapped, validated,
     // and relocated successfully below.

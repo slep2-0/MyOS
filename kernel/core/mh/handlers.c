@@ -226,6 +226,8 @@ MiPageFault (
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 
+
+
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
         // If there are no exceptions handlers (for user mode, we check the exception handlers) (for kernel mode we check the section by linker script, future will be normal exception handling)
@@ -262,7 +264,22 @@ MiPageFault (
             }
         }
 
-        // No handler found for the kernel mode violation, we bugcheck.
+        // No handler found for the kernel mode violation, we bugcheck. 
+        // Check if we have attempted to write on a readonly page.
+        FAULT_OPERATION OperationDone =
+            MiRetrieveOperationFromErrorCode(trap->error_code);
+
+        if (OperationDone == WriteOperation && (trap->error_code & PAGE_PRESENT)) {
+            MeBugCheckEx(
+                ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+                (void*)fault_addr,
+                (void*)NULL,
+                (void*)trap->rip,
+                (void*)trap->error_code
+            );
+        }
+
+
         MeBugCheckEx(
             KMODE_EXCEPTION_NOT_HANDLED,
             (void*)(uintptr_t)status,
@@ -415,7 +432,7 @@ MiDebugTrap (
     }
 #else
     UNREFERENCED_PARAMETER(trap);
-    __write_DR(6, 0);
+    __write_dr(6, 0);
     return;
 #endif
 }

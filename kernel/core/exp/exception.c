@@ -1508,39 +1508,90 @@ ExpTestUserExceptionDispatchFrame(
     // Return the borrowed thread state to idle before exercising failure.
     Thread->UserExceptionActive = false;
 
-    // Reconstruct the pending record used by the insufficient-stack test.
+    // Calculate the mapped stack's inclusive lower boundary once for edge tests.
+    uint64_t StackLimit = (uint64_t)Thread->StackBase -
+        TargetThread->UserStackSize;
+
+    // The aligned dispatch image must start at least sixteen bytes above the
+    // page-aligned lower boundary so its eight-byte synthetic return slot fits.
+    uint64_t LowestValidRsp = StackLimit + 128 +
+        sizeof(EXCEPTION_DISPATCH_FRAME) + 16;
+
+    // Reconstruct and publish a record for the exact lowest valid stack pointer.
     ExpInitializeExceptionRecord(
         MT_INVALID_PARAM,
         &OriginalFrame,
         &Thread->PendingExceptionRecord
     );
+    InterlockedStoreRelease(&Thread->UserExceptionPending, true);
 
-    // Republish pending state for the deliberate preparation failure.
-    Thread->UserExceptionPending = true;
+    // Prepare a candidate that leaves the smallest valid complete destination.
+    TRAP_FRAME BoundaryFrame = OriginalFrame;
+    BoundaryFrame.rsp = LowestValidRsp;
+    Status = ExppPrepareUserExceptionDispatch(Thread, &BoundaryFrame);
 
-    // Copy the original frame and place RSP exactly at the stack's lower bound.
-    TRAP_FRAME RejectedFrame = OriginalFrame;
-    RejectedFrame.rsp = (uint64_t)Thread->StackBase -
-        TargetThread->UserStackSize;
+    // Prove the accepted boundary remains within mapped stack memory.
+    assert(Status == MT_SUCCESS &&
+        BoundaryFrame.rsp >= StackLimit &&
+        BoundaryFrame.rsp + sizeof(uint64_t) +
+            sizeof(EXCEPTION_DISPATCH_FRAME) <=
+            (uint64_t)Thread->StackBase,
+        "lowest valid exception stack boundary was rejected or escaped");
 
-    // Preserve the invalid candidate so failure atomicity can be verified.
-    TRAP_FRAME UnchangedRejectedFrame = RejectedFrame;
+    // Return the borrowed state to idle before testing rejected candidates.
+    InterlockedStoreRelease(&Thread->UserExceptionActive, false);
 
-    // Attempt preparation where no red zone or dispatch image can fit.
-    Status = ExppPrepareUserExceptionDispatch(Thread, &RejectedFrame);
+    // Cover insufficient space, the guard page, upper-bound escape, and both
+    // zero and noncanonical malformed user stack pointers.
+    const uint64_t RejectedStackPointers[] = {
+        LowestValidRsp - 1,
+        StackLimit,
+        StackLimit - sizeof(uint64_t),
+        (uint64_t)Thread->StackBase + sizeof(uint64_t),
+        0,
+        0x0000800000000000ULL,
+        UINT64_MAX
+    };
 
-    // Verify deterministic rejection without partial candidate-frame mutation.
-    assert(Status == MT_INVALID_STATE &&
-        kmemcmp(
-            &RejectedFrame,
-            &UnchangedRejectedFrame,
-            sizeof(RejectedFrame)
-        ) == 0,
-        "invalid exception stack partially modified the return frame");
+    for (size_t Index = 0;
+         Index < sizeof(RejectedStackPointers) /
+            sizeof(RejectedStackPointers[0]);
+         Index++) {
+        // Reconstruct and republish the same exception for each invalid RSP.
+        ExpInitializeExceptionRecord(
+            MT_INVALID_PARAM,
+            &OriginalFrame,
+            &Thread->PendingExceptionRecord
+        );
+        InterlockedStoreRelease(&Thread->UserExceptionPending, true);
 
-    // Verify that failed preparation left the pending exception available.
-    assert(Thread->UserExceptionPending && !Thread->UserExceptionActive,
-        "invalid exception stack consumed or activated pending state");
+        // Replace only RSP so every other candidate register remains testable.
+        TRAP_FRAME RejectedFrame = OriginalFrame;
+        RejectedFrame.rsp = RejectedStackPointers[Index];
+
+        // Preserve the complete candidate for failure-atomicity comparison.
+        TRAP_FRAME UnchangedRejectedFrame = RejectedFrame;
+
+        // Attempt preparation without touching an invalid or guard-page range.
+        Status = ExppPrepareUserExceptionDispatch(Thread, &RejectedFrame);
+
+        // Require deterministic rejection and no partial trap-frame mutation.
+        assert(Status == MT_INVALID_STATE &&
+            kmemcmp(
+                &RejectedFrame,
+                &UnchangedRejectedFrame,
+                sizeof(RejectedFrame)
+            ) == 0,
+            "invalid exception stack partially modified the return frame");
+
+        // A rejected delivery must preserve pending and never publish active.
+        assert(InterlockedLoadAcquire(&Thread->UserExceptionPending) &&
+            !InterlockedLoadAcquire(&Thread->UserExceptionActive),
+            "invalid exception stack consumed or activated pending state");
+
+        // Clear the borrowed pending state before the next malformed candidate.
+        InterlockedStoreRelease(&Thread->UserExceptionPending, false);
+    }
 
     // Restore the target's original exception-state storage after the test.
     Thread->UserExceptionPending = false;

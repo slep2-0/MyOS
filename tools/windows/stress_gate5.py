@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -112,6 +113,8 @@ def _run_one(
     cpu_count: int,
     run_number: int,
     timeout_seconds: int,
+    extra_qemu_args: list[str] | None = None,
+    abort_event: threading.Event | None = None,
 ) -> tuple[float, str]:
     output_directory.mkdir(parents=True, exist_ok=True)
     stem = f"{mode}_{cpu_count}cpu_{run_number:03d}"
@@ -157,9 +160,13 @@ def _run_one(
         "none",
     ]
 
+    if extra_qemu_args:
+        command.extend(extra_qemu_args)
+
     started = time.monotonic()
+    process: subprocess.Popen[str] | None = None
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
             cwd=ROOT,
             stdout=subprocess.PIPE,
@@ -167,24 +174,40 @@ def _run_one(
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=timeout_seconds,
-            check=False,
         )
-    except subprocess.TimeoutExpired as exc:
-        elapsed = time.monotonic() - started
-        output = exc.stdout or ""
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        qemu_output.write_text(output, encoding="utf-8")
-        raise RuntimeError(
-            f"{mode} {cpu_count}-CPU run {run_number} timed out after "
-            f"{elapsed:.1f}s; see {debug_log} and {qemu_output}"
-        ) from exc
+        while True:
+            elapsed = time.monotonic() - started
+            if abort_event is not None and abort_event.is_set():
+                process.kill()
+                output, _ = process.communicate()
+                qemu_output.write_text(output or "", encoding="utf-8")
+                raise RuntimeError(
+                    f"{mode} {cpu_count}-CPU run {run_number} was stopped "
+                    f"after stall diagnostics at {elapsed:.1f}s; see "
+                    f"{debug_log} and {qemu_output}"
+                )
+            if elapsed >= timeout_seconds:
+                process.kill()
+                output, _ = process.communicate()
+                qemu_output.write_text(output or "", encoding="utf-8")
+                raise RuntimeError(
+                    f"{mode} {cpu_count}-CPU run {run_number} timed out after "
+                    f"{elapsed:.1f}s; see {debug_log} and {qemu_output}"
+                )
+
+            try:
+                output, _ = process.communicate(timeout=0.25)
+                break
+            except subprocess.TimeoutExpired:
+                continue
     finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.communicate()
         runtime_variables.unlink(missing_ok=True)
 
     elapsed = time.monotonic() - started
-    qemu_output.write_text(result.stdout or "", encoding="utf-8")
+    qemu_output.write_text(output or "", encoding="utf-8")
     debug_text = debug_log.read_text(encoding="utf-8", errors="replace") \
         if debug_log.is_file() else ""
     expected_markers = {
@@ -195,10 +218,10 @@ def _run_one(
     }
     expected_marker = expected_markers[mode]
 
-    if result.returncode != PASS_EXIT_CODE or expected_marker not in debug_text:
+    if process.returncode != PASS_EXIT_CODE or expected_marker not in debug_text:
         raise RuntimeError(
             f"{mode} {cpu_count}-CPU run {run_number} failed: "
-            f"QEMU exit={result.returncode}, marker={expected_marker in debug_text}; "
+            f"QEMU exit={process.returncode}, marker={expected_marker in debug_text}; "
             f"see {debug_log} and {qemu_output}"
         )
 

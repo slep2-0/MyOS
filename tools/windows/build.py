@@ -57,6 +57,7 @@ MTDLL_C = [
     "usermode/programs/mtdll/file.c",
     "usermode/programs/mtdll/generic.c",
     "usermode/programs/mtdll/memory.c",
+    "usermode/programs/mtdll/heap.c",
     "usermode/programs/mtdll/process.c",
     "usermode/programs/mtdll/string.c",
     "usermode/programs/mtdll/thread.c",
@@ -566,6 +567,7 @@ def _user_c_flags(
         *_diagnostic_flags(),
         "-Wall",
         "-Wextra",
+        "-Werror", # User warnings also fail user compilation like the kernel, added.
         "-Wno-unused-function",
         "-O0",
         "-g",

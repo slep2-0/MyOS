@@ -1,0 +1,610 @@
+/*++
+
+Module Name:
+
+    heap.c
+
+Purpose:
+
+    This translation unit contains the implementation of process heaps.
+
+Author:
+
+    slep (Matanel) 2026.
+
+Notes:
+
+    Small allocations (up to 4096 bytes) are serviced by size-class
+    allocators. Requests are rounded to an appropriate bucket size
+    (for example, 27 bytes -> 32-byte bucket, 100 bytes -> 128-byte
+    bucket). Each bucket obtains slabs containing multiple fixed-size
+    allocation slots.
+    
+    Larger allocations are serviced by the heap's variable-size
+    segment allocator, which maintains and coalesces free blocks.
+    
+    Very large allocations may bypass the normal heap backend and
+    receive a dedicated VirtualAlloc region.
+    
+    This is conceptually similar to the kernel pool allocator.
+
+                   MT_HEAP
+                     |
+       +-------------+-------------+
+       |                           |
+   <= 4096                      > 4096
+       |                           |
+ size classes              variable blocks
+       |                           |
+    slabs                    MT_HEAP_SEGMENT
+                                   |
+                              MT_HEAP_BLOCK
+                                   |
+                         sufficiently huge
+                                   |
+                              VirtualAlloc
+
+Revision History:
+
+--*/
+
+#include "includes/mtdll.h"
+
+typedef struct _MT_HEAP_BLOCK {
+    size_t BlockSize; // Size of the usable memory in this block.
+    bool Free; // Whether this block is available for allocation.
+    DOUBLY_LINKED_LIST BlockListEntry; // Links this block into its segment.
+} MT_HEAP_BLOCK, *PMT_HEAP_BLOCK;
+
+typedef struct _MT_HEAP_SEGMENT {
+    void* BaseAddress; // Base address returned by VirtualAlloc.
+    size_t SegmentSize; // Total size of this segment.
+    DOUBLY_LINKED_LIST SegmentListEntry; // Links this segment into its heap.
+    DOUBLY_LINKED_LIST BlockListHead; // Head of the blocks in this segment.
+} MT_HEAP_SEGMENT, *PMT_HEAP_SEGMENT;
+
+#define MT_HEAP_BUCKET_COUNT 9
+#define MT_HEAP_SLAB_SIZE    (64 * 1024)
+
+typedef struct _MT_HEAP_SLAB {
+    void* BaseAddress;
+    size_t RegionSize;
+
+    size_t SlotSize;
+
+    // A pointer to the start of the slab slots
+    void* SlotsBase;
+    uint32_t SlotCount;
+    uint32_t FreeCount;
+
+    DOUBLY_LINKED_LIST SlabListEntry;
+
+    //
+    // 4096 bits = enough to describe 4096 16-byte slots
+    // in a 64 KB slab.
+    //
+    uint64_t Bitmap[64];
+
+} MT_HEAP_SLAB, * PMT_HEAP_SLAB;
+
+
+typedef struct _MT_HEAP_BUCKET {
+    size_t SlotSize;
+
+    //
+    // List of MT_HEAP_SLABs servicing this size class.
+    //
+    DOUBLY_LINKED_LIST SlabListHead;
+
+} MT_HEAP_BUCKET, * PMT_HEAP_BUCKET;
+
+typedef struct _MT_HEAP {
+    HANDLE HeapMutex; // Serializes operations on this heap.
+    HEAP_CREATE_OPTIONS Options; // Options controlling this heap's behavior.
+    size_t DefaultSegmentSize; // Preferred size when growing this heap.
+    size_t MaximumSize; // Maximum total size, or zero for no configured limit.
+    size_t CurrentSize; // Total virtual memory owned by the heap
+    MT_HEAP_BUCKET Buckets[MT_HEAP_BUCKET_COUNT]; // Slab buckets, from 16 upto 4096 in powers of 2.
+    DOUBLY_LINKED_LIST SegmentListHead; // Head of this heap's segments.
+} MT_HEAP, *PMT_HEAP;
+
+#define MT_HEAP_ALIGNMENT 16
+#define MT_PAGE_SIZE      4096
+#define MT_HEAP_SMALLEST_SLAB 16 // 16 Bytes
+#define MT_HEAP_BIGGEST_SLAB 4096 // 4096 Slab
+
+#define ALIGN_UP(Value, Alignment) \
+    (((Value) + ((Alignment) - 1)) & ~((Alignment) - 1))
+
+#define MT_HEAP_SEGMENT_HEADER_SIZE \
+    ALIGN_UP(sizeof(MT_HEAP_SEGMENT), MT_HEAP_ALIGNMENT)
+
+#define MT_HEAP_BLOCK_HEADER_SIZE \
+    ALIGN_UP(sizeof(MT_HEAP_BLOCK), MT_HEAP_ALIGNMENT)
+
+MT_HEAP_HANDLE
+GetProcessHeap(
+    void
+)
+
+{
+    return (MT_HEAP_HANDLE) MtCurrentPeb()->ProcessHeap;
+}
+
+// Mutex must be held when entering this function
+static
+PMT_HEAP_SEGMENT
+HeapCreateSegment(
+    PMT_HEAP Heap,
+    size_t MinimumSize
+)
+
+{
+    // The required size is the minimum size, plus the sizeof a segment and a block
+    // since these are the initial structs that must exist to describe the memory block(s)
+    size_t RequiredSize = MinimumSize + MT_HEAP_SEGMENT_HEADER_SIZE + MT_HEAP_BLOCK_HEADER_SIZE;
+    size_t SegmentSize = ALIGN_UP(RequiredSize, MT_PAGE_SIZE);
+
+    // If this heap growth violates the maximum size of the heap in bytes
+    // then fail allocation
+    if (Heap->MaximumSize && SegmentSize > Heap->MaximumSize - Heap->CurrentSize) {
+        return NULL;
+    }
+
+    // Set the protection for the segment
+    const USER_PROTECTION_TYPE Protection = (Heap->Options & HEAP_CREATE_ENABLE_EXECUTE) ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
+    PMT_HEAP_SEGMENT Segment = (PMT_HEAP_SEGMENT)VirtualAlloc(NULL, SegmentSize, Protection);
+
+    if (!Segment) return NULL;
+
+    // Segment header lives at the beginning of the allocation, and every allocation has its own block.
+    // Set members.
+    Segment->BaseAddress = Segment;
+    Segment->SegmentSize = SegmentSize;
+    InitializeListHead(&Segment->BlockListHead);
+
+    // Immediately after the initial segment is the initial free block, which covers the entire size.
+    PMT_HEAP_BLOCK HeapBlock = (PMT_HEAP_BLOCK)((uint8_t*)Segment + MT_HEAP_SEGMENT_HEADER_SIZE);
+    HeapBlock->BlockSize = SegmentSize - MT_HEAP_SEGMENT_HEADER_SIZE - MT_HEAP_BLOCK_HEADER_SIZE;
+
+    // The initial block is free.
+    HeapBlock->Free = true;
+
+    // Insert the block into the segment head list
+    InsertTailList(&Segment->BlockListHead, &HeapBlock->BlockListEntry);
+
+    // Add this segment to the heap
+    InsertTailList(&Heap->SegmentListHead, &Segment->SegmentListEntry);
+
+    // Add new size to current size
+    Heap->CurrentSize += SegmentSize;
+
+    return Segment;
+}
+
+static
+PMT_HEAP_SLAB
+HeapCreateSlab(
+    IN PMT_HEAP Heap,
+    IN PMT_HEAP_BUCKET Bucket
+)
+
+{
+    // Slab allocations are part of the heap committed size, they cannot go above it.
+    if (Heap->MaximumSize) {
+        if (Heap->CurrentSize > Heap->MaximumSize || MT_HEAP_SLAB_SIZE > Heap->MaximumSize - Heap->CurrentSize) {
+            return NULL;
+        }
+    }
+
+    const USER_PROTECTION_TYPE Protection =
+        (Heap->Options & HEAP_CREATE_ENABLE_EXECUTE)
+        ? PAGE_EXECUTE_READWRITE
+        : PAGE_READWRITE;
+
+    // Allocate the slab now
+    PMT_HEAP_SLAB Slab = (PMT_HEAP_SLAB)VirtualAlloc(NULL, MT_HEAP_SLAB_SIZE, Protection);
+
+    if (!Slab) return NULL;
+
+    // Set slab defaults
+    Slab->BaseAddress = Slab;
+    Slab->RegionSize = MT_HEAP_SLAB_SIZE;
+    Slab->SlotSize = Bucket->SlotSize;
+
+    // Slots begin after this slab metadata, they are aligned to 16 bytes.
+    Slab->SlotsBase = (void*)ALIGN_UP((uintptr_t)Slab + sizeof(MT_HEAP_SLAB), MT_HEAP_ALIGNMENT);
+
+    // Calculate metadata size, by subtracting the base (byte aligned slots address) with the Slab address
+    size_t MetadataSize = (size_t)((uint8_t*)Slab->SlotsBase - (uint8_t*)Slab);
+
+    // The slot count is each slab size (without the header metadata) divided by the slot size
+    Slab->SlotCount = (uint32_t)((MT_HEAP_SLAB_SIZE - MetadataSize) / Slab->SlotSize);
+
+    // The slab free count is the entire slots right now.
+    Slab->FreeCount = Slab->SlotCount;
+
+    // VirtualAlloc already zeroes the memory given
+    // meaning, the Bitmap array starts empty (0 = free), no need to zero it out
+    Heap->CurrentSize += MT_HEAP_SLAB_SIZE;
+
+    // Insert the slab into the bucket slab list.
+    InsertTailList(
+        &Bucket->SlabListHead,
+        &Slab->SlabListEntry
+    );
+
+    return Slab;
+}
+
+static
+void*
+HeapClaimSlabSlot(
+    IN PMT_HEAP_SLAB Slab
+)
+
+{
+    // If the Slab has no slots left, then the caller should allocate more
+    if (Slab->FreeCount == 0) {
+        return NULL;
+    }
+
+    // Search the correct slot
+    for (uint32_t i = 0; i < Slab->SlotCount; i++) {
+        uint32_t WordIndex = i / 64;
+        uint32_t BitIndex = i % 64;
+        uint64_t Mask = 1ULL << BitIndex;
+
+        if ((Slab->Bitmap[WordIndex] & Mask) == 0) {
+            // 0 means free, lets set it to 1
+            // meaning lets fucking claim this slot
+            // Remember we are under mutex, no need for interlocked no nothing, it will be visible
+            Slab->Bitmap[WordIndex] |= Mask;
+            Slab->FreeCount--;
+
+            // Return the allocated (found) slab slot
+            return ((uint8_t*)Slab->SlotsBase + ((size_t)i * Slab->SlotSize));
+        }
+    }
+
+    // We should NOT reach here
+    // this explictly means list corruption
+    // a user probably used HEAP_NO_SERIALIZE when SERIALIZATION is required (2 or more threads touching the heap the same time)
+    // w programmer tho
+    // assert(false);
+    return NULL;
+}
+
+static
+inline
+size_t
+HeapGetBucketIndex(
+    size_t Size
+)
+{
+    size_t BucketSize = MT_HEAP_SMALLEST_SLAB;
+
+    for (size_t i = 0; i < MT_HEAP_BUCKET_COUNT; i++) {
+        if (Size <= BucketSize) {
+            return i;
+        }
+
+        BucketSize <<= 1;
+    }
+
+    return SIZE_MAX;
+}
+
+MT_HEAP_HANDLE
+HeapCreate(
+    IN HEAP_CREATE_OPTIONS Options,
+    IN size_t InitialSize,
+    IN size_t MaximumSize
+)
+
+{
+    // If no initial size, its just 1 page.
+    if (InitialSize == 0) InitialSize = 4096;
+
+    if (MaximumSize && InitialSize > MaximumSize) {
+        // The initial size must not be above the maximum size, if a maximum size is present.
+        return NULL;
+    }
+
+    const uint32_t ValidOptions =
+        HEAP_NO_SERIALIZE |
+        HEAP_GENERATE_EXCEPTIONS |
+        HEAP_CREATE_ENABLE_EXECUTE;
+
+    if (((uint32_t)Options & ~ValidOptions) != 0) {
+        // Reject unknown option bits while allowing supported options to be combined.
+        return NULL;
+    }
+
+    // Create the initial MT_HEAP
+    PMT_HEAP Heap = (PMT_HEAP)VirtualAlloc(NULL, sizeof(MT_HEAP), PAGE_READWRITE);
+    if (!Heap) {
+        return NULL;
+    }
+
+    // Set initial heap members
+    Heap->Options = Options;
+    Heap->MaximumSize = MaximumSize;
+    Heap->CurrentSize = 0;
+    Heap->DefaultSegmentSize = InitialSize;
+    Heap->HeapMutex = MT_INVALID_HANDLE;
+    InitializeListHead(&Heap->SegmentListHead);
+
+    if ((Options & HEAP_NO_SERIALIZE) == 0) {
+        // Create mutex if the heap should be serialized
+        Heap->HeapMutex = CreateMutex(false, NULL);
+        if (Heap->HeapMutex == MT_INVALID_HANDLE) {
+            VirtualFree(Heap, 0, MEM_RELEASE);
+            return NULL;
+        }
+    }
+    else {
+        // This is so the code down below at the failure point can pass.
+        Heap->HeapMutex = MT_INVALID_HANDLE;
+    }
+
+    // Allocate the initial heap segment.
+    PMT_HEAP_SEGMENT Segment = HeapCreateSegment(Heap, InitialSize);
+
+    if (!Segment) {
+        // The initial heap segment could not be created, destroy mutex if created
+        // and free the initial heap alloc.
+        if (Heap->HeapMutex != MT_INVALID_HANDLE) {
+            CloseHandle(Heap->HeapMutex);
+        }
+
+        VirtualFree(Heap, 0, MEM_RELEASE);
+        return NULL;
+    }
+
+    // Initialize the heap slab buckets for this heap
+    size_t SlotSize = MT_HEAP_SMALLEST_SLAB;
+
+    for (size_t i = 0; i < MT_HEAP_BUCKET_COUNT; i++) {
+        Heap->Buckets[i].SlotSize = SlotSize;
+        InitializeListHead(&Heap->Buckets[i].SlabListHead);
+
+        // ** 2
+        SlotSize <<= 1;
+    }
+
+    // Success.
+    return (PMT_HEAP)Heap;
+}
+
+static
+inline
+PMT_HEAP_SLAB
+HeapFindAvailableSlab(
+    IN PMT_HEAP_BUCKET SlabBucket
+)
+
+{
+    // Loop the doubly linked list and search for a free slab in this bucket.
+    PDOUBLY_LINKED_LIST Head = &SlabBucket->SlabListHead;
+    PDOUBLY_LINKED_LIST Current = SlabBucket->SlabListHead.Flink;
+    PMT_HEAP_SLAB FoundSlab = NULL;
+
+    while (Head != Current) {
+        
+        // Get the slab in the list
+        PMT_HEAP_SLAB Slab = CONTAINING_RECORD(Current, MT_HEAP_SLAB, SlabListEntry);
+
+        if (Slab->FreeCount > 0) {
+            // Found a free slab.
+            FoundSlab = Slab;
+            break;
+        }
+
+        // Advance to the next one, this one isn't empty.
+        Current = Current->Flink;
+    }
+
+    return FoundSlab;
+}
+
+
+
+// Address returned is 16 byte aligned
+MTDLL_API
+void*
+HeapAlloc(
+    IN MT_HEAP_HANDLE Heap,
+    IN HEAP_ALLOCATE_OPTIONS Options,
+    IN size_t AllocationSize
+)
+
+{
+    // If a nullptr is given return NULL
+    if (!Heap) return NULL;
+
+    // If invalid options are given, return NULL
+    const uint32_t ValidOptions = HEAP_ALLOCATE_GENERATE_EXCEPTIONS | HEAP_ALLOCATE_NO_SERIALIZE | HEAP_ALLOCATE_ZERO_MEMORY;
+
+    if ((uint32_t)(Options & ~ValidOptions) != 0) {
+        return NULL;
+    }
+
+    // If the allocation size is below the smallest slab size, the allocation size will be the smallest slab size
+    if (AllocationSize < MT_HEAP_SMALLEST_SLAB) AllocationSize = MT_HEAP_SMALLEST_SLAB;
+
+    // If HEAP_NO_SERIALIZE is passed, then we will not acquire the mutex
+    // But if it is not passed, we will act based on the Heap options.
+    bool SerializeHeap = !(Options & HEAP_ALLOCATE_NO_SERIALIZE) && !(Heap->Options & HEAP_NO_SERIALIZE);
+
+    if (SerializeHeap) {
+        uint32_t ReturnedCode = WaitForSingleObject(Heap->HeapMutex, MT_INFINITE);
+        (void)(ReturnedCode);
+        // need user assertions
+        // ASSERT(ReturnedCode == WAIT_OBJECT_0)
+    }
+
+    // We are allowed to operate on the heap now, allocate if there is a free block that matches our size
+    // or extend the segment if needed (creating another one)
+    void* ReturnedAllocation = NULL;
+
+    // First, determine if the allocation size is taken from slabs or a global virtual alloc based block.
+    if (AllocationSize <= MT_HEAP_BIGGEST_SLAB) {
+        // We must allocate from slabs, either allocate from existing or create a new slab.
+        size_t BucketIndex = HeapGetBucketIndex(AllocationSize);
+
+        // Retrieve heap bucket per index
+        PMT_HEAP_BUCKET Bucket = &Heap->Buckets[BucketIndex];
+
+        // Get the slab from that bucket, and determine if we have an available one or not
+        PMT_HEAP_SLAB Slab = HeapFindAvailableSlab(Bucket);
+
+        if (!Slab) {
+            // No avilable slabs are left from this bucket
+            // extend it.
+            Slab = HeapCreateSlab(Heap, Bucket);
+
+            if (!Slab) {
+                // Out of memory allocation failure
+                goto Cleanup;
+            }
+        }
+
+        ReturnedAllocation = HeapClaimSlabSlot(Slab);
+        
+        // If the user wants a zeroed memory, then set it to 0.
+        if (ReturnedAllocation && (Options & HEAP_ALLOCATE_ZERO_MEMORY)) {
+            memset(ReturnedAllocation, 0, Slab->SlotSize);
+        }
+
+        // assert that returned allocation is true
+        // it must be, if we are SERIALIZING the heap, no other thread should touch Slab->FreeCount
+        // yet if ReturnedAllocation is NULL, something did, since we verified it has free slots using HeapFindAvailableSlab
+
+        // Control flow would go to cleanup anyway
+        // But explicit transfer is better
+        goto Cleanup;
+    }
+
+Cleanup:
+    
+    // If serialization, then release the mutex
+    if (SerializeHeap) {
+        ReleaseMutex(Heap->HeapMutex);
+    }
+
+    return ReturnedAllocation;
+}
+
+static
+bool
+HeapFreeSlabAllocation(
+    IN PMT_HEAP Heap,
+    IN void* Address
+)
+
+{
+    if (!Address || !Heap) return false;
+
+    // Search every size bucket until we find this pointer (or a size that contains it)
+    for (size_t BucketIndex = 0; BucketIndex < MT_HEAP_BUCKET_COUNT; BucketIndex++) {
+        PMT_HEAP_BUCKET Bucket = &Heap->Buckets[BucketIndex];
+
+        // Iterate over all the slabs in this bucket
+        PDOUBLY_LINKED_LIST Head = &Bucket->SlabListHead;
+        PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+        while (Head != Current) {
+
+            // Get the slab for this bucket index
+            PMT_HEAP_SLAB Slab = CONTAINING_RECORD(Current, MT_HEAP_SLAB, SlabListEntry);
+
+            // Get slot start base
+            uintptr_t SlotsStart = (uintptr_t)Slab->SlotsBase;
+
+            // Calculate the end of the slots so we can know when to stop iterating
+            uintptr_t SlotsEnd = (uintptr_t)SlotsStart + ((size_t)Slab->SlotCount * Slab->SlotSize);
+
+            // Does this slab owns the address given to free
+            if ((uintptr_t)Address >= SlotsStart && (uintptr_t)Address < SlotsEnd) {
+                // It does, we will now calculate if Address is actually the address given by HeapAlloc
+                size_t Offset = (uintptr_t)Address - SlotsStart;
+
+                if ((Offset % Slab->SlotSize) != 0) {
+                    return false;
+                }
+
+                // Get the slot index, word index, and mask for each slab slot bit.
+                uint32_t SlotIndex = (uint32_t)(Offset / Slab->SlotSize);
+                uint32_t WordIndex = SlotIndex / 64;
+                uint32_t BitIndex = SlotIndex % 64;
+                uint64_t Mask = 1ULL << BitIndex;
+
+                // Bit being 0 means the slot was not allocated
+                // this means a double free (or just an invalid ptr)
+                if ((Slab->Bitmap[WordIndex] & Mask) == 0) {
+                    return false;
+                }
+
+                // Clear the allocated bit (signal its free), increment the count and return.
+                Slab->Bitmap[WordIndex] &= ~Mask;
+                Slab->FreeCount++;
+                return true;
+            }
+
+            Current = Current->Flink;
+        }
+    }
+
+    // Address isnt in any slab.
+    return false;
+}
+
+bool
+HeapFree(
+    IN MT_HEAP_HANDLE Heap,
+    IN HEAP_FREE_OPTIONS Options,
+    IN void* AllocatedMemory
+)
+{
+    // Invalid ptrs
+    if (!Heap || !AllocatedMemory) {
+        return false;
+    }
+
+    const uint32_t ValidOptions =
+        HEAP_FREE_NO_SERIALIZE;
+
+    if ((uint32_t)(Options & ~ValidOptions) != 0) {
+        return false;
+    }
+
+    // Check if the heap needs to be serialized. (mutex hold)
+    bool SerializeHeap = !(Options & HEAP_FREE_NO_SERIALIZE) && !(Heap->Options & HEAP_NO_SERIALIZE);
+
+    if (SerializeHeap) {
+        uint32_t ReturnedCode =
+            WaitForSingleObject(
+                Heap->HeapMutex,
+                MT_INFINITE
+            );
+
+        (void)ReturnedCode;
+    }
+
+    // Call internal function
+    bool Result =
+        HeapFreeSlabAllocation(
+            Heap,
+            AllocatedMemory
+        );
+
+    // Release mutex if serialization
+    if (SerializeHeap) {
+        ReleaseMutex(Heap->HeapMutex);
+    }
+
+    // Return if given pointer to allocated memory has freed the allocated memory in the allocated memories inside a 64bit system
+    // what
+    return Result;
+}

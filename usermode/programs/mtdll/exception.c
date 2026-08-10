@@ -16,6 +16,58 @@ Revision History:
 
 --*/
 
+
+/*
+Try except translator looks like this:
+
+__try {
+    Work();
+}
+__except (MyFilter(GetExceptionInformation())) {
+    Recover();
+}
+
+Turns to:
+
+
+{
+    MT_LANGUAGE_EXCEPTION_FRAME __mt_frame_42 = { 0 };
+
+    MT_LANGUAGE_SCOPE_GUARD __mt_guard_42
+        __attribute__((cleanup(MtpCleanupLanguageFrame))) = {
+            .Frame = &__mt_frame_42
+        };
+
+    int __mt_state_42 =
+        MtpEnterLanguageFrame(&__mt_frame_42);
+
+    if (__mt_state_42 == MtLanguageEnterTry) {
+        Work();
+
+        MtpLeaveLanguageFrame(&__mt_frame_42);
+        goto __mt_after_42;
+    }
+
+    int __mt_filter_42 =
+        MyFilter(&__mt_frame_42.ExceptionPointers);
+
+    MtpApplyLanguageFilter(
+        &__mt_frame_42,
+        __mt_filter_42,
+        &&__mt_handler_42
+    );
+
+    UNREACHABLE_CODE();
+
+__mt_handler_42:
+    Recover();
+
+__mt_after_42:
+    ;
+}
+
+*/
+
 #include "../../../shared/include/mtexception.h"
 #include "../../../shared/include/MatanelOS.h"
 #include "includes/mtdll.h"

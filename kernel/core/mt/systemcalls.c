@@ -1389,7 +1389,7 @@ MtCreateThread(
     return Status;
 }
 
-extern NORETURN void restore_user_context_to_user(PETHREAD Thread);
+extern NORETURN void restore_user_context_to_user(PETHREAD Thread, PITHREAD PreviousThread);
 
 NORETURN void
 MtContinue(
@@ -1493,7 +1493,7 @@ MtContinue(
     Thread->InternalThread.SyscallTrap = NULL;
     MeGetCurrentProcessor()->ApcRoutineActive = false;
     MePrepareUserDispatchForReturn(&Thread->InternalThread.TrapRegisters);
-    restore_user_context_to_user(Thread);
+    restore_user_context_to_user(Thread, NULL);
 }
 
 MTSTATUS

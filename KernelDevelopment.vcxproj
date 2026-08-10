@@ -115,6 +115,7 @@
     <ClCompile Include="usermode\programs\mtdll\exception.c" />
     <ClCompile Include="usermode\programs\mtdll\file.c" />
     <ClCompile Include="usermode\programs\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\mtdll\heap.c" />
     <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
     <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
     <ClCompile Include="usermode\programs\mtdll\memory.c" />
@@ -161,6 +162,7 @@
     <ClInclude Include="shared\include\accessrights.h" />
     <ClInclude Include="shared\include\annotations.h" />
     <ClInclude Include="shared\include\errorcodes.h" />
+    <ClInclude Include="shared\include\heapapi.h" />
     <ClInclude Include="shared\include\MatanelOS.h" />
     <ClInclude Include="shared\include\mtapi.h" />
     <ClInclude Include="shared\include\mte.h" />

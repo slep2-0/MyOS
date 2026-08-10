@@ -282,7 +282,7 @@ do {                                                                        \
 // Prevents CPU Reordering as well as the MmBarrier functionality.
 #define MmFullBarrier() __sync_synchronize()
 
-// Ensure ordedring of memory operations (memory should be visible before continuing)
+// Ensure ordering of memory operations (memory should be visible before continuing)
 #define MmBarrier() __asm__ __volatile__("mfence" ::: "memory")
 
 // ------------------ TYPE DEFINES ------------------

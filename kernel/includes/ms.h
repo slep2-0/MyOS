@@ -175,41 +175,39 @@ typedef struct _SEMPAHORE {
     int32_t Limit;
 } SEMAPHORE, *PSEMAPHORE;
 
+typedef enum _PUSH_LOCK_WAIT_MODE {
+    PushLockWaitExclusive,
+    PushLockWaitShared
+} PUSH_LOCK_WAIT_MODE;
+
+typedef struct _PUSH_LOCK_WAIT_BLOCK
+PUSH_LOCK_WAIT_BLOCK, * PPUSH_LOCK_WAIT_BLOCK;
+
 typedef struct _PUSH_LOCK {
-    union {
-        struct {
-            uint64_t Locked : 1;
-            uint64_t Waiting : 1;
-            uint64_t Waking : 1;
-            uint64_t MultipleShared : 1;
-            uint64_t Shared : 60;
-        };
-        uint64_t Value;
-        void* Pointer;
-    };
-} PUSH_LOCK;
+    // Protects every field below. Never sleep or signal an event while held.
+    SPINLOCK StateLock;
 
-typedef struct _PUSH_LOCK_WAIT_BLOCK {
-    union {
-        struct _PUSH_LOCK_WAIT_BLOCK* Next; // Links to the next waiter in the stack
-        struct _PUSH_LOCK_WAIT_BLOCK* Last; // Only used if this is the Head node (optimization)
-    };
+    // FIFO queue of stack-local PUSH_LOCK_WAIT_BLOCK objects.
+    PPUSH_LOCK_WAIT_BLOCK WaitHead;
+    PPUSH_LOCK_WAIT_BLOCK WaitTail;
 
-    EVENT WakeEvent;     // The event the thread sleeps on
-    uint32_t Flags;      // 1 = Exclusive, 2 = Shared
-    uint32_t ShareCount; // If we interrupt readers, we save their count here
-    bool Signaled;       // Optimization to avoid touching the Event if not needed
-} PUSH_LOCK_WAIT_BLOCK, * PPUSH_LOCK_WAIT_BLOCK;
+    // Ownership state.
+    uint32_t SharedOwners;
+    bool ExclusiveOwned;
+} PUSH_LOCK, * PPUSH_LOCK;
 
-#define PL_FLAGS_EXCLUSIVE 0x1
-#define PL_FLAGS_SHARED    0x2
+struct _PUSH_LOCK_WAIT_BLOCK {
+    PPUSH_LOCK_WAIT_BLOCK Next;
+    EVENT WakeEvent;
+    PUSH_LOCK_WAIT_MODE Mode;
 
-// Bit definitions for the PUSH_LOCK->Value
-#define PL_LOCK_BIT        0x1     // Bit 0: Locked Exclusive
-#define PL_WAIT_BIT        0x2     // Bit 1: There are waiters
-#define PL_WAKE_BIT        0x4     // Bit 2: Waking (optimization)
-#define PL_FLAG_MASK       0xF     // Bottom 4 bits are flags
-#define PL_SHARE_INC       0x10    // Shared count starts at Bit 4
+    // Granted means ownership has already been reserved for this waiter.
+    volatile bool Granted;
+
+    // Set after the releasing thread has finished using WakeEvent and this
+    // stack-local wait block may safely disappear.
+    volatile bool WakeComplete;
+};
 
 // ------------------ FUNCTIONS ------------------
 
@@ -291,6 +289,11 @@ MsAcquireSpinlockAtDpcLevel(
 void
 MsReleaseSpinlockFromDpcLevel(
     IN PSPINLOCK Lock
+);
+
+void
+MsInitializePushLock(
+    IN PPUSH_LOCK PushLock
 );
 
 void

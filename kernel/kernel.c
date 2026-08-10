@@ -229,6 +229,12 @@ static void InitSystemProcess(void) {
     PsInitialSystemProcess.Flags = ProcessBreakOnTermination;
     MsInitializeDispatcherHeader(&PsInitialSystemProcess.InternalProcess.Header, 0, DispatcherProcess);
     PsInitialSystemProcess.ExitStatus = MT_PENDING;
+
+    // Initialize the push locks
+    MsInitializePushLock(&PsInitialSystemProcess.ProcessLock);
+    MsInitializePushLock(&PsInitialSystemProcess.ThreadListLock);
+    MsInitializePushLock(&PsInitialSystemProcess.AddressSpaceLock);
+    MsInitializePushLock(&PsInitialSystemProcess.VadLock);
 }
 
 extern uint8_t bss_start;
@@ -3891,6 +3897,11 @@ StressSuiteCreateThread(
             Thread
         );
     }
+
+    // PsCreateSystemThread returns one caller-owned reference through
+    // OutThread. This generic helper preserves its original borrowed-pointer
+    // contract; tests that retain the pointer take their own guarded reference.
+    ObDereferenceObject(Thread);
     return Thread;
 }
 
@@ -6733,7 +6744,9 @@ typedef enum _STRESS6_FAILURE {
     Stress6UserApcAllocationFailure,
     Stress6UserApcInsertionFailure,
     Stress6UserApcStateFailure,
-    Stress6ExceptionPublicationFailure
+    Stress6ExceptionPublicationFailure,
+    Stress6ReadyMigrationUnavailable,
+    Stress6ReadyMigrationFailure
 } STRESS6_FAILURE;
 
 typedef struct _STRESS6_READY_CONTEXT {
@@ -6742,6 +6755,12 @@ typedef struct _STRESS6_READY_CONTEXT {
     volatile bool Stop;
     volatile uint64_t Progress;
 } STRESS6_READY_CONTEXT;
+
+typedef struct _STRESS6_MIGRATION_CONTEXT {
+    volatile bool Entered;
+    volatile bool Stop;
+    volatile uint32_t ProcessorId;
+} STRESS6_MIGRATION_CONTEXT;
 
 typedef struct _STRESS6_RUNNING_CONTEXT {
     volatile bool Start;
@@ -7379,6 +7398,26 @@ Stress6ReadyWorker(
 }
 
 static void
+Stress6MigrationWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS6_MIGRATION_CONTEXT* Context = Parameter;
+
+    // Publish the CPU that first dispatched this migrated worker.
+    InterlockedStoreRelease(
+        &Context->ProcessorId,
+        MeGetCurrentProcessor()->ID
+    );
+    InterlockedStoreRelease(&Context->Entered, true);
+
+    // Keep the thread alive until the controller has inspected the result.
+    while (!InterlockedLoadAcquire(&Context->Stop)) {
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
 Stress6ExceptionPublishWorker(
     THREAD_PARAMETER Parameter
 )
@@ -7729,6 +7768,124 @@ Stress6TestReadyTarget(void)
     InterlockedStoreRelease(&Context.Stop, true);
     Stress6JoinThread(Target, (void*)0x6014);
     gop_printf(COLOR_GREEN, "STRESS 6 READY target PASS\n");
+}
+
+static void
+Stress6TestReadyMigration(void)
+{
+    uint32_t ProcessorCount = MeGetActiveProcessorCount();
+    if (ProcessorCount < 2) {
+        gop_printf(
+            COLOR_GREEN,
+            "STRESS 6 READY migration SKIP (requires SMP)\n"
+        );
+        return;
+    }
+
+    PETHREAD Target = NULL;
+    PPROCESSOR Source = NULL;
+    PPROCESSOR Destination = NULL;
+    STRESS6_MIGRATION_CONTEXT Context = { 0 };
+
+    for (uint32_t Attempt = 0;
+         Attempt < STRESS6_READY_ATTEMPTS;
+         Attempt++) {
+        Context = (STRESS6_MIGRATION_CONTEXT){
+            .ProcessorId = UINT32_MAX
+        };
+        Target = Stress6CreateRetainedThread(
+            Stress6MigrationWorker,
+            &Context
+        );
+
+        // Pin this controller to its current CPU while the migrated worker is
+        // waiting to be selected. This makes its first-dispatch CPU observable.
+        IRQL OldIrql;
+        MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+        Source = MeGetCurrentProcessor();
+        Destination = MeGetProcessorBlock(
+            (uint8_t)((Source->ID + 1U) % ProcessorCount)
+        );
+
+        if (MepMigrateReadyThread(Target, Source, Source)) {
+            MeLowerIrql(OldIrql);
+            InterlockedStoreRelease(&Context.Stop, true);
+            Stress6JoinThread(Target, (void*)0x60A0);
+            Stress6BugCheck(
+                Stress6ReadyMigrationFailure,
+                (void*)0x60A0,
+                Target
+            );
+        }
+
+        if (!MepMigrateReadyThread(Target, Source, Destination)) {
+            MeLowerIrql(OldIrql);
+            InterlockedStoreRelease(&Context.Stop, true);
+            Stress6JoinThread(Target, (void*)(uintptr_t)Attempt);
+            Target = NULL;
+            continue;
+        }
+
+        // Source cannot schedule while held at DISPATCH_LEVEL. A successful
+        // migration therefore has to execute first on another processor.
+        uint64_t StartTsc = __rdtsc();
+        while (!InterlockedLoadAcquire(&Context.Entered) &&
+               !Stress6WatchdogExpired(StartTsc)) {
+            __pause();
+        }
+        MeLowerIrql(OldIrql);
+
+        if (!InterlockedLoadAcquire(&Context.Entered)) {
+            InterlockedStoreRelease(&Context.Stop, true);
+            Stress6JoinThread(Target, (void*)0x60A1);
+            Stress6BugCheck(
+                Stress6ReadyMigrationFailure,
+                (void*)0x60A1,
+                Destination
+            );
+        }
+
+        break;
+    }
+
+    if (!Target) {
+        Stress6BugCheck(
+            Stress6ReadyMigrationUnavailable,
+            (void*)(uintptr_t)STRESS6_READY_ATTEMPTS,
+            Source
+        );
+    }
+
+    uint32_t ObservedProcessor = InterlockedLoadAcquire(
+        &Context.ProcessorId
+    );
+    bool WrongProcessor = ObservedProcessor == Source->ID;
+    if (ProcessorCount == 2) {
+        WrongProcessor = ObservedProcessor != Destination->ID;
+    }
+
+    if (WrongProcessor) {
+        InterlockedStoreRelease(&Context.Stop, true);
+        Stress6JoinThread(Target, (void*)0x60A2);
+        Stress6BugCheck(
+            Stress6ReadyMigrationFailure,
+            (void*)(uintptr_t)(
+                ((uint64_t)Source->ID << 32) |
+                Destination->ID
+            ),
+            (void*)(uintptr_t)ObservedProcessor
+        );
+    }
+
+    InterlockedStoreRelease(&Context.Stop, true);
+    Stress6JoinThread(Target, (void*)0x60A3);
+    gop_printf(
+        COLOR_GREEN,
+        "STRESS 6 READY migration PASS (CPU %u -> CPU %u, first CPU %u)\n",
+        Source->ID,
+        Destination->ID,
+        ObservedProcessor
+    );
 }
 
 static void
@@ -8318,6 +8475,8 @@ Stress6Controller(void)
 
     Stress6TestExceptionPublication();
     Stress6WaitForThreadTypeCounts(ThreadObjects, ThreadHandles, 0x609);
+    Stress6TestReadyMigration();
+    Stress6WaitForThreadTypeCounts(ThreadObjects, ThreadHandles, 0x60A);
     Stress6TestReadyTarget();
     Stress6WaitForThreadTypeCounts(ThreadObjects, ThreadHandles, 0x601);
     Stress6TestRunningAndNested();
@@ -9141,10 +9300,15 @@ Stress7Controller(void)
 
 typedef enum _STRESS_EXCEPTION_CHAIN_FAILURE {
     StressExceptionChainCreateProcess = 1,
+    StressExceptionChainReferenceProcess,
+    StressExceptionChainResolveApcRoutine,
+    StressExceptionChainAllocateApc,
     StressExceptionChainWaitProcess,
     StressExceptionChainQueryProcess,
     StressExceptionChainUnexpectedExit,
-    StressExceptionChainCloseHandle
+    StressExceptionChainCloseHandle,
+    StressExceptionChainProcessStall,
+    StressExceptionChainReferenceWatchdog
 } STRESS_EXCEPTION_CHAIN_FAILURE;
 
 NORETURN
@@ -9166,11 +9330,200 @@ StressExceptionChainBugCheck(
     );
 }
 
+static bool
+StressExceptionChainProcessSignaled(
+    PEPROCESS Process
+)
+{
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &OldIrql);
+    bool Signaled = Process->InternalProcess.Header.SignalState != 0;
+    MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, OldIrql);
+    return Signaled;
+}
+
+static uintptr_t
+StressExceptionChainResolveUserApcAddress(
+    PEPROCESS Process
+)
+{
+    PETHREAD Thread = PsGetNextProcessThread(Process, NULL);
+    if (!Thread) {
+        return 0;
+    }
+
+    APC_STATE ApcState;
+    MeAttachProcess(&Process->InternalProcess, &ApcState);
+    uintptr_t ApcRoutine = PspFindMtdllEntryAddress(
+        "MtpExceptionStressApc",
+        Thread
+    );
+    MeDetachProcess(&ApcState);
+    ObDereferenceObject(Thread);
+    return ApcRoutine;
+}
+
+static uint32_t
+StressExceptionChainQueueUserApcs(
+    PEPROCESS Process,
+    uintptr_t ApcRoutine
+)
+{
+    uint32_t InsertedCount = 0;
+    PETHREAD Thread = PsGetNextProcessThread(Process, NULL);
+
+    while (Thread) {
+        PITHREAD IThread = &Thread->InternalThread;
+        bool CanQueue = !Thread->SystemThread &&
+            InterlockedLoadAcquire(&Thread->TerminationState) ==
+                ThreadTerminationNone &&
+            !InterlockedLoadAcquire(&IThread->ApcState.UserApcPending) &&
+            !IThread->UserApcActive;
+
+        if (CanQueue) {
+            PAPC Apc = MmAllocatePoolWithTag(
+                NonPagedPool,
+                sizeof(*Apc),
+                'ecpA'
+            );
+            if (!Apc) {
+                StressExceptionChainBugCheck(
+                    StressExceptionChainAllocateApc,
+                    MT_NO_MEMORY,
+                    Thread
+                );
+            }
+
+            // The test-only no-op isolates the APC dispatcher and MtContinue
+            // round trip from blocking syscall and timer-queue behavior.
+            MeInitializeApc(
+                Apc,
+                IThread,
+                UserMode,
+                NULL,
+                Stress6UserApcRundown,
+                (PNORMAL_ROUTINE)ApcRoutine,
+                NULL
+            );
+
+            if (MeInsertQueueApc(Apc, NULL, NULL)) {
+                InsertedCount++;
+            }
+            else {
+                MmFreePool(Apc);
+            }
+        }
+
+        // This transfers the safe process-list reference to the next entry.
+        Thread = PsGetNextProcessThread(Process, Thread);
+    }
+
+    return InsertedCount;
+}
+
+#if MT_STRESS_AUTOMATION
+static void
+StressAutomationWriteText(
+    const char* Text
+);
+
+typedef enum _STRESS_EXCEPTION_CHAIN_STAGE {
+    StressExceptionStageStarting = 0,
+    StressExceptionStageCreateProcess,
+    StressExceptionStageResolveApc,
+    StressExceptionStagePollProcess,
+    StressExceptionStageQueueApc,
+    StressExceptionStageYield,
+    StressExceptionStageWaitProcess,
+    StressExceptionStageQueryProcess,
+    StressExceptionStageCloseProcess,
+    StressExceptionStageReclaimThread,
+    StressExceptionStageReclaimProcess,
+    StressExceptionStageComplete
+} STRESS_EXCEPTION_CHAIN_STAGE;
+
+static volatile uint32_t StressExceptionChainStage;
+static volatile bool StressExceptionChainWatchdogActive;
+
+static void
+StressExceptionChainWatchdog(
+    THREAD_PARAMETER Parameter
+)
+{
+    UNREFERENCED_PARAMETER(Parameter);
+
+    while (InterlockedLoadAcquire(&StressExceptionChainWatchdogActive)) {
+        switch ((STRESS_EXCEPTION_CHAIN_STAGE)InterlockedLoadAcquire(
+            &StressExceptionChainStage
+        )) {
+        case StressExceptionStageCreateProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE CREATE\n");
+            break;
+        case StressExceptionStageResolveApc:
+            StressAutomationWriteText("MT-EXCEPTION STAGE RESOLVE\n");
+            break;
+        case StressExceptionStagePollProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE POLL\n");
+            break;
+        case StressExceptionStageQueueApc:
+            StressAutomationWriteText("MT-EXCEPTION STAGE QUEUE-APC\n");
+            break;
+        case StressExceptionStageYield:
+            StressAutomationWriteText("MT-EXCEPTION STAGE YIELD\n");
+            break;
+        case StressExceptionStageWaitProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE WAIT-PROCESS\n");
+            break;
+        case StressExceptionStageQueryProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE QUERY\n");
+            break;
+        case StressExceptionStageCloseProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE CLOSE\n");
+            break;
+        case StressExceptionStageReclaimThread:
+            StressAutomationWriteText("MT-EXCEPTION STAGE RECLAIM-THREAD\n");
+            break;
+        case StressExceptionStageReclaimProcess:
+            StressAutomationWriteText("MT-EXCEPTION STAGE RECLAIM-PROCESS\n");
+            break;
+        case StressExceptionStageComplete:
+            StressAutomationWriteText("MT-EXCEPTION STAGE COMPLETE\n");
+            break;
+        default:
+            StressAutomationWriteText("MT-EXCEPTION STAGE STARTING\n");
+            break;
+        }
+
+        MsDelayExecution(KernelMode, false, 1000);
+    }
+}
+#endif
+
 static void
 StressExceptionChainController(
     void
 )
 {
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-EXCEPTION CAMPAIGN START\n");
+    InterlockedStoreRelease(
+        &StressExceptionChainStage,
+        StressExceptionStageStarting
+    );
+    InterlockedStoreRelease(&StressExceptionChainWatchdogActive, true);
+    PETHREAD Watchdog = StressSuiteCreateThread(
+        StressExceptionChainWatchdog,
+        NULL
+    );
+    if (!ObReferenceObject(Watchdog)) {
+        StressExceptionChainBugCheck(
+            StressExceptionChainReferenceWatchdog,
+            MT_OBJECT_DELETED,
+            Watchdog
+        );
+    }
+#endif
+
     Stress5DSettleObjectCounts();
     uint32_t ThreadObjects = InterlockedLoadAcquire(
         (volatile uint32_t*)&PsThreadType->TotalNumberOfObjects
@@ -9185,74 +9538,236 @@ StressExceptionChainController(
         (volatile uint32_t*)&PsProcessType->TotalNumberOfHandles
     );
 
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
-    MTSTATUS Status = PsCreateProcess(
-        "terminateMyself.mtexe",
-        &ProcessHandle,
-        MT_PROCESS_ALL_ACCESS,
-        0
-    );
-    if (Status != MT_SUCCESS) {
-        StressExceptionChainBugCheck(
-            StressExceptionChainCreateProcess,
-            Status,
+    Stress2CalibrateTsc();
+    uint64_t CampaignStart = __rdtsc();
+    uint64_t CampaignCycles = Stress2CTscTicksPerSecond *
+        MT_STRESS_DURATION_SECONDS;
+    uint64_t ProcessWatchdogCycles = Stress2CTscTicksPerSecond * 30ULL;
+    uint64_t NextProgress = CampaignStart + Stress2CTscTicksPerSecond * 60ULL;
+    uint64_t RandomState = CampaignStart ^
+        ((uint64_t)MeGetActiveProcessorCount() << 48) ^
+        0xA0761D6478BD642FULL;
+    uint64_t TotalApcs = 0;
+    uint32_t Iteration = 0;
+
+    do {
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageCreateProcess
+        );
+#endif
+        HANDLE ProcessHandle = MT_INVALID_HANDLE;
+        MTSTATUS Status = PsCreateProcess(
+            "terminateMyself.mtexe",
+            &ProcessHandle,
+            MT_PROCESS_ALL_ACCESS,
+            0
+        );
+        if (Status != MT_SUCCESS) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainCreateProcess,
+                Status,
+                (void*)(uintptr_t)Iteration
+            );
+        }
+
+        PEPROCESS Process = NULL;
+        Status = ObReferenceObjectByHandle(
+            ProcessHandle,
+            MT_PROCESS_ALL_ACCESS,
+            PsProcessType,
+            (void**)&Process,
             NULL
         );
-    }
+        if (Status != MT_SUCCESS) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainReferenceProcess,
+                Status,
+                (void*)(uintptr_t)ProcessHandle
+            );
+        }
 
-    Status = MtWaitForSingleObject(
-        ProcessHandle,
-        STRESS6_WAIT_TIMEOUT_MS,
-        false
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageResolveApc
+        );
+#endif
+        uintptr_t ApcRoutine = StressExceptionChainResolveUserApcAddress(
+            Process
+        );
+        if (!ApcRoutine || ApcRoutine > MmHighestUserAddress) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainResolveApcRoutine,
+                MT_INVALID_ADDRESS,
+                (void*)ApcRoutine
+            );
+        }
+
+        uint64_t ProcessStart = __rdtsc();
+        while (!StressExceptionChainProcessSignaled(Process)) {
+#if MT_STRESS_AUTOMATION
+            InterlockedStoreRelease(
+                &StressExceptionChainStage,
+                StressExceptionStagePollProcess
+            );
+#endif
+            uint64_t Random = Stress7NextRandom(&RandomState);
+            if ((Random & 3ULL) != 0) {
+#if MT_STRESS_AUTOMATION
+                InterlockedStoreRelease(
+                    &StressExceptionChainStage,
+                    StressExceptionStageQueueApc
+                );
+#endif
+                TotalApcs += StressExceptionChainQueueUserApcs(
+                    Process,
+                    ApcRoutine
+                );
+            }
+
+            if (__rdtsc() - ProcessStart >= ProcessWatchdogCycles) {
+                StressExceptionChainBugCheck(
+                    StressExceptionChainProcessStall,
+                    MT_TIMEOUT,
+                    (void*)(uintptr_t)Iteration
+                );
+            }
+
+#if MT_STRESS_AUTOMATION
+            InterlockedStoreRelease(
+                &StressExceptionChainStage,
+                StressExceptionStageYield
+            );
+#endif
+            MsDelayExecution(
+                KernelMode,
+                false,
+                (Random >> 8) & 1ULL
+            );
+        }
+
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageWaitProcess
+        );
+#endif
+        Status = MtWaitForSingleObject(
+            ProcessHandle,
+            STRESS6_WAIT_TIMEOUT_MS,
+            false
+        );
+        if (Status != MT_SUCCESS) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainWaitProcess,
+                Status,
+                (void*)(uintptr_t)ProcessHandle
+            );
+        }
+
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageQueryProcess
+        );
+#endif
+        PROCESS_BASIC_INFORMATION Information = { 0 };
+        uint32_t ReturnLength = 0;
+        Status = MtQueryInformationProcess(
+            ProcessHandle,
+            ProcessBasicInformation,
+            &Information,
+            sizeof(Information),
+            &ReturnLength
+        );
+        if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainQueryProcess,
+                Status,
+                (void*)(uintptr_t)ReturnLength
+            );
+        }
+        if (Information.ExitStatus != MT_SUCCESS) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainUnexpectedExit,
+                Information.ExitStatus,
+                (void*)(uintptr_t)ProcessHandle
+            );
+        }
+
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageCloseProcess
+        );
+#endif
+        ObDereferenceObject(Process);
+
+        Status = MtClose(ProcessHandle);
+        if (Status != MT_SUCCESS) {
+            StressExceptionChainBugCheck(
+                StressExceptionChainCloseHandle,
+                Status,
+                (void*)(uintptr_t)ProcessHandle
+            );
+        }
+
+        // Every handled and unhandled exception worker has exited by this
+        // point. APC rundown and object/handle reclamation must also finish.
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageReclaimThread
+        );
+#endif
+        Stress5DWaitForTypeCounts(PsThreadType, ThreadObjects, ThreadHandles);
+#if MT_STRESS_AUTOMATION
+        InterlockedStoreRelease(
+            &StressExceptionChainStage,
+            StressExceptionStageReclaimProcess
+        );
+#endif
+        Stress5DWaitForTypeCounts(PsProcessType, ProcessObjects, ProcessHandles);
+
+        Iteration++;
+        uint64_t Now = __rdtsc();
+        if (MT_STRESS_DURATION_SECONDS > 1 && Now >= NextProgress) {
+            gop_printf(
+                COLOR_GREEN,
+                "EXCEPTION CAMPAIGN %llu/%u seconds "
+                "(%u processes, %llu APCs)\n",
+                (unsigned long long)(
+                    (Now - CampaignStart) / Stress2CTscTicksPerSecond
+                ),
+                (unsigned int)MT_STRESS_DURATION_SECONDS,
+                Iteration,
+                (unsigned long long)TotalApcs
+            );
+#if MT_STRESS_AUTOMATION
+            StressAutomationWriteText("MT-EXCEPTION CAMPAIGN HEARTBEAT\n");
+#endif
+            NextProgress = Now + Stress2CTscTicksPerSecond * 60ULL;
+        }
+    } while (MT_STRESS_DURATION_SECONDS > 1 &&
+        __rdtsc() - CampaignStart < CampaignCycles);
+
+#if MT_STRESS_AUTOMATION
+    InterlockedStoreRelease(
+        &StressExceptionChainStage,
+        StressExceptionStageComplete
     );
-    if (Status != MT_SUCCESS) {
-        StressExceptionChainBugCheck(
-            StressExceptionChainWaitProcess,
-            Status,
-            (void*)(uintptr_t)ProcessHandle
-        );
-    }
+    InterlockedStoreRelease(&StressExceptionChainWatchdogActive, false);
+    Stress6JoinThread(Watchdog, (void*)0x64F0);
+#endif
 
-    PROCESS_BASIC_INFORMATION Information = { 0 };
-    uint32_t ReturnLength = 0;
-    Status = MtQueryInformationProcess(
-        ProcessHandle,
-        ProcessBasicInformation,
-        &Information,
-        sizeof(Information),
-        &ReturnLength
+    gop_printf(
+        COLOR_GREEN,
+        "EXCEPTION CHAIN TEST PASS (%u processes, %llu APCs)\n",
+        Iteration,
+        (unsigned long long)TotalApcs
     );
-    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
-        StressExceptionChainBugCheck(
-            StressExceptionChainQueryProcess,
-            Status,
-            (void*)(uintptr_t)ReturnLength
-        );
-    }
-    if (Information.ExitStatus != MT_SUCCESS) {
-        StressExceptionChainBugCheck(
-            StressExceptionChainUnexpectedExit,
-            Information.ExitStatus,
-            (void*)(uintptr_t)ProcessHandle
-        );
-    }
-
-    Status = MtClose(ProcessHandle);
-    if (Status != MT_SUCCESS) {
-        StressExceptionChainBugCheck(
-            StressExceptionChainCloseHandle,
-            Status,
-            (void*)(uintptr_t)ProcessHandle
-        );
-    }
-
-    // Every handled and unhandled exception worker has exited by this point.
-    // Require process/thread objects and handles to return to their baseline
-    // before declaring the isolated exception suite complete.
-    Stress5DWaitForTypeCounts(PsThreadType, ThreadObjects, ThreadHandles);
-    Stress5DWaitForTypeCounts(PsProcessType, ProcessObjects, ProcessHandles);
-
-    gop_printf(COLOR_GREEN, "EXCEPTION CHAIN TEST PASS\n");
 }
 
 #if MT_STRESS_AUTOMATION
@@ -9327,8 +9842,14 @@ StressSuiteController(
 #if STRESS_GATE4_ONLY
     Stress6Controller();
 #else
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS2\n");
+#endif
     StressSuiteRunStress2();
 
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS3\n");
+#endif
     StressSuiteInitializeEvent(
         &Stress3Event,
         DispatcherSynchronizationEvent
@@ -9338,6 +9859,9 @@ StressSuiteController(
     Stress3Controller(NULL);
     InterlockedStoreRelease(&Stress3Active, false);
 
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS4\n");
+#endif
     Stress4CompletionCount = 0;
     Stress4LateWakeCount = 0;
     Stress4MaximumOvershoot = 0;
@@ -9374,6 +9898,9 @@ StressSuiteController(
     Stress4CController(NULL);
     InterlockedStoreRelease(&Stress4CActive, false);
 
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS5A\n");
+#endif
     Stress5ATestBankedPermits();
     MsInitializeSemaphore(&Stress5ASemaphore, 0, STRESS5A_WAITER_COUNT);
     Stress5AActive = true;
@@ -9387,10 +9914,25 @@ StressSuiteController(
     Stress5AController(NULL);
     InterlockedStoreRelease(&Stress5AActive, false);
 
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS5B\n");
+#endif
     Stress5BController();
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS5C\n");
+#endif
     Stress5CController();
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS5D\n");
+#endif
     Stress5DController();
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS5E\n");
+#endif
     Stress5EController();
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-STRESS PHASE STRESS6\n");
+#endif
     Stress6Controller();
 #endif
 

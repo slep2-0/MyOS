@@ -421,7 +421,7 @@ typedef struct _PROCESSOR {
 	void* VirtStackTop; // Pointer to top of CPU Stack. -- NOTE (FIXME): I dont get why do we need this, since every stack onward should be the THREADS kernel stack, or an IST stack, not this.
 	void* tss; // Task State Segment ptr.
 	void* Rsp0; // General RSP for interrupts & syscalls (entry only).
-	void* IstPFStackTop; // Page Fault IST Stack
+	void* IstPFStackTop; // Reserved page-fault alternate stack; vector 14 currently uses RSP0.
 	void* IstDFStackTop; // Double Fault IST Stack
 	volatile PROCESSOR_STATE State; // Mutually exclusive processor lifecycle state.
 	volatile bool IpiRoutineActive; // Independent of State: an online CPU may be handling an IPI.
@@ -645,6 +645,12 @@ MeEnterCriticalRegion(
 {
 	PITHREAD Thread = MeGetCurrentThread();
 
+	// Early boot and scheduler bootstrap do not have a current thread yet.
+	// There is no thread APC state to disable in that execution context.
+	if (Thread == NULL) {
+		return;
+	}
+
 	if (Thread->KernelApcDisable > 0 || Thread->KernelApcDisable == INT16_MIN) {
 		MeBugCheckEx(
 			WAIT_STATE_FAILURE,
@@ -668,6 +674,12 @@ MeLeaveCriticalRegion(
 
 {
 	PITHREAD Thread = MeGetCurrentThread();
+
+	// Match MeEnterCriticalRegion for pre-thread boot execution. No APC-disable
+	// count was changed, so there is no thread state to restore here.
+	if (Thread == NULL) {
+		return;
+	}
 
 	if (Thread->KernelApcDisable >= 0) {
 		MeBugCheckEx(
@@ -843,6 +855,13 @@ MTSTATUS
 MeResumeThread(
 	IN PITHREAD Thread,
 	OUT uint32_t* PreviousSuspendCount
+);
+
+bool
+MepMigrateReadyThread(
+	PETHREAD Thread,
+	PPROCESSOR Source,
+	PPROCESSOR Destination
 );
 
 void

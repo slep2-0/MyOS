@@ -177,6 +177,8 @@ PsCreateThread(
 #define MtYield() MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
 
 extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
+
+// If OutThread is supplied, caller must dereference the thread after he is done with it.
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread);
 
 MTSTATUS
@@ -279,7 +281,6 @@ PsIsKernelThread(
 )
 
 {
-    // safety guard, can't believe i had to put it.
     return (Thread && Thread->SystemThread);
 }
 

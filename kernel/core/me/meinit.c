@@ -135,7 +135,9 @@ static void MeInitGdtTssForCurrentProcessor(void) {
     // Stack and IST's have been moved to MeInitProcessor.
     tss->io_map_base = sizeof(TSS);
     tss->rsp0 = (uint64_t)cur->Rsp0;
-    tss->ist[0] = (uint64_t)cur->IstPFStackTop; // IDT.ist = 1
+    // Reserved alternate stack. Vector 14 deliberately uses the current
+    // thread's kernel stack because its fault handler may block.
+    tss->ist[0] = (uint64_t)cur->IstPFStackTop;
     tss->ist[1] = (uint64_t)cur->IstDFStackTop; // IDT.ist = 2
     tss->ist[2] = (uint64_t)cur->IstTimerStackTop; // IDT.ist = 3
     tss->ist[3] = (uint64_t)cur->IstIpiStackTop; // IDT.ist = 4
@@ -243,10 +245,10 @@ MeInitializeProcessor(
 
 StartInit: {
     // Initialize CPU RSP0 and IST Stacks.
-    // RSP0 Is used on anything else that the IST already own.
-    // If we have an IST for IDT 14 (Page Fault), RSP0 will not be taken.
-    // If we don't RSP0 will be taken.
-    // RSP0 Is also taken in syscall instructions, but it is immediately replaced by ITHREAD.KernelStack.
+    // RSP0 supplies the current thread's kernel stack for privilege-changing
+    // entries that do not select an IST. Page faults intentionally use this
+    // path because MmAccessFault may block and resume as part of the thread.
+    // Syscall entry also switches to ITHREAD.KernelStack explicitly.
 
     // Create RSP0 and ISTs for processor.
     void* Rsp0 = MiCreateKernelStack(false);
@@ -300,7 +302,9 @@ StartInit: {
     MeInitGdtTssForCurrentProcessor();
 
     // ISTs
-    IDT[14].ist = 1; // First one is page fault.
+    // Page faults use the current thread's kernel stack because MmAccessFault
+    // may block. A per-CPU IST cannot own a resumable thread continuation.
+    IDT[14].ist = 0;
     IDT[8].ist = 2; // Second one is double fault.
     IDT[VECTOR_CLOCK].ist = 3; // Third one is the LAPIC Timer.
     IDT[VECTOR_IPI].ist = 4; // Fourth one is the LAPIC IPI.

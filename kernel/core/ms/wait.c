@@ -68,7 +68,8 @@ MsInsertTimerQueue(
     IRQL OldIrql;
 
     Thread->WaitBlock.WakeupTime = WakeupTime;
-
+    
+    // Raise to clock level so the ISR that acquires the same lock wont preempt us, so we dont deadlock.
     MeRaiseIrql(CLOCK_LEVEL, &OldIrql);
     MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
     MspInsertTimerQueueLocked(Thread);

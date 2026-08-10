@@ -99,7 +99,7 @@ HtInitializeSystem(
 
     Routine description:
 
-        Initializes the HandleTableListHead.
+        Initializes the HandleTableListHead, and the push lock.
 
     Arguments:
 
@@ -113,6 +113,7 @@ HtInitializeSystem(
 
 {
     InitializeListHead(&HandleTableList);
+    MsInitializePushLock(&HandleTableListLock);
 }
 
 PHANDLE_TABLE
@@ -150,6 +151,9 @@ HtCreateHandleTable(
         return NULL;
     }
     kmemset(Level0, 0, VirtualPageSize);
+
+    // Initialize the push lock
+    MsInitializePushLock(&Table->TableLock);
     
     // Initialize the free list in the new page.
     for (uint64_t i = 1; i < LOW_LEVEL_ENTRIES - 1; i++) {
@@ -162,7 +166,6 @@ HtCreateHandleTable(
     Table->TableCode = (uint64_t)Level0; // Level is 0, so bottom bits are 0
     Table->FirstFreeHandle = 4;
     Table->QuotaProcess = Process;
-    Table->TableLock.Value = 0;
 
     // Insert this handle table into the global list.
     MsAcquirePushLockExclusive(&HandleTableListLock);

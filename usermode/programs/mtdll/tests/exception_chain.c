@@ -22,6 +22,18 @@
 #define MTP_GENERAL_PROTECTION_RESUME_STATUS ((MTSTATUS)0x00006504L)
 #define MTP_NONCANONICAL_ADDRESS ((void*)(uintptr_t)0x0000800000000000ULL)
 
+MTDLL_API void
+MtpExceptionStressApc(
+    IN void* NormalContext,
+    IN void* SystemArgument1,
+    IN void* SystemArgument2
+)
+{
+    (void)NormalContext;
+    (void)SystemArgument1;
+    (void)SystemArgument2;
+}
+
 typedef enum _MTP_EXCEPTION_FATAL_CASE {
     MtpFatalRecordOutsideStack = 1,
     MtpFatalInvalidHandler,

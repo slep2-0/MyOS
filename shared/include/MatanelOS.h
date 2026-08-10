@@ -23,6 +23,7 @@
 #include "synchapi.h"
 #include "mtexception.h"
 #include "mtlanguage.h"
+#include "heapapi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,7 +32,7 @@ extern "C" {
 // Prevents CPU Reordering as well as the MmBarrier functionality.
 #define MmFullBarrier() __sync_synchronize()
 
-// Ensure ordedring of memory operations (memory should be visible before continuing)
+// Ensure ordering of memory operations (memory should be visible before continuing)
 #define MmBarrier() __asm__ __volatile__("mfence" ::: "memory")
 
 MTDLL_API char* strchr(const char* String, int Character);

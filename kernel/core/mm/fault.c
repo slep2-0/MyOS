@@ -372,7 +372,7 @@ MmAccessFault(
     // Address is in user range.
     // Both kernel and user mode are allowed to fault in here, guaranteeing there is a VAD backing it of course (and IRQL demands)
     // If kernel faulted and no vad (Irql is good), then we search for exception handlers in return, if none we bugcheck.
-    // If a user faulted and no vad (Irql is good), then we search for exception handlers in return, if none we terminate the thread.
+    // If a user faulted and no vad (Irql is good, it has to be for PASSIVE_LEVEL/APC_LEVEL), then we search for exception handlers in return, if no exception handler in MTDLL handled it, then the thread terminates.
     if (VirtualAddress <= MmHighestUserAddress) {
         // Before any demand allocation, check IRQL.
         if (PreviousIrql >= DISPATCH_LEVEL) {
@@ -636,23 +636,10 @@ MmAccessFault(
 BugCheck: {
     // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL are handled above.
 
-    FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(TrapFrame->error_code);
-
     // Check if its a NoExecute page violation
     if (ReferencedPte->Hard.Present && ReferencedPte->Hard.NoExecute && OperationDone == ExecuteOperation) {
         MeBugCheckEx(
             ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
-            (void*)VirtualAddress,
-            (void*)ReferencedPte,
-            (void*)TrapFrame->rip,
-            (void*)FaultBits
-        );
-    }
-
-    // Check if we have attempted to write on a readonly page.
-    if (OperationDone == WriteOperation && ReferencedPte->Hard.Write == 0 && ReferencedPte->Hard.Present) {
-        MeBugCheckEx(
-            ATTEMPTED_WRITE_TO_READONLY_MEMORY,
             (void*)VirtualAddress,
             (void*)ReferencedPte,
             (void*)TrapFrame->rip,

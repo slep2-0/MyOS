@@ -96,6 +96,7 @@ int main(void) {
     GEN_OFFSET(ITHREAD, IsLargeStack);
     GEN_OFFSET(ITHREAD, PreviousMode);
     GEN_OFFSET(ITHREAD, KernelStack);
+    GEN_OFFSET(ITHREAD, ActiveProcessor);
 
     GEN_COMMENT("APC_STATE Offsets");
     GEN_OFFSET(APC_STATE, SavedApcProcess);

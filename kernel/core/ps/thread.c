@@ -294,6 +294,9 @@ PspInitializeThread(
     Thread->InternalThread.SpecialApcDisable = 0;
     Thread->InternalThread.ApcQueueable = true;
 
+    // Push locks
+    MsInitializePushLock(&Thread->ThreadLock);
+
     // Dispatcher Header Initialization
     MsInitializeDispatcherHeader(&Thread->InternalThread.Header, 0, DispatcherThread);
 }
@@ -408,7 +411,7 @@ PsCreateThread(
     ContextFrame.ss = USER_SS;
     Thread->InternalThread.TrapRegisters = ContextFrame;
     Thread->SystemThread = false;
-    
+
     // Set state
     Thread->InternalThread.ThreadState = THREAD_READY;
     Thread->InternalThread.ApcState.SavedApcProcess = ParentProcess;
@@ -603,9 +606,17 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
-    // Enqueue it into processor. TODO START SUSPENDED?
+    // Enqueue it into processor
     MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
-    if (OutThread) *OutThread = thread;
+
+    if (OutThread) {
+        // The caller wants a pointer to the thread
+        // He must gurantee to dereference the pointer when he has no use for it anymore
+        // Else, when the thread terminates, there will be a pointer leak, and so the object will be kept alive for nothing.
+        ObReferenceObject(thread);
+        *OutThread = thread;
+    }
+
     return MT_SUCCESS;
 }
 

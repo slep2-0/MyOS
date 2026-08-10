@@ -464,6 +464,9 @@
     <ClCompile Include="usermode\programs\mtdll\thread.c" />
     <ClCompile Include="usermode\programs\terminateMyself\main.c" />
     <ClCompile Include="kernel\core\me\suspend.c" />
+    <ClCompile Include="usermode\programs\exceptionChainTest\main.c" />
+    <ClCompile Include="usermode\programs\mtdll\tests\exception_chain.c" />
+    <ClCompile Include="usermode\programs\mtdll\heap.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -525,6 +528,8 @@
     <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
     <ClInclude Include="shared\include\mtexception.h" />
     <ClInclude Include="shared\include\mtlanguage.h" />
+    <ClInclude Include="usermode\tests\exception_chain_test.h" />
+    <ClInclude Include="shared\include\heapapi.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="kernel\core\me\context.asm" />
@@ -538,9 +543,6 @@
     <None Include="tools\windows\build.py" />
     <None Include="tools\windows\seh_translate.py" />
     <None Include="tools\windows\test_seh_translate.py" />
-    <None Include="tools\windows\tests\fixtures\seh_lexical.c" />
-    <None Include="tools\windows\tests\fixtures\seh_malformed.c" />
-    <None Include="tools\windows\tests\fixtures\seh_valid.c" />
     <None Include="tools\windows\freestanding_runtime.asm" />
     <None Include="tools\windows\make_image.py" />
     <None Include="tools\windows\reset_intellisense.py" />
@@ -548,5 +550,8 @@
     <None Include="usermode\crt0.S" />
     <None Include="usermode\programs\mtdll\apcdispatch.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
+    <None Include="tools\windows\stress_exception_chain.py" />
+    <None Include="tools\windows\stress_gate5.py" />
+    <None Include="usermode\programs\mtdll\tests\language_context.asm" />
   </ItemGroup>
 </Project>
