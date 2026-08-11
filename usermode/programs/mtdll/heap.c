@@ -24,7 +24,7 @@ Notes:
     segment allocator, which maintains and coalesces free blocks.
     
     Very large allocations may bypass the normal heap backend and
-    receive a dedicated VirtualAlloc region.
+    receive a dedicated VirtualAlloc region, backed by a segment and block.
     
     This is conceptually similar to the kernel pool allocator.
 
@@ -42,7 +42,7 @@ Notes:
                                    |
                          sufficiently huge
                                    |
-                              VirtualAlloc
+                        VirtualAlloc backend
 
 Revision History:
 
@@ -102,8 +102,8 @@ typedef struct _MT_HEAP {
     HANDLE HeapMutex; // Serializes operations on this heap.
     HEAP_CREATE_OPTIONS Options; // Options controlling this heap's behavior.
     size_t DefaultSegmentSize; // Preferred size when growing this heap.
-    size_t MaximumSize; // Maximum total size, or zero for no configured limit.
-    size_t CurrentSize; // Total virtual memory owned by the heap
+    size_t MaximumSize; // Maximum combined size of slab and segment regions, or zero for no configured limit.
+    size_t CurrentSize; // Combined virtual size currently committed to slab and segment regions.
     MT_HEAP_BUCKET Buckets[MT_HEAP_BUCKET_COUNT]; // Slab buckets, from 16 upto 4096 in powers of 2.
     DOUBLY_LINKED_LIST SegmentListHead; // Head of this heap's segments.
 } MT_HEAP, *PMT_HEAP;
@@ -140,14 +140,33 @@ HeapCreateSegment(
 )
 
 {
+    const size_t MetadataSize =
+        MT_HEAP_SEGMENT_HEADER_SIZE + MT_HEAP_BLOCK_HEADER_SIZE;
+
+    // Reject arithmetic which cannot represent the requested segment.
+    if (MinimumSize > SIZE_MAX - MetadataSize) {
+        return NULL;
+    }
+
     // The required size is the minimum size, plus the sizeof a segment and a block
     // since these are the initial structs that must exist to describe the memory block(s)
-    size_t RequiredSize = MinimumSize + MT_HEAP_SEGMENT_HEADER_SIZE + MT_HEAP_BLOCK_HEADER_SIZE;
+    size_t RequiredSize = MinimumSize + MetadataSize;
+
+    if (RequiredSize > SIZE_MAX - (MT_PAGE_SIZE - 1)) {
+        return NULL;
+    }
+
     size_t SegmentSize = ALIGN_UP(RequiredSize, MT_PAGE_SIZE);
 
     // If this heap growth violates the maximum size of the heap in bytes
     // then fail allocation
-    if (Heap->MaximumSize && SegmentSize > Heap->MaximumSize - Heap->CurrentSize) {
+    if (SegmentSize > SIZE_MAX - Heap->CurrentSize) {
+        return NULL;
+    }
+
+    if (Heap->MaximumSize &&
+        (Heap->CurrentSize > Heap->MaximumSize ||
+         SegmentSize > Heap->MaximumSize - Heap->CurrentSize)) {
         return NULL;
     }
 
@@ -191,6 +210,10 @@ HeapCreateSlab(
 
 {
     // Slab allocations are part of the heap committed size, they cannot go above it.
+    if (MT_HEAP_SLAB_SIZE > SIZE_MAX - Heap->CurrentSize) {
+        return NULL;
+    }
+
     if (Heap->MaximumSize) {
         if (Heap->CurrentSize > Heap->MaximumSize || MT_HEAP_SLAB_SIZE > Heap->MaximumSize - Heap->CurrentSize) {
             return NULL;
@@ -408,7 +431,83 @@ HeapFindAvailableSlab(
     return FoundSlab;
 }
 
+static
+PMT_HEAP_BLOCK
+HeapClaimFreeBlock(
+    IN PMT_HEAP Heap,
+    IN size_t RequestedSize
+)
 
+{
+    // Align requested size up.
+    // And make sure it does not overflow.
+    if (RequestedSize > SIZE_MAX - (MT_HEAP_ALIGNMENT - 1)) {
+        return NULL;
+    }
+
+    RequestedSize = ALIGN_UP(RequestedSize, MT_HEAP_ALIGNMENT);
+
+    // Walk the segment list in the heap.
+    PDOUBLY_LINKED_LIST Head = &Heap->SegmentListHead;
+    PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+    while (Head != Current) {
+        PMT_HEAP_SEGMENT Segment = CONTAINING_RECORD(Current, MT_HEAP_SEGMENT, SegmentListEntry);
+
+        // Walk this segment block list head
+        PDOUBLY_LINKED_LIST HeadBlock = &Segment->BlockListHead;
+        PDOUBLY_LINKED_LIST CurrentBlock = HeadBlock->Flink;
+
+        while (HeadBlock != CurrentBlock) {
+            PMT_HEAP_BLOCK Block = CONTAINING_RECORD(CurrentBlock, MT_HEAP_BLOCK, BlockListEntry);
+
+            // If the block size matches the minimum size, then we can use this one.
+            if (Block->Free && Block->BlockSize >= RequestedSize) {
+                Block->Free = false;
+
+                // If the block size matches exactly the allocation, then splitting is not needed.
+                if (Block->BlockSize == RequestedSize) {
+                    // Just return the block directly
+                    return Block;
+                }
+                else {
+                    // The block must be splitted, but its splitting size (The remainder) must be 16 bytes atleast
+                    if (Block->BlockSize - RequestedSize >= MT_HEAP_BLOCK_HEADER_SIZE + MT_HEAP_ALIGNMENT) {
+                        // The block can be split
+                        // First create the new block header
+                        PMT_HEAP_BLOCK NewBlock = (PMT_HEAP_BLOCK)((uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE + RequestedSize);
+
+                        // Set its sizes and link it to the list.
+                        NewBlock->Free = true;
+                        NewBlock->BlockSize = Block->BlockSize - MT_HEAP_BLOCK_HEADER_SIZE - RequestedSize;
+
+                        // Insert into the list, we insert right after the previous block (old block, the one we split from)
+                        InsertHeadList(
+                            &Block->BlockListEntry,
+                            &NewBlock->BlockListEntry
+                        );
+
+                        // The previous block size must be changed now
+                        Block->BlockSize = RequestedSize;
+
+                        // Return the old block
+                        return Block;
+                    }
+                    else {
+                        // Return the block, it cannot be split
+                        return Block;
+                    }
+                }
+            }
+
+            CurrentBlock = CurrentBlock->Flink;
+        }
+
+        Current = Current->Flink;
+    }
+
+    return NULL;
+}
 
 // Address returned is 16 byte aligned
 MTDLL_API
@@ -439,9 +538,18 @@ HeapAlloc(
 
     if (SerializeHeap) {
         uint32_t ReturnedCode = WaitForSingleObject(Heap->HeapMutex, MT_INFINITE);
-        (void)(ReturnedCode);
-        // need user assertions
-        // ASSERT(ReturnedCode == WAIT_OBJECT_0)
+
+        if (ReturnedCode == WAIT_ABANDONED_0) {
+            // The mutex belongs to this thread now, but the previous owner may
+            // have left the heap metadata inconsistent.
+            ReleaseMutex(Heap->HeapMutex);
+            return NULL;
+        }
+
+        if (ReturnedCode != WAIT_OBJECT_0) {
+            // The mutex was not acquired, so it must not be released here.
+            return NULL;
+        }
     }
 
     // We are allowed to operate on the heap now, allocate if there is a free block that matches our size
@@ -483,6 +591,47 @@ HeapAlloc(
 
         // Control flow would go to cleanup anyway
         // But explicit transfer is better
+        goto Cleanup;
+    }
+    else {
+        // > 4096 byte allocation
+        // use the heap segments instead.
+        PMT_HEAP_BLOCK Block = HeapClaimFreeBlock(Heap, AllocationSize);
+
+        if (!Block) {
+            // No existing block is sufficient/existing for this allocation size.
+            // Create it.
+            size_t GrowthSize = AllocationSize > Heap->DefaultSegmentSize ? AllocationSize : Heap->DefaultSegmentSize;
+
+            // Create the segment now.
+            PMT_HEAP_SEGMENT Segment = HeapCreateSegment(Heap, GrowthSize);
+
+            if (!Segment) {
+                // Internal allocation error, probably out of memory
+                goto Cleanup;
+            }
+
+            // HeapCreateSegment creates one free block
+            // claiming this block now will split it in 2
+            // (or depending on the allocation size, will consume the entirety)
+            Block = HeapClaimFreeBlock(Heap, AllocationSize);
+
+            if (!Block) {
+                // Serious allocator problem, this probably stems from the user using HEAP_NO_SERIALIZE
+                goto Cleanup;
+            }
+        }
+
+        // Block now points to a valid one, just set ReturnedAllocation and go to cleanup.
+        ReturnedAllocation = (void*)((uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE);
+
+        // If they want to zero out the memory, just do it now.
+        if (Options & HEAP_ALLOCATE_ZERO_MEMORY) {
+            memset(ReturnedAllocation, 0, AllocationSize);
+        }
+
+        // Control flow would lead to cleanup anyway
+        // but explicit transfer is better for readability
         goto Cleanup;
     }
 
@@ -560,6 +709,93 @@ HeapFreeSlabAllocation(
     return false;
 }
 
+static
+bool
+HeapFreeSegmentAllocation(
+    IN PMT_HEAP Heap,
+    IN void* Address
+)
+
+{
+    // Walk every segment, every block in every segment, and find the block associated with the address
+    PDOUBLY_LINKED_LIST Head = &Heap->SegmentListHead;
+    PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+    while (Head != Current) {
+        PMT_HEAP_SEGMENT Segment = CONTAINING_RECORD(Current, MT_HEAP_SEGMENT, SegmentListEntry);
+
+        // Walk every block in this segment
+        PDOUBLY_LINKED_LIST HeadBlock = &Segment->BlockListHead;
+        PDOUBLY_LINKED_LIST CurrentBlock = HeadBlock->Flink;
+
+        while (HeadBlock != CurrentBlock) {
+
+            PMT_HEAP_BLOCK Block = CONTAINING_RECORD(CurrentBlock, MT_HEAP_BLOCK, BlockListEntry);
+
+            // Calculate if this address is stemed from this block address.
+            void* BlockAddress =
+                (uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE;
+
+            if (Address == BlockAddress) {
+                // This is the found allocation!
+                // Check for double free, and if its good (no double), free it.
+                if (Block->Free) {
+                    // The block is already free..
+                    return false;
+                }
+
+                // Set the block as free now
+                Block->Free = true;
+
+                // Now coalesce adjacent free blocks.
+                // First check if the backward is free and is a valid block
+                if (Block->BlockListEntry.Blink != HeadBlock) {
+                    // The previous block isnt BlockListHead, meaning its a valid block
+                    // try to see if we can coalesce it
+                    PMT_HEAP_BLOCK Previous = CONTAINING_RECORD(Block->BlockListEntry.Blink, MT_HEAP_BLOCK, BlockListEntry);
+
+                    // If the previous is free too, then we can coalesce this.
+                    if (Previous->Free) {
+                        Previous->BlockSize += MT_HEAP_BLOCK_HEADER_SIZE + Block->BlockSize;
+
+                        // Remove the current block from the block list in this segment, and revert the loop to the previous block
+                        // which would now be the coalesced block
+                        RemoveEntryList(&Block->BlockListEntry);
+                        Block = Previous;
+                    }
+                }
+
+                // Coalesce the forward link now
+                // If previous coalesce succeeded, then this block is now the coalesced previous block and the current (now overwritten) block.
+                if (Block->BlockListEntry.Flink != HeadBlock) {
+                    PMT_HEAP_BLOCK Next = CONTAINING_RECORD(Block->BlockListEntry.Flink, MT_HEAP_BLOCK, BlockListEntry);
+
+                    if (Next->Free) {
+                        // Since we operate on the Next now, we basically operate on this block size and list entry, while removing the next one.
+                        Block->BlockSize += MT_HEAP_BLOCK_HEADER_SIZE + Next->BlockSize;
+
+                        // Remove the next block from the block list in this segment
+                        RemoveEntryList(&Next->BlockListEntry);
+
+                        // No need to revert to previous, we ARE the previous if we were "Next"
+                        // confusing stuff isnt it?
+                    }
+                }
+
+                // Free success.
+                return true;
+            }
+
+            CurrentBlock = CurrentBlock->Flink;
+        }
+
+        Current = Current->Flink;
+    }
+
+    // No block associated with this address found.
+    return false;
+}
+
 bool
 HeapFree(
     IN MT_HEAP_HANDLE Heap,
@@ -589,15 +825,32 @@ HeapFree(
                 MT_INFINITE
             );
 
-        (void)ReturnedCode;
+        if (ReturnedCode == WAIT_ABANDONED_0) {
+            // The mutex belongs to this thread now, but the previous owner may
+            // have left the heap metadata inconsistent.
+            ReleaseMutex(Heap->HeapMutex);
+            return false;
+        }
+
+        if (ReturnedCode != WAIT_OBJECT_0) {
+            // The mutex was not acquired, so it must not be released here.
+            return false;
+        }
     }
 
     // Call internal function
+    // We do NOT know if the allocation given is a slab or a segment
+    // so we run both functions, if we wanted to resolve this we could return to the caller a struct with the size and allocated block
+    // or the caller could have given us the size, but this is really prone to errors, bcz programmers are humans.
     bool Result =
         HeapFreeSlabAllocation(
             Heap,
             AllocatedMemory
         );
+
+    if (!Result) {
+        Result = HeapFreeSegmentAllocation(Heap, AllocatedMemory);
+    }
 
     // Release mutex if serialization
     if (SerializeHeap) {
@@ -607,4 +860,103 @@ HeapFree(
     // Return if given pointer to allocated memory has freed the allocated memory in the allocated memories inside a 64bit system
     // what
     return Result;
+}
+
+MTDLL_API
+bool
+HeapDestroy(
+    IN MT_HEAP_HANDLE HeapHandle
+)
+
+{
+    if (!HeapHandle || HeapHandle == GetProcessHeap()) {
+        // Reject process default heap, or a null ptr given.
+        return false;
+    }
+
+    // Acquire the heap mutex before destroying it
+    // depending on the SERIALIZE option
+    bool SerializeHeap = !(HeapHandle->Options & HEAP_NO_SERIALIZE);
+
+    if (SerializeHeap) {
+        uint32_t ReturnedCode =
+            WaitForSingleObject(
+                HeapHandle->HeapMutex,
+                MT_INFINITE
+            );
+
+        if (ReturnedCode == WAIT_ABANDONED_0) {
+            // Mutex acquired because a thread was terminated while holding it
+            // do not continue.
+            ReleaseMutex(HeapHandle->HeapMutex);
+            return false;
+        }
+
+        if (ReturnedCode != WAIT_OBJECT_0) {
+            // The mutex was not acquired, so it must not be released here.
+            return false;
+        }
+    }
+
+    bool HeapDestroyed = true;
+
+    // Save the mutex handle, since we free MT_HEAP too
+    HANDLE MutexHandle = HeapHandle->HeapMutex;
+
+    // Free every slab in the heap
+    for (size_t i = 0; i < MT_HEAP_BUCKET_COUNT; i++) {
+        PMT_HEAP_BUCKET Bucket = &HeapHandle->Buckets[i];
+
+        // Free every allocated slab in this bucket.
+        PDOUBLY_LINKED_LIST Head = &Bucket->SlabListHead;
+        PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+        while (Head != Current) {
+
+            PMT_HEAP_SLAB Slab = CONTAINING_RECORD(Current, MT_HEAP_SLAB, SlabListEntry);
+
+            // Save the next ptr since we literally destroy Current using VirtualFree.
+            PDOUBLY_LINKED_LIST Next = Current->Flink;
+
+            if (!VirtualFree(Slab, 0, MEM_RELEASE)) {
+                HeapDestroyed = false;
+            }
+
+            Current = Next;
+        }
+    }
+
+    // Free every segment in the heap
+    PDOUBLY_LINKED_LIST Head = &HeapHandle->SegmentListHead;
+    PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+    while (Head != Current) {
+        PMT_HEAP_SEGMENT Segment = CONTAINING_RECORD(Current, MT_HEAP_SEGMENT, SegmentListEntry);
+
+        // Save the next ptr since we literally destroy Current using VirtualFree.
+        PDOUBLY_LINKED_LIST Next = Current->Flink;
+
+        if (!VirtualFree(Segment, 0, MEM_RELEASE)) {
+            HeapDestroyed = false;
+        }
+
+        Current = Next;
+    }
+
+    if (SerializeHeap) {
+        if (!ReleaseMutex(MutexHandle)) {
+            HeapDestroyed = false;
+        }
+
+        if (!CloseHandle(MutexHandle)) {
+            HeapDestroyed = false;
+        }
+    }
+
+    // Free the heap control block last.
+    if (!VirtualFree(HeapHandle, 0, MEM_RELEASE)) {
+        HeapDestroyed = false;
+    }
+
+    return HeapDestroyed;
 }

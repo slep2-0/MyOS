@@ -191,7 +191,7 @@ PspSuspendThreadApc(
             &Thread->SuspendSemaphore,
             KernelMode,
             false,
-            INFINITE
+            MT_INFINITE
         );
         if (Status != MT_SUCCESS) {
             MeBugCheckEx(

@@ -16,7 +16,6 @@
 #define WAIT_ABANDONED     WAIT_ABANDONED_0
 #define WAIT_TIMEOUT       ((uint32_t)0x00000102UL)
 #define WAIT_FAILED        ((uint32_t)0xFFFFFFFFUL)
-#define INFINITE           ((uint32_t)0xFFFFFFFFUL)
 
 /*
  * Event behavior is part of the public ABI. Keep these values stable: a

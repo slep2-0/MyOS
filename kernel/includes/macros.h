@@ -22,6 +22,9 @@
 #define UINT64_T_MAX (uint64_t)-1
 #endif
 
+#undef ARRAY_COUNTOF
+#define ARRAY_COUNTOF(a) (sizeof(a) / sizeof((a)[0]))
+
 extern uint8_t kernel_start;
 #define LK_KERNEL_START &kernel_start
 

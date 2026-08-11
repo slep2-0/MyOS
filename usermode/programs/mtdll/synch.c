@@ -45,29 +45,23 @@ Sleep(
 uint32_t
 WaitForSingleObject(
 	IN HANDLE ObjectHandle,
-	IN uint32_t Milliseconds
+	IN uint64_t Milliseconds
 )
 
 {
-	uint64_t NativeTimeout = Milliseconds == INFINITE
-		? MT_INFINITE
-		: Milliseconds;
-	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, NativeTimeout, false);
+	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, Milliseconds, false);
 	return MtdllWaitStatusToResult(Status);
 }
 
 uint32_t
 WaitForSingleObjectEx(
 	IN HANDLE ObjectHandle,
-	IN uint32_t Milliseconds,
+	IN uint64_t Milliseconds,
 	IN bool Alertable
 )
 
 {
-	uint64_t NativeTimeout = Milliseconds == INFINITE
-		? MT_INFINITE
-		: Milliseconds;
-	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, NativeTimeout, Alertable);
+	MTSTATUS Status = MtWaitForSingleObject(ObjectHandle, Milliseconds, Alertable);
 	return MtdllWaitStatusToResult(Status);
 }
 

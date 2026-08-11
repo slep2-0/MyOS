@@ -209,13 +209,13 @@ Sleep(
 MTDLL_API uint32_t
 WaitForSingleObject(
     IN HANDLE ObjectHandle,
-    IN uint32_t Milliseconds
+    IN uint64_t Milliseconds
 );
 
 MTDLL_API uint32_t
 WaitForSingleObjectEx(
     IN HANDLE ObjectHandle,
-    IN uint32_t Milliseconds,
+    IN uint64_t Milliseconds,
     IN bool Alertable
 );
 

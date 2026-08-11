@@ -32,6 +32,7 @@ STRESS_MODES = {
     "cold-boot": 1,
     "randomized": 2,
     "exception-chain": 3,
+    "heap": 4,
 }
 
 KERNEL_SLOW_PATHS = {
@@ -93,6 +94,11 @@ EXCEPTION_TEST_MTEXE_C = [
 ]
 EXCEPTION_TEST_DEFINE = "MATANELOS_EXCEPTION_CHAIN_TEST"
 EXCEPTION_TEST_INCLUDE = ROOT / "usermode/tests"
+
+HEAP_TEST_MTEXE_C = [
+    "usermode/programs/heapTest/main.c",
+]
+HEAP_TEST_INCLUDE = ROOT / "usermode/tests"
 
 
 class BuildFailure(RuntimeError):
@@ -788,6 +794,7 @@ def build_usermode(
     output_directory = WINDOWS_BUILD / configuration.lower()
     output_directory.mkdir(parents=True, exist_ok=True)
     exception_test = stress_mode == "exception-chain"
+    heap_test = stress_mode == "heap"
     mtdll_sources = [
         *MTDLL_C,
         *(EXCEPTION_TEST_MTDLL_C if exception_test else ()),
@@ -819,8 +826,19 @@ def build_usermode(
         defines=mtdll_defines,
         include_directories=mtdll_includes,
     )
-    program_name = "exceptionChainTest" if exception_test else "terminateMyself"
-    program_sources = EXCEPTION_TEST_MTEXE_C if exception_test else MTEXE_C
+    if exception_test:
+        program_name = "exceptionChainTest"
+        program_sources = EXCEPTION_TEST_MTEXE_C
+        program_includes = (EXCEPTION_TEST_INCLUDE,)
+    elif heap_test:
+        program_name = "heapTest"
+        program_sources = HEAP_TEST_MTEXE_C
+        program_includes = (HEAP_TEST_INCLUDE,)
+    else:
+        program_name = "terminateMyself"
+        program_sources = MTEXE_C
+        program_includes = ()
+
     program, _ = _build_user_component(
         tools,
         program_name,
@@ -834,7 +852,7 @@ def build_usermode(
         workers=workers,
         module_name="terminateMyself.mtexe",
         dependencies={MTDLL_MODULE_NAME: mtdll_elf},
-        include_directories=(EXCEPTION_TEST_INCLUDE,) if exception_test else (),
+        include_directories=program_includes,
     )
     return mtdll, program
 

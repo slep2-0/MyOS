@@ -287,10 +287,18 @@ LdrInitializeProcess(
         : "memory"
         );
 
+    InitialTeb->ProcessEnvironmentBlock = InitialPeb;
+
+    // Create the process heap
+    InitialPeb->ProcessHeap = HeapCreate(HEAP_CREATE_NONE, 0, 0);
+
+    if (!InitialPeb->ProcessHeap) {
+        // Creating initial heap failure.
+        MtTerminateProcess(MtCurrentProcess(), GetLastStatus());
+    }
+
     // Set initial PEB LoaderData to be our process.
-    // This is a very bad allocation, since virtual alloc literally takes a page no matter the allocation size, and if we are a byte above a page, another page is consumed
-    // We need a heap allocator like the MmAllocatePoolWithTag in the kernel space, ill probably implement RtlAllocateHeap soon enough. (TODO)
-    PLDR_DATA_TABLE_ENTRY ProcessEntry = VirtualAlloc(NULL, sizeof(LDR_DATA_TABLE_ENTRY), PAGE_READWRITE);
+    PLDR_DATA_TABLE_ENTRY ProcessEntry = (PLDR_DATA_TABLE_ENTRY)HeapAlloc(GetProcessHeap(), HEAP_ALLOCATE_ZERO_MEMORY, sizeof(LDR_DATA_TABLE_ENTRY));
 
     if (!ProcessEntry) {
         // Allocation failure, we terminate process.
@@ -312,7 +320,7 @@ LdrInitializeProcess(
     InsertHeadList(&InitialPeb->LoaderData.LoadedModuleList, &ProcessEntry->LoadedModuleList);
 
     // Now add mtdll into the PEB as well.
-    PLDR_DATA_TABLE_ENTRY MtdllEntry = VirtualAlloc(NULL, sizeof(LDR_DATA_TABLE_ENTRY), PAGE_READWRITE);
+    PLDR_DATA_TABLE_ENTRY MtdllEntry = (PLDR_DATA_TABLE_ENTRY)HeapAlloc(GetProcessHeap(), HEAP_ALLOCATE_ZERO_MEMORY, sizeof(LDR_DATA_TABLE_ENTRY));
     if (!MtdllEntry) {
         MtTerminateProcess(MtCurrentProcess(), GetLastError());
     }

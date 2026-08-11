@@ -15,6 +15,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_COLD_BOOT   1
 #define MT_STRESS_MODE_RANDOMIZED  2
 #define MT_STRESS_MODE_EXCEPTION_CHAIN 3
+#define MT_STRESS_MODE_HEAP        4
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -29,8 +30,12 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_EXCEPTION_CHAIN
+    MT_STRESS_MODE > MT_STRESS_MODE_HEAP
 #error "MT_STRESS_MODE is invalid"
+#endif
+
+#if MT_STRESS_MODE == MT_STRESS_MODE_HEAP
+#include "../usermode/tests/heap_test.h"
 #endif
 
 /**
@@ -9809,6 +9814,143 @@ StressAutomationPass(
 }
 #endif
 
+#if MT_STRESS_MODE == MT_STRESS_MODE_HEAP
+#if !MT_STRESS_AUTOMATION
+#error "The isolated heap runtime test requires MT_STRESS_AUTOMATION"
+#endif
+
+#define MT_HEAP_TEST_WAIT_TIMEOUT_MS 180000ULL
+#define MT_AUTOMATION_EXIT_FAIL      0x11
+
+static void
+StressHeapWriteStatus(
+    IN MTSTATUS Status
+)
+{
+    static const char Digits[] = "0123456789ABCDEF";
+    uint32_t Value = (uint32_t)Status;
+    char Text[] = "0x00000000\n";
+
+    for (uint32_t Index = 0; Index < 8; Index++) {
+        uint32_t Shift = (7u - Index) * 4u;
+        Text[2 + Index] = Digits[(Value >> Shift) & 0xFu];
+    }
+
+    StressAutomationWriteText(Text);
+}
+
+NORETURN
+static void
+StressHeapFailure(
+    IN const char* Failure
+)
+{
+    StressAutomationWriteText("MT-HEAP FAIL ");
+    StressAutomationWriteText(Failure);
+    StressAutomationWriteText("\n");
+    __cli();
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+
+static const char*
+StressHeapFailureName(
+    IN MTSTATUS Status
+)
+{
+    switch (Status) {
+    case MT_HEAP_TEST_NO_PROCESS_HEAP:      return "NO-PROCESS-HEAP";
+    case MT_HEAP_TEST_CREATE_FAILED:        return "CREATE";
+    case MT_HEAP_TEST_SLAB_ALLOCATION:      return "SLAB-ALLOC";
+    case MT_HEAP_TEST_SLAB_ALIGNMENT:       return "SLAB-ALIGN";
+    case MT_HEAP_TEST_SLAB_ZEROING:         return "SLAB-ZERO";
+    case MT_HEAP_TEST_SLAB_FREE:            return "SLAB-FREE";
+    case MT_HEAP_TEST_SLAB_DOUBLE_FREE:     return "SLAB-DOUBLE-FREE";
+    case MT_HEAP_TEST_SLAB_REUSE:           return "SLAB-REUSE";
+    case MT_HEAP_TEST_SEGMENT_ALLOCATION:   return "SEGMENT-ALLOC";
+    case MT_HEAP_TEST_SEGMENT_ALIGNMENT:    return "SEGMENT-ALIGN";
+    case MT_HEAP_TEST_SEGMENT_ZEROING:      return "SEGMENT-ZERO";
+    case MT_HEAP_TEST_SEGMENT_FREE:         return "SEGMENT-FREE";
+    case MT_HEAP_TEST_INVALID_FREE:         return "INVALID-FREE";
+    case MT_HEAP_TEST_SPLIT_REUSE:          return "SPLIT-REUSE";
+    case MT_HEAP_TEST_COALESCING:           return "COALESCING";
+    case MT_HEAP_TEST_LARGE_GROWTH:         return "LARGE-GROWTH";
+    case MT_HEAP_TEST_MAXIMUM_SIZE:         return "MAXIMUM-SIZE";
+    case MT_HEAP_TEST_THREAD_CREATE:        return "THREAD-CREATE";
+    case MT_HEAP_TEST_THREAD_WAIT:          return "THREAD-WAIT";
+    case MT_HEAP_TEST_THREAD_CLOSE:         return "THREAD-CLOSE";
+    case MT_HEAP_TEST_CONCURRENT_ALLOCATION:return "CONCURRENT-ALLOC";
+    case MT_HEAP_TEST_CONCURRENT_FREE:      return "CONCURRENT-FREE";
+    case MT_HEAP_TEST_SLAB_EXCEPTION:       return "SLAB-EXCEPTION";
+    case MT_HEAP_TEST_SEGMENT_EXCEPTION:    return "SEGMENT-EXCEPTION";
+    case MT_HEAP_TEST_SPLIT_EXCEPTION:      return "SPLIT-EXCEPTION";
+    case MT_HEAP_TEST_MAXIMUM_EXCEPTION:    return "MAXIMUM-EXCEPTION";
+    case MT_HEAP_TEST_CONCURRENT_EXCEPTION: return "CONCURRENT-EXCEPTION";
+    case MT_HEAP_TEST_DESTROY:              return "DESTROY";
+    case MT_HEAP_TEST_PROCESS_HEAP_DESTROY: return "PROCESS-HEAP-DESTROY";
+    case MT_HEAP_TEST_DESTROY_EXCEPTION:    return "DESTROY-EXCEPTION";
+    default:                                return "UNKNOWN-EXIT";
+    }
+}
+
+static void
+StressHeapController(
+    void
+)
+{
+    StressAutomationWriteText("MT-HEAP START\n");
+
+    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MTSTATUS Status = PsCreateProcess(
+        "terminateMyself.mtexe",
+        &ProcessHandle,
+        MT_PROCESS_ALL_ACCESS,
+        0
+    );
+    if (Status != MT_SUCCESS) {
+        StressHeapFailure("CREATE-PROCESS");
+    }
+
+    Status = MtWaitForSingleObject(
+        ProcessHandle,
+        MT_HEAP_TEST_WAIT_TIMEOUT_MS,
+        false
+    );
+    if (Status != MT_SUCCESS) {
+        StressHeapFailure(
+            Status == MT_TIMEOUT ? "PROCESS-TIMEOUT" : "PROCESS-WAIT"
+        );
+    }
+
+    PROCESS_BASIC_INFORMATION Information = { 0 };
+    uint32_t ReturnLength = 0;
+    Status = MtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        &Information,
+        sizeof(Information),
+        &ReturnLength
+    );
+    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+        StressHeapFailure("QUERY-PROCESS");
+    }
+    if (Information.ExitStatus != MT_SUCCESS) {
+        StressAutomationWriteText("MT-HEAP EXIT-STATUS ");
+        StressHeapWriteStatus(Information.ExitStatus);
+        StressHeapFailure(StressHeapFailureName(Information.ExitStatus));
+    }
+
+    Status = MtClose(ProcessHandle);
+    if (Status != MT_SUCCESS) {
+        StressHeapFailure("CLOSE-PROCESS");
+    }
+
+    StressAutomationWriteText("MT-HEAP USER PASS\n");
+}
+#endif
+
 NORETURN
 static void
 StressSuiteController(
@@ -9838,6 +9980,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_EXCEPTION_CHAIN
     StressExceptionChainController();
     StressAutomationPass("EXCEPTION-CHAIN");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_HEAP
+    StressHeapController();
+    StressAutomationPass("HEAP");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();
