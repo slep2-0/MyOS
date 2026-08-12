@@ -8,13 +8,49 @@
 #include "../../intrinsics/atomic.h"
 #include "../../intrinsics/intrin.h"
 
-static inline bool interrupts_enabled(void) {
+static inline bool interrupts_enabled(void)
+
+/*++
+
+    Routine description:
+
+        Reports whether maskable interrupts are enabled on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
     unsigned long flags;
     __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
-static void update_apic_irqs(IRQL newLevel) {
+static void update_apic_irqs(IRQL newLevel)
+
+/*++
+
+    Routine description:
+
+        Updates the local APIC task-priority state after an IRQL change.
+
+    Arguments:
+
+        [IN] newLevel - IRQL being installed on the current processor.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint8_t tpr = 0;
 
     switch (newLevel) {
@@ -245,6 +281,22 @@ MeDisableInterrupts(
 
 // Short Desc: Will disable interrupts, and returns if interrupts were enabled before.
 
+/*++
+
+    Routine description:
+
+        Disables maskable interrupts and reports their previous state.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        true when interrupts were enabled before the call, or false when they were already disabled.
+
+--*/
+
 {
     bool prev_if = interrupts_enabled();
     __cli();
@@ -258,6 +310,22 @@ MeEnableInterrupts(
 
 // Short Desc: Will enable interrupts ONLY if EnabledBefore is true. (given from return value of MeDisableInterrupts)
 
+/*++
+
+    Routine description:
+
+        Restores maskable interrupts to a caller-supplied state.
+
+    Arguments:
+
+        [IN] EnabledBefore - Whether interrupts were enabled before the matching disable operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (EnabledBefore) __sti();
 }
@@ -268,6 +336,22 @@ MeAreInterruptsEnabled(
 )
 
 // Short Desc: Will return if interrupts are currently enabled on the processor.
+
+/*++
+
+    Routine description:
+
+        Reports whether maskable interrupts are enabled on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
 
 {
     return interrupts_enabled();

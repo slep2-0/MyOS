@@ -20,7 +20,25 @@
 #define PIT_POLLS_PER_TICK        256ULL
 
 /* Early-boot blocking delay. Uses PIT channel 2 so channel 0 is left alone. */
-void pit_sleep_ms(uint32_t ms) {
+void pit_sleep_ms(uint32_t ms)
+
+/*++
+
+    Routine description:
+
+        Waits for a millisecond interval using the PIT reference timer.
+
+    Arguments:
+
+        [IN] ms - Delay interval in milliseconds.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (ms == 0) return;
 
     uint64_t total_ticks = ((uint64_t)PIT_FREQ_HZ * ms + 999) / 1000;

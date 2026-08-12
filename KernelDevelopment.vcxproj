@@ -41,7 +41,7 @@
     <NMakeReBuildCommandLine>call "$(ProjectDir)clean_windows.bat" &amp;&amp; call "$(ProjectDir)build_windows.bat" $(Configuration)</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine>call "$(ProjectDir)clean_windows.bat"</NMakeCleanCommandLine>
     <NMakeOutput>$(ProjectDir)build\windows\$(Configuration)\matanelos.img</NMakeOutput>
-    <NMakeIncludeSearchPath>$(ProjectDir)tools\windows\intellisense;$(ProjectDir)shared\include;$(ProjectDir);$(ProjectDir)kernel;$(ProjectDir)kernel\includes;$(ProjectDir)kernel\intrinsics;$(ProjectDir)usermode\programs\mtdll\includes;$(ProjectDir)boot\Include;$(ProjectDir)boot\Include\X64</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>$(ProjectDir)tools\windows\intellisense;$(ProjectDir)shared\include;$(ProjectDir);$(ProjectDir)kernel;$(ProjectDir)kernel\includes;$(ProjectDir)kernel\intrinsics;$(ProjectDir)usermode\programs\dlls\mtdll\includes;$(ProjectDir)boot\Include;$(ProjectDir)boot\Include\X64</NMakeIncludeSearchPath>
     <NMakeForcedIncludes>$(ProjectDir)tools\windows\intellisense\freestanding_compat.h</NMakeForcedIncludes>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
@@ -109,30 +109,31 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
-    <ClCompile Include="usermode\programs\exceptionChainTest\main.c" />
-    <ClCompile Include="usermode\programs\heapTest\main.c" />
-    <ClCompile Include="usermode\programs\loaderFailDll\dllmain.c" />
-    <ClCompile Include="usermode\programs\loaderGoodDll\dllmain.c" />
-    <ClCompile Include="usermode\programs\loaderTest\main.c" />
-    <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
-    <ClCompile Include="usermode\programs\mtdll\error.c" />
-    <ClCompile Include="usermode\programs\mtdll\exception.c" />
-    <ClCompile Include="usermode\programs\mtdll\file.c" />
-    <ClCompile Include="usermode\programs\mtdll\generic.c" />
-    <ClCompile Include="usermode\programs\mtdll\heap.c" />
-    <ClCompile Include="usermode\programs\mtdll\ldr\dllldr.c" />
-    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
-    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
-    <ClCompile Include="usermode\programs\mtdll\loader.c" />
-    <ClCompile Include="usermode\programs\mtdll\memory.c" />
-    <ClCompile Include="usermode\programs\mtdll\print.c" />
-    <ClCompile Include="usermode\programs\mtdll\process.c" />
-    <ClCompile Include="usermode\programs\mtdll\string.c" />
-    <ClCompile Include="usermode\programs\mtdll\synch.c" />
-    <ClCompile Include="usermode\programs\mtdll\tests\exception_chain.c" />
-    <ClCompile Include="usermode\programs\mtdll\tests\loader.c" />
-    <ClCompile Include="usermode\programs\mtdll\thread.c" />
-    <ClCompile Include="usermode\programs\terminateMyself\main.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\dllmain.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\exception.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\file.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\heap.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\dllldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\loader.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\memory.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\print.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\process.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\string.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\synch.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\thread.c" />
+    <ClCompile Include="usermode\programs\exes\terminateMyself\main.c" />
+    <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
+    <ClCompile Include="usermode\tests\heapTest\main.c" />
+    <ClCompile Include="usermode\tests\loaderFailDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderGoodDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderNoEntryDll\module.c" />
+    <ClCompile Include="usermode\tests\loaderTest\main.c" />
+    <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
+    <ClCompile Include="usermode\tests\mtdll\loader.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -188,15 +189,15 @@
     <ClInclude Include="tools\windows\intellisense\stdbool.h" />
     <ClInclude Include="tools\windows\intellisense\stddef.h" />
     <ClInclude Include="tools\windows\intellisense\stdint.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\accessrights.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\exports.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\accessrights.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\annotations.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\errorhandlingapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\exports.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\ioapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtdll.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtstatus.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\processthreadsapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\synchapi.h" />
     <ClInclude Include="usermode\tests\exception_chain_test.h" />
     <ClInclude Include="usermode\tests\heap_test.h" />
     <ClInclude Include="usermode\tests\loader_fixture.h" />
@@ -222,6 +223,7 @@
     <None Include="tools\windows\make_image.py" />
     <None Include="tools\windows\README.md" />
     <None Include="tools\windows\reset_intellisense.py" />
+    <None Include="tools\windows\routine_docs.py" />
     <None Include="tools\windows\seh_translate.py" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
@@ -232,9 +234,9 @@
     <None Include="usermode\crt0.S" />
     <None Include="usermode\mtdll.ld" />
     <None Include="usermode\mtexe.ld" />
-    <None Include="usermode\programs\mtdll\apcdispatch.asm" />
-    <None Include="usermode\programs\mtdll\tests\language_context.asm" />
+    <None Include="usermode\programs\dlls\mtdll\apcdispatch.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
+    <None Include="usermode\tests\mtdll\language_context.asm" />
   </ItemGroup>
   <!-- END GENERATED PROJECT ITEMS -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

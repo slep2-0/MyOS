@@ -166,7 +166,25 @@ MhHandleInterrupt (
     // TODO KINTERRUPT
 }
 
-void init_interrupts(void) {
+void init_interrupts(void)
+
+/*++
+
+    Routine description:
+
+        Initializes interrupts for interrupt dispatch.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	install_idt();
     _MeSetIrql(PASSIVE_LEVEL);
 }

@@ -29,6 +29,24 @@ MipVadAllowsAccess(
     IN VAD_FLAGS Flags,
     IN FAULT_OPERATION Operation
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether VAD protection permits the requested page access.
+
+    Arguments:
+
+        [IN] Flags - Flags controlling the operation.
+        [IN] Operation - Requested memory-access or test operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     if (Operation == WriteOperation) {
         return (Flags & VAD_FLAG_WRITE) != 0;
@@ -45,6 +63,23 @@ static uint64_t
 MipBuildUserPteFlags(
     IN VAD_FLAGS Flags
 )
+
+/*++
+
+    Routine description:
+
+        Builds user page-table flags from a VAD protection mask.
+
+    Arguments:
+
+        [IN] Flags - Flags controlling the operation.
+
+    Return Values:
+
+        The PTE flags corresponding to the VAD protection.
+
+--*/
+
 {
     uint64_t PteFlags = PAGE_PRESENT | PAGE_USER | PAGE_NX;
 
@@ -65,6 +100,25 @@ MipCalculateFileOffset(
     IN uintptr_t VirtualAddress,
     OUT uint64_t* FileOffset
 )
+
+/*++
+
+    Routine description:
+
+        Calculates the backing-file offset for a faulting VAD page.
+
+    Arguments:
+
+        [IN] Vad - VAD governing the virtual address range.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] FileOffset - Byte offset in the backing file.
+
+    Return Values:
+
+        The backing-file offset for the faulting page.
+
+--*/
+
 {
     uint64_t AlignedAddress = (uint64_t)PAGE_ALIGN(VirtualAddress);
     uint64_t StartAddress = (uint64_t)Vad->StartVa;
@@ -89,6 +143,29 @@ MipPublishPage(
     IN uint32_t PfnFlags,
     _In_Opt PMMVAD Vad
 )
+
+/*++
+
+    Routine description:
+
+        Atomically publishes a newly faulted page into its page-table entry.
+
+    Arguments:
+
+        [IN] Pte - Page-table entry being published.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] PfnIndex - PFN database index of the physical page.
+        [IN] PteFlags - Flags installed in the page-table entry.
+        [IN] ExpectedPte - Expected PTE.
+        [IN] PfnFlags - Flags recorded in the PFN entry.
+        [IN] Vad - VAD governing the virtual address range.
+
+    Return Values:
+
+        true when the page is published, or false when another fault already supplied it.
+
+--*/
+
 {
     uint64_t NewPte = PFN_TO_PHYS(PfnIndex) | PteFlags;
     PPFN_ENTRY Pfn = INDEX_TO_PPFN(PfnIndex);

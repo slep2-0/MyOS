@@ -109,6 +109,23 @@ VAD_FLAGS
 MtpUserAllocationTypeToVadFlags(
     IN USER_PROTECTION_TYPE AllocationType
 )
+
+/*++
+
+    Routine description:
+
+        Converts public virtual-allocation flags to internal VAD flags.
+
+    Arguments:
+
+        [IN] AllocationType - Public virtual-allocation flags supplied by the caller.
+
+    Return Values:
+
+        The internal VAD flags corresponding to the public allocation type.
+
+--*/
+
 {
     VAD_FLAGS Flags = VAD_FLAG_NONE;
 
@@ -158,6 +175,23 @@ USER_PROTECTION_TYPE
 MtpVadFlagsToUserAllocationType(
     IN VAD_FLAGS VadFlags
 )
+
+/*++
+
+    Routine description:
+
+        Converts internal VAD flags to public virtual-allocation flags.
+
+    Arguments:
+
+        [IN] VadFlags - Internal VAD flags to translate.
+
+    Return Values:
+
+        The public protection value corresponding to the VAD flags.
+
+--*/
+
 {
     if ((VadFlags & (VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE)) ==
         (VAD_FLAG_EXECUTE | VAD_FLAG_READ | VAD_FLAG_WRITE))
@@ -572,6 +606,26 @@ MtWriteFile(
     _Out_Opt size_t* BytesWritten
 )
 
+/*++
+
+    Routine description:
+
+        Writes a user buffer to an open file handle.
+
+    Arguments:
+
+        [IN] FileHandle - Handle to the file used by the operation.
+        [IN] FileOffset - Byte offset in the backing file.
+        [IN OUT] Buffer - Buffer used to transfer the data.
+        [IN] BufferSize - Size of Buffer in bytes.
+        [OUT] BytesWritten - Receives the number of bytes written.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     // We must be at IRQL that is less or equal than APC_LEVEL (so we can bring in pageable memory, both for user memory and kernel memory)
     assert(MeGetCurrentIrql() <= APC_LEVEL);
@@ -680,6 +734,25 @@ MtCreateFile(
     OUT PHANDLE FileHandleOut
 )
 
+/*++
+
+    Routine description:
+
+        Creates or opens a file and returns a user handle.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [IN] DesiredAccess - Access mask required by the caller.
+        [IN] CreationDisposition - Action to take when the file exists or is absent.
+        [OUT] FileHandleOut - Receives the file handle.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     // We must be at IRQL that is less or equal than APC_LEVEL (FileSystem requirements)
     assert(MeGetCurrentIrql() <= APC_LEVEL);
@@ -763,6 +836,23 @@ MtTerminateThread(
     IN HANDLE ThreadHandle,
     IN MTSTATUS ExitStatus
 )
+
+/*++
+
+    Routine description:
+
+        Terminates a thread identified by a user handle.
+
+    Arguments:
+
+        [IN] ThreadHandle - Handle to the target thread.
+        [IN] ExitStatus - Termination status to record.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Attempt to reference thread, or if it is ourselves use ourselves.
@@ -933,6 +1023,22 @@ IsValidProtection(
     IN USER_PROTECTION_TYPE Type
 )
 
+/*++
+
+    Routine description:
+
+        Reports whether a public virtual-memory protection value is valid.
+
+    Arguments:
+
+        [IN] Type - Type of object or operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     return (Type == PAGE_EXECUTE_READ ||
         Type == PAGE_EXECUTE_READWRITE ||
@@ -949,6 +1055,26 @@ MtProtectVirtualMemory(
     IN USER_PROTECTION_TYPE NewProtection,
     OUT USER_PROTECTION_TYPE* OldProtection
 )
+
+/*++
+
+    Routine description:
+
+        Changes protection on a virtual-memory range in a target process.
+
+    Arguments:
+
+        [IN] ProcessHandle - Handle to the target process.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+        [IN] RegionSize - Size of the region in bytes.
+        [IN] NewProtection - Protection to apply to the virtual range.
+        [OUT] OldProtection - Receives the protection that was replaced.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     if (!IsValidProtection(NewProtection)) return MT_INVALID_PARAM;
@@ -1257,6 +1383,25 @@ MtFreeVirtualMemory(
     IN enum _FREE_TYPE FreeType
 )
 
+/*++
+
+    Routine description:
+
+        Releases or decommits virtual memory in a target process.
+
+    Arguments:
+
+        [IN] ProcessHandle - Handle to the target process.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+        [IN] NumberOfBytes - Size of the virtual region in bytes.
+        [IN] FreeType - Requested release or decommit operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     // Address validations.
     MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
@@ -1330,6 +1475,25 @@ MtCreateThread(
     IN void* Argument,
     OUT PHANDLE ThreadHandle
 )
+
+/*++
+
+    Routine description:
+
+        Creates a thread in a target process and returns its user handle.
+
+    Arguments:
+
+        [IN] ProcessHandle - Handle to the target process.
+        [IN] StartRoutine - Entry routine executed by the created thread or test phase.
+        [IN] Argument - System-call argument value being probed or interpreted.
+        [OUT] ThreadHandle - Receives the created thread handle.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Validate argument.
@@ -1536,6 +1700,23 @@ static void
 MtpRetainMutexOwnershipReference(
     IN PMUTEX Mutex
 )
+
+/*++
+
+    Routine description:
+
+        Retains the mutex object while it is linked into a thread ownership list.
+
+    Arguments:
+
+        [IN] Mutex - Mutex object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // The syscall already owns a transient reference, so this cannot fail
     // unless object reference accounting is corrupt.
@@ -1558,6 +1739,23 @@ static void
 MtpReleaseMutexOwnershipReference(
     IN PMUTEX Mutex
 )
+
+/*++
+
+    Routine description:
+
+        Releases the reference retained for mutex ownership tracking.
+
+    Arguments:
+
+        [IN] Mutex - Mutex object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Mutex->Header.Lock, &OldIrql);
@@ -2627,6 +2825,23 @@ MtSuspendThread(
     _Out_Opt uint32_t* PreviousSuspendCount
 )
 
+/*++
+
+    Routine description:
+
+        Increments a thread suspend count and arranges suspension when required.
+
+    Arguments:
+
+        [IN] ThreadHandle - Handle to the target thread.
+        [IN] PreviousSuspendCount - Number of previous suspend entries.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     // If pointer is present validate it
     MTSTATUS Status;
@@ -2674,6 +2889,23 @@ MtResumeThread(
     IN HANDLE ThreadHandle,
     _Out_Opt uint32_t* PreviousSuspendCount
 )
+
+/*++
+
+    Routine description:
+
+        Decrements a thread suspend count and releases its suspend wait at zero.
+
+    Arguments:
+
+        [IN] ThreadHandle - Handle to the target thread.
+        [IN] PreviousSuspendCount - Number of previous suspend entries.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // If pointer is present validate it
@@ -2777,6 +3009,24 @@ MtCreateSection(
     IN HANDLE FileHandle
 )
 
+/*++
+
+    Routine description:
+
+        Creates a section object and returns a user handle.
+
+    Arguments:
+
+        [OUT] SectionHandle - Receives the created section handle.
+        [IN] DesiredAccess - Access mask required by the caller.
+        [IN] FileHandle - Handle to the file used by the operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     MTSTATUS Status = ProbeForRead(SectionHandle, sizeof(HANDLE), _Alignof(HANDLE));
     if (MT_FAILURE(Status)) return Status;
@@ -2842,6 +3092,26 @@ MtMapViewOfSection(
     OUT void** EntryPointAddress,
     OUT size_t* ViewSize
 )
+
+/*++
+
+    Routine description:
+
+        Maps a section view into a target process through user handles.
+
+    Arguments:
+
+        [IN] SectionHandle - Handle to the section being mapped.
+        [IN] ProcessHandle - Handle to the target process.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+        [OUT] EntryPointAddress - Receives the mapped image entry point.
+        [IN] ViewSize - Size of the view in bytes.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Validate every OUT ptr first.
@@ -2942,6 +3212,23 @@ MtUnmapViewOfSection(
     IN void* BaseAddress
 )
 
+/*++
+
+    Routine description:
+
+        Unmaps a section view from a target process.
+
+    Arguments:
+
+        [IN] ProcessHandle - Handle to the target process.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     void* Object = NULL;
     MTSTATUS Status = ObReferenceObjectByHandle(
@@ -2966,6 +3253,24 @@ MtPrintConsole(
     IN uint32_t Color,
     IN const char* String
 )
+
+/*++
+
+    Routine description:
+
+        Copies a user string and writes it to the kernel console.
+
+    Arguments:
+
+        [IN] Color - Framebuffer color used to draw the output.
+        [IN] String - String read, written, or searched by the routine.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     MTSTATUS Status;
     char KernelBuffer[256]; // max safe limit

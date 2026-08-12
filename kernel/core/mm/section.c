@@ -28,6 +28,25 @@ MmpIsFileRangeValid(
     IN uint64_t Size,
     IN uint64_t FileSize
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a section byte range lies within its backing file.
+
+    Arguments:
+
+        [IN] Offset - Starting byte offset in the backing file.
+        [IN] Size - Size of the requested region or object in bytes.
+        [IN] FileSize - Size of the file in bytes.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     if (Size == 0) return true;
     return Offset < FileSize && Size <= FileSize - Offset;
@@ -38,6 +57,24 @@ MmCreateSection(
     OUT void** SectionObject,
     IN struct _FILE_OBJECT* FileObject
 )
+
+/*++
+
+    Routine description:
+
+        Creates a section object backed by a file.
+
+    Arguments:
+
+        [IN] SectionObject - Section object being mapped or deleted.
+        [IN] FileObject - File object affected by the operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (!SectionObject || !FileObject) return MT_INVALID_PARAM;
 
@@ -164,6 +201,26 @@ MmMapViewOfSection(
     OUT void** EntryPointAddress,
     OUT void** BaseAddress
 )
+
+/*++
+
+    Routine description:
+
+        Maps a section view into a process address space.
+
+    Arguments:
+
+        [IN] SectionObject - Section object being mapped or deleted.
+        [IN] Process - Process affected by the operation.
+        [OUT] EntryPointAddress - Receives the mapped image entry point.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     PMM_SECTION Section = (PMM_SECTION)SectionObject;
 
@@ -239,10 +296,11 @@ MmMapViewOfSection(
     // The true base address is at load_base
     *BaseAddress = (void*)load_base;
 
-    // Compute RIP based on where we actually loaded
-    uintptr_t RipAddress = load_base + Section->EntryPointOffset;
-    *EntryPointAddress = (void*)RipAddress;
-
+    // Return the entry point only when the image declares one.
+    if (Section->EntryPointOffset != 0) {
+        *EntryPointAddress =
+            (void*)(load_base + Section->EntryPointOffset);
+    }
 Cleanup:
     return Status;
 }
@@ -252,6 +310,23 @@ MmUnmapViewOfSection(
     PEPROCESS Process,
     void* BaseAddress
 )
+
+/*++
+
+    Routine description:
+
+        Unmaps a section view from a process address space.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     if (!Process || !BaseAddress) return MT_INVALID_PARAM;
@@ -270,6 +345,23 @@ void
 MmpDeleteSection(
     void* Object
 )
+
+/*++
+
+    Routine description:
+
+        Releases file and process references owned by a section object.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PMM_SECTION Section = (PMM_SECTION)Object;
 

@@ -32,22 +32,8 @@ RtlZeroMemory(
     IN  void* Destination,
     IN  size_t Length
 )
-/*++
 
-Routine Description:
-
-    Fills a block of memory with zeros.
-
-Arguments:
-
-    Destination - Pointer to the memory block to zero.
-    Length      - Number of bytes to zero.
-
-Return Value:
-
-    None.
-
---*/
+// Fills a memory range with zeros.
 {
     unsigned char* ptr = (unsigned char*)Destination;
     while (Length--)

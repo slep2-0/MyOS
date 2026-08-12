@@ -123,6 +123,23 @@ MiReservePhysRange(
     uint64_t length
 )
 
+/*++
+
+    Routine description:
+
+        Marks a physical page range reserved in the PFN database.
+
+    Arguments:
+
+        [IN] phys_start - First physical address in the range.
+        [IN] length - Size of the length in bytes.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t first = phys_start / PhysicalFrameSize;
     uint64_t pages = (length + PhysicalFrameSize - 1) / PhysicalFrameSize;
@@ -584,6 +601,22 @@ MiIsWithinBoundsOfReleasePhysicalPage(
 
 // Self explanatory function, this is only used for debugging.
 
+/*++
+
+    Routine description:
+
+        Reports whether a physical page belongs to the releasable PFN range.
+
+    Arguments:
+
+        [IN] VirtualAddress - Virtual address affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uintptr_t a = (uintptr_t)VirtualAddress;
     uintptr_t s = (uintptr_t)&MiReleasePhysicalPage_start;
@@ -598,6 +631,22 @@ MiUnlinkPageFromList(
 )
 
 // Unlink a specified PPFN_ENTRY from its PfnDb list.
+
+/*++
+
+    Routine description:
+
+        Removes a PFN entry from its current page list.
+
+    Arguments:
+
+        [IN] pfn - PFN entry affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     IRQL oldIrql;

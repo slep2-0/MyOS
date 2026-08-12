@@ -47,9 +47,29 @@ MTDLL_CACHE_ENTRY* PsMtdllExportCache = NULL;  // Pointer to our dynamic cache a
 // MsInitializePushLock and is ready before the MTDLL cache is first used.
 static PUSH_LOCK PsMtdllCacheLock = { 0 };
 
-static 
-bool 
-GetBaseName(const char* fullpath, char* out, size_t outsz) {
+static
+bool
+GetBaseName(const char* fullpath, char* out, size_t outsz)
+
+/*++
+
+    Routine description:
+
+        Extracts the final path component from an image path.
+
+    Arguments:
+
+        [IN] fullpath - Full image or file path to process.
+        [OUT] out - Receives the .
+        [OUT] outsz - Capacity of the output buffer in bytes.
+
+    Return Values:
+
+        Zero on success, or a negative value when the path has no valid base name.
+
+--*/
+
+{
     const char* ext = ".mtexe";
     size_t ext_len = kstrlen(ext);
     if (!fullpath || !out || outsz == 0) return false;
@@ -66,9 +86,29 @@ GetBaseName(const char* fullpath, char* out, size_t outsz) {
     return true;
 }
 
-static 
+static
 int
 ReadStringFromFile(PFILE_OBJECT FileObject, uint64_t off, char* buf, size_t buf_len)
+
+/*++
+
+    Routine description:
+
+        Reads a bounded null-terminated string from an image file.
+
+    Arguments:
+
+        [IN] FileObject - File object affected by the operation.
+        [IN] off - Register offset from the device MMIO base.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] buf_len - Capacity of the destination buffer in bytes.
+
+    Return Values:
+
+        Zero on success, or -1 when the requested string cannot be read.
+
+--*/
+
 {
     size_t got = 0;
     MTSTATUS st;
@@ -94,6 +134,24 @@ PspFindMtdllEntryRva(
     IN PFILE_OBJECT MtdllObject,
     IN const char* RoutineName
 )
+
+/*++
+
+    Routine description:
+
+        Finds the MTDLL bootstrap export RVA in an image.
+
+    Arguments:
+
+        [IN] MtdllObject - Section object containing the MTDLL image.
+        [IN] RoutineName - Exported routine name to resolve.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
 {
     if (!RoutineName) return NULL;
 
@@ -199,6 +257,23 @@ PspFindMtdllEntryAddress(
     IN PETHREAD Thread
 )
 
+/*++
+
+    Routine description:
+
+        Resolves an MTDLL bootstrap export in a mapped process image.
+
+    Arguments:
+
+        [IN] RoutineName - Exported routine name to resolve.
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
 {
     if (!RoutineName || !Thread || !Thread->ParentProcess) {
         return 0;
@@ -232,6 +307,25 @@ PspRelocateImage(
     IN MTE_HEADER* Header,
     IN size_t ImageSize
 )
+
+/*++
+
+    Routine description:
+
+        Applies image base relocations for a process mapping.
+
+    Arguments:
+
+        [IN] ImageBase - Mapped base address of the process image.
+        [IN OUT] Header - Dispatcher header affected by the operation.
+        [IN] ImageSize - Size of the image in bytes.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (!ImageBase || !Header || ImageSize < sizeof(*Header)) {
         return MT_INVALID_IMAGE_FORMAT;
@@ -401,7 +495,7 @@ PsCreateProcess(
     HtClose(MtdllHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
-    // Find MTDLL Entrypoint now. 
+    // Find MTDLL Entrypoint now.
     // (PspFindMtdllEntry will safely use the cache and ignore MtdllObject if PsMtdllRvasSaved is true)
     void* MtdllInitializeProcessRva = PspFindMtdllEntryRva(MtdllObject, MTDLL_TARGET_ENTRY);
     if (!MtdllInitializeProcessRva) {
@@ -413,18 +507,18 @@ PsCreateProcess(
     void* MtdllSection;
     Status = MmCreateSection(&MtdllSection, MtdllObject);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    
+
     // Set in process.
     Process->MtdllSection = MtdllSection;
 
     // Map them into view.
-    void* MtdllEntrypoint; // MtdllEntrypoint should be equal to base as mtdll does not have any entrypoints, like normal DLLs.
-    void* MtdllBase;
+    void* MtdllEntrypoint = NULL; // MTDLL intentionally has no image entry point.
+    void* MtdllBase = NULL;
     Status = MmMapViewOfSection(MtdllSection, Process, &MtdllEntrypoint , &MtdllBase);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
-    
-    // Neat assertion.
-    assert(MtdllEntrypoint == MtdllBase, "Entrypoint does not match MTDLL Base, mtdll file corruption, or incorrect linking.");
+
+    // Make sure MTDLL did not declare an image entry point.
+    assert(MtdllEntrypoint == NULL, "MTDLL unexpectedly contains an image entry point.");
 
     APC_STATE RelocApcState;
     MeAttachProcess(&Process->InternalProcess, &RelocApcState);
@@ -459,7 +553,7 @@ PsCreateProcess(
     // relocation have completed. Kernel dispatch paths never consult the
     // user-writable PEB loader list for this address.
     Process->MtdllBase = MtdllBase;
-    
+
     // Actual LdrInitializeProcess of MTDLL.
     void* MtdllInitializeProcess = (void*)((uintptr_t)MtdllBase + (uintptr_t)MtdllInitializeProcessRva);
 
@@ -571,7 +665,7 @@ PsCreateProcess(
     Status = ObCreateHandleForObject(Process, DesiredAccess, &hProcess);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     ProcessHandleCreated = true;
-    
+
 
     // Create a main thread for the process.
     Process->NextStackHint = USER_INITIAL_STACK_TOP;
@@ -665,7 +759,7 @@ PsTerminateProcess(
 
     // Acquire last process rundown.
     MsWaitForRundownProtectionRelease(&Process->ProcessRundown);
-    
+
     // Set the process as terminating in its flags.
     int32_t PreviousFlags = InterlockedOr32(
         (volatile int32_t*) & Process->Flags,
@@ -731,6 +825,22 @@ PsDeleteProcess(
     IN void* ProcessObject
 )
 
+/*++
+
+    Routine description:
+
+        Releases the address space and resources owned by a process object.
+
+    Arguments:
+
+        [IN] ProcessObject - Process object being initialized or destroyed.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PEPROCESS Process = (PEPROCESS)ProcessObject;
 
@@ -750,7 +860,7 @@ PsDeleteProcess(
 
     // Delete all VADs owned by process.
     MiTerminateVadsProcess(Process);
-    
+
     // Delete its CID if construction reached CID allocation.
     if (Process->PID > 0 && Process->PID != MT_INVALID_HANDLE) {
         PsFreeCid(Process->PID);
@@ -781,6 +891,23 @@ PsGetNextProcessThread(
     _In_Opt PETHREAD LastThread
 )
 
+/*++
+
+    Routine description:
+
+        Returns the next referenced thread in a process thread list.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] LastThread - Thread whose exit completed process termination.
+
+    Return Values:
+
+        A referenced next thread, or NULL when the process has no later thread.
+
+--*/
+
 {
     PETHREAD FoundThread = NULL;
     PDOUBLY_LINKED_LIST Entry;
@@ -802,7 +929,7 @@ PsGetNextProcessThread(
         // While the pointers arent equal (we arent back the start), we enumerate for the next thread.
         FoundThread = CONTAINING_RECORD(Entry, ETHREAD, ThreadListEntry);
         if (ObReferenceObject(FoundThread)) break;
-           
+
         // Nothing found, keep loopin.
         FoundThread = NULL;
         Entry = Entry->Flink;

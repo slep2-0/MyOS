@@ -24,7 +24,7 @@ WINDOWS_BUILD = ROOT / "build" / "windows"
 TARGET_TRIPLE = "x86_64-none-elf"
 MTDLL_MODULE_NAME = "mtdll.mtdll"
 MTDLL_PRODUCER_DEFINE = "MATANELOS_BUILDING_MTDLL"
-MTDLL_PRIVATE_INCLUDE = ROOT / "usermode/programs/mtdll/includes"
+MTDLL_PRIVATE_INCLUDE = ROOT / "usermode/programs/dlls/mtdll/includes"
 
 STRESS_MODES = {
     "normal": 0,
@@ -54,22 +54,22 @@ KERNEL_ASM = [
 ]
 
 MTDLL_C = [
-    "usermode/programs/mtdll/dllmain.c",
-    "usermode/programs/mtdll/exception.c",
-    "usermode/programs/mtdll/file.c",
-    "usermode/programs/mtdll/generic.c",
-    "usermode/programs/mtdll/memory.c",
-    "usermode/programs/mtdll/heap.c",
-    "usermode/programs/mtdll/loader.c",
-    "usermode/programs/mtdll/process.c",
-    "usermode/programs/mtdll/string.c",
-    "usermode/programs/mtdll/thread.c",
-    "usermode/programs/mtdll/ldr/dllldr.c",
-    "usermode/programs/mtdll/ldr/procldr.c",
-    "usermode/programs/mtdll/ldr/thrdldr.c",
-    "usermode/programs/mtdll/error.c",
-    "usermode/programs/mtdll/synch.c",
-    "usermode/programs/mtdll/print.c",
+    "usermode/programs/dlls/mtdll/dllmain.c",
+    "usermode/programs/dlls/mtdll/exception.c",
+    "usermode/programs/dlls/mtdll/file.c",
+    "usermode/programs/dlls/mtdll/generic.c",
+    "usermode/programs/dlls/mtdll/memory.c",
+    "usermode/programs/dlls/mtdll/heap.c",
+    "usermode/programs/dlls/mtdll/loader.c",
+    "usermode/programs/dlls/mtdll/process.c",
+    "usermode/programs/dlls/mtdll/string.c",
+    "usermode/programs/dlls/mtdll/thread.c",
+    "usermode/programs/dlls/mtdll/ldr/dllldr.c",
+    "usermode/programs/dlls/mtdll/ldr/procldr.c",
+    "usermode/programs/dlls/mtdll/ldr/thrdldr.c",
+    "usermode/programs/dlls/mtdll/error.c",
+    "usermode/programs/dlls/mtdll/synch.c",
+    "usermode/programs/dlls/mtdll/print.c",
 ]
 
 MTDLL_GAS = [
@@ -77,45 +77,48 @@ MTDLL_GAS = [
 
 MTDLL_NASM = [
     "usermode/syscalls/syscalls.asm",
-    "usermode/programs/mtdll/apcdispatch.asm",
+    "usermode/programs/dlls/mtdll/apcdispatch.asm",
 ]
 
-MTEXE_C = ["usermode/programs/terminateMyself/main.c"]
+MTEXE_C = ["usermode/programs/exes/terminateMyself/main.c"]
 MTEXE_GAS = [
     "usermode/crt0.S",
 ]
 MTEXE_NASM = ["tools/windows/freestanding_runtime.asm"]
 
 EXCEPTION_TEST_MTDLL_C = [
-    "usermode/programs/mtdll/tests/exception_chain.c",
+    "usermode/tests/mtdll/exception_chain.c",
 ]
 EXCEPTION_TEST_MTDLL_NASM = [
-    "usermode/programs/mtdll/tests/language_context.asm",
+    "usermode/tests/mtdll/language_context.asm",
 ]
 EXCEPTION_TEST_MTEXE_C = [
-    "usermode/programs/exceptionChainTest/main.c",
+    "usermode/tests/exceptionChainTest/main.c",
 ]
 EXCEPTION_TEST_DEFINE = "MATANELOS_EXCEPTION_CHAIN_TEST"
 EXCEPTION_TEST_INCLUDE = ROOT / "usermode/tests"
 
 HEAP_TEST_MTEXE_C = [
-    "usermode/programs/heapTest/main.c",
+    "usermode/tests/heapTest/main.c",
 ]
 HEAP_TEST_INCLUDE = ROOT / "usermode/tests"
 
 LOADER_TEST_MTDLL_C = [
-    "usermode/programs/mtdll/tests/loader.c",
+    "usermode/tests/mtdll/loader.c",
 ]
 LOADER_TEST_MTEXE_C = [
-    "usermode/programs/loaderTest/main.c",
+    "usermode/tests/loaderTest/main.c",
 ]
 LOADER_TEST_INCLUDE = ROOT / "usermode/tests"
 LOADER_TEST_DLL_DEFINE = "MATANELOS_BUILDING_LOADER_TEST_DLL"
 LOADER_GOOD_DLL_C = [
-    "usermode/programs/loaderGoodDll/dllmain.c",
+    "usermode/tests/loaderGoodDll/dllmain.c",
 ]
 LOADER_FAIL_DLL_C = [
-    "usermode/programs/loaderFailDll/dllmain.c",
+    "usermode/tests/loaderFailDll/dllmain.c",
+]
+LOADER_NO_ENTRY_DLL_C = [
+    "usermode/tests/loaderNoEntryDll/module.c",
 ]
 
 
@@ -885,9 +888,25 @@ def build_usermode(
             include_directories=(LOADER_TEST_INCLUDE,),
             entry_symbol="DllMain",
         )
+        no_entry_dll, _ = _build_user_component(
+            tools,
+            "loaderNoEntryDll",
+            LOADER_NO_ENTRY_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "loaderNoEntry.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="loaderNoEntry.mtdll",
+            defines=(LOADER_TEST_DLL_DEFINE,),
+            include_directories=(LOADER_TEST_INCLUDE,),
+        )
         additional_files.extend([
             (good_dll, "loaderGood.mtdll"),
             (fail_dll, "loaderFail.mtdll"),
+            (no_entry_dll, "NOENTRY.MTE"),
         ])
 
     if exception_test:
@@ -1108,6 +1127,7 @@ def main() -> int:
             additional_files = [
                 (output_directory / "loaderGood.mtdll", "loaderGood.mtdll"),
                 (output_directory / "loaderFail.mtdll", "loaderFail.mtdll"),
+                (output_directory / "loaderNoEntry.mtdll", "NOENTRY.MTE"),
             ]
 
         if args.target in {"all", "bootloader", "image"}:

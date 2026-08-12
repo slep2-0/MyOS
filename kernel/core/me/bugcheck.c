@@ -87,6 +87,23 @@ bool
 MeIsBugCheckActive(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a processor has begun system bug-check handling.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     return InterlockedLoadAcquire(&isBugChecking);
 }
@@ -95,7 +112,26 @@ MeIsBugCheckActive(
 /// Note that this is bad, even though a switch statement is great and all with a jump table (all though this does not have one because its not a dense switch)
 /// this still exposes to reverse engineers an easy way to get to the bugcheck code (even though this is open source!), and also it is bloat, since we should just
 /// store it all in the resource section and grab the code from there
-static void resolveStopCode(char** s, uint64_t stopcode) {
+static void resolveStopCode(char** s, uint64_t stopcode)
+
+/*++
+
+    Routine description:
+
+        Converts a bug-check code to its diagnostic name.
+
+    Arguments:
+
+        [IN] s - String or state value consumed by the routine.
+        [IN] stopcode - Stop code whose printable name is requested.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     switch (stopcode) {
     case DIVIDE_BY_ZERO:
         *s = "DIVIDE_BY_ZERO";

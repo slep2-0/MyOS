@@ -34,6 +34,27 @@ MipValidateVadNodeLocked(
     IN PMMVAD RemovedNode,
     IN uint32_t Depth
 )
+
+/*++
+
+    Routine description:
+
+        Validates one VAD tree node while the process VAD lock is held.
+
+    Arguments:
+
+        [IN] Node - VAD tree node being validated or removed.
+        [IN] ExpectedParent - Expected parent.
+        [IN] Process - Process affected by the operation.
+        [IN] RemovedNode - Node intentionally removed before tree validation.
+        [IN] Depth - Current VAD tree recursion depth.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     if (!Node) return -1;
 
@@ -82,6 +103,24 @@ MipValidateVadTreeLocked(
     IN PEPROCESS Process,
     IN PMMVAD RemovedNode
 )
+
+/*++
+
+    Routine description:
+
+        Validates VAD tree ordering and balance while its lock is held.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] RemovedNode - Node intentionally removed before tree validation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (Process->VadRoot) {
         assert(Process->VadRoot->Parent == NULL,
@@ -269,6 +308,22 @@ MiRotateRight(
         New root of subtree.
 --*/
 
+/*++
+
+    Routine description:
+
+        Rotates a VAD subtree right and updates its AVL metadata.
+
+    Arguments:
+
+        [IN OUT] y - Root of the VAD subtree rotated to the right.
+
+    Return Values:
+
+        The new root of the rotated VAD subtree.
+
+--*/
+
 {
     PMMVAD x = y->LeftChild;
     PMMVAD T2 = x->RightChild;
@@ -317,6 +372,22 @@ MiRotateLeft(
     Return Values:
 
         New root of subtree.
+--*/
+
+/*++
+
+    Routine description:
+
+        Rotates a VAD subtree left and updates its AVL metadata.
+
+    Arguments:
+
+        [IN OUT] x - Root of the VAD subtree rotated to the left.
+
+    Return Values:
+
+        The new root of the rotated VAD subtree.
+
 --*/
 
 {
@@ -432,6 +503,24 @@ MiFindVadInternal(
     IN  bool AcquireLock
 )
 
+/*++
+
+    Routine description:
+
+        Finds the VAD containing an address with optional lock acquisition.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] AcquireLock - Whether the routine should acquire the VAD lock.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
 {
     if (AcquireLock) {
         // Acquire the reading lock for the process.
@@ -504,6 +593,25 @@ MiGetRegionSizeInternal(
     IN PEPROCESS Process,
     IN bool AcquireLock
 )
+
+/*++
+
+    Routine description:
+
+        Returns the byte size of the VAD containing an address.
+
+    Arguments:
+
+        [IN] Vad - VAD governing the virtual address range.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] Process - Process affected by the operation.
+        [IN] AcquireLock - Whether the routine should acquire the VAD lock.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
 
 {
     if (!Process) return 0;
@@ -923,6 +1031,25 @@ MmFindFreeAddressSpace(
     IN  uintptr_t SearchEnd    // exclusive
 )
 
+/*++
+
+    Routine description:
+
+        Finds an unused virtual-address range within supplied bounds.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] NumberOfBytes - Size of the virtual region in bytes.
+        [IN] SearchStart - Lowest virtual address considered by the search.
+        [IN] SearchEnd - Highest virtual address considered by the search.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
 {
     if (Process && NumberOfBytes) {
         MsAcquirePushLockShared(&Process->VadLock);
@@ -1070,6 +1197,24 @@ MmIsAddressRangeFree(
 // Note, this returns a bool that may later be incorrect, due to spinlock release
 // Its better to change the function so it doesnt hold the lock, and you hold it so you 100% verify the address range is free.
 
+/*++
+
+    Routine description:
+
+        Reports whether a virtual-address range is absent from the VAD tree.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] StartVa - First virtual address in the range.
+        [IN] EndVa - Last virtual address in the range.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     if (!Process || StartVa > EndVa) return false;
 
@@ -1086,6 +1231,26 @@ MmFreeVirtualMemory(
     IN OUT size_t* NumberOfBytes,
     IN enum _FREE_TYPE FreeType
 )
+
+/*++
+
+    Routine description:
+
+        Releases or decommits a process virtual-memory range.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] BaseAddress - Base address requested or returned by the mapping operation.
+        [IN] NumberOfBytes - Size of the virtual region in bytes.
+        [IN] FreeType - Requested release or decommit operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (!Process || !BaseAddress || !NumberOfBytes) return MT_INVALID_PARAM;
 
@@ -1248,6 +1413,23 @@ void
 MiDeleteVadTree(
     IN PMMVAD Node
 )
+
+/*++
+
+    Routine description:
+
+        Releases every VAD node in a process tree.
+
+    Arguments:
+
+        [IN] Node - VAD tree node being validated or removed.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!Node) return;
 
@@ -1268,6 +1450,22 @@ void
 MiTerminateVadsProcess(
     IN PEPROCESS Process
 )
+
+/*++
+
+    Routine description:
+
+        Removes every VAD and mapping owned by a terminating process.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     // Acquire exclusive lock.

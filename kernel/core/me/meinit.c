@@ -45,7 +45,25 @@ Revision History:
 volatile bool MeSmapEnabled = false;
 
 
-static void InitialiseControlRegisters(void) {
+static void InitialiseControlRegisters(void)
+
+/*++
+
+    Routine description:
+
+        Initializes processor control registers required by the kernel.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     unsigned long cr0 = __read_cr0();
     unsigned long cr4 = __read_cr4();
     unsigned int eax, ebx, ecx, edx;
@@ -117,7 +135,25 @@ static void InitialiseControlRegisters(void) {
     __writemsr(MSR_EFER, EFER);
 }
 
-static void MeInitGdtTssForCurrentProcessor(void) {
+static void MeInitGdtTssForCurrentProcessor(void)
+
+/*++
+
+    Routine description:
+
+        Initializes the GDT and task-state segment for the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PPROCESSOR cur = MeGetCurrentProcessor();
     TSS* tss = cur->tss;
     uint64_t* gdt = cur->gdt;

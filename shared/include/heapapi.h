@@ -42,23 +42,6 @@ typedef enum _HEAP_REALLOCATION_OPTIONS {
 
 #define MT_HEAP_SIZE_ERROR ((size_t)-1)
 
-/*++
-
-    Routine description:
-
-        Creates a private heap.
-
-    Arguments:
-
-        [IN] Options - Heap creation options.
-        [IN] InitialSize - Preferred initial size in bytes.
-        [IN] MaximumSize - Maximum heap size, or zero for no limit.
-
-    Return Values:
-
-        A heap handle, or NULL on failure.
-
---*/
 MTDLL_API
 MT_HEAP_HANDLE
 HeapCreate(
@@ -67,24 +50,6 @@ HeapCreate(
     IN size_t MaximumSize
 );
 
-/*++
-
-    Routine description:
-
-        Allocates memory from a heap.
-
-    Arguments:
-
-        [IN] Heap - The heap handle.
-        [IN] Options - Allocation options.
-        [IN] AllocationSize - The requested size in bytes.
-
-    Return Values:
-
-        The allocated address, or NULL on failure. A requested exception is
-        raised instead of returning NULL.
-
---*/
 MTDLL_API
 void*
 HeapAlloc(
@@ -93,23 +58,6 @@ HeapAlloc(
     IN size_t AllocationSize
 );
 
-/*++
-
-    Routine description:
-
-        Frees a heap allocation.
-
-    Arguments:
-
-        [IN] Heap - The owning heap.
-        [IN] Options - Free options.
-        [IN] AllocatedMemory - The address returned by HeapAlloc.
-
-    Return Values:
-
-        true on success, or false for an invalid or already freed address.
-
---*/
 MTDLL_API
 bool
 HeapFree(
@@ -118,44 +66,12 @@ HeapFree(
     IN void* AllocatedMemory
 );
 
-/*++
-
-    Routine description:
-
-        Destroys a private heap and releases its resources.
-
-    Arguments:
-
-        [IN] HeapHandle - The private heap to destroy.
-
-    Return Values:
-
-        true on complete cleanup, or false on failure.
-
---*/
 MTDLL_API
 bool
 HeapDestroy(
     IN MT_HEAP_HANDLE HeapHandle
 );
 
-/*++
-
-    Routine description:
-
-        Returns the usable size of a heap allocation.
-
-    Arguments:
-
-        [IN] HeapHandle - The owning heap.
-        [IN] Options - Size-query options.
-        [IN] AllocatedMemory - The allocation to query.
-
-    Return Values:
-
-        The usable size, or MT_HEAP_SIZE_ERROR on failure.
-
---*/
 MTDLL_API
 size_t
 HeapSize(
@@ -164,25 +80,6 @@ HeapSize(
     IN void* AllocatedMemory
 );
 
-/*++
-
-    Routine description:
-
-        Resizes a heap allocation.
-
-    Arguments:
-
-        [IN] HeapHandle - The owning heap.
-        [IN] Options - Reallocation options.
-        [IN] AllocatedMemory - The allocation to resize.
-        [IN] NewReAllocationSize - The requested new size.
-
-    Return Values:
-
-        The resized address, or NULL on failure. A requested exception is
-        raised instead of returning NULL.
-
---*/
 MTDLL_API
 void*
 HeapReAlloc(
@@ -192,63 +89,18 @@ HeapReAlloc(
     IN size_t NewReAllocationSize
 );
 
-/*++
-
-    Routine description:
-
-        Acquires a heap's serialization mutex.
-
-    Arguments:
-
-        [IN] Heap - The heap to lock.
-
-    Return Values:
-
-        true when acquired, or false when the heap cannot be locked.
-
---*/
 MTDLL_API
 bool
 HeapLock(
     IN MT_HEAP_HANDLE Heap
 );
 
-/*++
-
-    Routine description:
-
-        Releases a heap's serialization mutex.
-
-    Arguments:
-
-        [IN] Heap - The heap to unlock.
-
-    Return Values:
-
-        true when released, or false when the operation fails.
-
---*/
 MTDLL_API
 bool
 HeapUnlock(
     IN MT_HEAP_HANDLE Heap
 );
 
-/*++
-
-    Routine description:
-
-        Returns the current process default heap.
-
-    Arguments:
-
-        None.
-
-    Return Values:
-
-        The process heap handle, or NULL when it is unavailable.
-
---*/
 MTDLL_API
 MT_HEAP_HANDLE
 GetProcessHeap(

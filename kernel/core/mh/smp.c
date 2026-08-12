@@ -22,13 +22,49 @@ int smp_cpu_count = 0;
 SMP_BOOTINFO bootInfo;
 extern bool smpInitialized;
 
-static inline uint8_t my_lapic_id(void) {
+static inline uint8_t my_lapic_id(void)
+
+/*++
+
+    Routine description:
+
+        Reads the local APIC identifier of the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The local APIC identifier of the current processor.
+
+--*/
+
+{
 	uint32_t x = lapic_mmio_read(LAPIC_ID);
 	return (uint8_t)(x >> 24);
 }
 
 // Copy trampoline binary to low phys and map identity for this page.
-static void install_trampoline(void) {
+static void install_trampoline(void)
+
+/*++
+
+    Routine description:
+
+        Copies the application-processor startup trampoline to its low-memory address.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	uintptr_t virt = AP_TRAMP_PHYS + PhysicalMemoryOffset;
 	PMMPTE pte = MiGetPtePointer(virt);
 	PMMPTE apPhysPte = MiGetPtePointer(AP_TRAMP_PHYS);
@@ -53,7 +89,26 @@ extern PROCESSOR cpu0;
 PPROCESSOR MeClockProcessor = &cpu0;
 
 // Allocate PER CPU stack and populare cpus[]
-static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
+static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count)
+
+/*++
+
+    Routine description:
+
+        Allocates and initializes per-processor state for discovered CPUs.
+
+    Arguments:
+
+        [IN] apic_list - Processor APIC identifiers discovered from ACPI.
+        [IN] cpu_count - Number of processor entries.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint8_t my_id = my_lapic_id();
 
     for (uint32_t i = 0; i < cpu_count && i < MAX_CPUS; i++) {
@@ -137,7 +192,25 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count) {
 	smp_cpu_count = cpu_count;
 }
 
-static void send_startup_ipis(uint8_t apic_id) {
+static void send_startup_ipis(uint8_t apic_id)
+
+/*++
+
+    Routine description:
+
+        Sends INIT and startup IPIs to each application processor.
+
+    Arguments:
+
+        [IN] apic_id - Destination APIC identifier.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	// init
 	lapic_send_ipi(apic_id, 0, (0x5 << 8) | (1 << 14)); // init assert
 	pit_sleep_ms(10);
@@ -164,6 +237,26 @@ MhpSmpTimeout(
 	uintptr_t Detail1,
 	uintptr_t Detail2
 )
+
+/*++
+
+    Routine description:
+
+        Stops startup when a bounded multiprocessor wait expires.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] TargetProcessor - Processor that should receive the request.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 	MeBugCheckEx(
 		SMP_SYNCHRONIZATION_TIMEOUT,
@@ -175,7 +268,27 @@ MhpSmpTimeout(
 }
 
 // BSP Entry: start all APs.
-void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress) {
+void MhInitializeSMP(uint8_t* apic_list, uint32_t cpu_count, uint32_t lapicAddress)
+
+/*++
+
+    Routine description:
+
+        Discovers and starts the available application processors.
+
+    Arguments:
+
+        [IN] apic_list - Processor APIC identifiers discovered from ACPI.
+        [IN] cpu_count - Number of processor entries.
+        [IN] lapicAddress - Receives or supplies the local APIC physical address.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	if (!apic_list || cpu_count == 0 || cpu_count > MAX_CPUS) {
 		MeBugCheckEx(
 			INVALID_INITIALIZATION_PHASE,
@@ -268,6 +381,22 @@ MeGetProcessorBlock(
 	uint8_t ProcessorNumber // ID, not lapic_ID.
 )
 
+/*++
+
+    Routine description:
+
+        Returns the processor block for a logical processor number.
+
+    Arguments:
+
+        [IN] ProcessorNumber - Logical processor number to resolve.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
 	if (!smpInitialized) return &cpu0;
 
@@ -281,7 +410,25 @@ MeGetProcessorBlock(
 	return MeGetCurrentProcessor();
 }
 
-void MhSpinAndProcessIpis(void) {
+void MhSpinAndProcessIpis(void)
+
+/*++
+
+    Routine description:
+
+        Spins for a bounded condition while continuing to service interprocessor requests.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	uint64_t rflags;
 	unsigned long oldCr8;
 	PPROCESSOR cpu = MeGetCurrentProcessor();
@@ -323,6 +470,23 @@ static void
 MhpAcquireMailbox(
 	PPROCESSOR TargetProcessor
 )
+
+/*++
+
+    Routine description:
+
+        Acquires exclusive access to a target processor IPI mailbox.
+
+    Arguments:
+
+        [IN] TargetProcessor - Processor that should receive the request.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 	uint64_t StartTsc = MhReadTsc();
 
@@ -353,6 +517,24 @@ MhpWaitForIpiCompletion(
 	PPROCESSOR TargetProcessor,
 	uint64_t Sequence
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a target processor to acknowledge an IPI mailbox sequence.
+
+    Arguments:
+
+        [IN] TargetProcessor - Processor that should receive the request.
+        [IN] Sequence - IPI mailbox sequence that must complete.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 	uint64_t StartTsc = MhReadTsc();
 
@@ -374,7 +556,26 @@ MhpWaitForIpiCompletion(
 	}
 }
 
-void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
+void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter)
+
+/*++
+
+    Routine description:
+
+        Runs a callback on every online processor and waits for completion.
+
+    Arguments:
+
+        [IN] action - Callback executed on the target processor.
+        [IN] parameter - Context passed to the callback or worker.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	if (!g_cpuCount || !smpInitialized) return;
 	assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
 	uint8_t myid = my_lapic_id();
@@ -412,7 +613,27 @@ void MhSendActionToCpusAndWait(CPU_ACTION action, IPI_PARAMS parameter) {
 	}
 }
 
-void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION action, IPI_PARAMS parameter) {
+void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION action, IPI_PARAMS parameter)
+
+/*++
+
+    Routine description:
+
+        Runs a callback on one processor and waits for completion.
+
+    Arguments:
+
+        [IN] TargetProcessor - Processor that should receive the request.
+        [IN] action - Callback executed on the target processor.
+        [IN] parameter - Context passed to the callback or worker.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	// Ensure SMP is initialized and the target is valid.
 	if (!smpInitialized || !TargetProcessor) return;
 

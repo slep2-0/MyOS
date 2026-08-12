@@ -682,6 +682,22 @@ MmFreePoolDbg(
     IN  void* buf
 )
 
+/*++
+
+    Routine description:
+
+        Releases a pool allocation after validating its debug metadata.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MmFreePoolSt(buf);
 }

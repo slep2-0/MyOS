@@ -21,7 +21,7 @@ the linked symbols in that section and generates the MTE export directory.
 There is no export-table assembly file to update.
 
 Private runtime entrypoints whose signatures expose MTDLL internals remain in
-`usermode/programs/mtdll/includes/exports.h`.
+`usermode/programs/dlls/mtdll/includes/exports.h`.
 
 Only the MTDLL target defines `MATANELOS_BUILDING_MTDLL`. Position-independent
 code does not imply ownership of MTDLL exports: future shared libraries remain

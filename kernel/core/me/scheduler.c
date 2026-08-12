@@ -25,7 +25,25 @@ extern void kernel_idle_checks(void);
 
 extern EPROCESS PsInitialSystemProcess;
 
-void InitScheduler(void) {
+void InitScheduler(void)
+
+/*++
+
+    Routine description:
+
+        Initializes scheduler queues and processor scheduling state.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PETHREAD idleThread = NULL;
     MTSTATUS Status = ObCreateObject(PsThreadType, sizeof(ETHREAD), (void**)&idleThread);
     if (MT_FAILURE(Status)) {
@@ -80,7 +98,25 @@ void InitScheduler(void) {
 }
 
 // Enqueue the thread if it's still RUNNING.
-static void enqueue_runnable(PITHREAD t) {
+static void enqueue_runnable(PITHREAD t)
+
+/*++
+
+    Routine description:
+
+        Inserts a runnable thread into its processor ready queue.
+
+    Arguments:
+
+        [IN] t - Thread being queued.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (t->ThreadState == THREAD_RUNNING) {
         t->ThreadState = THREAD_READY;
         t->TimeSlice = t->TimeSliceAllocated;
@@ -98,6 +134,24 @@ MepReadyQueueContainsThreadLocked(
     IN Queue* ReadyQueue,
     IN PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a thread is present in a ready queue while its lock is held.
+
+    Arguments:
+
+        [IN] ReadyQueue - Ready queue examined while its lock is held.
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     PETHREAD Current = ReadyQueue->head;
 
@@ -213,7 +267,25 @@ Cleanup:
 }
 
 // The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
-static PITHREAD MeAcquireNextScheduledThread(void) {
+static PITHREAD MeAcquireNextScheduledThread(void)
+
+/*++
+
+    Routine description:
+
+        Selects and removes the next runnable thread from a processor ready queue.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
+{
     // First, lets try to get from our own queue.
     PETHREAD chosenThread = MeDequeueThreadWithLock(&MeGetCurrentProcessor()->readyQueue);
     if (chosenThread) return &chosenThread->InternalThread;
@@ -264,6 +336,23 @@ bool
 MepIsCanonicalAddress(
     IN uintptr_t Address
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether an address has a valid x64 canonical form.
+
+    Arguments:
+
+        [IN] Address - Virtual address affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uintptr_t UpperBits = Address >> 48;
     uintptr_t SignExtension = ((Address >> 47) & 1) ? 0xFFFF : 0;
@@ -281,6 +370,22 @@ MePrepareUserDispatchForReturn(
 // If a user exception preperation fails, the function terminates the current thread
 // If there is no user exception, the function will instead prepare for user APCs return, if there are any
 // This is all checked on the current thread.
+
+/*++
+
+    Routine description:
+
+        Prepares pending user APC or exception dispatch before returning to user mode.
+
+    Arguments:
+
+        [IN] TrapFrame - Saved processor state for the interrupted context.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     PITHREAD Thread = MeGetCurrentThread();
@@ -319,7 +424,25 @@ MePrepareUserDispatchForReturn(
 
 NORETURN
 void
-Schedule(void) {
+Schedule(void)
+
+/*++
+
+    Routine description:
+
+        Selects a runnable thread and switches the current processor to it.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     //gop_printf(COLOR_PURPLE, "**In scheduler, IRQL: %d**\n", MeGetCurrentIrql());
     IRQL oldIrql;
     MeRaiseIrql(DISPATCH_LEVEL, &oldIrql); // Prevents scheduling re-entrance.

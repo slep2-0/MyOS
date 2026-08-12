@@ -9,6 +9,23 @@ uint64_t
 MhReadTsc(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Reads the processor time-stamp counter.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The current time-stamp-counter value.
+
+--*/
+
 {
     // Keep surrounding MMIO/mailbox observations ordered with the timestamp.
     __asm__ volatile("lfence" ::: "memory");
@@ -19,6 +36,23 @@ void
 MhInitializeTscTimebase(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Initializes the shared TSC timing conversion state.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = MhReadTsc();
     pit_sleep_ms(100);
@@ -51,6 +85,23 @@ uint64_t
 MhGetTscTicksPerMillisecond(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Returns the calibrated number of TSC ticks per millisecond.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
 {
     return InterlockedLoadAcquire(&MhTscTicksPerMillisecond);
 }
@@ -60,6 +111,24 @@ MhTscTimeoutExpired(
     uint64_t StartTsc,
     uint64_t Milliseconds
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a TSC-based timeout interval has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+        [IN] Milliseconds - Delay interval in milliseconds.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t TicksPerMillisecond = MhGetTscTicksPerMillisecond();
 

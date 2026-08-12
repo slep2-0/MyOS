@@ -500,6 +500,25 @@ HtReferenceObject(
     IN HANDLE Handle,
     _Out_Opt PHANDLE_TABLE_ENTRY OutInformation
 )
+
+/*++
+
+    Routine description:
+
+        References an object through a handle-table entry after validating its type and access mask.
+
+    Arguments:
+
+        [IN] Table - Handle table in which the lookup is performed.
+        [IN] Handle - Handle supplied by the caller.
+        [OUT] OutInformation - Receives the referenced handle-table entry information.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
 {
     if (!Table) return NULL;
 
@@ -685,6 +704,23 @@ MTSTATUS
 HtClose(
     IN HANDLE Handle
 )
+
+/*++
+
+    Routine description:
+
+        Closes a handle-table entry and releases its object reference.
+
+    Arguments:
+
+        [IN] Handle - Handle supplied by the caller.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (Handle == MtCurrentProcess() || Handle == MtCurrentThread() || !Handle) {
         return MT_INVALID_HANDLE;

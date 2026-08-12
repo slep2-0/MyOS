@@ -20,7 +20,25 @@ Revision History:
 #include "../../includes/mh.h"
 #include "../../assert.h"
 
-static inline uint64_t canonical_high(uint64_t addr) {
+static inline uint64_t canonical_high(uint64_t addr)
+
+/*++
+
+    Routine description:
+
+        Builds the canonical high-half form of a virtual address.
+
+    Arguments:
+
+        [IN] addr - Virtual or physical address to transform.
+
+    Return Values:
+
+        The canonicalized virtual address.
+
+--*/
+
+{
     // If bit 47 is set, set all higher bits
     if (addr & (1ULL << 47)) {
         return addr | 0xFFFF000000000000ULL;
@@ -28,7 +46,25 @@ static inline uint64_t canonical_high(uint64_t addr) {
     return addr;
 }
 
-uint64_t* pml4_from_recursive(void) {
+uint64_t* pml4_from_recursive(void)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped PML4 entry for a virtual address.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)RECURSIVE_INDEX << 21) |
@@ -37,7 +73,25 @@ uint64_t* pml4_from_recursive(void) {
     return (uint64_t*)(uintptr_t)va;
 }
 
-static inline uint64_t* pdpt_from_recursive(size_t pml4_i) {
+static inline uint64_t* pdpt_from_recursive(size_t pml4_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-directory-pointer entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)RECURSIVE_INDEX << 21) |
@@ -47,7 +101,26 @@ static inline uint64_t* pdpt_from_recursive(size_t pml4_i) {
 }
 
 // To get PD page for pml4_i, pdpt_i
-static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i) {
+static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-directory entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+        [IN] pdpt_i - Page-directory-pointer index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)pml4_i << 21) |        // <-- CORRECTED
@@ -57,7 +130,27 @@ static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i) {
 }
 
 // To get PT page for pml4_i, pdpt_i, pd_i
-static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t pd_i) {
+static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t pd_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-table entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+        [IN] pdpt_i - Page-directory-pointer index in the recursive mapping.
+        [IN] pd_i - Page-directory index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)pml4_i << 30) |
         ((uint64_t)pdpt_i << 21) |
@@ -67,10 +160,82 @@ static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t p
 }
 
 // Extract indices from virtual address
-static inline size_t get_pml4_index(uint64_t va) { return (va >> 39) & 0x1FF; } 
-static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
-static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
-static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
+static inline size_t get_pml4_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the PML4 index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The PML4 index for the virtual address.
+
+--*/
+
+{ return (va >> 39) & 0x1FF; }
+static inline size_t get_pdpt_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-directory-pointer index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-directory-pointer index for the virtual address.
+
+--*/
+
+{ return (va >> 30) & 0x1FF; }
+static inline size_t get_pd_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-directory index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-directory index for the virtual address.
+
+--*/
+
+{ return (va >> 21) & 0x1FF; }
+static inline size_t get_pt_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-table index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-table index for the virtual address.
+
+--*/
+
+{ return (va >> 12) & 0x1FF; }
 
 static
 bool
@@ -79,6 +244,25 @@ MiEnsureIntermediateTable(
     IN uintptr_t RecursiveAddress,
     IN uint64_t Flags
 )
+
+/*++
+
+    Routine description:
+
+        Ensures an intermediate paging structure exists for a mapping operation.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] RecursiveAddress - Recursive virtual address of the page-table level.
+        [IN] Flags - Flags controlling the operation.
+
+    Return Values:
+
+        true when the intermediate table is present or created, or false on allocation failure.
+
+--*/
+
 {
     for (;;) {
         uint64_t Existing = InterlockedLoadAcquire(&Entry->Value);
@@ -167,6 +351,22 @@ MiGetPml4ePointer(
     IN  uintptr_t va
 )
 
+/*++
+
+    Routine description:
+
+        Returns the PML4E pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the PML4 entry for the address.
+
+--*/
+
 {
     // 1. Calculate Indices
     size_t pml4_i = get_pml4_index(va);
@@ -182,7 +382,7 @@ MiGetPml4ePointer(
     PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
     if (!MiEnsureIntermediateTable(pml4e,
         (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
-    
+
     return (PMMPTE) & pml4_va[pml4_i];
 }
 
@@ -190,6 +390,22 @@ PMMPTE
 MiGetPdptePointer(
     IN  uintptr_t va
 )
+
+/*++
+
+    Routine description:
+
+        Returns the PDPTE pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the page-directory-pointer entry for the address.
+
+--*/
 
 {
     // 1. Calculate Indices
@@ -220,6 +436,22 @@ PMMPTE
 MiGetPdePointer(
     IN  uintptr_t va
 )
+
+/*++
+
+    Routine description:
+
+        Returns the PDE pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the page-directory entry for the address.
+
+--*/
 
 {
     // 1. Calculate Indices
@@ -272,7 +504,7 @@ MiInvalidateTlbForVa(
         None.
 
     Notes:
-        
+
         On the SMP Build, if APs are active, an IPI is sent to flush their TLB for the VA as well.
 
 --*/
@@ -297,7 +529,7 @@ MiTranslatePteToPfn (
 /*++
 
     Routine description:
-        
+
         Translates the PTE given into the appropriate PFN behind its physical address.
 
     Arguments:
@@ -342,7 +574,7 @@ MiTranslatePteToVa(
 
     Notes:
 
-        The only reason this works is because the method used to find the indices for the VA (pml4, pdpt, pd, pt, pte) 
+        The only reason this works is because the method used to find the indices for the VA (pml4, pdpt, pd, pt, pte)
         Is reversible, since it is bit shifting.
 
 --*/
@@ -386,7 +618,7 @@ MiUnmapPte (
 
     Return Values:
 
-        None.       
+        None.
 
     Notes:
 
@@ -486,7 +718,7 @@ MiAtomicSetTransitionPte(
 
     Note:
 
-        This function must always be called ONLY from MiReleasePhysicalPage. 
+        This function must always be called ONLY from MiReleasePhysicalPage.
 
 --*/
 
@@ -536,6 +768,22 @@ void
 MiReloadTLBs(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Reloads CR3 to invalidate non-global TLB entries on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     __write_cr3(__read_cr3());

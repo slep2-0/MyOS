@@ -45,7 +45,26 @@ typedef struct {
 } LFN_ENTRY_BUFFER;
 
 // Read sector into the buffer.
-static MTSTATUS read_sector(uint32_t lba, void* buf) {
+static MTSTATUS read_sector(uint32_t lba, void* buf)
+
+/*++
+
+    Routine description:
+
+        Reads one sector from the mounted FAT32 block device.
+
+    Arguments:
+
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
 	size_t NumberOfBytes = fs.bytes_per_sector;
 	if (!NumberOfBytes) NumberOfBytes = 512;
@@ -59,7 +78,26 @@ static MTSTATUS read_sector(uint32_t lba, void* buf) {
 }
 
 // Write to sector from buffer
-static MTSTATUS write_sector(uint32_t lba, const void* buf) {
+static MTSTATUS write_sector(uint32_t lba, const void* buf)
+
+/*++
+
+    Routine description:
+
+        Writes one sector to the mounted FAT32 block device.
+
+    Arguments:
+
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
 	size_t NumberOfBytes = fs.bytes_per_sector;
 	if (!NumberOfBytes) NumberOfBytes = 512;
@@ -73,7 +111,25 @@ static MTSTATUS write_sector(uint32_t lba, const void* buf) {
 }
 
 // Compute checksum of 8.3 name (from specification)
-static uint8_t lfn_checksum(const uint8_t short_name[11]) {
+static uint8_t lfn_checksum(const uint8_t short_name[11])
+
+/*++
+
+    Routine description:
+
+        Computes the FAT long-file-name checksum for a short directory name.
+
+    Arguments:
+
+        [IN] short_name - Eleven-byte FAT short name.
+
+    Return Values:
+
+        The 8-bit long-file-name checksum.
+
+--*/
+
+{
 	uint8_t sum = 0;
 	for (int i = 0; i < 11; i++) {
 		sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + short_name[i];
@@ -82,7 +138,25 @@ static uint8_t lfn_checksum(const uint8_t short_name[11]) {
 }
 
 // Convert to uppercase.
-static inline int toupper(int c) {
+static inline int toupper(int c)
+
+/*++
+
+    Routine description:
+
+        Converts an ASCII lowercase character to uppercase.
+
+    Arguments:
+
+        [IN] c - Character to test, convert, or append.
+
+    Return Values:
+
+        The uppercase ASCII character, or the original character when no conversion is needed.
+
+--*/
+
+{
 	if (c >= 'a' && c <= 'z') {
 		return c - ('a' - 'A'); // Convert lowercase to uppercase
 	}
@@ -90,7 +164,26 @@ static inline int toupper(int c) {
 }
 
 // Compare short name
-static bool cmp_name(const char* str_1, const char* str_2) {
+static bool cmp_name(const char* str_1, const char* str_2)
+
+/*++
+
+    Routine description:
+
+        Compares two path names without regard to ASCII letter case.
+
+    Arguments:
+
+        [IN] str_1 - First file name to compare.
+        [IN] str_2 - Second file name to compare.
+
+    Return Values:
+
+        A negative value, zero, or a positive value when the first value sorts before, equals, or follows the second.
+
+--*/
+
+{
 	char t[12] = { 0 };
 	for (int i = 0; i < 11; i++) { t[i] = str_1[i]; }
 	for (int i = 0; i < 11; i++) {
@@ -103,7 +196,26 @@ static bool cmp_name(const char* str_1, const char* str_2) {
 
 
 // Helper: convert "NAME.EXT" or "NAMEEXT" to 11-byte FAT short-name (uppercased, space-padded).
-static void format_short_name(const char* input, char out[11]) {
+static void format_short_name(const char* input, char out[11])
+
+/*++
+
+    Routine description:
+
+        Formats a path component as an 8.3 FAT short name.
+
+    Arguments:
+
+        [IN] input - Path component to convert to an 8.3 name.
+        [OUT] out - Receives the .
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	// Fill with spaces
 	for (int i = 0; i < 11; ++i) out[i] = ' ';
 	// Copy name (up to 8 chars)
@@ -129,7 +241,28 @@ static void format_short_name(const char* input, char out[11]) {
 /// <param name="entry_count">Number of entries in the buffer supplied</param>
 /// <param name="out_name">Output buffer (ASCII), must be >= MAX_LFN_LEN</param>
 /// <returns>Pointer to 8.3 entry IF found, NULL Otherwise.</returns>
-static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char* out_name, uint32_t* out_consumed) {
+static FAT32_DIR_ENTRY* read_lfn(FAT32_DIR_ENTRY* cur, uint32_t remaining, char* out_name, uint32_t* out_consumed)
+
+/*++
+
+    Routine description:
+
+        Decodes the long-file-name entries that precede a FAT directory entry.
+
+    Arguments:
+
+        [IN] cur - Current long-file-name directory entry.
+        [IN] remaining - Number of directory entries still available.
+        [OUT] out_name - Receives the decoded long file name.
+        [OUT] out_consumed - Receives the number of long-name entries consumed.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
 	if (!cur || remaining == 0) return NULL;
 	*out_consumed = 0;
 
@@ -233,12 +366,48 @@ done:
 	return short_entry;
 }
 
-static inline uint32_t fat32_total_clusters(void) {
+static inline uint32_t fat32_total_clusters(void)
+
+/*++
+
+    Routine description:
+
+        Returns the number of data clusters in the mounted FAT32 volume.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The number of data clusters in the mounted volume.
+
+--*/
+
+{
 	return fs.total_clusters;
 }
 
 // Read the FAT for the given cluster, to inspect data about this specific cluster, like which sectors are free, used, what's the next sector, and which sector are EOF (end of file = 0x0FFFFFFF)
-static uint32_t fat32_read_fat(uint32_t cluster) {
+static uint32_t fat32_read_fat(uint32_t cluster)
+
+/*++
+
+    Routine description:
+
+        Reads the FAT entry for a cluster.
+
+    Arguments:
+
+        [IN] cluster - FAT32 cluster number.
+
+    Return Values:
+
+        The FAT entry value, FAT32_EOC_MIN for an end marker, or FAT32_READ_ERROR on I/O failure.
+
+--*/
+
+{
 	bool isScanner = InterlockedCompareExchange32(&fat32_called_from_scanner, 0, 0);
 
 	// Do not treat reserved clusters as "free" returned to callers that iterate the chain.
@@ -323,12 +492,49 @@ static uint32_t fat32_read_fat(uint32_t cluster) {
 	return val;
 }
 
-static inline uint32_t first_sector_of_cluster(uint32_t cluster) {
+static inline uint32_t first_sector_of_cluster(uint32_t cluster)
+
+/*++
+
+    Routine description:
+
+        Converts a FAT32 cluster number to its first logical sector.
+
+    Arguments:
+
+        [IN] cluster - FAT32 cluster number.
+
+    Return Values:
+
+        The first logical sector belonging to the cluster.
+
+--*/
+
+{
 	return fs.first_data_sector + (cluster - 2) * fs.sectors_per_cluster;
 }
 
 
-static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
+static bool fat32_write_fat(uint32_t cluster, uint32_t value)
+
+/*++
+
+    Routine description:
+
+        Writes a value to every FAT copy for a cluster.
+
+    Arguments:
+
+        [IN] cluster - FAT32 cluster number.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        Zero on success, or a negative value on write failure.
+
+--*/
+
+{
 	if (cluster < 2 || cluster > fat32_total_clusters() + 1) return false;
 
 	uint32_t fat_offset = cluster * 4;
@@ -414,12 +620,48 @@ static bool fat32_write_fat(uint32_t cluster, uint32_t value) {
 }
 
 
-static inline uint32_t get_dir_cluster(FAT32_DIR_ENTRY* entry) {
+static inline uint32_t get_dir_cluster(FAT32_DIR_ENTRY* entry)
+
+/*++
+
+    Routine description:
+
+        Returns the starting cluster stored in a FAT directory entry.
+
+    Arguments:
+
+        [IN] entry - List, table, or object entry affected by the routine.
+
+    Return Values:
+
+        The starting cluster stored in the directory entry.
+
+--*/
+
+{
 	return ((uint32_t)entry->fst_clus_hi << 16) | entry->fst_clus_lo;
 }
 
 // Free a cluster chain starting at start_cluster (set each entry to FREE)
-static bool fat32_free_cluster_chain(uint32_t start_cluster) {
+static bool fat32_free_cluster_chain(uint32_t start_cluster)
+
+/*++
+
+    Routine description:
+
+        Releases every cluster in a FAT chain.
+
+    Arguments:
+
+        [IN] start_cluster - First cluster of the file or chain.
+
+    Return Values:
+
+        Zero on success, or a negative value when the chain cannot be released.
+
+--*/
+
+{
 	if (start_cluster < 2 || start_cluster >= FAT32_EOC_MIN) return false;
 
 	uint32_t cur = start_cluster;
@@ -438,7 +680,25 @@ static bool fat32_free_cluster_chain(uint32_t start_cluster) {
 	return true;
 }
 
-static uint32_t fat32_find_free_cluster(void) {
+static uint32_t fat32_find_free_cluster(void)
+
+/*++
+
+    Routine description:
+
+        Finds an unused data cluster in the FAT.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
+{
 	// Atomically update.
 	InterlockedExchange32(&fat32_called_from_scanner, 1);
 	// Start searching from cluster 2 (the first usable cluster)
@@ -462,7 +722,25 @@ static uint32_t fat32_find_free_cluster(void) {
 	return 0; // no free clusters found..
 }
 
-static bool zero_cluster(uint32_t cluster) {
+static bool zero_cluster(uint32_t cluster)
+
+/*++
+
+    Routine description:
+
+        Fills every sector of a cluster with zeros.
+
+    Arguments:
+
+        [IN] cluster - FAT32 cluster number.
+
+    Return Values:
+
+        Zero on success, or a negative value on write failure.
+
+--*/
+
+{
 	void* buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'FUBF');
 	bool success = true;
 	if (!buf) return false;
@@ -482,7 +760,26 @@ static bool zero_cluster(uint32_t cluster) {
 }
 
 // Simple, strict compare: dir_name is on-disk 11 bytes, short_name is formatted 11 bytes
-static bool cmp_short_name(const char* dir_name, const char short_name[11]) {
+static bool cmp_short_name(const char* dir_name, const char short_name[11])
+
+/*++
+
+    Routine description:
+
+        Compares a directory short name with a formatted 8.3 name.
+
+    Arguments:
+
+        [IN] dir_name - Short name stored in the directory entry.
+        [IN] short_name - Eleven-byte FAT short name.
+
+    Return Values:
+
+        A negative value, zero, or a positive value when the first value sorts before, equals, or follows the second.
+
+--*/
+
+{
 	for (int i = 0; i < 11; ++i) {
 		if ((unsigned char)dir_name[i] != (unsigned char)short_name[i]) return false;
 	}
@@ -490,7 +787,26 @@ static bool cmp_short_name(const char* dir_name, const char short_name[11]) {
 }
 
 // ASCII case-insensitive compare
-static inline bool ci_equal(const char* a, const char* b) {
+static inline bool ci_equal(const char* a, const char* b)
+
+/*++
+
+    Routine description:
+
+        Reports whether two ASCII characters are equal without regard to case.
+
+    Arguments:
+
+        [IN] a - First character or value to compare.
+        [IN] b - Second character or value to compare.
+
+    Return Values:
+
+        A nonzero value when the characters are equal ignoring case, or zero otherwise.
+
+--*/
+
+{
 	size_t la = kstrlen(a);
 	size_t lb = kstrlen(b);
 	if (la != lb) return false;
@@ -501,7 +817,27 @@ static inline bool ci_equal(const char* a, const char* b) {
 }
 
 /// Returns the number of LFN entries created.
-static uint32_t fat32_create_lfn_entries(FAT32_LFN_ENTRY* entry_buffer, const char* long_name, uint8_t sfn_checksum) {
+static uint32_t fat32_create_lfn_entries(FAT32_LFN_ENTRY* entry_buffer, const char* long_name, uint8_t sfn_checksum)
+
+/*++
+
+    Routine description:
+
+        Builds FAT long-file-name directory entries for a name.
+
+    Arguments:
+
+        [IN] entry_buffer - Destination array for generated long-name entries.
+        [IN] long_name - Long file name to encode.
+        [IN] sfn_checksum - Checksum of the associated short name.
+
+    Return Values:
+
+        The number of long-file-name entries written.
+
+--*/
+
+{
 	uint32_t len = kstrlen(long_name);
 	uint32_t num_lfn_entries = (len + 12) / 13;  // 13 chars per entry
 	uint32_t char_idx = 0;
@@ -553,7 +889,27 @@ static uint32_t fat32_create_lfn_entries(FAT32_LFN_ENTRY* entry_buffer, const ch
 /// <param name="out_entry">[OUT] Pointer to store the found directory entry</param>
 /// <param name="out_parent_cluster">[OUT] Pointer to store the cluster number of the parent directory.</param>
 /// <returns>True if the entry was found, false otherwise.</returns>
-static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint32_t* out_parent_cluster) {
+static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint32_t* out_parent_cluster)
+
+/*++
+
+    Routine description:
+
+        Resolves a path to its FAT directory entry and parent directory.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [OUT] out_entry - Receives the resolved directory entry.
+        [OUT] out_parent_cluster - Receives the parent directory cluster.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
+{
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
 	
@@ -644,7 +1000,25 @@ static bool fat32_find_entry(const char* path, FAT32_DIR_ENTRY* out_entry, uint3
 	return false;
 }
 
-static bool fat32_extend_directory(uint32_t dir_cluster) {
+static bool fat32_extend_directory(uint32_t dir_cluster)
+
+/*++
+
+    Routine description:
+
+        Allocates and links another cluster to a directory chain.
+
+    Arguments:
+
+        [IN] dir_cluster - Starting cluster of the directory chain.
+
+    Return Values:
+
+        Zero on success, or a negative value when allocation or FAT linking fails.
+
+--*/
+
+{
 	uint32_t new_cluster = fat32_find_free_cluster();
 	if (new_cluster == 0) return false;
 
@@ -666,7 +1040,28 @@ static bool fat32_extend_directory(uint32_t dir_cluster) {
 	return fat32_write_fat(current, new_cluster);
 }
 
-static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint32_t* out_sector, uint32_t* out_entry_index) {
+static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint32_t* out_sector, uint32_t* out_entry_index)
+
+/*++
+
+    Routine description:
+
+        Finds a contiguous run of free directory entries.
+
+    Arguments:
+
+        [IN] dir_cluster - Starting cluster of the directory chain.
+        [IN] count - Number of count entries.
+        [OUT] out_sector - Receives the sector containing the free entry run.
+        [OUT] out_entry_index - Receives the first free entry index in the sector.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
+{
 	uint32_t current_cluster = dir_cluster;
 	void* sector_buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'tecs');
 	if (!sector_buf) return false;
@@ -721,7 +1116,29 @@ static bool fat32_find_free_dir_slots(uint32_t dir_cluster, uint32_t count, uint
 	return false;
 }
 
-static MTSTATUS fat32_update_file_entry(const char* path, uint32_t start_cluster, uint32_t new_size, bool update_cluster, bool update_size) {
+static MTSTATUS fat32_update_file_entry(const char* path, uint32_t start_cluster, uint32_t new_size, bool update_cluster, bool update_size)
+
+/*++
+
+    Routine description:
+
+        Updates the starting cluster or size stored for a file.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [IN] start_cluster - First cluster of the file or chain.
+        [IN] new_size - Size of the new in bytes.
+        [IN] update_cluster - Whether to replace the entry starting cluster.
+        [IN] update_size - Size of the update in bytes.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
 
@@ -830,7 +1247,25 @@ static MTSTATUS fat32_update_file_entry(const char* path, uint32_t start_cluster
 #define BPB_SECTOR_START 2048
 
 // Read BPB (Bios Parameter Block) and initialize.
-MTSTATUS fat32_init(int disk_index) {
+MTSTATUS fat32_init(int disk_index)
+
+/*++
+
+    Routine description:
+
+        Mounts and validates a FAT32 filesystem on a block device.
+
+    Arguments:
+
+        [IN] disk_index - Block-device index to mount.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	MTSTATUS status;
 	disk = get_block_device(disk_index);
 	if (!disk || !disk->read_sector || !disk->write_sector) {
@@ -905,7 +1340,25 @@ MTSTATUS fat32_init(int disk_index) {
 }
 
 // Walk cluster chain and read directory entries.
-void fat32_list_root(void) {
+void fat32_list_root(void)
+
+/*++
+
+    Routine description:
+
+        Prints the entries in the FAT32 root directory.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	uint32_t cluster = fs.root_cluster;
 
 	void* buf = MmAllocatePoolWithTag(NonPagedPool, fs.bytes_per_sector, 'fatb');
@@ -996,7 +1449,25 @@ void fat32_list_root(void) {
 }
 
 // Helper to detect if a filename has a slash in it (/), and so the filename is in a directory
-static bool is_filename_in_dir(const char* filename) {
+static bool is_filename_in_dir(const char* filename)
+
+/*++
+
+    Routine description:
+
+        Reports whether a directory listing entry matches a file name.
+
+    Arguments:
+
+        [IN] filename - File name to locate in a directory listing.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
 	if (!filename) return false;
 
 	while (*filename) {
@@ -1007,7 +1478,25 @@ static bool is_filename_in_dir(const char* filename) {
 	return false;
 }
 
-static uint32_t extract_dir_cluster(const char* filename) {
+static uint32_t extract_dir_cluster(const char* filename)
+
+/*++
+
+    Routine description:
+
+        Extracts a directory cluster from a directory listing record.
+
+    Arguments:
+
+        [IN] filename - File name to locate in a directory listing.
+
+    Return Values:
+
+        The resolved directory cluster, or zero when the name cannot be resolved.
+
+--*/
+
+{
 
 	if (!filename || filename[0] == '\0') return fs.root_cluster;
 
@@ -1064,6 +1553,27 @@ MTSTATUS fat32_read_file(
 	IN size_t BufferSize,
 	_Out_Opt size_t* BytesRead
 )
+
+/*++
+
+    Routine description:
+
+        Reads bytes from a FAT32 file object at a specified offset.
+
+    Arguments:
+
+        [IN] FileObject - File object affected by the operation.
+        [IN] FileOffset - Byte offset in the backing file.
+        [IN OUT] Buffer - Buffer used to transfer the data.
+        [IN] BufferSize - Size of Buffer in bytes.
+        [OUT] BytesRead - Receives the number of bytes read.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
 	if (BytesRead) *BytesRead = 0;
 	if (BufferSize == 0) return MT_SUCCESS;
@@ -1158,7 +1668,25 @@ MTSTATUS fat32_read_file(
 	return status;
 }
 
-MTSTATUS fat32_create_directory(const char* path) {
+MTSTATUS fat32_create_directory(const char* path)
+
+/*++
+
+    Routine description:
+
+        Creates a FAT32 directory and initializes its dot entries.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	// Check if an entry already exists at this path
 	if (fat32_find_entry(path, NULL, NULL)) {
 #ifdef DEBUG
@@ -1370,7 +1898,26 @@ MTSTATUS fat32_create_directory(const char* path) {
 	}
 }
 
-static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date) {
+static TIME_ENTRY convertFat32ToRealtime(uint16_t fat32Time, uint16_t fat32Date)
+
+/*++
+
+    Routine description:
+
+        Converts packed FAT date and time fields to a calendar time.
+
+    Arguments:
+
+        [IN] fat32Time - Packed FAT time field.
+        [IN] fat32Date - Packed FAT date field.
+
+    Return Values:
+
+        The converted calendar time.
+
+--*/
+
+{
 	TIME_ENTRY time;
 	uint8_t h, m, s;
 	uint8_t mon, day;
@@ -1393,6 +1940,27 @@ MTSTATUS fat32_write_file(
 	IN size_t BufferSize,
 	_Out_Opt size_t* BytesWritten
 )
+
+/*++
+
+    Routine description:
+
+        Writes bytes to a FAT32 file, extending its cluster chain as needed.
+
+    Arguments:
+
+        [IN] FileObject - File object affected by the operation.
+        [IN] FileOffset - Byte offset in the backing file.
+        [IN OUT] Buffer - Buffer used to transfer the data.
+        [IN] BufferSize - Size of Buffer in bytes.
+        [OUT] BytesWritten - Receives the number of bytes written.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
 	if (BytesWritten) *BytesWritten = 0;
 	if (BufferSize == 0) return MT_SUCCESS;
@@ -1555,6 +2123,23 @@ fat32_truncate_file(
 	IN FAT32_DIR_ENTRY* Entry
 )
 
+/*++
+
+    Routine description:
+
+        Releases a file cluster chain and resets its directory entry.
+
+    Arguments:
+
+        [IN] Path - Filesystem path of the target object.
+        [IN] Entry - List, table, or object entry affected by the routine.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
 	uint32_t OldCluster = get_dir_cluster(Entry);
 	MTSTATUS Status = fat32_update_file_entry(Path, 0, 0, true, true);
@@ -1579,6 +2164,24 @@ MTSTATUS fat32_create_file(
 	IN FILE_CREATION_DISPOSITION CreationDisposition,
 	OUT PFILE_OBJECT* FileObjectOut
 )
+
+/*++
+
+    Routine description:
+
+        Creates or opens a FAT32 file according to the requested disposition.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [IN] CreationDisposition - Action to take when the file exists or is absent.
+        [OUT] FileObjectOut - Receives the file object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
 	// First of all, we check if the file already exists
@@ -1775,7 +2378,27 @@ MTSTATUS fat32_create_file(
 	return fat32_open_file(path, FileObjectOut);
 }
 
-MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) {
+MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len)
+
+/*++
+
+    Routine description:
+
+        Enumerates the entries in a FAT32 directory.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [IN] listings - Caller-provided array that receives directory entries.
+        [IN] max_len - Maximum number of entries or characters that may be written.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	MTSTATUS status;
 	// Find the directory entry for the given path to get its starting cluster.
 	FAT32_DIR_ENTRY dir_entry;
@@ -1859,7 +2482,25 @@ MTSTATUS fat32_list_directory(const char* path, char* listings, size_t max_len) 
 
 // Check that a directory cluster contains only '.' and '..' (and deleted entries).
 // Returns true if empty ,false if non-empty or error.
-bool fat32_directory_is_empty(const char* path) {
+bool fat32_directory_is_empty(const char* path)
+
+/*++
+
+    Routine description:
+
+        Reports whether a FAT32 directory contains entries other than dot entries.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
 
 	FAT32_DIR_ENTRY entry;
 	uint32_t parent_cluster = 0;
@@ -1915,7 +2556,26 @@ bool fat32_directory_is_empty(const char* path) {
 // Mark the SFN and all preceding LFN entries for `filename` in parent_cluster as deleted.
 // `path` is the full path. parent_cluster is cluster of parent directory.
 // Returns true on success (sector written), false otherwise.
-static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluster) {
+static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluster)
+
+/*++
+
+    Routine description:
+
+        Marks a directory entry and its preceding long-name entries as deleted.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [IN] parent_cluster - Cluster containing the directory entry.
+
+    Return Values:
+
+        Zero on success, or a negative value when the directory entries cannot be updated.
+
+--*/
+
+{
 	// extract filename (last component)
 	char path_copy[260];
 	kstrncpy(path_copy, path, sizeof(path_copy));
@@ -2010,7 +2670,25 @@ static bool mark_entry_and_lfns_deleted(const char* path, uint32_t parent_cluste
 // This function deletes all children (files & subdirs) found inside dir_cluster,
 // marks their directory entries as DELETED on disk, and finally frees dir_cluster itself.
 // Returns true on success, false on any error.
-static bool fat32_rm_rf_dir(uint32_t dir_cluster) {
+static bool fat32_rm_rf_dir(uint32_t dir_cluster)
+
+/*++
+
+    Routine description:
+
+        Recursively removes the contents of a FAT32 directory cluster.
+
+    Arguments:
+
+        [IN] dir_cluster - Starting cluster of the directory chain.
+
+    Return Values:
+
+        Zero on success, or a negative value when recursive removal fails.
+
+--*/
+
+{
 
 	if (dir_cluster == 0 || dir_cluster == fs.root_cluster) return false; // never delete root here
 
@@ -2118,7 +2796,25 @@ free_and_return:
 	return true;
 }
 
-MTSTATUS fat32_delete_directory(const char* path) {
+MTSTATUS fat32_delete_directory(const char* path)
+
+/*++
+
+    Routine description:
+
+        Deletes an empty FAT32 directory.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
 	// Find entry & its parent cluster
 	FAT32_DIR_ENTRY entry;
@@ -2143,14 +2839,50 @@ MTSTATUS fat32_delete_directory(const char* path) {
 	return MT_SUCCESS;
 }
 
-static inline bool is_file(FAT32_DIR_ENTRY* entry) {
+static inline bool is_file(FAT32_DIR_ENTRY* entry)
+
+/*++
+
+    Routine description:
+
+        Reports whether a FAT directory entry represents a regular file.
+
+    Arguments:
+
+        [IN] entry - List, table, or object entry affected by the routine.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
 	uint8_t attr = entry->attr;
 	if ((attr & ATTR_LONG_NAME) == ATTR_LONG_NAME) return false; // skip LFN
 	if (attr & ATTR_DIRECTORY) return false; // skip directories
 	return true; // it's a regular file
 }
 
-MTSTATUS fat32_delete_file(const char* path) {
+MTSTATUS fat32_delete_file(const char* path)
+
+/*++
+
+    Routine description:
+
+        Deletes a FAT32 file and releases its cluster chain.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
 	// Find the file entry and its parent cluster
 	FAT32_DIR_ENTRY entry;
@@ -2186,6 +2918,23 @@ static MTSTATUS fat32_open_file(
 	IN const char* path,
 	OUT PFILE_OBJECT* FileObjectOut
 )
+
+/*++
+
+    Routine description:
+
+        Opens a FAT32 file and creates its file object.
+
+    Arguments:
+
+        [IN] path - Filesystem path of the target object.
+        [OUT] FileObjectOut - Receives the file object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
 	if (!path || !FileObjectOut) return MT_INVALID_PARAM;
@@ -2235,6 +2984,22 @@ static MTSTATUS fat32_open_file(
 }
 
 void fat32_deletion_routine(void* Object)
+
+/*++
+
+    Routine description:
+
+        Releases filesystem state owned by a FAT32 file object.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
 	// We just delete the filename allocated.

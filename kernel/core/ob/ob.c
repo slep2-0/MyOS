@@ -34,6 +34,24 @@ ObpIncrementTypeCounter(
     IN volatile uint32_t* Counter,
     IN void* Owner
 )
+
+/*++
+
+    Routine description:
+
+        Increments the object or handle counter for an object type.
+
+    Arguments:
+
+        [IN] Counter - Number of counter entries.
+        [IN] Owner - Thread expected to own the mutex or type counter.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t Current = InterlockedLoadAcquire(Counter);
     for (;;) {
@@ -57,6 +75,24 @@ ObpDecrementTypeCounter(
     IN volatile uint32_t* Counter,
     IN void* Owner
 )
+
+/*++
+
+    Routine description:
+
+        Decrements the object or handle counter for an object type.
+
+    Arguments:
+
+        [IN] Counter - Number of counter entries.
+        [IN] Owner - Thread expected to own the mutex or type counter.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t Current = InterlockedLoadAcquire(Counter);
     for (;;) {
@@ -104,6 +140,23 @@ void ObInitialize (
 }
 
 static void ObpReaperThread(void)
+
+/*++
+
+    Routine description:
+
+        Reclaims object headers deferred by the object manager.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     for (;;) {
         MsWaitForSingleObject(
@@ -124,6 +177,23 @@ static void ObpReaperThread(void)
 }
 
 void ObInitializeReaperThread(void)
+
+/*++
+
+    Routine description:
+
+        Starts the object-manager reaper system thread.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PETHREAD ReaperThread = NULL;
     MTSTATUS Status = PsCreateSystemThread((ThreadEntry)ObpReaperThread,
@@ -352,6 +422,25 @@ ObOpenObjectByPointer(
     OUT PHANDLE Handle
 )
 
+/*++
+
+    Routine description:
+
+        Creates a handle for a referenced object pointer after access validation.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+        [IN] ObjectType - Object type required by the handle lookup.
+        [IN] DesiredAccess - Access mask required by the caller.
+        [IN] Handle - Handle supplied by the caller.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (!Handle) return MT_INVALID_PARAM;
 
@@ -508,6 +597,23 @@ void
 ObIncrementHandleCount(
     IN void* Object
 )
+
+/*++
+
+    Routine description:
+
+        Adds a handle reference to an object header.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!Object) {
         MeBugCheckEx(NULL_POINTER_DEREFERENCE, RETADDR(0), NULL, NULL, NULL);
@@ -547,6 +653,23 @@ void
 ObDecrementHandleCount(
     IN void* Object
 )
+
+/*++
+
+    Routine description:
+
+        Removes a handle reference from an object header.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!Object) {
         MeBugCheckEx(NULL_POINTER_DEREFERENCE, RETADDR(0), NULL, NULL, NULL);
@@ -716,6 +839,22 @@ ObpDeferObjectDeletion(
 void ObDeleteObject(
     IN POBJECT_HEADER Header
 )
+
+/*++
+
+    Routine description:
+
+        Runs object deletion and releases its object-manager header.
+
+    Arguments:
+
+        [IN] Header - Dispatcher header affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     if (!Header || Header->HandleCount != 0 || Header->PointerCount != 0 ||

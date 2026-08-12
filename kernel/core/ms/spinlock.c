@@ -81,6 +81,22 @@ MsAcquireSpinlockAtDpcLevel(
 	IN PSPINLOCK Lock
 )
 
+/*++
+
+    Routine description:
+
+        Acquires a spin lock when the caller is already at DISPATCH_LEVEL.
+
+    Arguments:
+
+        [IN] Lock - Lock object acquired or released by the routine.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 	// Make sure we are at DPC level or above
 	if (MeGetCurrentIrql() < DISPATCH_LEVEL) {
@@ -108,6 +124,22 @@ void
 MsReleaseSpinlockFromDpcLevel(
 	IN PSPINLOCK Lock
 )
+
+/*++
+
+    Routine description:
+
+        Releases a spin lock without changing the current IRQL.
+
+    Arguments:
+
+        [IN] Lock - Lock object acquired or released by the routine.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
 	// Make sure we are at DPC level or above

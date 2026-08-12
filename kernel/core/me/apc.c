@@ -97,6 +97,24 @@ MepInsertApc(
     PDOUBLY_LINKED_LIST ApcList,
     PAPC Apc
 )
+
+/*++
+
+    Routine description:
+
+        Inserts an APC into the proper special or normal position of a locked APC queue.
+
+    Arguments:
+
+        [IN] ApcList - APC queue into which the APC is inserted.
+        [IN] Apc - APC object associated with the callback.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     /*
      * The caller must hold the APC-list lock.
@@ -174,6 +192,26 @@ MepInsertQueueApcLocked(
     IN void* SystemArgument2,
     OUT PPROCESSOR* TargetProcessor
 )
+
+/*++
+
+    Routine description:
+
+        Publishes an APC while the target thread APC-queue lock is held.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument2 - Second system argument supplied to the DPC.
+        [IN] TargetProcessor - Processor that should receive the request.
+
+    Return Values:
+
+        true when the APC is inserted, or false when it cannot be queued.
+
+--*/
+
 {
     assert(Apc != NULL);
     assert(Apc->Thread != NULL);
@@ -233,6 +271,25 @@ MeInsertQueueApc(
     IN void* SystemArgument1,
     IN void* SystemArgument2
 )
+
+/*++
+
+    Routine description:
+
+        Queues an APC to a thread and requests delivery on its active processor.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument2 - Second system argument supplied to the DPC.
+
+    Return Values:
+
+        true when the APC is inserted, or false when insertion is rejected.
+
+--*/
+
 {
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
     assert(Apc->ApcMode == KernelMode || Apc->ApcMode == UserMode);
@@ -286,6 +343,23 @@ void
 MeRetireAPCs(
     IN PTRAP_FRAME TrapFrame
 )
+
+/*++
+
+    Routine description:
+
+        Retires deliverable kernel and user APCs queued to the current thread.
+
+    Arguments:
+
+        [IN] TrapFrame - Saved processor state for the interrupted context.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 #ifdef DEBUG
     gop_printf(COLOR_CYAN, "**In MeRetireAPCs**\n");
@@ -525,6 +599,23 @@ void
 MeRetireApcsOnSyscallExit(
     IN PTRAP_FRAME SyscallFrame
 )
+
+/*++
+
+    Routine description:
+
+        Retires pending APCs before a system call returns to its caller.
+
+    Arguments:
+
+        [IN] SyscallFrame - Saved user context for the system-call return path.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!SyscallFrame) return;
 
@@ -578,6 +669,23 @@ bool
 MeRemoveQueueApc(
     IN PAPC Apc
 )
+
+/*++
+
+    Routine description:
+
+        Removes a queued APC before it begins delivery.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+
+    Return Values:
+
+        true when the APC is removed, or false when it was not queued.
+
+--*/
+
 {
     PITHREAD Thread = Apc->Thread;
     bool Removed = false;

@@ -46,12 +46,15 @@ typedef struct _MTDLL_BASIC_TYPES {
 
 typedef enum _LDR_MODULE_STATE {
     LdrModuleLoading,
-    LdrModuleLoaded
+    LdrModuleLoaded,
+    LdrModuleUnloading
 } LDR_MODULE_STATE;
 
 typedef struct _LDR_DATA_TABLE_ENTRY {
     void* EntryPoint;
     void* Base;
+    bool Pinned; // FreeLibrary cannot be executed on this module if true.
+    DOUBLY_LINKED_LIST DependencyListHead; // Lists of dependencies this module has reference counts to.
     uint64_t SizeOfImage;
     LDR_MODULE_STATE State;
     uint32_t ReferenceCount;
@@ -59,6 +62,11 @@ typedef struct _LDR_DATA_TABLE_ENTRY {
     uint64_t LoadTime;
     DOUBLY_LINKED_LIST LoadedModuleList;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
+
+typedef struct _LDR_DEPENDENCY_ENTRY {
+    DOUBLY_LINKED_LIST ListEntry;
+    PLDR_DATA_TABLE_ENTRY Module;
+} LDR_DEPENDENCY_ENTRY, * PLDR_DEPENDENCY_ENTRY;
 
 typedef struct _PEB_LDR_DATA {
     HANDLE LoaderLock; // Mutex lock for creating DLLs

@@ -136,6 +136,23 @@ MiBitmapTestBit(
 // Description: Tests a bit in the bitmap provided.
 // Return Values: True if bit is set, false otherwise
 
+/*++
+
+    Routine description:
+
+        Reports whether a virtual-address bitmap bit is set.
+
+    Arguments:
+
+        [IN] bitmap - Allocation bitmap whose bit is examined or changed.
+        [IN] bit - Bit index in the allocation bitmap.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     size_t q = bit >> 6; // QWORD Index
     size_t b = bit & 63; // Bit index within that qword.
@@ -153,6 +170,23 @@ MiBitmapTestAndSetBitLocked(
 )
 
 // Description: This routine tests if the bit isn't set, and if so, sets it, and returns true (all atomically). Otherwise, returns false.
+
+/*++
+
+    Routine description:
+
+        Tests and sets a virtual-address bitmap bit while the bitmap lock is held.
+
+    Arguments:
+
+        [IN] bitmap - Allocation bitmap whose bit is examined or changed.
+        [IN] bit - Bit index in the allocation bitmap.
+
+    Return Values:
+
+        The previous value of the bitmap bit.
+
+--*/
 
 {
     size_t q = bit >> 6;
@@ -176,6 +210,23 @@ MiBitmapClearBitLocked(
 // Description: Clears a bit atomically in the bitmap.
 // Return Values: True if the bit was set before it was cleared.
 
+/*++
+
+    Routine description:
+
+        Clears a virtual-address bitmap bit while the bitmap lock is held.
+
+    Arguments:
+
+        [IN] bitmap - Allocation bitmap whose bit is examined or changed.
+        [IN] bit - Bit index in the allocation bitmap.
+
+    Return Values:
+
+        The previous value of the bitmap bit.
+
+--*/
+
 {
     size_t q = bit >> 6;
     size_t b = bit & 63;
@@ -194,6 +245,23 @@ MiIndexToVa(
 
 // Converts a pool base index to its corresponding virtual address.
 
+/*++
+
+    Routine description:
+
+        Converts a kernel virtual-address bitmap index to an address.
+
+    Arguments:
+
+        [IN] poolBase - Base virtual address represented by bitmap index zero.
+        [IN] index - Index of the entry to process.
+
+    Return Values:
+
+        The virtual address represented by the bitmap index.
+
+--*/
+
 {
     return poolBase + (index * VirtualPageSize);
 }
@@ -206,6 +274,23 @@ MiVaToIndex(
 )
 
 // Converts a VA into its corresponding Pool index.
+
+/*++
+
+    Routine description:
+
+        Converts a kernel virtual address to its bitmap index.
+
+    Arguments:
+
+        [IN] poolBase - Base virtual address represented by bitmap index zero.
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The bitmap index represented by the virtual address.
+
+--*/
 
 {
     return (va - poolBase) / VirtualPageSize; // The caller must ensure the VA is in range.

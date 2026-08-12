@@ -8,7 +8,28 @@ extern PROCESSOR cpus[];
 
 extern IDT_PTR PIDT;
 
-static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, uint8_t gran) {
+static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, uint8_t gran)
+
+/*++
+
+    Routine description:
+
+        Builds a packed x64 segment descriptor.
+
+    Arguments:
+
+        [IN] base - Base address or descriptor base field.
+        [IN] limit - Segment limit encoded in the descriptor.
+        [IN] access - Requested access mask or descriptor access byte.
+        [IN] gran - Segment granularity and size flags.
+
+    Return Values:
+
+        The packed segment-descriptor value.
+
+--*/
+
+{
     uint64_t desc = 0;
     desc = (limit & 0xFFFFull);
     desc |= (uint64_t)(base & 0xFFFFull) << 16;
@@ -20,7 +41,25 @@ static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, 
     return desc;
 }
 
-static inline uint8_t get_initial_apic_id(void) {
+static inline uint8_t get_initial_apic_id(void)
+
+/*++
+
+    Routine description:
+
+        Reads the initial APIC identifier reported by CPUID.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The initial APIC identifier reported by CPUID.
+
+--*/
+
+{
     uint32_t eax, ebx, ecx, edx;
 
     // When EAX=1, CPUID returns processor info.
@@ -32,7 +71,25 @@ static inline uint8_t get_initial_apic_id(void) {
     return (uint8_t)(ebx >> 24);
 }
 
-void APMain(void) {
+void APMain(void)
+
+/*++
+
+    Routine description:
+
+        Initializes an application processor and enters its idle scheduling path.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	// First, setup the GDT&TSS, then IDT.
 	int idx = -1;
 	// early map lapic mmio (lapic_init_cpu maps it).

@@ -26,12 +26,47 @@ EVENT g_StackReaperEvent;
 
 // atomically pop all entries (returns head or NULL)
 FORCEINLINE PSTACK_REAPER_ENTRY PopAllStacks(void)
+
+/*++
+
+    Routine description:
+
+        Detaches the complete pending kernel-stack reaper list.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The detached stack-reaper list, or NULL when no stacks are pending.
+
+--*/
+
 {
     return (PSTACK_REAPER_ENTRY)InterlockedExchangePointer((volatile void**)&g_StackReaperList, NULL);
 }
 
 
-static void PsStackDeleterThread(void) {
+static void PsStackDeleterThread(void)
+
+/*++
+
+    Routine description:
+
+        Runs the system worker that releases deferred kernel stacks.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have arrived, the reaper of souls n shit (and stacks)\n");
 #endif
@@ -69,6 +104,24 @@ static void PsStackDeleterThread(void) {
 }
 
 void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
+
+/*++
+
+    Routine description:
+
+        Queues a switched-away kernel stack for deferred release.
+
+    Arguments:
+
+        [IN] StackBase - Base address of the kernel stack.
+        [IN] IsLarge - Whether the stack uses the large-stack allocation path.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!StackBase || (((uintptr_t)StackBase & (VirtualPageSize - 1)) != 0)) {
         PETHREAD CurrentThread = PsGetCurrentThread();
@@ -107,7 +160,25 @@ void PsDeferKernelStackDeletion(void* StackBase, bool IsLarge)
 #endif
 }
 
-void PsInitializeWorkerThreads(void) {
+void PsInitializeWorkerThreads(void)
+
+/*++
+
+    Routine description:
+
+        Starts process-manager worker threads used for deferred cleanup.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // Setup the event.
     MsInitializeEvent(&g_StackReaperEvent, DispatcherSynchronizationEvent, false);
 

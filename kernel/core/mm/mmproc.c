@@ -615,6 +615,23 @@ MmCreateTeb(
     OUT void** OutTeb
 )
 
+/*++
+
+    Routine description:
+
+        Allocates and initializes a user thread environment block.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [OUT] OutTeb - Receives the created TEB address.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     // Allocate memory for the TEB.
     void* BaseAddress = NULL;

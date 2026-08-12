@@ -577,6 +577,23 @@ MspSatisfyDispatcherObject(
     IN PETHREAD Thread
 )
 
+/*++
+
+    Routine description:
+
+        Consumes the signal state needed to satisfy a dispatcher wait.
+
+    Arguments:
+
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     switch (Header->Type) {
     case DispatcherNotificationEvent:

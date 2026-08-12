@@ -34,7 +34,25 @@ enum {
 };
 
 // --- low-level mmio helpers (assumes lapic mapped to virtual memory) ---
-uint32_t lapic_mmio_read(uint32_t off) {
+uint32_t lapic_mmio_read(uint32_t off)
+
+/*++
+
+    Routine description:
+
+        Reads a register from the local APIC MMIO page.
+
+    Arguments:
+
+        [IN] off - Register offset from the device MMIO base.
+
+    Return Values:
+
+        The 32-bit local APIC register value.
+
+--*/
+
+{
     // Hi matanel, if you ever encounter enormous page faults in this area, with MmAccessFault not even bugchecking.
     // It is because an IPI was sent from an AP that hasn't been fully initialized.
     // Thus somehow in gods existence corrupting stuff.
@@ -43,7 +61,26 @@ uint32_t lapic_mmio_read(uint32_t off) {
     return MeGetCurrentProcessor()->LapicAddressVirt[off / 4];
 }
 
-void lapic_mmio_write(uint32_t off, uint32_t val) {
+void lapic_mmio_write(uint32_t off, uint32_t val)
+
+/*++
+
+    Routine description:
+
+        Writes a register in the local APIC MMIO page.
+
+    Arguments:
+
+        [IN] off - Register offset from the device MMIO base.
+        [IN] val - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // Read my lapic_mmio_read comment if page faults ever happen here.
     MeGetCurrentProcessor()->LapicAddressVirt[off / 4] = val;
     (void)MeGetCurrentProcessor()->LapicAddressVirt[0]; // Serializing read
@@ -57,6 +94,26 @@ lapic_wait_icr(
     uint8_t Vector,
     uint32_t Flags
 )
+
+/*++
+
+    Routine description:
+
+        Waits for the local APIC interrupt-command register to become idle.
+
+    Arguments:
+
+        [IN] TimeoutStage - Diagnostic stage reported if the bounded wait expires.
+        [IN] ApicId - Destination APIC identifier.
+        [IN] Vector - Interrupt vector to program or send.
+        [IN] Flags - Flags controlling the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = MhReadTsc();
     uint32_t IcrLow;
@@ -81,14 +138,50 @@ lapic_wait_icr(
 }
 
 // Initialize the Spurious Interrupt Vector
-void lapic_init_siv(void) {
+void lapic_init_siv(void)
+
+/*++
+
+    Routine description:
+
+        Programs the local APIC spurious-interrupt vector.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint32_t svr = lapic_mmio_read(LAPIC_SVR);
     uint32_t vector = 0xFF; // IDT Entry
     svr = (svr & 0xFFFFFF00) | vector; // preserve enable bit, update vector.
     lapic_mmio_write(LAPIC_SVR, svr);
 }
 
-static void map_lapic(uint64_t lapicPhysicalAddr) {
+static void map_lapic(uint64_t lapicPhysicalAddr)
+
+/*++
+
+    Routine description:
+
+        Maps the local APIC physical page into kernel virtual memory.
+
+    Arguments:
+
+        [IN] lapicPhysicalAddr - Physical base address of the local APIC.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (MeGetCurrentProcessor()->LapicAddressVirt) return;
 
     void* virt = (void*)(lapicPhysicalAddr + PhysicalMemoryOffset);
@@ -104,7 +197,25 @@ static void map_lapic(uint64_t lapicPhysicalAddr) {
     MeGetCurrentProcessor()->LapicAddressPhys = lapicPhysicalAddr;
 }
 
-static inline uint64_t get_lapic_base_address(void) {
+static inline uint64_t get_lapic_base_address(void)
+
+/*++
+
+    Routine description:
+
+        Reads the local APIC physical base address from its model-specific register.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The physical base address of the local APIC.
+
+--*/
+
+{
     uint32_t eax, edx;
 
     // The 'rdmsr' instruction reads a 64-bit MSR into the EDX:EAX registers.
@@ -119,7 +230,25 @@ static inline uint64_t get_lapic_base_address(void) {
 }
 
 // Enable local APIC via IA32_APIC_BASE MSR and set SVR
-void lapic_enable(void) {
+void lapic_enable(void)
+
+/*++
+
+    Routine description:
+
+        Enables the local APIC in its spurious-interrupt register.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint64_t apic_msr = __readmsr(IA32_APIC_BASE_MSR);
     if (!(apic_msr & (1ULL << 11))) {
         // set APIC global enable
@@ -134,7 +263,25 @@ void lapic_enable(void) {
 }
 
 // Initialize CPU's LAPIC (call early from kernel init on BSP, and from each ap)
-void lapic_init_cpu(void) {
+void lapic_init_cpu(void)
+
+/*++
+
+    Routine description:
+
+        Initializes local APIC state for the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     map_lapic(get_lapic_base_address());
 
     lapic_enable();
@@ -150,7 +297,27 @@ void lapic_init_cpu(void) {
 // apic_id - APICId of the CPU.
 // vector - IDT Vector number
 // flags - specified cpu flags, 0 for none.
-void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags) {
+void lapic_send_ipi(uint8_t apic_id, uint8_t vector, uint32_t flags)
+
+/*++
+
+    Routine description:
+
+        Sends an interprocessor interrupt through the local APIC.
+
+    Arguments:
+
+        [IN] apic_id - Destination APIC identifier.
+        [IN] vector - Interrupt vector to program or send.
+        [IN] flags - Flags controlling the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     bool InterruptsEnabled = MeDisableInterrupts();
 
     // The ICR belongs to this sender CPU. Prevent a local interrupt from
@@ -169,6 +336,23 @@ void
 MhRequestBugCheckFreeze(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Requests every other online processor to stop for a bug check.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     bool InterruptsEnabled = MeDisableInterrupts();
     PPROCESSOR Cpu = MeGetCurrentProcessor();
@@ -192,7 +376,25 @@ MhRequestBugCheckFreeze(
     MeEnableInterrupts(InterruptsEnabled);
 }
 
-void lapic_eoi(void) {
+void lapic_eoi(void)
+
+/*++
+
+    Routine description:
+
+        Acknowledges completion of the current local APIC interrupt.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     lapic_mmio_write(LAPIC_EOI, 0);
 }
 
@@ -208,7 +410,25 @@ void lapic_eoi(void) {
 #define APIC_LVT_TIMER_PERIODIC (1U << 17)
 #define APIC_TIMER_MASKED        (1U << 16)
 
-static uint32_t calibrate_lapic_ticks_per_10ms(void) {
+static uint32_t calibrate_lapic_ticks_per_10ms(void)
+
+/*++
+
+    Routine description:
+
+        Measures the number of local APIC timer ticks in ten milliseconds.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
+{
     // choose divide config: here set encode 0x3 (divide by 16). Adjust if needed.
     lapic_mmio_write(LAPIC_TIMER_DIV, 0x3);
 
@@ -227,7 +447,25 @@ static uint32_t calibrate_lapic_ticks_per_10ms(void) {
 static uint32_t g_apic_ticks_per_10ms = 0;
 
 // BSP-only calibration function
-void lapic_timer_calibrate(void) {
+void lapic_timer_calibrate(void)
+
+/*++
+
+    Routine description:
+
+        Calibrates the local APIC timer against the reference clock.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // Only calibrate if it hasn't been done. This is the single entry point.
     if (g_apic_ticks_per_10ms == 0) {
         g_apic_ticks_per_10ms = calibrate_lapic_ticks_per_10ms();
@@ -235,7 +473,25 @@ void lapic_timer_calibrate(void) {
 }
 
 // Renamed and simplified init function
-int init_lapic_timer(uint32_t hz) {
+int init_lapic_timer(uint32_t hz)
+
+/*++
+
+    Routine description:
+
+        Programs the local APIC timer for the requested tick frequency.
+
+    Arguments:
+
+        [IN] hz - Requested timer frequency in hertz.
+
+    Return Values:
+
+        Zero on success, or a negative calibration error code.
+
+--*/
+
+{
     if (hz == 0) return -1;
 
     // This now assumes calibration is already done!

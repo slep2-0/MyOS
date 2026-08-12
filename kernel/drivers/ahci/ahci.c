@@ -72,6 +72,26 @@ AhcipBuildPrdt(
     IN size_t Bytes,
     OUT uint32_t* EntryCount
 )
+
+/*++
+
+    Routine description:
+
+        Builds an AHCI physical-region descriptor table for a transfer buffer.
+
+    Arguments:
+
+        [IN] CommandTable - AHCI command table being prepared.
+        [IN OUT] Buffer - Buffer used to transfer the data.
+        [IN] Bytes - Number of bytes transferred or examined.
+        [IN] EntryCount - Number of entry entries.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
 {
     if (!CommandTable || !Buffer || !Bytes || !EntryCount) {
         return MT_INVALID_PARAM;
@@ -124,7 +144,26 @@ AhcipBuildPrdt(
 }
 
 // Invalidate cache ranges of the CPU to ensure newest data is fetched from RAM.
-static inline void cache_flush_invalidate_range(void* addr, size_t len) {
+static inline void cache_flush_invalidate_range(void* addr, size_t len)
+
+/*++
+
+    Routine description:
+
+        Flushes and invalidates a processor cache range used for DMA.
+
+    Arguments:
+
+        [IN] addr - Virtual or physical address to transform.
+        [IN] len - Length of the input in bytes.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uintptr_t p = (uintptr_t)addr & ~(uintptr_t)63;
     uintptr_t end = (uintptr_t)addr + len;
     for (; p < end; p += 64) {
@@ -133,21 +172,101 @@ static inline void cache_flush_invalidate_range(void* addr, size_t len) {
     __asm__ volatile("mfence" ::: "memory");
 }
 
-static inline void outl_port(uint16_t port, uint32_t val) {
+static inline void outl_port(uint16_t port, uint32_t val)
+
+/*++
+
+    Routine description:
+
+        Writes a 32-bit value to an I/O port.
+
+    Arguments:
+
+        [IN] port - AHCI port or I/O port affected by the operation.
+        [IN] val - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     __asm__ volatile("outl %0, %1" :: "a"(val), "d"(port));
 }
-static inline uint32_t inl_port(uint16_t port) {
+static inline uint32_t inl_port(uint16_t port)
+
+/*++
+
+    Routine description:
+
+        Reads a 32-bit value from an I/O port.
+
+    Arguments:
+
+        [IN] port - AHCI port or I/O port affected by the operation.
+
+    Return Values:
+
+        The 32-bit value read from the I/O port.
+
+--*/
+
+{
     uint32_t val;
     __asm__ volatile("inl %1, %0" : "=a"(val) : "d"(port));
     return val;
 }
-static uint32_t pci_cfg_read32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
+static uint32_t pci_cfg_read32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
+
+/*++
+
+    Routine description:
+
+        Reads a 32-bit PCI configuration-space register.
+
+    Arguments:
+
+        [IN] bus - PCI bus number.
+        [IN] slot - PCI device or command slot number.
+        [IN] func - Routine containing the assertion.
+        [IN] offset - Byte offset of the PCI configuration register.
+
+    Return Values:
+
+        The 32-bit PCI configuration value.
+
+--*/
+
+{
     uint32_t addr = (1u << 31) | ((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
         ((uint32_t)func << 8) | (offset & 0xFC);
     outl_port(0xCF8, addr);
     return inl_port(0xCFC);
 }
-static void pci_cfg_write32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t val) {
+static void pci_cfg_write32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t val)
+
+/*++
+
+    Routine description:
+
+        Writes a 32-bit PCI configuration-space register.
+
+    Arguments:
+
+        [IN] bus - PCI bus number.
+        [IN] slot - PCI device or command slot number.
+        [IN] func - Routine containing the assertion.
+        [IN] offset - Byte offset of the PCI configuration register.
+        [IN] val - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint32_t addr = (1u << 31) | ((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
         ((uint32_t)func << 8) | (offset & 0xFC);
     outl_port(0xCF8, addr);
@@ -156,7 +275,25 @@ static void pci_cfg_write32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t off
 
 // Scans PCI buses and enables Bus Master bit for first AHCI class device found.
 // Call this at start of ahci_init() before enable_controller().
-static void ensure_ahci_busmaster_enabled(void) {
+static void ensure_ahci_busmaster_enabled(void)
+
+/*++
+
+    Routine description:
+
+        Enables PCI memory-space and bus-master access for the AHCI controller.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     for (uint8_t bus = 0; bus < 8; ++bus) {
         for (uint8_t slot = 0; slot < 32; ++slot) {
             for (uint8_t func = 0; func < 8; ++func) {
@@ -205,7 +342,25 @@ static void ensure_ahci_busmaster_enabled(void) {
 /// </summary>
 /// <param name="mask">The 32-bit mask.</param>
 /// <returns>First Zero bit from the argument supplied. | -1 if not found.</returns>
-static int find_free_slot(uint32_t mask) {
+static int find_free_slot(uint32_t mask)
+
+/*++
+
+    Routine description:
+
+        Finds an unused AHCI command slot on a port.
+
+    Arguments:
+
+        [IN] mask - Bit mask applied to the value.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
+{
     for (int i = 0; i < 32; i++) {
         if (!(mask & (1u << i))) {
             return i;
@@ -217,7 +372,25 @@ static int find_free_slot(uint32_t mask) {
 /// <summary>
 /// Enable controller and reset
 /// </summary>
-static void enable_controller(void) {
+static void enable_controller(void)
+
+/*++
+
+    Routine description:
+
+        Enables AHCI mode and required controller capabilities.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     hba_mem->ghc |= (1u << 31); // AHCI Enable.
     hba_mem->ghc |= (1u << 0); // Global Reset.
     /// Busy wait.
@@ -229,7 +402,25 @@ static void enable_controller(void) {
 /// </summary>
 /// <param name="idx">Index to initialize ports in</param>
 /// <returns>True or False based on succession</returns>
-static bool init_one_port(int idx) {
+static bool init_one_port(int idx)
+
+/*++
+
+    Routine description:
+
+        Initializes command-list and FIS memory for one AHCI port.
+
+    Arguments:
+
+        [IN] idx - Debug-register or collection index.
+
+    Return Values:
+
+        Zero on success, or a negative value when the port cannot be initialized.
+
+--*/
+
+{
     HBA_PORT* p = (HBA_PORT*)((uint8_t*)hba_mem + 0x100 + idx * 0x80);
     uint32_t status = p->ssts;
     if ((status & 0x0F) != 3) return false; // no device present
@@ -354,7 +545,25 @@ extern GOP_PARAMS gop_local;
 
 bool ahci_initialized = false;
 
-MTSTATUS ahci_init(void) {
+MTSTATUS ahci_init(void)
+
+/*++
+
+    Routine description:
+
+        Discovers and initializes an AHCI controller.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (ahci_initialized) { return MT_SUCCESS; } // gop_printf(COLOR_RED, "AHCI Initialization got called again when already init.\n"); return MT_SUCCESS; }
     // Use BootInfo PCI BARs.
     for (size_t i = 0; i < boot_info_local.AhciCount; i++) {
@@ -392,7 +601,28 @@ MTSTATUS ahci_init(void) {
     return port_count > 0 ? MT_SUCCESS : MT_AHCI_PORT_FAILURE; // If it could register a port, it will return true, if it couldn't, it will return false (bugcheck)
 }
 
-static MTSTATUS AhcipReadSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
+static MTSTATUS AhcipReadSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes)
+
+/*++
+
+    Routine description:
+
+        Issues one sector read while the AHCI port lock is held.
+
+    Arguments:
+
+        [IN] dev - Block device used for the transfer.
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] bytes - Number of bytes transferred or examined.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) {
@@ -506,7 +736,28 @@ static MTSTATUS AhcipReadSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, void* buf
     return MT_SUCCESS;
 }
 
-MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes) {
+MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t bytes)
+
+/*++
+
+    Routine description:
+
+        Serializes and performs one AHCI sector read.
+
+    Arguments:
+
+        [IN] dev - Block device used for the transfer.
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] bytes - Number of bytes transferred or examined.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (!dev || !dev->dev_data || !buf) return MT_INVALID_PARAM;
 
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
@@ -517,7 +768,28 @@ MTSTATUS ahci_read_sector(BLOCK_DEVICE* dev, uint32_t lba, void* buf, size_t byt
     return Status;
 }
 
-static MTSTATUS AhcipWriteSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
+static MTSTATUS AhcipWriteSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes)
+
+/*++
+
+    Routine description:
+
+        Issues one sector write while the AHCI port lock is held.
+
+    Arguments:
+
+        [IN] dev - Block device used for the transfer.
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] bytes - Number of bytes transferred or examined.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 
     // 1. Input Validation
     if (bytes == 0 || (bytes % 512 != 0)) return MT_INVALID_PARAM;
@@ -619,7 +891,28 @@ static MTSTATUS AhcipWriteSectorLocked(BLOCK_DEVICE* dev, uint32_t lba, const vo
     return MT_SUCCESS;
 }
 
-MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes) {
+MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, size_t bytes)
+
+/*++
+
+    Routine description:
+
+        Serializes and performs one AHCI sector write.
+
+    Arguments:
+
+        [IN] dev - Block device used for the transfer.
+        [IN] lba - Logical block address of the sector.
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] bytes - Number of bytes transferred or examined.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (!dev || !dev->dev_data || !buf) return MT_INVALID_PARAM;
 
     AHCI_PORT_CTX* ctx = (AHCI_PORT_CTX*)dev->dev_data;
@@ -631,6 +924,24 @@ MTSTATUS ahci_write_sector(BLOCK_DEVICE* dev, uint32_t lba, const void* buf, siz
 }
 
 
-BLOCK_DEVICE* ahci_get_block_device(int index) {
+BLOCK_DEVICE* ahci_get_block_device(int index)
+
+/*++
+
+    Routine description:
+
+        Returns the block-device interface exported by an AHCI port.
+
+    Arguments:
+
+        [IN] index - Index of the entry to process.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     return get_block_device(index);
 }

@@ -11,6 +11,23 @@ static void
 MspDeleteSynchronizationObject(
     IN void* Object
 )
+
+/*++
+
+    Routine description:
+
+        Releases object-specific state when a dispatcher object is deleted.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PDISPATCHER_HEADER Header = (PDISPATCHER_HEADER)Object;
     assert(Header != NULL);
@@ -29,6 +46,22 @@ MTSTATUS
 MsInitializeSynchronization(
 	void
 )
+
+/*++
+
+    Routine description:
+
+        Initializes dispatcher object types and synchronization support.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Define how each mutex & events be created.

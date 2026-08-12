@@ -35,7 +35,26 @@ extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
-static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap) {
+static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Processes a scheduler timer interrupt on the current processor.
+
+    Arguments:
+
+        [IN] InterruptedIrql - IRQL interrupted by the trap.
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
     // The LAPIC timer fires on every CPU. Only the BSP owns the global clock
@@ -83,7 +102,26 @@ static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap) {
 
 extern void lapic_eoi(void);
 
-void MiLapicInterrupt(IRQL InterruptedIrql, PTRAP_FRAME trap) {
+void MiLapicInterrupt(IRQL InterruptedIrql, PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Dispatches the local APIC software-interrupt vector.
+
+    Arguments:
+
+        [IN] InterruptedIrql - IRQL interrupted by the trap.
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     MiHandleTimer(InterruptedIrql, trap);
     lapic_eoi(); // Signal end of interrupt.
 }
@@ -500,16 +538,70 @@ void MiBreakpoint (
     gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p. PreviousMode: %d**\n", (void*)(uintptr_t)trap->rip, MeGetPreviousMode());
 }
 
-void MiOverflow(PTRAP_FRAME trap) {
+void MiOverflow(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor overflow exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     MeBugCheckEx(OVERFLOW, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiBoundsCheck(PTRAP_FRAME trap) {
+void MiBoundsCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor bounds-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // bugcheck too, this is kernel mode.
     MeBugCheckEx(BOUNDS_CHECK, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiInvalidOpcode(PTRAP_FRAME trap) {
+void MiInvalidOpcode(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles an invalid-opcode exception and offers it to user-mode exception dispatch when appropriate.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 
     if (ExpGetFaultMode(trap) == UserMode) {
         // Let user mode handle the fault if it can.
@@ -529,35 +621,143 @@ void MiInvalidOpcode(PTRAP_FRAME trap) {
     MeBugCheckEx(INVALID_OPCODE, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiNoCoprocessor(PTRAP_FRAME trap) {
+void MiNoCoprocessor(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor coprocessor-not-available exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // rarely triggered, if a floating point chip is not integrated, or is not attached, bugcheck.
     MeBugCheckEx(NO_COPROCESSOR, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiCoprocessorSegmentOverrun(PTRAP_FRAME trap) {
+void MiCoprocessorSegmentOverrun(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the legacy coprocessor-segment-overrun exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // quite literally impossible in protected or long mode, since CPU's don't generate this exception on these modes, but if they did, bugcheck, severe code.
     MeBugCheckEx(COPROCESSOR_SEGMENT_OVERRUN, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiInvalidTss(IN PTRAP_FRAME trap) {
+void MiInvalidTss(IN PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles an invalid-TSS exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // a tss is when the CPU hardware switches (usually does not happen, since OS'es implement switching in software, like process timer context switch, all in software)
     // if it did happen though, we bugcheck.
     MeBugCheckEx(INVALID_TSS, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiSegmentSelectorNotPresent(PTRAP_FRAME trap) {
+void MiSegmentSelectorNotPresent(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a segment-not-present exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // this happens when the CPU loads a segment that points to a valid descriptor, that is marked as "not present" (that the present bit is 0), which means it's swapped out to disk.
     // we don't have disk paging right now, we don't even have a current user mode or stable memory for now, so we just bugcheck.
     MeBugCheckEx(SEGMENT_SELECTOR_NOTPRESENT, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiStackSegmentOverrun(PTRAP_FRAME trap) {
+void MiStackSegmentOverrun(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a stack-segment exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // this happens when the stack pointer (esp, rsp, sp on 16 bit) moves OUTSIDE the bounds of the current stack segment, this is different from a stack overflow at the software level, this is a hardware level exception.
     // segment limits on protected mode usually gets switched off, so if this happens just bugcheck.
     MeBugCheckEx(STACK_SEGMENT_OVERRUN, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiGeneralProtectionFault(PTRAP_FRAME trap) {
+void MiGeneralProtectionFault(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a general-protection exception and offers it to user-mode exception dispatch when appropriate.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PETHREAD Thread = PsGetCurrentThread();
     if (ExpGetFaultMode(trap) == KernelMode || Thread->SystemThread) {
         // important exception, view error code and bugcheck with it
@@ -598,13 +798,49 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     return;
 }
 
-void MiFloatingPointError(PTRAP_FRAME trap) {
+void MiFloatingPointError(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor floating-point exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     UNREFERENCED_PARAMETER(trap);
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
     gop_printf(0xFFFF0000, "**Error: Floating Point error, have you done a correct calculation?**\n");
 }
 
-void MiAlignmentCheck(PTRAP_FRAME trap) {
+void MiAlignmentCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor alignment-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // 3 conditions must be met in-order for this to even reach.
     // CR0.AM (Alignment Mask) must be set to 1.
     // EFLAGS.AC (Alignment Check) must be set to 1.
@@ -614,7 +850,25 @@ void MiAlignmentCheck(PTRAP_FRAME trap) {
     MeBugCheckEx(ALIGNMENT_CHECK, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiMachineCheck(PTRAP_FRAME trap) {
+void MiMachineCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor machine-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // creepy.
     // This happens when the machine has a SEVERE problem, memory faults, CPU internal fault, all of that, the cpu registers this.
     // obviously bugcheck.

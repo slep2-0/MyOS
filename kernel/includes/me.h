@@ -35,7 +35,7 @@ Revision History:
 #include "../intrinsics/atomic.h"
 #include "../../shared/include/mtexception.h"
 
-// Other includes:	
+// Other includes:
 #include "mm.h"
 #include "mh.h"
 #include "ms.h"
@@ -188,7 +188,7 @@ typedef struct _TRAP_FRAME {
 	uint64_t cs;
 	uint64_t rflags;
 	uint64_t rsp;
-	uint64_t ss; 
+	uint64_t ss;
 } TRAP_FRAME, *PTRAP_FRAME;
 
 typedef enum _DEBUG_ACCESS_MODE {
@@ -274,11 +274,11 @@ typedef struct _DPC_DATA {
 #define LASTFUNC_HISTORY_SIZE 25
 
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
-#define KERNEL_DS       0x10    // Entry 2: Kernel Data  
+#define KERNEL_DS       0x10    // Entry 2: Kernel Data
 #define KERNEL_SS       0x10    // Same as KERNEL_DS (data segment used for stack)
-#define USER_DS         0x1B    // Entry 3: User Data 
+#define USER_DS         0x1B    // Entry 3: User Data
 #define USER_CS         0x23    // Entry 4: User Code (CPL=3)
-#define USER_SS         USER_DS    // Same as USER_DS 
+#define USER_SS         USER_DS    // Same as USER_DS
 #define INITIAL_RFLAGS  0x202
 #define USER_RFLAGS     0x246 // IF=1, IOPL=0
 
@@ -334,7 +334,7 @@ typedef struct _ITHREAD {
 	void* KernelStack;									   // The threads stack when in kernel space.
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
-	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
+	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock; // Embedded registration for the thread's single active wait.
 	volatile uint32_t WaitStatus; // MT_PENDING until exactly one wake source claims the result.
@@ -413,7 +413,7 @@ typedef struct _PROCESSOR {
 
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
 	enum _IRQL currentIrql; // Current CPU IRQL; controls CR8-based local interrupt priority masking.
-	
+
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
 	struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
@@ -536,27 +536,14 @@ uint8_t
 MeGetActiveProcessorCount(void)
 
 {
-	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :) 
+	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :)
 }
 
 FORCEINLINE
 IRQL
 MeGetCurrentIrql(void)
 
-/*++
-
-	Routine description : Retrieves the IRQL of the current processor.
-
-	Arguments:
-
-		None.
-
-	Return Values:
-
-		Current IRQL at time of call.
-
---*/
-
+// Returns the IRQL of the current processor.
 {
 #ifdef DEBUG
 	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
@@ -572,20 +559,7 @@ FORCEINLINE
 PITHREAD
 MeGetCurrentThread(void)
 
-/*++
-
-	Routine description : Retrieves the current running thread on the processor.
-
-	Arguments:
-
-		None.
-
-	Return Values:
-
-		Current thread running on time of call (this thread)
-
---*/
-
+// Returns the thread currently running on this processor.
 {
 	return (PITHREAD)__readgsqword(FIELD_OFFSET(PROCESSOR, currentThread));
 }
@@ -691,7 +665,7 @@ MeLeaveCriticalRegion(
 		);
 	}
 
-	// Increment and check for Normal APCs to 
+	// Increment and check for Normal APCs to
 	Thread->KernelApcDisable++;
 	if (Thread->KernelApcDisable == 0) {
 		// Check if the APC List isn't empty.
@@ -774,7 +748,7 @@ MeRaiseIrql(
 	OUT PIRQL OldIrql
 );
 
-void 
+void
 MeLowerIrql(
 	IN IRQL NewIrql
 );

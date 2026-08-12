@@ -180,43 +180,43 @@
     <ClCompile Include="kernel\kernel.c">
       <Filter>Kernel</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\error.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\error.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\exception.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\exception.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\file.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\file.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\generic.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\generic.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\thrdldr.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\memory.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\memory.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\print.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\print.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\process.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\process.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\string.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\string.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\synch.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\synch.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\mtdll\thread.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\thread.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\terminateMyself\main.c">
+    <ClCompile Include="usermode\programs\exes\terminateMyself\main.c">
       <Filter>User mode</Filter>
     </ClCompile>
     <ClInclude Include="kernel\drivers\ahci\ahci.h">
@@ -309,28 +309,28 @@
     <ClInclude Include="kernel\time.h">
       <Filter>Kernel</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\annotations.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\errorhandlingapi.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\exports.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\exports.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\ioapi.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtdll.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtstatus.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\processthreadsapi.h">
       <Filter>User mode</Filter>
     </ClInclude>
-    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h">
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\synchapi.h">
       <Filter>User mode</Filter>
     </ClInclude>
     <None Include="kernel\core\mh\ap_trampoline.asm">
@@ -449,24 +449,24 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
-    <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
-    <ClCompile Include="usermode\programs\mtdll\error.c" />
-    <ClCompile Include="usermode\programs\mtdll\exception.c" />
-    <ClCompile Include="usermode\programs\mtdll\file.c" />
-    <ClCompile Include="usermode\programs\mtdll\generic.c" />
-    <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
-    <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
-    <ClCompile Include="usermode\programs\mtdll\memory.c" />
-    <ClCompile Include="usermode\programs\mtdll\print.c" />
-    <ClCompile Include="usermode\programs\mtdll\process.c" />
-    <ClCompile Include="usermode\programs\mtdll\string.c" />
-    <ClCompile Include="usermode\programs\mtdll\synch.c" />
-    <ClCompile Include="usermode\programs\mtdll\thread.c" />
-    <ClCompile Include="usermode\programs\terminateMyself\main.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\dllmain.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\exception.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\file.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\memory.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\print.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\process.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\string.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\synch.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\thread.c" />
+    <ClCompile Include="usermode\programs\exes\terminateMyself\main.c" />
     <ClCompile Include="kernel\core\me\suspend.c" />
-    <ClCompile Include="usermode\programs\exceptionChainTest\main.c" />
-    <ClCompile Include="usermode\programs\mtdll\tests\exception_chain.c" />
-    <ClCompile Include="usermode\programs\mtdll\heap.c" />
+    <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
+    <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\heap.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -517,15 +517,15 @@
     <ClInclude Include="tools\windows\intellisense\stdbool.h" />
     <ClInclude Include="tools\windows\intellisense\stddef.h" />
     <ClInclude Include="tools\windows\intellisense\stdint.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\accessrights.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\annotations.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\errorhandlingapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\exports.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\ioapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\mtdll.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\mtstatus.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
-    <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\accessrights.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\annotations.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\errorhandlingapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\exports.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\ioapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtdll.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtstatus.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\processthreadsapi.h" />
+    <ClInclude Include="usermode\programs\dlls\mtdll\includes\synchapi.h" />
     <ClInclude Include="shared\include\mtexception.h" />
     <ClInclude Include="shared\include\mtlanguage.h" />
     <ClInclude Include="usermode\tests\exception_chain_test.h" />
@@ -548,10 +548,10 @@
     <None Include="tools\windows\reset_intellisense.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
     <None Include="usermode\crt0.S" />
-    <None Include="usermode\programs\mtdll\apcdispatch.asm" />
+    <None Include="usermode\programs\dlls\mtdll\apcdispatch.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
-    <None Include="usermode\programs\mtdll\tests\language_context.asm" />
+    <None Include="usermode\tests\mtdll\language_context.asm" />
   </ItemGroup>
 </Project>

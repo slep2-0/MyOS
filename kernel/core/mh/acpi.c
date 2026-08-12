@@ -9,7 +9,26 @@
 #include "../../includes/mg.h"
 #include "../../includes/efi.h"
 
-static bool validate_acpi_chksum(uint8_t* data, size_t len) {
+static bool validate_acpi_chksum(uint8_t* data, size_t len)
+
+/*++
+
+    Routine description:
+
+        Validates the checksum of an ACPI table or descriptor.
+
+    Arguments:
+
+        [IN] data - Input bytes to validate or process.
+        [IN] len - Length of the input in bytes.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
 	uint8_t sum = 0;
 	// acpi checksums work by 8 bit addition, if it results 0, the checksum is valid.
 	for (size_t i = 0; i < len; i++) {
@@ -20,7 +39,27 @@ static bool validate_acpi_chksum(uint8_t* data, size_t len) {
 
 extern BOOT_INFO boot_info_local;
 
-static void map_physical_range(uint64_t phys, size_t length, uint32_t flags) {
+static void map_physical_range(uint64_t phys, size_t length, uint32_t flags)
+
+/*++
+
+    Routine description:
+
+        Maps an ACPI physical range into kernel virtual memory.
+
+    Arguments:
+
+        [IN] phys - Physical base address of the range.
+        [IN] length - Size of the length in bytes.
+        [IN] flags - Flags controlling the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	if (length == 0 || phys > UINT64_MAX - length) return;
 
 	uint64_t rangeEnd = phys + length;
@@ -37,7 +76,26 @@ static void map_physical_range(uint64_t phys, size_t length, uint32_t flags) {
 	}
 }
 
-static void* MiFindACPIHeader(XSDT* xsdt, const char* headerSignature) {
+static void* MiFindACPIHeader(XSDT* xsdt, const char* headerSignature)
+
+/*++
+
+    Routine description:
+
+        Finds an ACPI table with a requested signature in the XSDT.
+
+    Arguments:
+
+        [IN] xsdt - Mapped ACPI XSDT to search.
+        [IN] headerSignature - Four-byte ACPI table signature to locate.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
 	uint32_t xsdt_len = xsdt->h.Length;
 	if (xsdt_len < sizeof(ACPI_SDT_HEADER)) return NULL;
 	uint32_t entries = (xsdt_len - sizeof(ACPI_SDT_HEADER)) / sizeof(uint64_t);
@@ -139,7 +197,28 @@ MhRebootComputer (
 
 }
 
-MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint32_t* lapicAddress) {
+MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint32_t* lapicAddress)
+
+/*++
+
+    Routine description:
+
+        Extracts enabled processor APIC identifiers from the MADT.
+
+    Arguments:
+
+        [IN OUT] buffer - Buffer read, written, or examined by the routine.
+        [IN] maxCPUs - Maximum number of processor entries the output can hold.
+        [IN] cpuCount - Number of processor entries.
+        [IN] lapicAddress - Receives or supplies the local APIC physical address.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	if (!madt) return MT_NO_RESOURCES;
 	// Deference the lapicAddress ptr and put the lapic address for each CPU there.
 	*lapicAddress = madt->lapicAddress;
@@ -180,7 +259,25 @@ MTSTATUS MhParseLAPICs(uint8_t* buffer, size_t maxCPUs, uint32_t* cpuCount, uint
 	else return MT_NOT_FOUND;
 }
 
-MTSTATUS MhInitializeACPI(void) {
+MTSTATUS MhInitializeACPI(void)
+
+/*++
+
+    Routine description:
+
+        Locates and validates the ACPI tables required during kernel startup.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
 	uintptr_t rsdpPhys = boot_info_local.AcpiRsdpPhys;
 	if (!rsdpPhys) return MT_INVALID_ADDRESS;
 	map_physical_range(rsdpPhys, sizeof(RSDP_Descriptor), PAGE_PRESENT | PAGE_RW | PAGE_PCD);

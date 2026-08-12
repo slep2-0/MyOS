@@ -14,7 +14,25 @@
 #define MTDLL_THREAD_ROUTINE "LdrInitializeThread"
 
 // Clean exit for a thread—never returns!
-static void ThreadExit(void) {
+static void ThreadExit(void)
+
+/*++
+
+    Routine description:
+
+        Terminates the current system thread after its entry routine returns.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 #ifdef DEBUG
     gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread tid %d.\n", PsGetCurrentThread()->TID);
 #endif
@@ -26,7 +44,26 @@ static void ThreadExit(void) {
 
 // Kernel threads only.
 // This should change i guess
-static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter) {
+static void ThreadWrapperEx(ThreadEntry thread_entry, THREAD_PARAMETER parameter)
+
+/*++
+
+    Routine description:
+
+        Invokes a system-thread entry routine and routes a normal return through thread exit.
+
+    Arguments:
+
+        [IN] thread_entry - Entry routine invoked by the new system thread.
+        [IN] parameter - Context passed to the callback or worker.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // thread_entry(parameters) -> void func(void*)
     thread_entry(parameter); // If thread entry takes no parameters, passing NULL is still fine.
     /// When the thread finishes execution, it will go to ThreadExit to manage cleanup.
@@ -41,6 +78,22 @@ PspThreadRundown(
     IN PAPC Apc
 )
 
+/*++
+
+    Routine description:
+
+        Releases a dynamically allocated APC during thread rundown.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // Free it.
     MmFreePool(Apc);
@@ -50,6 +103,23 @@ static void
 PspRundownThreadApcs(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Removes and runs down every APC still queued to a terminating thread.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     DOUBLY_LINKED_LIST RundownList;
     InitializeListHead(&RundownList);
@@ -112,6 +182,23 @@ static void
 PspBeginThreadExit(
     IN PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Publishes thread termination and prevents new APC insertion.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t State = InterlockedLoadAcquire(
         &Thread->TerminationState
@@ -153,6 +240,26 @@ PspThreadTerminationRoutine(
     struct _APC* Apc, PNORMAL_ROUTINE* NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2
 )
 
+/*++
+
+    Routine description:
+
+        Performs thread termination from the target thread APC context.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+        [IN] NormalRoutine - Normal APC routine to invoke.
+        [IN] NormalContext - Context passed to the APC normal routine.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument2 - Second system argument supplied to the DPC.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(NormalContext);
     UNREFERENCED_PARAMETER(NormalRoutine);
@@ -174,6 +281,24 @@ void
 PspSuspendThreadApc(
     void* NormalContext, void* SystemArgument1, void* SystemArgument
 )
+
+/*++
+
+    Routine description:
+
+        Blocks the target thread on its private suspend semaphore.
+
+    Arguments:
+
+        [IN] NormalContext - Context passed to the APC normal routine.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument - System argument passed to the APC.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     // The suspend APC does not use its two system arguments.
@@ -234,6 +359,24 @@ void
 PspInitializeThread(
     PETHREAD Thread, PEPROCESS Process, TimeSliceTicks TimeSlice
 )
+
+/*++
+
+    Routine description:
+
+        Initializes dispatcher, APC, wait, ownership, and scheduling state for a thread.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Process - Process affected by the operation.
+        [IN] TimeSlice - Scheduler quantum assigned to the thread.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     // Basic linking
@@ -310,6 +453,27 @@ PsCreateThread(
     TimeSliceTicks TimeSlice,
     ThreadEntry MtdllEntrypoint
 )
+
+/*++
+
+    Routine description:
+
+        Creates and initializes a thread in a process.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [OUT] ThreadHandle - Receives the created thread handle.
+        [IN] EntryPoint - Initial instruction address of the process or thread.
+        [IN] ThreadParameter - Context passed to the thread entry routine.
+        [IN] TimeSlice - Scheduler quantum assigned to the thread.
+        [IN] MtdllEntrypoint - Mapped MTDLL initialization entry point.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Checks.
@@ -533,7 +697,28 @@ Cleanup:
     return Status;
 }
 
-MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread) {
+MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread)
+
+/*++
+
+    Routine description:
+
+        Creates a kernel thread in the system process.
+
+    Arguments:
+
+        [IN] entry - List, table, or object entry affected by the routine.
+        [IN] parameter - Context passed to the callback or worker.
+        [IN] TIMESLICE - Scheduler quantum assigned to the thread.
+        [OUT] OutThread - Receives the created thread object.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (OutThread) *OutThread = NULL;
     if (unlikely(!PsInitialSystemProcess.PID)) return MT_NOT_FOUND; // The system process, somehow, hasn't been setupped yet.
     if (!entry || !TIMESLICE) return MT_INVALID_PARAM;
@@ -621,7 +806,25 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
 }
 
 PETHREAD 
-PsGetCurrentThread (void) {
+PsGetCurrentThread (void)
+
+/*++
+
+    Routine description:
+
+        Returns the thread currently running on this processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The thread currently running on this processor.
+
+--*/
+
+{
     return CONTAINING_RECORD(MeGetCurrentThread(), ETHREAD, InternalThread);
 }
 
@@ -630,6 +833,23 @@ void
 PspWakeThreadForTermination(
     IN PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Makes a blocked or sleeping thread runnable so it can process termination.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PITHREAD IThread = &Thread->InternalThread;
 
@@ -701,6 +921,23 @@ PsTerminateThread(
     IN PETHREAD Thread,
     IN MTSTATUS ExitStatus
 )
+
+/*++
+
+    Routine description:
+
+        Requests termination of a thread or exits the calling thread immediately.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] ExitStatus - Termination status to record.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
 #ifdef DEBUG
@@ -816,6 +1053,22 @@ PsDeleteThread(
     IN void* Object
 )
 
+/*++
+
+    Routine description:
+
+        Releases the final resources owned by a deleted thread object.
+
+    Arguments:
+
+        [IN OUT] Object - Object affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // This function is called when the reference count for this thread has reached 0 (e.g, it is no longer in use)
     // (it is called after thread termination)
@@ -899,6 +1152,22 @@ void
 PspExitThread(
     IN MTSTATUS ExitStatus
 )
+
+/*++
+
+    Routine description:
+
+        Completes teardown of the current thread and transfers control to the scheduler.
+
+    Arguments:
+
+        [IN] ExitStatus - Termination status to record.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     // This exits the current running thread on the processor.

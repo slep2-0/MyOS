@@ -16,6 +16,23 @@ void
 MeRequestCurrentDpcInterrupt(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Requests DPC retirement on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     bool InterruptsEnabled = MeDisableInterrupts();
     PPROCESSOR Cpu = MeGetCurrentProcessor();

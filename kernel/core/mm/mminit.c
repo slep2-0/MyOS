@@ -32,6 +32,22 @@ static
 bool
 MiIsPATAvailable(void)
 
+/*++
+
+    Routine description:
+
+        Reports whether the processor supports the page-attribute table.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint32_t eax, ebx, ecx, edx;
     __cpuid(1, eax, ebx, ecx, edx);
@@ -40,7 +56,23 @@ MiIsPATAvailable(void)
 
 static
 void 
-MiInitializePAT(void) 
+MiInitializePAT(void)
+
+/*++
+
+    Routine description:
+
+        Programs the page-attribute table used by kernel mappings.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     uint64_t pat =
@@ -57,9 +89,25 @@ MiInitializePAT(void)
 }
 
 MTSTATUS
-MmInitSections(
+MmInitSections  (
     void
 )
+
+/*++
+
+    Routine description:
+
+        Initializes the section object type and section-management state.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;

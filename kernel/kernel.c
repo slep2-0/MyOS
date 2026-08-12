@@ -76,7 +76,25 @@ Ended
 
 static EFI_MEMORY_DESCRIPTOR memory_map_copy[MAX_MEMORY_MAP_SIZE / sizeof(EFI_MEMORY_DESCRIPTOR)];
 
-void copy_memory_map(BOOT_INFO* boot_info) {
+void copy_memory_map(BOOT_INFO* boot_info)
+
+/*++
+
+    Routine description:
+
+        Copies the firmware memory map into kernel-owned storage and redirects the boot information to that copy.
+
+    Arguments:
+
+        [IN] boot_info - Firmware boot information supplied by the loader.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (!boot_info || !boot_info->MemoryMap) return;
     if (boot_info->MapSize > MAX_MEMORY_MAP_SIZE) {
         // handle error, memory map too big
@@ -92,7 +110,25 @@ void copy_memory_map(BOOT_INFO* boot_info) {
     boot_info_local.DescriptorVersion = boot_info->DescriptorVersion;
 }
 
-void copy_gop(BOOT_INFO* boot_info) {
+void copy_gop(BOOT_INFO* boot_info)
+
+/*++
+
+    Routine description:
+
+        Copies the firmware framebuffer parameters into kernel-owned boot state.
+
+    Arguments:
+
+        [IN] boot_info - Firmware boot information supplied by the loader.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (!boot_info || !boot_info->Gop.FrameBufferBase) return;
 
     // Copy the GOP data to a local global variable
@@ -103,7 +139,25 @@ void copy_gop(BOOT_INFO* boot_info) {
 }
 
 
-void init_boot_info(BOOT_INFO* boot_info) {
+void init_boot_info(BOOT_INFO* boot_info)
+
+/*++
+
+    Routine description:
+
+        Copies the boot information and its referenced firmware data into kernel-owned storage.
+
+    Arguments:
+
+        [IN] boot_info - Firmware boot information supplied by the loader.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (!boot_info) return;
 
     copy_memory_map(boot_info);
@@ -122,7 +176,25 @@ void init_boot_info(BOOT_INFO* boot_info) {
     boot_info_local.AcpiRsdpPhys = boot_info->AcpiRsdpPhys;
 }
 
-static inline bool interrupts_enabled(void) {
+static inline bool interrupts_enabled(void)
+
+/*++
+
+    Routine description:
+
+        Reports whether maskable interrupts are enabled on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
     unsigned long flags;
     __asm__ __volatile__("pushfq; popq %0"
         : "=r"(flags)
@@ -131,7 +203,25 @@ static inline bool interrupts_enabled(void) {
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
-void kernel_idle_checks(void) {
+void kernel_idle_checks(void)
+
+/*++
+
+    Routine description:
+
+        Runs scheduler and processor consistency checks from the idle path.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     gop_printf(0xFF000FF0, "Reached the idle thread!\n");
     // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
     if (!interrupts_enabled()) {
@@ -149,7 +239,25 @@ void kernel_idle_checks(void) {
     }
 }
 
-static void MeCreateInitialUserModeProcess(void) {
+static void MeCreateInitialUserModeProcess(void)
+
+/*++
+
+    Routine description:
+
+        Creates and starts the initial user-mode process.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     HANDLE hProcess = MT_INVALID_HANDLE;
     MTSTATUS status = PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
@@ -181,6 +289,23 @@ volatile uintptr_t __stack_chk_guard;
 static
 void
 MiInitializeStackCookie(void)
+
+/*++
+
+    Routine description:
+
+        Initializes the kernel stack-protection cookie from boot-time entropy.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t Candidate = 0;
 
@@ -202,7 +327,25 @@ MiInitializeStackCookie(void)
 }
 
 __attribute__((noreturn))
-void __stack_chk_fail(void) {
+void __stack_chk_fail(void)
+
+/*++
+
+    Routine description:
+
+        Stops the system after the compiler stack protector detects corruption.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     __cli();
     PETHREAD Thread = PsGetCurrentThread();
     void* SavedRsp = Thread
@@ -219,7 +362,25 @@ void __stack_chk_fail(void) {
 // TODO allocate dynamically (use PsCreateProcess)
 EPROCESS PsInitialSystemProcess;
 
-static void InitSystemProcess(void) {
+static void InitSystemProcess(void)
+
+/*++
+
+    Routine description:
+
+        Initializes the system process and its initial kernel thread.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // TODO Setup system process like PsCreateProcess, and modify the func.
     kmemset(&PsInitialSystemProcess, 0, sizeof(EPROCESS));
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
@@ -250,7 +411,25 @@ static void InitSystemProcess(void) {
 extern uint8_t bss_start;
 extern uint8_t bss_end;
 
-static void DbgCallback(void* vinfo) {
+static void DbgCallback(void* vinfo)
+
+/*++
+
+    Routine description:
+
+        Receives formatted debug output from the formatting library.
+
+    Arguments:
+
+        [IN] vinfo - Formatted debug information supplied by the formatting callback.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     DBG_CALLBACK_INFO* info = (DBG_CALLBACK_INFO*)vinfo;
     gop_printf(COLOR_RED, "**->>>>> RIP %p TOUCHED THE GLOBAL STACK CANARY!**\n", (void*)(uintptr_t)info->trap->rip);
     FREEZE_OTHER_CPUS();
@@ -320,6 +499,26 @@ Stress2DpcBugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the DPC and timer-preemption stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // DPC_EXECUTE_FAILURE: P1 is the test stage; P2-P4 are stage details.
     MeBugCheckEx(
@@ -336,6 +535,24 @@ Stress2ValidateDpcTopology(
     PPROCESSOR Cpu,
     bool ExpectQueued
 )
+
+/*++
+
+    Routine description:
+
+        Validates DPC topology for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] Cpu - Processor affected by the operation.
+        [IN] ExpectQueued - Whether the target DPC is expected to remain queued.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL OldIrql;
     MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
@@ -384,6 +601,26 @@ Stress2DpcRoutine(
     void* SystemArgument1,
     void* SystemArgument2
 )
+
+/*++
+
+    Routine description:
+
+        Executes a DPC callback used by the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] Dpc - DPC object associated with the callback.
+        [IN OUT] DeferredContext - Caller-supplied DPC context.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument2 - Second system argument supplied to the DPC.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(DeferredContext);
     UNREFERENCED_PARAMETER(SystemArgument1);
@@ -442,6 +679,23 @@ static void
 Stress2ValidateDpcIdle(
     PPROCESSOR TargetCpu
 )
+
+/*++
+
+    Routine description:
+
+        Validates DPC idle for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] TargetCpu - Processor targeted by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL OldIrql;
     MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
@@ -470,6 +724,23 @@ static void
 Stress2RequestTargetDpc(
     PPROCESSOR TargetCpu
 )
+
+/*++
+
+    Routine description:
+
+        Requests target DPC for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] TargetCpu - Processor targeted by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (TargetCpu == MeGetCurrentProcessor()) {
         MeRequestCurrentDpcInterrupt();
@@ -489,6 +760,24 @@ Stress2WaitForDpcIdle(
     PPROCESSOR TargetCpu,
     uint32_t ExpectedExecutions
 )
+
+/*++
+
+    Routine description:
+
+        Waits for DPC idle during the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] TargetCpu - Processor targeted by the operation.
+        [IN] ExpectedExecutions - Expected executions.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTick = InterlockedLoadAcquire(
         &MeSystemTickCount
@@ -535,6 +824,23 @@ Stress2WaitForDpcIdle(
 
 static void
 Stress2CalibrateTsc(void)
+
+/*++
+
+    Routine description:
+
+        Calibrates TSC for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t TicksPerMillisecond = MhGetTscTicksPerMillisecond();
 
@@ -558,6 +864,26 @@ Stress2CPublishPhase(
     uint32_t Operation,
     STRESS2C_PHASE Phase
 )
+
+/*++
+
+    Routine description:
+
+        Publishes phase for the DPC endurance stress test.
+
+    Arguments:
+
+        [IN] Iteration - Current stress-test iteration.
+        [IN] CpuNumber - Logical processor number participating in the test.
+        [IN] Operation - Requested memory-access or test operation.
+        [IN] Phase - Current phase of the stress test.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Stress2CIteration, Iteration);
     InterlockedStoreRelease(&Stress2CCpuNumber, CpuNumber);
@@ -567,6 +893,23 @@ Stress2CPublishPhase(
 
 static void
 Stress2CCheckWatchdog(void)
+
+/*++
+
+    Routine description:
+
+        Monitors the DPC endurance stress test and stops it when progress stalls.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (!InterlockedLoadAcquire(&Stress2CEnduranceActive)) {
         return;
@@ -629,6 +972,24 @@ Stress2RunDpcEndurance(
     uint32_t ProcessorCount,
     uint64_t DurationSeconds
 )
+
+/*++
+
+    Routine description:
+
+        Runs DPC endurance for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        [IN] ProcessorCount - Number of processor entries.
+        [IN] DurationSeconds - Requested stress-test duration in seconds.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     uint64_t ProgressCycles = Stress2CTscTicksPerSecond *
@@ -858,6 +1219,23 @@ Stress2RunDpcEndurance(
 
 static void
 Stress2RunDpcTests(void)
+
+/*++
+
+    Routine description:
+
+        Runs DPC tests for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     gop_printf(COLOR_GREEN, "STRESS 2B TIMER PREEMPTION PASS\n");
 
@@ -992,6 +1370,23 @@ Stress2RunDpcTests(void)
 
 static void
 Stress2CheckProgress(void)
+
+/*++
+
+    Routine description:
+
+        Checks progress for the DPC and timer-preemption stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t Counter1 = InterlockedLoadAcquire(&Stress2Counter1);
     uint64_t Counter2 = InterlockedLoadAcquire(&Stress2Counter2);
@@ -1032,6 +1427,23 @@ static void
 Stress2BusyThread1(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a CPU-bound worker used to verify timer preemption and DPC progress.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
     uint64_t LocalCounter = 0;
@@ -1052,6 +1464,23 @@ static void
 Stress2BusyThread2(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a CPU-bound worker used to verify timer preemption and DPC progress.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
     uint64_t LocalCounter = 0;
@@ -1117,6 +1546,26 @@ Stress3BugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the event and timer-wait stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // WAIT_STATE_FAILURE: P1 is the stage; P2-P4 are stage details.
     MeBugCheckEx(
@@ -1132,6 +1581,23 @@ static bool
 Stress3WatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the event and timer-wait stress test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     return __rdtsc() - StartTsc >
         STRESS3_WATCHDOG_SECONDS * Stress2CTscTicksPerSecond;
@@ -1143,6 +1609,25 @@ Stress3WaitForEpoch(
     uint64_t Expected,
     STRESS3_FAILURE_STAGE TimeoutStage
 )
+
+/*++
+
+    Routine description:
+
+        Waits for epoch during the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] Value - Value to write or process.
+        [IN] Expected - Expected .
+        [IN] TimeoutStage - Diagnostic stage reported if the bounded wait expires.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -1175,6 +1660,23 @@ static bool
 Stress3WaitForRegistration(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registration during the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     PITHREAD Thread = &Stress3WaiterThread->InternalThread;
     uint64_t StartTsc = __rdtsc();
@@ -1227,6 +1729,24 @@ Stress3WaitForClockTick(
     uint64_t TargetTick,
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for clock tick during the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] TargetTick - Clock tick at which the race is sampled.
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -1250,6 +1770,23 @@ static void
 Stress3ValidateCleanWait(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Validates clean wait for the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL EventIrql;
     MsAcquireSpinlock(&Stress3Event.Header.Lock, &EventIrql);
@@ -1317,6 +1854,25 @@ Stress3RunWait(
     uint64_t Epoch,
     MTSTATUS* CompletionStatusOut
 )
+
+/*++
+
+    Routine description:
+
+        Runs wait for the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] Mode - Mode controlling the operation.
+        [IN] Epoch - Current stress-test generation.
+        [OUT] CompletionStatusOut - Receives the completion status.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     Stress3ValidateCleanWait(Epoch - 1);
 
@@ -1411,6 +1967,23 @@ static void
 Stress3Waiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the event and timer-wait stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
     uint64_t LocalEpoch = 0;
@@ -1465,6 +2038,23 @@ static void
 Stress3Controller(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the event and timer-wait stress test and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
     gop_printf(
@@ -1647,6 +2237,26 @@ Stress4BugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the delay-execution boundary test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // WAIT_STATE_FAILURE: P1 is the stage; P2-P4 are stage details.
     MeBugCheckEx(
@@ -1660,6 +2270,23 @@ Stress4BugCheck(
 
 static void
 Stress4PublishHeartbeat(void)
+
+/*++
+
+    Routine description:
+
+        Publishes heartbeat for the delay-execution boundary test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Stress4HeartbeatTsc, __rdtsc());
 }
@@ -1668,6 +2295,23 @@ static uint64_t
 Stress4MillisecondsToTicks(
     uint64_t Milliseconds
 )
+
+/*++
+
+    Routine description:
+
+        Converts a millisecond delay to scheduler ticks for the delay-execution boundary test.
+
+    Arguments:
+
+        [IN] Milliseconds - Delay interval in milliseconds.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
 {
     uint64_t Ticks = Milliseconds / TICK_MS;
     if (Milliseconds % TICK_MS) {
@@ -1680,6 +2324,23 @@ static bool
 Stress4TimerEntryIsIsolated(
     PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a test thread timer entry is detached from every timer queue.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        The value measured or generated by the stress-test step.
+
+--*/
+
 {
     PDOUBLY_LINKED_LIST Entry = &Thread->WaitBlock.TimerListEntry;
     IRQL OldIrql;
@@ -1697,6 +2358,24 @@ Stress4RunSleep(
     uint64_t Milliseconds,
     uint64_t Iteration
 )
+
+/*++
+
+    Routine description:
+
+        Runs sleep for the delay-execution boundary test.
+
+    Arguments:
+
+        [IN] Milliseconds - Delay interval in milliseconds.
+        [IN] Iteration - Current stress-test iteration.
+
+    Return Values:
+
+        The number of ticks elapsed during the delay.
+
+--*/
+
 {
     PITHREAD Thread = MeGetCurrentThread();
     uint64_t ExpectedTicks = Stress4MillisecondsToTicks(Milliseconds);
@@ -1810,6 +2489,23 @@ Stress4RunSleep(
 
 static void
 Stress4ValidateLargeIntervalArithmetic(void)
+
+/*++
+
+    Routine description:
+
+        Validates large interval arithmetic for the delay-execution boundary test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t Milliseconds = UINT64_MAX - (UINT64_MAX % TICK_MS);
     uint64_t Ticks = Stress4MillisecondsToTicks(Milliseconds);
@@ -1847,6 +2543,23 @@ static void
 Stress4Watchdog(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Monitors the delay-execution boundary test and stops it when progress stalls.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -1877,6 +2590,23 @@ static void
 Stress4Controller(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the delay-execution boundary test and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -1987,6 +2717,26 @@ Stress4BBugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the event-semantics stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // WAIT_STATE_FAILURE: P1 is the stage; P2-P4 are stage details.
     MeBugCheckEx(
@@ -2003,6 +2753,24 @@ Stress4BPublishProgress(
     uint32_t Phase,
     uint32_t Progress
 )
+
+/*++
+
+    Routine description:
+
+        Publishes progress for the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Phase - Current phase of the stress test.
+        [IN] Progress - Current progress counter published by a worker.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Stress4BPhase, Phase);
     InterlockedStoreRelease(&Stress4BProgress, Progress);
@@ -2013,6 +2781,23 @@ static bool
 Stress4BWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the event-semantics stress test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -2024,6 +2809,23 @@ static bool
 Stress4BIsKnownWaiter(
     PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a thread belongs to the event-semantics waiter set.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        The value measured or generated by the stress-test step.
+
+--*/
+
 {
     for (uint32_t Index = 0; Index < STRESS4B_WAITER_COUNT; Index++) {
         if (Stress4BWaiterThreads[Index] == Thread) {
@@ -2037,6 +2839,23 @@ static STRESS4B_EVENT_SNAPSHOT
 Stress4BSnapshotEvent(
     PEVENT Event
 )
+
+/*++
+
+    Routine description:
+
+        Captures event for the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Event - Event object affected by the operation.
+
+    Return Values:
+
+        A snapshot containing the captured state.
+
+--*/
+
 {
     STRESS4B_EVENT_SNAPSHOT Snapshot = { 0 };
     Snapshot.TopologyValid = true;
@@ -2112,6 +2931,26 @@ Stress4BRequireEventState(
     uint32_t ExpectedWaiters,
     bool ExpectedSignaled
 )
+
+/*++
+
+    Routine description:
+
+        Validates event state for the event-semantics stress test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Event - Event object affected by the operation.
+        [IN] Epoch - Current stress-test generation.
+        [IN] ExpectedWaiters - Expected waiters.
+        [IN] ExpectedSignaled - Expected signaled.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS4B_EVENT_SNAPSHOT Snapshot = Stress4BSnapshotEvent(Event);
     if (!Snapshot.TopologyValid) {
@@ -2144,6 +2983,23 @@ static uint32_t
 Stress4BCountCompletions(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Counts completions for the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
 {
     uint32_t Count = 0;
     for (uint32_t Index = 0; Index < STRESS4B_WAITER_COUNT; Index++) {
@@ -2170,6 +3026,24 @@ Stress4BWaitForRegistrations(
     PEVENT Event,
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registrations during the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Event - Event object affected by the operation.
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -2248,6 +3122,24 @@ Stress4BWaitForCompletionCount(
     uint64_t Epoch,
     uint32_t ExpectedCompletions
 )
+
+/*++
+
+    Routine description:
+
+        Waits for completion count during the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+        [IN] ExpectedCompletions - Expected completions.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -2282,6 +3174,23 @@ static void
 Stress4BValidateCompletions(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Validates completions for the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     for (uint32_t Index = 0; Index < STRESS4B_WAITER_COUNT; Index++) {
         PETHREAD Thread = Stress4BWaiterThreads[Index];
@@ -2327,6 +3236,24 @@ Stress4BDispatchWait(
     PEVENT Event,
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Dispatches wait for the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Event - Event object affected by the operation.
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Stress4BRequestedEvent, Event);
     InterlockedStoreRelease(&Stress4BRequestEpoch, Epoch);
@@ -2337,6 +3264,23 @@ static void
 Stress4BWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the event-semantics stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t Index = (uint32_t)(uintptr_t)Parameter;
     if (Index >= STRESS4B_WAITER_COUNT) {
@@ -2404,6 +3348,23 @@ static void
 Stress4BWatchdog(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Monitors the event-semantics stress test and stops it when progress stalls.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -2437,6 +3398,23 @@ static void
 Stress4BController(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the event-semantics stress test and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -2577,6 +3555,26 @@ Stress4CBugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the signal and timeout race test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // WAIT_STATE_FAILURE: P1 is the stage; P2-P4 are stage details.
     MeBugCheckEx(
@@ -2592,6 +3590,23 @@ static void
 Stress4CPublishProgress(
     uint32_t Progress
 )
+
+/*++
+
+    Routine description:
+
+        Publishes progress for the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Progress - Current progress counter published by a worker.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Stress4CProgress, Progress);
     InterlockedStoreRelease(&Stress4CHeartbeatTsc, __rdtsc());
@@ -2601,6 +3616,23 @@ static bool
 Stress4CWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the signal and timeout race test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -2612,6 +3644,23 @@ static bool
 Stress4CWaitForRegistration(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registration during the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     PITHREAD Thread = &Stress4CWaiterThread->InternalThread;
     uint64_t StartTsc = __rdtsc();
@@ -2689,6 +3738,24 @@ Stress4CWaitForClockTick(
     uint64_t TargetTick,
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for clock tick during the signal and timeout race test.
+
+    Arguments:
+
+        [IN] TargetTick - Clock tick at which the race is sampled.
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     uint64_t CurrentTick = InterlockedLoadAcquire(
@@ -2720,6 +3787,23 @@ static void
 Stress4CWaitForCompletion(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for completion during the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -2761,6 +3845,24 @@ Stress4CValidateCleanup(
     uint64_t Epoch,
     MTSTATUS CompletionStatus
 )
+
+/*++
+
+    Routine description:
+
+        Validates cleanup for the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+        [IN] CompletionStatus - Status that completed the tested wait.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Stress4CEvent.Header.Lock, &OldIrql);
@@ -2833,6 +3935,25 @@ Stress4CFinishUntimedSample(
     uint64_t Epoch,
     MTSTATUS* CompletionStatusOut
 )
+
+/*++
+
+    Routine description:
+
+        Finishes untimed sample for the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Timing - Signal timing selected for the race iteration.
+        [IN] Epoch - Current stress-test generation.
+        [OUT] CompletionStatusOut - Receives the completion status.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     Stress4CWaitForCompletion(Epoch);
     MTSTATUS CompletionStatus = InterlockedLoadAcquire(
@@ -2880,6 +4001,25 @@ Stress4CRunRace(
     uint64_t Epoch,
     MTSTATUS* CompletionStatusOut
 )
+
+/*++
+
+    Routine description:
+
+        Runs race for the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Timing - Signal timing selected for the race iteration.
+        [IN] Epoch - Current stress-test generation.
+        [OUT] CompletionStatusOut - Receives the completion status.
+
+    Return Values:
+
+        A nonzero value when the test step completes successfully, or zero when its bounded wait fails.
+
+--*/
+
 {
     InterlockedStoreRelease(
         &Stress4CRequestedTiming,
@@ -2984,6 +4124,23 @@ static void
 Stress4CWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the signal and timeout race test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
     uint64_t LocalEpoch = 0;
@@ -3029,6 +4186,23 @@ static void
 Stress4CWatchdog(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Monitors the signal and timeout race test and stops it when progress stalls.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -3062,6 +4236,23 @@ static void
 Stress4CController(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the signal and timeout race test and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -3232,6 +4423,26 @@ Stress5ABugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the semaphore stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MeBugCheckEx(
         WAIT_STATE_FAILURE,
@@ -3246,6 +4457,23 @@ static bool
 Stress5AWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the semaphore stress test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -3255,6 +4483,23 @@ Stress5AWatchdogExpired(
 
 static STRESS5A_SNAPSHOT
 Stress5ASnapshotSemaphore(void)
+
+/*++
+
+    Routine description:
+
+        Captures semaphore for the semaphore stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A snapshot containing the captured state.
+
+--*/
+
 {
     STRESS5A_SNAPSHOT Snapshot = { 0 };
     Snapshot.TopologyValid = true;
@@ -3311,6 +4556,23 @@ static uint32_t
 Stress5ACountCompletions(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Counts completions for the semaphore stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
 {
     uint32_t Count = 0;
     for (uint32_t Index = 0; Index < STRESS5A_WAITER_COUNT; Index++) {
@@ -3336,6 +4598,23 @@ static STRESS5A_SNAPSHOT
 Stress5AWaitForRegistrations(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registrations during the semaphore stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        A snapshot containing the captured state.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -3395,6 +4674,24 @@ Stress5AWaitForCompletions(
     uint64_t Epoch,
     uint32_t ExpectedCount
 )
+
+/*++
+
+    Routine description:
+
+        Waits for completions during the semaphore stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+        [IN] ExpectedCount - Expected count.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -3430,6 +4727,25 @@ Stress5ARequireState(
     uint32_t ExpectedWaiters,
     int32_t ExpectedSignalState
 )
+
+/*++
+
+    Routine description:
+
+        Validates state for the semaphore stress test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+        [IN] ExpectedWaiters - Expected waiters.
+        [IN] ExpectedSignalState - Expected signal state.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5A_SNAPSHOT Snapshot = Stress5ASnapshotSemaphore();
     if (!Snapshot.TopologyValid) {
@@ -3462,6 +4778,23 @@ static void
 Stress5AWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the semaphore stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t Index = (uint32_t)(uintptr_t)Parameter;
     if (Index >= STRESS5A_WAITER_COUNT) {
@@ -3506,6 +4839,23 @@ static void
 Stress5ARaceWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the semaphore stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -3542,6 +4892,23 @@ static uint64_t
 Stress5AWaitForRaceRegistration(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for race registration during the semaphore stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        The tick at which the race waiter registered.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     PITHREAD RaceThread = &Stress5ARaceThread->InternalThread;
@@ -3599,6 +4966,23 @@ static MTSTATUS
 Stress5AWaitForRaceCompletion(
     uint64_t Epoch
 )
+
+/*++
+
+    Routine description:
+
+        Waits for race completion during the semaphore stress test.
+
+    Arguments:
+
+        [IN] Epoch - Current stress-test generation.
+
+    Return Values:
+
+        MT_SUCCESS when the test passes, or a failure status identifying the violated invariant.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -3621,6 +5005,23 @@ Stress5AWaitForRaceCompletion(
 
 static void
 Stress5ARunTimeoutRaces(void)
+
+/*++
+
+    Routine description:
+
+        Runs timeout races for the semaphore stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t SignalWins = 0;
     uint32_t TimeoutWins = 0;
@@ -3693,6 +5094,23 @@ Stress5ARunTimeoutRaces(void)
 
 static void
 Stress5ATestBankedPermits(void)
+
+/*++
+
+    Routine description:
+
+        Tests banked permits for the semaphore stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MsInitializeSemaphore(&Stress5ASemaphore, 2, 4);
 
@@ -3777,6 +5195,23 @@ static void
 Stress5AController(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the semaphore stress test and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -3881,6 +5316,24 @@ StressSuiteInitializeEvent(
     PEVENT Event,
     DISPATCHER_TYPE Type
 )
+
+/*++
+
+    Routine description:
+
+        Initializes an event used by the combined synchronization stress suite.
+
+    Arguments:
+
+        [IN] Event - Event object affected by the operation.
+        [IN] Type - Type of object or operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MsInitializeEvent(Event, Type, false);
 }
@@ -3890,6 +5343,24 @@ StressSuiteCreateThread(
     ThreadEntry Entry,
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the combined synchronization stress suite.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     PETHREAD Thread = NULL;
     MTSTATUS Status = PsCreateSystemThread(
@@ -3917,6 +5388,23 @@ StressSuiteCreateThread(
 
 static void
 StressSuiteRunStress2(void)
+
+/*++
+
+    Routine description:
+
+        Runs stress 2 for the combined synchronization stress suite.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress2Counter1 = 0;
     Stress2Counter2 = 0;
@@ -4020,6 +5508,26 @@ Stress5BBugCheck(
     void* Detail2,
     void* Detail3
 )
+
+/*++
+
+    Routine description:
+
+        Stops the mutex ownership stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Stage - Current initialization or stress-test stage.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+        [IN] Detail3 - Third diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // Stage values use a 0x5Bxx prefix so a framebuffer-only failure still
     // identifies this exact test and subphase.
@@ -4036,6 +5544,23 @@ static bool
 Stress5BWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the mutex ownership stress test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -4048,6 +5573,24 @@ Stress5BWaitForFlag(
     volatile bool* Flag,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for flag during the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Flag - Shared completion or progress flag.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!InterlockedLoadAcquire(Flag)) {
@@ -4068,6 +5611,24 @@ Stress5BCreateRetainedThread(
     ThreadEntry Entry,
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Creates a referenced worker thread for the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     // Every 5B worker waits on its Start field, so it cannot exit between
     // PsCreateSystemThread publishing the pointer and this extra reference.
@@ -4088,6 +5649,24 @@ Stress5BJoinThread(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a worker to exit and releases its reference during the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MTSTATUS Status = MsWaitForSingleObject(
         &Thread->InternalThread.Header,
@@ -4111,6 +5690,24 @@ Stress5BValidateOwnerListLocked(
     PMUTEX Mutex,
     PETHREAD Owner
 )
+
+/*++
+
+    Routine description:
+
+        Validates owner list locked for the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Mutex - Mutex object affected by the operation.
+        [IN] Owner - Thread expected to own the mutex or type counter.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     bool Valid = true;
     uint32_t Matches = 0;
@@ -4152,6 +5749,26 @@ Stress5BReadAndValidateMutex(
     int32_t ExpectedSignalState,
     bool ExpectedAbandoned
 )
+
+/*++
+
+    Routine description:
+
+        Reads and validate mutex for the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Mutex - Mutex object affected by the operation.
+        [IN] ExpectedOwner - Expected owner.
+        [IN] ExpectedSignalState - Expected signal state.
+        [IN] ExpectedAbandoned - Expected abandoned.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     bool Valid = true;
     bool Abandoned;
@@ -4203,6 +5820,25 @@ Stress5BWaitForRegistrations(
     PETHREAD* Threads,
     uint32_t ThreadCount
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registrations during the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Mutex - Mutex object affected by the operation.
+        [IN] Threads - Array of participating test threads.
+        [IN] ThreadCount - Number of thread entries.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
 
@@ -4278,6 +5914,23 @@ static void
 Stress5BWrongOwnerWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_SIMPLE_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4289,6 +5942,23 @@ static void
 Stress5BTimeoutWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_SIMPLE_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4305,6 +5975,23 @@ static void
 Stress5BContentionWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_SIMPLE_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4370,6 +6057,23 @@ static void
 Stress5BOwnerWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_OWNER_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4399,6 +6103,23 @@ static void
 Stress5BAbandonWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_SIMPLE_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4455,6 +6176,23 @@ static void
 Stress5BRaceOwner(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the mutex ownership stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_RACE_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -4496,6 +6234,23 @@ Stress5BRaceOwner(
 
 static void
 Stress5BRunBasicSemantics(void)
+
+/*++
+
+    Routine description:
+
+        Runs basic semantics for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MUTEX Mutex;
     PETHREAD CurrentThread = PsGetCurrentThread();
@@ -4598,6 +6353,23 @@ Stress5BRunBasicSemantics(void)
 
 static void
 Stress5BRunContention(void)
+
+/*++
+
+    Routine description:
+
+        Runs contention for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_SIMPLE_CONTEXT Contexts[STRESS5B_CONTENTION_THREADS] = { 0 };
     PETHREAD Threads[STRESS5B_CONTENTION_THREADS] = { 0 };
@@ -4651,6 +6423,23 @@ Stress5BRunContention(void)
 
 static void
 Stress5BRunEmptyOwnerExit(void)
+
+/*++
+
+    Routine description:
+
+        Runs empty owner exit for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5B_OWNER_CONTEXT Context = { 0 };
     PETHREAD Thread = Stress5BCreateRetainedThread(
@@ -4667,6 +6456,23 @@ Stress5BRunEmptyOwnerExit(void)
 
 static void
 Stress5BRunManyOwnedExit(void)
+
+/*++
+
+    Routine description:
+
+        Runs many owned exit for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MUTEX Mutexes[STRESS5B_MANY_MUTEXES];
     for (uint32_t Index = 0; Index < STRESS5B_MANY_MUTEXES; Index++) {
@@ -4734,6 +6540,23 @@ Stress5BRunManyOwnedExit(void)
 
 static void
 Stress5BRunAbandonedWaiters(void)
+
+/*++
+
+    Routine description:
+
+        Runs abandoned waiters for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MUTEX Mutex;
     MsInitializeMutexObject(&Mutex);
@@ -4814,6 +6637,23 @@ Stress5BRunAbandonedWaiters(void)
 
 static void
 Stress5BRunReleaseTerminationRaces(void)
+
+/*++
+
+    Routine description:
+
+        Runs release termination races for the mutex ownership stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t AbandonedWins = 0;
     uint32_t ReleaseWins = 0;
@@ -4905,6 +6745,23 @@ Stress5BRunReleaseTerminationRaces(void)
 
 static void
 Stress5BController(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the mutex ownership stress test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     gop_printf(
         COLOR_GREEN,
@@ -4951,6 +6808,25 @@ Stress5CBugCheck(
     void* Detail1,
     void* Detail2
 )
+
+/*++
+
+    Routine description:
+
+        Stops the synchronization-handle stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MeBugCheckEx(
         WAIT_STATE_FAILURE,
@@ -4967,6 +6843,25 @@ Stress5CRequireStatus(
     MTSTATUS Expected,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Validates an expected status for the synchronization-handle stress test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Actual - Observed .
+        [IN] Expected - Expected .
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (Actual != Expected) {
         Stress5CBugCheck(
@@ -4984,6 +6879,26 @@ Stress5CWaitForTypeCounts(
     uint32_t ExpectedObjects,
     uint32_t ExpectedHandles
 )
+
+/*++
+
+    Routine description:
+
+        Waits for type counts during the synchronization-handle stress test.
+
+    Arguments:
+
+        [IN] Type - Type of object or operation.
+        [IN] TypeTag - Pool tag or diagnostic identifier associated with the object type.
+        [IN] ExpectedObjects - Expected objects.
+        [IN] ExpectedHandles - Expected handles.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -5019,6 +6934,23 @@ static void
 Stress5CWaitForDispatcherRegistration(
     PDISPATCHER_HEADER Header
 )
+
+/*++
+
+    Routine description:
+
+        Waits for dispatcher registration during the synchronization-handle stress test.
+
+    Arguments:
+
+        [IN] Header - Dispatcher header affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -5043,6 +6975,23 @@ static void
 Stress5CHandleWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the synchronization-handle stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5C_WAIT_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -5058,6 +7007,23 @@ static void
 Stress5CCloseOwnedMutexWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the synchronization-handle stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5C_OWNER_CONTEXT* Context = Parameter;
     Stress5BWaitForFlag(&Context->Start, Context);
@@ -5077,6 +7043,23 @@ Stress5CCloseOwnedMutexWorker(
 
 static void
 Stress5CTestEvents(void)
+
+/*++
+
+    Routine description:
+
+        Tests events for the synchronization-handle stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE Handle = MT_INVALID_HANDLE;
     MTSTATUS Status = MtCreateEvent(
@@ -5119,6 +7102,23 @@ Stress5CTestEvents(void)
 
 static void
 Stress5CTestSemaphores(void)
+
+/*++
+
+    Routine description:
+
+        Tests semaphores for the synchronization-handle stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE Handle = MT_INVALID_HANDLE;
     Stress5CRequireStatus(
@@ -5168,6 +7168,23 @@ Stress5CTestSemaphores(void)
 
 static void
 Stress5CTestMutexes(void)
+
+/*++
+
+    Routine description:
+
+        Tests mutexes for the synchronization-handle stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE Handle = MT_INVALID_HANDLE;
     Stress5CRequireStatus(
@@ -5209,6 +7226,23 @@ Stress5CTestMutexes(void)
 
 static void
 Stress5CTestCloseWhileWaiting(void)
+
+/*++
+
+    Routine description:
+
+        Tests close while waiting for the synchronization-handle stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE Handle = MT_INVALID_HANDLE;
     Stress5CRequireStatus(
@@ -5243,6 +7277,23 @@ Stress5CTestCloseWhileWaiting(void)
 
 static void
 Stress5CTestCloseWhileOwning(void)
+
+/*++
+
+    Routine description:
+
+        Tests close while owning for the synchronization-handle stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5C_OWNER_CONTEXT Context = { .Status = MT_PENDING };
     PETHREAD Thread = Stress5BCreateRetainedThread(
@@ -5260,6 +7311,23 @@ Stress5CTestCloseWhileOwning(void)
 
 static void
 Stress5CController(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the synchronization-handle stress test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t EventObjects = InterlockedLoadAcquire(
         (volatile uint32_t*)&MsEventType->TotalNumberOfObjects
@@ -5342,6 +7410,25 @@ Stress5DBugCheck(
     void* Detail1,
     void* Detail2
 )
+
+/*++
+
+    Routine description:
+
+        Stops the waitable thread and process test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // P1 identifies Stress 5D, P2 is the exact failed invariant, and P3/P4
     // contain the phase-specific status, object, count, or round number.
@@ -5358,6 +7445,23 @@ static bool
 Stress5DWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the waitable thread and process test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -5371,6 +7475,25 @@ Stress5DRequireStatus(
     MTSTATUS Expected,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Validates an expected status for the waitable thread and process test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Actual - Observed .
+        [IN] Expected - Expected .
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (Actual != Expected) {
         Stress5DBugCheck(
@@ -5386,6 +7509,24 @@ Stress5DWaitForFlag(
     volatile bool* Flag,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for flag during the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Flag - Shared completion or progress flag.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!InterlockedLoadAcquire(Flag)) {
@@ -5405,6 +7546,24 @@ Stress5DCreateRetainedThread(
     ThreadEntry Entry,
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Creates a referenced worker thread for the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     // Stress 5D workers begin behind their Start flag, so this reference is
     // acquired before the worker can return and enter its exit path.
@@ -5424,6 +7583,24 @@ Stress5DJoinThread(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a worker to exit and releases its reference during the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MTSTATUS Status = MsWaitForSingleObject(
         &Thread->InternalThread.Header,
@@ -5447,6 +7624,25 @@ Stress5DWaitForRegistrations(
     uint32_t ExpectedCount,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for registrations during the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] ExpectedCount - Expected count.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -5479,6 +7675,25 @@ Stress5DWaitForTypeCounts(
     uint32_t ExpectedObjects,
     uint32_t ExpectedHandles
 )
+
+/*++
+
+    Routine description:
+
+        Waits for type counts during the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Type - Type of object or operation.
+        [IN] ExpectedObjects - Expected objects.
+        [IN] ExpectedHandles - Expected handles.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -5509,6 +7724,23 @@ Stress5DWaitForTypeCounts(
 
 static void
 Stress5DSettleObjectCounts(void)
+
+/*++
+
+    Routine description:
+
+        Waits for object counts during the waitable thread and process test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t LastThreadObjects = UINT32_MAX;
     uint32_t LastThreadHandles = UINT32_MAX;
@@ -5560,6 +7792,23 @@ static void
 Stress5DTargetWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5D_TARGET_CONTEXT* Context = Parameter;
     Stress5DWaitForFlag(&Context->Start, Context);
@@ -5576,6 +7825,23 @@ static void
 Stress5DHandleWaiter(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5D_WAIT_CONTEXT* Context = Parameter;
     Stress5DWaitForFlag(&Context->Start, Context);
@@ -5589,6 +7855,23 @@ Stress5DHandleWaiter(
 
 static void
 Stress5DTestSelfWaits(void)
+
+/*++
+
+    Routine description:
+
+        Tests self waits for the waitable thread and process test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress5DRequireStatus(
         MtWaitForSingleObject(MtCurrentThread(), 0, false),
@@ -5618,6 +7901,23 @@ static void
 Stress5DTestAttachedProcessSelfWaits(
     PEPROCESS Process
 )
+
+/*++
+
+    Routine description:
+
+        Tests attached process self waits for the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // PsInitialSystemProcess is static rather than object-manager allocated, so
     // its pseudo-handle cannot be referenced. Attach to the real test process
@@ -5649,6 +7949,23 @@ Stress5DTestAttachedProcessSelfWaits(
 
 static void
 Stress5DTestThreadLifetime(void)
+
+/*++
+
+    Routine description:
+
+        Tests thread lifetime for the waitable thread and process test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5D_TARGET_CONTEXT TargetContext = {
         .ExitStatus = STRESS5D_EXIT_STATUS
@@ -5766,6 +8083,23 @@ Stress5DTestThreadLifetime(void)
 
 static void
 Stress5DTestThreadExitRaces(void)
+
+/*++
+
+    Routine description:
+
+        Tests thread exit races for the waitable thread and process test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     for (uint32_t Round = 0; Round < STRESS5D_RACE_ROUNDS; Round++) {
         STRESS5D_TARGET_CONTEXT TargetContext = {
@@ -5831,6 +8165,23 @@ static PETHREAD
 Stress5DWaitForProcessWorker(
     PEPROCESS Process
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the waitable thread and process test.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -5856,6 +8207,23 @@ Stress5DWaitForProcessWorker(
 
 static void
 Stress5DTestProcessLifetime(void)
+
+/*++
+
+    Routine description:
+
+        Tests process lifetime for the waitable thread and process test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE ProcessHandle = MT_INVALID_HANDLE;
     Stress5DRequireStatus(
@@ -6027,6 +8395,23 @@ Stress5DTestProcessLifetime(void)
 
 static void
 Stress5DController(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the waitable thread and process test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress5DSettleObjectCounts();
     uint32_t ThreadObjects = InterlockedLoadAcquire(
@@ -6096,6 +8481,25 @@ Stress5EBugCheck(
     void* Detail1,
     void* Detail2
 )
+
+/*++
+
+    Routine description:
+
+        Stops the exit-status query test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // P1 identifies Stress 5E, P2 is the exact failed invariant, and P3/P4
     // contain the phase-specific status, object, count, or handle.
@@ -6112,6 +8516,23 @@ static bool
 Stress5EWatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the exit-status query test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -6125,6 +8546,25 @@ Stress5ERequireStatus(
     MTSTATUS Expected,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Validates an expected status for the exit-status query test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Actual - Observed .
+        [IN] Expected - Expected .
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (Actual != Expected) {
         Stress5EBugCheck(
@@ -6141,6 +8581,25 @@ Stress5EWaitForValue(
     uint32_t Minimum,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for value during the exit-status query test.
+
+    Arguments:
+
+        [IN] Value - Value to write or process.
+        [IN] Minimum - Minimum value the shared counter must reach.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (InterlockedLoadAcquire(Value) < Minimum) {
@@ -6160,6 +8619,24 @@ Stress5ECreateRetainedThread(
     ThreadEntry Entry,
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Creates a referenced worker thread for the exit-status query test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     PETHREAD Thread = StressSuiteCreateThread(Entry, Parameter);
     if (!ObReferenceObject(Thread)) {
@@ -6177,6 +8654,24 @@ Stress5EJoinThread(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a worker to exit and releases its reference during the exit-status query test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress5ERequireStatus(
         MsWaitForSingleObject(
@@ -6198,6 +8693,26 @@ Stress5EQueryExitStatus(
     MTSTATUS* ExitStatus,
     uint32_t* ReturnLength
 )
+
+/*++
+
+    Routine description:
+
+        Queries a thread or process exit status for the exit-status query test.
+
+    Arguments:
+
+        [IN] Kind - Thread or process query kind under test.
+        [IN] Handle - Handle supplied by the caller.
+        [IN] ExitStatus - Termination status to record.
+        [OUT] ReturnLength - Size of the return in bytes.
+
+    Return Values:
+
+        MT_SUCCESS when the test passes, or a failure status identifying the violated invariant.
+
+--*/
+
 {
     if (Kind == Stress5EThreadObject) {
         THREAD_BASIC_INFORMATION Information = { 0 };
@@ -6232,6 +8747,23 @@ static void
 Stress5EQueryWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the exit-status query test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5E_QUERY_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -6301,6 +8833,26 @@ Stress5EValidateQueryResult(
     MTSTATUS ExpectedExitStatus,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Validates query result for the exit-status query test.
+
+    Arguments:
+
+        [IN] Kind - Thread or process query kind under test.
+        [IN] Handle - Handle supplied by the caller.
+        [IN] ExpectedExitStatus - Expected exit status.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MTSTATUS ExitStatus = MT_SUCCESS;
     uint32_t ReturnLength = 0;
@@ -6341,6 +8893,25 @@ Stress5EWaitForTypeCounts(
     uint32_t ExpectedObjects,
     uint32_t ExpectedHandles
 )
+
+/*++
+
+    Routine description:
+
+        Waits for type counts during the exit-status query test.
+
+    Arguments:
+
+        [IN] Type - Type of object or operation.
+        [IN] ExpectedObjects - Expected objects.
+        [IN] ExpectedHandles - Expected handles.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -6375,6 +8946,23 @@ Stress5EWaitForTypeCounts(
 
 static void
 Stress5ETestThreadQueries(void)
+
+/*++
+
+    Routine description:
+
+        Tests thread queries for the exit-status query test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS5D_TARGET_CONTEXT TargetContext = {
         .ExitStatus = STRESS5E_EXIT_STATUS
@@ -6531,6 +9119,23 @@ Stress5ETestThreadQueries(void)
 
 static void
 Stress5ETestProcessQueries(void)
+
+/*++
+
+    Routine description:
+
+        Tests process queries for the exit-status query test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     HANDLE ProcessHandle = MT_INVALID_HANDLE;
     Stress5ERequireStatus(
@@ -6696,6 +9301,23 @@ Stress5ETestProcessQueries(void)
 
 static void
 Stress5EController(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the exit-status query test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress5DSettleObjectCounts();
     uint32_t ThreadObjects = InterlockedLoadAcquire(
@@ -6835,6 +9457,25 @@ Stress6BugCheck(
     void* Detail1,
     void* Detail2
 )
+
+/*++
+
+    Routine description:
+
+        Stops the suspension, APC, and migration stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN] Detail1 - First diagnostic value recorded on failure.
+        [IN] Detail2 - Second diagnostic value recorded on failure.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // P1 identifies Gate 4 suspend/resume stress. P2 is the failed invariant,
     // while P3/P4 carry a status, thread, count, phase, or race round.
@@ -6851,6 +9492,23 @@ static bool
 Stress6WatchdogExpired(
     uint64_t StartTsc
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the watchdog interval for the suspension, APC, and migration stress test has expired.
+
+    Arguments:
+
+        [IN] StartTsc - TSC value captured at the start of the bounded wait.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     uint64_t Now = __rdtsc();
     return Now >= StartTsc &&
@@ -6864,6 +9522,25 @@ Stress6RequireStatus(
     MTSTATUS Expected,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Validates an expected status for the suspension, APC, and migration stress test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN] Actual - Observed .
+        [IN] Expected - Expected .
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     if (Actual != Expected) {
         Stress6BugCheck(
@@ -6879,6 +9556,24 @@ Stress6WaitForFlag(
     volatile bool* Flag,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for flag during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Flag - Shared completion or progress flag.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!InterlockedLoadAcquire(Flag)) {
@@ -6899,6 +9594,25 @@ Stress6WaitForProgress(
     uint64_t Previous,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for progress during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Progress - Current progress counter published by a worker.
+        [IN] Previous - Previously observed progress value.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (InterlockedLoadAcquire(Progress) == Previous) {
@@ -6918,6 +9632,24 @@ Stress6WaitTicks(
     uint64_t TickCount,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for ticks during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] TickCount - Number of scheduler clock ticks.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTick = InterlockedLoadAcquire(&MeSystemTickCount);
     uint64_t StartTsc = __rdtsc();
@@ -6938,6 +9670,23 @@ static bool
 Stress6ListEntryIsLinked(
     PDOUBLY_LINKED_LIST Entry
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a list entry is linked during the suspension and APC stress test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     return Entry->Flink != NULL &&
         Entry->Blink != NULL &&
@@ -6950,6 +9699,24 @@ Stress6IsDispatcherWaiting(
     PETHREAD Thread,
     PDISPATCHER_HEADER Header
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a thread is registered on a dispatcher wait list.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Header - Dispatcher header affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     PITHREAD IThread = &Thread->InternalThread;
     IRQL OldIrql;
@@ -6969,6 +9736,23 @@ static bool
 Stress6IsSleeping(
     PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a thread is registered in the timer queue.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     PITHREAD IThread = &Thread->InternalThread;
     IRQL OldIrql;
@@ -6992,6 +9776,25 @@ Stress6WaitForDispatcherWait(
     PDISPATCHER_HEADER Header,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for dispatcher wait during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!Stress6IsDispatcherWaiting(Thread, Header)) {
@@ -7011,6 +9814,24 @@ Stress6WaitForSleep(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for sleep during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!Stress6IsSleeping(Thread)) {
@@ -7030,6 +9851,24 @@ Stress6WaitForSuspended(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for suspended during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress6WaitForDispatcherWait(
         Thread,
@@ -7059,6 +9898,23 @@ static uint32_t
 Stress6ReadSuspendCount(
     PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reads a target thread suspend count under its APC queue lock.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        The calculated count or size.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Thread->InternalThread.ApcQueueLock, &OldIrql);
@@ -7072,6 +9928,24 @@ Stress6CreateRetainedThread(
     ThreadEntry Entry,
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Creates a referenced worker thread for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     PETHREAD Thread = StressSuiteCreateThread(Entry, Parameter);
     if (!ObReferenceObject(Thread)) {
@@ -7089,6 +9963,24 @@ Stress6JoinThread(
     PETHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a worker to exit and releases its reference during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress6RequireStatus(
         MsWaitForSingleObject(
@@ -7109,6 +10001,25 @@ Stress6CreateThreadHandle(
     ACCESS_MASK Access,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Creates thread handle for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Access - Requested access mask or descriptor access byte.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        A handle to the resulting object, or an invalid handle when the operation fails.
+
+--*/
+
 {
     HANDLE Handle = MT_INVALID_HANDLE;
     Stress6RequireStatus(
@@ -7123,6 +10034,23 @@ static STRESS6_USER_TARGET
 Stress6CreateUserTarget(
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Creates user target for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        A referenced test thread or target object; failure stops the stress test.
+
+--*/
+
 {
     STRESS6_USER_TARGET Target = {
         .ProcessHandle = MT_INVALID_HANDLE
@@ -7197,6 +10125,24 @@ Stress6JoinUserTarget(
     STRESS6_USER_TARGET* Target,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for user target during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Target - User or kernel target created for the test.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress6JoinThread(Target->Thread, Detail);
     Target->Thread = NULL;
@@ -7225,6 +10171,23 @@ static void
 Stress6UserApcRundown(
     PAPC Apc
 )
+
+/*++
+
+    Routine description:
+
+        Releases APC state queued by the suspension, APC, and migration stress test when delivery is cancelled.
+
+    Arguments:
+
+        [IN] Apc - APC object associated with the callback.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MmFreePool(Apc);
 }
@@ -7235,6 +10198,25 @@ Stress6WaitForUserApcState(
     bool ExpectedActive,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for user APC state during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] ExpectedActive - Expected active.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (InterlockedLoadAcquire(
@@ -7253,6 +10235,23 @@ Stress6WaitForUserApcState(
 
 static void
 Stress6TestUserApcContinue(void)
+
+/*++
+
+    Routine description:
+
+        Tests user APC continue for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_USER_TARGET Target =
         Stress6CreateUserTarget((void*)0x6070);
@@ -7356,6 +10355,25 @@ Stress6WaitForThreadTypeCounts(
     uint32_t ExpectedHandles,
     uintptr_t Phase
 )
+
+/*++
+
+    Routine description:
+
+        Waits for thread type counts during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] ExpectedObjects - Expected objects.
+        [IN] ExpectedHandles - Expected handles.
+        [IN] Phase - Current phase of the stress test.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     for (;;) {
@@ -7394,6 +10412,23 @@ static void
 Stress6ReadyWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_READY_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -7411,6 +10446,23 @@ static void
 Stress6MigrationWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_MIGRATION_CONTEXT* Context = Parameter;
 
@@ -7431,6 +10483,23 @@ static void
 Stress6ExceptionPublishWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_EXCEPTION_PUBLISH_CONTEXT* Context = Parameter;
     PITHREAD Thread = MeGetCurrentThread();
@@ -7481,6 +10550,24 @@ Stress6WaitForExceptionPending(
     PITHREAD Thread,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Waits for exception pending during the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint64_t StartTsc = __rdtsc();
     while (!InterlockedLoadAcquire(&Thread->UserExceptionPending)) {
@@ -7499,6 +10586,23 @@ static MTSTATUS
 Stress6ReadThreadExitStatus(
     PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Reads thread exit status for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+
+    Return Values:
+
+        MT_SUCCESS when the test passes, or a failure status identifying the violated invariant.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &OldIrql);
@@ -7509,6 +10613,23 @@ Stress6ReadThreadExitStatus(
 
 static void
 Stress6TestExceptionPublication(void)
+
+/*++
+
+    Routine description:
+
+        Tests exception publication for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_EXCEPTION_PUBLISH_CONTEXT Context = {
         .Mode = Stress6ExceptionPublishSuccess,
@@ -7598,6 +10719,23 @@ static void
 Stress6RunningWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_RUNNING_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -7629,6 +10767,23 @@ static void
 Stress6SleepWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_SLEEP_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -7649,6 +10804,23 @@ static void
 Stress6EventWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_EVENT_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -7670,6 +10842,23 @@ static void
 Stress6RaceWorker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_RACE_CONTEXT* Context = Parameter;
     InterlockedStoreRelease(&Context->Ready, true);
@@ -7693,6 +10882,23 @@ Stress6RaceWorker(
 
 static void
 Stress6TestReadyTarget(void)
+
+/*++
+
+    Routine description:
+
+        Tests ready target for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PETHREAD Target = NULL;
     STRESS6_READY_CONTEXT Context = { 0 };
@@ -7782,6 +10988,23 @@ Stress6TestReadyTarget(void)
 
 static void
 Stress6TestReadyMigration(void)
+
+/*++
+
+    Routine description:
+
+        Tests ready migration for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t ProcessorCount = MeGetActiveProcessorCount();
     if (ProcessorCount < 2) {
@@ -7900,6 +11123,23 @@ Stress6TestReadyMigration(void)
 
 static void
 Stress6TestRunningAndNested(void)
+
+/*++
+
+    Routine description:
+
+        Tests running and nested for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_RUNNING_CONTEXT Context = {
         .SuspendStatus = MT_PENDING,
@@ -8052,6 +11292,23 @@ Stress6TestRunningAndNested(void)
 
 static void
 Stress6TestSleepingTarget(void)
+
+/*++
+
+    Routine description:
+
+        Tests sleeping target for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_SLEEP_CONTEXT Context = { .Status = MT_PENDING };
     PETHREAD Target = Stress6CreateRetainedThread(
@@ -8111,6 +11368,23 @@ Stress6TestSleepingTarget(void)
 
 static void
 Stress6TestSuspendApcReuse(void)
+
+/*++
+
+    Routine description:
+
+        Tests suspend APC reuse for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS6_READY_CONTEXT Context = { 0 };
     PETHREAD Target = Stress6CreateRetainedThread(
@@ -8223,6 +11497,23 @@ Stress6TestSuspendApcReuse(void)
 
 static void
 Stress6TestDispatcherWaitingTarget(void)
+
+/*++
+
+    Routine description:
+
+        Tests dispatcher waiting target for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     EVENT Event;
     MsInitializeEvent(&Event, DispatcherSynchronizationEvent, false);
@@ -8283,6 +11574,23 @@ Stress6TestDispatcherWaitingTarget(void)
 
 static void
 Stress6TestTerminationRundown(void)
+
+/*++
+
+    Routine description:
+
+        Tests termination rundown for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t ThreadObjects = InterlockedLoadAcquire(
         (volatile uint32_t*)&PsThreadType->TotalNumberOfObjects
@@ -8379,6 +11687,23 @@ Stress6TestTerminationRundown(void)
 
 static void
 Stress6TestTerminationRaces(void)
+
+/*++
+
+    Routine description:
+
+        Tests termination races for the suspension, APC, and migration stress test.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     for (uint32_t Round = 0; Round < STRESS6_RACE_ROUNDS; Round++) {
         STRESS6_USER_TARGET Target = Stress6CreateUserTarget(
@@ -8462,6 +11787,23 @@ Stress6TestTerminationRaces(void)
 
 static void
 Stress6Controller(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the suspension, APC, and migration stress test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     Stress5DSettleObjectCounts();
     uint32_t ThreadObjects = InterlockedLoadAcquire(
@@ -8584,6 +11926,23 @@ static bool
 Stress7ListEntryIsLinked(
     PDOUBLY_LINKED_LIST Entry
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether a list entry is linked during the randomized synchronization test.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     return Entry->Flink != NULL &&
         Entry->Blink != NULL &&
@@ -8599,6 +11958,26 @@ Stress7BugCheck(
     PDISPATCHER_HEADER Header,
     MTSTATUS Status
 )
+
+/*++
+
+    Routine description:
+
+        Stops the randomized synchronization stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN OUT] Context - Context associated with the operation.
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] Status - Status value associated with the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     PITHREAD Thread = Context && Context->Thread
         ? &Context->Thread->InternalThread
@@ -8651,6 +12030,23 @@ static uint64_t
 Stress7NextRandom(
     uint64_t* State
 )
+
+/*++
+
+    Routine description:
+
+        Generates random for the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN OUT] State - State structure populated or inspected by the routine.
+
+    Return Values:
+
+        The next pseudo-random value.
+
+--*/
+
 {
     uint64_t Value = *State;
     if (Value == 0) {
@@ -8667,6 +12063,23 @@ static uint64_t
 Stress7RandomTimeout(
     uint64_t Random
 )
+
+/*++
+
+    Routine description:
+
+        Generates timeout for the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN] Random - Pseudo-random value controlling the test operation.
+
+    Return Values:
+
+        The pseudo-random timeout interval in milliseconds.
+
+--*/
+
 {
     return ((Random >> 8) & 3ULL) * TICK_MS;
 }
@@ -8677,6 +12090,25 @@ Stress7RequireWaitResult(
     PDISPATCHER_HEADER Header,
     MTSTATUS Status
 )
+
+/*++
+
+    Routine description:
+
+        Validates wait result for the randomized synchronization stress test and stops the test when the invariant fails.
+
+    Arguments:
+
+        [IN OUT] Context - Context associated with the operation.
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] Status - Status value associated with the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     InterlockedStoreRelease(&Context->LastStatus, Status);
     if (Status != MT_SUCCESS && Status != MT_TIMEOUT) {
@@ -8696,6 +12128,26 @@ Stress7DpcRoutine(
     void* SystemArgument1,
     void* SystemArgument2
 )
+
+/*++
+
+    Routine description:
+
+        Executes a DPC callback used by the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN] Dpc - DPC object associated with the callback.
+        [IN OUT] DeferredContext - Caller-supplied DPC context.
+        [IN] SystemArgument1 - First system argument supplied to the DPC.
+        [IN] SystemArgument2 - Second system argument supplied to the DPC.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(SystemArgument1);
     UNREFERENCED_PARAMETER(SystemArgument2);
@@ -8722,6 +12174,24 @@ Stress7QueueRandomDpc(
     STRESS7_WORKER_CONTEXT* Worker,
     uint64_t Random
 )
+
+/*++
+
+    Routine description:
+
+        Queues random DPC for the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN] Worker - Worker context associated with the randomized test.
+        [IN] Random - Pseudo-random value controlling the test operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t ProcessorCount = MeGetActiveProcessorCount();
     uint32_t Target = (uint32_t)(Random % ProcessorCount);
@@ -8738,6 +12208,23 @@ static void
 Stress7Worker(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Runs a worker thread used by the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     STRESS7_WORKER_CONTEXT* Context = Parameter;
     while (!InterlockedLoadAcquire(&Context->Start)) {
@@ -8918,6 +12405,23 @@ static PETHREAD
 Stress7CreateRetainedThread(
     STRESS7_WORKER_CONTEXT* Context
 )
+
+/*++
+
+    Routine description:
+
+        Creates a referenced worker thread for the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN OUT] Context - Context associated with the operation.
+
+    Return Values:
+
+        A pointer to the resulting object, or NULL when no result is available.
+
+--*/
+
 {
     PETHREAD Thread = StressSuiteCreateThread(
         Stress7Worker,
@@ -8938,6 +12442,23 @@ static void
 Stress7JoinThread(
     STRESS7_WORKER_CONTEXT* Context
 )
+
+/*++
+
+    Routine description:
+
+        Waits for a worker to exit and releases its reference during the randomized synchronization stress test.
+
+    Arguments:
+
+        [IN OUT] Context - Context associated with the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     MTSTATUS Status = MsWaitForSingleObject(
         &Context->Thread->InternalThread.Header,
@@ -8964,6 +12485,25 @@ Stress7ValidateDispatcher(
     int32_t MinimumSignal,
     int32_t MaximumSignal
 )
+
+/*++
+
+    Routine description:
+
+        Validates dispatcher type, signal state, and waiter-list integrity during the randomized stress test.
+
+    Arguments:
+
+        [IN] Header - Dispatcher header affected by the operation.
+        [IN] MinimumSignal - Lowest valid dispatcher signal state.
+        [IN] MaximumSignal - Highest valid dispatcher signal state.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Header->Lock, &OldIrql);
@@ -8984,6 +12524,23 @@ Stress7ValidateDispatcher(
 
 static void
 Stress7Controller(void)
+
+/*++
+
+    Routine description:
+
+        Coordinates the randomized synchronization stress test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     uint32_t ProcessorCount = MeGetActiveProcessorCount();
     uint32_t ThreadObjects = InterlockedLoadAcquire(
@@ -9328,6 +12885,25 @@ StressExceptionChainBugCheck(
     MTSTATUS Status,
     void* Detail
 )
+
+/*++
+
+    Routine description:
+
+        Stops the user exception-chain stress test and records the failed invariant.
+
+    Arguments:
+
+        [IN] Failure - Shared slot that receives the first test failure.
+        [IN] Status - Status value associated with the operation.
+        [IN] Detail - Diagnostic detail identifying the tested invariant.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // P1 identifies the exception-chain suite, P2 is the failed stage, and
     // P3/P4 carry the returned status and stage-specific detail.
@@ -9344,6 +12920,23 @@ static bool
 StressExceptionChainProcessSignaled(
     PEPROCESS Process
 )
+
+/*++
+
+    Routine description:
+
+        Reports whether the exception-chain test process has terminated.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
 {
     IRQL OldIrql;
     MsAcquireSpinlock(&Process->InternalProcess.Header.Lock, &OldIrql);
@@ -9356,6 +12949,23 @@ static uintptr_t
 StressExceptionChainResolveUserApcAddress(
     PEPROCESS Process
 )
+
+/*++
+
+    Routine description:
+
+        Resolves user APC address for the user exception-chain stress test.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+
+    Return Values:
+
+        The value measured or generated by the stress-test step.
+
+--*/
+
 {
     PETHREAD Thread = PsGetNextProcessThread(Process, NULL);
     if (!Thread) {
@@ -9378,6 +12988,24 @@ StressExceptionChainQueueUserApcs(
     PEPROCESS Process,
     uintptr_t ApcRoutine
 )
+
+/*++
+
+    Routine description:
+
+        Queues the user APCs used by the exception-chain stress test.
+
+    Arguments:
+
+        [IN] Process - Process affected by the operation.
+        [IN] ApcRoutine - User APC entry point resolved in the target process.
+
+    Return Values:
+
+        The number of APCs inserted successfully.
+
+--*/
+
 {
     uint32_t InsertedCount = 0;
     PETHREAD Thread = PsGetNextProcessThread(Process, NULL);
@@ -9513,6 +13141,23 @@ static void
 StressExceptionChainController(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the user exception-chain stress test and reports its final result.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
 #if MT_STRESS_AUTOMATION
     StressAutomationWriteText("MT-EXCEPTION CAMPAIGN START\n");
@@ -10041,6 +13686,18 @@ StressLoaderFailureName(
     case MT_LOADER_TEST_MISSING_MODULE:      return "MISSING-MODULE";
     case MT_LOADER_TEST_MISSING_EXPORT:      return "MISSING-EXPORT";
     case MT_LOADER_TEST_INVALID_PARAMETER:   return "INVALID-PARAMETER";
+    case MT_LOADER_TEST_UNLOAD_REFERENCE:    return "UNLOAD-REFERENCE";
+    case MT_LOADER_TEST_DETACH:              return "DETACH";
+    case MT_LOADER_TEST_UNLOAD_REMOVAL:      return "UNLOAD-REMOVAL";
+    case MT_LOADER_TEST_RELOAD:              return "RELOAD";
+    case MT_LOADER_TEST_PINNED:              return "PINNED";
+    case MT_LOADER_TEST_CONCURRENT:          return "CONCURRENT";
+    case MT_LOADER_TEST_FREE_STATUS:         return "FREE-STATUS";
+    case MT_LOADER_TEST_NO_ENTRY_LOAD:       return "NO-ENTRY-LOAD";
+    case MT_LOADER_TEST_NO_ENTRY_STATE:      return "NO-ENTRY-STATE";
+    case MT_LOADER_TEST_NO_ENTRY_EXPORT:     return "NO-ENTRY-EXPORT";
+    case MT_LOADER_TEST_NO_ENTRY_FREE:       return "NO-ENTRY-FREE";
+    case MT_LOADER_TEST_NO_ENTRY_REMOVAL:    return "NO-ENTRY-REMOVAL";
     default:                                 return "UNKNOWN-EXIT";
     }
 }
@@ -10106,6 +13763,23 @@ static void
 StressSuiteController(
     THREAD_PARAMETER Parameter
 )
+
+/*++
+
+    Routine description:
+
+        Coordinates the combined synchronization stress suite and reports its final result.
+
+    Arguments:
+
+        [IN] Parameter - Context supplied when the worker thread was created.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -10251,7 +13925,25 @@ StressSuiteController(
 
 /** Remember that paging is on when this is called, as UEFI turned it on. */
 __attribute__((noreturn))
-void kernel_main(BOOT_INFO* boot_info) {
+void kernel_main(BOOT_INFO* boot_info)
+
+/*++
+
+    Routine description:
+
+        Initializes the kernel subsystems and enters the selected startup or stress-test path.
+
+    Arguments:
+
+        [IN] boot_info - Firmware boot information supplied by the loader.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // 1. CORE SYSTEM INITIALIZATION
     __writemsr(IA32_GS_BASE, (uint64_t)&cpu0);
     __cli();
