@@ -80,7 +80,8 @@ MsReleaseSemaphoreChecked(
 
     Return Values:
 
-        Previous count of the semaphore
+        MT_SUCCESS on success, or MT_INVALID_ADDRESS, MT_INVALID_PARAM, or
+        MT_SEMAPHORE_LIMIT_EXCEEDED when validation fails.
 
 --*/
 
@@ -152,6 +153,24 @@ MsReleaseSemaphore(
     IN PSEMAPHORE Semaphore,
     IN int32_t Adjustment
 )
+
+/*++
+
+    Routine description:
+
+        Releases permits from a semaphore and returns its previous count.
+
+    Arguments:
+
+        [IN OUT] Semaphore - The semaphore to adjust.
+        [IN] Adjustment - The positive number of permits to release.
+
+    Return Values:
+
+        The previous permit count. A limit violation is treated as a kernel
+        bug and bugchecks after the checked helper reports failure.
+
+--*/
 {
     int32_t PreviousCount = 0;
 

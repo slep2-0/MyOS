@@ -20,30 +20,77 @@ Revision History:
 #include "includes/exports.h"
 #include "includes/errorhandlingapi.h"
 
+MTDLL_API
 void*
 memcpy(
-    void* Destination,
-    const void* Source,
+    void* RESTRICT Destination,
+    const void* RESTRICT Source,
     size_t Size
 )
 
+/*++
+
+    Routine description:
+
+        Copies a byte range between buffers.
+
+    Arguments:
+
+        [OUT] Destination - The destination buffer.
+        [IN] Source - The source buffer.
+        [IN] Size - The number of bytes to copy.
+
+    Return Values:
+
+        Destination.
+
+    Notes:
+
+        The source and destination ranges must be valid and non-overlapping.
+
+--*/
+
 {
-    uint8_t* DestinationBytes = (uint8_t*)Destination;
-    const uint8_t* SourceBytes = (const uint8_t*)Source;
+    void* Result = Destination;
 
-    for (size_t Index = 0; Index < Size; Index++) {
-        DestinationBytes[Index] = SourceBytes[Index];
-    }
+    // Use rep movsb because its fast af on modern processors
+    __asm__ volatile (
+        "rep movsb"
+        : "+D"(Destination),
+        "+S"(Source),
+        "+c"(Size)
+        :
+        : "memory"
+        );
 
-    return Destination;
+    return Result;
 }
 
-void* 
+MTDLL_API
+void*
 memset(
     void* Destination,
     int Value,
     size_t Size
 )
+
+/*++
+
+    Routine description:
+
+        Fills a buffer with one byte value.
+
+    Arguments:
+
+        [OUT] Destination - The buffer to fill.
+        [IN] Value - The byte value written to the buffer.
+        [IN] Size - The number of bytes to write.
+
+    Return Values:
+
+        Destination.
+
+--*/
 
 {
     unsigned char* Bytes = (unsigned char*)Destination;
@@ -55,6 +102,7 @@ memset(
     return Destination;
 }
 
+MTDLL_API
 void*
 VirtualAlloc(
     _In_Opt _Out_Opt void** BaseAddress,
@@ -85,6 +133,7 @@ VirtualAlloc(
     return VirtualAllocEx(MtCurrentProcess(), BaseAddress, AllocationSize, AllocationType);
 }
 
+MTDLL_API
 void* VirtualAllocEx(
     IN HANDLE ProcessHandle,
     _In_Opt _Out_Opt void** BaseAddress,
@@ -139,22 +188,59 @@ void* VirtualAllocEx(
     return NULL;
 }
 
+MTDLL_API
 bool
 VirtualQuery(
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 )
 
+/*++
+
+    Routine description:
+
+        Queries the virtual memory region containing an address.
+
+    Arguments:
+
+        [IN] BaseAddress - An address within the region to query.
+        [OUT] MemoryInformation - Receives the region information.
+
+    Return Values:
+
+        true when the query succeeds, or false when the native query fails.
+
+--*/
+
 {
     return VirtualQueryEx(MtCurrentProcess(), BaseAddress, MemoryInformation);
 }
 
+MTDLL_API
 bool
 VirtualQueryEx(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress,
     OUT PMEMORY_BASIC_INFORMATION MemoryInformation
 )
+
+/*++
+
+    Routine description:
+
+        Queries a virtual memory region in a target process.
+
+    Arguments:
+
+        [IN] ProcessHandle - The process whose address space is queried.
+        [IN] BaseAddress - An address within the region to query.
+        [OUT] MemoryInformation - Receives the region information.
+
+    Return Values:
+
+        true when the query succeeds, or false when the native query fails.
+
+--*/
 
 {
     // Call kernel.
@@ -165,6 +251,7 @@ VirtualQueryEx(
     return MT_SUCCEEDED(Status);
 }
 
+MTDLL_API
 bool
 VirtualProtect(
     IN void* BaseAddress,
@@ -173,10 +260,30 @@ VirtualProtect(
     OUT USER_PROTECTION_TYPE* OldProtection
 )
 
+/*++
+
+    Routine description:
+
+        Changes protection on a virtual memory region.
+
+    Arguments:
+
+        [IN] BaseAddress - The first address in the region to protect.
+        [IN] RegionSize - The size of the region in bytes.
+        [IN] NewProtection - The protection to apply.
+        [OUT] OldProtection - Receives the previous protection.
+
+    Return Values:
+
+        true when protection changes successfully, or false on failure.
+
+--*/
+
 {
     return VirtualProtectEx(MtCurrentProcess(), BaseAddress, RegionSize, NewProtection, OldProtection);
 }
 
+MTDLL_API
 bool
 VirtualProtectEx(
     IN HANDLE ProcessHandle,
@@ -185,6 +292,26 @@ VirtualProtectEx(
     IN USER_PROTECTION_TYPE NewProtection,
     OUT USER_PROTECTION_TYPE* OldProtection
 )
+
+/*++
+
+    Routine description:
+
+        Changes protection on a target process memory region.
+
+    Arguments:
+
+        [IN] ProcessHandle - The process whose address space is modified.
+        [IN] BaseAddress - The first address in the region to protect.
+        [IN] RegionSize - The size of the region in bytes.
+        [IN] NewProtection - The protection to apply.
+        [OUT] OldProtection - Receives the previous protection.
+
+    Return Values:
+
+        true when protection changes successfully, or false on failure.
+
+--*/
 
 {
     // Call kernel.
@@ -197,6 +324,7 @@ VirtualProtectEx(
     return MT_SUCCEEDED(Status);
 }
 
+MTDLL_API
 bool
 VirtualFree(
     IN void* BaseAddress,
@@ -204,10 +332,29 @@ VirtualFree(
     IN FREE_TYPE FreeType
 )
 
+/*++
+
+    Routine description:
+
+        Releases virtual memory in the current process.
+
+    Arguments:
+
+        [IN] BaseAddress - The base address of the allocation to release.
+        [IN] NumberOfBytes - The requested size used by the release operation.
+        [IN] FreeType - The release operation to perform.
+
+    Return Values:
+
+        true when the memory is released, or false on failure.
+
+--*/
+
 {
     return VirtualFreeEx(MtCurrentProcess(), BaseAddress, NumberOfBytes, FreeType);
 }
 
+MTDLL_API
 bool
 VirtualFreeEx(
     IN HANDLE ProcessHandle,
@@ -215,6 +362,25 @@ VirtualFreeEx(
     IN size_t NumberOfBytes,
     IN FREE_TYPE FreeType
 )
+
+/*++
+
+    Routine description:
+
+        Releases virtual memory in a target process.
+
+    Arguments:
+
+        [IN] ProcessHandle - The process whose address space is modified.
+        [IN] BaseAddress - The base address of the allocation to release.
+        [IN] NumberOfBytes - The requested size used by the release operation.
+        [IN] FreeType - The release operation to perform.
+
+    Return Values:
+
+        true when the memory is released, or false on failure.
+
+--*/
 
 {
     // Call kernel.

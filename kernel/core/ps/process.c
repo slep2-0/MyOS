@@ -332,7 +332,7 @@ PsCreateProcess(
     }
 
     // Create the EPROCESS Object.
-    Status = ObCreateObject(PsProcessType, sizeof(EPROCESS), (void*)&Process);
+    Status = ObCreateObject(PsProcessType, sizeof(EPROCESS), (void**)&Process);
     if (MT_FAILURE(Status)) goto Cleanup;
 
     // Initialize the push locks first
@@ -393,7 +393,7 @@ PsCreateProcess(
     // Open MTDLL for the process. (ALWAYS needed to map it into memory, code below also uses it)
     HANDLE MtdllHandle;
 
-    Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, &MtdllHandle);
+    Status = FsCreateFile(MTDLL_PATH, MT_FILE_ALL_ACCESS, FILE_OPEN_EXISTING, &MtdllHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // Reference the handle
@@ -474,7 +474,7 @@ PsCreateProcess(
 
     // Get the file handle.
     HANDLE FileHandle;
-    Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, &FileHandle);
+    Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, FILE_OPEN_EXISTING, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
     // Reference the handle, and then close it so only the pointer reference remains (this)
     Status = ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
@@ -582,7 +582,7 @@ PsCreateProcess(
     gop_printf(COLOR_CYAN, "Process %s created at base %p and entrypoint %p\n", Process->ImageName, ExecutableBaseAddress, StartAddress);
 #endif
 
-    Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, MtdllInitializeProcess);
+    Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, (ThreadEntry)MtdllInitializeProcess);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // We are, successful.

@@ -128,16 +128,19 @@ MsReleaseMutexObject (
 
 /*++
 
-    Routine description : Releases one level of mutex ownership. A final
-                          release transfers ownership to at most one waiter.
+    Routine description:
+
+        Releases one level of mutex ownership. A final release transfers
+        ownership to at most one waiter.
 
     Arguments:
 
-        Pointer to MUTEX object.
+        [IN OUT] Mutex - The resident mutex object to release.
 
     Return Values:
 
-        MTSTATUS Code.
+        MT_SUCCESS on release, or MT_MUTEX_NOT_OWNED when the current thread
+        does not own the mutex.
 
 --*/
 

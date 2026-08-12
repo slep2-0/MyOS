@@ -25,6 +25,16 @@ gdt_descriptor:
     dq gdt_start
 
 section .text
+
+; Routine description:
+;     Establishes the initial kernel execution environment and enters
+;     kernel_main with the boot information pointer in RDI.
+;
+; Arguments:
+;     RDI - Pointer to BOOT_INFO supplied by the bootloader.
+;
+; Return values:
+;     None. If kernel_main returns, the processor remains halted.
 _start:
     ; Signify that we have reached the entrypoint for debugging. 
     mov rax, 0xFFFFFFFACCE55

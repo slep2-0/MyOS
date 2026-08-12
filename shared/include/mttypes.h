@@ -44,16 +44,24 @@ typedef struct _MTDLL_BASIC_TYPES {
     uint64_t EpochCreation;
 } MTDLL_BASIC_TYPES, *PMTDLL_BASIC_TYPES;
 
+typedef enum _LDR_MODULE_STATE {
+    LdrModuleLoading,
+    LdrModuleLoaded
+} LDR_MODULE_STATE;
+
 typedef struct _LDR_DATA_TABLE_ENTRY {
     void* EntryPoint;
     void* Base;
     uint64_t SizeOfImage;
+    LDR_MODULE_STATE State;
+    uint32_t ReferenceCount;
     char FullName[256];
     uint64_t LoadTime;
     DOUBLY_LINKED_LIST LoadedModuleList;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef struct _PEB_LDR_DATA {
+    HANDLE LoaderLock; // Mutex lock for creating DLLs
     DOUBLY_LINKED_LIST LoadedModuleList;
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
 

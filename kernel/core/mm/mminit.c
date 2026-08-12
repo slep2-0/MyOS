@@ -20,6 +20,7 @@ Revision History:
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
 #include "../../includes/ob.h"
+#include "../../../shared/include/accessrights.h"
 #include "../../assert.h"
 
 #define IA32_PAT 0x277

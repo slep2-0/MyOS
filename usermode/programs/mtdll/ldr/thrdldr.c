@@ -26,6 +26,26 @@ LdrpInitializeBase(
     IN PTEB TebPointer
 )
 
+/*++
+
+    Routine description:
+
+        Publishes the supplied TEB as the current thread's GS base.
+
+    Arguments:
+
+        [IN] TebPointer - The TEB to publish for the current thread.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The TEB must remain valid for the lifetime of the thread.
+
+--*/
+
 {
     __asm__ volatile (
         "wrgsbase %0"
@@ -35,6 +55,7 @@ LdrpInitializeBase(
         );
 }
 
+MTDLL_API
 void
 LdrInitializeThread(
     IN PTEB Teb,
@@ -42,6 +63,27 @@ LdrInitializeThread(
     IN uint64_t EntryPoint,
     IN uintptr_t ThreadParameter
 )
+
+/*++
+
+    Routine description:
+
+        Initializes a thread's TEB, invokes its start routine, and requests
+        thread termination after the start routine returns.
+
+    Arguments:
+
+        [IN] Teb - The TEB assigned to the new thread.
+        [IN] Peb - The process environment block owning the thread.
+        [IN] EntryPoint - The thread start routine address.
+        [IN] ThreadParameter - The value passed to the start routine.
+
+    Return Values:
+
+        None. The routine normally terminates the current thread before it can
+        return.
+
+--*/
 
 {
     // Link the TEB to the PEB.

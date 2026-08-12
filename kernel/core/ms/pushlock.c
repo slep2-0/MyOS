@@ -27,6 +27,27 @@ MspQueuePushLockWaiterLocked(
     IN PPUSH_LOCK_WAIT_BLOCK Waiter
 )
 
+/*++
+
+    Routine description:
+
+        Appends a push-lock waiter to the protected FIFO queue.
+
+    Arguments:
+
+        [IN OUT] PushLock - The push lock whose queue is protected.
+        [IN OUT] Waiter - The stack wait block to append.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The caller must hold PushLock->StateLock.
+
+--*/
+
 {
     // Next waiter is initially NULL.
     Waiter->Next = NULL;
@@ -50,6 +71,23 @@ MspWakePushLockWaiters(
     IN PPUSH_LOCK_WAIT_BLOCK WaitHead
 )
 
+/*++
+
+    Routine description:
+
+        Signals a detached list of push-lock waiters and publishes completion
+        after the waker no longer accesses each stack wait block.
+
+    Arguments:
+
+        [IN] WaitHead - The detached waiter list.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     while (WaitHead != NULL) {
         // Save the next stack wait block before publishing WakeComplete. Once
@@ -71,6 +109,28 @@ PPUSH_LOCK_WAIT_BLOCK
 MspGrantPushLockWaitersLocked(
     IN PPUSH_LOCK PushLock
 )
+
+/*++
+
+    Routine description:
+
+        Transfers an unowned push lock to the first eligible exclusive waiter
+        or to the consecutive shared waiters at the queue head.
+
+    Arguments:
+
+        [IN OUT] PushLock - The push lock whose queue is protected.
+
+    Return Values:
+
+        The detached waiter list to wake, or NULL when no waiter is queued.
+
+    Notes:
+
+        The caller must hold PushLock->StateLock and must wake the returned
+        list after releasing that lock.
+
+--*/
 
 {
     // Remove the selected waiter from PushLock
@@ -148,6 +208,22 @@ MsInitializePushLock(
     IN PPUSH_LOCK PushLock
 )
 
+/*++
+
+    Routine description:
+
+        Initializes a push lock in its unowned state.
+
+    Arguments:
+
+        [OUT] PushLock - The push lock storage to initialize.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     assert(PushLock != NULL);
 
@@ -162,6 +238,26 @@ void
 MsAcquirePushLockExclusive(
     IN PUSH_LOCK* Lock
 )
+
+/*++
+
+    Routine description:
+
+        Acquires a push lock exclusively, waiting when another owner exists.
+
+    Arguments:
+
+        [IN OUT] Lock - The push lock to acquire.
+
+    Return Values:
+
+        None. The routine returns after exclusive ownership is granted.
+
+    Notes:
+
+        The routine may block and must be called at APC_LEVEL or below.
+
+--*/
 {
     assert(Lock != NULL);
     assert(MeGetCurrentIrql() <= APC_LEVEL,
@@ -217,6 +313,22 @@ void
 MsReleasePushLockExclusive(
     IN PUSH_LOCK* Lock
 )
+
+/*++
+
+    Routine description:
+
+        Releases exclusive ownership and wakes the next eligible waiters.
+
+    Arguments:
+
+        [IN OUT] Lock - The exclusively owned push lock.
+
+    Return Values:
+
+        None.
+
+--*/
 {
     assert(Lock != NULL);
 
@@ -243,6 +355,27 @@ void
 MsAcquirePushLockShared(
     IN PUSH_LOCK* Lock
 )
+
+/*++
+
+    Routine description:
+
+        Acquires a push lock for shared ownership, waiting behind an exclusive
+        owner or queued writer.
+
+    Arguments:
+
+        [IN OUT] Lock - The push lock to acquire.
+
+    Return Values:
+
+        None. The routine returns after shared ownership is granted.
+
+    Notes:
+
+        The routine may block and must be called at APC_LEVEL or below.
+
+--*/
 {
     assert(Lock != NULL);
     assert(MeGetCurrentIrql() <= APC_LEVEL,
@@ -291,6 +424,23 @@ void
 MsReleasePushLockShared(
     IN PUSH_LOCK* Lock
 )
+
+/*++
+
+    Routine description:
+
+        Releases one shared owner and grants queued waiters when the final
+        shared owner leaves.
+
+    Arguments:
+
+        [IN OUT] Lock - The shared-owned push lock.
+
+    Return Values:
+
+        None.
+
+--*/
 {
     assert(Lock != NULL);
 

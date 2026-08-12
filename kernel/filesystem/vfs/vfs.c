@@ -10,6 +10,7 @@
 #include "../../drivers/ahci/ahci.h"
 #include "../fat32/fat32.h"
 #include "../../includes/macros.h"
+#include "../../../shared/include/fileapi.h"
 
 typedef struct MOUNTED_FS {
 	FS_DRIVER* driver;
@@ -197,6 +198,7 @@ MTSTATUS FsCreateDirectory(
 MTSTATUS FsCreateFile(
 	IN const char* path,
 	IN ACCESS_MASK DesiredAccess,
+	IN FILE_CREATION_DISPOSITION CreationDisposition,
 	OUT PHANDLE FileHandleOut
 )
 
@@ -204,7 +206,7 @@ MTSTATUS FsCreateFile(
 	MOUNTED_FS* fs = vfs_find_fs_for_path(path);
 	if (!fs || !fs->driver || !fs->driver->CreateFile) return MT_NOT_IMPLEMENTED;
 	PFILE_OBJECT FileObject = NULL;
-	MTSTATUS Status = fs->driver->CreateFile(path, &FileObject);
+	MTSTATUS Status = fs->driver->CreateFile(path, CreationDisposition, &FileObject);
 	if (MT_FAILURE(Status)) return Status;
 
 	// File opened.

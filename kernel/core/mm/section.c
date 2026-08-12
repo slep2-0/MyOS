@@ -181,7 +181,7 @@ MmMapViewOfSection(
     MTSTATUS Status = MmAllocateVirtualMemory(
         Process,
         (void**)&load_base,
-        Section->WholeFileSection.VirtualSize,
+        Section->ImageSize,
         Section->WholeFileSection.Protection
     );
 
@@ -192,7 +192,7 @@ MmMapViewOfSection(
         Status = MmAllocateVirtualMemory(
             Process,
             (void**)&load_base,
-            Section->WholeFileSection.VirtualSize,
+            Section->ImageSize,
             Section->WholeFileSection.Protection
         );
     }
@@ -202,7 +202,7 @@ MmMapViewOfSection(
     if (load_base > MmHighestUserAddress || Section->ImageSize == 0 ||
         Section->ImageSize - 1 > MmHighestUserAddress - load_base) {
         void* AllocationBase = (void*)load_base;
-        size_t AllocationSize = Section->WholeFileSection.VirtualSize;
+        size_t AllocationSize = Section->ImageSize;
         MmFreeVirtualMemory(
             Process,
             &AllocationBase,
@@ -220,7 +220,7 @@ MmMapViewOfSection(
     if (!Vad || (Section->FileObject && !ObReferenceObject(Section->FileObject))) {
         MsReleasePushLockExclusive(&Process->VadLock);
         void* AllocationBase = (void*)load_base;
-        size_t AllocationSize = Section->WholeFileSection.VirtualSize;
+        size_t AllocationSize = Section->ImageSize;
         MmFreeVirtualMemory(
             Process,
             &AllocationBase,
@@ -236,38 +236,6 @@ MmMapViewOfSection(
     Vad->Flags |= VAD_FLAG_MAPPED_FILE;
     MsReleasePushLockExclusive(&Process->VadLock);
 
-    // .bss lives immediately after the file data in Virtual Memory.
-    if (Section->Bss.VirtualSize > 0) {
-        // The RVA where BSS logically starts
-        uintptr_t BssStartVa = load_base + Section->WholeFileSection.VirtualSize;
-        // The RVA where BSS ends
-        uintptr_t BssEndVa = BssStartVa + Section->Bss.VirtualSize;
-
-        // The start of the NEXT page after the file data
-        uintptr_t NextPageVa = ALIGN_UP(BssStartVa, VirtualPageSize);
-
-        // 2. Allocate the overflow
-        // Only if BSS is large enough to cross into the next page
-        if (BssEndVa > NextPageVa) {
-            uintptr_t OverflowSize = BssEndVa - NextPageVa;
-            uintptr_t AllocBase = NextPageVa;
-
-            Status = MmAllocateVirtualMemory(
-                Process,
-                (void**)&AllocBase, // Must be page aligned
-                OverflowSize,
-                Section->Bss.Protection
-            );
-
-            if (MT_FAILURE(Status)) {
-                void* load_Base_temp = (void*)load_base;
-                size_t AllocationSize = Section->WholeFileSection.VirtualSize;
-                MmFreeVirtualMemory(Process, &load_Base_temp, &AllocationSize, MEM_RELEASE);
-                goto Cleanup;
-            }
-        }
-    }
-
     // The true base address is at load_base
     *BaseAddress = (void*)load_base;
 
@@ -277,6 +245,25 @@ MmMapViewOfSection(
 
 Cleanup:
     return Status;
+}
+
+MTSTATUS
+MmUnmapViewOfSection(
+    PEPROCESS Process,
+    void* BaseAddress
+)
+
+{
+    if (!Process || !BaseAddress) return MT_INVALID_PARAM;
+
+    size_t NumberOfBytes = 0;
+
+    return MmFreeVirtualMemory(
+        Process,
+        &BaseAddress,
+        &NumberOfBytes,
+        MEM_RELEASE
+    );
 }
 
 void

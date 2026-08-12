@@ -66,6 +66,9 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 27, .Handler = MtSuspendThread},
     {.Num = 28, .Handler = MtResumeThread},
     {.Num = 29, .Handler = MtRaiseException},
+    {.Num = 30, .Handler = MtCreateSection},
+    {.Num = 31, .Handler = MtMapViewOfSection},
+    {.Num = 32, .Handler = MtUnmapViewOfSection},
     {.Num = 255, .Handler = MtPrintConsole}
 };
 
@@ -75,6 +78,23 @@ void
 MtSetupSyscall(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Initializes the SYSCALL MSRs and publishes the kernel system-service
+        dispatch table.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     // Write the Code Segment selectors into the STAR msr.

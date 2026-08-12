@@ -34,6 +34,31 @@ MeInitializeApc(
     _In_Opt void* NormalContext
 )
 
+/*++
+
+    Routine description:
+
+        Initializes an APC object with its target thread, execution mode, and
+        routine callbacks.
+
+    Arguments:
+
+        [OUT] Apc - The APC storage to initialize.
+        [IN] TargetThread - The thread that receives the APC.
+        [IN] ApcMode - KernelMode or UserMode delivery mode.
+        [IN] KernelRoutine - The kernel callback used during APC dispatch.
+        [IN OPTIONAL] RundownRoutine - The callback used if the APC is
+        discarded during rundown.
+        [IN OPTIONAL] NormalRoutine - The normal callback, if any.
+        [IN OPTIONAL] NormalContext - The context passed to NormalRoutine.
+
+    Return Values:
+
+        None. Invalid required pointers cause a bugcheck and invalid routine
+        combinations are rejected by assertions.
+
+--*/
+
 {
     if (!Apc || !TargetThread) {
         MeBugCheckEx(

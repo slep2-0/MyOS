@@ -24,6 +24,16 @@ extern MtpRestoreLanguageContext
 %define RESTORE_VALUE 0x6124
 
 global MtpRunLanguageContextAssemblyTest
+
+; Routine description:
+;     Verifies that the language-context helpers capture and restore the
+;     nonvolatile register set, stack pointer, and continuation value.
+;
+; Arguments:
+;     None.
+;
+; Return values:
+;     EAX = 0 on success, or a test-specific failure number.
 MtpRunLanguageContextAssemblyTest:
     ; Preserve the test caller's nonvolatile state before installing tokens.
     push rbx

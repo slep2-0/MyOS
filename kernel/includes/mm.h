@@ -291,17 +291,7 @@ typedef uint64_t PAGE_INDEX;
 #define MmIsAddressValid(VirtualAddress) MmIsAddressPresent(VirtualAddress)
 
 // ------------------ ACCESS RIGHTS ------------------
-
-#define MT_SECTION_QUERY             0x0001  // Query section info (size, attributes)
-#define MT_SECTION_MAP_WRITE         0x0002  // Map section with write permissions
-#define MT_SECTION_MAP_READ          0x0004  // Map section with read permissions
-#define MT_SECTION_MAP_EXECUTE       0x0008  // Map section with execute permissions
-#define MT_SECTION_EXTEND_SIZE       0x0010  // Extend section size (file-backed sections)
-#define MT_SECTION_MAP_EXECUTE_EXPL  0x0020  // Explicit executable mapping (DEP / NX override)
-
-// All valid section rights
-#define MT_SECTION_ALL_ACCESS        0x003F
-
+// 
 // ------------------ ENUMERATORS ------------------
 
 typedef enum _PFN_STATE {
@@ -1159,6 +1149,12 @@ MmMapViewOfSection(
     IN PEPROCESS Process,
     OUT void** EntryPointAddress,
     OUT void** BaseAddress
+);
+
+MTSTATUS
+MmUnmapViewOfSection(
+    PEPROCESS Process,
+    void* BaseAddress
 );
 
 // used by Ob, private.

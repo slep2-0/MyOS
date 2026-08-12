@@ -8,6 +8,16 @@
 #define _In_Opt
 #define _Out_Opt
 
+#ifndef RESTRICT
+#if defined(_MSC_VER)
+#define RESTRICT __restrict
+#elif defined(__clang__) || defined(__GNUC__)
+#define RESTRICT __restrict__
+#else
+#define RESTRICT
+#endif
+#endif
+
 #ifndef FORCEINLINE
 #if defined(__clang__) || defined(__GNUC__)
 #define FORCEINLINE static inline __attribute__((always_inline))

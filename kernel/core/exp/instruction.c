@@ -3,6 +3,24 @@
 bool
 ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
 
+/*++
+
+    Routine description:
+
+        Decodes the instruction at an address and determines whether it is a
+        privileged x86 instruction.
+
+    Arguments:
+
+        [IN] Ip - The instruction address to inspect.
+
+    Return Values:
+
+        true when the instruction requires kernel privilege, or false when it
+        is not recognized as privileged or the instruction probe faults.
+
+--*/
+
 // Desc: This will check if the instruction ran in the instruction pointer from user mode (or from anywhere really)
 // Is a privileged instruction or not (meaning, it could only be executed in KernelMode (CPL == 0)
 

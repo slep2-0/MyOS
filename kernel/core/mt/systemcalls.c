@@ -676,6 +676,7 @@ MTSTATUS
 MtCreateFile(
     IN const char* path,
     IN ACCESS_MASK DesiredAccess,
+    IN FILE_CREATION_DISPOSITION CreationDisposition,
     OUT PHANDLE FileHandleOut
 )
 
@@ -710,6 +711,7 @@ MtCreateFile(
     Status = FsCreateFile(
         KernelPath,
         DesiredAccess,
+        CreationDisposition,
         &KernelHandle
     );
     if (MT_FAILURE(Status)) return Status;
@@ -2768,7 +2770,197 @@ MtRaiseException(
     return ExpPublishUserException(&KExceptionRecord);
 }
 
-// THIS SYSCALL SHOULD NOT STAY! SINCE GOP IS TO BE RETIRED WHEN FULL OS - SYSCALL NUM - 696969
+MTSTATUS
+MtCreateSection(
+    OUT PHANDLE SectionHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN HANDLE FileHandle
+)
+
+{
+    MTSTATUS Status = ProbeForRead(SectionHandle, sizeof(HANDLE), _Alignof(HANDLE));
+    if (MT_FAILURE(Status)) return Status;
+   
+    // Reference the file handle
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        FileHandle,
+        MT_FILE_READ_DATA,
+        FsFileType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Call internal Mm function
+    void* SectionObject = NULL;
+    HANDLE KernelHandle = MT_INVALID_HANDLE;
+    Status = MmCreateSection(&SectionObject, (PFILE_OBJECT)Object);
+
+    if (MT_FAILURE(Status)) {
+        goto Cleanup;
+    }
+
+    // Create a handle for the section object
+    Status = ObCreateHandleForObject(SectionObject, DesiredAccess, &KernelHandle);
+
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // Copy handle back to user
+    try {
+        *SectionHandle = KernelHandle;
+        Status = MT_SUCCESS;
+    } except {
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+Cleanup:
+
+    if (MT_FAILURE(Status)) {
+
+        if (KernelHandle != MT_INVALID_HANDLE) {
+            HtClose(KernelHandle);
+        }
+
+    }
+
+    if (SectionObject) {
+        ObDereferenceObject(SectionObject);
+    }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtMapViewOfSection(
+    IN HANDLE SectionHandle,
+    IN HANDLE ProcessHandle,
+    OUT void** BaseAddress,
+    OUT void** EntryPointAddress,
+    OUT size_t* ViewSize
+)
+
+{
+    // Validate every OUT ptr first.
+    MTSTATUS Status = ProbeForRead(BaseAddress, sizeof(void*), _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(EntryPointAddress, sizeof(void*), _Alignof(void*));
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(ViewSize, sizeof(size_t), _Alignof(size_t));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Reference SectionHandle with MmSectionType and since current mapper creates a section with RWX mappings (.text .data), then
+    // we must require the correct section access flags
+    void* SectionObject = NULL;
+    void* ProcessObject = NULL;
+    bool AcquiredRundown = false;
+    bool MappedView = false;
+
+    Status = ObReferenceObjectByHandle(
+        SectionHandle,
+        MT_SECTION_MAP_READ | MT_SECTION_MAP_WRITE | MT_SECTION_MAP_EXECUTE,
+        MmSectionType,
+        &SectionObject,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    // Reference the process the caller wants to map a section in (file/etc) with VM_OPERATION since we allocate memory in the process for this.
+    Status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        MT_PROCESS_VM_OPERATION,
+        PsProcessType,
+        &ProcessObject,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    PEPROCESS Process = (PEPROCESS)ProcessObject;
+    // Acquire process rundown
+    if (!MsAcquireRundownProtection(&Process->ProcessRundown)) {
+        Status = MT_PROCESS_IS_TERMINATING;
+        goto Cleanup;
+    }
+
+    AcquiredRundown = true;
+
+    // Call internal Mm function now
+    void* KEntryPointAddress = NULL;
+    void* KBaseAddress = NULL;
+    Status = MmMapViewOfSection(SectionObject, Process, &KEntryPointAddress, &KBaseAddress);
+
+    if (MT_FAILURE(Status)) goto Cleanup;
+
+    MappedView = true;
+
+    size_t KernelViewSize = ((PMM_SECTION)SectionObject)->ImageSize;
+
+    // Copy all outputs back to user
+    try {
+        *ViewSize = KernelViewSize;
+        *BaseAddress = KBaseAddress;
+        *EntryPointAddress = KEntryPointAddress;
+    } except{
+        Status = GetExceptionCode();
+        goto Cleanup;
+    }
+    end_try;
+
+Cleanup:
+
+    if (MappedView && MT_FAILURE(Status)) {
+        MmUnmapViewOfSection((PEPROCESS)ProcessObject, KBaseAddress);
+    }
+
+    if (AcquiredRundown) {
+        MsReleaseRundownProtection(&((PEPROCESS)(ProcessObject))->ProcessRundown);
+    }
+
+    if (SectionObject) {
+        ObDereferenceObject(SectionObject);
+    }
+
+    if (ProcessObject) {
+        ObDereferenceObject(ProcessObject);
+    }
+
+    // need MmUnmapViewOfSection
+
+    return Status;
+}
+
+MTSTATUS
+MtUnmapViewOfSection(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress
+)
+
+{
+    void* Object = NULL;
+    MTSTATUS Status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        MT_PROCESS_VM_OPERATION,
+        PsProcessType,
+        &Object,
+        NULL
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = MmUnmapViewOfSection((PEPROCESS)Object, BaseAddress);
+    
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+// THIS SYSCALL SHOULD NOT STAY! SINCE GOP IS TO BE RETIRED WHEN FULL OS - SYSCALL NUM - 255
 MTSTATUS
 MtPrintConsole(
     IN uint32_t Color,

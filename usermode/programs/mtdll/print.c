@@ -15,7 +15,27 @@ typedef __builtin_va_list va_list;
 #include "includes/ioapi.h"
 
 // Helper: Safely place a character into the buffer
-static inline void put_char(char** buf, size_t* left, char c) {
+static inline void put_char(char** buf, size_t* left, char c)
+
+/*++
+
+    Routine description:
+
+        Appends one character when space remains for the terminating null
+        character.
+
+    Arguments:
+
+        [IN OUT] buf - The current output cursor.
+        [IN OUT] left - The remaining output capacity.
+        [IN] c - The character to append.
+
+    Return Values:
+
+        None.
+
+--*/
+{
     if (*left > 1) { // Leave room for null terminator
         **buf = c;
         (*buf)++;
@@ -24,7 +44,26 @@ static inline void put_char(char** buf, size_t* left, char c) {
 }
 
 // Helper: Safely place a string into the buffer
-static void put_string(char** buf, size_t* left, const char* str) {
+static void put_string(char** buf, size_t* left, const char* str)
+
+/*++
+
+    Routine description:
+
+        Appends a string to the bounded output buffer.
+
+    Arguments:
+
+        [IN OUT] buf - The current output cursor.
+        [IN OUT] left - The remaining output capacity.
+        [IN] str - The string to append.
+
+    Return Values:
+
+        None. A NULL string is rendered as "(null)".
+
+--*/
+{
     if (!str) str = "(null)";
     while (*str) {
         put_char(buf, left, *str++);
@@ -32,7 +71,29 @@ static void put_string(char** buf, size_t* left, const char* str) {
 }
 
 // Helper: Convert number to string and place in buffer
-static void put_number(char** buf, size_t* left, uint64_t val, int base, int is_signed) {
+static void put_number(char** buf, size_t* left, uint64_t val, int base, int is_signed)
+
+/*++
+
+    Routine description:
+
+        Converts an integer to the requested base and appends it to the
+        bounded output buffer.
+
+    Arguments:
+
+        [IN OUT] buf - The current output cursor.
+        [IN OUT] left - The remaining output capacity.
+        [IN] val - The value to convert.
+        [IN] base - The numeric base used for conversion.
+        [IN] is_signed - Whether val is interpreted as signed.
+
+    Return Values:
+
+        None.
+
+--*/
+{
     char temp[65]; // Large enough for 64-bit binary/hex/dec
     char* t = temp + sizeof(temp) - 1;
     const char* digits = "0123456789abcdef";
@@ -56,7 +117,33 @@ static void put_number(char** buf, size_t* left, uint64_t val, int base, int is_
 }
 
 // The core formatting engine
-int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
+MTDLL_API
+int vsnprintf(char* str, size_t size, const char* format, va_list ap)
+
+/*++
+
+    Routine description:
+
+        Formats arguments into a bounded string using a va_list.
+
+    Arguments:
+
+        [OUT] str - The destination string buffer.
+        [IN] size - The size of the destination buffer in bytes.
+        [IN] format - The format string.
+        [IN] ap - The argument list consumed by the formatter.
+
+    Return Values:
+
+        The number of characters written, excluding the terminating null
+        character. Zero is returned for an invalid buffer, size, or format.
+
+    Notes:
+
+        The output is always null-terminated when str and size are valid.
+
+--*/
+{
     if (!str || size == 0 || !format) return 0;
 
     char* buf = str;
@@ -121,7 +208,28 @@ int vsnprintf(char* str, size_t size, const char* format, va_list ap) {
 }
 
 // The variadic wrapper you actually call
-int snprintf(char* str, size_t size, const char* format, ...) {
+MTDLL_API
+int snprintf(char* str, size_t size, const char* format, ...)
+
+/*++
+
+    Routine description:
+
+        Formats variadic arguments into a bounded string.
+
+    Arguments:
+
+        [OUT] str - The destination string buffer.
+        [IN] size - The size of the destination buffer in bytes.
+        [IN] format - The format string followed by its arguments.
+
+    Return Values:
+
+        The number of characters written, excluding the terminating null
+        character, or zero for an invalid buffer, size, or format.
+
+--*/
+{
     va_list ap;
     va_start(ap, format);
     int ret = vsnprintf(str, size, format, ap);
@@ -129,7 +237,30 @@ int snprintf(char* str, size_t size, const char* format, ...) {
     return ret;
 }
 
-void printf(uint32_t Color, const char* fmt, ...) {
+MTDLL_API
+void printf(uint32_t Color, const char* fmt, ...)
+
+/*++
+
+    Routine description:
+
+        Formats a message into a temporary buffer and sends it to the console.
+
+    Arguments:
+
+        [IN] Color - The console color used for the message.
+        [IN] fmt - The format string followed by its arguments.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The formatted message is limited by the internal 256-byte buffer.
+
+--*/
+{
     char buffer[256];
 
     va_list ap;

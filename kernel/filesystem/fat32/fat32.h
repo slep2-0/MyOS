@@ -161,6 +161,7 @@ MTSTATUS fat32_create_directory(const char* path);
 
 MTSTATUS fat32_create_file(
 	IN const char* path,
+	IN FILE_CREATION_DISPOSITION CreationDisposition,
 	OUT PFILE_OBJECT* FileObjectOut
 );
 

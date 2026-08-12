@@ -404,6 +404,33 @@ MtRaiseException:
     syscall
     ret
 
+; MTSTATUS MtCreateSection(PHANDLE, ACCESS_MASK, HANDLE);
+; Syscall number is 30.
+global MtCreateSection
+MtCreateSection:
+	mov rax, 30
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtMapViewOfSection(HANDLE, HANDLE, void**, void**, size_t*);
+; Syscall number is 31.
+global MtMapViewOfSection
+MtMapViewOfSection:
+	mov rax, 31
+	mov r10, rcx
+	syscall
+	ret
+
+; MTSTATUS MtUnmapViewOfSection(HANDLE, void*);
+; Syscall number is 32.
+global MtUnmapViewOfSection
+MtUnmapViewOfSection:
+	mov rax, 32
+	mov r10, rcx
+	syscall
+	ret
+
 ; TO BE RETIRED
 global MtPrintConsole
 MtPrintConsole:

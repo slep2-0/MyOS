@@ -24,6 +24,7 @@
 #include "mtstatus.h"
 #include "synchapi.h"
 #include "mtexception.h"
+#include "../../shared/include/fileapi.h"
 
 /*
  * Native service stubs are provided by MTDLL. When MTDLL is built from C,
@@ -109,6 +110,7 @@ MTNATIVE_API MTSTATUS
 MtCreateFile(
     IN const char* Path,
     IN ACCESS_MASK DesiredAccess,
+    IN FILE_CREATION_DISPOSITION CreationDisposition,
     OUT PHANDLE FileHandle
 );
 
@@ -279,6 +281,28 @@ MtResumeThread(
 MTNATIVE_API MTSTATUS
 MtRaiseException(
     IN const EXCEPTION_RECORD* ExceptionRecord
+);
+
+MTNATIVE_API MTSTATUS
+MtCreateSection(
+    OUT PHANDLE SectionHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN HANDLE FileHandle
+);
+
+MTNATIVE_API MTSTATUS
+MtMapViewOfSection(
+    IN HANDLE SectionHandle,
+    IN HANDLE ProcessHandle,
+    OUT void** BaseAddress,
+    OUT void** EntryPointAddress,
+    OUT size_t* ViewSize
+);
+
+MTNATIVE_API MTSTATUS
+MtUnmapViewOfSection(
+    IN HANDLE ProcessHandle,
+    IN void* BaseAddress
 );
 
 MTNATIVE_API MTSTATUS

@@ -22,6 +22,7 @@ Revision History:
 #include "../mtstatus.h"
 #include "ob.h"
 #include "../../shared/include/accessrights.h"
+#include "../../shared/include/fileapi.h"
 
 #define MAX_PATH 256
 
@@ -109,7 +110,9 @@ typedef struct FS_DRIVER {
         IN  const char* path,
         OUT PFILE_OBJECT* OutDirectoryObject
         );
-    MTSTATUS(*CreateFile)(IN const char* path,
+    MTSTATUS(*CreateFile)(
+        IN const char* path,
+        IN FILE_CREATION_DISPOSITION CreationDisposition,
         OUT PFILE_OBJECT* FileObjectOut);
     void(*DeleteObjectProcedure)(IN void* Object);
 
@@ -123,6 +126,7 @@ MTSTATUS FsInitialize(void);
 MTSTATUS FsCreateFile(
     IN const char* path,
     IN ACCESS_MASK DesiredAccess,
+    IN FILE_CREATION_DISPOSITION CreationDisposition,
     OUT PHANDLE FileHandleOut
 );
 

@@ -16,6 +16,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_RANDOMIZED  2
 #define MT_STRESS_MODE_EXCEPTION_CHAIN 3
 #define MT_STRESS_MODE_HEAP        4
+#define MT_STRESS_MODE_LOADER      5
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -30,12 +31,16 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_HEAP
+    MT_STRESS_MODE > MT_STRESS_MODE_LOADER
 #error "MT_STRESS_MODE is invalid"
 #endif
 
 #if MT_STRESS_MODE == MT_STRESS_MODE_HEAP
 #include "../usermode/tests/heap_test.h"
+#endif
+
+#if MT_STRESS_MODE == MT_STRESS_MODE_LOADER
+#include "../usermode/tests/loader_test.h"
 #endif
 
 /**
@@ -9891,6 +9896,27 @@ StressHeapFailureName(
     case MT_HEAP_TEST_DESTROY:              return "DESTROY";
     case MT_HEAP_TEST_PROCESS_HEAP_DESTROY: return "PROCESS-HEAP-DESTROY";
     case MT_HEAP_TEST_DESTROY_EXCEPTION:    return "DESTROY-EXCEPTION";
+    case MT_HEAP_TEST_SIZE_SLAB:            return "SIZE-SLAB";
+    case MT_HEAP_TEST_SIZE_SEGMENT:         return "SIZE-SEGMENT";
+    case MT_HEAP_TEST_SIZE_INVALID:         return "SIZE-INVALID";
+    case MT_HEAP_TEST_SIZE_AFTER_FREE:      return "SIZE-AFTER-FREE";
+    case MT_HEAP_TEST_SIZE_CONCURRENT:      return "SIZE-CONCURRENT";
+    case MT_HEAP_TEST_SIZE_EXCEPTION:       return "SIZE-EXCEPTION";
+    case MT_HEAP_TEST_REALLOC_SAME:         return "REALLOC-SAME";
+    case MT_HEAP_TEST_REALLOC_MOVE:         return "REALLOC-MOVE";
+    case MT_HEAP_TEST_REALLOC_COPY:         return "REALLOC-COPY";
+    case MT_HEAP_TEST_REALLOC_ZERO:         return "REALLOC-ZERO";
+    case MT_HEAP_TEST_REALLOC_IN_PLACE:     return "REALLOC-IN-PLACE";
+    case MT_HEAP_TEST_REALLOC_PRESERVE:     return "REALLOC-PRESERVE";
+    case MT_HEAP_TEST_REALLOC_INVALID:      return "REALLOC-INVALID";
+    case MT_HEAP_TEST_REALLOC_CONCURRENT:   return "REALLOC-CONCURRENT";
+    case MT_HEAP_TEST_REALLOC_EXCEPTION:    return "REALLOC-EXCEPTION";
+    case MT_HEAP_TEST_LOCK_INVALID:         return "LOCK-INVALID";
+    case MT_HEAP_TEST_LOCK_RECURSIVE:       return "LOCK-RECURSIVE";
+    case MT_HEAP_TEST_LOCK_BLOCKING:        return "LOCK-BLOCKING";
+    case MT_HEAP_TEST_LOCK_OPERATION:       return "LOCK-OPERATION";
+    case MT_HEAP_TEST_UNLOCK_OWNER:         return "UNLOCK-OWNER";
+    case MT_HEAP_TEST_LOCK_EXCEPTION:       return "LOCK-EXCEPTION";
     default:                                return "UNKNOWN-EXIT";
     }
 }
@@ -9951,6 +9977,130 @@ StressHeapController(
 }
 #endif
 
+#if MT_STRESS_MODE == MT_STRESS_MODE_LOADER
+#if !MT_STRESS_AUTOMATION
+#error "The isolated loader runtime test requires MT_STRESS_AUTOMATION"
+#endif
+
+#define MT_LOADER_TEST_WAIT_TIMEOUT_MS 180000ULL
+#define MT_AUTOMATION_EXIT_FAIL        0x11
+
+static void
+StressLoaderWriteStatus(
+    IN MTSTATUS Status
+)
+{
+    static const char Digits[] = "0123456789ABCDEF";
+    uint32_t Value = (uint32_t)Status;
+    char Text[] = "0x00000000\n";
+
+    for (uint32_t Index = 0; Index < 8; Index++) {
+        uint32_t Shift = (7u - Index) * 4u;
+        Text[2 + Index] = Digits[(Value >> Shift) & 0xFu];
+    }
+
+    StressAutomationWriteText(Text);
+}
+
+NORETURN
+static void
+StressLoaderFailure(
+    IN const char* Failure
+)
+{
+    StressAutomationWriteText("MT-LOADER FAIL ");
+    StressAutomationWriteText(Failure);
+    StressAutomationWriteText("\n");
+    __cli();
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+
+static const char*
+StressLoaderFailureName(
+    IN MTSTATUS Status
+)
+{
+    switch (Status) {
+    case MT_LOADER_TEST_LOAD_FAILED:         return "LOAD";
+    case MT_LOADER_TEST_ENTRY_STATE:         return "ENTRY-STATE";
+    case MT_LOADER_TEST_REBASE:              return "REBASE";
+    case MT_LOADER_TEST_EXPORT:              return "EXPORT";
+    case MT_LOADER_TEST_IMPORT_RELOCATION:   return "IMPORT-RELOCATION";
+    case MT_LOADER_TEST_DUPLICATE_ENTRY:     return "DUPLICATE-ENTRY";
+    case MT_LOADER_TEST_DUPLICATE_REFERENCE: return "DUPLICATE-REFERENCE";
+    case MT_LOADER_TEST_ATTACH_REPEAT:       return "ATTACH-REPEAT";
+    case MT_LOADER_TEST_REJECT_STATUS:       return "REJECT-STATUS";
+    case MT_LOADER_TEST_REJECT_OUTPUT:       return "REJECT-OUTPUT";
+    case MT_LOADER_TEST_REJECT_ROLLBACK:     return "REJECT-ROLLBACK";
+    case MT_LOADER_TEST_LAST_STATUS:         return "LAST-STATUS";
+    case MT_LOADER_TEST_LAST_ERROR:          return "LAST-ERROR";
+    case MT_LOADER_TEST_MODULE_HANDLE:       return "MODULE-HANDLE";
+    case MT_LOADER_TEST_MISSING_MODULE:      return "MISSING-MODULE";
+    case MT_LOADER_TEST_MISSING_EXPORT:      return "MISSING-EXPORT";
+    case MT_LOADER_TEST_INVALID_PARAMETER:   return "INVALID-PARAMETER";
+    default:                                 return "UNKNOWN-EXIT";
+    }
+}
+
+static void
+StressLoaderController(
+    void
+)
+{
+    StressAutomationWriteText("MT-LOADER START\n");
+
+    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MTSTATUS Status = PsCreateProcess(
+        "terminateMyself.mtexe",
+        &ProcessHandle,
+        MT_PROCESS_ALL_ACCESS,
+        0
+    );
+    if (Status != MT_SUCCESS) {
+        StressLoaderFailure("CREATE-PROCESS");
+    }
+
+    Status = MtWaitForSingleObject(
+        ProcessHandle,
+        MT_LOADER_TEST_WAIT_TIMEOUT_MS,
+        false
+    );
+    if (Status != MT_SUCCESS) {
+        StressLoaderFailure(
+            Status == MT_TIMEOUT ? "PROCESS-TIMEOUT" : "PROCESS-WAIT"
+        );
+    }
+
+    PROCESS_BASIC_INFORMATION Information = { 0 };
+    uint32_t ReturnLength = 0;
+    Status = MtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        &Information,
+        sizeof(Information),
+        &ReturnLength
+    );
+    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+        StressLoaderFailure("QUERY-PROCESS");
+    }
+    if (Information.ExitStatus != MT_SUCCESS) {
+        StressAutomationWriteText("MT-LOADER EXIT-STATUS ");
+        StressLoaderWriteStatus(Information.ExitStatus);
+        StressLoaderFailure(StressLoaderFailureName(Information.ExitStatus));
+    }
+
+    Status = MtClose(ProcessHandle);
+    if (Status != MT_SUCCESS) {
+        StressLoaderFailure("CLOSE-PROCESS");
+    }
+
+    StressAutomationWriteText("MT-LOADER USER PASS\n");
+}
+#endif
+
 NORETURN
 static void
 StressSuiteController(
@@ -9983,6 +10133,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_HEAP
     StressHeapController();
     StressAutomationPass("HEAP");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_LOADER
+    StressLoaderController();
+    StressAutomationPass("LOADER");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();

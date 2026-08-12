@@ -12,23 +12,89 @@
 // Kernel/MTDLL ABI layouts are declared once by shared/include/mttypes.h,
 // which MatanelOS.h includes above.
 
+/*++
+
+    Routine description:
+
+        Links a language exception frame into the current thread's exception
+        chain.
+
+    Arguments:
+
+        [IN OUT] Frame - The frame to link.
+        [IN] Handler - The routine invoked during exception search.
+
+    Return Values:
+
+        None.
+
+--*/
 void
 MtpPushExceptionFrame(
     PEXCEPTION_REGISTRATION_RECORD Frame,
     PEXCEPTION_ROUTINE Handler
 );
 
+/*++
+
+    Routine description:
+
+        Removes a language exception frame from the current thread's chain.
+
+    Arguments:
+
+        [IN OUT] Frame - The frame to unlink.
+
+    Return Values:
+
+        None.
+
+--*/
 void
 MtpPopExceptionFrame(
     PEXCEPTION_REGISTRATION_RECORD Frame
 );
 
+/*++
+
+    Routine description:
+
+        Walks the current language exception chain and dispatches an exception.
+
+    Arguments:
+
+        [IN] ExceptionRecord - The exception record to dispatch.
+        [IN OUT] ContextRecord - The register context associated with it.
+
+    Return Values:
+
+        true when a handler accepts the exception, or false when the chain is
+        exhausted or no handler accepts it.
+
+--*/
 bool
 MtpDispatchException(
     PEXCEPTION_RECORD ExceptionRecord,
     PCONTEXT ContextRecord
 );
 
+/*++
+
+    Routine description:
+
+        Receives a prepared user exception and enters the user-mode dispatch
+        path.
+
+    Arguments:
+
+        [IN] ExceptionRecord - The exception record.
+        [IN OUT] ContextRecord - The user register context.
+
+    Return Values:
+
+        Does not return.
+
+--*/
 NORETURN
 void
 MtpUserExceptionDispatcher(
@@ -36,6 +102,22 @@ MtpUserExceptionDispatcher(
     PCONTEXT ContextRecord
 );
 
+/*++
+
+    Routine description:
+
+        Restores a saved language context and returns with the supplied value.
+
+    Arguments:
+
+        [IN] Context - The saved context.
+        [IN] ReturnValue - The value returned by the restored context.
+
+    Return Values:
+
+        Does not return to the caller.
+
+--*/
 NORETURN
 void
 MtpRestoreLanguageContext(
@@ -43,6 +125,22 @@ MtpRestoreLanguageContext(
     int ReturnValue
 );
 
+/*++
+
+    Routine description:
+
+        Restores a saved language context for filter continuation.
+
+    Arguments:
+
+        [IN] Context - The saved context.
+        [IN] ReturnValue - The filter return value.
+
+    Return Values:
+
+        Does not return to the caller.
+
+--*/
 NORETURN
 void
 MtpRestoreLanguageContextForFilter(
@@ -177,4 +275,30 @@ MtCurrentTeb(
 }
 
 #define MtCurrentPeb() (MtCurrentTeb()->ProcessEnvironmentBlock)
+
+PLDR_DATA_TABLE_ENTRY
+LdrFindEntryForModule(
+    IN const char* ModuleName,
+    IN PPEB Peb,
+    IN bool UseFullPath
+);
+
+MTSTATUS
+LdrLoadDll(
+    IN const char* DllPath,
+    OUT PLDR_DATA_TABLE_ENTRY* DllEntry
+);
+
+MTSTATUS
+LdrpProcessImports(
+    IN PLDR_DATA_TABLE_ENTRY ExecutableEntry,
+    IN PPEB PebPointer
+);
+
+MTSTATUS
+LdrpGetProcedureAddress(
+    IN PLDR_DATA_TABLE_ENTRY DllEntry,
+    IN const char* FunctionName,
+    OUT void** ProcdureAddress
+);
 

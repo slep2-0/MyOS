@@ -16,6 +16,13 @@ typedef struct _HEAP_TEST_WORKER_CONTEXT {
     volatile MTSTATUS Status;
 } HEAP_TEST_WORKER_CONTEXT, *PHEAP_TEST_WORKER_CONTEXT;
 
+typedef struct _HEAP_TEST_LOCK_CONTEXT {
+    MT_HEAP_HANDLE Heap;
+    HANDLE StartedEvent;
+    HANDLE FinishedEvent;
+    volatile MTSTATUS Status;
+} HEAP_TEST_LOCK_CONTEXT, *PHEAP_TEST_LOCK_CONTEXT;
+
 static NORETURN void
 HeapTestFail(
     IN MTSTATUS Status
@@ -51,6 +58,36 @@ HeapTestIsZeroed(
     return true;
 }
 
+static bool
+HeapTestHasByteValue(
+    IN const void* Address,
+    IN size_t Size,
+    IN uint8_t Value
+)
+{
+    const uint8_t* Bytes = (const uint8_t*)Address;
+    for (size_t Index = 0; Index < Size; Index++) {
+        if (Bytes[Index] != Value) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static size_t
+HeapTestExpectedSlabSize(
+    IN size_t Size
+)
+{
+    size_t ExpectedSize = 16;
+    while (ExpectedSize < Size) {
+        ExpectedSize *= 2;
+    }
+
+    return ExpectedSize;
+}
+
 static void
 HeapTestSlabs(
     IN MT_HEAP_HANDLE Heap
@@ -77,10 +114,22 @@ HeapTestSlabs(
         if (!HeapTestIsZeroed(Allocation, Size)) {
             HeapTestFail(MT_HEAP_TEST_SLAB_ZEROING);
         }
+        if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation) !=
+            HeapTestExpectedSlabSize(Size)) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_SLAB);
+        }
+        if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation + 1) !=
+            MT_HEAP_SIZE_ERROR) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_INVALID);
+        }
 
         memset(Allocation, (int)(0x31u + Index), Size);
         if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
             HeapTestFail(MT_HEAP_TEST_SLAB_FREE);
+        }
+        if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation) !=
+            MT_HEAP_SIZE_ERROR) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_AFTER_FREE);
         }
     }
 
@@ -131,11 +180,24 @@ HeapTestSegments(
         if (!HeapTestIsZeroed(Allocation, Size)) {
             HeapTestFail(MT_HEAP_TEST_SEGMENT_ZEROING);
         }
+        size_t UsableSize = HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation);
+        if (UsableSize < Size ||
+            (UsableSize & (HEAP_TEST_ALIGNMENT - 1u)) != 0) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_SEGMENT);
+        }
+        if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation + 16) !=
+            MT_HEAP_SIZE_ERROR) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_INVALID);
+        }
 
         Allocation[0] = (uint8_t)(0x41u + Index);
         Allocation[Size - 1] = (uint8_t)(0x71u + Index);
         if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
             HeapTestFail(MT_HEAP_TEST_SEGMENT_FREE);
+        }
+        if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation) !=
+            MT_HEAP_SIZE_ERROR) {
+            HeapTestFail(MT_HEAP_TEST_SIZE_AFTER_FREE);
         }
         if (HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
             HeapTestFail(MT_HEAP_TEST_INVALID_FREE);
@@ -231,6 +293,75 @@ HeapTestMaximumSize(
     }
 }
 
+static void
+HeapTestGenerateExceptions(
+    void
+)
+{
+    MT_HEAP_HANDLE Heap = HeapCreate(HEAP_CREATE_NONE, 4096, 8192);
+    if (!Heap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+
+    void* Allocation = HeapAlloc(Heap, HEAP_ALLOCATE_NO_OPTIONS, 5000);
+    if (!Allocation) {
+        HeapTestFail(MT_HEAP_TEST_GENERATE_ALLOC);
+    }
+
+    volatile bool Caught = false;
+    __try {
+        (void)HeapAlloc(
+            Heap,
+            HEAP_ALLOCATE_GENERATE_EXCEPTIONS,
+            5000
+        );
+        HeapTestFail(MT_HEAP_TEST_GENERATE_ALLOC);
+    }
+    __except (
+        GetExceptionCode() == (uint32_t)MT_NO_MEMORY ?
+        MT_EXCEPTION_EXECUTE_HANDLER : MT_EXCEPTION_CONTINUE_SEARCH
+    ) {
+        Caught = true;
+    }
+
+    if (!Caught || !HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation) ||
+        !HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_GENERATE_ALLOC);
+    }
+
+    Heap = HeapCreate(HEAP_GENERATE_EXCEPTIONS, 4096, 8192);
+    if (!Heap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+
+    Allocation = HeapAlloc(Heap, HEAP_ALLOCATE_NO_OPTIONS, 5000);
+    if (!Allocation) {
+        HeapTestFail(MT_HEAP_TEST_GENERATE_REALLOC);
+    }
+
+    Caught = false;
+    __try {
+        (void)HeapReAlloc(
+            Heap,
+            HEAP_REALLOCATE_NO_OPTIONS,
+            Allocation,
+            20000
+        );
+        HeapTestFail(MT_HEAP_TEST_GENERATE_REALLOC);
+    }
+    __except (
+        GetExceptionCode() == (uint32_t)MT_NO_MEMORY ?
+        MT_EXCEPTION_EXECUTE_HANDLER : MT_EXCEPTION_CONTINUE_SEARCH
+    ) {
+        Caught = true;
+    }
+
+    if (!Caught || !HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation) ||
+        !HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_GENERATE_REALLOC);
+    }
+}
+
 static uint32_t
 HeapTestWorker(
     IN void* Parameter
@@ -259,9 +390,37 @@ HeapTestWorker(
             Context->Status = MT_HEAP_TEST_CONCURRENT_ALLOCATION;
             return 1;
         }
+        size_t UsableSize = HeapSize(
+            Context->Heap,
+            HEAP_SIZE_NO_OPTIONS,
+            Allocation
+        );
+        if (UsableSize == MT_HEAP_SIZE_ERROR || UsableSize < Size) {
+            Context->Status = MT_HEAP_TEST_SIZE_CONCURRENT;
+            return 1;
+        }
 
         Allocation[0] = (uint8_t)(Context->WorkerIndex + 1u);
         Allocation[Size - 1] = (uint8_t)(Iteration + 1u);
+        if ((Iteration & 15u) == 0) {
+            size_t NewSize = Size + 17;
+            uint8_t FirstByte = Allocation[0];
+            uint8_t LastByte = Allocation[Size - 1];
+            uint8_t* Reallocated = (uint8_t*)HeapReAlloc(
+                Context->Heap,
+                HEAP_REALLOCATE_NO_OPTIONS,
+                Allocation,
+                NewSize
+            );
+            if (!Reallocated || Reallocated[0] != FirstByte ||
+                Reallocated[Size - 1] != LastByte) {
+                Context->Status = MT_HEAP_TEST_REALLOC_CONCURRENT;
+                return 1;
+            }
+
+            Allocation = Reallocated;
+            Size = NewSize;
+        }
         if (!HeapFree(Context->Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
             Context->Status = MT_HEAP_TEST_CONCURRENT_FREE;
             return 1;
@@ -342,6 +501,361 @@ HeapTestRepeatedDestroy(
     }
 }
 
+static void
+HeapTestSizeValidation(
+    void
+)
+{
+    MT_HEAP_HANDLE Heap = HeapCreate(HEAP_CREATE_NONE, 4096, 0);
+    if (!Heap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+
+    void* Allocation = HeapAlloc(Heap, HEAP_ALLOCATE_NO_OPTIONS, 64);
+    if (!Allocation) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_ALLOCATION);
+    }
+
+    if (HeapSize(NULL, HEAP_SIZE_NO_OPTIONS, Allocation) !=
+            MT_HEAP_SIZE_ERROR ||
+        HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, NULL) !=
+            MT_HEAP_SIZE_ERROR ||
+        HeapSize(
+            Heap,
+            (HEAP_SIZE_OPTIONS)0x80000000u,
+            Allocation
+        ) != MT_HEAP_SIZE_ERROR ||
+        HeapSize(Heap, HEAP_SIZE_NO_SERIALIZE, Allocation) != 64) {
+        HeapTestFail(MT_HEAP_TEST_SIZE_INVALID);
+    }
+
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation) ||
+        !HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_DESTROY);
+    }
+}
+
+static void
+HeapTestReallocation(
+    void
+)
+{
+    MT_HEAP_HANDLE Heap = HeapCreate(
+        HEAP_CREATE_NONE,
+        HEAP_TEST_INITIAL_SIZE,
+        0
+    );
+    if (!Heap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+
+    uint8_t* Same = (uint8_t*)HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        17
+    );
+    if (!Same) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_ALLOCATION);
+    }
+    memset(Same, 0xA5, 32);
+
+    uint8_t* SameResult = (uint8_t*)HeapReAlloc(
+        Heap,
+        HEAP_REALLOCATE_NO_SERIALIZE,
+        Same,
+        31
+    );
+    if (SameResult != Same ||
+        !HeapTestHasByteValue(SameResult, 32, 0xA5)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_SAME);
+    }
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, SameResult)) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_FREE);
+    }
+
+    uint8_t* Moved = (uint8_t*)HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        32
+    );
+    if (!Moved) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_ALLOCATION);
+    }
+    memset(Moved, 0x5A, 32);
+
+    uint8_t* OldMoved = Moved;
+    Moved = (uint8_t*)HeapReAlloc(
+        Heap,
+        HEAP_REALLOCATE_ZERO_MEMORY,
+        Moved,
+        100
+    );
+    if (!Moved || Moved == OldMoved) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_MOVE);
+    }
+    if (!HeapTestHasByteValue(Moved, 32, 0x5A)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_COPY);
+    }
+    if (!HeapTestIsZeroed(Moved + 32, 100 - 32)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_ZERO);
+    }
+    if (HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, OldMoved) !=
+        MT_HEAP_SIZE_ERROR) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_INVALID);
+    }
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Moved)) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_FREE);
+    }
+
+    uint8_t* InPlace = (uint8_t*)HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        64
+    );
+    if (!InPlace) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_ALLOCATION);
+    }
+    memset(InPlace, 0x3C, 64);
+
+    if (HeapReAlloc(
+            Heap,
+            HEAP_REALLOCATE_IN_PLACE_ONLY,
+            InPlace,
+            65
+        ) != NULL ||
+        HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, InPlace) != 64 ||
+        !HeapTestHasByteValue(InPlace, 64, 0x3C)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_IN_PLACE);
+    }
+    if (HeapReAlloc(
+            Heap,
+            HEAP_REALLOCATE_IN_PLACE_ONLY,
+            InPlace,
+            48
+        ) != InPlace) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_IN_PLACE);
+    }
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, InPlace)) {
+        HeapTestFail(MT_HEAP_TEST_SLAB_FREE);
+    }
+
+    uint8_t* Segment = (uint8_t*)HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        5000
+    );
+    if (!Segment) {
+        HeapTestFail(MT_HEAP_TEST_SEGMENT_ALLOCATION);
+    }
+    memset(Segment, 0xC3, 5000);
+
+    uint8_t* OldSegment = Segment;
+    Segment = (uint8_t*)HeapReAlloc(
+        Heap,
+        HEAP_REALLOCATE_NO_OPTIONS,
+        Segment,
+        9000
+    );
+    if (!Segment || Segment == OldSegment) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_MOVE);
+    }
+    if (!HeapTestHasByteValue(Segment, 5000, 0xC3)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_COPY);
+    }
+    if (HeapReAlloc(
+            Heap,
+            HEAP_REALLOCATE_NO_OPTIONS,
+            Segment,
+            4500
+        ) != Segment) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_SAME);
+    }
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Segment)) {
+        HeapTestFail(MT_HEAP_TEST_SEGMENT_FREE);
+    }
+
+    if (HeapReAlloc(NULL, HEAP_REALLOCATE_NO_OPTIONS, InPlace, 64) != NULL ||
+        HeapReAlloc(Heap, HEAP_REALLOCATE_NO_OPTIONS, NULL, 64) != NULL ||
+        HeapReAlloc(Heap, HEAP_REALLOCATE_NO_OPTIONS, InPlace, 0) != NULL ||
+        HeapReAlloc(
+            Heap,
+            (HEAP_REALLOCATION_OPTIONS)0x80000000u,
+            InPlace,
+            64
+        ) != NULL) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_INVALID);
+    }
+
+    if (!HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_DESTROY);
+    }
+
+    Heap = HeapCreate(HEAP_CREATE_NONE, 4096, 8192);
+    if (!Heap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+    uint8_t* Original = (uint8_t*)HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        5000
+    );
+    if (!Original) {
+        HeapTestFail(MT_HEAP_TEST_SEGMENT_ALLOCATION);
+    }
+    memset(Original, 0x96, 5000);
+
+    if (HeapReAlloc(
+            Heap,
+            HEAP_REALLOCATE_NO_OPTIONS,
+            Original,
+            20000
+        ) != NULL ||
+        !HeapTestHasByteValue(Original, 5000, 0x96)) {
+        HeapTestFail(MT_HEAP_TEST_REALLOC_PRESERVE);
+    }
+    if (!HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Original) ||
+        !HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_DESTROY);
+    }
+}
+
+static uint32_t
+HeapTestLockWorker(
+    IN void* Parameter
+)
+{
+    PHEAP_TEST_LOCK_CONTEXT Context =
+        (PHEAP_TEST_LOCK_CONTEXT)Parameter;
+
+    if (HeapUnlock(Context->Heap)) {
+        Context->Status = MT_HEAP_TEST_UNLOCK_OWNER;
+        SetEvent(Context->StartedEvent);
+        SetEvent(Context->FinishedEvent);
+        return 1;
+    }
+
+    if (!SetEvent(Context->StartedEvent)) {
+        Context->Status = MT_HEAP_TEST_LOCK_BLOCKING;
+        return 1;
+    }
+
+    void* Allocation = HeapAlloc(
+        Context->Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        128
+    );
+    if (!Allocation ||
+        HeapSize(Context->Heap, HEAP_SIZE_NO_OPTIONS, Allocation) != 128 ||
+        !HeapFree(Context->Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
+        Context->Status = MT_HEAP_TEST_LOCK_OPERATION;
+        SetEvent(Context->FinishedEvent);
+        return 1;
+    }
+
+    Context->Status = MT_SUCCESS;
+    SetEvent(Context->FinishedEvent);
+    return 0;
+}
+
+static void
+HeapTestPublicLocking(
+    void
+)
+{
+    MT_HEAP_HANDLE Heap = HeapCreate(
+        HEAP_CREATE_NONE,
+        HEAP_TEST_INITIAL_SIZE,
+        0
+    );
+    MT_HEAP_HANDLE UnserializedHeap = HeapCreate(
+        HEAP_NO_SERIALIZE,
+        HEAP_TEST_INITIAL_SIZE,
+        0
+    );
+    if (!Heap || !UnserializedHeap) {
+        HeapTestFail(MT_HEAP_TEST_CREATE_FAILED);
+    }
+
+    if (HeapLock(NULL) || HeapUnlock(NULL) ||
+        HeapLock(UnserializedHeap) || HeapUnlock(UnserializedHeap) ||
+        HeapUnlock(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_INVALID);
+    }
+
+    if (!HeapLock(Heap) || !HeapLock(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_RECURSIVE);
+    }
+
+    void* Allocation = HeapAlloc(
+        Heap,
+        HEAP_ALLOCATE_NO_OPTIONS,
+        64
+    );
+    if (!Allocation ||
+        HeapSize(Heap, HEAP_SIZE_NO_OPTIONS, Allocation) != 64) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_OPERATION);
+    }
+    Allocation = HeapReAlloc(
+        Heap,
+        HEAP_REALLOCATE_NO_OPTIONS,
+        Allocation,
+        128
+    );
+    if (!Allocation ||
+        !HeapFree(Heap, HEAP_FREE_NO_OPTIONS, Allocation)) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_OPERATION);
+    }
+
+    HEAP_TEST_LOCK_CONTEXT Context;
+    Context.Heap = Heap;
+    Context.StartedEvent = CreateEvent(NotificationEvent, false, NULL);
+    Context.FinishedEvent = CreateEvent(NotificationEvent, false, NULL);
+    Context.Status = MT_PENDING;
+    if (Context.StartedEvent == MT_INVALID_HANDLE ||
+        Context.FinishedEvent == MT_INVALID_HANDLE) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_BLOCKING);
+    }
+
+    HANDLE Thread = CreateThread(HeapTestLockWorker, &Context);
+    if (Thread == MT_INVALID_HANDLE) {
+        HeapTestFail(MT_HEAP_TEST_THREAD_CREATE);
+    }
+    if (WaitForSingleObject(Context.StartedEvent, MT_INFINITE) !=
+            WAIT_OBJECT_0 ||
+        WaitForSingleObject(Context.FinishedEvent, 0) != WAIT_TIMEOUT) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_BLOCKING);
+    }
+
+    if (!HeapUnlock(Heap) ||
+        WaitForSingleObject(Context.FinishedEvent, 0) != WAIT_TIMEOUT) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_RECURSIVE);
+    }
+    if (!HeapUnlock(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_LOCK_RECURSIVE);
+    }
+
+    if (WaitForSingleObject(Thread, MT_INFINITE) != WAIT_OBJECT_0 ||
+        WaitForSingleObject(Context.FinishedEvent, 0) != WAIT_OBJECT_0 ||
+        Context.Status != MT_SUCCESS) {
+        HeapTestFail(
+            Context.Status == MT_PENDING
+                ? MT_HEAP_TEST_LOCK_BLOCKING
+                : Context.Status
+        );
+    }
+
+    if (!CloseHandle(Thread) ||
+        !CloseHandle(Context.StartedEvent) ||
+        !CloseHandle(Context.FinishedEvent) ||
+        HeapUnlock(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_UNLOCK_OWNER);
+    }
+
+    if (!HeapDestroy(UnserializedHeap) || !HeapDestroy(Heap)) {
+        HeapTestFail(MT_HEAP_TEST_DESTROY);
+    }
+}
+
 static uint32_t
 HeapTestSlabPhase(
     IN void* Parameter
@@ -391,12 +905,52 @@ HeapTestConcurrentPhase(
 }
 
 static uint32_t
+HeapTestGenerateExceptionsPhase(
+    IN void* Parameter
+)
+{
+    (void)Parameter;
+    HeapTestGenerateExceptions();
+    return 0;
+}
+
+static uint32_t
 HeapTestDestroyPhase(
     IN void* Parameter
 )
 {
     (void)Parameter;
     HeapTestRepeatedDestroy();
+    return 0;
+}
+
+static uint32_t
+HeapTestSizePhase(
+    IN void* Parameter
+)
+{
+    (void)Parameter;
+    HeapTestSizeValidation();
+    return 0;
+}
+
+static uint32_t
+HeapTestReallocationPhase(
+    IN void* Parameter
+)
+{
+    (void)Parameter;
+    HeapTestReallocation();
+    return 0;
+}
+
+static uint32_t
+HeapTestPublicLockingPhase(
+    IN void* Parameter
+)
+{
+    (void)Parameter;
+    HeapTestPublicLocking();
     return 0;
 }
 
@@ -461,6 +1015,11 @@ main(
         MT_HEAP_TEST_MAXIMUM_EXCEPTION
     );
     HeapTestRunPhase(
+        HeapTestGenerateExceptionsPhase,
+        NULL,
+        MT_HEAP_TEST_GENERATE_EXCEPTION
+    );
+    HeapTestRunPhase(
         HeapTestConcurrentPhase,
         NULL,
         MT_HEAP_TEST_CONCURRENT_EXCEPTION
@@ -469,6 +1028,21 @@ main(
         HeapTestDestroyPhase,
         NULL,
         MT_HEAP_TEST_DESTROY_EXCEPTION
+    );
+    HeapTestRunPhase(
+        HeapTestSizePhase,
+        NULL,
+        MT_HEAP_TEST_SIZE_EXCEPTION
+    );
+    HeapTestRunPhase(
+        HeapTestReallocationPhase,
+        NULL,
+        MT_HEAP_TEST_REALLOC_EXCEPTION
+    );
+    HeapTestRunPhase(
+        HeapTestPublicLockingPhase,
+        NULL,
+        MT_HEAP_TEST_LOCK_EXCEPTION
     );
     return 0;
 }

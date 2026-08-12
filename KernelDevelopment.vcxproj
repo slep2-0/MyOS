@@ -110,20 +110,27 @@
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
     <ClCompile Include="usermode\programs\exceptionChainTest\main.c" />
+    <ClCompile Include="usermode\programs\heapTest\main.c" />
+    <ClCompile Include="usermode\programs\loaderFailDll\dllmain.c" />
+    <ClCompile Include="usermode\programs\loaderGoodDll\dllmain.c" />
+    <ClCompile Include="usermode\programs\loaderTest\main.c" />
     <ClCompile Include="usermode\programs\mtdll\dllmain.c" />
     <ClCompile Include="usermode\programs\mtdll\error.c" />
     <ClCompile Include="usermode\programs\mtdll\exception.c" />
     <ClCompile Include="usermode\programs\mtdll\file.c" />
     <ClCompile Include="usermode\programs\mtdll\generic.c" />
     <ClCompile Include="usermode\programs\mtdll\heap.c" />
+    <ClCompile Include="usermode\programs\mtdll\ldr\dllldr.c" />
     <ClCompile Include="usermode\programs\mtdll\ldr\procldr.c" />
     <ClCompile Include="usermode\programs\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\mtdll\loader.c" />
     <ClCompile Include="usermode\programs\mtdll\memory.c" />
     <ClCompile Include="usermode\programs\mtdll\print.c" />
     <ClCompile Include="usermode\programs\mtdll\process.c" />
     <ClCompile Include="usermode\programs\mtdll\string.c" />
     <ClCompile Include="usermode\programs\mtdll\synch.c" />
     <ClCompile Include="usermode\programs\mtdll\tests\exception_chain.c" />
+    <ClCompile Include="usermode\programs\mtdll\tests\loader.c" />
     <ClCompile Include="usermode\programs\mtdll\thread.c" />
     <ClCompile Include="usermode\programs\terminateMyself\main.c" />
   </ItemGroup>
@@ -162,7 +169,9 @@
     <ClInclude Include="shared\include\accessrights.h" />
     <ClInclude Include="shared\include\annotations.h" />
     <ClInclude Include="shared\include\errorcodes.h" />
+    <ClInclude Include="shared\include\fileapi.h" />
     <ClInclude Include="shared\include\heapapi.h" />
+    <ClInclude Include="shared\include\libloaderapi.h" />
     <ClInclude Include="shared\include\MatanelOS.h" />
     <ClInclude Include="shared\include\mtapi.h" />
     <ClInclude Include="shared\include\mte.h" />
@@ -189,6 +198,9 @@
     <ClInclude Include="usermode\programs\mtdll\includes\processthreadsapi.h" />
     <ClInclude Include="usermode\programs\mtdll\includes\synchapi.h" />
     <ClInclude Include="usermode\tests\exception_chain_test.h" />
+    <ClInclude Include="usermode\tests\heap_test.h" />
+    <ClInclude Include="usermode\tests\loader_fixture.h" />
+    <ClInclude Include="usermode\tests\loader_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="build_windows.bat" />
@@ -213,6 +225,8 @@
     <None Include="tools\windows\seh_translate.py" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
+    <None Include="tools\windows\stress_heap.py" />
+    <None Include="tools\windows\stress_loader.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
     <None Include="tools\windows\test_seh_translate.py" />
     <None Include="usermode\crt0.S" />

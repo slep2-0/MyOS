@@ -15,6 +15,24 @@ MspDequeueNextWaitThreadLocked(
     PDOUBLY_LINKED_LIST HeaderWaitListHead
 )
 
+/*++
+
+    Routine description:
+
+        Removes the first wait block from a dispatcher wait list while the
+        caller holds the dispatcher lock.
+
+    Arguments:
+
+        [IN OUT] HeaderWaitListHead - The protected dispatcher wait list.
+
+    Return Values:
+
+        The waiting thread represented by the removed wait block, or NULL when
+        the list is empty.
+
+--*/
+
 {
     PDOUBLY_LINKED_LIST WaiterEntry = RemoveHeadList(HeaderWaitListHead);
 
@@ -49,15 +67,15 @@ MsInitializeEvent(
 
 /*++
 
-    Routine description :
+    Routine description:
 
         Initializes an EVENT object to the specified values.
 
     Arguments:
 
-        Event - Pointer to EVENT object.
-        EventDispatcherType - Event type (Dispatcher object type), must be DispatcherSynchronizationEvent or DispatcherNotificationEvent
-        StartSignaled - Boolean value indicating if the event should start as signaled or not.
+        [OUT] Event - Resident event storage to initialize.
+        [IN] EventDispatcherType - Synchronization or notification event type.
+        [IN] StartSignaled - Whether the event starts signaled.
 
     Return Values:
 
@@ -78,17 +96,18 @@ MsSetEventEx(
 
 /*++
 
-    Routine description : 
+    Routine description:
     
         Sets an event to wake threads waiting on it.
 
     Arguments:
     
-        Pointer to EVENT object.
+        [IN OUT] event - The resident event object to signal.
+        [OUT OPTIONAL] PreviousState - Receives the prior signal state.
 
     Return Values:
 
-        Varuious MTSTATUS Codes.
+        MT_SUCCESS on success, or an error status when event is invalid.
 
 --*/
 
@@ -186,6 +205,22 @@ MTSTATUS
 MsSetEvent(
     IN PEVENT Event
 )
+
+/*++
+
+    Routine description:
+
+        Signals an event without requesting its previous signal state.
+
+    Arguments:
+
+        [IN OUT] Event - The event object to signal.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status when Event is invalid.
+
+--*/
 {
     return MsSetEventEx(Event, NULL);
 }
@@ -197,17 +232,17 @@ MsResetEvent(
 
 /*++
 
-    Routine description :
+    Routine description:
 
         Resets an event back to its non-signaled state.
 
     Arguments:
 
-        Pointer to EVENT object.
+        [IN OUT] Event - The event object to reset.
 
     Return Values:
 
-        None.
+        The previous Boolean signal state.
 
 --*/
 

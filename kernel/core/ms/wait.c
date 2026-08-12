@@ -13,6 +13,23 @@ bool
 MspIsTimerQueued(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Tests whether a thread's timer wait-block entry is linked in the timer
+        queue.
+
+    Arguments:
+
+        [IN] Thread - The thread whose timer entry is inspected.
+
+    Return Values:
+
+        true when the entry is linked, or false otherwise.
+
+--*/
 {
     PDOUBLY_LINKED_LIST Entry = &Thread->WaitBlock.TimerListEntry;
 
@@ -27,6 +44,26 @@ void
 MspInsertTimerQueueLocked(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Inserts a thread into the timer queue in wakeup-time order.
+
+    Arguments:
+
+        [IN OUT] Thread - The thread whose timer entry is inserted.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The caller must hold MsTimerQueueLock.
+
+--*/
 {
     PDOUBLY_LINKED_LIST Entry = &Thread->WaitBlock.TimerListEntry;
 
@@ -64,6 +101,23 @@ MsInsertTimerQueue(
     IN PITHREAD Thread,
     IN uint64_t WakeupTime
 )
+
+/*++
+
+    Routine description:
+
+        Publishes a thread's timed wait in the global timer queue.
+
+    Arguments:
+
+        [IN OUT] Thread - The waiting thread.
+        [IN] WakeupTime - The absolute system tick at which the wait expires.
+
+    Return Values:
+
+        None.
+
+--*/
 {
     IRQL OldIrql;
 
@@ -81,6 +135,22 @@ bool
 MsRemoveTimerQueue(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Removes a thread's timer wait entry when it is still queued.
+
+    Arguments:
+
+        [IN OUT] Thread - The waiting thread.
+
+    Return Values:
+
+        true when an entry was removed, or false when it was not queued.
+
+--*/
 {
     IRQL OldIrql;
     bool Removed = false;
@@ -104,6 +174,24 @@ MsClaimThreadWait(
     IN PITHREAD Thread,
     IN MTSTATUS CompletionStatus
 )
+
+/*++
+
+    Routine description:
+
+        Atomically claims the first completion of a pending thread wait.
+
+    Arguments:
+
+        [IN OUT] Thread - The thread whose wait is claimed.
+        [IN] CompletionStatus - The status published for the winning path.
+
+    Return Values:
+
+        true when this caller changed MT_PENDING, or false when another path
+        already completed the wait.
+
+--*/
 {
     return __sync_val_compare_and_swap(
         &Thread->WaitStatus,
@@ -116,6 +204,28 @@ void
 MsCompleteThreadWait(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Publishes wait cleanup completion and makes a fully blocked thread
+        eligible for scheduling.
+
+    Arguments:
+
+        [IN OUT] Thread - The thread whose wait has completed.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The object-list and timer-list entries must already be detached and
+        WaitStatus must no longer be MT_PENDING.
+
+--*/
 {
     // Completion is legal only after both queue registrations have been removed.
     assert(IsListEmpty(&Thread->WaitBlock.ObjectListEntry));
@@ -159,13 +269,54 @@ MsCompleteThreadWait(
 // Does not acquire lock.
 PITHREAD
 GetHeadOfTimerQueue(void)
+
+/*++
+
+    Routine description:
+
+        Returns the first thread in the timer queue without acquiring its lock.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The first waiting thread, or NULL when the timer queue is empty.
+
+    Notes:
+
+        The caller must already hold MsTimerQueueLock.
+
+--*/
 {
     PITHREAD Head = NULL;
     if (!IsListEmpty(&MsTimerQueue)) { Head = CONTAINING_RECORD(MsTimerQueue.Flink, ITHREAD, WaitBlock.TimerListEntry); }
     return Head;
 }
 
-void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2) {
+void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2)
+
+/*++
+
+    Routine description:
+
+        Expires timed waits, claims their completion, detaches object waits,
+        and makes the affected threads runnable.
+
+    Arguments:
+
+        [IN] Dpc - The timer expiration DPC object.
+        [IN] Context - DPC context supplied at queue time.
+        [IN] SysArg1 - First system argument.
+        [IN] SysArg2 - Second system argument.
+
+    Return Values:
+
+        None.
+
+--*/
+{
     UNREFERENCED_PARAMETER(Dpc); UNREFERENCED_PARAMETER(Context); UNREFERENCED_PARAMETER(SysArg1); UNREFERENCED_PARAMETER(SysArg2);
     
     // Raise IRQL to CLOCK_LEVEL so we dont get preempted here.

@@ -33,6 +33,25 @@ LdrpImageRangeValid(
     IN uint64_t Size,
     IN uint64_t ImageSize
 )
+
+/*++
+
+    Routine description:
+
+        Verifies that an image-relative range fits within an image.
+
+    Arguments:
+
+        [IN] Rva - The image-relative start offset.
+        [IN] Size - The range size in bytes.
+        [IN] ImageSize - The total image size in bytes.
+
+    Return Values:
+
+        true when the range is valid, or false when it overflows or exceeds
+        the image.
+
+--*/
 {
     if (Size == 0) return Rva <= ImageSize;
     return Rva < ImageSize && Size <= ImageSize - Rva;
@@ -45,6 +64,26 @@ LdrpImageString(
     IN uint64_t ImageSize,
     IN uint64_t StringRva
 )
+
+/*++
+
+    Routine description:
+
+        Resolves an image-relative string after validating that it is bounded
+        and null-terminated inside the image.
+
+    Arguments:
+
+        [IN] ImageBase - The loaded image base.
+        [IN] ImageSize - The total image size in bytes.
+        [IN] StringRva - The image-relative string offset.
+
+    Return Values:
+
+        A pointer to the string on success, or NULL for an invalid or
+        unterminated string.
+
+--*/
 {
     if (!LdrpImageRangeValid(StringRva, 1, ImageSize)) return NULL;
 
@@ -55,18 +94,36 @@ LdrpImageString(
     return NULL;
 }
 
-static
 MTSTATUS
-LdrpResolveImport(
+LdrpGetProcedureAddress(
     IN PLDR_DATA_TABLE_ENTRY DllEntry,
     IN const char* FunctionName,
-    OUT void** IatSlotPointer
+    OUT void** ProcdureAddress
 )
+
+/*++
+
+    Routine description:
+
+        Resolves one imported function against a loaded module's export table.
+
+    Arguments:
+
+        [IN] DllEntry - The loaded module whose exports are searched.
+        [IN] FunctionName - The imported function name.
+        [OUT] ProcdureAddress - Receives the resolved function address.
+
+    Return Values:
+
+        MT_SUCCESS when the export is resolved, MT_NOT_FOUND when it is not
+        present, or an image-format status when the module metadata is invalid.
+
+--*/
 
 // Shouldnt we use an array of function names and IatSlots so we can fill them in faster instead of function calling each iteration?
 
 {
-    if (!DllEntry || !FunctionName || !IatSlotPointer || !DllEntry->Base ||
+    if (!DllEntry || !FunctionName || !ProcdureAddress || !DllEntry->Base ||
         DllEntry->SizeOfImage < sizeof(MTE_HEADER)) {
         return MT_INVALID_IMAGE_FORMAT;
     }
@@ -112,7 +169,7 @@ LdrpResolveImport(
         // If this is the function that the import required, we now use it.
         if (strcmp(FunctionName, ExportFunctionName) == 0) {
             // This is it! Replace ptr.
-            *IatSlotPointer = ExportFunctionAddress;
+            *ProcdureAddress = ExportFunctionAddress;
             return MT_SUCCESS;
         }
     }
@@ -121,7 +178,27 @@ LdrpResolveImport(
     return MT_NOT_FOUND;
 }
 
-static bool GetBaseName(const char* fullpath, char* out, size_t outsz) {
+static bool GetBaseName(const char* fullpath, char* out, size_t outsz)
+
+/*++
+
+    Routine description:
+
+        Extracts the final component of a module path into a caller buffer.
+
+    Arguments:
+
+        [IN] fullpath - The module path.
+        [OUT] out - The destination name buffer.
+        [IN] outsz - The destination buffer size in bytes.
+
+    Return Values:
+
+        true when the name fits and is copied, or false for invalid input or
+        insufficient output space.
+
+--*/
+{
     if (!fullpath || !out || outsz == 0) return false;
 
     size_t len = strlen(fullpath);
@@ -140,12 +217,31 @@ static bool GetBaseName(const char* fullpath, char* out, size_t outsz) {
     return true;
 }
 
-static
 PLDR_DATA_TABLE_ENTRY
 LdrFindEntryForModule(
     IN const char* ModuleName,
-    IN PPEB Peb
+    IN PPEB Peb,
+    IN bool UseFullPath
 )
+
+/*++
+
+    Routine description:
+
+        Searches the PEB loader list for a module by its base name.
+
+    Arguments:
+
+        [IN] ModuleName - The module name to find.
+        [IN] Peb - The PEB whose loader list is searched.
+        [IN] UseFullPath - A boolean value indicating whether to compare ModuleName with the DLL
+                           full path in the PEB, or just its base name. (C:\Users\user\test.dll vs test.dll)
+
+    Return Values:
+
+        The matching loader entry, or NULL when no entry matches.
+
+--*/
 
 {
     // We iterate over the PEB and see if we found it.
@@ -158,8 +254,14 @@ LdrFindEntryForModule(
         PLDR_DATA_TABLE_ENTRY Entry = CONTAINING_RECORD(Curr, LDR_DATA_TABLE_ENTRY, LoadedModuleList);
 
         // String compare.
-        char ImageName[24];
-        if (!GetBaseName(Entry->FullName, ImageName, sizeof(ImageName))) goto AdvancePtr;
+        char ImageName[256];
+
+        if (!UseFullPath) {
+            if (!GetBaseName(Entry->FullName, ImageName, sizeof(ImageName))) goto AdvancePtr;
+        }
+        else {
+            strcpy(ImageName, Entry->FullName);
+        }
 
         if (strcmp(ModuleName, ImageName) == 0) {
             // Found it!
@@ -174,16 +276,34 @@ LdrFindEntryForModule(
     return NULL;
 }
 
-static
 MTSTATUS 
 LdrpProcessImports(
     IN PLDR_DATA_TABLE_ENTRY ExecutableEntry,
     IN PPEB PebPointer
 )
 
+/*++
+
+    Routine description:
+
+        Walks an image's import table and patches each validated IAT slot.
+
+    Arguments:
+
+        [IN] ExecutableEntry - The loaded image whose imports are processed.
+        [IN] PebPointer - The PEB used to locate already loaded modules.
+
+    Return Values:
+
+        MT_SUCCESS when every import is processed, MT_NOT_FOUND when a module
+        or function is absent, MT_NOT_IMPLEMENTED for an unsupported library,
+        or an image-format status for malformed metadata.
+
+--*/
+
 {
     // Declaration of status (function scope)
-    MTSTATUS Status;
+    MTSTATUS Status = MT_SUCCESS;
 
     if (!ExecutableEntry || !PebPointer || !ExecutableEntry->Base ||
         ExecutableEntry->SizeOfImage < sizeof(MTE_HEADER)) {
@@ -244,25 +364,29 @@ LdrpProcessImports(
 
         // The address of the IAT to patch to new function ptr.
         void** IatSlot = (void**)(ImageBase + Entry->iat_addr_rva);
+        PLDR_DATA_TABLE_ENTRY ImportedEntry = LdrFindEntryForModule(LibName, PebPointer, false);
 
-        // Call the final resolver, if we are messing with another dll that is not Mtdll, we would load library it here now, and use its LDR_DATA_TABLE_ENTRY.
-        if (strcmp(LibName, "mtdll.mtdll") == 0) {
-            // Grab our own LDR_DATA_TABLE_ENTRY.
-            PLDR_DATA_TABLE_ENTRY MtdllEntry = LdrFindEntryForModule("mtdll.mtdll", PebPointer);
-            if (!MtdllEntry) return MT_NOT_FOUND;
+        // No circular includes allowed, for now.
+        if (ImportedEntry &&
+            ImportedEntry->State != LdrModuleLoaded) {
+            return MT_INVALID_STATE;
+        }
 
-            Status = LdrpResolveImport(
-                MtdllEntry,
-                FuncName,
-                IatSlot
-            );
+        if (!ImportedEntry) {
+            // DLL Isnt loaded in, load it in.
+            Status = LdrLoadDll(LibName, &ImportedEntry);
+            if (MT_FAILURE(Status)) {
+                return Status;
+            }
         }
-        else {
-            // Todo load library.
-            // We shouldnt load library every loop, what if the library is already loaded?
-            // Then grab LDR_DATA_TABLE_ENTRY.
-            return MT_NOT_IMPLEMENTED;
-        }
+
+
+        // Call the final resolver
+        Status = LdrpGetProcedureAddress(
+            ImportedEntry,
+            FuncName,
+            IatSlot
+        );
 
         if (MT_FAILURE(Status)) return Status;
     }
@@ -270,6 +394,7 @@ LdrpProcessImports(
     return MT_SUCCESS;
 }
 
+MTDLL_API
 void
 LdrInitializeProcess(
     IN PPEB InitialPeb,
@@ -277,6 +402,27 @@ LdrInitializeProcess(
     IN uint64_t EntryPoint,
     IN PMTDLL_BASIC_TYPES BasicTypes
 )
+
+/*++
+
+    Routine description:
+
+        Initializes the process GS base, process heap, loader entries, and
+        imported function addresses before entering the executable.
+
+    Arguments:
+
+        [IN] InitialPeb - The process environment block to initialize.
+        [IN] InitialTeb - The initial thread environment block.
+        [IN] EntryPoint - The executable entry point.
+        [IN] BasicTypes - Loader metadata for the executable and MTDLL images.
+
+    Return Values:
+
+        None. Initialization failures request termination of the current
+        process before normal entry-point execution.
+
+--*/
 
 {
     // Initialize GS base IMMEDIATELY so NtCurrentTeb() and SetLastError() work.
@@ -297,6 +443,16 @@ LdrInitializeProcess(
         MtTerminateProcess(MtCurrentProcess(), GetLastStatus());
     }
 
+    // Create the loader lock mutex
+    InitialPeb->LoaderData.LoaderLock = CreateMutex(false, NULL);
+
+    if (InitialPeb->LoaderData.LoaderLock == MT_INVALID_HANDLE) {
+        MtTerminateProcess(
+            MtCurrentProcess(),
+            GetLastStatus()
+        );
+    }
+
     // Set initial PEB LoaderData to be our process.
     PLDR_DATA_TABLE_ENTRY ProcessEntry = (PLDR_DATA_TABLE_ENTRY)HeapAlloc(GetProcessHeap(), HEAP_ALLOCATE_ZERO_MEMORY, sizeof(LDR_DATA_TABLE_ENTRY));
 
@@ -310,6 +466,8 @@ LdrInitializeProcess(
 
     // Set fields (process)
     ProcessEntry->Base = BasicTypes->PrimaryExecutable.Base;
+    ProcessEntry->ReferenceCount = 1;
+    ProcessEntry->State = LdrModuleLoading;
     ProcessEntry->EntryPoint = (void*)EntryPoint;
     strncpy(ProcessEntry->FullName, BasicTypes->PrimaryExecutable.FullPath, sizeof(ProcessEntry->FullName));
     ProcessEntry->LoadTime = BasicTypes->EpochCreation;
@@ -327,6 +485,8 @@ LdrInitializeProcess(
 
     // Set fields for mtdll.
     MtdllEntry->Base = BasicTypes->Mtdll.Base;
+    MtdllEntry->ReferenceCount = 1;
+    MtdllEntry->State = LdrModuleLoaded;
     MtdllEntry->EntryPoint = LdrInitializeThread; // Default. (since thread entrypoints are re-used, process entry points are only once per init)
     strncpy(MtdllEntry->FullName, BasicTypes->Mtdll.FullPath, sizeof(MtdllEntry->FullName));
     MtdllEntry->LoadTime = BasicTypes->EpochCreation;
@@ -342,6 +502,9 @@ LdrInitializeProcess(
     // In Windows when an Import fails it usually creates a MessageBox first to notify the user. (only for when the main executable imports that is)
     // But we dont have that yet! :(
     if (MT_FAILURE(Status)) MtTerminateProcess(MtCurrentProcess(), Status);
+
+    // Set our process as loaded now
+    ProcessEntry->State = LdrModuleLoaded;
 
     // Initialize the thread now.
     // TODO, Change NULL to argc and argv.

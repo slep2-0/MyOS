@@ -25,6 +25,31 @@ MeSuspendThread(
     OUT uint32_t* PreviousSuspendCount
 )
 
+/*++
+
+    Routine description:
+
+        Increments a thread's suspend count and queues the suspend APC on the
+        first transition from zero to one.
+
+    Arguments:
+
+        [IN OUT] Thread - The thread to suspend.
+        [OUT] PreviousSuspendCount - Receives the count before incrementing.
+
+    Return Values:
+
+        MT_SUCCESS on success, MT_THREAD_IS_TERMINATING when APC queuing is
+        closed, MT_SUSPEND_LIMIT_EXCEEDED when the count would overflow, or
+        MT_APC_ERROR when the suspend APC cannot be queued.
+
+    Notes:
+
+        The APC queue lock serializes the suspend count and embedded APC
+        state. The request may be observed asynchronously by the target.
+
+--*/
+
 {
     // Asserion to be less or equal than dispatch, since we acquire a spinlock.
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
@@ -132,6 +157,25 @@ MeResumeThread(
     IN PITHREAD Thread,
     OUT uint32_t* PreviousSuspendCount
 )
+
+/*++
+
+    Routine description:
+
+        Decrements a thread's suspend count and releases the resume gate when
+        the final suspension is removed.
+
+    Arguments:
+
+        [IN OUT] Thread - The thread to resume.
+        [OUT] PreviousSuspendCount - Receives the count before decrementing.
+
+    Return Values:
+
+        MT_SUCCESS on success, or MT_THREAD_IS_TERMINATING when APC queuing is
+        closed.
+
+--*/
 
 {
     // Asserion to be less or equal than dispatch, since we acquire a spinlock.

@@ -33,6 +33,7 @@ STRESS_MODES = {
     "randomized": 2,
     "exception-chain": 3,
     "heap": 4,
+    "loader": 5,
 }
 
 KERNEL_SLOW_PATHS = {
@@ -59,9 +60,11 @@ MTDLL_C = [
     "usermode/programs/mtdll/generic.c",
     "usermode/programs/mtdll/memory.c",
     "usermode/programs/mtdll/heap.c",
+    "usermode/programs/mtdll/loader.c",
     "usermode/programs/mtdll/process.c",
     "usermode/programs/mtdll/string.c",
     "usermode/programs/mtdll/thread.c",
+    "usermode/programs/mtdll/ldr/dllldr.c",
     "usermode/programs/mtdll/ldr/procldr.c",
     "usermode/programs/mtdll/ldr/thrdldr.c",
     "usermode/programs/mtdll/error.c",
@@ -99,6 +102,21 @@ HEAP_TEST_MTEXE_C = [
     "usermode/programs/heapTest/main.c",
 ]
 HEAP_TEST_INCLUDE = ROOT / "usermode/tests"
+
+LOADER_TEST_MTDLL_C = [
+    "usermode/programs/mtdll/tests/loader.c",
+]
+LOADER_TEST_MTEXE_C = [
+    "usermode/programs/loaderTest/main.c",
+]
+LOADER_TEST_INCLUDE = ROOT / "usermode/tests"
+LOADER_TEST_DLL_DEFINE = "MATANELOS_BUILDING_LOADER_TEST_DLL"
+LOADER_GOOD_DLL_C = [
+    "usermode/programs/loaderGoodDll/dllmain.c",
+]
+LOADER_FAIL_DLL_C = [
+    "usermode/programs/loaderFailDll/dllmain.c",
+]
 
 
 class BuildFailure(RuntimeError):
@@ -607,6 +625,7 @@ def _build_user_component(
     dependencies: dict[str, Path] | None = None,
     defines: Sequence[str] = (),
     include_directories: Sequence[Path] = (),
+    entry_symbol: str | None = None,
 ) -> tuple[Path, Path]:
     defines = tuple(defines)
     include_directories = tuple(include_directories)
@@ -729,6 +748,8 @@ def _build_user_component(
         ]
     else:
         common_link_flags[0:0] = ["-pie", "--no-dynamic-linker"]
+    if entry_symbol:
+        common_link_flags.append(f"--entry={entry_symbol}")
 
     dependency_files = list(dependencies.values())
 
@@ -790,14 +811,16 @@ def build_usermode(
     configuration: str,
     workers: int,
     stress_mode: str = "normal",
-) -> tuple[Path, Path]:
+) -> tuple[Path, Path, list[tuple[Path, str]]]:
     output_directory = WINDOWS_BUILD / configuration.lower()
     output_directory.mkdir(parents=True, exist_ok=True)
     exception_test = stress_mode == "exception-chain"
     heap_test = stress_mode == "heap"
+    loader_test = stress_mode == "loader"
     mtdll_sources = [
         *MTDLL_C,
         *(EXCEPTION_TEST_MTDLL_C if exception_test else ()),
+        *(LOADER_TEST_MTDLL_C if loader_test else ()),
     ]
     mtdll_defines = [
         MTDLL_PRODUCER_DEFINE,
@@ -806,6 +829,7 @@ def build_usermode(
     mtdll_includes = [
         MTDLL_PRIVATE_INCLUDE,
         *((EXCEPTION_TEST_INCLUDE,) if exception_test else ()),
+        *((LOADER_TEST_INCLUDE,) if loader_test else ()),
     ]
     mtdll_nasm_sources = [
         *MTDLL_NASM,
@@ -826,6 +850,46 @@ def build_usermode(
         defines=mtdll_defines,
         include_directories=mtdll_includes,
     )
+    additional_files: list[tuple[Path, str]] = []
+    if loader_test:
+        good_dll, _ = _build_user_component(
+            tools,
+            "loaderGoodDll",
+            LOADER_GOOD_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "loaderGood.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="loaderGood.mtdll",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+            defines=(LOADER_TEST_DLL_DEFINE,),
+            include_directories=(LOADER_TEST_INCLUDE,),
+            entry_symbol="DllMain",
+        )
+        fail_dll, _ = _build_user_component(
+            tools,
+            "loaderFailDll",
+            LOADER_FAIL_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "loaderFail.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="loaderFail.mtdll",
+            defines=(LOADER_TEST_DLL_DEFINE,),
+            include_directories=(LOADER_TEST_INCLUDE,),
+            entry_symbol="DllMain",
+        )
+        additional_files.extend([
+            (good_dll, "loaderGood.mtdll"),
+            (fail_dll, "loaderFail.mtdll"),
+        ])
+
     if exception_test:
         program_name = "exceptionChainTest"
         program_sources = EXCEPTION_TEST_MTEXE_C
@@ -834,6 +898,10 @@ def build_usermode(
         program_name = "heapTest"
         program_sources = HEAP_TEST_MTEXE_C
         program_includes = (HEAP_TEST_INCLUDE,)
+    elif loader_test:
+        program_name = "loaderTest"
+        program_sources = LOADER_TEST_MTEXE_C
+        program_includes = (LOADER_TEST_INCLUDE,)
     else:
         program_name = "terminateMyself"
         program_sources = MTEXE_C
@@ -854,7 +922,7 @@ def build_usermode(
         dependencies={MTDLL_MODULE_NAME: mtdll_elf},
         include_directories=program_includes,
     )
-    return mtdll, program
+    return mtdll, program, additional_files
 
 
 def build_bootloader(tools: Tools, configuration: str, workers: int) -> Path:
@@ -929,10 +997,18 @@ def build_image(
     kernel: Path,
     mtdll: Path,
     program: Path,
+    additional_files: Sequence[tuple[Path, str]] = (),
 ) -> Path:
     output_directory = WINDOWS_BUILD / configuration.lower()
     image = output_directory / "matanelos.img"
-    create_image(image, bootloader, kernel, mtdll, program)
+    create_image(
+        image,
+        bootloader,
+        kernel,
+        mtdll,
+        program,
+        additional_files=additional_files,
+    )
     print(f"[IMAGE] {image}")
     return image
 
@@ -1027,6 +1103,12 @@ def main() -> int:
         mtdll = output_directory / "mtdll.mtdll"
         program = output_directory / "terminateMyself.mtexe"
         bootloader = output_directory / "bootloader.efi"
+        additional_files: list[tuple[Path, str]] = []
+        if args.stress_mode == "loader":
+            additional_files = [
+                (output_directory / "loaderGood.mtdll", "loaderGood.mtdll"),
+                (output_directory / "loaderFail.mtdll", "loaderFail.mtdll"),
+            ]
 
         if args.target in {"all", "bootloader", "image"}:
             bootloader = build_bootloader(tools, args.configuration, args.jobs)
@@ -1040,14 +1122,21 @@ def main() -> int:
                 args.stress_duration_seconds,
             )
         if args.target in {"all", "usermode"}:
-            mtdll, program = build_usermode(
+            mtdll, program, additional_files = build_usermode(
                 tools,
                 args.configuration,
                 args.jobs,
                 args.stress_mode,
             )
         if args.target in {"all", "image"}:
-            image = build_image(args.configuration, bootloader, kernel, mtdll, program)
+            image = build_image(
+                args.configuration,
+                bootloader,
+                kernel,
+                mtdll,
+                program,
+                additional_files,
+            )
         else:
             image = output_directory / "matanelos.img"
         if args.action == "run":

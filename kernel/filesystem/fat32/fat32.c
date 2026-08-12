@@ -1548,10 +1548,38 @@ static MTSTATUS fat32_open_file(
 	OUT PFILE_OBJECT* FileObjectOut
 );
 
+static
+MTSTATUS
+fat32_truncate_file(
+	IN const char* Path,
+	IN FAT32_DIR_ENTRY* Entry
+)
+
+{
+	uint32_t OldCluster = get_dir_cluster(Entry);
+	MTSTATUS Status = fat32_update_file_entry(Path, 0, 0, true, true);
+
+	if (MT_FAILURE(Status)) return Status;
+
+	// If the old cluster is 2 or bigger, we must free the old cluster chains
+	// 2 or bigger means skipping reserved OR empty clusters.
+	if (OldCluster >= 2) {
+		bool freed = fat32_free_cluster_chain(OldCluster);
+
+		if (!freed) {
+			return MT_GENERAL_FAILURE;
+		}
+	}
+
+	return MT_SUCCESS;
+}
+
 MTSTATUS fat32_create_file(
 	IN const char* path,
+	IN FILE_CREATION_DISPOSITION CreationDisposition,
 	OUT PFILE_OBJECT* FileObjectOut
 )
+
 {
 	// First of all, we check if the file already exists
 	FAT32_DIR_ENTRY existing_entry;
@@ -1563,8 +1591,33 @@ MTSTATUS fat32_create_file(
 			return MT_FAT32_INVALID_FILENAME;
 		}
 
-		// It already exists, return fat32_open_file.
-		return fat32_open_file(path, FileObjectOut);
+		switch (CreationDisposition) {
+		case FILE_CREATE_NEW:
+			return MT_ALREADY_EXISTS;
+		case FILE_OPEN_ALWAYS:
+		case FILE_OPEN_EXISTING:
+			return fat32_open_file(path, FileObjectOut);
+		case FILE_CREATE_ALWAYS:
+		case FILE_TRUNCATE_EXISTING: {
+			MTSTATUS TruncateFailure = fat32_truncate_file(path, &existing_entry);
+			if (MT_FAILURE(TruncateFailure)) return TruncateFailure;
+			return fat32_open_file(path, FileObjectOut);
+		}
+		default:
+			return MT_INVALID_PARAM;
+		}
+	}
+
+	switch (CreationDisposition) {
+	case FILE_OPEN_EXISTING:
+	case FILE_TRUNCATE_EXISTING:
+		return MT_FAT32_FILE_NOT_FOUND;
+	case FILE_CREATE_ALWAYS:
+	case FILE_CREATE_NEW:
+	case FILE_OPEN_ALWAYS:
+		break;
+	default:
+		return MT_INVALID_PARAM;
 	}
 
 	// Split the path into directory and filename

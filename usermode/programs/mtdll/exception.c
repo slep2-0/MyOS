@@ -102,6 +102,24 @@ MtpPushExceptionFrame(
     PEXCEPTION_ROUTINE Handler
 )
 
+/*++
+
+    Routine description:
+
+        Links an initialized exception registration record into the current
+        thread's exception chain.
+
+    Arguments:
+
+        [IN OUT] Frame - The registration record to link.
+        [IN] Handler - The routine invoked during exception dispatch.
+
+    Return Values:
+
+        None. Invalid input terminates the current thread.
+
+--*/
+
 {
     // Dont allow NULL, obviously
     if (!Frame || !Handler) {
@@ -135,6 +153,23 @@ MtpPopExceptionFrame(
     PEXCEPTION_REGISTRATION_RECORD Frame
 )
 
+/*++
+
+    Routine description:
+
+        Removes the current head registration record from the exception chain.
+
+    Arguments:
+
+        [IN OUT] Frame - The registration record to unlink.
+
+    Return Values:
+
+        None. A frame that is not the current head terminates the current
+        thread.
+
+--*/
+
 {
     if (!Frame) {
         MtpExceptionFailureTermination();
@@ -161,6 +196,25 @@ MtpDispatchException(
     PCONTEXT ContextRecord
 )
 
+/*++
+
+    Routine description:
+
+        Dispatches an exception through the current thread's language frame
+        chain.
+
+    Arguments:
+
+        [IN] ExceptionRecord - The exception record to dispatch.
+        [IN OUT] ContextRecord - The context associated with the exception.
+
+    Return Values:
+
+        true when a handler selects continue-execution, or false when the
+        chain is exhausted.
+
+--*/
+
 {
     PTEB Teb = MtCurrentTeb();
 
@@ -182,6 +236,25 @@ MtpUserExceptionDispatcher(
     PEXCEPTION_RECORD ExceptionRecord,
     PCONTEXT ContextRecord
 )
+
+/*++
+
+    Routine description:
+
+        Enters the user-mode exception dispatcher after the kernel publishes a
+        prepared exception frame.
+
+    Arguments:
+
+        [IN] ExceptionRecord - The exception record to dispatch.
+        [IN OUT] ContextRecord - The interrupted user context.
+
+    Return Values:
+
+        Does not return. It continues execution through MtContinue or
+        terminates the current thread when no handler accepts the exception.
+
+--*/
 {
     // Preserve the original status before handlers can modify the record.
     MTSTATUS ExceptionCode = (MTSTATUS)ExceptionRecord->ExceptionCode;
@@ -341,10 +414,27 @@ MtpLanguageExceptionHandler(
     UNREACHABLE_CODE();
 }
 
+MTDLL_API
 void 
 MtpEnterLanguageFrame(
     PMT_LANGUAGE_FRAME Frame
 )
+
+/*++
+
+    Routine description:
+
+        Initializes and links a language frame for the current protected scope.
+
+    Arguments:
+
+        [IN OUT] Frame - The language frame to initialize and link.
+
+    Return Values:
+
+        None. Invalid or already linked frames terminate the current thread.
+
+--*/
 
 {
     // Reject nullptr or frames that are already in the exception chain.
@@ -362,10 +452,27 @@ MtpEnterLanguageFrame(
     MtpPushExceptionFrame(&Frame->Registration, MtpLanguageExceptionHandler);
 }
 
+MTDLL_API
 void 
 MtpLeaveLanguageFrame(
     PMT_LANGUAGE_FRAME Frame
 )
+
+/*++
+
+    Routine description:
+
+        Unlinks a language frame after its protected scope completes.
+
+    Arguments:
+
+        [IN OUT] Frame - The linked language frame to remove.
+
+    Return Values:
+
+        None. Invalid or unlinked frames terminate the current thread.
+
+--*/
 
 {
     if (!Frame || Frame->Linked != 1) {
@@ -376,12 +483,31 @@ MtpLeaveLanguageFrame(
     Frame->Linked = 0;
 }
 
+MTDLL_API
 NORETURN
 void
 MtpApplyLanguageFilter(
     PMT_LANGUAGE_FRAME Frame,
     int FilterResult
 )
+
+/*++
+
+    Routine description:
+
+        Applies a filter disposition and transfers control to execution,
+        handler, or continued exception search.
+
+    Arguments:
+
+        [IN OUT] Frame - The active language frame.
+        [IN] FilterResult - The selected exception disposition.
+
+    Return Values:
+
+        Does not return.
+
+--*/
 
 {
     // Reject nullptr frames or unlinked ones

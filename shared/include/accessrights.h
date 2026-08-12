@@ -47,6 +47,17 @@
 #define MT_PROCESS_CREATE_PROCESS 0x0200
 #define MT_PROCESS_ALL_ACCESS     (MT_SYNCHRONIZE | 0x03FF)
 
+/* Section Rights */
+#define MT_SECTION_QUERY             0x0001  // Query section info (size, attributes)
+#define MT_SECTION_MAP_WRITE         0x0002  // Map section with write permissions
+#define MT_SECTION_MAP_READ          0x0004  // Map section with read permissions
+#define MT_SECTION_MAP_EXECUTE       0x0008  // Map section with execute permissions
+#define MT_SECTION_EXTEND_SIZE       0x0010  // Extend section size (file-backed sections)
+#define MT_SECTION_MAP_EXECUTE_EXPL  0x0020  // Explicit executable mapping (DEP / NX override)
+
+// All valid section rights
+#define MT_SECTION_ALL_ACCESS        0x003F
+
 /* File and directory rights */
 #define MT_FILE_READ_DATA            0x0001
 #define MT_FILE_LIST_DIRECTORY       0x0001

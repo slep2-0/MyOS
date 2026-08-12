@@ -19,7 +19,7 @@ Notes:
     (for example, 27 bytes -> 32-byte bucket, 100 bytes -> 128-byte
     bucket). Each bucket obtains slabs containing multiple fixed-size
     allocation slots.
-    
+
     Larger allocations are serviced by the heap's variable-size
     segment allocator, which maintains and coalesces free blocks.
     
@@ -122,10 +122,27 @@ typedef struct _MT_HEAP {
 #define MT_HEAP_BLOCK_HEADER_SIZE \
     ALIGN_UP(sizeof(MT_HEAP_BLOCK), MT_HEAP_ALIGNMENT)
 
+MTDLL_API
 MT_HEAP_HANDLE
 GetProcessHeap(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Returns the process default heap associated with the current PEB.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The current process heap handle, or NULL when the PEB has no heap.
+
+--*/
 
 {
     return (MT_HEAP_HANDLE) MtCurrentPeb()->ProcessHeap;
@@ -318,12 +335,39 @@ HeapGetBucketIndex(
     return SIZE_MAX;
 }
 
+MTDLL_API
 MT_HEAP_HANDLE
 HeapCreate(
     IN HEAP_CREATE_OPTIONS Options,
     IN size_t InitialSize,
     IN size_t MaximumSize
 )
+
+/*++
+
+    Routine description:
+
+        Creates a private user-mode heap with the requested growth policy.
+
+    Arguments:
+
+        [IN] Options - Flags controlling serialization, exceptions, and
+        executable heap memory.
+        [IN] InitialSize - The preferred initial segment size in bytes.
+        [IN] MaximumSize - The maximum combined heap region size, or zero for
+        no configured maximum.
+
+    Return Values:
+
+        A heap handle on success, or NULL when the options, sizes, or required
+        allocations are invalid.
+
+    Notes:
+
+        The returned heap must be destroyed with HeapDestroy when it is no
+        longer needed. The process default heap cannot be destroyed.
+
+--*/
 
 {
     // If no initial size, its just 1 page.
@@ -509,6 +553,90 @@ HeapClaimFreeBlock(
     return NULL;
 }
 
+static
+void*
+MtpHeapAllocationFailure(
+    IN bool GenerateExceptions,
+    IN MTSTATUS FailureStatus
+)
+
+{
+    // If user wants exceptions, raise instead of returning NULL.
+    if (GenerateExceptions) {
+        RaiseException(
+            (uint32_t)FailureStatus,
+            0,
+            0,
+            NULL
+        );
+    }
+
+    return NULL;
+}
+
+// Heap mutex must be held when entering this function.
+static
+void*
+MtpAllocateHeapBlockLocked(
+    IN PMT_HEAP Heap,
+    IN HEAP_ALLOCATE_OPTIONS Options,
+    IN size_t AllocationSize,
+    OUT MTSTATUS* FailureStatus
+)
+
+{
+    void* ReturnedAllocation = NULL;
+    *FailureStatus = MT_NO_MEMORY;
+
+    if (AllocationSize <= MT_HEAP_BIGGEST_SLAB) {
+        size_t BucketIndex = HeapGetBucketIndex(AllocationSize);
+        PMT_HEAP_BUCKET Bucket = &Heap->Buckets[BucketIndex];
+        PMT_HEAP_SLAB Slab = HeapFindAvailableSlab(Bucket);
+
+        if (!Slab) {
+            Slab = HeapCreateSlab(Heap, Bucket);
+            if (!Slab) return NULL;
+        }
+
+        ReturnedAllocation = HeapClaimSlabSlot(Slab);
+        if (!ReturnedAllocation) {
+            *FailureStatus = MT_ACCESS_VIOLATION;
+            return NULL;
+        }
+
+        if (Options & HEAP_ALLOCATE_ZERO_MEMORY) {
+            memset(ReturnedAllocation, 0, Slab->SlotSize);
+        }
+
+        return ReturnedAllocation;
+    }
+
+    PMT_HEAP_BLOCK Block = HeapClaimFreeBlock(Heap, AllocationSize);
+
+    if (!Block) {
+        size_t GrowthSize = AllocationSize > Heap->DefaultSegmentSize ?
+            AllocationSize : Heap->DefaultSegmentSize;
+
+        PMT_HEAP_SEGMENT Segment = HeapCreateSegment(Heap, GrowthSize);
+        if (!Segment) return NULL;
+
+        Block = HeapClaimFreeBlock(Heap, AllocationSize);
+        if (!Block) {
+            *FailureStatus = MT_ACCESS_VIOLATION;
+            return NULL;
+        }
+    }
+
+    ReturnedAllocation =
+        (void*)((uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE);
+
+    if (Options & HEAP_ALLOCATE_ZERO_MEMORY) {
+        memset(ReturnedAllocation, 0, AllocationSize);
+    }
+
+    return ReturnedAllocation;
+}
+
 // Address returned is 16 byte aligned
 MTDLL_API
 void*
@@ -518,15 +646,54 @@ HeapAlloc(
     IN size_t AllocationSize
 )
 
+/*++
+
+    Routine description:
+
+        Allocates an aligned block from a heap's slab or segment backend.
+
+    Arguments:
+
+        [IN] Heap - The heap from which memory is allocated.
+        [IN] Options - Flags controlling serialization, zeroing, and allocation
+        failure behavior.
+        [IN] AllocationSize - The requested number of usable bytes.
+
+    Return Values:
+
+        A 16-byte-aligned allocation on success, or NULL when allocation
+        fails. A requested exception is raised instead of returning NULL.
+
+    Notes:
+
+        Requests up to 4096 bytes use size-class slabs; larger requests use
+        variable-size heap segments.
+
+--*/
+
 {
+    bool GenerateExceptions =
+        (Options & HEAP_ALLOCATE_GENERATE_EXCEPTIONS) != 0;
+
     // If a nullptr is given return NULL
-    if (!Heap) return NULL;
+    if (!Heap) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            MT_ACCESS_VIOLATION
+        );
+    }
+
+    GenerateExceptions = GenerateExceptions ||
+        (Heap->Options & HEAP_GENERATE_EXCEPTIONS) != 0;
 
     // If invalid options are given, return NULL
     const uint32_t ValidOptions = HEAP_ALLOCATE_GENERATE_EXCEPTIONS | HEAP_ALLOCATE_NO_SERIALIZE | HEAP_ALLOCATE_ZERO_MEMORY;
 
     if ((uint32_t)(Options & ~ValidOptions) != 0) {
-        return NULL;
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            MT_ACCESS_VIOLATION
+        );
     }
 
     // If the allocation size is below the smallest slab size, the allocation size will be the smallest slab size
@@ -543,103 +710,39 @@ HeapAlloc(
             // The mutex belongs to this thread now, but the previous owner may
             // have left the heap metadata inconsistent.
             ReleaseMutex(Heap->HeapMutex);
-            return NULL;
+            return MtpHeapAllocationFailure(
+                GenerateExceptions,
+                MT_ACCESS_VIOLATION
+            );
         }
 
         if (ReturnedCode != WAIT_OBJECT_0) {
             // The mutex was not acquired, so it must not be released here.
-            return NULL;
+            return MtpHeapAllocationFailure(
+                GenerateExceptions,
+                MT_ACCESS_VIOLATION
+            );
         }
     }
 
-    // We are allowed to operate on the heap now, allocate if there is a free block that matches our size
-    // or extend the segment if needed (creating another one)
-    void* ReturnedAllocation = NULL;
+    MTSTATUS FailureStatus;
+    void* ReturnedAllocation = MtpAllocateHeapBlockLocked(
+        Heap,
+        Options,
+        AllocationSize,
+        &FailureStatus
+    );
 
-    // First, determine if the allocation size is taken from slabs or a global virtual alloc based block.
-    if (AllocationSize <= MT_HEAP_BIGGEST_SLAB) {
-        // We must allocate from slabs, either allocate from existing or create a new slab.
-        size_t BucketIndex = HeapGetBucketIndex(AllocationSize);
-
-        // Retrieve heap bucket per index
-        PMT_HEAP_BUCKET Bucket = &Heap->Buckets[BucketIndex];
-
-        // Get the slab from that bucket, and determine if we have an available one or not
-        PMT_HEAP_SLAB Slab = HeapFindAvailableSlab(Bucket);
-
-        if (!Slab) {
-            // No avilable slabs are left from this bucket
-            // extend it.
-            Slab = HeapCreateSlab(Heap, Bucket);
-
-            if (!Slab) {
-                // Out of memory allocation failure
-                goto Cleanup;
-            }
-        }
-
-        ReturnedAllocation = HeapClaimSlabSlot(Slab);
-        
-        // If the user wants a zeroed memory, then set it to 0.
-        if (ReturnedAllocation && (Options & HEAP_ALLOCATE_ZERO_MEMORY)) {
-            memset(ReturnedAllocation, 0, Slab->SlotSize);
-        }
-
-        // assert that returned allocation is true
-        // it must be, if we are SERIALIZING the heap, no other thread should touch Slab->FreeCount
-        // yet if ReturnedAllocation is NULL, something did, since we verified it has free slots using HeapFindAvailableSlab
-
-        // Control flow would go to cleanup anyway
-        // But explicit transfer is better
-        goto Cleanup;
-    }
-    else {
-        // > 4096 byte allocation
-        // use the heap segments instead.
-        PMT_HEAP_BLOCK Block = HeapClaimFreeBlock(Heap, AllocationSize);
-
-        if (!Block) {
-            // No existing block is sufficient/existing for this allocation size.
-            // Create it.
-            size_t GrowthSize = AllocationSize > Heap->DefaultSegmentSize ? AllocationSize : Heap->DefaultSegmentSize;
-
-            // Create the segment now.
-            PMT_HEAP_SEGMENT Segment = HeapCreateSegment(Heap, GrowthSize);
-
-            if (!Segment) {
-                // Internal allocation error, probably out of memory
-                goto Cleanup;
-            }
-
-            // HeapCreateSegment creates one free block
-            // claiming this block now will split it in 2
-            // (or depending on the allocation size, will consume the entirety)
-            Block = HeapClaimFreeBlock(Heap, AllocationSize);
-
-            if (!Block) {
-                // Serious allocator problem, this probably stems from the user using HEAP_NO_SERIALIZE
-                goto Cleanup;
-            }
-        }
-
-        // Block now points to a valid one, just set ReturnedAllocation and go to cleanup.
-        ReturnedAllocation = (void*)((uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE);
-
-        // If they want to zero out the memory, just do it now.
-        if (Options & HEAP_ALLOCATE_ZERO_MEMORY) {
-            memset(ReturnedAllocation, 0, AllocationSize);
-        }
-
-        // Control flow would lead to cleanup anyway
-        // but explicit transfer is better for readability
-        goto Cleanup;
-    }
-
-Cleanup:
-    
     // If serialization, then release the mutex
     if (SerializeHeap) {
         ReleaseMutex(Heap->HeapMutex);
+    }
+
+    if (!ReturnedAllocation) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            FailureStatus
+        );
     }
 
     return ReturnedAllocation;
@@ -796,12 +899,33 @@ HeapFreeSegmentAllocation(
     return false;
 }
 
+MTDLL_API
 bool
 HeapFree(
     IN MT_HEAP_HANDLE Heap,
     IN HEAP_FREE_OPTIONS Options,
     IN void* AllocatedMemory
 )
+
+/*++
+
+    Routine description:
+
+        Returns an allocation to its heap and coalesces adjacent free segment
+        blocks when applicable.
+
+    Arguments:
+
+        [IN] Heap - The heap that owns the allocation.
+        [IN] Options - Flags controlling heap serialization.
+        [IN] AllocatedMemory - The allocation returned by HeapAlloc.
+
+    Return Values:
+
+        true when the allocation is freed, or false for an invalid, already
+        freed, or foreign pointer.
+
+--*/
 {
     // Invalid ptrs
     if (!Heap || !AllocatedMemory) {
@@ -867,6 +991,28 @@ bool
 HeapDestroy(
     IN MT_HEAP_HANDLE HeapHandle
 )
+
+/*++
+
+    Routine description:
+
+        Destroys a private heap and releases its slabs, segments, mutex, and
+        control block.
+
+    Arguments:
+
+        [IN] HeapHandle - The private heap to destroy.
+
+    Return Values:
+
+        true when all heap resources are released, or false when the handle is
+        invalid, identifies the process heap, or cleanup fails.
+
+    Notes:
+
+        The caller must stop using the heap before destruction begins.
+
+--*/
 
 {
     if (!HeapHandle || HeapHandle == GetProcessHeap()) {
@@ -959,4 +1105,393 @@ HeapDestroy(
     }
 
     return HeapDestroyed;
+}
+
+MTDLL_API
+size_t
+HeapSize(
+    IN MT_HEAP_HANDLE HeapHandle,
+    IN HEAP_SIZE_OPTIONS Options,
+    IN void* AllocatedMemory
+)
+
+/*++
+
+    Routine description:
+
+        Validates an allocation and returns its usable size.
+
+    Arguments:
+
+        [IN] HeapHandle - The heap that owns the allocation.
+        [IN] Options - Flags controlling heap serialization.
+        [IN] AllocatedMemory - The allocation to inspect.
+
+    Return Values:
+
+        The usable allocation size, or MT_HEAP_SIZE_ERROR when the heap,
+        options, pointer, or allocation state is invalid.
+
+--*/
+
+{
+    if (!HeapHandle || !AllocatedMemory) return MT_HEAP_SIZE_ERROR;
+
+    const uint32_t ValidOptions =
+        HEAP_SIZE_NO_SERIALIZE;
+
+    if ((uint32_t)(Options & ~ValidOptions) != 0) {
+        return MT_HEAP_SIZE_ERROR;
+    }
+
+    bool SerializeHeap = !(Options & HEAP_SIZE_NO_SERIALIZE) && !(HeapHandle->Options & HEAP_NO_SERIALIZE);
+
+    if (SerializeHeap) {
+        uint32_t ReturnedCode = WaitForSingleObject(HeapHandle->HeapMutex, MT_INFINITE);
+
+        if (ReturnedCode == WAIT_ABANDONED_0) {
+            // The mutex belongs to this thread now, but the previous owner may
+            // have left the heap metadata inconsistent.
+            ReleaseMutex(HeapHandle->HeapMutex);
+            return MT_HEAP_SIZE_ERROR;
+        }
+
+        if (ReturnedCode != WAIT_OBJECT_0) {
+            // The mutex was not acquired, so it must not be released here.
+            return MT_HEAP_SIZE_ERROR;
+        }
+    }
+
+    size_t FoundSize = MT_HEAP_SIZE_ERROR;
+
+    // Search through the slabs first.
+    for (size_t i = 0; i < MT_HEAP_BUCKET_COUNT; i++) {
+        PMT_HEAP_BUCKET Bucket = &HeapHandle->Buckets[i];
+        PDOUBLY_LINKED_LIST Head = &Bucket->SlabListHead;
+        PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+        while (Head != Current) {
+
+            PMT_HEAP_SLAB Slab = CONTAINING_RECORD(Current, MT_HEAP_SLAB, SlabListEntry);
+
+            // See if the slab matches this pointer.
+            // Get slot start base
+            uintptr_t SlotsStart = (uintptr_t)Slab->SlotsBase;
+
+            // Calculate the end of the slots.
+            uintptr_t SlotsEnd = (uintptr_t)SlotsStart + ((size_t)Slab->SlotCount * Slab->SlotSize);
+
+            // Does this slab owns the address given
+            if ((uintptr_t)AllocatedMemory >= SlotsStart && (uintptr_t)AllocatedMemory < SlotsEnd) {
+                size_t Offset = (uintptr_t)AllocatedMemory - SlotsStart;
+
+                // The allocated memory ptr must be the start of the allocated slab
+                if ((Offset % Slab->SlotSize) != 0) {
+                    goto Cleanup;
+                }
+
+                // Get the slot index, word index, and mask for each slab slot bit.
+                uint32_t SlotIndex = (uint32_t)(Offset / Slab->SlotSize);
+                uint32_t WordIndex = SlotIndex / 64;
+                uint32_t BitIndex = SlotIndex % 64;
+                uint64_t Mask = 1ULL << BitIndex;
+
+                // Bit being 0 means the slot was not allocated
+                if ((Slab->Bitmap[WordIndex] & Mask) == 0) {
+                    goto Cleanup;
+                }
+
+                // It does contain the address, it is validated too, return slab size.
+                FoundSize = Slab->SlotSize;
+                goto Cleanup;
+            }
+
+            Current = Current->Flink;
+        }
+    }
+
+    // Search through the segments now, slabs didnt return anything
+    PDOUBLY_LINKED_LIST Head = &HeapHandle->SegmentListHead;
+    PDOUBLY_LINKED_LIST Current = Head->Flink;
+
+    while (Head != Current) {
+        PMT_HEAP_SEGMENT Segment = CONTAINING_RECORD(Current, MT_HEAP_SEGMENT, SegmentListEntry);
+        PDOUBLY_LINKED_LIST HeadBlock = &Segment->BlockListHead;
+        PDOUBLY_LINKED_LIST CurrentBlock = HeadBlock->Flink;
+
+        while (HeadBlock != CurrentBlock) {
+
+            PMT_HEAP_BLOCK Block = CONTAINING_RECORD(CurrentBlock, MT_HEAP_BLOCK, BlockListEntry);
+
+            void* BlockUserAddr = ((uint8_t*)Block + MT_HEAP_BLOCK_HEADER_SIZE);
+
+            if (BlockUserAddr == AllocatedMemory) {
+
+                if (Block->Free) {
+                    // The block is free, the user has requested size for a free ptr.
+                    // That is an error.
+                    goto Cleanup;
+                }
+
+                // Found the allocated ptr, return its size.
+                FoundSize = Block->BlockSize;
+                goto Cleanup;
+            }
+
+            CurrentBlock = CurrentBlock->Flink;
+        }
+
+        Current = Current->Flink;
+    }
+
+Cleanup:
+    if (SerializeHeap) {
+        ReleaseMutex(HeapHandle->HeapMutex);
+    }
+
+    return FoundSize;
+}
+
+MTDLL_API
+void*
+HeapReAlloc(
+    IN MT_HEAP_HANDLE HeapHandle,
+    IN HEAP_REALLOCATION_OPTIONS Options,
+    IN void* AllocatedMemory,
+    IN size_t NewReAllocationSize
+)
+
+/*++
+
+    Routine description:
+
+        Resizes an existing heap allocation, preserving its previous contents
+        up to the old allocation size.
+
+    Arguments:
+
+        [IN] HeapHandle - The heap that owns the allocation.
+        [IN] Options - Flags controlling serialization, zeroing, exceptions,
+        and in-place-only behavior.
+        [IN] AllocatedMemory - The allocation to resize.
+        [IN] NewReAllocationSize - The requested new usable size.
+
+    Return Values:
+
+        The resized allocation on success, or NULL when resizing fails or the
+        in-place-only request cannot be satisfied. A requested exception is
+        raised instead of returning NULL.
+
+    Notes:
+
+        The segment in-place growth optimization is intentionally tracked as a
+        later heap feature. The current implementation may allocate a new
+        block for growth.
+
+--*/
+
+{
+    bool GenerateExceptions =
+        (Options & HEAP_REALLOCATE_GENERATE_EXCEPTIONS) != 0;
+
+    if (!HeapHandle) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            MT_ACCESS_VIOLATION
+        );
+    }
+
+    GenerateExceptions = GenerateExceptions ||
+        (HeapHandle->Options & HEAP_GENERATE_EXCEPTIONS) != 0;
+
+    if (!AllocatedMemory || !NewReAllocationSize) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            MT_ACCESS_VIOLATION
+        );
+    }
+
+    const uint32_t ValidOptions =
+        HEAP_REALLOCATE_GENERATE_EXCEPTIONS |
+        HEAP_REALLOCATE_IN_PLACE_ONLY |
+        HEAP_REALLOCATE_NO_SERIALIZE |
+        HEAP_REALLOCATE_ZERO_MEMORY;
+
+    if ((uint32_t)(Options & ~ValidOptions) != 0) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            MT_ACCESS_VIOLATION
+        );
+    }
+
+    bool SerializeHeap = !(Options & HEAP_REALLOCATE_NO_SERIALIZE) && !(HeapHandle->Options & HEAP_NO_SERIALIZE);
+
+    if (SerializeHeap) {
+        uint32_t ReturnedCode = WaitForSingleObject(HeapHandle->HeapMutex, MT_INFINITE);
+
+        if (ReturnedCode == WAIT_ABANDONED_0) {
+            // The mutex belongs to this thread now, but the previous owner may
+            // have left the heap metadata inconsistent.
+            ReleaseMutex(HeapHandle->HeapMutex);
+            return MtpHeapAllocationFailure(
+                GenerateExceptions,
+                MT_ACCESS_VIOLATION
+            );
+        }
+
+        if (ReturnedCode != WAIT_OBJECT_0) {
+            // The mutex was not acquired, so it must not be released here.
+            return MtpHeapAllocationFailure(
+                GenerateExceptions,
+                MT_ACCESS_VIOLATION
+            );
+        }
+    }
+
+    // Call the heap size function, to compare OldSize vs NewSize
+    // HeapReAlloc already owns this heap's mutex when serialization is enabled.
+    // Avoid a redundant recursive acquisition and its additional system calls.
+    size_t OldSize = HeapSize(HeapHandle, HEAP_SIZE_NO_SERIALIZE, AllocatedMemory);
+    void* ReturnedPointer = NULL;
+    MTSTATUS FailureStatus = MT_NO_MEMORY;
+    if (OldSize == MT_HEAP_SIZE_ERROR) {
+        // Size failure, return
+        FailureStatus = MT_ACCESS_VIOLATION;
+        goto Cleanup;
+    }
+
+    // If the old size is BIGGER than the new size, then just return the original pointer
+    if (NewReAllocationSize <= OldSize) {
+        ReturnedPointer = AllocatedMemory;
+        goto Cleanup;
+    }
+    else if (Options & HEAP_REALLOCATE_IN_PLACE_ONLY) {
+        // We cannot relloc in place FOR NOW, until segment coalsce optimization is here
+        goto Cleanup;
+    }
+    else {
+        // Allocate a new memory chunk
+        // Copy over the old memory contents to new
+        // Free the old pointer, and return the new pointer
+        HEAP_ALLOCATE_OPTIONS AllocOptions =
+            (Options & HEAP_REALLOCATE_ZERO_MEMORY) ?
+            HEAP_ALLOCATE_ZERO_MEMORY : HEAP_ALLOCATE_NO_OPTIONS;
+        void* NewAllocation = MtpAllocateHeapBlockLocked(
+            HeapHandle,
+            AllocOptions,
+            NewReAllocationSize,
+            &FailureStatus
+        );
+
+        if (!NewAllocation) {
+            goto Cleanup;
+        }
+
+        memcpy(NewAllocation, AllocatedMemory, OldSize);
+
+        if (!HeapFree(
+            HeapHandle,
+            HEAP_FREE_NO_SERIALIZE,
+            AllocatedMemory
+        )) {
+            // If freeing the old pointer fails, free the new one and return NULL.
+            HeapFree(
+                HeapHandle,
+                HEAP_FREE_NO_SERIALIZE,
+                NewAllocation
+            );
+            FailureStatus = MT_ACCESS_VIOLATION;
+            goto Cleanup;
+        }
+
+        ReturnedPointer = NewAllocation;
+        goto Cleanup;
+    }
+
+
+Cleanup:
+    if (SerializeHeap) {
+        ReleaseMutex(HeapHandle->HeapMutex);
+    }
+
+    if (!ReturnedPointer) {
+        return MtpHeapAllocationFailure(
+            GenerateExceptions,
+            FailureStatus
+        );
+    }
+
+    return ReturnedPointer;
+}
+
+MTDLL_API
+bool
+HeapLock(
+    IN MT_HEAP_HANDLE Heap
+)
+
+/*++
+
+    Routine description:
+
+        Acquires the serialization mutex for a heap explicitly.
+
+    Arguments:
+
+        [IN] Heap - The heap whose serialization mutex is acquired.
+
+    Return Values:
+
+        true when the mutex is acquired, or false when the heap is invalid,
+        nonserialized, abandoned, or cannot be acquired.
+
+--*/
+
+{
+    if (!Heap || Heap->Options & HEAP_NO_SERIALIZE) return false;
+
+    // Acquire the mutex
+    uint32_t RetVal = WaitForSingleObject(Heap->HeapMutex, MT_INFINITE);
+
+    if (RetVal == WAIT_ABANDONED_0) {
+        // The mutex belongs to this thread now, but the previous owner may
+        // have left the heap metadata inconsistent.
+        ReleaseMutex(Heap->HeapMutex);
+        return false;
+    }
+
+    if (RetVal != WAIT_OBJECT_0) {
+        // The mutex was not acquired, so it must not be released here.
+        return false;
+    }
+
+    return true;
+}
+
+MTDLL_API
+bool
+HeapUnlock(
+    IN MT_HEAP_HANDLE Heap
+)
+
+/*++
+
+    Routine description:
+
+        Releases the serialization mutex previously acquired for a heap.
+
+    Arguments:
+
+        [IN] Heap - The heap whose serialization mutex is released.
+
+    Return Values:
+
+        true when the mutex is released, or false when the heap is invalid,
+        nonserialized, or the current thread does not own the mutex.
+
+--*/
+
+{
+    if (!Heap || Heap->Options & HEAP_NO_SERIALIZE) return false;
+    return ReleaseMutex(Heap->HeapMutex);
 }

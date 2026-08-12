@@ -10,6 +10,7 @@ import struct
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Sequence
 
 
 SECTOR_SIZE = 512
@@ -134,8 +135,10 @@ def create_image(
     kernel: Path,
     mtdll: Path,
     program: Path,
+    *,
+    additional_files: Sequence[tuple[Path, str]] = (),
 ) -> None:
-    inputs = [bootloader, kernel, mtdll, program]
+    inputs = [bootloader, kernel, mtdll, program, *(source for source, _ in additional_files)]
     missing = [path for path in inputs if not path.is_file()]
     if missing:
         joined = "\n".join(f"  {path}" for path in missing)
@@ -181,6 +184,7 @@ def create_image(
                 (kernel, "kernel.elf"),
                 (mtdll, "mtdll.mtdll"),
                 (program, "terminateMyself.mtexe"),
+                *additional_files,
             ],
         )
 
