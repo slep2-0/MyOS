@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set "PYTHONDONTWRITEBYTECODE=1"
 
 set "CONFIGURATION=Debug"
 if /I "%~1"=="Debug" (
@@ -10,9 +11,9 @@ if /I "%~1"=="Debug" (
     goto explicit_configuration
 )
 
-py -3 "%~dp0tools\windows\build.py" run --configuration "%CONFIGURATION%" %*
+py -3 "%~dp0tools\windows\build.py" run --configuration "%CONFIGURATION%" --stress-mode normal %*
 exit /b %ERRORLEVEL%
 
 :explicit_configuration
-py -3 "%~dp0tools\windows\build.py" run --configuration "%CONFIGURATION%" %2 %3 %4 %5 %6 %7 %8 %9
+py -3 "%~dp0tools\windows\build.py" run --configuration "%CONFIGURATION%" --stress-mode normal %2 %3 %4 %5 %6 %7 %8 %9
 exit /b %ERRORLEVEL%

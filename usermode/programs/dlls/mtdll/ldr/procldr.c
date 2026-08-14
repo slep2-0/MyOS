@@ -235,7 +235,7 @@ LdrFindEntryForModule(
         [IN] ModuleName - The module name to find.
         [IN] Peb - The PEB whose loader list is searched.
         [IN] UseFullPath - A boolean value indicating whether to compare ModuleName with the DLL
-                           full path in the PEB, or just its base name. (C:\Users\user\test.dll vs test.dll)
+                           full path in the PEB, or just its base name. (C:\Example\test.dll vs test.dll)
 
     Return Values:
 
@@ -369,15 +369,6 @@ LdrpProcessImports(
         Status = LdrpReferenceDependency(ExecutableEntry, LibName, &ImportedEntry);
 
         if (MT_FAILURE(Status)) return Status;
-
-        if (!ImportedEntry) {
-            // DLL Isnt loaded in, load it in.
-            Status = LdrLoadDll(LibName, &ImportedEntry);
-            if (MT_FAILURE(Status)) {
-                return Status;
-            }
-        }
-
 
         // Call the final resolver
         Status = LdrpGetProcedureAddress(

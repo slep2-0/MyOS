@@ -235,7 +235,7 @@ def _record(result_file: Path, message: str) -> None:
         stream.write(message + "\n")
 
     # The runner may outlive the terminal that launched it (for example, if
-    # Codex or a shell crashes during a long soak). Preserve the result and
+    # the terminal or shell exits during a long soak). Preserve the result and
     # continue finalization even when that terminal's output pipe is gone.
     try:
         print(message, flush=True)

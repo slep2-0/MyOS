@@ -9,6 +9,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "mte.h"
+
+#define MT_INVALID_TLS_INDEX UINT64_MAX
 
 // User defined types that are stable and should not change between versions wildely, only extended.
 // Meaning the structs offsets may stay the same (layout), but only extended from the bottom if it is really needed.
@@ -61,6 +64,8 @@ typedef struct _LDR_DATA_TABLE_ENTRY {
     char FullName[256];
     uint64_t LoadTime;
     DOUBLY_LINKED_LIST LoadedModuleList;
+    uint64_t TlsIndex;               // Process-local index used by __tls_get_addr.
+    MTE_TLS_DIRECTORY TlsDirectory;  // Validated copy of this module's TLS metadata.
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef struct _LDR_DEPENDENCY_ENTRY {
@@ -71,6 +76,7 @@ typedef struct _LDR_DEPENDENCY_ENTRY {
 typedef struct _PEB_LDR_DATA {
     HANDLE LoaderLock; // Mutex lock for creating DLLs
     DOUBLY_LINKED_LIST LoadedModuleList;
+    uint64_t NextTlsIndex; // Next module index, protected by LoaderLock.
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
 
 typedef struct _PEB {
@@ -95,6 +101,10 @@ typedef struct _TEB {
     PPEB ProcessEnvironmentBlock;
     int32_t LastErrorValue;
     int32_t LastStatusValue;
+    void* StaticTlsAllocation; // Original allocation containing executable static TLS.
+    void* ThreadPointer;       // FS base used by the current thread.
+    void** TlsSlots;           // Module-indexed array of allocated TLS block addresses.
+    uint64_t TlsSlotCount;     // Number of valid entries in TlsSlots.
 } TEB, *PTEB;
 
 #define MtCurrentProcess() ((HANDLE)-1)

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -21,8 +22,11 @@ from typing import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOTS = ("kernel", "shared", "usermode")
-DEFAULT_GUARD = PROJECT_ROOT / ".git" / "routine-docs-guard.json"
-DEFAULT_AUDIT = PROJECT_ROOT / ".git" / "routine-docs-audit.json"
+PRIVATE_STATE_ROOT = Path(
+    os.environ.get("LOCALAPPDATA", str(Path.home() / ".local" / "share"))
+) / "MatanelOS" / "Private" / "RoutineDocs"
+DEFAULT_GUARD = PRIVATE_STATE_ROOT / "routine-docs-guard.json"
+DEFAULT_AUDIT = PRIVATE_STATE_ROOT / "routine-docs-audit.json"
 
 
 @dataclass(frozen=True)

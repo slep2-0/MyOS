@@ -30,25 +30,16 @@ def main() -> int:
         print("Close every Visual Studio window before resetting IntelliSense.", file=sys.stderr)
         return 1
 
-    database_root = (ROOT / ".vs/KernelDevelopment").resolve()
-    if ROOT.resolve() not in database_root.parents:
-        print(f"Refusing to clean outside the workspace: {database_root}", file=sys.stderr)
+    cache_root = (ROOT / ".vs").resolve()
+    if ROOT.resolve() not in cache_root.parents:
+        print(f"Refusing to clean outside the workspace: {cache_root}", file=sys.stderr)
         return 1
 
-    removed = 0
-    for version in ("v17", "v18"):
-        directory = database_root / version
-        ipch = directory / "ipch"
-        if ipch.is_dir():
-            shutil.rmtree(ipch)
-            removed += 1
-        for name in ("Browse.VC.db", "Solution.VC.db"):
-            database = directory / name
-            if database.is_file():
-                database.unlink()
-                removed += 1
+    removed = cache_root.is_dir()
+    if removed:
+        shutil.rmtree(cache_root)
 
-    print(f"Removed {removed} stale IntelliSense cache item(s).")
+    print(f"Removed Visual Studio cache: {'yes' if removed else 'already clean'}")
     print("Reopen KernelDevelopment.sln and allow Visual Studio to rescan the project.")
     return 0
 

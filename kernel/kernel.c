@@ -14073,6 +14073,7 @@ void kernel_main(BOOT_INFO* boot_info)
         MeBugCheck(FILESYSTEM_PANIC);
     }
 
+#if MT_STRESS_AUTOMATION
     uint32_t StressProcessorCount = MeGetActiveProcessorCount();
     if (StressProcessorCount == 0 || StressProcessorCount > MAX_CPUS) {
         Stress4BugCheck(
@@ -14093,6 +14094,19 @@ void kernel_main(BOOT_INFO* boot_info)
         MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)st,
             (void*)StressSuiteController, NULL, NULL);
     }
+#else
+    st = PsCreateSystemThread(
+        (ThreadEntry)MeCreateInitialUserModeProcess,
+        NULL,
+        DEFAULT_TIMESLICE_TICKS,
+        NULL
+    );
+    if (MT_FAILURE(st)) {
+        MeBugCheckEx(PSWORKER_INIT_FAILED, (void*)(uintptr_t)st,
+            (void*)MeCreateInitialUserModeProcess, NULL, NULL);
+    }
+#endif
+
     Schedule();
     UNREACHABLE_CODE();
 

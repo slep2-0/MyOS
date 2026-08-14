@@ -125,6 +125,18 @@ MtpRunLoaderTests(
     if (!ProcessModule || !MtdllModule) {
         return MT_LOADER_TEST_PINNED;
     }
+
+    PLDR_DATA_TABLE_ENTRY MtdllEntry = LdrFindEntryForModule(
+        "mtdll.mtdll",
+        MtCurrentPeb(),
+        false
+    );
+    if (!MtdllEntry || !MtdllEntry->Pinned ||
+        MtdllEntry->ReferenceCount == 0) {
+        return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
+    }
+    uint32_t MtdllBaselineReferences = MtdllEntry->ReferenceCount;
+
     if (FreeLibrary(ProcessModule) ||
         GetLastStatus() != MT_ACCESS_DENIED ||
         GetLastError() != ERROR_ACCESS_DENIED ||
@@ -146,6 +158,9 @@ MtpRunLoaderTests(
     }
     if (MtpLoaderAttachCount != 1 || MtpLoaderDetachCount != 0) {
         return MT_LOADER_TEST_DETACH;
+    }
+    if (MtdllEntry->ReferenceCount != MtdllBaselineReferences + 1) {
+        return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
     }
 
     PLDR_DATA_TABLE_ENTRY GoodEntry = LdrFindEntryForModule(
@@ -214,6 +229,9 @@ MtpRunLoaderTests(
     if (GoodEntry->ReferenceCount != 2) {
         return MT_LOADER_TEST_DUPLICATE_REFERENCE;
     }
+    if (MtdllEntry->ReferenceCount != MtdllBaselineReferences + 1) {
+        return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
+    }
     if (QueryState() != LOADER_TEST_QUERY_RESULT) {
         return MT_LOADER_TEST_ATTACH_REPEAT;
     }
@@ -233,6 +251,9 @@ MtpRunLoaderTests(
             ) != NULL) {
             return MT_LOADER_TEST_REJECT_ROLLBACK;
         }
+        if (MtdllEntry->ReferenceCount != MtdllBaselineReferences + 1) {
+            return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
+        }
     }
 
     if (!FreeLibrary(GoodModule) ||
@@ -244,12 +265,18 @@ MtpRunLoaderTests(
         QueryState() != LOADER_TEST_QUERY_RESULT) {
         return MT_LOADER_TEST_UNLOAD_REFERENCE;
     }
+    if (MtdllEntry->ReferenceCount != MtdllBaselineReferences + 1) {
+        return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
+    }
 
     if (!FreeLibrary(GoodModule) ||
         GetLastStatus() != MT_SUCCESS ||
         GetLastError() != ERROR_SUCCESS ||
         MtpLoaderDetachCount != 1) {
         return MT_LOADER_TEST_DETACH;
+    }
+    if (MtdllEntry->ReferenceCount != MtdllBaselineReferences) {
+        return MT_LOADER_TEST_DEPENDENCY_REFERENCE;
     }
     if (LdrFindEntryForModule(
             "loaderGood.mtdll",
@@ -273,10 +300,13 @@ MtpRunLoaderTests(
         );
     if (!ReloadedModule || !ReloadedQuery ||
         ReloadedQuery() != LOADER_TEST_QUERY_RESULT ||
-        MtpLoaderAttachCount != 2) {
+        MtpLoaderAttachCount != 2 ||
+        MtdllEntry->ReferenceCount != MtdllBaselineReferences + 1) {
         return MT_LOADER_TEST_RELOAD;
     }
-    if (!FreeLibrary(ReloadedModule) || MtpLoaderDetachCount != 2) {
+    if (!FreeLibrary(ReloadedModule) ||
+        MtpLoaderDetachCount != 2 ||
+        MtdllEntry->ReferenceCount != MtdllBaselineReferences) {
         return MT_LOADER_TEST_RELOAD;
     }
 
@@ -340,6 +370,7 @@ MtpRunLoaderTests(
     if (!WorkersPassed ||
         MtpLoaderAttachCount <= 2 ||
         MtpLoaderAttachCount != MtpLoaderDetachCount ||
+        MtdllEntry->ReferenceCount != MtdllBaselineReferences ||
         LdrFindEntryForModule(
             "loaderGood.mtdll",
             MtCurrentPeb(),

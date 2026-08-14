@@ -884,6 +884,7 @@ def build_usermode(
             executable=False,
             workers=workers,
             module_name="loaderFail.mtdll",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
             defines=(LOADER_TEST_DLL_DEFINE,),
             include_directories=(LOADER_TEST_INCLUDE,),
             entry_symbol="DllMain",
@@ -1111,8 +1112,11 @@ def main() -> int:
         return 1
 
     if args.action == "clean":
-        shutil.rmtree(WINDOWS_BUILD, ignore_errors=True)
-        print(f"[CLEAN] Removed {WINDOWS_BUILD}")
+        build_root = (ROOT / "build").resolve()
+        if ROOT.resolve() not in build_root.parents:
+            raise BuildFailure(f"Refusing to clean outside the workspace: {build_root}")
+        shutil.rmtree(build_root, ignore_errors=True)
+        print("[CLEAN] Removed build directory")
         return 0
 
     try:

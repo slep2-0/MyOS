@@ -12,16 +12,19 @@ from typing import Iterable
 
 
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
+PROGRAM_HEADER = struct.Struct("<IIQQQQQQ")
 SECTION_HEADER = struct.Struct("<IIQQQQIIQQ")
 SYMBOL = struct.Struct("<IBBHQQ")
 RELA = struct.Struct("<QQq")
 
+PT_TLS = 7
 SHT_NOBITS = 8
 SHT_DYNSYM = 11
 SHT_SYMTAB = 2
 SHT_RELA = 4
 SHN_UNDEF = 0
 SHF_ALLOC = 0x2
+SHF_TLS = 0x400
 STB_GLOBAL = 1
 STB_WEAK = 2
 STT_NOTYPE = 0
@@ -30,8 +33,11 @@ STT_FUNC = 2
 R_X86_64_GLOB_DAT = 6
 R_X86_64_JUMP_SLOT = 7
 R_X86_64_RELATIVE = 8
+R_X86_64_DTPMOD64 = 16
 
-MTE_HEADER = struct.Struct("<4s13Q20s")
+MTE_HEADER = struct.Struct("<4s15Q4s")
+MTE_TLS_DIRECTORY = struct.Struct("<6Q")
+MTE_TLS_MODULE_INDEX_FIXUP = struct.Struct("<Q")
 MTE_EXPORT = struct.Struct("<QQ")
 MTE_IMPORT = struct.Struct("<QQQ")
 MTE_RELOCATION = struct.Struct("<QQq")
@@ -55,6 +61,18 @@ class ElfSection:
     info: int
     alignment: int
     entry_size: int
+
+
+@dataclass(frozen=True)
+class ElfProgramHeader:
+    type: int
+    flags: int
+    offset: int
+    virtual_address: int
+    physical_address: int
+    file_size: int
+    memory_size: int
+    alignment: int
 
 
 @dataclass(frozen=True)
@@ -92,10 +110,17 @@ class ElfImage:
             raise MtePackError(f"{path}: expected an x86-64 ELF image")
 
         self.entry = fields[4]
+        program_offset = fields[5]
         section_offset = fields[6]
+        program_entry_size = fields[9]
+        program_count = fields[10]
         section_entry_size = fields[11]
         section_count = fields[12]
         section_names_index = fields[13]
+        if program_count and program_entry_size != PROGRAM_HEADER.size:
+            raise MtePackError(f"{path}: unsupported program-header size")
+        if program_offset + program_count * program_entry_size > len(self.data):
+            raise MtePackError(f"{path}: truncated program-header table")
         if section_entry_size != SECTION_HEADER.size:
             raise MtePackError(f"{path}: unsupported section-header size")
         if section_offset + section_count * section_entry_size > len(self.data):
@@ -106,6 +131,13 @@ class ElfImage:
                 self.data, section_offset + index * section_entry_size
             )
             for index in range(section_count)
+        ]
+
+        self.program_headers = [
+            ElfProgramHeader(*PROGRAM_HEADER.unpack_from(
+                self.data, program_offset + index * program_entry_size
+            ))
+            for index in range(program_count)
         ]
         if section_names_index >= section_count:
             raise MtePackError(f"{path}: invalid section-name table")
@@ -132,6 +164,23 @@ class ElfImage:
             )
         self.sections_by_name = {section.name: section for section in self.sections}
         self._symbol_tables: dict[int, list[ElfSymbol]] = {}
+
+    def tls_program_header(self) -> ElfProgramHeader | None:
+        matches = [header for header in self.program_headers if header.type == PT_TLS]
+        if len(matches) > 1:
+            raise MtePackError(f"{self.path}: multiple PT_TLS program headers")
+        if not matches:
+            return None
+
+        header = matches[0]
+        if header.memory_size == 0:
+            raise MtePackError(f"{self.path}: empty PT_TLS segment")
+        if header.file_size > header.memory_size:
+            raise MtePackError(f"{self.path}: PT_TLS file size exceeds memory size")
+        if header.alignment not in (0, 1) and header.alignment & (header.alignment - 1):
+            raise MtePackError(f"{self.path}: PT_TLS alignment is not a power of two")
+        self._slice(header.offset, header.file_size, "PT_TLS template")
+        return header
 
     def _slice(self, offset: int, size: int, description: str) -> bytes:
         if offset > len(self.data) or size > len(self.data) - offset:
@@ -271,6 +320,15 @@ class PackedRelocation:
     addend_rva: int
 
 
+@dataclass(frozen=True)
+class PackedTls:
+    template_rva: int
+    template_size: int
+    total_size: int
+    alignment: int
+    module_index_fixups: tuple[int, ...]
+
+
 def _range_contains(
     outer_start: int,
     outer_end: int,
@@ -287,6 +345,7 @@ def _validate_runtime_sections(
     bss_start: int,
     bss_end: int,
     copied_ranges: list[tuple[int, int, str]],
+    tls_program_header: ElfProgramHeader | None,
 ) -> None:
     """Reject allocated runtime sections that the MTE file would omit."""
     for section in image.sections:
@@ -306,6 +365,11 @@ def _validate_runtime_sections(
             continue
 
         if section.type == SHT_NOBITS:
+            if section.flags & SHF_TLS and tls_program_header is not None:
+                tls_start = tls_program_header.virtual_address
+                tls_end = tls_start + tls_program_header.memory_size
+                if _range_contains(tls_start, tls_end, start, end):
+                    continue
             if not _range_contains(bss_start, bss_end, start, end):
                 raise MtePackError(
                     f"allocated NOBITS section {section.name} escapes MTE BSS"
@@ -330,7 +394,12 @@ def analyze(
     dependencies: dict[str, ElfImage],
     image_base: int,
     image_size: int,
-) -> tuple[list[tuple[str, int]], list[PackedImport], list[PackedRelocation]]:
+) -> tuple[
+    list[tuple[str, int]],
+    list[PackedImport],
+    list[PackedRelocation],
+    list[int],
+]:
     exports = sorted(
         (
             name,
@@ -344,8 +413,10 @@ def analyze(
 
     imports: list[PackedImport] = []
     relocations: list[PackedRelocation] = []
+    tls_module_index_fixups: list[int] = []
     seen_iat: set[int] = set()
     seen_targets: set[int] = set()
+    has_tls = image.tls_program_header() is not None
     for relocation in image.relocations():
         target_rva = checked_rva(
             relocation.offset,
@@ -362,7 +433,7 @@ def analyze(
                 image_size,
                 "R_X86_64_RELATIVE addend",
             )
-            if target_rva in seen_targets:
+            if target_rva in seen_targets or target_rva in seen_iat:
                 raise MtePackError(f"duplicate relocation target RVA 0x{target_rva:x}")
             seen_targets.add(target_rva)
             relocations.append(PackedRelocation(target_rva, addend_rva))
@@ -381,10 +452,25 @@ def analyze(
                 raise MtePackError(
                     f"import {symbol.name} has {len(providers)} providers; expected exactly one"
                 )
-            if target_rva in seen_iat:
+            if target_rva in seen_iat or target_rva in seen_targets:
                 raise MtePackError(f"duplicate import slot RVA 0x{target_rva:x}")
             seen_iat.add(target_rva)
             imports.append(PackedImport(providers[0], symbol.name, target_rva))
+            continue
+
+        if relocation.type == R_X86_64_DTPMOD64:
+            if not has_tls:
+                raise MtePackError("R_X86_64_DTPMOD64 appears without a PT_TLS segment")
+            if relocation.symbol is not None and relocation.symbol.name:
+                raise MtePackError(
+                    "R_X86_64_DTPMOD64 unexpectedly references a named symbol"
+                )
+            if relocation.addend != 0:
+                raise MtePackError("R_X86_64_DTPMOD64 has a nonzero addend")
+            if target_rva in seen_targets or target_rva in seen_iat:
+                raise MtePackError(f"duplicate relocation target RVA 0x{target_rva:x}")
+            seen_targets.add(target_rva)
+            tls_module_index_fixups.append(target_rva)
             continue
 
         symbol_name = relocation.symbol.name if relocation.symbol else "<none>"
@@ -395,7 +481,8 @@ def analyze(
 
     imports.sort(key=lambda item: (item.module, item.name, item.iat_rva))
     relocations.sort(key=lambda item: item.target_rva)
-    return exports, imports, relocations
+    tls_module_index_fixups.sort()
+    return exports, imports, relocations, tls_module_index_fixups
 
 
 @dataclass(frozen=True)
@@ -406,6 +493,10 @@ class MetadataLayout:
     relocation_size: int
     import_rva: int
     import_size: int
+    tls_rva: int
+    tls_size: int
+    tls_fixups_rva: int
+    tls_fixups_size: int
     size: int
 
 
@@ -414,6 +505,7 @@ def metadata_size(
     exports: list[tuple[str, int]],
     imports: list[PackedImport],
     relocations: list[PackedRelocation],
+    tls: PackedTls | None,
 ) -> MetadataLayout:
     cursor = metadata_rva
     export_rva = cursor
@@ -433,6 +525,22 @@ def metadata_size(
         len(item.module.encode("ascii")) + 1 + len(item.name.encode("ascii")) + 1
         for item in imports
     )
+    cursor = align_up(cursor, 8)
+
+    tls_rva = 0
+    tls_size = 0
+    tls_fixups_rva = 0
+    tls_fixups_size = 0
+    if tls is not None:
+        tls_rva = cursor
+        tls_size = MTE_TLS_DIRECTORY.size
+        cursor += tls_size
+        tls_fixups_rva = cursor if tls.module_index_fixups else 0
+        tls_fixups_size = (
+            len(tls.module_index_fixups) * MTE_TLS_MODULE_INDEX_FIXUP.size
+        )
+        cursor += tls_fixups_size
+
     cursor = align_up(cursor, 0x1000)
     return MetadataLayout(
         export_rva,
@@ -441,6 +549,10 @@ def metadata_size(
         relocation_size,
         import_rva,
         import_size,
+        tls_rva,
+        tls_size,
+        tls_fixups_rva,
+        tls_fixups_size,
         cursor - metadata_rva,
     )
 
@@ -451,6 +563,7 @@ def write_metadata(
     exports: list[tuple[str, int]],
     imports: list[PackedImport],
     relocations: list[PackedRelocation],
+    tls: PackedTls | None,
 ) -> None:
     cursor = layout.export_rva + layout.export_size
     for index, (name, function_rva) in enumerate(exports):
@@ -491,6 +604,24 @@ def write_metadata(
             item.iat_rva,
         )
 
+    if tls is not None:
+        MTE_TLS_DIRECTORY.pack_into(
+            output,
+            layout.tls_rva,
+            tls.template_rva,
+            tls.template_size,
+            tls.total_size,
+            tls.alignment,
+            layout.tls_fixups_rva,
+            layout.tls_fixups_size,
+        )
+        for index, target_rva in enumerate(tls.module_index_fixups):
+            MTE_TLS_MODULE_INDEX_FIXUP.pack_into(
+                output,
+                layout.tls_fixups_rva + index * MTE_TLS_MODULE_INDEX_FIXUP.size,
+                target_rva,
+            )
+
 
 def _packed_range_valid(data: bytes, rva: int, size: int) -> bool:
     if size == 0:
@@ -521,6 +652,7 @@ def validate_packed_image(
     expected_exports: list[tuple[str, int]],
     expected_imports: list[PackedImport],
     expected_relocations: list[PackedRelocation],
+    expected_tls: PackedTls | None,
 ) -> None:
     """Parse the generated MTE again and prove that no RVA changed in packing."""
     if len(data) < MTE_HEADER_SIZE:
@@ -541,9 +673,11 @@ def validate_packed_image(
         relocation_size,
         import_rva,
         import_size,
+        tls_rva,
+        tls_size,
         reserved,
     ) = fields
-    if magic != b"MTE\0" or reserved != bytes(20):
+    if magic != b"MTE\0" or reserved != bytes(4):
         raise MtePackError("packed MTE header magic or reserved bytes are invalid")
     if (
         image_base != expected_base
@@ -560,6 +694,10 @@ def validate_packed_image(
         relocation_size,
         import_rva,
         import_size,
+        tls_rva,
+        tls_size,
+        expected_layout.tls_fixups_rva,
+        expected_layout.tls_fixups_size,
         expected_layout.size,
     )
     if actual_layout != expected_layout:
@@ -572,6 +710,7 @@ def validate_packed_image(
         (export_rva, export_size, "export directory"),
         (relocation_rva, relocation_size, "relocation directory"),
         (import_rva, import_size, "import directory"),
+        (tls_rva, tls_size, "TLS directory"),
     ):
         if not _packed_range_valid(data, rva, size):
             raise MtePackError(f"packed {description} is outside the file")
@@ -626,6 +765,55 @@ def validate_packed_image(
     if actual_imports != expected_imports:
         raise MtePackError("packed import table does not match ELF imports")
 
+    if expected_tls is None:
+        if tls_rva != 0 or tls_size != 0:
+            raise MtePackError("packed image unexpectedly contains a TLS directory")
+        return
+
+    if tls_size != MTE_TLS_DIRECTORY.size:
+        raise MtePackError("packed TLS directory has an invalid size")
+    (
+        template_rva,
+        template_size,
+        total_size,
+        alignment,
+        fixups_rva,
+        fixups_size,
+    ) = MTE_TLS_DIRECTORY.unpack_from(data, tls_rva)
+    if (
+        template_rva != expected_tls.template_rva
+        or template_size != expected_tls.template_size
+        or total_size != expected_tls.total_size
+        or alignment != expected_tls.alignment
+        or fixups_rva != expected_layout.tls_fixups_rva
+        or fixups_size != expected_layout.tls_fixups_size
+    ):
+        raise MtePackError("packed TLS directory does not match the ELF PT_TLS segment")
+    if template_size > total_size:
+        raise MtePackError("packed TLS template is larger than its per-thread block")
+    if not _packed_range_valid(data, template_rva, template_size):
+        raise MtePackError("packed TLS template is outside the file")
+    if alignment == 0 or alignment & (alignment - 1):
+        raise MtePackError("packed TLS alignment is not a power of two")
+    if bool(fixups_rva) != bool(fixups_size):
+        raise MtePackError("packed TLS fixup RVA and size disagree")
+    if fixups_size % MTE_TLS_MODULE_INDEX_FIXUP.size:
+        raise MtePackError("packed TLS fixup table is truncated")
+    if not _packed_range_valid(data, fixups_rva, fixups_size):
+        raise MtePackError("packed TLS fixup table is outside the file")
+
+    actual_fixups: list[int] = []
+    for index in range(fixups_size // MTE_TLS_MODULE_INDEX_FIXUP.size):
+        (target_rva,) = MTE_TLS_MODULE_INDEX_FIXUP.unpack_from(
+            data,
+            fixups_rva + index * MTE_TLS_MODULE_INDEX_FIXUP.size,
+        )
+        if target_rva > runtime_size - 8:
+            raise MtePackError("packed TLS module-index target is outside the image")
+        actual_fixups.append(target_rva)
+    if tuple(actual_fixups) != expected_tls.module_index_fixups:
+        raise MtePackError("packed TLS fixups do not match ELF relocations")
+
 
 def pack_image(
     input_path: Path,
@@ -651,10 +839,32 @@ def pack_image(
 
     image_size = bss_end - image_base
     metadata_rva = metadata_start - image_base
-    exports, imports, relocations = analyze(
+    tls_program_header = image.tls_program_header()
+    exports, imports, relocations, tls_module_index_fixups = analyze(
         image, dependency_images, image_base, image_size
     )
-    layout = metadata_size(metadata_rva, exports, imports, relocations)
+    tls: PackedTls | None = None
+    if tls_program_header is not None:
+        template_rva = checked_rva(
+            tls_program_header.virtual_address,
+            image_base,
+            image_size,
+            "PT_TLS template",
+        )
+        if tls_program_header.memory_size > image_size - template_rva:
+            raise MtePackError("PT_TLS memory range is outside the runtime image")
+        alignment = max(tls_program_header.alignment, 1)
+        tls = PackedTls(
+            template_rva,
+            tls_program_header.file_size,
+            tls_program_header.memory_size,
+            alignment,
+            tuple(tls_module_index_fixups),
+        )
+    elif tls_module_index_fixups:
+        raise MtePackError("TLS module-index fixups appear without a PT_TLS segment")
+
+    layout = metadata_size(metadata_rva, exports, imports, relocations, tls)
     if print_metadata_size:
         print(layout.size)
         return layout.size
@@ -686,6 +896,42 @@ def pack_image(
         occupied.append((rva, rva + section.size, name))
         output[rva : rva + section.size] = image.section_data(section)
 
+    if tls is not None and tls.template_size:
+        tls_end = tls.template_rva + tls.template_size
+        containing_range = next(
+            (
+                (start, end, name)
+                for start, end, name in occupied
+                if start <= tls.template_rva and tls_end <= end
+            ),
+            None,
+        )
+        overlapping_range = next(
+            (
+                (start, end, name)
+                for start, end, name in occupied
+                if tls.template_rva < end and start < tls_end
+            ),
+            None,
+        )
+        if containing_range is None and overlapping_range is not None:
+            raise MtePackError(
+                f"PT_TLS template partially overlaps runtime section "
+                f"{overlapping_range[2]}"
+            )
+        template = image._slice(
+            tls_program_header.offset,
+            tls.template_size,
+            "PT_TLS template",
+        )
+        if containing_range is None:
+            if tls_end > file_size:
+                raise MtePackError("PT_TLS template exceeds the MTE file")
+            occupied.append((tls.template_rva, tls_end, "PT_TLS template"))
+            output[tls.template_rva : tls_end] = template
+        elif output[tls.template_rva : tls_end] != template:
+            raise MtePackError("copied PT_TLS template does not match the ELF segment")
+
     metadata_range = (
         metadata_start,
         metadata_end,
@@ -703,6 +949,7 @@ def pack_image(
         bss_start,
         bss_end,
         copied_vma_ranges,
+        tls_program_header,
     )
 
     text_rva = image.symbol_value("__text_start") - image_base
@@ -712,7 +959,7 @@ def pack_image(
     bss_size = bss_end - bss_start
     entry_rva = image.entry - image_base if image.entry else 0
 
-    write_metadata(output, layout, exports, imports, relocations)
+    write_metadata(output, layout, exports, imports, relocations, tls)
     header = MTE_HEADER.pack(
         b"MTE\0",
         image_base,
@@ -728,7 +975,9 @@ def pack_image(
         layout.relocation_size,
         layout.import_rva,
         layout.import_size,
-        bytes(20),
+        layout.tls_rva,
+        layout.tls_size,
+        bytes(4),
     )
     if len(header) != MTE_HEADER_SIZE:
         raise MtePackError("internal MTE header size mismatch")
@@ -742,6 +991,10 @@ def pack_image(
     for item in imports:
         if metadata_begin <= item.iat_rva < metadata_end_rva:
             raise MtePackError("import slot targets generated MTE metadata")
+    if tls is not None:
+        for target_rva in tls.module_index_fixups:
+            if metadata_begin <= target_rva < metadata_end_rva:
+                raise MtePackError("TLS module-index fixup targets generated MTE metadata")
 
     validate_packed_image(
         output,
@@ -754,6 +1007,7 @@ def pack_image(
         exports,
         imports,
         relocations,
+        tls,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -761,7 +1015,8 @@ def pack_image(
     print(
         f"[MTE] {output_path} "
         f"({len(exports)} exports, {len(imports)} imports, "
-        f"{len(relocations)} relocations)"
+        f"{len(relocations)} relocations, "
+        f"{len(tls.module_index_fixups) if tls else 0} TLS fixups)"
     )
     return layout.size
 

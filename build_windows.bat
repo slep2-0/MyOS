@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set "PYTHONDONTWRITEBYTECODE=1"
 
 py -3 "%~dp0tools\windows\sync_vcxproj_files.py"
 if errorlevel 1 exit /b %ERRORLEVEL%

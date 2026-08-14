@@ -93,13 +93,14 @@ memset(
 --*/
 
 {
-    unsigned char* Bytes = (unsigned char*)Destination;
-
-    while (Size--) {
-        *Bytes++ = (unsigned char)Value;
-    }
-
-    return Destination;
+    void* original = Destination;
+    __asm__ volatile (
+        "rep stosb"
+        : "+D"(Destination), "+c"(Size)
+        : "a"((uint8_t)Value)
+        : "memory"
+        );
+    return original;
 }
 
 MTDLL_API

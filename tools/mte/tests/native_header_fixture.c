@@ -9,11 +9,11 @@ STATIC_ASSERT(
 STATIC_ASSERT(sizeof(MT_MODULE_INFO) == 272, "MT_MODULE_INFO ABI changed");
 STATIC_ASSERT(sizeof(MTDLL_BASIC_TYPES) == 552, "MTDLL_BASIC_TYPES ABI changed");
 STATIC_ASSERT(
-    sizeof(LDR_DATA_TABLE_ENTRY) == 304,
+    sizeof(LDR_DATA_TABLE_ENTRY) == 336,
     "LDR_DATA_TABLE_ENTRY ABI changed"
 );
-STATIC_ASSERT(sizeof(PEB_LDR_DATA) == 16, "PEB_LDR_DATA ABI changed");
-STATIC_ASSERT(sizeof(PEB) == 32, "PEB ABI changed");
+STATIC_ASSERT(sizeof(PEB_LDR_DATA) == 24, "PEB_LDR_DATA ABI changed");
+STATIC_ASSERT(sizeof(PEB) == 48, "PEB ABI changed");
 STATIC_ASSERT(offsetof(PEB, ImageBase) == 8, "PEB.ImageBase offset changed");
 STATIC_ASSERT(offsetof(PEB, LoaderData) == 16, "PEB.LoaderData offset changed");
 STATIC_ASSERT(sizeof(MT_TIB) == 24, "MT_TIB ABI changed");

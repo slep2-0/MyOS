@@ -21,6 +21,142 @@ Revision History:
 #include "../includes/ioapi.h"
 #include "mte.h"
 
+static MTSTATUS
+LdrpDereferenceModuleLocked(
+    IN PLDR_DATA_TABLE_ENTRY Module
+);
+
+static MTSTATUS
+LdrpReleaseDependenciesLocked(
+    IN PLDR_DATA_TABLE_ENTRY Importer
+)
+
+/*++
+
+    Routine description:
+
+        Releases every module reference owned through an importer's dependency
+        list. A dependency that loses its final reference is unloaded through
+        the normal internal dereference path.
+
+    Arguments:
+
+        [IN] Importer - Loaded module whose recorded dependencies are released.
+
+    Return Values:
+
+        MT_SUCCESS when every dependency is released, or an error status from
+        the dependency that could not be dereferenced.
+
+    Notes:
+
+        The caller must hold the process loader lock. Dependency records are
+        removed as their corresponding references are released.
+
+--*/
+
+{
+    // Loop over all of the list, while the list isnt empty.
+    while ((Importer->DependencyListHead.Flink != &Importer->DependencyListHead)) {
+        PLDR_DEPENDENCY_ENTRY Entry = CONTAINING_RECORD(Importer->DependencyListHead.Flink, LDR_DEPENDENCY_ENTRY, ListEntry);
+
+        PLDR_DATA_TABLE_ENTRY Dependency = Entry->Module;
+        RemoveEntryList(&Entry->ListEntry);
+        HeapFree(GetProcessHeap(), HEAP_FREE_NO_OPTIONS, Entry);
+
+        MTSTATUS Status = LdrpDereferenceModuleLocked(Dependency);
+        if (MT_FAILURE(Status)) {
+            return Status;
+        }
+    }
+
+    return MT_SUCCESS;
+}
+
+static MTSTATUS
+LdrpDereferenceModuleLocked(
+    IN PLDR_DATA_TABLE_ENTRY Module
+)
+
+/*++
+
+    Routine description:
+
+        Releases one reference to a loaded module. When an unpinned module
+        reaches zero references, the routine notifies it of process detach,
+        releases its dependencies, unmaps its image, and removes its loader
+        entry. Pinned modules retain their permanent baseline reference.
+
+    Arguments:
+
+        [IN] Module - Loader entry whose reference is released.
+
+    Return Values:
+
+        MT_SUCCESS when the reference is released, or an error status when the
+        module state is invalid or final unloading cannot be completed.
+
+    Notes:
+
+        The caller must hold the process loader lock. This internal path may
+        decrement pinned modules, unlike the public FreeLibrary path.
+
+--*/
+
+{
+    if (!Module || !Module->ReferenceCount) {
+        return MT_INVALID_PARAM;
+    }
+
+    if (Module->Pinned && Module->ReferenceCount == 1) {
+        // Cannot fully dereference a pinned module (those are MTDLL and the main EXE)
+        return MT_INVALID_STATE;
+    }
+
+    Module->ReferenceCount--;
+
+    if (Module->Pinned) {
+        // Return SUCCESS for pinned at any case.
+        return MT_SUCCESS;
+    }
+
+    if (Module->ReferenceCount != 0) {
+        // The module still has alive references, cannot fully dereference.
+        return MT_SUCCESS;
+    }
+
+    // Unload the module, it has reached its last reference count, AKA, 0.
+    Module->State = LdrModuleUnloading;
+
+    // Call the module's DLL main with the unloading state
+    if (Module->EntryPoint) {
+        PDLL_ENTRY_POINT Entry = (PDLL_ENTRY_POINT)Module->EntryPoint;
+        Entry(Module->Base, DLL_PROCESS_DETACH, NULL);
+    }
+
+    // Release its dependencies
+    MTSTATUS Status = LdrpReleaseDependenciesLocked(Module);
+    if (MT_FAILURE(Status)) {
+        return Status;
+    }
+
+    // Unmap the module from the file.
+    Status = MtUnmapViewOfSection(MtCurrentProcess(), Module->Base);
+
+    if (MT_FAILURE(Status)) {
+        return Status;
+    }
+
+    // Unlink this module now and return success
+    RemoveEntryList(&Module->LoadedModuleList);
+
+    // Finally free the ptr.
+    bool Success = HeapFree(GetProcessHeap(), HEAP_FREE_NO_OPTIONS, Module);
+
+    // Return.
+    return (Success) ? MT_SUCCESS : MT_GENERAL_FAILURE;
+}
+
 MTSTATUS
 LdrpReferenceDependency(
     IN PLDR_DATA_TABLE_ENTRY Importer,
@@ -95,7 +231,7 @@ LdrpReferenceDependency(
     // Allocate a dependancy record for the importer and insert it in the list.
     PLDR_DEPENDENCY_ENTRY Entry = (PLDR_DEPENDENCY_ENTRY)HeapAlloc(GetProcessHeap(), HEAP_ALLOCATE_ZERO_MEMORY, sizeof(LDR_DEPENDENCY_ENTRY));
     if (!Entry) {
-        LdrUnloadDll(LoadedModule->Base);
+        LdrpDereferenceModuleLocked(LoadedModule);
         return MT_NO_MEMORY;
     }
 
@@ -309,6 +445,10 @@ LdrLoadDll(
 
 Cleanup:
 
+    if (MT_FAILURE(Status) && NewEntry) {
+        LdrpReleaseDependenciesLocked(NewEntry);
+    }
+
     if (MT_FAILURE(Status) && MappedView) {
         MtUnmapViewOfSection(MtCurrentProcess(), BaseAddress);
     }
@@ -390,53 +530,11 @@ LdrUnloadDll(
                 goto Cleanup;
             }
 
-            // Act based on reference count, if its 0, then the DLL will be unloaded
-            uint32_t NewCount = 0;
-            if (Entry->ReferenceCount) {
-                NewCount = --Entry->ReferenceCount;
-            }
-            else {
-                // A 0 reference count is an invalid state
-                Status = MT_INVALID_STATE;
-                goto Cleanup;
-            }
-
-            if (NewCount > 0) {
-                // DLL Cannot be unloaded yet, multiple reference points from multiple LoadLibrary calls.
-                Status = MT_SUCCESS;
-                goto Cleanup;
-            }
-
-            // DLL Should be unloaded
-            // First, call its DllMain under DLL_PROCESS_DETACH
-            Entry->State = LdrModuleUnloading;
-            if (Entry->EntryPoint) {
-                PDLL_ENTRY_POINT EntryPoint = (PDLL_ENTRY_POINT)Entry->EntryPoint;
-
-                EntryPoint(Entry->Base, DLL_PROCESS_DETACH, NULL);
-            }
-
-            // Unmap the DLL from the process memory now.
-            Status = MtUnmapViewOfSection(MtCurrentProcess(), Entry->Base);
-
-            if (MT_FAILURE(Status)) {
-                // Could not unmap the module from the process, not successful.
-                goto Cleanup;
-            }
-
-            // Remove its entry now.
-            RemoveEntryList(&Entry->LoadedModuleList);
-
-            // Free the actual PLDR_DATA_TABLE_ENTRY_NOW
-            bool FreeSuccess = HeapFree(GetProcessHeap(), HEAP_FREE_NO_OPTIONS, Entry);
-
-            if (!FreeSuccess) {
-                Status = MT_GENERAL_FAILURE;
-                goto Cleanup;
-            }
-
-            // Successful.
-            Status = MT_SUCCESS;
+            // The module can maybe be unloaded
+            // we will let the internal helper do this for us here
+            // it will decrement reference count, and if it reaches zero
+            // will recursively dereference all dependencies that this DLL has held
+            Status = LdrpDereferenceModuleLocked(Entry);
             goto Cleanup;
         }
 

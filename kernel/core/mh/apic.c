@@ -53,11 +53,8 @@ uint32_t lapic_mmio_read(uint32_t off)
 --*/
 
 {
-    // Hi matanel, if you ever encounter enormous page faults in this area, with MmAccessFault not even bugchecking.
-    // It is because an IPI was sent from an AP that hasn't been fully initialized.
-    // Thus somehow in gods existence corrupting stuff.
-    // Like in the case of MI_WRITE_PTE, it sent an IPI when it was used in map_lapic, and caused like a chain reaction that formed into a black hole.
-    // So I added another flag allApsInitialized, so that MI_WRITE_PTE will not send an IPI if they are not init yet.
+    // TLB-shootdown IPIs must not target APs until their initialization is complete.
+    // An IPI delivered earlier can corrupt the receiving processor's fault state.
     return MeGetCurrentProcessor()->LapicAddressVirt[off / 4];
 }
 

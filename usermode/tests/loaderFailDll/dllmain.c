@@ -29,6 +29,9 @@ DllMain(
 {
     (void)ModuleBase;
     (void)Reserved;
+
+    // Keep one real MTDLL import so rejected-load rollback releases it.
+    (void)GetLastError();
     return Reason != DLL_PROCESS_ATTACH;
 }
 

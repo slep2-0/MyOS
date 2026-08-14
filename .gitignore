@@ -34,13 +34,8 @@ __pycache__/
 *.py[cod]
 /Intel-Manual-x86-IA32.pdf
 
-# Local development notes and private Codex planning.
-/checklist.md
-/features_checklist.md
-
-# Private local IDA helper; not part of MatanelOS.
-/c_semantics_ida.py
-/c_semantics_ida_README.md
+# Treat the entire working tree as public, including ignored files.
+# Keep personal files, private notes, and temporary work outside this directory.
 
 # Local source line counter.
 /countLines.py
