@@ -132,10 +132,10 @@ void install_idt(void)
     extern void isr_clock(void); // LAPIC ISR.
     set_idt_gate(VECTOR_CLOCK, (unsigned long)isr_clock);
 
-#define LAPIC_SPURIOUS_VECTOR 254
+#define LAPIC_SPURIOUS_VECTOR 255
     /* For SIV LAPIC */
-    extern void isr254(void); // SIV ISR
-    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr254);
+    extern void isr255(void); // SIV ISR
+    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr255);
 
     /* For LAPIC CPU Action */
     extern void isr_ipi(void);

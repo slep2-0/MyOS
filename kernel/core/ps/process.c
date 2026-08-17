@@ -368,6 +368,201 @@ PspRelocateImage(
     return MT_SUCCESS;
 }
 
+static
+MTSTATUS
+PspCreateProcessParameters(
+    IN PEPROCESS Process,
+    IN const char* ImagePath,
+    IN const char* CommandLine,
+    IN const char* CurrentDirectory,
+    IN const char* Environment,
+    IN uint64_t EnvironmentSize,
+    OUT PMT_PROCESS_PARAMETERS* OutParameters
+)
+
+{
+    if (!Process ||
+        !ImagePath ||
+        !CommandLine ||
+        !CurrentDirectory ||
+        !Environment ||
+        EnvironmentSize < 2 ||
+        !OutParameters) {
+        return MT_INVALID_PARAM;
+    }
+
+    // All pointers are from kernel mode, no need for probing
+    // thats done in the system call.
+    // We will need to allocate the MT_PROCESS_PARAMETERS pointers in the users memory, so
+    // First, calculate all string lengths, including the null terminator
+    *OutParameters = NULL;
+
+    // Environment blocks end with two null bytes.
+    if (Environment[EnvironmentSize - 1] != '\0' ||
+        Environment[EnvironmentSize - 2] != '\0') {
+        return MT_INVALID_PARAM;
+    }
+
+    // String lengths stored in the structure exclude null terminators.
+    size_t ImagePathLength = kstrlen(ImagePath);
+    size_t CommandLineLength = kstrlen(CommandLine);
+    size_t CurrentDirectoryLength = kstrlen(CurrentDirectory);
+
+    // Calculate the storage needed by each null-terminated string.
+    if (ImagePathLength == SIZE_MAX ||
+        CommandLineLength == SIZE_MAX ||
+        CurrentDirectoryLength == SIZE_MAX) {
+        return MT_INVALID_PARAM;
+    }
+
+    size_t ImagePathStorageLength = ImagePathLength + 1;
+    size_t CommandLineStorageLength = CommandLineLength + 1;
+    size_t CurrentDirectoryStorageLength = CurrentDirectoryLength + 1;
+
+    // Keep the first trailing buffer naturally aligned.
+    size_t TotalLength = ALIGN_UP(
+        sizeof(MT_PROCESS_PARAMETERS),
+        _Alignof(void*)
+    );
+
+    if (TotalLength > SIZE_MAX - ImagePathStorageLength) {
+        return MT_INVALID_PARAM;
+    }
+
+    TotalLength += ImagePathStorageLength;
+
+    if (TotalLength > SIZE_MAX - CommandLineStorageLength) {
+        return MT_INVALID_PARAM;
+    }
+
+    TotalLength += CommandLineStorageLength;
+
+    if (TotalLength > SIZE_MAX - CurrentDirectoryStorageLength) {
+        return MT_INVALID_PARAM;
+    }
+
+    TotalLength += CurrentDirectoryStorageLength;
+
+    if (TotalLength > SIZE_MAX - EnvironmentSize) {
+        return MT_INVALID_PARAM;
+    }
+
+    TotalLength += EnvironmentSize;
+
+    // Allocate MT_PROCESS_PARAMETERS with the sizeof the struct PLUS the total length needed for it
+    void* BaseAddress = NULL;
+    MTSTATUS Status = MmAllocateVirtualMemory(
+        Process,
+        &BaseAddress,
+        TotalLength,
+        VAD_FLAG_READ | VAD_FLAG_WRITE
+    );
+
+    if (MT_FAILURE(Status)) return Status;
+
+    PMT_PROCESS_PARAMETERS Parameters = (PMT_PROCESS_PARAMETERS)BaseAddress;
+
+    // The strings begin immediately after the aligned struct
+    uintptr_t StringsStart = (uintptr_t)BaseAddress + ALIGN_UP(sizeof(MT_PROCESS_PARAMETERS), _Alignof(void*));
+
+    char* ChildImagePath = (char*)StringsStart;
+    StringsStart += ImagePathStorageLength;
+
+    char* ChildCommandLine = (char*)StringsStart;
+    StringsStart += CommandLineStorageLength;
+
+    char* ChildCurrentDirectory = (char*)StringsStart;
+    StringsStart += CurrentDirectoryStorageLength;
+
+    char* ChildEnvironment = (char*)StringsStart;
+    StringsStart += EnvironmentSize;
+
+    assert(StringsStart == (uintptr_t)BaseAddress + TotalLength);
+
+    // Allocation is owned by the remote process, attach to it.
+    APC_STATE ApcState = { 0 };
+    MeAttachProcess(&Process->InternalProcess, &ApcState);
+
+    if (!ApcState.AttachedToProcess) {
+        // If attachment failed revert and return
+        size_t RegionSize = 0;
+
+        MmFreeVirtualMemory(Process, &BaseAddress, &RegionSize, MEM_RELEASE);
+        return MT_INVALID_STATE;
+    }
+
+    // Copy all the strings to user mode and set members.
+    try {
+        kmemset(Parameters, 0, sizeof(*Parameters));
+
+        Parameters->Size = sizeof(*Parameters);
+        Parameters->Flags = 0;
+
+        Parameters->ImagePath = ChildImagePath;
+        Parameters->ImagePathLength = ImagePathLength;
+
+        Parameters->CommandLine = ChildCommandLine;
+        Parameters->CommandLineLength = CommandLineLength;
+
+        Parameters->CurrentDirectory = ChildCurrentDirectory;
+        Parameters->CurrentDirectoryLength = CurrentDirectoryLength;
+
+        Parameters->Environment = ChildEnvironment;
+        Parameters->EnvironmentSize = EnvironmentSize;
+
+        Parameters->ArgumentCount = 0;
+        Parameters->ArgumentVector = NULL;
+
+        kmemcpy(
+            ChildImagePath,
+            ImagePath,
+            ImagePathStorageLength
+        );
+
+        kmemcpy(
+            ChildCommandLine,
+            CommandLine,
+            CommandLineStorageLength
+        );
+
+        kmemcpy(
+            ChildCurrentDirectory,
+            CurrentDirectory,
+            CurrentDirectoryStorageLength
+        );
+
+        kmemcpy(
+            ChildEnvironment,
+            Environment,
+            EnvironmentSize
+        );
+
+        Status = MT_SUCCESS;
+    } except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    MeDetachProcess(&ApcState);
+
+    if (MT_FAILURE(Status)) {
+        size_t RegionSize = 0;
+
+        MmFreeVirtualMemory(
+            Process,
+            &BaseAddress,
+            &RegionSize,
+            MEM_RELEASE
+        );
+
+        return Status;
+    }
+
+    // Publish the newly established process parameters and return success
+    *OutParameters = Parameters;
+    return MT_SUCCESS;
+}
+
 MTSTATUS
 PsCreateProcess(
     IN const char* ExecutablePath,
@@ -422,6 +617,11 @@ PsCreateProcess(
     }
     else {
         // We have no parent process.
+        // This is, illogical, every process created in the system has to have a parent process
+        // meaning, if Parent = NULL, this has to be the System process as it is, the first process.
+        // Though, the system process is created via its own function in kernel.c, I expect to move it to here
+        // so bugs with 1 function using stuff that the other does not will not happen.
+        // TODO.
         Parent = NULL;
     }
 
@@ -570,6 +770,7 @@ PsCreateProcess(
     HANDLE FileHandle;
     Status = FsCreateFile(ExecutablePath, MT_FILE_ALL_ACCESS, FILE_OPEN_EXISTING, &FileHandle);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
+
     // Reference the handle, and then close it so only the pointer reference remains (this)
     Status = ObReferenceObjectByHandle(FileHandle, MT_FILE_ALL_ACCESS, FsFileType, (void**)&FileObject, NULL);
     HtClose(FileHandle);
@@ -627,6 +828,28 @@ PsCreateProcess(
     Status = MmCreatePeb(Process, (void**)&Process->Peb, (void**)&BasicTypes);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
+    // Create process parameters (argc argv support)
+    PMT_PROCESS_PARAMETERS ProcessParameters = NULL;
+
+    static const char EmptyEnvironment[2] = {
+    '\0',
+    '\0'
+    };
+
+    Status = PspCreateProcessParameters(
+        Process,
+        ExecutablePath,
+        ExecutablePath,
+        "",
+        EmptyEnvironment,
+        sizeof(EmptyEnvironment),
+        &ProcessParameters
+    );
+
+    if (MT_FAILURE(Status)) {
+        goto CleanupWithRef;
+    }
+
     // Attempt to set the entry point in the PEB.
     // Attach to process first.
     APC_STATE ApcState;
@@ -637,6 +860,7 @@ PsCreateProcess(
         // For now peb is guranteed to be zeroed since allocating a PFN in fault.c is zeroed, but ill still set it to 0
         Process->Peb->BeingDebugged = false;
         Process->Peb->ImageBase = ExecutableBaseAddress;
+        Process->Peb->ProcessParameters = ProcessParameters;
         BasicTypes->EpochCreation = MeGetEpoch();
 
         // Init basic MTDLL types as well.

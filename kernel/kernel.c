@@ -17,6 +17,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_EXCEPTION_CHAIN 3
 #define MT_STRESS_MODE_HEAP        4
 #define MT_STRESS_MODE_LOADER      5
+#define MT_STRESS_MODE_TLS         6
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -31,7 +32,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_LOADER
+    MT_STRESS_MODE > MT_STRESS_MODE_TLS
 #error "MT_STRESS_MODE is invalid"
 #endif
 
@@ -41,6 +42,10 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 
 #if MT_STRESS_MODE == MT_STRESS_MODE_LOADER
 #include "../usermode/tests/loader_test.h"
+#endif
+
+#if MT_STRESS_MODE == MT_STRESS_MODE_TLS
+#include "../usermode/tests/tls_test.h"
 #endif
 
 /**
@@ -13758,6 +13763,150 @@ StressLoaderController(
 }
 #endif
 
+#if MT_STRESS_MODE == MT_STRESS_MODE_TLS
+#if !MT_STRESS_AUTOMATION
+#error "The isolated TLS runtime test requires MT_STRESS_AUTOMATION"
+#endif
+
+#define MT_TLS_TEST_WAIT_TIMEOUT_MS 180000ULL
+#define MT_AUTOMATION_EXIT_FAIL     0x11
+
+static void
+StressTlsWriteStatus(
+    IN MTSTATUS Status
+)
+{
+    static const char Digits[] = "0123456789ABCDEF";
+    uint32_t Value = (uint32_t)Status;
+    char Text[] = "0x00000000\n";
+
+    for (uint32_t Index = 0; Index < 8; Index++) {
+        uint32_t Shift = (7u - Index) * 4u;
+        Text[2 + Index] = Digits[(Value >> Shift) & 0xFu];
+    }
+
+    StressAutomationWriteText(Text);
+}
+
+NORETURN
+static void
+StressTlsFailure(
+    IN const char* Failure
+)
+{
+    StressAutomationWriteText("MT-TLS FAIL ");
+    StressAutomationWriteText(Failure);
+    StressAutomationWriteText("\n");
+    __cli();
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+
+static const char*
+StressTlsFailureName(
+    IN MTSTATUS Status
+)
+{
+    switch (Status) {
+    case MT_TLS_TEST_MAIN_INITIALIZED:    return "MAIN-INITIALIZED";
+    case MT_TLS_TEST_MAIN_ZERO_FILLED:    return "MAIN-ZERO-FILLED";
+    case MT_TLS_TEST_MAIN_ALIGNMENT:      return "MAIN-ALIGNMENT";
+    case MT_TLS_TEST_THREAD_CREATE:       return "THREAD-CREATE";
+    case MT_TLS_TEST_THREAD_WAIT:         return "THREAD-WAIT";
+    case MT_TLS_TEST_THREAD_QUERY:        return "THREAD-QUERY";
+    case MT_TLS_TEST_THREAD_CLOSE:        return "THREAD-CLOSE";
+    case MT_TLS_TEST_WORKER_INITIALIZED:  return "WORKER-INITIALIZED";
+    case MT_TLS_TEST_WORKER_ZERO_FILLED:  return "WORKER-ZERO-FILLED";
+    case MT_TLS_TEST_WORKER_ALIGNMENT:    return "WORKER-ALIGNMENT";
+    case MT_TLS_TEST_WORKER_PRESERVATION: return "WORKER-PRESERVATION";
+    case MT_TLS_TEST_MAIN_ISOLATION:      return "MAIN-ISOLATION";
+    case MT_TLS_TEST_DLL_MAIN_INITIALIZED: return "DLL-MAIN-INITIALIZED";
+    case MT_TLS_TEST_DLL_MAIN_ZERO_FILLED: return "DLL-MAIN-ZERO-FILLED";
+    case MT_TLS_TEST_DLL_MAIN_ALIGNMENT: return "DLL-MAIN-ALIGNMENT";
+    case MT_TLS_TEST_DLL_WORKER_INITIALIZED: return "DLL-WORKER-INITIALIZED";
+    case MT_TLS_TEST_DLL_WORKER_ZERO_FILLED: return "DLL-WORKER-ZERO-FILLED";
+    case MT_TLS_TEST_DLL_WORKER_ALIGNMENT: return "DLL-WORKER-ALIGNMENT";
+    case MT_TLS_TEST_DLL_WORKER_PRESERVATION: return "DLL-WORKER-PRESERVATION";
+    case MT_TLS_TEST_DLL_MAIN_ISOLATION: return "DLL-MAIN-ISOLATION";
+    case MT_TLS_TEST_DYNAMIC_LOAD: return "DYNAMIC-LOAD";
+    case MT_TLS_TEST_DYNAMIC_EXPORT: return "DYNAMIC-EXPORT";
+    case MT_TLS_TEST_DYNAMIC_MAIN_INITIALIZED: return "DYNAMIC-MAIN-INITIALIZED";
+    case MT_TLS_TEST_DYNAMIC_MAIN_ZERO_FILLED: return "DYNAMIC-MAIN-ZERO-FILLED";
+    case MT_TLS_TEST_DYNAMIC_MAIN_ALIGNMENT: return "DYNAMIC-MAIN-ALIGNMENT";
+    case MT_TLS_TEST_DYNAMIC_WORKER_INITIALIZED: return "DYNAMIC-WORKER-INITIALIZED";
+    case MT_TLS_TEST_DYNAMIC_WORKER_ZERO_FILLED: return "DYNAMIC-WORKER-ZERO-FILLED";
+    case MT_TLS_TEST_DYNAMIC_WORKER_ALIGNMENT: return "DYNAMIC-WORKER-ALIGNMENT";
+    case MT_TLS_TEST_DYNAMIC_WORKER_PRESERVATION: return "DYNAMIC-WORKER-PRESERVATION";
+    case MT_TLS_TEST_DYNAMIC_MAIN_ISOLATION: return "DYNAMIC-MAIN-ISOLATION";
+    case MT_TLS_TEST_DYNAMIC_FREE: return "DYNAMIC-FREE";
+    case MT_TLS_TEST_DYNAMIC_RELOAD: return "DYNAMIC-RELOAD";
+    case MT_TLS_TEST_DYNAMIC_RELOAD_EXPORT: return "DYNAMIC-RELOAD-EXPORT";
+    case MT_TLS_TEST_DYNAMIC_RELOAD_INITIALIZED: return "DYNAMIC-RELOAD-INITIALIZED";
+    case MT_TLS_TEST_DYNAMIC_RELOAD_FREE: return "DYNAMIC-RELOAD-FREE";
+    case MT_TLS_TEST_FAILED_LOAD_ACCEPTED: return "FAILED-LOAD-ACCEPTED";
+    case MT_TLS_TEST_FAILED_LOAD_STATUS: return "FAILED-LOAD-STATUS";
+    default:                              return "UNKNOWN-EXIT";
+    }
+}
+
+static void
+StressTlsController(
+    void
+)
+{
+    StressAutomationWriteText("MT-TLS START\n");
+
+    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MTSTATUS Status = PsCreateProcess(
+        "terminateMyself.mtexe",
+        &ProcessHandle,
+        MT_PROCESS_ALL_ACCESS,
+        0
+    );
+    if (Status != MT_SUCCESS) {
+        StressTlsFailure("CREATE-PROCESS");
+    }
+
+    Status = MtWaitForSingleObject(
+        ProcessHandle,
+        MT_TLS_TEST_WAIT_TIMEOUT_MS,
+        false
+    );
+    if (Status != MT_SUCCESS) {
+        StressTlsFailure(
+            Status == MT_TIMEOUT ? "PROCESS-TIMEOUT" : "PROCESS-WAIT"
+        );
+    }
+
+    PROCESS_BASIC_INFORMATION Information = { 0 };
+    uint32_t ReturnLength = 0;
+    Status = MtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        &Information,
+        sizeof(Information),
+        &ReturnLength
+    );
+    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+        StressTlsFailure("QUERY-PROCESS");
+    }
+    if (Information.ExitStatus != MT_SUCCESS) {
+        StressAutomationWriteText("MT-TLS EXIT-STATUS ");
+        StressTlsWriteStatus(Information.ExitStatus);
+        StressTlsFailure(StressTlsFailureName(Information.ExitStatus));
+    }
+
+    Status = MtClose(ProcessHandle);
+    if (Status != MT_SUCCESS) {
+        StressTlsFailure("CLOSE-PROCESS");
+    }
+
+    StressAutomationWriteText("MT-TLS USER PASS\n");
+}
+#endif
+
 NORETURN
 static void
 StressSuiteController(
@@ -13810,6 +13959,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_LOADER
     StressLoaderController();
     StressAutomationPass("LOADER");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_TLS
+    StressTlsController();
+    StressAutomationPass("TLS");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();

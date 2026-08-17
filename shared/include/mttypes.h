@@ -76,14 +76,35 @@ typedef struct _LDR_DEPENDENCY_ENTRY {
 typedef struct _PEB_LDR_DATA {
     HANDLE LoaderLock; // Mutex lock for creating DLLs
     DOUBLY_LINKED_LIST LoadedModuleList;
-    uint64_t NextTlsIndex; // Next module index, protected by LoaderLock.
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
+
+typedef struct _MT_PROCESS_PARAMETERS {
+    uint32_t Size;
+    uint32_t Flags;
+
+    char* ImagePath;
+    uint64_t ImagePathLength;
+
+    char* CommandLine;
+    uint64_t CommandLineLength;
+
+    char* CurrentDirectory;
+    uint64_t CurrentDirectoryLength;
+
+    char* Environment;
+    uint64_t EnvironmentSize;
+
+    int32_t ArgumentCount;
+    char** ArgumentVector;
+} MT_PROCESS_PARAMETERS, *PMT_PROCESS_PARAMETERS;
 
 typedef struct _PEB {
     uint8_t BeingDebugged;
     void* ImageBase;
     PEB_LDR_DATA LoaderData;
     void* ProcessHeap;
+    uint64_t NextTlsIndex;
+    PMT_PROCESS_PARAMETERS ProcessParameters;
 } PEB, *PPEB;
 
 struct _EXCEPTION_REGISTRATION_RECORD;

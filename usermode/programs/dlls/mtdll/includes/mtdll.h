@@ -216,3 +216,30 @@ LdrpReferenceDependency(
     OUT PLDR_DATA_TABLE_ENTRY* Dependency
 );
 
+MTSTATUS
+LdrRegisterModuleTlsLocked(
+    IN PPEB Peb,
+    IN OUT PLDR_DATA_TABLE_ENTRY Module
+);
+
+MTSTATUS
+LdrpInitializeThreadTls(
+    IN OUT PTEB Teb,
+    IN PPEB Peb
+);
+
+MTSTATUS
+LdrpDestroyThreadTls(
+    IN OUT PTEB Teb
+);
+
+void
+LdrpReleaseCurrentThreadModuleTlsLocked(
+    IN PLDR_DATA_TABLE_ENTRY Module
+);
+
+MTDLL_API
+void*
+__tls_get_addr(
+    IN PMT_TLS_INDEX TlsIndex
+);

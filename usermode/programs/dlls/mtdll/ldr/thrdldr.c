@@ -22,6 +22,20 @@ Revision History:
 
 static
 void
+LdrpInitializeThreadPointer(
+    IN void* ThreadPointer
+)
+{
+    __asm__ volatile (
+        "wrfsbase %0"
+        :
+    : "r"(ThreadPointer)
+        : "memory"
+        );
+}
+
+static
+void
 LdrpInitializeBase(
     IN PTEB TebPointer
 )
@@ -92,12 +106,40 @@ LdrInitializeThread(
     // Set GS
     LdrpInitializeBase(Teb);
 
+    MTSTATUS Status = LdrpInitializeThreadTls(
+        Teb,
+        Peb
+    );
+
+    if (MT_FAILURE(Status)) {
+        TerminateThread(
+            MtCurrentThread(),
+            Status
+        );
+
+        // TerminateThread on ourselves should not return.
+        TerminateProcess(
+            MtCurrentProcess(),
+            Status
+        );
+    }
+
+    // Set FS
+    LdrpInitializeThreadPointer(Teb->ThreadPointer);
+
     // Jump to entry point.
     uint32_t RetVal = ((uint32_t (*)(uintptr_t))EntryPoint)(ThreadParameter);
 
+    Status = LdrpDestroyThreadTls(Teb);
+    if (MT_FAILURE(Status)) {
+        TerminateProcess(
+            MtCurrentProcess(),
+            Status
+        );
+    }
+
     // Returned from a thread.
     // So we call to terminate the thread.
-    // Todo custom retval. (ExitStatus)
     TerminateThread(MtCurrentThread(), RetVal);
 
     // This should effictively be a no-return, but if we did return from TerminateThread, we are somehow the last thread of the process, and ExitProcess wasnt called.

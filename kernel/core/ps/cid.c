@@ -127,14 +127,28 @@ PsLookupProcessByProcessId(
 
     Return Values:
 
-        Pointer to Process associated with the PID, or NULL if none.
+        Pointer to Process associated with the PID, or NULL if none / Object type is not a process.
+
+     Notes:
+
+        This routine references the Object, meaning after use you MUST dereference the object when done.
 
 --*/
 
 {
     // Take the object reference while the CID table entry is locked. Looking
     // up a raw pointer and referencing it afterwards races object deletion.
-    return HtReferenceObject(PspCidTable, ProcessId, NULL);
+    void* Object = HtReferenceObject(PspCidTable, ProcessId, NULL);
+    if (!Object) return NULL;
+
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if (Header->Type != PsProcessType) {
+        // Caller specified an ID which is not a process, i.e, a thread.
+        ObDereferenceObject(Object);
+        return NULL;
+    }
+
+    return Object;
 }
 
 PETHREAD
@@ -154,12 +168,26 @@ PsLookupThreadByThreadId(
 
     Return Values:
 
-        Pointer to Thread associated with the TID, or NULL if none.
+        Pointer to Thread associated with the TID, or NULL if none / Object type is not a thread.
+
+    Notes:
+
+        This routine references the Object, meaning after use you MUST dereference the object when done.
 
 --*/
 
 {
-    return HtReferenceObject(PspCidTable, ThreadId, NULL);
+    void* Object = HtReferenceObject(PspCidTable, ThreadId, NULL);
+    if (!Object) return NULL;
+
+    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    if (Header->Type != PsThreadType) {
+        // Caller specified an ID which is not a thread, i.e, a process.
+        ObDereferenceObject(Object);
+        return NULL;
+    }
+
+    return Object;
 }
 
 void
@@ -180,6 +208,10 @@ PsFreeCid(
     Return Values:
 
         None.
+
+    Notes:
+
+        This function DOES NOT dereference thee process/thread, you must do so yourself AFTER calling this function.
 
 --*/
 

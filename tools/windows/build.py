@@ -34,6 +34,7 @@ STRESS_MODES = {
     "exception-chain": 3,
     "heap": 4,
     "loader": 5,
+    "tls": 6,
 }
 
 KERNEL_SLOW_PATHS = {
@@ -67,6 +68,7 @@ MTDLL_C = [
     "usermode/programs/dlls/mtdll/ldr/dllldr.c",
     "usermode/programs/dlls/mtdll/ldr/procldr.c",
     "usermode/programs/dlls/mtdll/ldr/thrdldr.c",
+    "usermode/programs/dlls/mtdll/ldr/tlsapi.c",
     "usermode/programs/dlls/mtdll/error.c",
     "usermode/programs/dlls/mtdll/synch.c",
     "usermode/programs/dlls/mtdll/print.c",
@@ -80,10 +82,9 @@ MTDLL_NASM = [
     "usermode/programs/dlls/mtdll/apcdispatch.asm",
 ]
 
+MTEXE_COMMON_C = ["usermode/crt0.c"]
 MTEXE_C = ["usermode/programs/exes/terminateMyself/main.c"]
-MTEXE_GAS = [
-    "usermode/crt0.S",
-]
+MTEXE_GAS = []
 MTEXE_NASM = ["tools/windows/freestanding_runtime.asm"]
 
 EXCEPTION_TEST_MTDLL_C = [
@@ -119,6 +120,22 @@ LOADER_FAIL_DLL_C = [
 ]
 LOADER_NO_ENTRY_DLL_C = [
     "usermode/tests/loaderNoEntryDll/module.c",
+]
+TLS_TEST_MTEXE_C = [
+    "usermode/tests/tlsTest/main.c",
+]
+TLS_TEST_INCLUDE = ROOT / "usermode/tests"
+TLS_TEST_DLL_DEFINE = "MATANELOS_BUILDING_TLS_TEST_DLL"
+TLS_TEST_DLL_C = [
+    "usermode/tests/loaderTlsDll/module.c",
+]
+TLS_DYNAMIC_DLL_C = [
+    *TLS_TEST_DLL_C,
+    "usermode/tests/loaderDynamicTlsDll/dllmain.c",
+]
+TLS_FAIL_DYNAMIC_DLL_C = [
+    *TLS_TEST_DLL_C,
+    "usermode/tests/loaderFailTlsDll/dllmain.c",
 ]
 
 
@@ -820,6 +837,7 @@ def build_usermode(
     exception_test = stress_mode == "exception-chain"
     heap_test = stress_mode == "heap"
     loader_test = stress_mode == "loader"
+    tls_test = stress_mode == "tls"
     mtdll_sources = [
         *MTDLL_C,
         *(EXCEPTION_TEST_MTDLL_C if exception_test else ()),
@@ -854,6 +872,7 @@ def build_usermode(
         include_directories=mtdll_includes,
     )
     additional_files: list[tuple[Path, str]] = []
+    tls_dll_elf: Path | None = None
     if loader_test:
         good_dll, _ = _build_user_component(
             tools,
@@ -910,6 +929,63 @@ def build_usermode(
             (no_entry_dll, "NOENTRY.MTE"),
         ])
 
+    if tls_test:
+        tls_dll, tls_dll_elf = _build_user_component(
+            tools,
+            "loaderTlsDll",
+            TLS_TEST_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "tlsFixture.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="tlsFixture.mtdll",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+            defines=(TLS_TEST_DLL_DEFINE,),
+            include_directories=(TLS_TEST_INCLUDE,),
+        )
+        additional_files.append((tls_dll, "tlsFixture.mtdll"))
+
+        dynamic_tls_dll, _ = _build_user_component(
+            tools,
+            "loaderDynamicTlsDll",
+            TLS_DYNAMIC_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "dynamicTls.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="dynamicTls.mtdll",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+            defines=(TLS_TEST_DLL_DEFINE,),
+            include_directories=(TLS_TEST_INCLUDE,),
+            entry_symbol="DllMain",
+        )
+        additional_files.append((dynamic_tls_dll, "dynamicTls.mtdll"))
+
+        fail_tls_dll, _ = _build_user_component(
+            tools,
+            "loaderFailTlsDll",
+            TLS_FAIL_DYNAMIC_DLL_C,
+            (),
+            (),
+            ROOT / "usermode/mtdll.ld",
+            output_directory / "failTls.mtdll",
+            pic=True,
+            executable=False,
+            workers=workers,
+            module_name="failTls.mtdll",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+            defines=(TLS_TEST_DLL_DEFINE,),
+            include_directories=(TLS_TEST_INCLUDE,),
+            entry_symbol="DllMain",
+        )
+        additional_files.append((fail_tls_dll, "FAILTLS.MTE"))
+
     if exception_test:
         program_name = "exceptionChainTest"
         program_sources = EXCEPTION_TEST_MTEXE_C
@@ -922,15 +998,23 @@ def build_usermode(
         program_name = "loaderTest"
         program_sources = LOADER_TEST_MTEXE_C
         program_includes = (LOADER_TEST_INCLUDE,)
+    elif tls_test:
+        program_name = "tlsTest"
+        program_sources = TLS_TEST_MTEXE_C
+        program_includes = (TLS_TEST_INCLUDE,)
     else:
         program_name = "terminateMyself"
         program_sources = MTEXE_C
         program_includes = ()
 
+    program_dependencies = {MTDLL_MODULE_NAME: mtdll_elf}
+    if tls_dll_elf is not None:
+        program_dependencies["tlsFixture.mtdll"] = tls_dll_elf
+
     program, _ = _build_user_component(
         tools,
         program_name,
-        program_sources,
+        [*MTEXE_COMMON_C, *program_sources],
         MTEXE_GAS,
         MTEXE_NASM,
         ROOT / "usermode/mtexe.ld",
@@ -939,7 +1023,7 @@ def build_usermode(
         executable=True,
         workers=workers,
         module_name="terminateMyself.mtexe",
-        dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+        dependencies=program_dependencies,
         include_directories=program_includes,
     )
     return mtdll, program, additional_files
@@ -1132,6 +1216,12 @@ def main() -> int:
                 (output_directory / "loaderGood.mtdll", "loaderGood.mtdll"),
                 (output_directory / "loaderFail.mtdll", "loaderFail.mtdll"),
                 (output_directory / "loaderNoEntry.mtdll", "NOENTRY.MTE"),
+            ]
+        elif args.stress_mode == "tls":
+            additional_files = [
+                (output_directory / "tlsFixture.mtdll", "tlsFixture.mtdll"),
+                (output_directory / "dynamicTls.mtdll", "dynamicTls.mtdll"),
+                (output_directory / "failTls.mtdll", "FAILTLS.MTE"),
             ]
 
         if args.target in {"all", "bootloader", "image"}:

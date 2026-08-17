@@ -46,7 +46,9 @@ TerminateThread(
     Notes:
 
         This routine requests termination; it does not wait for the thread to
-        finish terminating.
+        finish terminating. Forced termination bypasses the normal MTDLL
+        thread-return path, so user-mode TLS teardown is deferred until process
+        exit when the target does not return through that path.
 
 --*/
 

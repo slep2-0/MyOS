@@ -1,7 +1,7 @@
 #include "../../includes/exception.h"
 
 bool
-ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
+ExpIsPrivilegedInstruction(uint8_t* Ip)
 
 /*++
 
@@ -21,15 +21,6 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
 
 --*/
 
-// Desc: This will check if the instruction ran in the instruction pointer from user mode (or from anywhere really)
-// Is a privileged instruction or not (meaning, it could only be executed in KernelMode (CPL == 0)
-
-// This is taken DIRECTLY from ReactOS, why? Because I dont really want to make my own parser right now.
-// And they are already brilliant people so I trust them
-
-// Link to code: https://github.com/reactos/reactos/blob/5047e62e3dde76635a46516b289968b951348f74/ntoskrnl/ke/amd64/except.c#L446
-// Thanks Timo Kreuzer and Alex Ionescu
-
 {
     uint32_t i;
     bool IsPrivileged = false;
@@ -38,17 +29,12 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
         /* Handle prefixes */
         for (i = 0; i < 15; i++)
         {
-            /*
-            if (!Wow64)
-            */
-            //{
             /* Check for REX prefix */
             if ((Ip[0] >= 0x40) && (Ip[0] <= 0x4F))
             {
                 Ip++;
                 continue;
             }
-            //}
 
             switch (Ip[0])
             {
@@ -175,9 +161,9 @@ ExpIsPrivilegedInstruction(uint8_t* Ip /*, bool Wow64*/)
             }
 
             break;
+            }
         }
-        }
-        } except{
+    } except{
             IsPrivileged = false;
     }
     end_try;

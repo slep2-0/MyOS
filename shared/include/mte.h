@@ -54,6 +54,11 @@ typedef struct _MTE_TLS_DIRECTORY {
 
 VALIDATE_SIZE(MTE_TLS_DIRECTORY, MTE_TLS_DIRECTORY_SIZE);
 
+typedef struct _MT_TLS_INDEX {
+    uint64_t ModuleIndex;
+    uint64_t Offset;
+} MT_TLS_INDEX, * PMT_TLS_INDEX;
+
 typedef struct _MTE_TLS_MODULE_INDEX_FIXUP {
     // The loader writes this module's assigned TLS index to the target before
     // any code in the image can call __tls_get_addr.

@@ -76,14 +76,14 @@ MiInitializePAT(void)
 
 {
     uint64_t pat =
-        0x00 |                   // 0 = WB
-        (0x01ULL << 8) |         // 1 = WT
-        (0x02ULL << 16) |        // 2 = UC-
-        (0x03ULL << 24) |        // 3 = UC
-        (0x00ULL << 32) |        // 4 = WB
+        0x06 |                   // 0 = WB
+        (0x04ULL << 8) |         // 1 = WT
+        (0x07ULL << 16) |        // 2 = UC-
+        (0x00ULL << 24) |        // 3 = UC
+        (0x06ULL << 32) |        // 4 = WB
         (0x01ULL << 40) |        // 5 = WC
-        (0x02ULL << 48) |        // 6 = UC-
-        (0x03ULL << 56);         // 7 = UC
+        (0x07ULL << 48) |        // 6 = UC-
+        (0x00ULL << 56);         // 7 = UC
 
     __writemsr(IA32_PAT, pat);
 }

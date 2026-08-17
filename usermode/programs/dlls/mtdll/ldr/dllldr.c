@@ -134,6 +134,9 @@ LdrpDereferenceModuleLocked(
         Entry(Module->Base, DLL_PROCESS_DETACH, NULL);
     }
 
+    // DllMain may use TLS during detach, so release it afterwards.
+    LdrpReleaseCurrentThreadModuleTlsLocked(Module);
+
     // Release its dependencies
     MTSTATUS Status = LdrpReleaseDependenciesLocked(Module);
     if (MT_FAILURE(Status)) {
@@ -417,9 +420,14 @@ LdrLoadDll(
     NewEntry->ReferenceCount = 1;
     NewEntry->State = LdrModuleLoading;
     NewEntry->Pinned = false;
+    NewEntry->TlsIndex = MT_INVALID_TLS_INDEX;
     strncpy(NewEntry->FullName, DllPath, sizeof(NewEntry->FullName));
     InitializeListHead(&NewEntry->LoadedModuleList);
     InitializeListHead(&NewEntry->DependencyListHead);
+
+    // Register the Module's TLS
+    Status = LdrRegisterModuleTlsLocked(MtCurrentPeb(), NewEntry);
+    if (MT_FAILURE(Status)) goto Cleanup;
 
     // Link to the TEB now.
     InsertTailList(&MtCurrentPeb()->LoaderData.LoadedModuleList, &NewEntry->LoadedModuleList);
@@ -446,6 +454,7 @@ LdrLoadDll(
 Cleanup:
 
     if (MT_FAILURE(Status) && NewEntry) {
+        LdrpReleaseCurrentThreadModuleTlsLocked(NewEntry);
         LdrpReleaseDependenciesLocked(NewEntry);
     }
 

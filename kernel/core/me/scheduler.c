@@ -570,6 +570,14 @@ Schedule(void)
     // Schedule never returns; the selected trap frame supplies the eventual
     // IF state.
     MeDisableInterrupts();
+    
+    // Save previous thread FS base
+    if (PreviousThread != NULL &&
+        PreviousThread != IdleThread &&
+        !PsIsKernelThread(PsGetEThreadFromIThread(PreviousThread))) {
+        PreviousThread->UserFsBase = __readmsr(IA32_FS_BASE);
+    }
+
     next->ThreadState = THREAD_RUNNING;
     next->ActiveProcessor = cpu;
     assert(cpu->tss != NULL);
@@ -588,6 +596,23 @@ Schedule(void)
     if (__read_cr3() != TargetCr3) {
         __write_cr3(TargetCr3);
     }
+
+    // Switch to the next thread user FS base.
+    uint64_t NextFsBase = 0;
+
+    if (next != IdleThread &&
+        !PsIsKernelThread(PsGetEThreadFromIThread(next))) {
+        NextFsBase = next->UserFsBase;
+    }
+
+#ifdef DEBUG
+    assert(
+        NextFsBase == 0 || MepIsCanonicalAddress(NextFsBase),
+        "Selected thread has a noncanonical FS base."
+    );
+#endif
+
+    __writemsr(IA32_FS_BASE, NextFsBase);
 
     // Lower IRQL back to its original value.
     MeLowerIrql(oldIrql);

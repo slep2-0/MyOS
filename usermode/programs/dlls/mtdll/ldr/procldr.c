@@ -383,6 +383,113 @@ LdrpProcessImports(
     return MT_SUCCESS;
 }
 
+static
+MTSTATUS
+LdrpInitializeProcessArguments(
+    IN OUT PMT_PROCESS_PARAMETERS Parameters
+)
+
+{
+    // Validate the kernel supplied process parameters
+    if (!Parameters || Parameters->Size < sizeof(MT_PROCESS_PARAMETERS) || !Parameters->CommandLine) {
+        return MT_INVALID_PARAM;
+    }
+    
+    // Start parsing the command line.
+    size_t Index = 0;
+    size_t ArgumentStringBytes = 0;
+    int32_t argc = 0;
+    bool InQuotes = false;
+    bool ArgumentStarted = false;
+    size_t Boundary = Parameters->CommandLineLength;
+    char* CmdLine = Parameters->CommandLine;
+
+    if (Parameters->CommandLine[Boundary] != '\0') {
+        return MT_INVALID_PARAM;
+    }
+
+    while (Index < Boundary) {
+        // We are inside of the arguments themselves, we must do some careful considerations
+        // Check if we are in quotes, if we are, a space does not end the current string parse (and so does not increment argc)
+        // an example is: program.mtexe first "second argument" ""
+        // If we would have parsed the space inside of the quotes it would have treated "second argument" as "second (ARGC++ HAPPENED) argument"
+        if (CmdLine[Index] == '"') {
+            InQuotes = !InQuotes;
+            ArgumentStarted = true;
+            Index++;
+            continue;
+        }
+
+        if (CmdLine[Index] == ' ' && !InQuotes) {
+            // Found a space which isnt inside of a quote
+            // But if an argument has started (start of the str)
+            // If we are not in an argument (inside of reoccuring spaces) then skip
+            // example is program.mtexe arg1    arg2 (once we reach arg2 ArgumentStarted would be true)
+
+            if (ArgumentStarted) {
+                // Found the space after this argument, stop treating the next character as an argument
+                // and keep scanning
+                ArgumentStringBytes++;
+                argc++;
+                ArgumentStarted = false;
+            }
+
+            Index++;
+            continue;
+        }
+
+        ArgumentStarted = true;
+        ArgumentStringBytes++;
+        Index++;
+    }
+
+    // Finished parsing the string
+    if (InQuotes) {
+        // Commandline finished with an opened quote, that is disallowed
+        // we would never know when to end it.
+        return MT_INVALID_PARAM;
+    }
+
+    if (ArgumentStarted) {
+        // Include null terminator too
+        // program.mtexe first
+        ArgumentStringBytes++; // Null terminator for first
+        argc++; // Include first as an argument
+    }
+    
+    // Allocate argument vector now based on the amount of bytes we need
+    // and concat the strings with a nullterm at each of them so argv[0] can be read without going over the index
+    size_t PointerCount = (size_t)argc + 1; // Include + 1 because argv[lastindex] should be == NULL immediately (aka nulltermed)
+
+    // Anti overflow
+    if (PointerCount > SIZE_MAX / sizeof(char*)) {
+        return MT_INVALID_PARAM;
+    }
+
+    size_t PointerBytes = PointerCount * sizeof(char*);
+
+    if (PointerBytes > SIZE_MAX - ArgumentStringBytes) {
+        return MT_INVALID_PARAM;
+    }
+
+    // The allocation size is the size of the pointers PLUS
+    // the argument strings size themselves
+    size_t AllocationSize = PointerBytes + ArgumentStringBytes;
+
+    // Alloc
+    char** ArgVector = HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ALLOCATE_ZERO_MEMORY,
+        AllocationSize
+    );
+
+    if (!ArgVector) {
+        return GetLastStatus();
+    }
+
+    char* StringCursor = (char*)ArgVector + PointerBytes;
+}
+
 MTDLL_API
 void
 LdrInitializeProcess(
@@ -434,6 +541,7 @@ LdrInitializeProcess(
 
     // Create the loader lock mutex
     InitialPeb->LoaderData.LoaderLock = CreateMutex(false, NULL);
+    InitialPeb->NextTlsIndex = 0;
 
     if (InitialPeb->LoaderData.LoaderLock == MT_INVALID_HANDLE) {
         MtTerminateProcess(
@@ -462,6 +570,7 @@ LdrInitializeProcess(
     strncpy(ProcessEntry->FullName, BasicTypes->PrimaryExecutable.FullPath, sizeof(ProcessEntry->FullName));
     ProcessEntry->LoadTime = BasicTypes->EpochCreation;
     ProcessEntry->SizeOfImage = BasicTypes->PrimaryExecutable.Size;
+    ProcessEntry->TlsIndex = MT_INVALID_TLS_INDEX;
     InitializeListHead(&ProcessEntry->DependencyListHead);
     InitializeListHead(&ProcessEntry->LoadedModuleList);
 
@@ -483,14 +592,46 @@ LdrInitializeProcess(
     strncpy(MtdllEntry->FullName, BasicTypes->Mtdll.FullPath, sizeof(MtdllEntry->FullName));
     MtdllEntry->LoadTime = BasicTypes->EpochCreation;
     MtdllEntry->SizeOfImage = BasicTypes->Mtdll.Size;
+    MtdllEntry->TlsIndex = MT_INVALID_TLS_INDEX;
     InitializeListHead(&MtdllEntry->DependencyListHead);
     InitializeListHead(&MtdllEntry->LoadedModuleList);
 
     // Insert into PEB.
     InsertTailList(&InitialPeb->LoaderData.LoadedModuleList, &MtdllEntry->LoadedModuleList);
 
+    // Acquire the loader lock and do fixups for both the EXE and MTDLL
+    uint32_t LoaderWait = WaitForSingleObject(
+        InitialPeb->LoaderData.LoaderLock,
+        MT_INFINITE
+    );
+
+    if (LoaderWait != WAIT_OBJECT_0) {
+        MtTerminateProcess(
+            MtCurrentProcess(),
+            GetLastStatus()
+        );
+    }
+
+    MTSTATUS Status = LdrRegisterModuleTlsLocked(InitialPeb, ProcessEntry);
+
+
+    if (MT_SUCCEEDED(Status)) {
+        Status = LdrRegisterModuleTlsLocked(
+            InitialPeb,
+            MtdllEntry
+        );
+    }
+
+    ReleaseMutex(InitialPeb->LoaderData.LoaderLock);
+
+    // If one of the statuses failed after releasing the lock
+    // terminate the program.
+    if (MT_FAILURE(Status)) {
+        MtTerminateProcess(MtCurrentProcess(), Status);
+    }
+
     // Resolve its imports.
-    MTSTATUS Status = LdrpProcessImports(ProcessEntry, InitialPeb);
+    Status = LdrpProcessImports(ProcessEntry, InitialPeb);
 
     // In Windows when an Import fails it usually creates a MessageBox first to notify the user. (only for when the main executable imports that is)
     // But we dont have that yet! :(
@@ -500,7 +641,5 @@ LdrInitializeProcess(
     ProcessEntry->State = LdrModuleLoaded;
 
     // Initialize the thread now.
-    // TODO, Change NULL to argc and argv.
-    // To be honest, I never used argc and argv in my life :)
-    LdrInitializeThread(InitialTeb, InitialPeb, EntryPoint, 0);
+    LdrInitializeThread(InitialTeb, InitialPeb, EntryPoint, (uintptr_t)InitialPeb->ProcessParameters);
 }

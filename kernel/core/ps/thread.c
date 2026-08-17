@@ -403,6 +403,7 @@ PspInitializeThread(
     Thread->InternalThread.ApcState.UserApcPending = false;
     Thread->TerminationState = ThreadTerminationNone;
     Thread->ExitStatus = MT_PENDING; // STILL_ACTIVE in Usermode
+    Thread->InternalThread.UserFsBase = 0;
 
     // Exceptions
     Thread->InternalThread.UserExceptionPending = false;

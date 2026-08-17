@@ -335,6 +335,7 @@ typedef struct _ITHREAD {
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)
+	uint64_t UserFsBase;								   // User-mode FS base restored when this thread resumes.
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
 	struct _WAIT_BLOCK WaitBlock; // Embedded registration for the thread's single active wait.
 	volatile uint32_t WaitStatus; // MT_PENDING until exactly one wake source claims the result.

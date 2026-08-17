@@ -332,7 +332,7 @@ DEFINE_ISR 30
 DEFINE_ISR 31
 
 ; Custom ISR's
-DEFINE_ISR 254 ; LAPIC Spurious Interrupt Vector
+DEFINE_ISR 255 ; LAPIC Spurious Interrupt Vector
 
 ;---------------------------------------------------------------------------
 ; Instantiate IRQs 0-15 (Hardware Interrupts)

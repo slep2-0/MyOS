@@ -154,8 +154,7 @@ MhHandleInterrupt (
         MeLowerIrql(oldIrql);
         break;
     case LAPIC_SIV_INTERRUPT:
-        // just send EOI
-        lapic_eoi();
+        // spurious, just return
         break;
     default:
         break;

@@ -45,8 +45,13 @@
     <NMakeForcedIncludes>$(ProjectDir)tools\windows\intellisense\freestanding_compat.h</NMakeForcedIncludes>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
-    <AdditionalOptions>/std:c11 /wd4047 /wd4293 /wd4311 /wd4312</AdditionalOptions>
+    <AdditionalOptions>/TC /std:c11 /wd4047 /wd4293 /wd4311 /wd4312</AdditionalOptions>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <!-- BEGIN GENERATED PROJECT ITEMS -->
   <ItemGroup>
     <ClCompile Include="boot\bootloader_uefi.c" />
@@ -109,6 +114,7 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="usermode\crt0.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\dllmain.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\exception.c" />
@@ -118,6 +124,7 @@
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\dllldr.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\thrdldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\tlsapi.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\loader.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\memory.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\print.c" />
@@ -128,12 +135,16 @@
     <ClCompile Include="usermode\programs\exes\terminateMyself\main.c" />
     <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
     <ClCompile Include="usermode\tests\heapTest\main.c" />
+    <ClCompile Include="usermode\tests\loaderDynamicTlsDll\dllmain.c" />
     <ClCompile Include="usermode\tests\loaderFailDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderFailTlsDll\dllmain.c" />
     <ClCompile Include="usermode\tests\loaderGoodDll\dllmain.c" />
     <ClCompile Include="usermode\tests\loaderNoEntryDll\module.c" />
     <ClCompile Include="usermode\tests\loaderTest\main.c" />
+    <ClCompile Include="usermode\tests\loaderTlsDll\module.c" />
     <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
     <ClCompile Include="usermode\tests\mtdll\loader.c" />
+    <ClCompile Include="usermode\tests\tlsTest\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -202,6 +213,8 @@
     <ClInclude Include="usermode\tests\heap_test.h" />
     <ClInclude Include="usermode\tests\loader_fixture.h" />
     <ClInclude Include="usermode\tests\loader_test.h" />
+    <ClInclude Include="usermode\tests\tls_fixture.h" />
+    <ClInclude Include="usermode\tests\tls_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="build_windows.bat" />
@@ -229,9 +242,9 @@
     <None Include="tools\windows\stress_gate5.py" />
     <None Include="tools\windows\stress_heap.py" />
     <None Include="tools\windows\stress_loader.py" />
+    <None Include="tools\windows\stress_tls.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
     <None Include="tools\windows\test_seh_translate.py" />
-    <None Include="usermode\crt0.S" />
     <None Include="usermode\mtdll.ld" />
     <None Include="usermode\mtexe.ld" />
     <None Include="usermode\programs\dlls\mtdll\apcdispatch.asm" />
