@@ -28,7 +28,6 @@ extern bool isBugChecking;
 
 #define UNREFERENCED_PARAMETER(x) (void)(x)
 #include "includes/mtos.h"
-#include "assert.h"
 #include "intrinsics/intrin.h"
 #include "filesystem/fat32/fat32.h"
 #include "includes/stdarg_myos.h"

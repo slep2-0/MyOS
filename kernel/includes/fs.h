@@ -21,34 +21,10 @@ Revision History:
 
 #include "../mtstatus.h"
 #include "ob.h"
+#include "../../shared/include/accessrights.h"
+#include "../../shared/include/fileapi.h"
 
 #define MAX_PATH 256
-
-#define MT_FILE_READ_DATA            0x0001  // file & pipe
-#define MT_FILE_LIST_DIRECTORY       0x0001  // directory
-
-#define MT_FILE_WRITE_DATA           0x0002  // file & pipe
-#define MT_FILE_ADD_FILE             0x0002  // directory
-
-#define MT_FILE_APPEND_DATA          0x0004  // file
-#define MT_FILE_ADD_SUBDIRECTORY     0x0004  // directory
-#define MT_FILE_CREATE_PIPE_INSTANCE 0x0004  // named pipe
-
-#define MT_FILE_READ_EA              0x0008  // file & directory
-#define MT_FILE_WRITE_EA             0x0010  // file & directory
-
-#define MT_FILE_EXECUTE              0x0020  // file
-#define MT_FILE_TRAVERSE             0x0020  // directory
-
-#define MT_FILE_DELETE_CHILD         0x0040  // directory
-
-#define MT_FILE_READ_ATTRIBUTES      0x0080  // all
-#define MT_FILE_WRITE_ATTRIBUTES     0x0100  // all
-#define MT_FILE_ALL_ACCESS           0x01FF  // everything above
-
-#define MT_FILE_GENERIC_READ  ( MT_FILE_READ_DATA    | MT_FILE_READ_ATTRIBUTES | MT_FILE_READ_EA )
-#define MT_FILE_GENERIC_WRITE ( MT_FILE_WRITE_DATA   | MT_FILE_WRITE_ATTRIBUTES | MT_FILE_WRITE_EA | MT_FILE_APPEND_DATA )
-#define MT_FILE_GENERIC_EXECUTE ( MT_FILE_READ_ATTRIBUTES | MT_FILE_EXECUTE )
 
 // PFILE_OBJECT->Flags
 typedef enum _MT_FILE_OBJECT_FLAGS {
@@ -130,12 +106,13 @@ typedef struct FS_DRIVER {
     MTSTATUS(*ListDirectory)(IN PFILE_OBJECT DirectoryObject,
         OUT char* listings,
         IN size_t max_len);
-    MTSTATUS(*RemoveDirectoryRecursive)(IN PFILE_OBJECT DirectoryObject);
     MTSTATUS(*CreateDirectory)(
         IN  const char* path,
         OUT PFILE_OBJECT* OutDirectoryObject
         );
-    MTSTATUS(*CreateFile)(IN const char* path,
+    MTSTATUS(*CreateFile)(
+        IN const char* path,
+        IN FILE_CREATION_DISPOSITION CreationDisposition,
         OUT PFILE_OBJECT* FileObjectOut);
     void(*DeleteObjectProcedure)(IN void* Object);
 
@@ -143,14 +120,13 @@ typedef struct FS_DRIVER {
 
 // ------------------ FUNCTIONS ------------------
 extern POBJECT_TYPE FsFileType;
-typedef int32_t HANDLE, * PHANDLE;
-typedef uint32_t ACCESS_MASK;
 
 MTSTATUS FsInitialize(void);
 
 MTSTATUS FsCreateFile(
     IN const char* path,
     IN ACCESS_MASK DesiredAccess,
+    IN FILE_CREATION_DISPOSITION CreationDisposition,
     OUT PHANDLE FileHandleOut
 );
 
@@ -183,10 +159,6 @@ MTSTATUS FsListDirectory(
 MTSTATUS FsCreateDirectory(
     IN  const char* path,
     OUT PHANDLE OutDirectoryObject
-);
-
-MTSTATUS FsRemoveDirectoryRecursive(
-    IN PFILE_OBJECT DirectoryObject
 );
 
 #endif

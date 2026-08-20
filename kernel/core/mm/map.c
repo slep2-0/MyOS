@@ -20,7 +20,25 @@ Revision History:
 #include "../../includes/mh.h"
 #include "../../assert.h"
 
-static inline uint64_t canonical_high(uint64_t addr) {
+static inline uint64_t canonical_high(uint64_t addr)
+
+/*++
+
+    Routine description:
+
+        Builds the canonical high-half form of a virtual address.
+
+    Arguments:
+
+        [IN] addr - Virtual or physical address to transform.
+
+    Return Values:
+
+        The canonicalized virtual address.
+
+--*/
+
+{
     // If bit 47 is set, set all higher bits
     if (addr & (1ULL << 47)) {
         return addr | 0xFFFF000000000000ULL;
@@ -28,7 +46,25 @@ static inline uint64_t canonical_high(uint64_t addr) {
     return addr;
 }
 
-uint64_t* pml4_from_recursive(void) {
+uint64_t* pml4_from_recursive(void)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped PML4 entry for a virtual address.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)RECURSIVE_INDEX << 21) |
@@ -37,7 +73,25 @@ uint64_t* pml4_from_recursive(void) {
     return (uint64_t*)(uintptr_t)va;
 }
 
-static inline uint64_t* pdpt_from_recursive(size_t pml4_i) {
+static inline uint64_t* pdpt_from_recursive(size_t pml4_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-directory-pointer entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)RECURSIVE_INDEX << 21) |
@@ -47,7 +101,26 @@ static inline uint64_t* pdpt_from_recursive(size_t pml4_i) {
 }
 
 // To get PD page for pml4_i, pdpt_i
-static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i) {
+static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-directory entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+        [IN] pdpt_i - Page-directory-pointer index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)RECURSIVE_INDEX << 30) |
         ((uint64_t)pml4_i << 21) |        // <-- CORRECTED
@@ -57,7 +130,27 @@ static inline uint64_t* pd_from_recursive(size_t pml4_i, size_t pdpt_i) {
 }
 
 // To get PT page for pml4_i, pdpt_i, pd_i
-static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t pd_i) {
+static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t pd_i)
+
+/*++
+
+    Routine description:
+
+        Returns the recursively mapped page-table entry for a virtual address.
+
+    Arguments:
+
+        [IN] pml4_i - PML4 index in the recursive mapping.
+        [IN] pdpt_i - Page-directory-pointer index in the recursive mapping.
+        [IN] pd_i - Page-directory index in the recursive mapping.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     uint64_t va = ((uint64_t)RECURSIVE_INDEX << 39) |
         ((uint64_t)pml4_i << 30) |
         ((uint64_t)pdpt_i << 21) |
@@ -67,10 +160,138 @@ static inline uint64_t* pt_from_recursive(size_t pml4_i, size_t pdpt_i, size_t p
 }
 
 // Extract indices from virtual address
-static inline size_t get_pml4_index(uint64_t va) { return (va >> 39) & 0x1FF; } 
-static inline size_t get_pdpt_index(uint64_t va) { return (va >> 30) & 0x1FF; }
-static inline size_t get_pd_index(uint64_t va) { return (va >> 21) & 0x1FF; }
-static inline size_t get_pt_index(uint64_t va) { return (va >> 12) & 0x1FF; }
+static inline size_t get_pml4_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the PML4 index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The PML4 index for the virtual address.
+
+--*/
+
+{ return (va >> 39) & 0x1FF; }
+static inline size_t get_pdpt_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-directory-pointer index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-directory-pointer index for the virtual address.
+
+--*/
+
+{ return (va >> 30) & 0x1FF; }
+static inline size_t get_pd_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-directory index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-directory index for the virtual address.
+
+--*/
+
+{ return (va >> 21) & 0x1FF; }
+static inline size_t get_pt_index(uint64_t va)
+
+/*++
+
+    Routine description:
+
+        Extracts the page-table index from a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        The page-table index for the virtual address.
+
+--*/
+
+{ return (va >> 12) & 0x1FF; }
+
+static
+bool
+MiEnsureIntermediateTable(
+    IN PMMPTE Entry,
+    IN uintptr_t RecursiveAddress,
+    IN uint64_t Flags
+)
+
+/*++
+
+    Routine description:
+
+        Ensures an intermediate paging structure exists for a mapping operation.
+
+    Arguments:
+
+        [IN] Entry - List, table, or object entry affected by the routine.
+        [IN] RecursiveAddress - Recursive virtual address of the page-table level.
+        [IN] Flags - Flags controlling the operation.
+
+    Return Values:
+
+        true when the intermediate table is present or created, or false on allocation failure.
+
+--*/
+
+{
+    for (;;) {
+        uint64_t Existing = InterlockedLoadAcquire(&Entry->Value);
+        if (Existing & PAGE_PRESENT) return true;
+
+        PAGE_INDEX PfnIndex = MiRequestPhysicalPage(PfnStateZeroed);
+        if (PfnIndex == PFN_ERROR) return false;
+
+        PPFN_ENTRY Pfn = INDEX_TO_PPFN(PfnIndex);
+        Pfn->Descriptor.Mapping.PteAddress = Entry;
+        Pfn->Descriptor.Mapping.Vad = NULL;
+        Pfn->State = PfnStateActive;
+        Pfn->Flags = PFN_FLAG_NONPAGED;
+
+        uint64_t NewValue = PFN_TO_PHYS(PfnIndex) | Flags;
+        if (MiAtomicSetPte(Entry, NewValue, Existing)) {
+            MiInvalidateTlbForVa((void*)RecursiveAddress);
+            return true;
+        }
+
+        // Another CPU installed or changed this level first. Our private,
+        // still-unpublished page can go straight back to the PFN allocator.
+        Pfn->Descriptor.Mapping.PteAddress = NULL;
+        Pfn->Descriptor.Mapping.Vad = NULL;
+        Pfn->State = PfnStateTransition;
+        Pfn->Flags = PFN_FLAG_NONE;
+        MiReleasePhysicalPage(PfnIndex);
+    }
+}
 
 PMMPTE
 MiGetPtePointer(
@@ -106,37 +327,19 @@ MiGetPtePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Table
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PT into PD
-        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
-        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+    if (!MiEnsureIntermediateTable(pde,
+        (uintptr_t)pt_from_recursive(pml4_i, pdpt_i, pd_i), intermediateFlags)) return NULL;
 
     // Return addr of PTE.
     uint64_t* pt_va = pt_from_recursive(pml4_i, pdpt_i, pd_i);
@@ -147,6 +350,22 @@ PMMPTE
 MiGetPml4ePointer(
     IN  uintptr_t va
 )
+
+/*++
+
+    Routine description:
+
+        Returns the PML4E pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the PML4 entry for the address.
+
+--*/
 
 {
     // 1. Calculate Indices
@@ -160,16 +379,10 @@ MiGetPml4ePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
-    
     return (PMMPTE) & pml4_va[pml4_i];
 }
 
@@ -177,6 +390,22 @@ PMMPTE
 MiGetPdptePointer(
     IN  uintptr_t va
 )
+
+/*++
+
+    Routine description:
+
+        Returns the PDPTE pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the page-directory-pointer entry for the address.
+
+--*/
 
 {
     // 1. Calculate Indices
@@ -191,26 +420,14 @@ MiGetPdptePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     return (PMMPTE)&pdpt_va[pdpt_i];
 }
@@ -219,6 +436,22 @@ PMMPTE
 MiGetPdePointer(
     IN  uintptr_t va
 )
+
+/*++
+
+    Routine description:
+
+        Returns the PDE pointer for a virtual address.
+
+    Arguments:
+
+        [IN] va - Virtual address whose paging index or entry is requested.
+
+    Return Values:
+
+        A pointer to the page-directory entry for the address.
+
+--*/
 
 {
     // 1. Calculate Indices
@@ -234,37 +467,19 @@ MiGetPdePointer(
     }
 
     uint64_t* pml4_va = pml4_from_recursive();
-    if (!(pml4_va[pml4_i] & PAGE_PRESENT)) {
-        // Allocate a new PDPT
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // We are modifying the recursive mapping of the PML4 entry.
-        PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
-        MI_WRITE_PTE(pml4e, pdpt_from_recursive(pml4_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pml4e = (PMMPTE)&pml4_va[pml4_i];
+    if (!MiEnsureIntermediateTable(pml4e,
+        (uintptr_t)pdpt_from_recursive(pml4_i), intermediateFlags)) return NULL;
 
     uint64_t* pdpt_va = pdpt_from_recursive(pml4_i);
-    if (!(pdpt_va[pdpt_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Directory
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PD into PDPT
-        PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
-        MI_WRITE_PTE(pdpte, pd_from_recursive(pml4_i, pdpt_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pdpte = (PMMPTE)&pdpt_va[pdpt_i];
+    if (!MiEnsureIntermediateTable(pdpte,
+        (uintptr_t)pd_from_recursive(pml4_i, pdpt_i), intermediateFlags)) return NULL;
 
     uint64_t* pd_va = pd_from_recursive(pml4_i, pdpt_i);
-    if (!(pd_va[pd_i] & PAGE_PRESENT)) {
-        // Allocate a new Page Table
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
-        if (pfn == PFN_ERROR) return NULL;
-
-        // Link new PT into PD
-        PMMPTE pde = (PMMPTE)&pd_va[pd_i];
-        MI_WRITE_PTE(pde, pt_from_recursive(pml4_i, pdpt_i, pd_i), PFN_TO_PHYS(pfn), intermediateFlags);
-    }
+    PMMPTE pde = (PMMPTE)&pd_va[pd_i];
+    if (!MiEnsureIntermediateTable(pde,
+        (uintptr_t)pt_from_recursive(pml4_i, pdpt_i, pd_i), intermediateFlags)) return NULL;
 
     return (PMMPTE)&pd_va[pd_i];
 }
@@ -289,7 +504,7 @@ MiInvalidateTlbForVa(
         None.
 
     Notes:
-        
+
         On the SMP Build, if APs are active, an IPI is sent to flush their TLB for the VA as well.
 
 --*/
@@ -299,7 +514,7 @@ MiInvalidateTlbForVa(
 #ifndef MT_UP
     // If SMP is initialized, send IPI.
     if (smpInitialized) {
-        IPI_PARAMS Param;
+        IPI_PARAMS Param = { 0 };
         Param.pageParams.addressToInvalidate = (uint64_t)VirtualAddress;
         MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, Param);
     }
@@ -314,7 +529,7 @@ MiTranslatePteToPfn (
 /*++
 
     Routine description:
-        
+
         Translates the PTE given into the appropriate PFN behind its physical address.
 
     Arguments:
@@ -324,6 +539,11 @@ MiTranslatePteToPfn (
     Return Values:
 
         Page Frame Index.
+
+    Notes:
+
+        The PTE must be mapped to a physical address in order for this function to return an actual PFN value.
+        (it doesnt have to actually BE MAPPED with the present bit, but the physical address must be written in the PTE itself)
 
 --*/
 
@@ -354,7 +574,7 @@ MiTranslatePteToVa(
 
     Notes:
 
-        The only reason this works is because the method used to find the indices for the VA (pml4, pdpt, pd, pt, pte) 
+        The only reason this works is because the method used to find the indices for the VA (pml4, pdpt, pd, pt, pte)
         Is reversible, since it is bit shifting.
 
 --*/
@@ -398,7 +618,11 @@ MiUnmapPte (
 
     Return Values:
 
-        None.       
+        None.
+
+    Notes:
+
+        This function invalidates the TLB for the PTE, but if you manually change the PTE, you must invalidate the TLBs yourself, also, before releasing the physical page associated.
 
 --*/
 
@@ -408,21 +632,26 @@ MiUnmapPte (
     // Get the PTE's original VA.
     uintptr_t origVa = MiTranslatePteToVa(pte);
 
-    // Atomically exchange old info with new info to avoid races.
-    MMPTE newPte;
-    
-    // Zero out newPte
-    kmemset(&newPte, 0, sizeof(MMPTE));
+    // Hardware and software PTE formats reuse bit positions. In particular,
+    // Hard.User is Soft.Transition, so copying hardware bits after clearing
+    // Present invents a transition PTE. Translate protections explicitly.
+    MMPTE Expected;
+    MMPTE NewPte;
+    do {
+        Expected.Value = InterlockedLoadAcquire(&pte->Value);
+        NewPte.Value = 0;
 
-    // Keep only the protection flags. (so transition function set know which flags it had)
-    newPte.Hard.Write = pte->Hard.Write;
-    newPte.Hard.User = pte->Hard.User;
-    newPte.Hard.NoExecute = pte->Hard.NoExecute;
-
-    // Setting a transition PTE is at another function.
-    
-    // Exchange now.
-    InterlockedExchangeU64((volatile uint64_t*)pte, newPte.Value);
+        if (Expected.Hard.Present) {
+            NewPte.Soft.SoftwareFlags |= PROT_KERNEL_READ;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.Write
+                ? PROT_KERNEL_WRITE : 0;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.User
+                ? PROT_KERNEL_USER : 0;
+            NewPte.Soft.SoftwareFlags |= Expected.Hard.NoExecute
+                ? PROT_KERNEL_NOEXECUTE : 0;
+            NewPte.Soft.NoExecute = Expected.Hard.NoExecute;
+        }
+    } while (!MiAtomicSetPte(pte, NewPte.Value, Expected.Value));
 
     // Invalidate TLBs
     if (origVa) MiInvalidateTlbForVa((void*)origVa);
@@ -430,6 +659,40 @@ MiUnmapPte (
 
     // Return.
     return;
+}
+
+bool MiAtomicSetPte(
+    volatile PMMPTE Pte,
+    uint64_t NewValue,
+    uint64_t ExpectedValue
+)
+
+/*++
+
+    Routine description:
+
+        Atomically sets the Pte given to the new PTE if it did not change while setting.
+
+    Arguments:
+
+        [IN]  volatile PMMPTE Pte - Pointer to MMPTE PTE in memory.
+        [IN]  uint64_t NewValue - The new value the will have if successful.
+        [IN]  uint64_t ExpectedValue - The expected value the PTE should hold to identify it was not changed while setting it to new value.
+
+    Return Values:
+
+        True if PTE has successfuly changed to NewValue, or false if the PTE was changed between setting it.
+
+--*/
+
+{
+    uint64_t original = InterlockedCompareExchangeU64(
+        (volatile uint64_t*)Pte,
+        (uint64_t)NewValue,
+        (uint64_t)ExpectedValue
+    );
+
+    return (original == ExpectedValue);
 }
 
 bool
@@ -455,7 +718,7 @@ MiAtomicSetTransitionPte(
 
     Note:
 
-        This function must always be called ONLY from MiReleasePhysicalPage. 
+        This function must always be called ONLY from MiReleasePhysicalPage.
 
 --*/
 
@@ -489,23 +752,43 @@ MiAtomicSetTransitionPte(
     Transition.Soft.SoftwareFlags |= (Pte->Hard.NoExecute) ? PROT_KERNEL_NOEXECUTE : 0;
     Transition.Soft.SoftwareFlags |= (Pte->Hard.User) ? PROT_KERNEL_USER : 0;
 
-    // Atomic compare exchange, if the PTE changed within the exchange, we do not set the value, and abort.
-    if (!InterlockedCompareExchangeU64((volatile uint64_t*)Pte, Transition.Value, Expected.Value)) return false;
-
-    // Exchange successful!
-    return true;
+    // Compare-exchange returns the value observed before the operation. Zero
+    // is a perfectly valid expected PTE, so testing this as a boolean inverts
+    // the common success case.
+    return InterlockedCompareExchangeU64(
+        (volatile uint64_t*)Pte,
+        Transition.Value,
+        Expected.Value
+    ) == Expected.Value;
 }
 
 // Reloads CR3 to flush all TLBs (slow flush)
+// Sends IPI on SMP
 void
 MiReloadTLBs(
     void
 )
 
+/*++
+
+    Routine description:
+
+        Reloads CR3 to invalidate non-global TLB entries on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     __write_cr3(__read_cr3());
 #ifndef MT_UP
-    IPI_PARAMS param;
+    IPI_PARAMS param = { 0 };
     MhSendActionToCpusAndWait(CPU_ACTION_FLUSH_CR3, param);
 #endif
 }
@@ -563,9 +846,7 @@ MmIsAddressPresent(
 
     Notes:
 
-        This function shouldn't be used in low IRQL situations, as addresses can very well be paged out to disk.
-        (In IRQL equal or higher than DISPATCH_LEVEL, this function is safe, as blocking operations are forbidden, which means memory cannot be paged out)
-
+        This function shouldn't be used, atleast not reliably, as addresses can very well be paged out to disk.
 --*/
 
 {

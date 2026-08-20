@@ -64,6 +64,8 @@ HtpLookupEntry(
     uint64_t Index = (uint64_t)(Handle) >> 2;
 
     if (Level == 0) {
+        if (Index >= LOW_LEVEL_ENTRIES) return NULL;
+
         // Direct Array
         PHANDLE_TABLE_ENTRY Entries = (PHANDLE_TABLE_ENTRY)TableBase;
         return &Entries[Index];
@@ -74,6 +76,8 @@ HtpLookupEntry(
         uint64_t MaxEntriesPerLevel = LOW_LEVEL_ENTRIES;
         uint64_t PageIndex = Index / MaxEntriesPerLevel;
         uint64_t EntryIndex = Index % MaxEntriesPerLevel;
+
+        if (PageIndex >= LOW_LEVEL_ENTRIES) return NULL;
 
         PHANDLE_TABLE_ENTRY* PageTable = (PHANDLE_TABLE_ENTRY*)TableBase;
         PHANDLE_TABLE_ENTRY ActualPage = PageTable[PageIndex];
@@ -95,7 +99,7 @@ HtInitializeSystem(
 
     Routine description:
 
-        Initializes the HandleTableListHead.
+        Initializes the HandleTableListHead, and the push lock.
 
     Arguments:
 
@@ -109,6 +113,7 @@ HtInitializeSystem(
 
 {
     InitializeListHead(&HandleTableList);
+    MsInitializePushLock(&HandleTableListLock);
 }
 
 PHANDLE_TABLE
@@ -133,7 +138,11 @@ HtCreateHandleTable(
 --*/
 
 {
+    if (!Process) return NULL;
+
     PHANDLE_TABLE Table = MmAllocatePoolWithTag(NonPagedPool, sizeof(HANDLE_TABLE), 'bTtH'); // HtTb - Handle Table.
+    if (!Table) return NULL;
+    kmemset(Table, 0, sizeof(*Table));
     
     // Allocate the first page of the entries (level 0) (switched to paged pool now)
     PHANDLE_TABLE_ENTRY Level0 = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'egaP'); // Page
@@ -141,6 +150,10 @@ HtCreateHandleTable(
         MmFreePool(Table);
         return NULL;
     }
+    kmemset(Level0, 0, VirtualPageSize);
+
+    // Initialize the push lock
+    MsInitializePushLock(&Table->TableLock);
     
     // Initialize the free list in the new page.
     for (uint64_t i = 1; i < LOW_LEVEL_ENTRIES - 1; i++) {
@@ -153,7 +166,6 @@ HtCreateHandleTable(
     Table->TableCode = (uint64_t)Level0; // Level is 0, so bottom bits are 0
     Table->FirstFreeHandle = 4;
     Table->QuotaProcess = Process;
-    Table->TableLock.Value = 0;
 
     // Insert this handle table into the global list.
     MsAcquirePushLockExclusive(&HandleTableListLock);
@@ -190,6 +202,7 @@ HtpAllocateAndInitHandlePage(
 {
     PHANDLE_TABLE_ENTRY NewPage = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'egaP');
     if (!NewPage) return NULL;
+    kmemset(NewPage, 0, VirtualPageSize);
 
     // Link all entries in this new page together
     uint32_t i;
@@ -246,6 +259,7 @@ HtpExpandTable(
         // Allocate the "Directory" page (holds pointers, not entries)
         PHANDLE_TABLE_ENTRY* Directory = MmAllocatePoolWithTag(PagedPool, VirtualPageSize, 'riD');
         if (!Directory) return; // OOM
+        kmemset(Directory, 0, VirtualPageSize);
 
         // The existing Level 0 page becomes the first entry in the directory
         Directory[0] = (PHANDLE_TABLE_ENTRY)TableBase;
@@ -329,6 +343,8 @@ HtCreateHandle(
 --*/
 
 {
+    if (!Table || !Object) return MT_INVALID_HANDLE;
+
     // Acquire exclusive push lock, we are modifying the table.
     // Since we are in pageable memory, we can wait and access it even.
     MsAcquirePushLockExclusive(&Table->TableLock);
@@ -363,6 +379,11 @@ HtCreateHandle(
     // Setup the Entry
     Entry->Object = Object;
     Entry->GrantedAccess = Access;
+    if (Table->HandleCount == UINT32_MAX) {
+        MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, Table,
+            (void*)(uintptr_t)Table->HandleCount, Object, RETADDR(0));
+    }
+    Table->HandleCount++;
     MsReleasePushLockExclusive(&Table->TableLock);
 
     return (HANDLE)FreeIndex;
@@ -420,6 +441,11 @@ HtDeleteHandle(
     Entry->NextFreeTableEntry = Table->FirstFreeHandle;
     // This entry becomes the new head.
     Table->FirstFreeHandle = (uint32_t)Handle;
+    if (Table->HandleCount == 0) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Table,
+            (void*)(uintptr_t)Handle, Entry, RETADDR(0));
+    }
+    Table->HandleCount--;
     MsReleasePushLockExclusive(&Table->TableLock);
 }
 
@@ -468,6 +494,47 @@ HtGetObject (
     return Object;
 }
 
+void*
+HtReferenceObject(
+    IN PHANDLE_TABLE Table,
+    IN HANDLE Handle,
+    _Out_Opt PHANDLE_TABLE_ENTRY OutInformation
+)
+
+/*++
+
+    Routine description:
+
+        References an object through a handle-table entry after validating its type and access mask.
+
+    Arguments:
+
+        [IN] Table - Handle table in which the lookup is performed.
+        [IN] Handle - Handle supplied by the caller.
+        [OUT] OutInformation - Receives the referenced handle-table entry information.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
+    if (!Table) return NULL;
+
+    void* Object = NULL;
+    MsAcquirePushLockShared(&Table->TableLock);
+
+    PHANDLE_TABLE_ENTRY Entry = HtpLookupEntry(Table, Handle);
+    if (Entry && Entry->Object && ObReferenceObject(Entry->Object)) {
+        Object = Entry->Object;
+        if (OutInformation) *OutInformation = *Entry;
+    }
+
+    MsReleasePushLockShared(&Table->TableLock);
+    return Object;
+}
+
 void
 HtDeleteHandleTable(
     IN PHANDLE_TABLE Table
@@ -499,6 +566,7 @@ HtDeleteHandleTable(
     uint64_t TableCode = Table->TableCode;
     uint64_t Level = TableCode & TABLE_LEVEL_MASK;
     void* TableBase = (void*)(TableCode & ~TABLE_LEVEL_MASK);
+    uint32_t ClosedHandles = 0;
 
     if (Level == 0) {
         // Single contigious page of entries
@@ -509,15 +577,21 @@ HtDeleteHandleTable(
                 void* Object = Entries[i].Object;
                 if (Object) {
                     Entries[i].Object = NULL;
-                    // Decrement handle count atomically
-                    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
-                    InterlockedDecrementIfNotZero((volatile uint64_t*)&Header->HandleCount);
+                    ObDecrementHandleCount(Object);
+                    ClosedHandles++;
                     ObDereferenceObject(Object);
                 }
             }
         }
 
-        // No more live handles — release lock and free the page
+        if (ClosedHandles != Table->HandleCount) {
+            MeBugCheckEx(MEMORY_CORRUPT_HEADER, Table,
+                (void*)(uintptr_t)ClosedHandles,
+                (void*)(uintptr_t)Table->HandleCount, RETADDR(0));
+        }
+        Table->HandleCount = 0;
+
+        // No more live handles - release lock and free the page
         MsReleasePushLockExclusive(&Table->TableLock);
         if (Entries) MmFreePool(Entries);
     }
@@ -535,9 +609,8 @@ HtDeleteHandleTable(
                     void* Object = Page[i].Object;
                     if (Object) {
                         Page[i].Object = NULL;
-                        // Decrement handle count atomically
-                        POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
-                        InterlockedDecrementIfNotZero((volatile uint64_t*)Header->HandleCount);
+                        ObDecrementHandleCount(Object);
+                        ClosedHandles++;
                         ObDereferenceObject(Object);
                     }
                 }
@@ -547,15 +620,21 @@ HtDeleteHandleTable(
             }
         }
 
+        if (ClosedHandles != Table->HandleCount) {
+            MeBugCheckEx(MEMORY_CORRUPT_HEADER, Table,
+                (void*)(uintptr_t)ClosedHandles,
+                (void*)(uintptr_t)Table->HandleCount, RETADDR(0));
+        }
+        Table->HandleCount = 0;
+
         // Release push lock and free the directory itself.
         MsReleasePushLockExclusive(&Table->TableLock);
         if (Directory) MmFreePool(Directory);
     }
 
     else {
-        // Unsupported level, release lock and get out.
-        assert(false, "Unsupported level encountered on handle table free.");
-        MsReleasePushLockExclusive(&Table->TableLock);
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Table,
+            (void*)(uintptr_t)Level, (void*)TableCode, RETADDR(0));
     }
 
     // Release this handle table from the global list.
@@ -568,7 +647,8 @@ HtDeleteHandleTable(
 }
 
 MTSTATUS
-HtClose(
+HtCloseEx(
+    IN PHANDLE_TABLE Table,
     IN HANDLE Handle
 )
 
@@ -589,23 +669,64 @@ HtClose(
 --*/
 
 {
-    if (Handle == MtCurrentProcess() || Handle == MtCurrentThread() || !Handle) return MT_INVALID_HANDLE;
+    if (!Table || Handle <= 0) return MT_INVALID_HANDLE;
 
-    PHANDLE_TABLE Table = PsGetCurrentProcess()->ObjectTable;
+    // Remove and capture the entry in one exclusive critical section. A
+    // separate lookup/delete pair lets two callers close the same object.
+    MsAcquirePushLockExclusive(&Table->TableLock);
+    PHANDLE_TABLE_ENTRY Entry = HtpLookupEntry(Table, Handle);
+    if (!Entry || !Entry->Object) {
+        MsReleasePushLockExclusive(&Table->TableLock);
+        return MT_INVALID_HANDLE;
+    }
 
-    // First get the object for the handle
-    void* Object = HtGetObject(Table, Handle, NULL);
-    if (!Object) return MT_INVALID_HANDLE;
+    void* Object = Entry->Object;
+    Entry->Object = NULL;
+    Entry->GrantedAccess = 0;
+    Entry->NextFreeTableEntry = Table->FirstFreeHandle;
+    Table->FirstFreeHandle = (uint32_t)Handle;
+    if (Table->HandleCount == 0) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Table,
+            (void*)(uintptr_t)Handle, Entry, RETADDR(0));
+    }
+    Table->HandleCount--;
+    MsReleasePushLockExclusive(&Table->TableLock);
 
-    // Remove the handle from the table first
-    HtDeleteHandle(Table, Handle);
-
-    // Decrement handle count atomically
-    POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
-    InterlockedDecrementU64((volatile uint64_t*)&Header->HandleCount);
+    ObDecrementHandleCount(Object);
 
     // Dereference the object
     ObDereferenceObject(Object);
 
     return MT_SUCCESS;
+}
+
+MTSTATUS
+HtClose(
+    IN HANDLE Handle
+)
+
+/*++
+
+    Routine description:
+
+        Closes a handle-table entry and releases its object reference.
+
+    Arguments:
+
+        [IN] Handle - Handle supplied by the caller.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
+    if (Handle == MtCurrentProcess() || Handle == MtCurrentThread() || !Handle) {
+        return MT_INVALID_HANDLE;
+    }
+
+    PEPROCESS Process = PsGetCurrentProcess();
+    if (!Process) return MT_INVALID_HANDLE;
+    return HtCloseEx(Process->ObjectTable, Handle);
 }

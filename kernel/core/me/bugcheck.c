@@ -10,6 +10,7 @@
 #include "../../intrinsics/atomic.h"
 #include "../../includes/mh.h"
 #include "../../includes/ps.h"
+#include "../../includes/rtl.h"
 
 #ifndef DEBUG
 #define DEBUG
@@ -23,11 +24,114 @@ extern bool smpInitialized;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 
+#if defined(MT_STRESS_AUTOMATION) && MT_STRESS_AUTOMATION
+#define MT_AUTOMATION_DEBUG_PORT 0x402
+#define MT_AUTOMATION_EXIT_PORT  0xF4
+#define MT_AUTOMATION_EXIT_FAIL  0x11
+
+static void
+MepWriteAutomationText(
+    const char* Text
+)
+{
+    while (*Text != '\0') {
+        __outbyte(MT_AUTOMATION_DEBUG_PORT, (uint8_t)*Text++);
+    }
+}
+
+static void
+MepWriteAutomationHex(
+    uint64_t Value
+)
+{
+    static const char Digits[] = "0123456789abcdef";
+
+    MepWriteAutomationText("0x");
+    for (int Shift = 60; Shift >= 0; Shift -= 4) {
+        __outbyte(
+            MT_AUTOMATION_DEBUG_PORT,
+            (uint8_t)Digits[(Value >> Shift) & 0xFULL]
+        );
+    }
+}
+
+static void
+MepExitAutomationBugCheck(
+    uint64_t BugCheckCode,
+    void* Parameter1,
+    void* Parameter2,
+    void* Parameter3,
+    void* Parameter4
+)
+{
+    MepWriteAutomationText("MT-STRESS BUGCHECK code=");
+    MepWriteAutomationHex(BugCheckCode);
+    MepWriteAutomationText(" p1=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter1);
+    MepWriteAutomationText(" p2=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter2);
+    MepWriteAutomationText(" p3=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter3);
+    MepWriteAutomationText(" p4=");
+    MepWriteAutomationHex((uint64_t)(uintptr_t)Parameter4);
+    MepWriteAutomationText("\n");
+
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+#endif
+
+bool
+MeIsBugCheckActive(
+    void
+)
+
+/*++
+
+    Routine description:
+
+        Reports whether a processor has begun system bug-check handling.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
+    return InterlockedLoadAcquire(&isBugChecking);
+}
+
 // switched to uint64_t and not BUGCHECK_CODES since the custom ones arent in that enum, and compiler throws an error.
 /// Note that this is bad, even though a switch statement is great and all with a jump table (all though this does not have one because its not a dense switch)
 /// this still exposes to reverse engineers an easy way to get to the bugcheck code (even though this is open source!), and also it is bloat, since we should just
 /// store it all in the resource section and grab the code from there
-static void resolveStopCode(char** s, uint64_t stopcode) {
+static void resolveStopCode(char** s, uint64_t stopcode)
+
+/*++
+
+    Routine description:
+
+        Converts a bug-check code to its diagnostic name.
+
+    Arguments:
+
+        [IN] s - String or state value consumed by the routine.
+        [IN] stopcode - Stop code whose printable name is requested.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     switch (stopcode) {
     case DIVIDE_BY_ZERO:
         *s = "DIVIDE_BY_ZERO";
@@ -209,6 +313,42 @@ static void resolveStopCode(char** s, uint64_t stopcode) {
     case ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY:
         *s = "ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY";
         break;
+    case MSMGR_INIT_FAILED:
+        *s = "MSMGR_INIT_FAILED";
+        break;
+    case DPC_EXECUTE_FAILURE:
+        *s = "DPC_EXECUTE_FAILURE";
+        break;
+    case PROCESSOR_POINTER_CORRUPTION:
+        *s = "PROCESSOR_POINTER_CORRUPTION";
+        break;
+    case KERNEL_STACK_COOKIE_CORRUPTION:
+        *s = "KERNEL_STACK_COOKIE_CORRUPTION";
+        break;
+    case INVALID_KERNEL_STACK_ADDRESS:
+        *s = "INVALID_KERNEL_STACK_ADDRESS";
+        break;
+    case SCHEDULER_FAILURE:
+        *s = "SCHEDULER_FAILURE";
+        break;
+    case PFN_TRANSITION_FAILURE:
+        *s = "PFN_TRANSITION_FAILURE";
+        break;
+    case PFN_RELEASE_STILL_MAPPED:
+        *s = "PFN_RELEASE_STILL_MAPPED";
+        break;
+    case WAIT_STATE_FAILURE:
+        *s = "WAIT_STATE_FAILURE";
+        break;
+    case PIT_TIMER_FAILURE:
+        *s = "PIT_TIMER_FAILURE";
+        break;
+    case TIMEBASE_INITIALIZATION_FAILURE:
+        *s = "TIMEBASE_INITIALIZATION_FAILURE";
+        break;
+    case SMP_SYNCHRONIZATION_TIMEOUT:
+        *s = "SMP_SYNCHRONIZATION_TIMEOUT";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
@@ -276,24 +416,39 @@ MeBugCheckEx (
     // Critical system error, instead of triple faulting, we hang the system with specified error codes.
     // Disable interrupts if they werent disabled before.
     __cli();
-    if (smpInitialized) {
-        // If all other cores are online, we obviously want to stop them.
-        IPI_PARAMS dummy = { 0 };
-        MhSendActionToCpusAndWait(CPU_ACTION_STOP, dummy);
-    }
 
-    // atomically check & set isBugChecking
+    bool FreezeOtherProcessors = smp_cpu_count > 1;
+
+    // Claim bugcheck ownership before stopping other CPUs. In particular, do
+    // not use the synchronous SMP mailbox here: this bugcheck may be reporting
+    // that the mailbox or IPI completion path timed out.
     bool prev = InterlockedExchangeBool(&isBugChecking, true);
 
     if (prev == 1) {
         while (1) __hlt();
     }
 
-    // Acquire exclusive ownership to this processor for framebuffer access.
-    MgAcquireExclusiveGopOwnerShip();
+#if defined(MT_STRESS_AUTOMATION) && MT_STRESS_AUTOMATION
+    MepExitAutomationBugCheck(
+        BugCheckCode,
+        BugCheckParameter1,
+        BugCheckParameter2,
+        BugCheckParameter3,
+        BugCheckParameter4
+    );
+#endif
+
+    if (FreezeOtherProcessors) {
+        MhRequestBugCheckFreeze();
+    }
+
+    // A frozen CPU may have owned the normal GOP print lock. Bugcheck takes
+    // ownership directly so the diagnostic screen cannot wait on that CPU.
+    MgClaimGopForBugCheck();
 
 #ifdef DEBUG
     IRQL recordedIrql = MeGetCurrentProcessor()->currentIrql;
+    bool IsAssertionFailure = false;
 #endif
     // Force to be redrawn from the top, instead of last place.
     cursor_x = 0;
@@ -323,6 +478,7 @@ MeBugCheckEx (
                 (char*)BugCheckParameter2,
                 (char*)BugCheckParameter3,
                 (long long)(intptr_t)BugCheckParameter4);
+            IsAssertionFailure = true;
         }
         else {
 #endif
@@ -340,22 +496,49 @@ MeBugCheckEx (
         }
 #endif
     }
+
+    if (BugCheckCode == SMP_SYNCHRONIZATION_TIMEOUT && BugCheckParameter2) {
+        PPROCESSOR TargetProcessor = (PPROCESSOR)BugCheckParameter2;
+
+        gop_printf(
+            COLOR_WHITE,
+            "SMP stage: %u | Target index: %u | LAPIC ID: %u\n"
+            "Target state: %u | IPI active: %u | Mailbox: %llu | IPI sequence: %llu | Startup stage: %u\n",
+            (unsigned int)(uintptr_t)BugCheckParameter1,
+            (unsigned int)TargetProcessor->ID,
+            (unsigned int)TargetProcessor->lapic_ID,
+            (unsigned int)InterlockedLoadAcquire(&TargetProcessor->State),
+            (unsigned int)InterlockedLoadAcquire(
+                &TargetProcessor->IpiRoutineActive
+            ),
+            (unsigned long long)InterlockedLoadAcquire(
+                &TargetProcessor->MailboxLock
+            ),
+            (unsigned long long)InterlockedLoadAcquire(
+                &TargetProcessor->IpiSeq
+            ),
+            (unsigned int)InterlockedLoadAcquire(
+                &TargetProcessor->StartupStage
+            )
+        );
+    }
 #ifdef DEBUG
     gop_printf(0xFFFFA500, "**Last IRQL: %d**\n", recordedIrql);
     gop_printf(0xFFFFA500, "DPC Active: %s\n", (MeGetCurrentProcessor()->DpcRoutineActive) ? "Yes" : "No");
 #endif
-    HANDLE currTid = (MeGetCurrentProcessor()->currentThread) ? PsGetCurrentThread()->TID : (HANDLE)-1;
-    gop_printf(0xFFFFFF00, "Current Thread ID: %d\n", currTid);
-    if (smpInitialized) {
-        gop_printf(COLOR_LIME, "Sent IPI To all CPUs to HALT.\n");
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    HANDLE currTid = CurrentThread ? CurrentThread->TID : (HANDLE)-1;
+    gop_printf(0xFFFFFF00, "Current Thread ID: %d (User Mode Thread: %s)\n",
+        currTid, CurrentThread ? (CurrentThread->SystemThread ? "No" : "Yes") : "Unknown");
+    if (FreezeOtherProcessors) {
+        gop_printf(COLOR_LIME, "Requested NMI halt on all other CPUs.\n");
         gop_printf(COLOR_LIME, "Current Executing CPU: %d\n", MeGetCurrentProcessor()->lapic_ID);
     }
 #ifdef DEBUG
     // Thread information
-    PETHREAD CurrentThread = PsGetCurrentThread();
     if (CurrentThread) {
         // Display thread debug info
-        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.StackBase; // high address
+        uintptr_t StackBase = (uintptr_t)CurrentThread->InternalThread.KernelStack; // high address
         uintptr_t StackSize = (CurrentThread->InternalThread.IsLargeStack) ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
         uintptr_t StackLimit = StackBase - StackSize; // low address (bottom of stack)
         uintptr_t ThreadTop = (uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp;
@@ -364,7 +547,26 @@ MeBugCheckEx (
     }
     gop_printf(COLOR_YELLOW, "Current CR3: %p\n", (void*)(uintptr_t)__read_cr3());
     gop_printf(COLOR_YELLOW, "Current stack top: %p\n", (void*)(uintptr_t)__read_rsp());
-#endif
+
+    if (IsAssertionFailure) {
+        // Print backtrace to the current stack, since the bugcheck is called from assert_fail (which isnt called from an exception interrupt)
+        void* Frames[16];
+        size_t captured = RtlCaptureStackFrames(Frames, 16, 1);
+        
+        if (!captured) {
+            gop_printf(COLOR_RED, "No stack trace to print, this shouldn't be really possible.\n");
+        }
+        else {
+            gop_printf(COLOR_ORANGE, "Stack Trace:\n");
+        }
+
+        for (size_t i = 0; i < captured; i++) {
+            void* Address = Frames[i];
+            gop_printf(COLOR_LIME, "%p\n", Address);
+        }
+    }
+
+#endif // DEBUG
     __cli();
     while (1) {
         __hlt();

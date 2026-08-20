@@ -159,7 +159,7 @@ MiFreeKernelStack(
 
     Arguments:
 
-        [IN]    void* AllocatedStackBase - The pointer given by MiCreateKernelStack
+        [IN]    void* AllocatedStackTop - The pointer given by MiCreateKernelStack
         [IN]    bool LargeStack - Signifies if the stack being deleted is a MI_LARGE_STACK_SIZE bytes long (true), or MI_STACK_SIZE bytes long (false)
 
     Return Values:
@@ -169,11 +169,27 @@ MiFreeKernelStack(
 --*/
 
 {
-    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
-    // Declarations
     size_t StackSize = LargeStack ? MI_LARGE_STACK_SIZE : MI_STACK_SIZE;
     size_t GuardSize = VirtualPageSize;
     size_t TotalSize = StackSize + GuardSize;
+    uintptr_t StackTop = (uintptr_t)AllocatedStackTop;
+
+    if (!AllocatedStackTop ||
+        ((StackTop & (VirtualPageSize - 1)) != 0) ||
+        StackTop > MI_NONPAGED_POOL_END ||
+        StackTop < MI_NONPAGED_POOL_BASE + TotalSize ||
+        StackTop - TotalSize < MI_NONPAGED_POOL_BASE) {
+        PETHREAD CurrentThread = PsGetCurrentThread();
+        MeBugCheckEx(INVALID_KERNEL_STACK_ADDRESS,
+            AllocatedStackTop,
+            RETADDR(0),
+            CurrentThread,
+            CurrentThread
+                ? (void*)(uintptr_t)CurrentThread->InternalThread.TrapRegisters.rsp
+                : NULL);
+    }
+
+    gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
     size_t PagesToUnMap = BYTES_TO_PAGES(StackSize);
 
     // 1. Calculate the START of the stack memory (The highest valid byte addressable page)
@@ -277,11 +293,9 @@ MmCreateProcessAddressSpace(
     MMPTE recursivePte;
     kmemset(&recursivePte, 0, sizeof(MMPTE)); // Ensure clean start
 
-    // Note: We pass NULL for the VA as it's a self-ref, we only care about the PFN and Flags.
-    MI_WRITE_PTE(&recursivePte,
-        (void*)0,
-        PFN_TO_PHYS(pfnIndex),
-        PAGE_PRESENT | PAGE_RW);
+    // This is a value being built on our stack, not a live PTE. Using the PTE
+    // mapping macro here would publish &recursivePte as the PFN reverse map.
+    recursivePte.Value = physicalAddress | PAGE_PRESENT | PAGE_RW;
 
     // Write to index 0x1FF (511)
     pml4Base[RECURSIVE_INDEX] = recursivePte.Value;
@@ -291,6 +305,12 @@ MmCreateProcessAddressSpace(
 
     // Unmap from Hyperspace.
     MiUnmapHyperSpaceMap(oldIrql);
+
+    PPFN_ENTRY Pml4Pfn = INDEX_TO_PPFN(pfnIndex);
+    Pml4Pfn->State = PfnStateActive;
+    Pml4Pfn->Flags = PFN_FLAG_NONPAGED;
+    Pml4Pfn->Descriptor.Mapping.Vad = NULL;
+    Pml4Pfn->Descriptor.Mapping.PteAddress = NULL;
 
     // Return the Physical Address.
     // The scheduler will load this into CR3 when switching to this process.
@@ -338,51 +358,64 @@ MiFreePageTableHierarchy(
 
     // Iterate through the indices.
     for (int i = start; i < limit; i++) {
-
         PAGE_INDEX childPfn = PFN_ERROR;
         bool isPresent = false;
         bool isLargePage = false;
 
-        // Map the table to read the entry at i
+        // Map the table
         mapping = (uint64_t*)MiMapPageInHyperspace(TablePfn, &oldIrql);
-        MMPTE pte;
-        pte.Value = mapping[i];
+        PMMPTE ptePtr = (PMMPTE)&mapping[i];
+        MMPTE pte = *ptePtr;
 
         if (pte.Hard.Present) {
             isPresent = true;
             childPfn = MiTranslatePteToPfn(&pte);
-
-            // We dont support large pages yet (or we do and I didnt update this comment)
-            // But we will scan for them anyway to prevent bugs in the future (faults and such)
             if (Level > 1 && (pte.Value & PAGE_PS)) {
                 isLargePage = true;
             }
         }
 
-        // Unmap immediately so we can use Hyperspace in the recursion
-        MiUnmapHyperSpaceMap(oldIrql);
+        if (!isPresent) {
+            MiUnmapHyperSpaceMap(oldIrql);
+            continue;
+        }
 
-        // Process the entry if it was valid
-        if (isPresent && childPfn != PFN_ERROR) {
+        // Page is present.
+        if (Level > 1 && !isLargePage) {
+            // Pointer to lower level page.
+            MiAtomicExchangePte(ptePtr, 0);
 
-            if (Level > 1) {
-                if (isLargePage) {
-                    // It's a 2MB or 1GB user page. Release the physical memory directly.
-                    MiReleasePhysicalPage(childPfn);
-                }
-                else {
-                    // It's a pointer to a lower-level page table. Recurse.
-                    MiFreePageTableHierarchy(childPfn, Level - 1);
-                }
-            }
-            else {
-                // The PTs, the vad should have already freed them, but if it didnt, we do it.
-                MiReleasePhysicalPage(childPfn);
-            }
+            // Unmap before recursing to free up the Hyperspace slot
+            MiUnmapHyperSpaceMap(oldIrql);
+
+            // Recurse
+            MiFreePageTableHierarchy(childPfn, Level - 1);
+        }
+        else {
+            // PT Entry or large page
+            // The process has no live threads. Clear locally and perform one
+            // global flush after the whole hierarchy is gone; broadcasting an
+            // IPI for every leaf while HyperLock is held invites lock cycles.
+            MiAtomicExchangePte(ptePtr, 0);
+
+            // Unmap hyperspace now that we are done with the pointer
+            MiUnmapHyperSpaceMap(oldIrql);
+
+            // Clear the PTE mapping in PFN DB.
+            // This prevents MiReleasePhysicalPage from dereferencing adead recursive pointer from the wrong CR3 context.
+            // Since this is supposed to mostly happen in the reaper thread (kernel idle)
+            PPFN_ENTRY deadUserPage = INDEX_TO_PPFN(childPfn);
+            deadUserPage->Descriptor.Mapping.PteAddress = NULL;
+
+            // Finally, release the physical page
+            MiReleasePhysicalPage(childPfn);
         }
     }
 
     // All children are freed, we can free the actual table now.
+    PPFN_ENTRY TablePage = INDEX_TO_PPFN(TablePfn);
+    TablePage->Descriptor.Mapping.PteAddress = NULL;
+    TablePage->Descriptor.Mapping.Vad = NULL;
     MiReleasePhysicalPage(TablePfn);
 }
 
@@ -462,35 +495,60 @@ MmCreateUserStack(
 --*/
 
 {
+    if (!Process || !OutStackTop) return MT_INVALID_PARAM;
+    *OutStackTop = NULL;
+
     // If no stack reserve size, we use the default
     if (!StackReserveSize) StackReserveSize = MI_DEFAULT_USER_STACK_SIZE;
+    if (StackReserveSize > SIZE_MAX - (VirtualPageSize - 1)) {
+        return MT_INVALID_PARAM;
+    }
+    StackReserveSize = ALIGN_UP(StackReserveSize, VirtualPageSize);
 
-    // Acquire the exclusive push lock for the stack.
+    // Acquire the exclusive push lock.
     MsAcquirePushLockExclusive(&Process->AddressSpaceLock);
 
-    // Grab current hint.
+    // Grab the current hint.
     uintptr_t CurrentStackHint = Process->NextStackHint;
-    
-    // Compute the end of the stack.
-    uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
+    if (CurrentStackHint > USER_VA_END ||
+        CurrentStackHint < USER_VA_START + VirtualPageSize ||
+        StackReserveSize > CurrentStackHint - USER_VA_START - VirtualPageSize) {
+        MsReleasePushLockExclusive(&Process->AddressSpaceLock);
+        return MT_NO_MEMORY;
+    }
 
-    // Allocate a VAD for the address space.
-    MTSTATUS Status = MmAllocateVirtualMemory(Process, (void**) & EndOfStack, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
+    // Compute the desired end of the stack (and align it).
+    uintptr_t EndOfStack = CurrentStackHint - StackReserveSize;
+    EndOfStack &= ~((uintptr_t)VirtualPageSize - 1);
+
+    void* EndOfStackVoid = (void*)EndOfStack;
+
+    // Allocate the actual stack. 
+    MTSTATUS Status = MmAllocateVirtualMemory(Process, &EndOfStackVoid, StackReserveSize, VAD_FLAG_WRITE | VAD_FLAG_READ);
     if (MT_FAILURE(Status)) goto Cleanup;
 
-    // Create a VAD for the guard page (reserved)
-    void* GuardPageEnd = (void*)(EndOfStack - VirtualPageSize);
-    Status = MmAllocateVirtualMemory(Process, (void**)&GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
+    // Capture the REAL allocated base address
+    uintptr_t RealStackBase = (uintptr_t)EndOfStackVoid;
+
+    // Create a VAD for the guard page right below the actual allocation
+    void* GuardPageEnd = (void*)(RealStackBase - VirtualPageSize);
+    Status = MmAllocateVirtualMemory(Process, &GuardPageEnd, VirtualPageSize, VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
     if (MT_FAILURE(Status)) goto CleanupWithVad;
 
-    // The next hint should be the end of the guard page.
+    // The next hint should be the guard page.
     Process->NextStackHint = (uintptr_t)GuardPageEnd;
-    // Success.
-    if (OutStackTop) *OutStackTop = (void*)CurrentStackHint;
+
+    // Calculate the true top of the stack. The caller chooses the initial
+    // execution RSP; the TEB must retain the actual allocation boundary.
+    uintptr_t TrueStackTop = RealStackBase + StackReserveSize;
+
+    TrueStackTop &= ~0xFULL;
+
+    *OutStackTop = (void*)TrueStackTop;
     goto Cleanup;
 
 CleanupWithVad:
-    MmFreeVirtualMemory(Process, (void*)EndOfStack);
+    MmFreeVirtualMemory(Process, &EndOfStackVoid, &StackReserveSize, MEM_RELEASE);
 
 Cleanup:
     MsReleasePushLockExclusive(&Process->AddressSpaceLock);
@@ -556,6 +614,23 @@ MmCreateTeb(
     IN PETHREAD Thread,
     OUT void** OutTeb
 )
+
+/*++
+
+    Routine description:
+
+        Allocates and initializes a user thread environment block.
+
+    Arguments:
+
+        [IN] Thread - Thread affected by the operation.
+        [OUT] OutTeb - Receives the created TEB address.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     // Allocate memory for the TEB.

@@ -54,13 +54,7 @@ typedef struct _HANDLE_TABLE {
     uint32_t HandleCount;
 } HANDLE_TABLE, *PHANDLE_TABLE;
 
-// --------------- TYPE DEFINES ---------------
-
-typedef int32_t HANDLE, * PHANDLE;
-
 // --------------- FUNCTIONS ---------------
-
-typedef uint32_t ACCESS_MASK;
 
 MUST_USE_RESULT
 void*
@@ -70,8 +64,22 @@ HtGetObject(
     _Out_Opt PHANDLE_TABLE_ENTRY* OutEntry
 );
 
+MUST_USE_RESULT
+void*
+HtReferenceObject(
+    IN PHANDLE_TABLE Table,
+    IN HANDLE Handle,
+    _Out_Opt PHANDLE_TABLE_ENTRY OutInformation
+);
+
 MTSTATUS
 HtClose(
+    IN HANDLE Handle
+);
+
+MTSTATUS
+HtCloseEx(
+    IN PHANDLE_TABLE Table,
     IN HANDLE Handle
 );
 

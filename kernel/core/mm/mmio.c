@@ -50,7 +50,9 @@ MiCheckForContigiousMemory(
     assert(StartAddress != 0);
     if (!NumberOfBytes || !StartAddress) return false;
 
-    size_t AmtPages = BYTES_TO_PAGES(NumberOfBytes);
+    uintptr_t PageOffset = VA_OFFSET(StartAddress);
+    if (NumberOfBytes > SIZE_MAX - PageOffset) return false;
+    size_t AmtPages = BYTES_TO_PAGES(NumberOfBytes + PageOffset);
     uintptr_t CurrentAddress = (uintptr_t)StartAddress;
 
     // Get the First PFN.
@@ -113,10 +115,23 @@ MmAllocateContigiousMemory(
 {
     // According to MSDN this must be satisfied (this isnt NT compatible, but it follows its rules)
     if (MeGetCurrentIrql() > APC_LEVEL) return NULL;
+    if (NumberOfBytes == 0 ||
+        NumberOfBytes > SIZE_MAX - (PhysicalFrameSize - 1) ||
+        PfnDatabase.TotalPageCount == 0) {
+        return NULL;
+    }
 
     // Declarations
     size_t pageCount = BYTES_TO_PAGES(NumberOfBytes);
-    PAGE_INDEX MaxPfn = PPFN_TO_INDEX(PHYSICAL_TO_PPFN(HighestAcceptableAddress));
+    uint64_t AddressablePages = HighestAcceptableAddress == UINT64_MAX
+        ? (UINT64_MAX / PhysicalFrameSize) + 1
+        : (HighestAcceptableAddress + 1) / PhysicalFrameSize;
+    PAGE_INDEX SearchLimit = (PAGE_INDEX)MIN(
+        AddressablePages,
+        (uint64_t)PfnDatabase.TotalPageCount
+    );
+    if (pageCount > SearchLimit) return NULL;
+
     size_t ConsecutiveFound = 0;
     IRQL DbIrql;
     PAGE_INDEX StartIndex = 0;
@@ -141,17 +156,19 @@ MmAllocateContigiousMemory(
     }
     */
 
-    // Acquire the global DB lock so we dont get the contigious pages stolen from us.
+    // Claim the physical run while holding the database lock. Page-table
+    // creation happens later because MiGetPtePointer can itself request a PFN.
     MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
 
-    for (PAGE_INDEX i = 0; i < PfnDatabase.TotalPageCount; i++) {
-        // Check bounds.
-        if (i >= MaxPfn) break;
+    for (PAGE_INDEX i = 0; i < SearchLimit; i++) {
 
         PPFN_ENTRY pfn = &PfnDatabase.PfnEntries[i];
 
         // Is this page a candidate
-        bool isCandidate = (pfn->State == PfnStateFree || pfn->State == PfnStateZeroed || pfn->State == PfnStateStandby);
+        // Standby pages still have a transition PTE owner. They cannot be
+        // recycled until that PTE is invalidated through a real trim path.
+        bool isCandidate = (pfn->State == PfnStateFree ||
+            pfn->State == PfnStateZeroed);
 
         if (isCandidate) {
             if (ConsecutiveFound == 0) {
@@ -165,8 +182,8 @@ MmAllocateContigiousMemory(
 
         // Found a good enough block?
         if (ConsecutiveFound == pageCount) {
-            // We found a range! Now we must claim them.
-            bool first = true;
+            // We found a range. Remove every page from its availability list
+            // and publish ownership before dropping the database lock.
             for (PAGE_INDEX j = 0; j < pageCount; j++) {
                 PPFN_ENTRY pageToClaim = &PfnDatabase.PfnEntries[StartIndex + j];
 
@@ -181,32 +198,44 @@ MmAllocateContigiousMemory(
                 // Clear mapping info
                 pageToClaim->Descriptor.Mapping.PteAddress = NULL;
                 pageToClaim->Descriptor.Mapping.Vad = NULL;
-
-                // Map the physical to the offset.
-                uintptr_t phys = PPFN_TO_PHYSICAL_ADDRESS(pageToClaim);
-                uintptr_t virt = (phys + PhysicalMemoryOffset);
-
-                PMMPTE pte = MiGetPtePointer(virt);
-                assert((pte) != NULL);
-
-                // Set the return value to the first address.
-                if (first) {
-                    first = false;
-                    BaseAddress = (void*)virt;
-                }
-
-                // Write through is set, we want immediate flush to main memory.
-                MI_WRITE_PTE(pte, virt, phys, PAGE_PRESENT | PAGE_RW | PAGE_PWT);
             }
+            BaseAddress = (void*)(PFN_TO_PHYS(StartIndex) + PhysicalMemoryOffset);
             InterlockedAddU64(&PfnDatabase.TotalReserved, pageCount);
-            // Break out of the 'i' loop
             break;
         }
     }
 
     MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
-    // This could be NULL if we didnt find a contigious amount, or the valid pointer to start of block (mapped with PhysicalMemoryOffset)
+    if (!BaseAddress) return NULL;
+
+    size_t MappedPages = 0;
+    for (; MappedPages < pageCount; MappedPages++) {
+        PAGE_INDEX PfnIndex = StartIndex + MappedPages;
+        uintptr_t Phys = PFN_TO_PHYS(PfnIndex);
+        uintptr_t Virt = Phys + PhysicalMemoryOffset;
+        PMMPTE Pte = MiGetPtePointer(Virt);
+        if (!Pte) goto MappingFailure;
+
+        // Write-through is used for DMA visibility.
+        MI_WRITE_PTE(Pte, Virt, Phys, PAGE_PRESENT | PAGE_RW | PAGE_PWT);
+        PfnDatabase.PfnEntries[PfnIndex].Flags =
+            PFN_FLAG_NONPAGED | PFN_FLAG_LOCKED_FOR_IO;
+    }
+
     return BaseAddress;
+
+MappingFailure:
+    for (size_t i = 0; i < pageCount; i++) {
+        PAGE_INDEX PfnIndex = StartIndex + i;
+        if (i < MappedPages) {
+            uintptr_t Virt = PFN_TO_PHYS(PfnIndex) + PhysicalMemoryOffset;
+            PMMPTE Pte = MiGetPtePointer(Virt);
+            if (Pte && Pte->Hard.Present) MiUnmapPte(Pte);
+        }
+        MiReleasePhysicalPage(PfnIndex);
+        InterlockedDecrementU64(&PfnDatabase.TotalReserved);
+    }
+    return NULL;
 }
 
 void
@@ -233,8 +262,13 @@ MmFreeContigiousMemory(
 --*/
 
 {
+    if (!BaseAddress || NumberOfBytes == 0 ||
+        NumberOfBytes > SIZE_MAX - (PhysicalFrameSize - 1) ||
+        ((uintptr_t)BaseAddress & (VirtualPageSize - 1)) != 0) {
+        return;
+    }
+
     // Declarations
-    IRQL DbIrql;
     size_t pageCount = BYTES_TO_PAGES(NumberOfBytes);
     uintptr_t CurrentAddress = (uintptr_t)BaseAddress;
 
@@ -244,25 +278,25 @@ MmFreeContigiousMemory(
         return;
     }
 
-    // Just unmap each page, and return the PFN to DB.
-    MsAcquireSpinlock(&PfnDatabase.PfnDatabaseLock, &DbIrql);
-
+    // Unmap each page, then return its PFN. Do not hold the database lock
+    // across page-table walking; the walk may allocate page-table PFNs.
     for (size_t i = 0; i < pageCount; i++) {
         // Retrieve the PTE for the current VA.
         PMMPTE pte = MiGetPtePointer(CurrentAddress);
-        if (!pte) break;
+        if (!pte || !pte->Hard.Present) break;
         // Retrieve the PFN for the current PTE.
         PAGE_INDEX pfn = MiTranslatePteToPfn(pte);
+        if (!MiIsValidPfn(pfn)) break;
         // Unmap the PTE.
         MiUnmapPte(pte);
         // Release the PFN back.
         MiReleasePhysicalPage(pfn);
+        InterlockedDecrementU64(&PfnDatabase.TotalReserved);
 
         // Advance VA by VirtualPageSize
         CurrentAddress += VirtualPageSize;
     }
 
-    MsReleaseSpinlock(&PfnDatabase.PfnDatabaseLock, DbIrql);
 }
 
 void*
@@ -291,43 +325,60 @@ MmMapIoSpace(
 --*/
 
 {
-    // Declarations
-    void* BaseAddress = NULL;
-    size_t NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
-    uint64_t CacheFlags = MiCacheToFlags(CacheType);
-
     // Runtime Assertions
     assert(NumberOfBytes > 0);
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+    if (NumberOfBytes == 0 ||
+        PhysicalAddress > UINTPTR_MAX - (NumberOfBytes - 1)) {
+        return NULL;
+    }
+
+    uintptr_t PageOffset = PhysicalAddress & (VirtualPageSize - 1);
+    uintptr_t PhysicalBase = PhysicalAddress - PageOffset;
+    if (NumberOfBytes > SIZE_MAX - PageOffset) return NULL;
+
+    size_t SpannedBytes = NumberOfBytes + PageOffset;
+    if (SpannedBytes > SIZE_MAX - (VirtualPageSize - 1)) return NULL;
+
+    size_t MappingBytes = ALIGN_UP(SpannedBytes, VirtualPageSize);
+    size_t NumberOfPages = MappingBytes / VirtualPageSize;
+    uint64_t CacheFlags = MiCacheToFlags(CacheType);
 
     // Get space reservation for amount of bytes. (we could also use PhysicalMemoryOffset, but the caller must adhere that the PhysicalAddress given is NOT mapped, and I dont have time for their shenangians)
-    uintptr_t VA = MiAllocatePoolVa(NonPagedPool, NumberOfBytes);
+    uintptr_t VA = MiAllocatePoolVa(NonPagedPool, MappingBytes);
     if (!VA) return NULL;
 
-    // Good, now all we do is map, easy as that.
     uintptr_t CurrentVA = VA;
-    uintptr_t CurrentPhys = PhysicalAddress;
-    for (size_t i = 0; i < NumberOfPages; i++) {
+    uintptr_t CurrentPhys = PhysicalBase;
+    size_t MappedPages = 0;
+    for (; MappedPages < NumberOfPages; MappedPages++) {
         PMMPTE pte = MiGetPtePointer(CurrentVA);
         assert(pte != NULL);
         if (!pte) goto failure;
 
-        // Write the PTE with the appropriate cache flags (requires PAT, enabled in MmInitSystem)
-        MI_WRITE_PTE(pte, CurrentVA, CurrentPhys, PAGE_PRESENT | PAGE_RW | CacheFlags);
+        // Device addresses are not owned RAM PFNs. Publishing this mapping via
+        // MI_WRITE_PTE would index the PFN database with a PCI/LAPIC address.
+        uint64_t PteValue = (CurrentPhys & ~0xFFFULL) |
+            PAGE_PRESENT | PAGE_RW | CacheFlags;
+        MiAtomicExchangePte(pte, PteValue);
+        MiInvalidateTlbForVa((void*)CurrentVA);
 
-        // Advance the current addresses.
         CurrentPhys += PhysicalFrameSize;
         CurrentVA += VirtualPageSize;
     }
 
-    BaseAddress = (void*)VA;
-    return BaseAddress;
+    MiReloadTLBs();
+    return (void*)(VA + PageOffset);
 
 failure:
-    if (VA) {
-        MiFreePoolVaContiguous(VA, NumberOfBytes, NonPagedPool);
+    for (size_t i = 0; i < MappedPages; i++) {
+        uintptr_t MappedVa = VA + (i * VirtualPageSize);
+        PMMPTE Pte = MiGetPtePointer(MappedVa);
+        if (Pte) MiAtomicExchangePte(Pte, 0);
+        MiInvalidateTlbForVa((void*)MappedVa);
     }
-
+    //MiReloadTLBs(); - Commented out since we invalidate the TLBs for each specified page anyway.
+    MiFreePoolVaContiguous(VA, MappingBytes, NonPagedPool);
     return NULL;
 }
 
@@ -360,22 +411,35 @@ MmUnmapIoSpace(
     // Runtime Assertions
     assert(NumberOfBytes > 0);
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL);
+    if (!VirtualAddress || NumberOfBytes == 0) return;
 
-    uintptr_t CurrentVA = (uintptr_t)VirtualAddress;
-    size_t NumberOfPages = BYTES_TO_PAGES(NumberOfBytes);
+    uintptr_t ReturnedVa = (uintptr_t)VirtualAddress;
+    uintptr_t PageOffset = ReturnedVa & (VirtualPageSize - 1);
+    uintptr_t MappingBase = ReturnedVa - PageOffset;
+    if (NumberOfBytes > SIZE_MAX - PageOffset) {
+        MeBugCheckEx(BAD_POOL_CALLER, VirtualAddress,
+            (void*)(uintptr_t)NumberOfBytes, NULL, RETADDR(0));
+    }
+
+    size_t SpannedBytes = NumberOfBytes + PageOffset;
+    if (SpannedBytes > SIZE_MAX - (VirtualPageSize - 1)) {
+        MeBugCheckEx(BAD_POOL_CALLER, VirtualAddress,
+            (void*)(uintptr_t)NumberOfBytes, NULL, RETADDR(0));
+    }
+
+    size_t MappingBytes = ALIGN_UP(SpannedBytes, VirtualPageSize);
+    size_t NumberOfPages = MappingBytes / VirtualPageSize;
 
     // Loop over the range given (by pages)
     for (size_t i = 0; i < NumberOfPages; i++) {
+        uintptr_t CurrentVA = MappingBase + (i * VirtualPageSize);
         PMMPTE Pte = MiGetPtePointer(CurrentVA);
         assert(Pte != NULL);
-
-        // Unmap the virtual address.
-        MiUnmapPte(Pte);
-
-        // Advance to next 4KiB.
-        CurrentVA += VirtualPageSize;
+        if (Pte) MiAtomicExchangePte(Pte, 0);
+        MiInvalidateTlbForVa((void*)CurrentVA);
     }
 
-    // Free the pool given by the kernel.
-    MiFreePoolVaContiguous((uintptr_t)VirtualAddress, NumberOfBytes, NonPagedPool);
+    // MMIO frames belong to the device/firmware, not to the PFN allocator.
+    //MiReloadTLBs(); - Commented out since we invalidate the TLBs for each specified page anyway.
+    MiFreePoolVaContiguous(MappingBase, MappingBytes, NonPagedPool);
 }

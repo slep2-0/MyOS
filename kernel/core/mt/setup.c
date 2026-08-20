@@ -32,11 +32,8 @@ typedef struct {
     void* Handler;
 } SYSCALL_INIT_ENTRY;
 
-// TODO Proper SSDT with offsets to handlers from SSDT base instead of raw pointers (for security)
-// Along with validating that the handler is in the .text section of the kernel
-// and idk implement patchguard on the way
-// patchguard works by queuing DPCs and KTIMERs, not by making a system thread
-// (so its always hidden), honestly microsoft engineers are brilliant.
+// TODO Proper SSDT with offsets to handlers from SSDT base instead of raw pointers (for security) - dont.
+// Along with validating that the handler is in the .text section of the kernel - maybe.
 SYSCALL_INIT_ENTRY SyscallTable[] = {
     // Syscalls are here.
     {.Num = 0, .Handler = MtAllocateVirtualMemory},
@@ -47,6 +44,33 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 5, .Handler = MtCreateFile},
     {.Num = 6, .Handler = MtClose},
     {.Num = 7, .Handler = MtTerminateThread},
+    {.Num = 8, .Handler = MtQueryVirtualMemory},
+    {.Num = 9, .Handler = MtProtectVirtualMemory},
+    {.Num = 10, .Handler = MtFreeVirtualMemory},
+    {.Num = 11, .Handler = MtCreateThread},
+    {.Num = 12, .Handler = MtContinue},
+    {.Num = 13, .Handler = MtDelayExecution},
+    {.Num = 14, .Handler = MtWaitForSingleObject},
+    {.Num = 15, .Handler = MtCreateEvent},
+    {.Num = 16, .Handler = MtQueryEvent},
+    {.Num = 17, .Handler = MtSetEvent},
+    {.Num = 18, .Handler = MtResetEvent},
+    {.Num = 19, .Handler = MtCreateMutex},
+    {.Num = 20, .Handler = MtQueryMutex},
+    {.Num = 21, .Handler = MtReleaseMutex},
+    {.Num = 22, .Handler = MtCreateSemaphore},
+    {.Num = 23, .Handler = MtQuerySemaphore},
+    {.Num = 24, .Handler = MtReleaseSemaphore},
+    {.Num = 25, .Handler = MtQueryInformationProcess},
+    {.Num = 26, .Handler = MtQueryInformationThread},
+    {.Num = 27, .Handler = MtSuspendThread},
+    {.Num = 28, .Handler = MtResumeThread},
+    {.Num = 29, .Handler = MtRaiseException},
+    {.Num = 30, .Handler = MtCreateSection},
+    {.Num = 31, .Handler = MtMapViewOfSection},
+    {.Num = 32, .Handler = MtUnmapViewOfSection},
+    {.Num = 33, .Handler = MtCreateProcess},
+    {.Num = 255, .Handler = MtPrintConsole}
 };
 
 bool SyscallsAlreadyInitialized = false;
@@ -56,6 +80,23 @@ MtSetupSyscall(
     void
 )
 
+/*++
+
+    Routine description:
+
+        Initializes the SYSCALL MSRs and publishes the kernel system-service
+        dispatch table.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
 {
     // Write the Code Segment selectors into the STAR msr.
     uint64_t STAR = ((uint64_t)KERNEL_CS << 32) | ((uint64_t)(USER_DS - 8) << 48);
@@ -64,11 +105,14 @@ MtSetupSyscall(
     // Write the syscall entrypoint to LSTAR msr.
     __writemsr(IA32_LSTAR, (uint64_t)MtSyscallEntry);
 
-    // Write the FMASK (flag mask) MSR to flag IF and TF.
-    __writemsr(IA32_FMASK, (1 << 8) | (1 << 9));
+    // Do not inherit single-step, interrupts, string direction, nested-task, or
+    // supervisor-user-access state from an untrusted user RFLAGS value.
+    __writemsr(IA32_FMASK,
+        (1ULL << 8) | (1ULL << 9) | (1ULL << 10) |
+        (1ULL << 14) | (1ULL << 18));
 
-    // Write the current processor to IA32_KERNEL_GS_BASE for swapgs
-    __writemsr(IA32_KERNEL_GS_BASE, 0);
+    // User-mode syscall/interrupt entry expects swapgs to reveal this CPU.
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)MeGetCurrentProcessor());
 
     // Setup list of syscalls.
     if (!InterlockedFetch8((volatile int8_t*) & SyscallsAlreadyInitialized)) {

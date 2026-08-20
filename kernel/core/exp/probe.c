@@ -31,6 +31,7 @@ ProbeForRead(
     Routine description:
 
         Checks if the given user address is within the correct bounds and alignment of access.
+        The function checks internally after type alignment check if the PreviousMode is KernelMode to return, that means Kernel supplied callers pointers will not be checked.
 
     Arguments:
 
@@ -50,28 +51,32 @@ ProbeForRead(
 
 {
     if (!Address) return MT_ACCESS_VIOLATION;
-    // Standard assertion to check if alignment meets function requirements. (and CPU)
-    assert((Alignment == 1) || (Alignment == 2) || (Alignment == 4) || (Alignment == 8));
+
+    if (Alignment != 1 && Alignment != 2 && Alignment != 4 && Alignment != 8) {
+        return MT_INVALID_PARAM;
+    }
 
     // Check Alignment
     if (((uint64_t)Address & (Alignment - 1)) != 0) {
         return MT_DATATYPE_MISALIGNMENT;
     }
 
-    if (Length != 0) {
-        uint64_t Start = (uint64_t)Address;
-        uint64_t End = Start + Length; // Integer addition, exact bytes
-
-        // Check Overflow (Wrap around)
-        if (End < Start) {
-            return MT_ACCESS_VIOLATION;
-        }
-
-        // Check against Highest User Address
-        // This should not be the MmUserProbeAddress, as the stack lives above that address, and if a user gives something from his stack there, it would resolve in an MT_ACCESS_VIOLATION.
-        if (End > (uint64_t)MmHighestUserAddress) {
-            return MT_ACCESS_VIOLATION;
-        }
+    // Now kernel mode should pass.
+    if (MeGetPreviousMode() == KernelMode) {
+        return MT_SUCCESS;
     }
+
+    uint64_t Start = (uint64_t)Address;
+    uint64_t Highest = (uint64_t)MmHighestUserAddress;
+    if (Start > Highest) {
+        return MT_ACCESS_VIOLATION;
+    }
+
+    // Validate the inclusive final byte without allowing Start + Length to
+    // wrap. Length zero still requires Address itself to be a user address.
+    if (Length != 0 && (Length - 1) > (Highest - Start)) {
+        return MT_ACCESS_VIOLATION;
+    }
+
     return MT_SUCCESS;
 }

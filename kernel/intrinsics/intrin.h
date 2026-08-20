@@ -38,6 +38,10 @@
 #include <stdbool.h>
 #include "../includes/annotations.h"
 
+// Set after CR4.SMAP has been enabled.  STAC/CLAC are invalid instructions on
+// processors that do not advertise SMAP, so all C callers must use this gate.
+extern volatile bool MeSmapEnabled;
+
 // Disable interrupts (cli)
 FORCEINLINE
 void __cli(void) {
@@ -46,12 +50,16 @@ void __cli(void) {
 
 // Enable supervisor access to user memory (STAC)
 FORCEINLINE void __stac(void) {
-    __asm__ volatile("stac" ::: "memory");
+    if (MeSmapEnabled) {
+        __asm__ volatile("stac" ::: "memory");
+    }
 }
 
 // Disable supervisor access to user memory (CLAC)
 FORCEINLINE void __clac(void) {
-    __asm__ volatile("clac" ::: "memory");
+    if (MeSmapEnabled) {
+        __asm__ volatile("clac" ::: "memory");
+    }
 }
 
 // Enable interrupts (sti)
@@ -183,6 +191,11 @@ FORCEINLINE void __outword(unsigned short port, unsigned short val) {
     __asm__ volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
+// Write port (outl)
+FORCEINLINE void __outdword(unsigned short port, uint32_t val) {
+    __asm__ volatile ("outl %0, %1" : : "a"(val), "Nd"(port));
+}
+
 // Read port (inb)
 FORCEINLINE unsigned char __inbyte(unsigned short port) {
     unsigned char ret;
@@ -240,11 +253,33 @@ FORCEINLINE void __pause(void) {
     __asm__ volatile("pause" ::: "memory");
 }
 
+static inline uint64_t __readgsbase(void) {
+    uint64_t gs_base;
+    __asm__ volatile (
+        "rdgsbase %0"
+        : "=r"(gs_base)
+        :
+        : "memory"
+        );
+    return gs_base;
+}
+
 FORCEINLINE uint64_t __readgsqword(uint64_t offset) {
     uint64_t value;
     __asm__ volatile (
         "movq %%gs:(%1), %0"
         : "=r"(value)
+        : "r"(offset)
+        : "memory"
+        );
+    return value;
+}
+
+FORCEINLINE uint8_t __readgsbyte(uint64_t offset) {
+    uint8_t value;
+    __asm__ volatile (
+        "movb %%gs:(%1), %0"
+        : "=q"(value)
         : "r"(offset)
         : "memory"
         );
@@ -284,12 +319,13 @@ FORCEINLINE uint64_t __rdtsc(void) {
 #ifdef DEBUG
 
 // GDB Func to CLI and STI
+// Should not be inlined.
 
-static void gcli(void) {
+static NOINLINE void gcli(void) {
     __cli();
 }
 
-static void gsti(void) {
+static NOINLINE void gsti(void) {
     __sti();
 }
 

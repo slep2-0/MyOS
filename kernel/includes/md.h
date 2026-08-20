@@ -27,20 +27,7 @@ MdGetFunctionRipAddress(
 	void
 )
 
-/*++
-
-	Routine description : Retrieves the address of the RIP slot in the current stack frame, used for debugging a stack smashing where the return address get overwritten
-
-	Arguments:
-
-		None.
-
-	Return Values:
-
-		Address of RIP Slot in stack.
-
---*/
-
+// Returns the address of the saved RIP slot in the current stack frame.
 {
 	void** frame = (void**)__builtin_frame_address(0); // returns RBP
 	return (void*)(frame + 1);  // address of saved RIP slot

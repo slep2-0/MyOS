@@ -74,12 +74,8 @@ MiMapPageInHyperspace(
     PPFN_ENTRY pfn = INDEX_TO_PPFN (PfnIndex);
     uint64_t physAddr = PPFN_TO_PHYSICAL_ADDRESS (pfn);
     PMMPTE pte = MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS);
-    MI_WRITE_PTE_NO_IPI(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
 
-    // Set PFN metadata.
-    pfn->State = PfnStateActive;
-    pfn->Descriptor.Mapping.PteAddress = pte;
-    pfn->Descriptor.Mapping.Vad = NULL;
+    MI_WRITE_PTE_NO_IPI(pte, HYPERMAP_VIRTUAL_ADDRESS, physAddr, PAGE_PRESENT | PAGE_RW);
     g_pfnInUse = pfn;
 
 #ifdef PERFORMANCE_ANALYTICS
@@ -120,16 +116,12 @@ MiUnmapHyperSpaceMap(
     // Assertion that the hyperspace lock must be locked already (double unlock catch)
     assert((HyperLock.locked) == 1, "Double hypermap unlock");
     assert((g_pfnInUse) != 0, "No PFN when releasing hyperspace.");
-    PPFN_ENTRY pfn = g_pfnInUse;
-
     // Clear the PTE present bit (to prevent use after free)
     MiGetPtePointer(HYPERMAP_VIRTUAL_ADDRESS)->Hard.Present = 0;
     invlpg((void*)HYPERMAP_VIRTUAL_ADDRESS); // No need to call the MiInvalidateTlb (IPI) as this addr is spinlock protected (and next access rewrites the PTE and does invplg in MI_WRITE_PTE)
 
-    // After MiUnmapPte changed the pfn metadata, we change it once again to invalidate it.
-    pfn->Descriptor.Mapping.PteAddress = NULL;
-    pfn->Descriptor.Mapping.Vad = NULL;
-    pfn->State = PfnStateTransition;
+    // Hyperspace is only an alias. It must never replace the PFN's owning PTE,
+    // VAD, state, or flags.
     g_pfnInUse = NULL;
 
     // We do not release the PFN, caller must do so, because it might have other uses with it.

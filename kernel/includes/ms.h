@@ -25,6 +25,14 @@ Revision History:
 #include "../mtstatus.h"
 #include "annotations.h"
 #include "core.h"
+#include "../intrinsics/atomic.h"
+
+// PLACEHOLDER, until a translation unit includes assert.h
+#ifdef __OFFSET_GENERATOR__
+#define assert(...) do { } while(0)
+#endif
+
+extern void assert_fail(const char* expr, const char* reason, const char* file, const char* func, int line);
 
 // ------------------ STRUCTURES ------------------
 
@@ -55,23 +63,88 @@ typedef struct _Queue {
     SPINLOCK lock;
 } Queue;
 
-/**
- * EVENT_TYPE - controls wake behavior
- */
-typedef enum _EVENT_TYPE {
-    NotificationEvent,   /* wake all waiting threads */
-    SynchronizationEvent /* wake one thread at a time */
-} EVENT_TYPE;
+// Every waitable dispatcher object begins with this header. Type selects its
+// satisfaction rules, SignalState stores its available signal/permit state,
+// Lock protects that state and WaitListHead, and WaitListHead contains the
+// embedded wait blocks of threads currently registered on the object.
+typedef enum _DISPATCHER_TYPE {
+    DispatcherNotificationEvent,
+    DispatcherSynchronizationEvent,
+    DispatcherSemaphore,
+    DispatcherMutex,
+    DispatcherThread,
+    DispatcherProcess
+} DISPATCHER_TYPE;
 
-/**
- * EVENT - kernel event object
- * - Embedded SPINLOCK and Queue for waiting threads.
- */
+typedef struct _DISPATCHER_HEADER {
+    DISPATCHER_TYPE Type;
+
+    /*
+    
+    Signal States for each Object:
+
+    ----------------------
+    Mutex:
+
+    1 - Mutex Available for anyone to claim
+    0 - Mutex held by its owner thread.
+    Below 0 - Mutex is recursively acquired by its owner thread.
+
+    Each acquisition decrements SignalState.
+    Each release increments SignalState.
+    The mutex becomes available again when SignalState reaches 1.
+
+
+    ----------------------
+    Event: (both types)
+
+    1 - Event is signaled
+    0 - Event is not signaled
+
+
+    ----------------------
+    Semaphore:
+
+    Above 0 - Available permits; each successful wait consumes one.
+    0 - No permits are available, so a nonzero-timeout wait must block.
+
+
+    ----------------------
+    Threads & Processes:
+
+    1 - Thread/Process is terminated and so is signaled.
+    0 - Thread/Process is still running.
+
+    Waiting on a terminated thread or process does not consume its signal.
+
+
+    */
+
+    int32_t SignalState;
+    SPINLOCK Lock;
+    // Head of WAIT_BLOCK.ObjectListEntry nodes, protected by Lock.
+    DOUBLY_LINKED_LIST WaitListHead;
+} DISPATCHER_HEADER, * PDISPATCHER_HEADER;
+
+#define MsInitializeDispatcherHeader(Header, InitialSignalState, DispatcherType) \
+    do {                                                                         \
+        PDISPATCHER_HEADER _Header = (Header);                                   \
+        DISPATCHER_TYPE _Type = (DispatcherType);                               \
+                                                                                 \
+        assert(_Header != NULL);                                                 \
+        assert(_Type >= DispatcherNotificationEvent &&                          \
+               _Type <= DispatcherProcess);                                     \
+                                                                                 \
+        _Header->Type = _Type;                                                   \
+        _Header->SignalState = (InitialSignalState);                             \
+        _Header->Lock.locked = 0;                                                \
+        InitializeListHead(&_Header->WaitListHead);                  \
+    } while (0)
+
+// Event object. A synchronization event satisfies one waiter per signal;
+// a notification event remains signaled and satisfies every waiter.
 typedef struct _EVENT {
-    enum _EVENT_TYPE type;              /* Notification vs Synchronization */
-    volatile bool signaled;             /* current state */
-    struct _SPINLOCK lock;                /* protects signaled + waitingQueue */
-    struct _Queue waitingQueue;           /* threads waiting on this event */
+    DISPATCHER_HEADER Header;
 } EVENT, *PEVENT;
 
 /**
@@ -81,50 +154,69 @@ typedef struct _EVENT {
 *
 */
 typedef struct _MUTEX {
-    uint32_t ownerTid;  /* owning thread id (0 if none) */
-    struct _EVENT SynchEvent;   /* event used for waking waiters */
-    bool locked;        /* fast-check boolean (protected by lock) */
-    struct _SPINLOCK lock;      /* protects ownerTid/locked and wait list */
-    struct _ETHREAD* ownerThread; /* pointer to current thread that holds the mutex */
+    DISPATCHER_HEADER Header; // Must remain first so the mutex is waitable as a dispatcher object.
+    PETHREAD OwnerThread; // The thread that owns the current mutex, NULL if none.
+    // Recursion is encoded by Header.SignalState: 1 is free, 0 is the first
+    // acquisition, and negative values represent recursive acquisitions.
+    // Set when an owner exits without releasing the mutex. The next owner
+    // receives MT_MUTEX_ABANDONED once, warning that protected data may be inconsistent.
+    bool Abandoned;
+    // Links this mutex into OwnerThread's owned-mutex list. The owning
+    // thread's OwnedMutexesListLock protects this entry's list links.
+    DOUBLY_LINKED_LIST OwnerListEntry;
+    // Object-manager mutex acquisitions retain one reference per recursion
+    // level. This keeps an owned mutex alive even if its last handle closes.
+    // Embedded kernel mutexes leave this at zero.
+    uint32_t ObjectOwnerReferences;
 } MUTEX, *PMUTEX;
 
+typedef struct _SEMPAHORE {
+    DISPATCHER_HEADER Header;
+    int32_t Limit;
+} SEMAPHORE, *PSEMAPHORE;
+
+typedef enum _PUSH_LOCK_WAIT_MODE {
+    PushLockWaitExclusive,
+    PushLockWaitShared
+} PUSH_LOCK_WAIT_MODE;
+
+typedef struct _PUSH_LOCK_WAIT_BLOCK
+PUSH_LOCK_WAIT_BLOCK, * PPUSH_LOCK_WAIT_BLOCK;
+
 typedef struct _PUSH_LOCK {
-    union {
-        struct {
-            uint64_t Locked : 1;
-            uint64_t Waiting : 1;
-            uint64_t Waking : 1;
-            uint64_t MultipleShared : 1;
-            uint64_t Shared : 60;
-        };
-        uint64_t Value;
-        void* Pointer;
-    };
-} PUSH_LOCK;
+    // Protects every field below. Never sleep or signal an event while held.
+    SPINLOCK StateLock;
 
-typedef struct _PUSH_LOCK_WAIT_BLOCK {
-    union {
-        struct _PUSH_LOCK_WAIT_BLOCK* Next; // Links to the next waiter in the stack
-        struct _PUSH_LOCK_WAIT_BLOCK* Last; // Only used if this is the Head node (optimization)
-    };
+    // FIFO queue of stack-local PUSH_LOCK_WAIT_BLOCK objects.
+    PPUSH_LOCK_WAIT_BLOCK WaitHead;
+    PPUSH_LOCK_WAIT_BLOCK WaitTail;
 
-    EVENT WakeEvent;     // The event the thread sleeps on
-    uint32_t Flags;      // 1 = Exclusive, 2 = Shared
-    uint32_t ShareCount; // If we interrupt readers, we save their count here
-    bool Signaled;       // Optimization to avoid touching the Event if not needed
-} PUSH_LOCK_WAIT_BLOCK, * PPUSH_LOCK_WAIT_BLOCK;
+    // Ownership state.
+    uint32_t SharedOwners;
+    bool ExclusiveOwned;
+} PUSH_LOCK, * PPUSH_LOCK;
 
-#define PL_FLAGS_EXCLUSIVE 0x1
-#define PL_FLAGS_SHARED    0x2
+struct _PUSH_LOCK_WAIT_BLOCK {
+    PPUSH_LOCK_WAIT_BLOCK Next;
+    EVENT WakeEvent;
+    PUSH_LOCK_WAIT_MODE Mode;
 
-// Bit definitions for the PUSH_LOCK->Value
-#define PL_LOCK_BIT        0x1     // Bit 0: Locked Exclusive
-#define PL_WAIT_BIT        0x2     // Bit 1: There are waiters
-#define PL_WAKE_BIT        0x4     // Bit 2: Waking (optimization)
-#define PL_FLAG_MASK       0xF     // Bottom 4 bits are flags
-#define PL_SHARE_INC       0x10    // Shared count starts at Bit 4
+    // Granted means ownership has already been reserved for this waiter.
+    volatile bool Granted;
+
+    // Set after the releasing thread has finished using WakeEvent and this
+    // stack-local wait block may safely disappear.
+    volatile bool WakeComplete;
+};
 
 // ------------------ FUNCTIONS ------------------
+
+extern SPINLOCK MsTimerQueueLock;
+extern DOUBLY_LINKED_LIST MsTimerQueue;
+
+extern POBJECT_TYPE MsEventType;
+extern POBJECT_TYPE MsMutexType;
+extern POBJECT_TYPE MsSemaphoreType;
 
 //#ifndef MT_UP
 void
@@ -154,11 +246,6 @@ MsInitializeMutexObject(
 );
 
 MTSTATUS
-MsAcquireMutexObject(
-    IN  PMUTEX mut
-);
-
-MTSTATUS
 MsReleaseMutexObject(
     IN  PMUTEX mut
 );
@@ -183,9 +270,15 @@ MsSetEvent(
     IN PEVENT event
 );
 
-MTSTATUS 
-MsWaitForEvent(
-    IN  PEVENT event
+MTSTATUS
+MsSetEventEx(
+    IN PEVENT Event,
+    _Out_Opt bool* PreviousState
+);
+
+MTSTATUS
+MsInitializeSynchronization(
+    void
 );
 
 void
@@ -196,6 +289,11 @@ MsAcquireSpinlockAtDpcLevel(
 void
 MsReleaseSpinlockFromDpcLevel(
     IN PSPINLOCK Lock
+);
+
+void
+MsInitializePushLock(
+    IN PPUSH_LOCK PushLock
 );
 
 void
@@ -218,6 +316,85 @@ MsReleasePushLockShared(
     IN PUSH_LOCK* Lock
 );
 
+PITHREAD
+GetHeadOfTimerQueue(void);
+
+void
+MsInsertTimerQueue(
+    IN PITHREAD Thread,
+    IN uint64_t WakeupTime
+);
+
+bool
+MsRemoveTimerQueue(
+    IN PITHREAD Thread
+);
+
+bool
+MsClaimThreadWait(
+    IN PITHREAD Thread,
+    IN MTSTATUS CompletionStatus
+);
+
+void
+MsCompleteThreadWait(
+    IN PITHREAD Thread
+);
+
+void
+MsInitializeEvent(
+    IN PEVENT Event,
+    IN DISPATCHER_TYPE EventDispatcherType, // must be DispatcherSynchronizationEvent or DispatcherNotificationEvent
+    IN bool StartSignaled
+);
+
+bool
+MsResetEvent(
+    IN PEVENT Event
+);
+
+void
+MsInitializeSemaphore(
+    IN PSEMAPHORE Semaphore,
+    IN int32_t Count,
+    IN int32_t Limit
+);
+
+int32_t
+MsReleaseSemaphore(
+    IN PSEMAPHORE Semaphore,
+    IN int32_t Adjustment
+);
+
+MTSTATUS
+MsReleaseSemaphoreChecked(
+    IN PSEMAPHORE Semaphore,
+    IN int32_t Adjustment,
+    _Out_Opt int32_t* PreviousCount
+);
+
+MTSTATUS
+MsWaitForSingleObject(
+    IN void* Object,
+    IN PRIVILEGE_MODE WaitMode, // used later for paging out stacks, TODO
+    IN bool Alertable,
+    IN uint64_t TimeoutMs
+);
+
+MTSTATUS
+MsDelayExecution(
+    IN PRIVILEGE_MODE WaitMode,
+    IN bool Alertable,
+    IN uint64_t Milliseconds
+);
+
+PITHREAD
+MspDequeueNextWaitThreadLocked(
+    PDOUBLY_LINKED_LIST HeaderWaitListHead
+);
+
+void TimerExpirationDPC(DPC* Dpc, void* Context, void* SysArg1, void* SysArg2);
+
 FORCEINLINE
 void
 InitializeListHead(
@@ -225,6 +402,10 @@ InitializeListHead(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InitializeListHead: Head is NULL", __FILE__, __func__, __LINE__);
+#endif
     Head->Flink = Head;
     Head->Blink = Head;
 }
@@ -239,6 +420,19 @@ InsertTailList(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InsertTailList: Head is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "InsertTailList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink == NULL)
+        assert_fail("Head->Blink != NULL", "InsertTailList: Head->Blink is NULL! (Uninitialized list?)", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink->Flink != Head)
+        assert_fail("Head->Blink->Flink == Head", "InsertTailList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Blink;
     // The last element is the one before Head (circular list style)
     Blink = Head->Blink;
@@ -255,6 +449,19 @@ InsertHeadList(
     PDOUBLY_LINKED_LIST Entry
 )
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "InsertHeadList: Head is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "InsertHeadList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink == NULL)
+        assert_fail("Head->Flink != NULL", "InsertHeadList: Head->Flink is NULL! (Uninitialized list?)", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink->Blink != Head)
+        assert_fail("Head->Flink->Blink == Head", "InsertHeadList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST First;
 
     // The first element is the one after Head (circular list)
@@ -274,6 +481,19 @@ RemoveHeadList(
 )
 
 {
+#ifdef DEBUG
+    if (Head == NULL)
+        assert_fail("Head != NULL", "RemoveHeadList: Head is NULL!", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink == NULL)
+        assert_fail("Head->Flink != NULL", "RemoveHeadList: Head->Flink is NULL! (Uninitialized/Zeroed Memory)", __FILE__, __func__, __LINE__);
+
+    if (Head->Blink == NULL)
+        assert_fail("Head->Blink != NULL", "RemoveHeadList: Head->Blink is NULL! (Uninitialized/Zeroed Memory)", __FILE__, __func__, __LINE__);
+
+    if (Head->Flink->Blink != Head)
+        assert_fail("Head->Flink->Blink == Head", "RemoveHeadList: Corrupt list topology!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Entry;
     PDOUBLY_LINKED_LIST Flink;
 
@@ -282,6 +502,11 @@ RemoveHeadList(
         // List is empty
         return NULL;
     }
+
+#ifdef DEBUG
+    if (Entry->Flink == NULL)
+        assert_fail("Entry->Flink != NULL", "RemoveHeadList: Entry->Flink is NULL!", __FILE__, __func__, __LINE__);
+#endif
 
     Flink = Entry->Flink;
     Head->Flink = Flink;
@@ -298,19 +523,55 @@ RemoveEntryList(
     PDOUBLY_LINKED_LIST Entry
 )
 {
+#ifdef DEBUG
+    if (Entry == NULL)
+        assert_fail("Entry != NULL", "RemoveEntryList: Entry is NULL", __FILE__, __func__, __LINE__);
+
+    if (Entry->Flink == NULL || Entry->Blink == NULL)
+        assert_fail("Entry->Flink != NULL && Entry->Blink != NULL", "RemoveEntryList: Entry links are NULL! (Double remove or uninitialized?)", __FILE__, __func__, __LINE__);
+
+    if (Entry->Flink->Blink != Entry)
+        assert_fail("Entry->Flink->Blink == Entry", "RemoveEntryList: Corrupt forward link!", __FILE__, __func__, __LINE__);
+
+    if (Entry->Blink->Flink != Entry)
+        assert_fail("Entry->Blink->Flink == Entry", "RemoveEntryList: Corrupt backward link!", __FILE__, __func__, __LINE__);
+#endif
     PDOUBLY_LINKED_LIST Flink;
     PDOUBLY_LINKED_LIST Blink;
 
     Flink = Entry->Flink;
     Blink = Entry->Blink;
 
-    /* Normal (minimal) unlink — identical to Windows' RemoveEntryList */
+    /* Normal (minimal) unlink â€” identical to Windows' RemoveEntryList */
     Blink->Flink = Flink;
     Flink->Blink = Blink;
 
     // Sanitize the removed entry so it doesn't look valid
     Entry->Flink = Entry;
     Entry->Blink = Entry;
+}
+
+// Warning, this will overwrite the popped entry from the "Head" parameter links, so they will point to themselves.
+FORCEINLINE 
+PDOUBLY_LINKED_LIST
+PopHeadAndRestoreLinks(
+    PDOUBLY_LINKED_LIST Head
+)
+
+{
+    PDOUBLY_LINKED_LIST ToRestore = RemoveHeadList(Head);
+    InitializeListHead(ToRestore);
+    return ToRestore;
+}
+
+FORCEINLINE
+bool
+IsListEmpty(
+    IN PDOUBLY_LINKED_LIST Head
+)
+
+{
+    return (Head->Flink == Head);
 }
 
 
@@ -327,16 +588,14 @@ InterlockedPushEntry(
 {
     PSINGLE_LINKED_LIST oldHead;
     do {
-        oldHead = __atomic_load_n(ListHeadPtr, __ATOMIC_RELAXED);
+        oldHead = InterlockedLoadRelaxed(ListHeadPtr);
         Entry->Next = oldHead;
-        /* try to replace head with Entry */
-    } while (!__atomic_compare_exchange_n(
-        ListHeadPtr,           /* target */
-        &oldHead,              /* expected (updated on failure) */
-        Entry,                 /* desired */
-        /*weak*/ false,
-        __ATOMIC_RELEASE,      /* success: release so prior stores are visible */
-        __ATOMIC_RELAXED));    /* failure: relaxed */
+        /* CompareExchange returns the head value it actually observed. */
+    } while (InterlockedCompareExchangePointer(
+        (volatile void* volatile*)ListHeadPtr,
+        Entry,
+        oldHead
+    ) != oldHead);
 }
 
 /* Interlocked pop: atomically pop and return the old head (or NULL).
@@ -353,18 +612,16 @@ InterlockedPopEntry(
     PSINGLE_LINKED_LIST next;
 
     do {
-        oldHead = __atomic_load_n(ListHeadPtr, __ATOMIC_ACQUIRE);
+        oldHead = InterlockedLoadAcquire(ListHeadPtr);
         if (oldHead == NULL)
             return NULL;
         next = oldHead->Next;
-        /* try to set head to next */
-    } while (!__atomic_compare_exchange_n(
-        ListHeadPtr,
-        &oldHead,
+        /* A mismatched observed head means another CPU won; retry. */
+    } while (InterlockedCompareExchangePointer(
+        (volatile void* volatile*)ListHeadPtr,
         next,
-        /*weak*/ false,
-        __ATOMIC_ACQ_REL,      /* success: acquire+release to pair with push */
-        __ATOMIC_RELAXED));   /* failure ordering */
+        oldHead
+    ) != oldHead);
     return oldHead;
 }
 

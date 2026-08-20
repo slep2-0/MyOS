@@ -50,35 +50,13 @@ MhHandleInterrupt (
     assert(MeAreInterruptsEnabled() == false);
     assert(vec_num < 256, "An interrupt higher than 255 has been encountered, this usually means corruption in stub parameter moves.");
 
-    PPROCESSOR cpu = MeGetCurrentProcessor();
+#ifdef DEBUG
+    if ((uintptr_t)__readgsbase() < PhysicalMemoryOffset) {
+        __swapgs();
+        MeBugCheck(PROCESSOR_POINTER_CORRUPTION);
+    }
+#endif
     IRQL oldIrql;
-    
-    // Save if the scheduler was enabled or not before raising to >= DISPATCH_LEVEL (because in dispatch_level and above the scheduler gets disabled to disable pre-emption)
-    bool schedulerEnabled = cpu->schedulerEnabled;
-
-    // Save the PreviousMode to current thread.
-    PITHREAD currentThread = cpu->currentThread;
-    PRIVILEGE_MODE OldMode = KernelMode; // Default safety
-
-    if (currentThread) {
-        OldMode = currentThread->PreviousMode;
-    }
-
-    // Determine the mode for this interrupt context
-    // If we came from User land, we are now entering the kernel for the first time in this stack.
-    // If we came from Kernel mode, we are just nesting.
-    PRIVILEGE_MODE TrapMode;
-    if ((trap->cs & 0x3) == 0x3) {
-        TrapMode = UserMode;
-    }
-    else {
-        TrapMode = KernelMode;
-    }
-
-    // Set the mode for the duration of the ISR
-    if (currentThread) {
-        currentThread->PreviousMode = TrapMode;
-    }
 
     switch (vec_num) {
     case EXCEPTION_DIVIDE_BY_ZERO:
@@ -140,7 +118,7 @@ MhHandleInterrupt (
         break;
     case VECTOR_CLOCK:
         MeRaiseIrql(CLOCK_LEVEL, &oldIrql);
-        MiLapicInterrupt(schedulerEnabled, trap);
+        MiLapicInterrupt(oldIrql, trap);
         MeLowerIrql(oldIrql);
         break;
     case VECTOR_IPI:
@@ -163,18 +141,23 @@ MhHandleInterrupt (
         MeLowerIrql(oldIrql);
         break;
     case VECTOR_APC:
-        gop_printf(COLOR_RED, "APC Vector hit.\n");
+        assert(MeAreInterruptsEnabled() == false);
+        MeRaiseIrql(APC_LEVEL, &oldIrql);
+        lapic_eoi();
+
+        // Enable interrupts because APCs generally run with interrupts enabled 
+        MeEnableInterrupts(true);
+
+        MeRetireAPCs(trap);
+
+        MeDisableInterrupts();
+        MeLowerIrql(oldIrql);
         break;
     case LAPIC_SIV_INTERRUPT:
-        // just send EOI
-        lapic_eoi();
+        // spurious, just return
         break;
     default:
         break;
-    }
-
-    if (currentThread) {
-        currentThread->PreviousMode = OldMode;
     }
 
     assert(MeAreInterruptsEnabled() == false);
@@ -182,7 +165,25 @@ MhHandleInterrupt (
     // TODO KINTERRUPT
 }
 
-void init_interrupts() {
+void init_interrupts(void)
+
+/*++
+
+    Routine description:
+
+        Initializes interrupts for interrupt dispatch.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	install_idt();
     _MeSetIrql(PASSIVE_LEVEL);
 }

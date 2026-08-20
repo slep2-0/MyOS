@@ -28,20 +28,34 @@ Revision History:
 #include "ht.h"
 #include "ob.h"
 #include "core.h"
+#include "mt.h"
+#include "../../shared/include/accessrights.h"
 
 // Exception Includes
 #include "exception.h"
 
 // ------------------ ENUMERATORS ------------------
 
-typedef enum _THREAD_STATE {
+typedef enum _
+ {
     THREAD_RUNNING,
     THREAD_READY,
     THREAD_BLOCKED,
     THREAD_TERMINATING,
     THREAD_TERMINATED,
-    THREAD_ZOMBIE
+    THREAD_ZOMBIE,
+    // The current CPU is committing a wait but still owns the kernel stack.
+    THREAD_BLOCKING,
+    // Thread is only in its initialization stage, it has not run yet.
+    THREAD_INITIALIZED,
 } THREAD_STATE, *PTHREAD_STATE;
+
+typedef enum _THREAD_TERMINATION_STATE {
+    ThreadTerminationNone = 0,
+    ThreadTerminationInstalling,
+    ThreadTerminationQueued,
+    ThreadTerminationExiting
+} THREAD_TERMINATION_STATE;
 
 typedef enum _PROCESS_STATE {
     PROCESS_RUNNING = 0, // A thread in the process is currently running
@@ -59,34 +73,7 @@ typedef enum _PS_PHASE_ROUTINE {
 
 // ------------------ STRUCTURES ------------------
 
-//
-// Thread Access Rights
-//
-#define MT_THREAD_TERMINATE          0x0001    // Terminate the thread
-#define MT_THREAD_SUSPEND_RESUME     0x0002    // Suspend or resume thread execution
-#define MT_THREAD_SET_CONTEXT        0x0004    // Modify thread CPU context (registers, RIP/RSP)
-#define MT_THREAD_GET_CONTEXT        0x0008    // Read thread CPU context
-#define MT_THREAD_QUERY_INFO         0x0010    // Query thread info (state, priority, etc.)
-#define MT_THREAD_SET_INFO           0x0020    // Modify thread info (priority, name, affinity)
-
-#define MT_THREAD_ALL_ACCESS         0x003F    // Request all valid thread access rights
-
-
-//
-// Process Access Rights
-//
-#define MT_PROCESS_TERMINATE          0x0001  // Kill the process
-#define MT_PROCESS_CREATE_THREAD      0x0002  // Create a new thread inside process
-#define MT_PROCESS_VM_OPERATION       0x0004  // Allocate/Protect/Free process memory
-#define MT_PROCESS_VM_READ            0x0008  // Read from process memory
-#define MT_PROCESS_VM_WRITE           0x0010  // Write to process memory
-#define MT_PROCESS_DUP_HANDLE         0x0020  // Duplicate a handle into this process
-#define MT_PROCESS_SET_INFO           0x0040  // Modify process properties/metadata
-#define MT_PROCESS_QUERY_INFO         0x0080  // Query process details (PID, exit code, etc.)
-#define MT_PROCESS_SUSPEND_RESUME     0x0100  // Suspend / Resume process
-#define MT_PROCESS_CREATE_PROCESS     0x0200  // Create a new process.
-
-#define MT_PROCESS_ALL_ACCESS         0x03FF  // Everything above
+#define MTDLL_PATH "mtdll.mtdll" // root dir
 
 typedef enum _PROCESS_FLAGS {
     ProcessBreakOnTermination = (1 << 0),
@@ -94,66 +81,19 @@ typedef enum _PROCESS_FLAGS {
     ProcessBeingDeleted = (1 << 2),
 } PROCESS_FLAGS;
 
-typedef struct _LDR_DATA_TABLE_ENTRY {
-    void* EntryPoint; // Entry point of module.
-    void* Base; // Base address of module. (start address, not entrypoint, like offset 0 of a file)
-    uint64_t SizeOfImage; // Size of the loaded module in bytes.
-    char FullName[256]; // Path of loaded module (including file and extension).
-    uint64_t LoadTime; // Epoch timestamp of time module loaded.
-
-    // The list entry itself.
-    DOUBLY_LINKED_LIST LoadedModuleList; // Doubly linked list of LDR_DATA_TABLE_ENTRY
-} LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
-
-typedef struct _PEB_LDR_DATA {
-    DOUBLY_LINKED_LIST LoadedModuleList; // Doubly linked list of LDR_DATA_TABLE_ENTRY
-} PEB_LDR_DATA, * PPEB_LDR_DATA;
-
-typedef struct _PEB {
-    uint8_t  BeingDebugged;          // Flag set if process is being debugged
-    void* ImageBase; // Pointer of executable entry point in memory.
-    PEB_LDR_DATA LoaderData;
-} PEB, * PPEB;
-
-typedef struct _MT_TIB {
-    void* ExceptionList; // SEH Chain.
-    void* StackBase; // The base of this thread's stack.
-    void* StackLimit; // The maximum address of the stack (any pushes beyond here are guard pages)
-} MT_TIB, *PMT_TIB;
-
-typedef struct _TEB {
-    MT_TIB MtTib; // GS:[0] should point here.
-    uint64_t UniqueProcessId; // Current ID of this thread's process.
-    uint64_t UniqueThreadId; // Current ID of this thread.
-    PPEB ProcessEnvironmentBlock; // Pointer to this thread's process's PEB.
-    int32_t LastErrorValue; // The last error that the thread's has done in an operation (failed function, illegal instruction)
-    int32_t LastStatusValue; // Internal MTSTATUS Values.
-} TEB, *PTEB;
-
-typedef struct _MT_MODULE_INFO {
-    char FullPath[256];
-    uint64_t Size;
-    void* Base;
-} MT_MODULE_INFO;
-
-typedef struct _MTDLL_BASIC_TYPES {
-    MT_MODULE_INFO PrimaryExecutable;
-    MT_MODULE_INFO Mtdll;
-    uint64_t EpochCreation;
-} MTDLL_BASIC_TYPES, * PMTDLL_BASIC_TYPES;
-
 typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
     HANDLE PID; // Process Identifier, unique identifier to the process. (do not use HtClose on this, only PsDeleteCid)
-    HANDLE ParentProcess; // Parent Process Handle
+    HANDLE ParentProcessPid; // Parent process identifier captured at creation.
     uint32_t priority; // TODO
     uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
     // SID TODO. - User info as well, when users.
 
     PPEB Peb; // Accessible only pageable IRQL (APC_LEVEL and below), and only when process is setupped.
-    HANDLE SectionHandle; // Handle for the process section view.
-    HANDLE MtdllHandle; // SECTION Handle for MTDLL, i need alternatives.
+    void* SectionObject; // MM_SECTION Object for the process section.
+    void* MtdllSection; // MM_SECTION Object for MTDLL in the process section.
+    void* MtdllBase; // Kernel-owned base of the process MTDLL mapping.
 
     // Synchorinzation for internal functions.
     struct _RUNDOWN_REF ProcessRundown; // A process rundown that is used to safely synchronize the teardown or deletion of a process, ensuring no pointer is still active & accessing it.
@@ -162,8 +102,8 @@ typedef struct _EPROCESS {
     // Thread infos
     struct _ETHREAD* MainThread; // Pointer to the main thread created for the process.
     PUSH_LOCK ThreadListLock; // Protects synchronization in AllThreads.
-    DOUBLY_LINKED_LIST AllThreads; // A linked list of pointers to the current threads of the process. (inserted with each new creation)
-    uint32_t NumThreads; // Unsigned 32 bit integer representing the amount of threads the process has.
+    DOUBLY_LINKED_LIST AllThreads; // Thread objects remain linked until final object deletion.
+    uint32_t NumThreads; // Number of live threads; exited referenced objects may remain in AllThreads.
     PUSH_LOCK AddressSpaceLock; // A push lock designed to protect synchronization in creating the next stack for another thread in the PROCESS.
     uintptr_t NextStackHint; // Top down search for the next stack.
 
@@ -181,21 +121,18 @@ typedef struct _EPROCESS {
 
 typedef struct _ETHREAD {
     struct _ITHREAD InternalThread; // Internal thread structure. (KTHREAD Equivalent-ish)
-    
     PTEB Teb;
-    struct _EXCEPTION_REGISTRATION_RECORD ExceptionRegistration;
+    size_t UserStackSize;
     HANDLE TID;           /* thread id */
-    HANDLE PID;           // Thread's process PID.
-    struct _EVENT* CurrentEvent; /* ptr to current EVENT if any. */
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
     struct _DOUBLY_LINKED_LIST SchedulerListEntry; // Forward and backward links that the scheduler enqueues and dequeues threads from.
     struct _RUNDOWN_REF ThreadRundown; // A thread rundown that is used to safely synchronize the teardown or deletion of a thread, ensuring no other threads are still accessing it.
     PUSH_LOCK ThreadLock; // Used for mutual synchronization.
     MTSTATUS ExitStatus; // The status the thread exited in.
+    volatile uint32_t TerminationState;
 
-    // Note that LastStatus and LastError should be stored in the TEB, by the way, the TEB is already established
-    // But until I dont finish MTDLL I wont include a ptr to the TEB here.
+    // LastStatus != user mode TEB LastStatus
     MTSTATUS LastStatus; // The last status set by violation.
     bool SystemThread; // Is this thread a system thread?
     bool WorkerThread; // is this thread a worker thread?
@@ -221,25 +158,38 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 
 extern EPROCESS PsInitialSystemProcess;
 
+struct _MT_CREATE_PROCESS_PARAMETERS;
+
 MTSTATUS
 PsCreateProcess(
-    IN const char* ExecutablePath,
-    OUT PHANDLE ProcessHandle,
-    IN ACCESS_MASK DesiredAccess,
-    _In_Opt HANDLE ParentProcess
+    IN const struct _MT_CREATE_PROCESS_PARAMETERS* Parameters,
+    OUT PMT_PROCESS_INFORMATION ProcessInformation,
+    OUT PETHREAD* InitialThread
 );
+
 
 MTSTATUS
 PsCreateThread(
-    HANDLE ProcessHandle,
-    PHANDLE ThreadHandle,
-    ThreadEntry EntryPoint,
-    THREAD_PARAMETER ThreadParameter,
-    TimeSliceTicks TimeSlice,
-    ThreadEntry MtdllEntrypoint
+    IN PEPROCESS Process,
+    OUT PHANDLE ThreadHandle,
+    IN THREAD_START_ROUTINE EntryPoint,
+    IN THREAD_PARAMETER ThreadParameter,
+    IN TimeSliceTicks TimeSlice,
+    IN ThreadEntry MtdllEntrypoint,
+    OUT PETHREAD* CreatedThread
 );
 
+void
+PspAbortThreadCreation(
+    IN PETHREAD Thread,
+    IN MTSTATUS ExitStatus
+);
+
+#define MtYield() MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
+
 extern void MsYieldExecution(PTRAP_FRAME threadRegisters);
+
+// If OutThread is supplied, caller must dereference the thread after he is done with it.
 MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, TimeSliceTicks TIMESLICE, _Out_Opt PETHREAD* OutThread);
 
 MTSTATUS
@@ -253,6 +203,11 @@ MTSTATUS
 PsTerminateProcess(
     IN PEPROCESS Process,
     IN MTSTATUS ExitCode
+);
+
+void
+PspInitializeThread(
+    PETHREAD Thread, PEPROCESS Process, TimeSliceTicks TimeSlice
 );
 
 MTSTATUS
@@ -337,7 +292,6 @@ PsIsKernelThread(
 )
 
 {
-    // safety guard, can't believe i had to put it.
     return (Thread && Thread->SystemThread);
 }
 
@@ -378,6 +332,22 @@ PsFreeCid(
     IN HANDLE Cid
 );
 
+void*
+PspFindMtdllEntryRva(
+    IN PFILE_OBJECT MtdllObject,
+    IN const char* RoutineName
+);
+
+uintptr_t
+PspFindMtdllEntryAddress(
+    IN const char* RoutineName,
+    IN PETHREAD Thread
+);
+
+void
+PspStartThread(
+    IN PETHREAD Thread
+);
 
 // Enqueues a thread into the queue with spinlock protection.
 FORCEINLINE
@@ -468,6 +438,57 @@ void MeEnqueueThread(Queue* queue, PETHREAD thread)
 
     // Update tail to be the new thread
     queue->tail = thread;
+}
+
+FORCEINLINE
+bool
+MeRemoveThreadFromQueue(
+    Queue* queue,
+    PETHREAD thread
+)
+{
+    if (!queue || !thread) return false;
+
+    bool IsHead = (queue->head == thread);
+    bool IsTail = (queue->tail == thread);
+
+    if (!IsHead && !IsTail &&
+        thread->SchedulerListEntry.Flink == NULL &&
+        thread->SchedulerListEntry.Blink == NULL) {
+        return false;
+    }
+
+    PETHREAD Next = NULL;
+    PETHREAD Prev = NULL;
+
+    if (thread->SchedulerListEntry.Flink) {
+        Next = CONTAINING_RECORD(thread->SchedulerListEntry.Flink, ETHREAD, SchedulerListEntry);
+    }
+
+    if (thread->SchedulerListEntry.Blink) {
+        Prev = CONTAINING_RECORD(thread->SchedulerListEntry.Blink, ETHREAD, SchedulerListEntry);
+    }
+
+    if (!Prev && !IsHead) return false;
+    if (!Next && !IsTail) return false;
+
+    if (Prev) {
+        Prev->SchedulerListEntry.Flink = thread->SchedulerListEntry.Flink;
+    }
+    else {
+        queue->head = Next;
+    }
+
+    if (Next) {
+        Next->SchedulerListEntry.Blink = thread->SchedulerListEntry.Blink;
+    }
+    else {
+        queue->tail = Prev;
+    }
+
+    thread->SchedulerListEntry.Flink = NULL;
+    thread->SchedulerListEntry.Blink = NULL;
+    return true;
 }
 
 // Dequeues the head thread from the queue (No Lock).

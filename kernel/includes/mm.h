@@ -52,8 +52,8 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
 
 #define VirtualPageSize 4096ULL // Same as each physical frame.
 #define PhysicalFrameSize 4096ULL // Each physical frame.
-#define KernelVaStart 0xfffff80000000000ULL
-#define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping
+#define KernelVaStart 0xfffff80000000000ULL // The kernels .text section and onward.
+#define PhysicalMemoryOffset 0xffff880000000000ULL // Defines the offset in arithmetic for quick mapping (this is where kernel space starts to reside)
 #define RECURSIVE_INDEX 0x1FF
 
 #ifndef __INTELLISENSE__
@@ -70,43 +70,77 @@ static inline int MiConvertVaToPml4Offset(uint64_t va) {
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
-    MiAtomicExchangePte(_pte, _val);                                        \
-    __asm__ volatile("" ::: "memory");                                      \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
                                                                             \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+    /* Device addresses above RAM do not have PFN entries. */               \
+    if (MmPfnDatabaseInitialized &&                                        \
+        (_pa / PhysicalFrameSize) < PfnDatabase.TotalPageCount) {           \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_pa);                            \
+        _pfn->Descriptor.Mapping.Vad = NULL;                                \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
         _pfn->State = PfnStateActive;                                       \
         _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
     }                                                                       \
                                                                             \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
     invlpg((void*)(uintptr_t)(_Va));                                        \
 } while (0)
+
+/* Map an alias or device page without changing PFN reverse-map ownership. */
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)                     \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    MiAtomicExchangePte(_pte, _pa | (uint64_t)(_Flags));                    \
+    __asm__ volatile("" ::: "memory");                                      \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+} while (0)
+
+#define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags)                  \
+    MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)
 
 #else /* SMP build: include TLB shootdown via IPI */
 
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags)                         \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
-    MiAtomicExchangePte(_pte, _val);                                        \
-    __asm__ volatile("" ::: "memory");                                      \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
                                                                             \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
+    /* Device addresses above RAM do not have PFN entries. */               \
+    if (MmPfnDatabaseInitialized &&                                        \
+        (_pa / PhysicalFrameSize) < PfnDatabase.TotalPageCount) {           \
+        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_pa);                            \
+        _pfn->Descriptor.Mapping.Vad = NULL;                                \
         _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
         _pfn->State = PfnStateActive;                                       \
         _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
     }                                                                       \
                                                                             \
+    MiAtomicExchangePte(_pte, _val);                                        \
+    __asm__ volatile("" ::: "memory");                                      \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
     /* Send IPIs if SMP is initialized (and all APs are on) */              \
     if (smpInitialized && allApsInitialized) {                              \
-        IPI_PARAMS _Params;                                                 \
+        IPI_PARAMS _Params = { 0 };                                         \
+        _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
+        MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
+    }                                                                       \
+} while (0)
+
+/* Map an alias or device page without changing PFN reverse-map ownership. */
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags)                     \
+do {                                                                        \
+    MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    MiAtomicExchangePte(_pte, _pa | (uint64_t)(_Flags));                    \
+    __asm__ volatile("" ::: "memory");                                      \
+    invlpg((void*)(uintptr_t)(_Va));                                        \
+    if (smpInitialized && allApsInitialized) {                              \
+        IPI_PARAMS _Params = { 0 };                                         \
         _Params.pageParams.addressToInvalidate = (uint64_t)(_Va);          \
         MhSendActionToCpusAndWait(CPU_ACTION_PERFORM_TLB_SHOOTDOWN, _Params);\
     }                                                                       \
@@ -115,18 +149,10 @@ do {                                                                        \
 #define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags)                  \
 do {                                                                        \
     MMPTE* _pte = (MMPTE*)(_PtePointer);                                    \
-    uint64_t _val = (((uintptr_t)(_Pa)) & ~0xFFFULL) | (uint64_t)(_Flags);  \
+    uintptr_t _pa = ((uintptr_t)(_Pa)) & ~0xFFFULL;                         \
+    uint64_t _val = _pa | (uint64_t)(_Flags);                              \
     MiAtomicExchangePte(_pte, _val);                                        \
     __asm__ volatile("" ::: "memory");                                      \
-                                                                            \
-    /* Only set PFN->PTE link if PFN database is initialized */             \
-    if (MmPfnDatabaseInitialized) {                                         \
-        PPFN_ENTRY _pfn = PHYSICAL_TO_PPFN(_Pa);                            \
-        _pfn->Descriptor.Mapping.PteAddress = (PMMPTE)_pte;                 \
-        _pfn->State = PfnStateActive;                                       \
-        _pfn->Flags = PFN_FLAG_NONPAGED;                                    \
-    }                                                                       \
-                                                                            \
     invlpg((void*)(uintptr_t)(_Va));                                        \
                                                                             \
 } while (0)
@@ -152,6 +178,7 @@ do {                                                                        \
 #else
 #define PTE_TO_PHYSICAL(PMMPTE) (0)
 #define MI_WRITE_PTE(_PtePointer, _Va, _Pa, _Flags) ((void)0)
+#define MI_WRITE_PTE_RAW(_PtePointer, _Va, _Pa, _Flags) ((void)0)
 #define MI_WRITE_PTE_NO_IPI(_PtePointer, _Va, _Pa, _Flags) ((void)0)
 #define PPFN_TO_INDEX(PPFN) (0)
 #define PPFN_TO_PHYSICAL_ADDRESS(PPFN) (0)
@@ -216,12 +243,18 @@ do {                                                                        \
 #define MI_PAGED_POOL_END        (MI_PAGED_POOL_BASE + MI_PAGED_POOL_SIZE)
 
 // Address Manipulation And Checks
+#ifdef MATANELOS_INTELLISENSE
+/* MSVC's language service cannot parse GNU statement expressions. */
+#define MI_IS_CANONICAL_ADDR(va) \
+    ((((uint64_t)(va) >> 48) == 0) || (((uint64_t)(va) >> 48) == 0xFFFF))
+#else
 #define MI_IS_CANONICAL_ADDR(va) \
 ({ \
     uint64_t _va = (uint64_t)(va); \
     uint64_t _mask = ~((1ULL << 48) - 1); /* bits 63:48 */ \
     ((_va & _mask) == 0 || (_va & _mask) == _mask); \
 })
+#endif
 
 #define PFN_TO_PHYS(Pfn) PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(Pfn))
 #define PHYS_TO_INDEX(PhysicalAddress) PPFN_TO_INDEX(PHYSICAL_TO_PPFN(PhysicalAddress))
@@ -249,7 +282,7 @@ do {                                                                        \
 // Prevents CPU Reordering as well as the MmBarrier functionality.
 #define MmFullBarrier() __sync_synchronize()
 
-// Ensure ordedring of memory operations (memory should be visible before continuing)
+// Ensure ordering of memory operations (memory should be visible before continuing)
 #define MmBarrier() __asm__ __volatile__("mfence" ::: "memory")
 
 // ------------------ TYPE DEFINES ------------------
@@ -258,18 +291,7 @@ typedef uint64_t PAGE_INDEX;
 #define MmIsAddressValid(VirtualAddress) MmIsAddressPresent(VirtualAddress)
 
 // ------------------ ACCESS RIGHTS ------------------
-
-#define MT_SECTION_QUERY             0x0001  // Query section info (size, attributes)
-#define MT_SECTION_MAP_WRITE         0x0002  // Map section with write permissions
-#define MT_SECTION_MAP_READ          0x0004  // Map section with read permissions
-#define MT_SECTION_MAP_EXECUTE       0x0008  // Map section with execute permissions
-#define MT_SECTION_EXTEND_SIZE       0x0010  // Extend section size (file-backed sections)
-#define MT_SECTION_MAP_EXECUTE_EXPL  0x0020  // Explicit executable mapping (DEP / NX override)
-
-// All valid section rights
-#define MT_SECTION_ALL_ACCESS        0x003F
-
-typedef int32_t HANDLE, * PHANDLE;
+// 
 // ------------------ ENUMERATORS ------------------
 
 typedef enum _PFN_STATE {
@@ -291,7 +313,11 @@ typedef enum _PFN_FLAGS {
     PFN_FLAG_LOCKED_FOR_IO = (1U << 3)  // Page is pinned for DMA, etc.
 } PFN_FLAGS;
 
-typedef enum _VAD_FLAGS {
+// VAD protection and backing flags are combined as a bitmask. Keep the
+// storage type separate from the enum constants so MSVC accepts combinations
+// such as VAD_FLAG_READ | VAD_FLAG_WRITE without enum conversion errors.
+typedef uint32_t VAD_FLAGS;
+enum _VAD_FLAGS {
     VAD_FLAG_NONE = 0, // No flags, base value.
     VAD_FLAG_READ = (1U << 0),  // Allowed to read from this address.
     VAD_FLAG_WRITE = (1U << 1),    // Allowed to write to this address
@@ -301,7 +327,7 @@ typedef enum _VAD_FLAGS {
     VAD_FLAG_COPY_ON_WRITE = (1U << 5), // Allocation comes from a shared physical memory address(s), this can be shared between executables.
     VAD_FLAG_RESERVED = (1U << 6), // Allocation WILL NOT happen if this flag is set, it takes precedence.
     VAD_FLAG_GUARD_PAGE = (1U << 7), // This allocation signifies a guard page, if a memory operation is performed on this page, an MT_GUARD_PAGE_VIOLATION exception is raised, and the page turns to a normal stack page.
-} VAD_FLAGS;
+};
 
 typedef enum _PAGE_FLAGS {
     PAGE_PRESENT = 1 << 0,  // Bit 0
@@ -366,11 +392,6 @@ typedef enum _FAULT_OPERATION {
     WriteOperation = 2,
     ExecuteOperation = 10,
 } FAULT_OPERATION, *PFAULT_OPERATION;
-
-typedef enum _PRIVILEGE_MODE {
-    KernelMode = 0,
-    UserMode = 1
-} PRIVILEGE_MODE, * PPRIVILEGE_MODE;
 
 typedef enum _MEMORY_CACHING_TYPE {
 
@@ -542,12 +563,16 @@ typedef struct _POOL_HEADER
         // When the block is ALLOCATED, we store actual metadata info.
         struct
         {
-            uint16_t BlockSize;  // Size of this block
+            uint64_t BlockSize;  // Size of this block (INCLUDES POOL_HEADER)
             uint16_t PoolIndex;  // Index of the slab it came from
+            uint16_t PoolType;   // POOL_TYPE used to allocate this block
         };
     } Metadata;
     uint32_t PoolTag; // Tag of pool. (default - 'ADIR')
-} POOL_HEADER, * PPOOL_HEADER;
+} __attribute__((aligned(16))) POOL_HEADER, * PPOOL_HEADER;
+
+_Static_assert(_Alignof(POOL_HEADER) >= 16, "Pool payloads require 16-byte alignment");
+_Static_assert((sizeof(POOL_HEADER) % 16) == 0, "POOL_HEADER must preserve payload alignment");
 
 typedef struct _POOL_DESCRIPTOR {
     SINGLE_LINKED_LIST FreeListHead;    // Head of the free list
@@ -558,48 +583,9 @@ typedef struct _POOL_DESCRIPTOR {
     enum _POOL_TYPE PoolType;           // The type of the pools this descriptor holds.
 } POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
 
-typedef struct {
-    uint64_t r_offset; /* Address (RVA) */
-    uint64_t r_info;   /* Relocation type and symbol index */
-    int64_t  r_addend; /* Addend */
-} Rela;
+#include "../../shared/include/mte.h"
 
-#define R_X86_64_RELATIVE 8
-
-#pragma pack(push, 1)
-typedef struct {
-    uint8_t  Magic[4];
-    uint64_t PreferredImageBase; /* __image_base */
-    uint64_t EntryRVA;           /* __entry_rva */
-    uint64_t TextRVA;            /* __text_rva */
-    uint64_t TextSize;
-    uint64_t DataRVA;
-    uint64_t DataSize;
-    uint64_t BssSize;
-    uint64_t exports_rva;
-    uint64_t exports_size;
-    uint64_t reloc_rva;
-    uint64_t reloc_size;
-    uint64_t imports_rva; // RVA To import array, then absolute addresses.
-    uint64_t imports_size; // Size of total imports (to find out total we divide by MT_IMPORT_ENTRIES)
-    uint8_t  Reserved[20];      /* pad the rest to 128 bytes */
-} MTE_HEADER;
-#pragma pack(pop)
-
-VALIDATE_SIZE(MTE_HEADER, 128);
-
-// Exports are RVA
-typedef struct {
-    uint64_t name_rva;
-    uint64_t func_rva;
-} MT_EXPORT_ENTRY;
-
-// Imports are RVA.
-typedef struct {
-    uint64_t lib_name_rva;   // RVA to string "kernel32.dll"
-    uint64_t func_name_rva;  // RVA to string "PrintString"
-    uint64_t iat_addr_rva;   // RVA to the function pointer to be patched
-} MT_IMPORT_ENTRY;
+VALIDATE_SIZE(MTE_HEADER, MTE_HEADER_SIZE);
 
 // Represents a section in the file (.text, .data)
 typedef struct _MM_SUBSECTION {
@@ -628,19 +614,21 @@ typedef struct _MM_SECTION {
 extern MM_PFN_DATABASE PfnDatabase; // Database defined in 'pfn.c'
 
 // Global Externals for signals & constants.
-extern bool MmPfnDatabaseInitialized;
-extern PAGE_INDEX MmHighestPfn;
-extern uintptr_t MmSystemRangeStart;
-extern uintptr_t MmHighestUserAddress;
-extern uintptr_t MmUserStartAddress;
-extern uintptr_t MmUserProbeAddress;
-extern uintptr_t MmNonPagedPoolStart;
-extern uintptr_t MmNonPagedPoolEnd;
-extern uintptr_t MmPagedPoolStart;
-extern uintptr_t MmPagedPoolEnd;
-extern uint64_t MmTotalMemory;
-extern uint64_t MmTotalUsableMemory;
+extern bool MmPfnDatabaseInitialized; // Returns if PFN Database has been initialized, should be true after kernel initalization.
+extern PAGE_INDEX MmHighestPfn; // Highest PFN Index in the PFN Database. 
+extern uintptr_t MmSystemRangeStart; // Start address of the kernel range in a 64bit system.
+extern uintptr_t MmHighestUserAddress; // The highest user mode address in a 64bit system.
+extern uintptr_t MmUserStartAddress; // The lowest user mode address, this is defined by the OS, and can be 0, in our case, it is USER_VA_START (0x10000)
+extern uintptr_t MmUserProbeAddress; // The probe address in usermode, if an address is higher than this, the check fails, and returns false (see ProbeForRead)
+extern uintptr_t MmNonPagedPoolStart; // Address where NonPagedPool starts, contains nX.
+extern uintptr_t MmNonPagedPoolEnd; // Address where NonPagedPool ends.
+extern uintptr_t MmPagedPoolStart; // Address where PagedPool starts.
+extern uintptr_t MmPagedPoolEnd; // Address where PagedPool ends.
+extern uint64_t MmTotalMemory; // Total memory in the system, (UNUSED, 0)
+extern uint64_t MmTotalUsableMemory; // Total usable memory, in bytes.
+extern uint64_t MmHighestUsablePhysicalAddress; // Highest usable physical address in the system, may contain MMIO holes above, or below.
 
+#define MI_FREEPOOL_UAF_IDENTIFIER 0xDD
 
 #define USER_VA_END 0x00007FFFFFFFFFFF
 #define USER_VA_START 0x10000
@@ -655,7 +643,7 @@ kmemset (
     void* dest, int64_t val, uint64_t len
 ) 
 {
-    uint8_t* ptr = dest;
+    uint8_t* ptr = (uint8_t*)dest;
     for (size_t i = 0; i < (size_t)len; i++) {
         ptr[i] = (uint8_t)val;
     }
@@ -757,14 +745,17 @@ MiRetrieveLastFaultyAddress(
 }
 
 FORCEINLINE
-void
+uint64_t
 MiAtomicExchangePte(
     PMMPTE PtePtr,
     uint64_t NewPteValue
 )
 
 {
-    InterlockedExchangeU64((volatile uint64_t*)PtePtr, NewPteValue);
+    return InterlockedExchangeU64(
+        (volatile uint64_t*)PtePtr,
+        NewPteValue
+    );
 }
 
 FORCEINLINE
@@ -807,11 +798,6 @@ MiUnlinkPageFromList(
     PPFN_ENTRY pfn
 );
 
-void
-MiUnlinkPageFromList(
-    PPFN_ENTRY pfn
-);
-
 // module: map.c
 
 void
@@ -822,6 +808,14 @@ MiInvalidateTlbForVa(
 void
 MiReloadTLBs(
     void
+);
+
+// Uses ComapreExchange
+bool 
+MiAtomicSetPte(
+    volatile PMMPTE Pte,
+    uint64_t NewValue,
+    uint64_t ExpectedValue
 );
 
 PMMPTE
@@ -906,10 +900,25 @@ MmAllocatePoolWithTag(
     IN  uint32_t Tag
 );
 
+#ifndef POOL_DEBUGGING
 void
 MmFreePool(
     IN  void* buf
 );
+#else
+// Pool debugging is on.
+
+#define MmFreePool(voidptr) do { \
+    MmFreePoolDbg(voidptr);      \
+    (voidptr) = NULL;            \
+} while(0) // No semicolon here!
+
+void
+MmFreePoolDbg(
+    IN  void* buf
+);
+
+#endif
 
 // module: mmproc.c
 
@@ -958,6 +967,27 @@ MmCreateTeb(
 
 // module: vad.c
 
+PMMVAD
+MiAllocateVad(
+    void
+);
+
+void
+MiTerminateVadsProcess(
+    IN PEPROCESS Process
+);
+
+void
+MiFreeVad(
+    IN PMMVAD Vad
+);
+
+PMMVAD
+MiInsertVadNode(
+    IN PMMVAD Node,
+    IN PMMVAD NewVad
+);
+
 MTSTATUS
 MmAllocateVirtualMemory(
     IN PEPROCESS Process,
@@ -967,10 +997,11 @@ MmAllocateVirtualMemory(
 );
 
 MTSTATUS
-// TODO Free with explicit size, split vad if needed.
 MmFreeVirtualMemory(
     IN PEPROCESS Process,
-    IN void* BaseAddress
+    IN OUT void** BaseAddress,
+    IN OUT size_t* NumberOfBytes,
+    IN enum _FREE_TYPE FreeType
 );
 
 MUST_USE_RESULT
@@ -978,6 +1009,14 @@ PMMVAD
 MiFindVad(
     IN  PEPROCESS Process,
     IN  uintptr_t VirtualAddress
+);
+
+MUST_USE_RESULT
+PMMVAD
+MiFindVadInternal(
+    IN  PEPROCESS Process,
+    IN  uintptr_t VirtualAddress,
+    IN  bool AcquireLock
 );
 
 MUST_USE_RESULT
@@ -990,11 +1029,26 @@ MmFindFreeAddressSpace(
 );
 
 MUST_USE_RESULT
-MTSTATUS
+bool
 MmIsAddressRangeFree(
     PEPROCESS Process,
     uintptr_t StartVa,
     uintptr_t EndVa
+);
+
+size_t
+MiGetRegionSize(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process
+);
+
+size_t
+MiGetRegionSizeInternal(
+    _In_Opt PMMVAD Vad,
+    _In_Opt uintptr_t VirtualAddress,
+    IN PEPROCESS Process,
+    IN bool AcquireLock
 );
 
 // module: va.c
@@ -1024,14 +1078,8 @@ MTSTATUS
 MmAccessFault(
     IN  uint64_t FaultBits,
     IN  uint64_t VirtualAddress,
-    IN  PRIVILEGE_MODE PreviousMode,
+    IN  PRIVILEGE_MODE FaultMode,
     IN  PTRAP_FRAME TrapFrame
-);
-
-MUST_USE_RESULT
-bool
-MmInvalidAccessAllowed(
-    void
 );
 
 // module: mmio.c
@@ -1091,16 +1139,22 @@ MmInitSections(
 
 MTSTATUS
 MmCreateSection(
-    OUT PHANDLE SectionHandle,
+    OUT void** SectionObject,
     IN struct _FILE_OBJECT* FileObject
 );
 
 MTSTATUS
 MmMapViewOfSection(
-    IN HANDLE SectionHandle,
+    IN void* SectionObject,
     IN PEPROCESS Process,
     OUT void** EntryPointAddress,
     OUT void** BaseAddress
+);
+
+MTSTATUS
+MmUnmapViewOfSection(
+    PEPROCESS Process,
+    void* BaseAddress
 );
 
 // used by Ob, private.

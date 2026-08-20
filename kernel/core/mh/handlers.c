@@ -11,43 +11,64 @@
 #include "../../includes/md.h"
 #include "../../includes/exception.h"
 #include "../../assert.h"
+#include "../../includes/ms.h"
 
-#define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
-    do {                                                             \
-        gop_printf(COLOR_RED,                                         \
-            "RAX=%p RBX=%p RCX=%p RDX=%p\n"           \
-            "RSI=%p RDI=%p RBP=%p RSP=%p\n"           \
-            "R8 =%p R9 =%p R10=%p R11=%p\n"           \
-            "R12=%p R13=%p R14=%p R15=%p\n"           \
-            "RIP=%p RFLAGS=%p\n",                               \
-            (ctxptr)->rax, (ctxptr)->rbx, (ctxptr)->rcx, (ctxptr)->rdx, \
-            (ctxptr)->rsi, (ctxptr)->rdi, (ctxptr)->rbp, (intfrptr)->rsp, \
-            (ctxptr)->r8, (ctxptr)->r9, (ctxptr)->r10, (ctxptr)->r11,    \
-            (ctxptr)->r12, (ctxptr)->r13, (ctxptr)->r14, (ctxptr)->r15, \
-            (intfrptr)->rip, (intfrptr)->rflags);                       \
-        __hlt();                                                      \
-    } while (0)
-
-// NOTE TO SELF: DO NOT PUT TRACELAST_FUNC HERE, THESE ARE INTERRUPT/EXCEPTION HANDLERS!
-
-
+volatile uint64_t MeSystemTickCount = 0;
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;
 
-static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
+static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Processes a scheduler timer interrupt on the current processor.
+
+    Arguments:
+
+        [IN] InterruptedIrql - IRQL interrupted by the trap.
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PPROCESSOR cpu = MeGetCurrentProcessor();
 
+    // The LAPIC timer fires on every CPU. Only the BSP owns the global clock
+    // and global timer queue; scheduler quantum accounting remains per-CPU.
+    if (cpu == MeClockProcessor) {
+        InterlockedIncrementU64(&MeSystemTickCount);
+
+        MsAcquireSpinlockAtDpcLevel(&MsTimerQueueLock);
+        PITHREAD FirstSleepingThread = GetHeadOfTimerQueue();
+        MsReleaseSpinlockFromDpcLevel(&MsTimerQueueLock);
+
+        if (FirstSleepingThread && MeSystemTickCount >= FirstSleepingThread->WaitBlock.WakeupTime) {
+            MeInsertQueueDpc(&cpu->TimerExpirationDPC, NULL, NULL);
+        }
+    }
+    
+    //
+    // Handle thread's quantum
+    //
+    
     // Do not decrement if a schedule is already pending.
     if (cpu->schedulePending) return;
 
-    // If scheduler is locked or no thread is running, return.
-    if (!schedulerEnabled || !cpu->currentThread) return;
+    // The timer itself executes above DISPATCH_LEVEL. Preemption eligibility is
+    // determined from the IRQL that the clock interrupt interrupted.
+    if (InterruptedIrql >= DISPATCH_LEVEL || !cpu->currentThread) return;
 
     PITHREAD currentThread = cpu->currentThread;
 
     // Atomic decrement, if there is still time, return.
-    if (__sync_sub_and_fetch(&currentThread->TimeSlice, 1) > 0) {
+    if (InterlockedDecrement32((volatile int32_t*) & currentThread->TimeSlice) > 0) {
         return;
     }
 
@@ -64,8 +85,27 @@ static void MiHandleTimer(bool schedulerEnabled, PTRAP_FRAME trap) {
 
 extern void lapic_eoi(void);
 
-void MiLapicInterrupt(bool schedulerEnabled, PTRAP_FRAME trap) {
-    MiHandleTimer(schedulerEnabled, trap);
+void MiLapicInterrupt(IRQL InterruptedIrql, PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Dispatches the local APIC software-interrupt vector.
+
+    Arguments:
+
+        [IN] InterruptedIrql - IRQL interrupted by the trap.
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    MiHandleTimer(InterruptedIrql, trap);
     lapic_eoi(); // Signal end of interrupt.
 }
 
@@ -89,17 +129,19 @@ void MiInterprocessorInterrupt (
 
 {
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    InterlockedOrU64(&cpu->flags, CPU_DOING_IPI);
+    InterlockedStore(&cpu->IpiRoutineActive, true);
+    uint64_t IpiSequence = InterlockedLoadAcquire(&cpu->IpiSeq);
+    UNREFERENCED_PARAMETER(IpiSequence);
     uint64_t addr = cpu->IpiParameter.debugRegs.address;
     CPU_ACTION action = cpu->IpiAction;
     int idx = find_available_debug_reg();
     switch (action) {
     case CPU_ACTION_STOP:
         // explicit action to halt, since we are in an interrupt, unless an NMI somehow comes, we will stay stopped.
-        // clear the flag before we halt so BSP can continue iterations
-        cpu->IpiSeq = 0;
-        MmFullBarrier();
-        InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+        // Complete the mailbox transaction, then publish the terminal state.
+        InterlockedStoreRelease(&cpu->IpiSeq, 0);
+        InterlockedStoreRelease(&cpu->IpiRoutineActive, false);
+        InterlockedStoreRelease(&cpu->State, ProcessorStateHalted);
         __cli();
         for (;;) __hlt();
     case CPU_ACTION_PERFORM_TLB_SHOOTDOWN:
@@ -140,11 +182,19 @@ void MiInterprocessorInterrupt (
     case CPU_ACTION_FLUSH_CR3:
         __write_cr3(__read_cr3());
         break;
+    case CPU_ACTION_REQUEST_APC:
+        // An APC should be executed in this CPU, request interrupt.
+        MhRequestSoftwareInterrupt(APC_LEVEL);
+        break;
+    case CPU_ACTION_REQUEST_DPC:
+        // We are now on the target CPU, so publish and request as one local
+        // interrupt-disabled transaction.
+        MeRequestCurrentDpcInterrupt();
+        break;
     }
 
-    MmFullBarrier();
-    cpu->IpiSeq = 0;
-    InterlockedAndU64(&cpu->flags, ~CPU_DOING_IPI);
+    InterlockedStoreRelease(&cpu->IpiSeq, 0);
+    InterlockedStoreRelease(&cpu->IpiRoutineActive, false);
 
     // End of Interrupt for LAPIC is signaled at function return.
 }
@@ -189,39 +239,41 @@ MiPageFault (
     --*/
 
     
-    PRIVILEGE_MODE PreviousMode = MeGetPreviousMode();
-    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, PreviousMode, trap);
+    // The saved CS says where the faulting instruction actually executed.
+    // a syscall bug still faults at CPL 0.
+    PRIVILEGE_MODE FaultMode = ExpGetFaultMode(trap);
+    MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, FaultMode, trap);
 #ifdef DEBUG
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 
+
+
     if (MT_FAILURE(status)) {
         // If MmAccessFault returned a failire (e.g MT_ACCESS_VIOLATION), but hasn't bugchecked, we check for exception handlers in the current thread
-        // If there are no exceptions handlers (for user mode, we check the FS exception (todo TEB)) (for kernel mode we check the section by linker script)
-        // - For user mode, thread termination, for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
+        // If there are no exceptions handlers (for user mode, we check the exception handlers) (for kernel mode we check the section by linker script, future will be normal exception handling)
+        // - For user mode, MTDLL handling (or on determinstic function failure, termination), for kernel mode - bugcheck with KMODE_EXCEPTION_NOT_HANDLED.
 
         // Set thread last exception status.
         PsGetCurrentThread()->LastStatus = status;
 
-        if (PreviousMode == UserMode) {
-#if 0
-            if (false);
-            /* Unimplemented yet.
-            if (ExpIsExceptionHandlerPresent(PsGetCurrentThread())) {
-                ExpDispatchException(trap);
-                return;
+        if (FaultMode == UserMode) {
+            EXCEPTION_RECORD Record;
+
+            // Initialize the access violation exception record with the page fault exception variables.
+            ExpInitializeAccessViolationRecord(status, trap, fault_addr, trap->error_code, &Record);
+
+            // Publish the access violation record now
+            MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+            if (MT_FAILURE(PublishStatus)) {
+                // Invalid state status returned, just terminate the thread, no exception handling can be provided.
+                PspExitThread(status);
             }
-            */
-            else {
-#endif
-                // Terminate thread that caused violation.
-                PsTerminateThread(PsGetCurrentThread(), status);
-                // We arent allowed to continue.
-                MeGetCurrentProcessor()->schedulePending = true;
-                return;
-#if 0
-            }
-#endif
+
+            // All good now, when we return to the interrupt ISR assembly stub, at the exit route it will see if there are any exceptions to be delivered
+            // And when it sees this published exception, it will redirect RIP to MTDLL Exception handling.
+            return;
         }
         else {
             // Kernel mode, we see if we have an exception handler for this.
@@ -233,7 +285,22 @@ MiPageFault (
             }
         }
 
-        // No handler found for the kernel mode violation, we bugcheck.
+        // No handler found for the kernel mode violation, we bugcheck. 
+        // Check if we have attempted to write on a readonly page.
+        FAULT_OPERATION OperationDone =
+            MiRetrieveOperationFromErrorCode(trap->error_code);
+
+        if (OperationDone == WriteOperation && (trap->error_code & PAGE_PRESENT)) {
+            MeBugCheckEx(
+                ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+                (void*)fault_addr,
+                (void*)NULL,
+                (void*)trap->rip,
+                (void*)trap->error_code
+            );
+        }
+
+
         MeBugCheckEx(
             KMODE_EXCEPTION_NOT_HANDLED,
             (void*)(uintptr_t)status,
@@ -310,15 +377,23 @@ MiDivideByZero (
 
     --*/
     
-    // When user mode processes and threads are fully established, this should generate an ACCESS_VIOLATION. TODO
-    if (MeGetPreviousMode() == UserMode) {
-        PsTerminateThread(PsGetCurrentThread(), MT_INTEGER_DIVIDE_BY_ZERO);
-        // We arent allowed to continue.
-        MeGetCurrentProcessor()->schedulePending = true;
+    if (ExpGetFaultMode(trap) == UserMode) {
+        // User mode has faulted, publish a fault for MTDLL to handle the exception.
+        EXCEPTION_RECORD Record;
+        ExpInitializeExceptionRecord(MT_INTEGER_DIVIDE_BY_ZERO, trap, &Record);
+
+        // Publish it
+        MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+        if (MT_FAILURE(PublishStatus)) {
+            PspExitThread(MT_INTEGER_DIVIDE_BY_ZERO);
+        }
+
+        // Usermode will now handle the exception.
+        return;
     }
 
     MeBugCheckEx(DIVIDE_BY_ZERO, (void*)(uintptr_t)trap->rip, NULL, NULL, NULL);
-
 }
 
 void 
@@ -351,12 +426,11 @@ MiDebugTrap (
             if (dr6 & (1ULL << i)) {
                 /* If a callback is registered, call it. Provide both address and context. */
                 if (MeGetCurrentProcessor()->DebugEntry[i].Callback) {
-                    DBG_CALLBACK_INFO info = {
-                        .Address = MeGetCurrentProcessor()->DebugEntry[i].Address,
-                        .trap = trap,
-                        .BreakIdx = i,
-                        .Dr6 = dr6
-                    };
+                    DBG_CALLBACK_INFO info;
+                    info.Address = MeGetCurrentProcessor()->DebugEntry[i].Address;
+                    info.trap = trap;
+                    info.BreakIdx = i;
+                    info.Dr6 = dr6;
 
                     /* Call the user-registered callback. It receives &info (void*). */
                     MeGetCurrentProcessor()->DebugEntry[i].Callback(&info);
@@ -379,7 +453,7 @@ MiDebugTrap (
     }
 #else
     UNREFERENCED_PARAMETER(trap);
-    __write_DR(6, 0);
+    __write_dr(6, 0);
     return;
 #endif
 }
@@ -413,6 +487,14 @@ MiNonMaskableInterrupt (
 
     --*/
     UNREFERENCED_PARAMETER(trap);
+
+    // Bugcheck CPU freezing deliberately uses an NMI so it does not depend on
+    // IF, TPR, or the synchronous IPI mailbox that may itself have failed.
+    if (MeIsBugCheckActive()) {
+        __cli();
+        for (;;) __hlt();
+    }
+
     MeBugCheck(NON_MASKABLE_INTERRUPT);
 }
 
@@ -439,50 +521,228 @@ void MiBreakpoint (
     gop_printf(COLOR_RED, "**INT3 Breakpoint hit at: %p. PreviousMode: %d**\n", (void*)(uintptr_t)trap->rip, MeGetPreviousMode());
 }
 
-void MiOverflow(PTRAP_FRAME trap) {
+void MiOverflow(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor overflow exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     MeBugCheckEx(OVERFLOW, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiBoundsCheck(PTRAP_FRAME trap) {
+void MiBoundsCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor bounds-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // bugcheck too, this is kernel mode.
     MeBugCheckEx(BOUNDS_CHECK, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiInvalidOpcode(PTRAP_FRAME trap) {
+void MiInvalidOpcode(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles an invalid-opcode exception and offers it to user-mode exception dispatch when appropriate.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+
+    if (ExpGetFaultMode(trap) == UserMode) {
+        // Let user mode handle the fault if it can.
+        EXCEPTION_RECORD Record;
+        ExpInitializeExceptionRecord(MT_ILLEGAL_INSTRUCTION, trap, &Record);
+
+        MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+        if (MT_FAILURE(PublishStatus)) {
+            PspExitThread(MT_ILLEGAL_INSTRUCTION);
+        }
+
+        // Return the handling to user mode.
+        return;
+    }
+
     MeBugCheckEx(INVALID_OPCODE, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiNoCoprocessor(PTRAP_FRAME trap) {
+void MiNoCoprocessor(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor coprocessor-not-available exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // rarely triggered, if a floating point chip is not integrated, or is not attached, bugcheck.
     MeBugCheckEx(NO_COPROCESSOR, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiCoprocessorSegmentOverrun(PTRAP_FRAME trap) {
+void MiCoprocessorSegmentOverrun(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the legacy coprocessor-segment-overrun exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // quite literally impossible in protected or long mode, since CPU's don't generate this exception on these modes, but if they did, bugcheck, severe code.
     MeBugCheckEx(COPROCESSOR_SEGMENT_OVERRUN, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiInvalidTss(IN PTRAP_FRAME trap) {
+void MiInvalidTss(IN PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles an invalid-TSS exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // a tss is when the CPU hardware switches (usually does not happen, since OS'es implement switching in software, like process timer context switch, all in software)
     // if it did happen though, we bugcheck.
     MeBugCheckEx(INVALID_TSS, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiSegmentSelectorNotPresent(PTRAP_FRAME trap) {
+void MiSegmentSelectorNotPresent(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a segment-not-present exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // this happens when the CPU loads a segment that points to a valid descriptor, that is marked as "not present" (that the present bit is 0), which means it's swapped out to disk.
     // we don't have disk paging right now, we don't even have a current user mode or stable memory for now, so we just bugcheck.
     MeBugCheckEx(SEGMENT_SELECTOR_NOTPRESENT, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiStackSegmentOverrun(PTRAP_FRAME trap) {
+void MiStackSegmentOverrun(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a stack-segment exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // this happens when the stack pointer (esp, rsp, sp on 16 bit) moves OUTSIDE the bounds of the current stack segment, this is different from a stack overflow at the software level, this is a hardware level exception.
     // segment limits on protected mode usually gets switched off, so if this happens just bugcheck.
     MeBugCheckEx(STACK_SEGMENT_OVERRUN, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiGeneralProtectionFault(PTRAP_FRAME trap) {
+void MiGeneralProtectionFault(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles a general-protection exception and offers it to user-mode exception dispatch when appropriate.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     PETHREAD Thread = PsGetCurrentThread();
-    if (MeGetPreviousMode() == KernelMode) {
+    if (ExpGetFaultMode(trap) == KernelMode || Thread->SystemThread) {
         // important exception, view error code and bugcheck with it
         // its also a very useless exception, as a general protection fault is the most
         // general thing in the world, like the word general was made for this fault
@@ -493,8 +753,6 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
     }
 
     // User thread (and mode), we send an exception.
-    // TODO Exceptions.
-    // For now, terminate the user thread.
     MTSTATUS Status = MT_ACCESS_VIOLATION;
 
     // Enable access to user mode memory so we dont page fault on accessing its RIP.
@@ -509,33 +767,91 @@ void MiGeneralProtectionFault(PTRAP_FRAME trap) {
         __clac();
     }
 
-    // Terminate the thread, todo exp.
-    // We must not return to the thread, at all.
-    assert(Thread->SystemThread == false, "System thread #GPF when PrevMode == UserMode");
-    Thread->InternalThread.TimeSlice = 1;
-    Thread->InternalThread.TimeSliceAllocated = 1;
-    MeGetCurrentProcessor()->schedulePending = true;
-    gop_printf(COLOR_RED, "[TERMINATE-#GPF] Terminating user mode thread (Process Name: %s) ptr %p for %x | RIP: %p\n", PsGetCurrentProcess()->ImageName, Thread, Status, (void*)(uintptr_t)trap->rip);
-    PsTerminateThread(Thread, Status);
+    // Let user mode exception handling, handle this.
+    EXCEPTION_RECORD Record;
+    ExpInitializeExceptionRecord(Status, trap, &Record);
+
+    MTSTATUS PublishStatus = ExpPublishUserException(&Record);
+
+    if (MT_FAILURE(PublishStatus)) {
+        PspExitThread(Status);
+    }
+
+    // User mode will handle it.
+    return;
 }
 
-void MiFloatingPointError(PTRAP_FRAME trap) {
+void MiFloatingPointError(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor floating-point exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     UNREFERENCED_PARAMETER(trap);
     // this occurs when a floating point operation has an error, (even division by zero floating point will get here), or underflow/overflow
-    gop_printf(0xFFFF0000, "Error: Floating Point error, have you done a correct calculation?\n");
+    gop_printf(0xFFFF0000, "**Error: Floating Point error, have you done a correct calculation?**\n");
 }
 
-void MiAlignmentCheck(PTRAP_FRAME trap) {
+void MiAlignmentCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor alignment-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // 3 conditions must be met in-order for this to even reach.
     // CR0.AM (Alignment Mask) must be set to 1.
     // EFLAGS.AC (Alignment Check) must be set to 1.
     // CPL (user mode or kernel mode) must be set to 3. (user mode only)
-    // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write, writing more than there is.
+    // If all are 1 and a stack alignment occurs (when doing char* ptr = kmalloc(64, 16); then writing like this *((uint32_t*)ptr) = 0xdeadbeef; // It's an unaligned write.
     // for now, bugcheck.
     MeBugCheckEx(ALIGNMENT_CHECK, (void*)trap->rip, NULL, NULL, NULL);
 }
 
-void MiMachineCheck(PTRAP_FRAME trap) {
+void MiMachineCheck(PTRAP_FRAME trap)
+
+/*++
+
+    Routine description:
+
+        Handles the processor machine-check exception.
+
+    Arguments:
+
+        [IN] trap - Trap frame containing the interrupted processor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // creepy.
     // This happens when the machine has a SEVERE problem, memory faults, CPU internal fault, all of that, the cpu registers this.
     // obviously bugcheck.

@@ -10,7 +10,26 @@ IDT_ENTRY64 IDT[IDT_ENTRIES];
 IDT_PTR  PIDT;
 
 /* Set one gate. */
-void set_idt_gate(int n, unsigned long int handler) {
+void set_idt_gate(int n, unsigned long int handler)
+
+/*++
+
+    Routine description:
+
+        Populates one interrupt-descriptor-table gate with a handler address.
+
+    Arguments:
+
+        [IN] n - Interrupt vector or bounded element count.
+        [IN] handler - Handler routine installed or invoked by the operation.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     IDT[n].offset_low = handler & 0xFFFF;
     IDT[n].selector = 0x08;   // code segment selector
     IDT[n].ist = 0;         
@@ -21,7 +40,25 @@ void set_idt_gate(int n, unsigned long int handler) {
 }
 
 /* Populate IDT: exceptions, IRQ, and then finally load it. */
-void install_idt() {
+void install_idt(void)
+
+/*++
+
+    Routine description:
+
+        Populates and loads the interrupt descriptor table.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     /* REMAP the PIC so IRQs start at vector 0x20 */
     __outbyte(0x20, 0x11); // initialize master PIC
     __outbyte(0xA0, 0x11); // initialize slave PIC
@@ -95,10 +132,10 @@ void install_idt() {
     extern void isr_clock(void); // LAPIC ISR.
     set_idt_gate(VECTOR_CLOCK, (unsigned long)isr_clock);
 
-#define LAPIC_SPURIOUS_VECTOR 254
+#define LAPIC_SPURIOUS_VECTOR 255
     /* For SIV LAPIC */
-    extern void isr254(void); // SIV ISR
-    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr254);
+    extern void isr255(void); // SIV ISR
+    set_idt_gate(LAPIC_SPURIOUS_VECTOR, (unsigned long)isr255);
 
     /* For LAPIC CPU Action */
     extern void isr_ipi(void);

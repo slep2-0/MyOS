@@ -2,28 +2,142 @@
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     GPLv3
  * PURPOSE:		Debugging Functions Implementation.
+ * NOTES:       This will be retired soon enough, a kernel debugger should replace this
+ *              instead of the kernel calling functions to set his own debug registers.
  */
 
 #include "../../includes/md.h"
 #include "../../includes/mh.h"
 
  /* Find a free debug slot (0..3) or -1 if none */
-int find_available_debug_reg(void) {
+int find_available_debug_reg(void)
+
+/*++
+
+    Routine description:
+
+        Finds an unused processor debug-address register.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The located index or identifier, or a negative value when no matching entry is found.
+
+--*/
+
+{
     for (int i = 0; i < 4; ++i) {
         if (MeGetCurrentProcessor()->DebugEntry[i].Callback == NULL) return i;
     }
     return -1;
 }
 
-static inline void write_dr_idx(int idx, uint64_t value) {
+static inline void write_dr_idx(int idx, uint64_t value)
+
+/*++
+
+    Routine description:
+
+        Writes an address to a selected processor debug register.
+
+    Arguments:
+
+        [IN] idx - Debug-register or collection index.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     __write_dr(idx, value);
 }
-static inline uint64_t read_dr7(void) { return __read_dr(7); }
-static inline void write_dr7(uint64_t v) { __write_dr(7, v); }
-static inline void write_dr6(uint64_t v) { __write_dr(6, v); }
+static inline uint64_t read_dr7(void)
+
+/*++
+
+    Routine description:
+
+        Reads the processor debug-control register.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The current DR7 register value.
+
+--*/
+
+{ return __read_dr(7); }
+static inline void write_dr7(uint64_t v)
+
+/*++
+
+    Routine description:
+
+        Writes the processor debug-control register.
+
+    Arguments:
+
+        [IN] v - Register value to write.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{ __write_dr(7, v); }
+static inline void write_dr6(uint64_t v)
+
+/*++
+
+    Routine description:
+
+        Writes the processor debug-status register.
+
+    Arguments:
+
+        [IN] v - Register value to write.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{ __write_dr(6, v); }
 
 // PUBLIC API
-MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* BreakpointAddress, DEBUG_ACCESS_MODE AccessMode, DEBUG_LENGTH Length) {
+MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* BreakpointAddress, DEBUG_ACCESS_MODE AccessMode, DEBUG_LENGTH Length)
+
+/*++
+
+    Routine description:
+
+        Sets hardware breakpoint for hardware debugging.
+
+    Arguments:
+
+        [IN] CallbackFunction - Callback invoked when the hardware breakpoint is hit.
+        [IN] BreakpointAddress - Instruction or data address on which to break.
+        [IN] AccessMode - Hardware-breakpoint access condition.
+        [IN] Length - Number of bytes or elements to process.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (!CallbackFunction || !BreakpointAddress) return MT_INVALID_PARAM;
     if (AccessMode == DEBUG_ACCESS_IO) return MT_NOT_IMPLEMENTED; /* legacy / not handled */
 #ifdef DEBUG
@@ -62,7 +176,7 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
     MeGetCurrentProcessor()->DebugEntry[idx].Address = BreakpointAddress;
     MeGetCurrentProcessor()->DebugEntry[idx].Callback = CallbackFunction;
 
-    IPI_PARAMS params;
+    IPI_PARAMS params = { 0 };
     kmemset(&params, 0, sizeof(IPI_PARAMS));
     params.debugRegs.address = addr;
     params.debugRegs.dr7 = dr7;
@@ -77,7 +191,25 @@ MTSTATUS MdSetHardwareBreakpoint(DebugCallback CallbackFunction, void* Breakpoin
 #endif
 }
 
-MTSTATUS MdClearHardwareBreakpointByIndex(int index) {
+MTSTATUS MdClearHardwareBreakpointByIndex(int index)
+
+/*++
+
+    Routine description:
+
+        Clears hardware breakpoint by index for hardware debugging.
+
+    Arguments:
+
+        [IN] index - Index of the entry to process.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (index < 0 || index > 3) return MT_INVALID_PARAM;
     if (MeGetCurrentProcessor()->DebugEntry[index].Callback == NULL && MeGetCurrentProcessor()->DebugEntry[index].Address == NULL) return MT_NOT_FOUND;
 
@@ -108,7 +240,25 @@ MTSTATUS MdClearHardwareBreakpointByIndex(int index) {
     return MT_SUCCESS;
 }
 
-MTSTATUS MdClearHardwareBreakpointByAddress(void* BreakpointAddress) {
+MTSTATUS MdClearHardwareBreakpointByAddress(void* BreakpointAddress)
+
+/*++
+
+    Routine description:
+
+        Clears hardware breakpoint by address for hardware debugging.
+
+    Arguments:
+
+        [IN] BreakpointAddress - Instruction or data address on which to break.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
+
+{
     if (!BreakpointAddress) return MT_INVALID_PARAM;
     for (int i = 0; i < 4; ++i) {
         if (MeGetCurrentProcessor()->DebugEntry[i].Address == BreakpointAddress) {

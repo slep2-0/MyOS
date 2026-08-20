@@ -1,0 +1,6 @@
+#ifndef MATANELOS_MTDLL_SYNCHAPI_H
+#define MATANELOS_MTDLL_SYNCHAPI_H
+
+#include "mtdll.h"
+
+#endif /* MATANELOS_MTDLL_SYNCHAPI_H */

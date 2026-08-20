@@ -88,11 +88,26 @@ PsInitializeProcessThreadManager(
     return MT_SUCCESS;
 }
 
-
 MTSTATUS
 PsInitializeSystem(
     IN  enum _PS_PHASE_ROUTINE Phase
 )
+
+/*++
+
+    Routine description:
+
+        Initializes process and thread object types and the system process.
+
+    Arguments:
+
+        [IN] Phase - Current phase of the stress test.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     if (Phase == PS_PHASE_INITIALIZE_SYSTEM) {

@@ -23,6 +23,7 @@ Revision History:
 #define MSR_LASTBRANCH_TOS  0x1C9
 #define MSR_LASTBRANCH_FROM0 0x680
 #define MSR_LASTBRANCH_TO0   0x6C0
+#define MSR_EFER 0xC0000080
 #define DPC_TARGET_CURRENT  0xFF
 
 #include <stdint.h>
@@ -32,8 +33,9 @@ Revision History:
 #include "../mtstatus.h"
 #include "../intrinsics/intrin.h"
 #include "../intrinsics/atomic.h"
+#include "../../shared/include/mtexception.h"
 
-// Other includes:	
+// Other includes:
 #include "mm.h"
 #include "mh.h"
 #include "ms.h"
@@ -42,16 +44,19 @@ Revision History:
 
 // ------------------ ENUMERATORS ------------------
 
-#define TICK_MS 4
+#define TICK_MS 10
+#define TICK_HZ (1000 / TICK_MS)
 typedef enum _TimeSliceTicks {
-	LOW_TIMESLICE_TICKS = 16 / TICK_MS,  /* 40 ms  */
-	DEFAULT_TIMESLICE_TICKS = 40 / TICK_MS,  /* 100 ms */
-	HIGH_TIMESLICE_TICKS = 100 / TICK_MS   /* 250 ms */
+	LOW_TIMESLICE_TICKS = 40 / TICK_MS,
+	DEFAULT_TIMESLICE_TICKS = 100 / TICK_MS,
+	HIGH_TIMESLICE_TICKS = 250 / TICK_MS
 } TimeSliceTicks, *PTimeSliceTicks;
 
+// Describes which subsystem owns cleanup of the thread's active wait block.
 typedef enum _WAIT_REASON {
-	Mutex = 0,
-	Sleeping = 1,
+	WaitReasonNone, // The thread has no active wait.
+	WaitReasonSleep,
+	WaitReasonDispatcherObject
 } WAIT_REASON;
 
 typedef enum _DPC_PRIORITY {
@@ -59,7 +64,7 @@ typedef enum _DPC_PRIORITY {
 	LOW_PRIORITY = 25,
 	MEDIUM_PRIORITY = 50,
 	HIGH_PRIORITY = 75,
-	SYSTEM_PRIORITY = 99
+	//SYSTEM_PRIORITY = 99 - Unused.
 } DPC_PRIORITY;
 
 
@@ -134,12 +139,25 @@ typedef enum _BUGCHECK_CODES {
 	INVALID_PROCESS_ATTACH_ATTEMPT,
 	CRITICAL_PROCESS_DIED,
 	WORKER_THREAD_ATTEMPTED_TERMINATION,
-	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY
+	ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
+	MSMGR_INIT_FAILED,
+	DPC_EXECUTE_FAILURE,
+	MEMORY_OVERFLOW_DETECTION,
+	PROCESSOR_POINTER_CORRUPTION,
+	KERNEL_STACK_COOKIE_CORRUPTION,
+	INVALID_KERNEL_STACK_ADDRESS,
+	SCHEDULER_FAILURE,
+	PFN_TRANSITION_FAILURE,
+	PFN_RELEASE_STILL_MAPPED,
+	WAIT_STATE_FAILURE,
+	PIT_TIMER_FAILURE,
+	TIMEBASE_INITIALIZATION_FAILURE,
+	SMP_SYNCHRONIZATION_TIMEOUT,
+	WRONG_DISPATCHER_HEADER,
+	SEMAPHORE_LIMIT_REACHED,
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
-
-typedef void (*DebugCallback)(void*);
 
 typedef struct _DEBUG_ENTRY {
 	void* Address;
@@ -147,9 +165,18 @@ typedef struct _DEBUG_ENTRY {
 } DEBUG_ENTRY;
 
 typedef struct _WAIT_BLOCK {
-	struct _SINGLE_LINKED_LIST WaitBlockList;	// List entry of the current wait block of the thread.
-	void* Object;								// Pointer to the object it is currently waiting on (indicated which one by WaitReason)
-	enum _WAIT_REASON WaitReason;				// Defines which object the thread is currently waiting on (indicated by the _WAIT_REASON Enumerator)
+	DOUBLY_LINKED_LIST ObjectListEntry; // Links this thread into one dispatcher object's wait list.
+	DOUBLY_LINKED_LIST TimerListEntry;  // Independently links the same wait into the timer queue.
+	PDISPATCHER_HEADER Object;          // Dispatcher object being waited on, or NULL for a pure sleep.
+	enum _WAIT_REASON WaitReason;       // Selects the subsystem responsible for wait cleanup.
+
+	/*
+	WaitReason is intentionally explicit even though Object often implies it.
+	Timer expiration and termination use it to choose the correct cleanup path
+	and to detect a stale or corrupt wait block before touching another queue.
+	*/
+
+	uint64_t WakeupTime; // Absolute system-tick deadline; zero when no timer is registered.
 } WAIT_BLOCK, *PWAIT_BLOCK;
 
 typedef struct _TRAP_FRAME {
@@ -161,7 +188,7 @@ typedef struct _TRAP_FRAME {
 	uint64_t cs;
 	uint64_t rflags;
 	uint64_t rsp;
-	uint64_t ss; 
+	uint64_t ss;
 } TRAP_FRAME, *PTRAP_FRAME;
 
 typedef enum _DEBUG_ACCESS_MODE {
@@ -214,16 +241,26 @@ typedef struct _DPC {
 	// Determines if it goes to tail or head of queue.
 	enum _DPC_PRIORITY priority;
 
-	// Determines to which CPU this DPC is supposed to be executed on, this allows multiple re-entracy.
-	uint8_t CpuNumber; // 0xFF means current CPU, else its per lapic id.
+	// Selects the target processor for the DPC.
+	uint8_t CpuNumber; // DPC_TARGET_CURRENT means the inserting CPU; otherwise this is a processor-array index.
 } DPC, *PDPC;
 
-typedef enum _CPU_FLAGS {
-	CPU_ONLINE = 1 << 0,  // 0b0001
-	CPU_HALTED = 1 << 1,  // 0b0010
-	CPU_DOING_IPI = 1 << 2,  // 0b0100
-	CPU_UNAVAILABLE = 1 << 3   // 0b1000
-} CPU_FLAGS;
+typedef enum _PROCESSOR_STATE {
+	ProcessorStateUninitialized = 0,
+	ProcessorStateUnavailable,
+	ProcessorStateOnline,
+	ProcessorStateHalted
+} PROCESSOR_STATE;
+
+typedef enum _PROCESSOR_STARTUP_STAGE {
+	ProcessorStartupNotStarted = 0,
+	ProcessorStartupAllocated,
+	ProcessorStartupApMainEntered,
+	ProcessorStartupExecutiveReady,
+	ProcessorStartupSchedulerReady,
+	ProcessorStartupLapicReady,
+	ProcessorStartupOnline
+} PROCESSOR_STARTUP_STAGE;
 
 // DPC Embedded struct into CPU.
 typedef struct _DPC_DATA {
@@ -233,19 +270,15 @@ typedef struct _DPC_DATA {
 	volatile uint32_t DpcCount; // Statistics
 } DPC_DATA, *PDPC_DATA;
 
-typedef struct _APC {
-	uint8_t unsetupped;
-} APC, *PAPC;
-
 #define LASTFUNC_BUFFER_SIZE 128
 #define LASTFUNC_HISTORY_SIZE 25
 
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
-#define KERNEL_DS       0x10    // Entry 2: Kernel Data  
+#define KERNEL_DS       0x10    // Entry 2: Kernel Data
 #define KERNEL_SS       0x10    // Same as KERNEL_DS (data segment used for stack)
-#define USER_DS         0x1B    // Entry 3: User Data 
+#define USER_DS         0x1B    // Entry 3: User Data
 #define USER_CS         0x23    // Entry 4: User Code (CPL=3)
-#define USER_SS         USER_DS    // Same as USER_DS 
+#define USER_SS         USER_DS    // Same as USER_DS
 #define INITIAL_RFLAGS  0x202
 #define USER_RFLAGS     0x246 // IF=1, IOPL=0
 
@@ -255,15 +288,44 @@ typedef struct _APC_STATE {
 	bool AttachedToProcess;
 	IRQL PreviousIrql;
 	bool SavedThreadAttached;
+
+	// APC queue state. KernelMode and UserMode are the queue indexes.
+	DOUBLY_LINKED_LIST ApcListHead[2];
+	bool KernelApcPending;
+	bool KernelApcInProgress;
+	bool UserApcPending;
 } APC_STATE, *PAPC_STATE;
 
+typedef void (*PNORMAL_ROUTINE)(void* NormalContext, void* SystemArgument1, void* SystemArgument2);
+typedef void (*PKERNEL_ROUTINE)(PAPC Apc, PNORMAL_ROUTINE* NormalRoutine, void** NormalContext, void** SystemArgument1, void** SystemArgument2);
+typedef void (*PRUNDOWN_ROUTINE)(PAPC Apc);
+
+typedef struct _APC {
+	uint8_t ApcMode;             // KernelMode or UserMode; also selects ApcState.ApcListHead.
+	uint8_t Inserted;            // Nonzero while linked into the target thread's APC queue.
+
+	struct _ITHREAD* Thread;     // The target thread that will execute this APC
+	struct _DOUBLY_LINKED_LIST ApcListEntry; // Node for the thread's APC queue
+
+	// Routines
+	PKERNEL_ROUTINE KernelRoutine;
+	PRUNDOWN_ROUTINE RundownRoutine;
+	PNORMAL_ROUTINE NormalRoutine;
+
+	// Context / Arguments
+	void* NormalContext;         // Caller-supplied context passed to the normal routine.
+	void* SystemArgument1;       // OS arg1
+	void* SystemArgument2;       // OS arg2
+} APC, * PAPC;
+
 typedef struct _IPROCESS {
+	struct _DISPATCHER_HEADER Header; // Used for waiting on a process until termination.
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
-	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
 	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;
 
 typedef struct _ITHREAD {
+	struct _DISPATCHER_HEADER Header; // Used for waiting on a thread until termination.
 	struct _TRAP_FRAME TrapRegisters;					   // Trap Registers used for context switching, saving, and alternation.
 	uint32_t ThreadState;								   // Current thread state, presented by the THREAD_STATE enumerator.
 	void* StackBase;									   // Base of the thread's stack (allocated), used for also freeing it by the memory manager (Mm).
@@ -271,27 +333,99 @@ typedef struct _ITHREAD {
 	void* KernelStack;									   // The threads stack when in kernel space.
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
-	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)			
+	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)
+	uint64_t UserFsBase;								   // User-mode FS base restored when this thread resumes.
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
-	struct _WAIT_BLOCK WaitBlock;						   // Wait block of the current thread, defines a list of which events the thread is waiting on (mutex event, general sleeping)
+	struct _WAIT_BLOCK WaitBlock; // Embedded registration for the thread's single active wait.
+	volatile uint32_t WaitStatus; // MT_PENDING until exactly one wake source claims the result.
+	// Set only after the winning source has removed every queue registration
+	// and entered MsCompleteThreadWait. THREAD_BLOCKING cannot be cancelled
+	// from WaitStatus alone because the winner may still be using WaitBlock.
+	volatile bool WaitCompletionComplete;
+	// Mutex ownership tracking.
+	//
+	// This is the LIST HEAD for every mutex currently owned by this thread.
+	// Each owned MUTEX is linked here through MUTEX.OwnerListEntry.
+	// OwnedMutexesListLock protects only these list links. The mutex's
+	// Header.Lock protects its OwnerThread, SignalState, and Abandoned state.
+	// If both locks are needed, acquire the mutex Header.Lock first, then this
+	// thread's OwnedMutexesListLock. Never acquire them in the opposite order.
+	DOUBLY_LINKED_LIST OwnedMutexListHead;
+	SPINLOCK OwnedMutexesListLock;
+
+	// Apc Related
+	SPINLOCK ApcQueueLock; // Protects APC queues, Inserted, APC state, and suspend-count transitions.
+	bool UserApcActive;    // True after a user APC frame is injected and until MtContinue returns from it.
+
+	// Critical-region nesting count.
+	//   0  = normal kernel APCs enabled.
+	//  < 0 = normal kernel APCs disabled; each MeEnterCriticalRegion decrements it.
+	//  > 0 = invalid state, usually caused by leaving a critical region without
+	//        a matching enter.
+	int16_t KernelApcDisable;
+
+	// Guarded-region nesting count.
+	//   0  = special kernel APCs enabled.
+	//  < 0 = special kernel APCs disabled; each MeEnterGuardedRegion decrements it.
+	//        Because normal kernel APC delivery also requires this value to be zero,
+	//        a guarded region effectively disables all kernel APCs.
+	//  > 0 = invalid state, usually caused by leaving a guarded region without
+	//        a matching enter.
+	int16_t SpecialApcDisable;
+
+	bool ApcQueueable; // Boolean that controlls if you can queue APCs to this thread.
+
+	// Thread suspension
+	// Number of unmatched suspend requests. A positive value means suspension
+	// is logically required, although normal-APC delivery may still be pending.
+	// Held and changed under APC Queue Lock
+	uint32_t SuspendCount;
+
+	// True while one suspend APC invocation owns suspension enforcement. Unlike
+	// SuspendAPC.Inserted, this remains true after dequeue while the APC is
+	// executing, waiting on SuspendSemaphore, or deciding whether to wait again.
+	// Protected by ApcQueueLock.
+	bool SuspendApcActive;
+
+	// Reusable normal kernel APC that makes this thread wait in its own context.
+	APC SuspendAPC;
+
+	// One-permit resume gate, not the suspension-state flag. SignalState zero
+	// closes the gate; one is a transient resume permit that the APC wait consumes.
+	SEMAPHORE SuspendSemaphore;
+
+	// Exception stuffz
+	bool UserExceptionPending;
+	bool UserExceptionActive;
+	EXCEPTION_RECORD PendingExceptionRecord;
+
+	PTRAP_FRAME SyscallTrap; // A pointer to the trap frame last saved by the syscall handler, ONLY SYSTEM CALLS ARE ALLOWED TO TOUCH THIS!
+
+	// Procesor Related
+	// CPU that owns this thread's kernel context after its first dispatch.
+	// Wait completion queues it back there so another CPU cannot restore a
+	// stack while the owner is still finishing the switch-away path.
+	struct _PROCESSOR* ActiveProcessor;
 } ITHREAD, *PITHREAD;
 
-// Note to self: Re-organize this to match more of the KPRCB style, that style is way more consistent across the board (Separates between scheduler and Processor, yada yada)
 typedef struct _PROCESSOR {
 	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
+
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
-	enum _IRQL currentIrql; // An integer that represents the current interrupt request level of the CPU. Declares which LAPIC & IOAPIC interrupts are masked
-	volatile bool schedulerEnabled; // A boolean value that indicates if the scheduler is allowed to be called after an interrupt.
+	enum _IRQL currentIrql; // Current CPU IRQL; controls CR8-based local interrupt priority masking.
+
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
 	struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
-	void* VirtStackTop; // Pointer to top of CPU Stack.
+	void* VirtStackTop; // Pointer to top of CPU Stack. -- NOTE (FIXME): I dont get why do we need this, since every stack onward should be the THREADS kernel stack, or an IST stack, not this.
 	void* tss; // Task State Segment ptr.
-	void* Rsp0; // General RSP for interrupts & syscalls (entry only) & exceptions.
-	void* IstPFStackTop; // Page Fault IST Stack
+	void* Rsp0; // General RSP for interrupts & syscalls (entry only).
+	void* IstPFStackTop; // Reserved page-fault alternate stack; vector 14 currently uses RSP0.
 	void* IstDFStackTop; // Double Fault IST Stack
-	volatile uint64_t flags; // CPU Flags (CPU_FLAGS enum), contains the current state of the CPU, in bitfields.
+	volatile PROCESSOR_STATE State; // Mutually exclusive processor lifecycle state.
+	volatile bool IpiRoutineActive; // Independent of State: an online CPU may be handling an IPI.
+	volatile uint32_t StartupStage; // PROCESSOR_STARTUP_STAGE, published during AP startup.
 	bool schedulePending; // A boolean value that indicates if a schedule is currently pending on the CPU
 	uint64_t* gdt; // A pointer to the current GDT of the CPU (set in the CPUs AP entry), does not include BSP GDT.
 	struct _DPC* CurrentDeferredRoutine; // Current deferred routine that is executed by the CPU.
@@ -305,29 +439,22 @@ typedef struct _PROCESSOR {
 
 	/* Statically Special Allocated DPCs */
 	struct _DPC TimerExpirationDPC;
-	struct _DPC	ReaperDPC;
 	/* End Statically Special Allocated DPCs */
 
 	// Additional DPC Fields
 	DPC_DATA DpcData;					 // The main DPC queue
 	volatile bool DpcRoutineActive;      // TRUE if inside MeRetireDPCs
-	volatile uint32_t TimerRequest;      // Non-zero if timers need processing (unused)
-	uintptr_t TimerHand;                 // Context for timer expiration (unused)
-
-	// Additional APC Fields
-	volatile bool ApcRoutineActive; // True if inside MeRetireAPCs
 
 	// Fields for depth and performance analysis
 	uint32_t MaximumDpcQueueDepth;
 	uint32_t MinimumDpcRate;
 	uint32_t DpcRequestRate;
 
+	// Additional APC Fields
+	volatile bool ApcRoutineActive; // True only while this CPU is executing MeRetireAPCs.
+
 	// Interrupt requests
 	volatile bool DpcInterruptRequested; // True if we requested an interrupt to handle deferred procedure calls.
-	volatile bool ApcInterruptRequested; // (Undeveloped yet) True if we requested an interrupt for APCs.
-
-	// Scheduler Lock
-	SPINLOCK SchedulerLock;
 
 	// Per CPU Lookaside pools
 	POOL_DESCRIPTOR LookasidePools[MAX_POOL_DESCRIPTORS];
@@ -343,10 +470,24 @@ typedef struct _PROCESSOR {
 	// Syscall data
 	uint64_t UserRsp; // User saved RSP during syscall handling.
 	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
+
+	// Critical exceptions must never enter on a transient or user-controlled RSP.
+	void* IstNmiStackTop;
+	void* IstMachineCheckStackTop;
+	void* IstDebugStackTop;
 } PROCESSOR, *PPROCESSOR;
 
-// ------------------ FUNCTIONS ------------------
 
+// ------------------ FUNCTIONS ------------------
+extern volatile uint64_t MeSystemTickCount;
+extern PPROCESSOR MeClockProcessor;
+
+#define INIT_WAIT_BLOCK(ThreadPtr, WaitObject, Reason, WakeTime)       \
+    do {                                                               \
+        (ThreadPtr)->WaitBlock.Object     = (WaitObject);              \
+        (ThreadPtr)->WaitBlock.WaitReason = (Reason);                  \
+        (ThreadPtr)->WaitBlock.WakeupTime = (WakeTime);                \
+    } while (0)
 
 NORETURN
 void
@@ -364,6 +505,21 @@ MeBugCheckEx(
 	IN void* BugCheckParameter4
 );
 
+bool
+MeIsBugCheckActive(
+	void
+);
+
+void
+MeEnableInterrupts(
+	IN bool EnabledBefore
+);
+
+bool
+MeDisableInterrupts(
+	void
+);
+
 FORCEINLINE
 PPROCESSOR
 MeGetCurrentProcessor (void)
@@ -373,33 +529,6 @@ MeGetCurrentProcessor (void)
 	return (PPROCESSOR)__readgsqword(0); // Only works because we have a self pointer at offset 0 in the struct.
 }
 
-FORCEINLINE
-void
-MeAcquireSchedulerLock(void)
-
-{
-	PPROCESSOR cpu = MeGetCurrentProcessor();
-	// Acquire the spinlock. (FIXME MsAcquireSpinlockAtSynchLevel(&cpu->SchedulerLock)
-	while (__sync_lock_test_and_set(&cpu->SchedulerLock.locked, 1)) {
-		__asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
-	}
-	// Memory barrier to prevent instruction reordering
-	__asm__ volatile("" ::: "memory");
-	cpu->schedulerEnabled = false;
-}
-
-FORCEINLINE
-void
-MeReleaseSchedulerLock(void)
-
-{
-	PPROCESSOR cpu = MeGetCurrentProcessor();
-	cpu->schedulerEnabled = true;
-	// Release the spinlock. (FIXME MsReleaseSpinlockFromSynchLevel(&cpu->SchedulerLock)
-	__asm__ volatile("" ::: "memory");
-	__sync_lock_release(&cpu->SchedulerLock.locked);
-}
-
 extern uint32_t g_cpuCount;
 
 FORCEINLINE
@@ -407,31 +536,22 @@ uint8_t
 MeGetActiveProcessorCount(void)
 
 {
-	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :) 
+	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :)
 }
 
 FORCEINLINE
 IRQL
 MeGetCurrentIrql(void)
 
-/*++
-
-	Routine description : Retrieves the IRQL of the current processor.
-
-	Arguments:
-
-		None.
-
-	Return Values:
-
-		Current IRQL at time of call.
-
---*/
-
+// Returns the IRQL of the current processor.
 {
 #ifdef DEBUG
 	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
-	if (returningIrql > HIGH_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
+	// IRQL is an enum in the current PROCESSOR struct (signed integer)
+	// if it ever change, this should catch it
+	// REMEMBER TO CHANGE FROM QWORD TO BYTE IN SLEEP.ASM TOO!
+	VALIDATE_MEMBER_SIZE(PROCESSOR, currentIrql, 4);
+	if (returningIrql > HIGH_LEVEL || returningIrql < PASSIVE_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
 	return returningIrql;
 #else
 	return (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
@@ -443,20 +563,7 @@ FORCEINLINE
 PITHREAD
 MeGetCurrentThread(void)
 
-/*++
-
-	Routine description : Retrieves the current running thread on the processor.
-
-	Arguments:
-
-		None.
-
-	Return Values:
-
-		Current thread running on time of call (this thread)
-
---*/
-
+// Returns the thread currently running on this processor.
 {
 	return (PITHREAD)__readgsqword(FIELD_OFFSET(PROCESSOR, currentThread));
 }
@@ -466,7 +573,7 @@ bool
 MeIsExecutingDpc(void)
 
 {
-	return (bool)__readgsqword(FIELD_OFFSET(PROCESSOR, DpcRoutineActive));
+	return __readgsbyte(FIELD_OFFSET(PROCESSOR, DpcRoutineActive)) != 0;
 }
 
 FORCEINLINE
@@ -490,6 +597,148 @@ MeGetCurrentProcessorNumber(
 	return (uint32_t)__readgsqword(FIELD_OFFSET(PROCESSOR, ID));
 }
 
+FORCEINLINE
+void
+MeClearWaitBlock(
+	PITHREAD Thread
+)
+
+{
+	Thread->WaitBlock.Object = NULL;
+	Thread->WaitBlock.WaitReason = WaitReasonNone;
+	Thread->WaitBlock.WakeupTime = 0;
+}
+
+void
+MiCheckForKernelApcDelivery(
+	void
+);
+
+FORCEINLINE
+void
+MeEnterCriticalRegion(
+	void
+)
+
+{
+	PITHREAD Thread = MeGetCurrentThread();
+
+	// Early boot and scheduler bootstrap do not have a current thread yet.
+	// There is no thread APC state to disable in that execution context.
+	if (Thread == NULL) {
+		return;
+	}
+
+	if (Thread->KernelApcDisable > 0 || Thread->KernelApcDisable == INT16_MIN) {
+		MeBugCheckEx(
+			WAIT_STATE_FAILURE,
+			MeEnterCriticalRegion,
+			Thread,
+			(void*)(uintptr_t)Thread->KernelApcDisable,
+			NULL
+		);
+	}
+
+	// No need to interlocked decrement, this is a local thread only.
+	Thread->KernelApcDisable--;
+	MmBarrier();
+}
+
+FORCEINLINE
+void
+MeLeaveCriticalRegion(
+	void
+)
+
+{
+	PITHREAD Thread = MeGetCurrentThread();
+
+	// Match MeEnterCriticalRegion for pre-thread boot execution. No APC-disable
+	// count was changed, so there is no thread state to restore here.
+	if (Thread == NULL) {
+		return;
+	}
+
+	if (Thread->KernelApcDisable >= 0) {
+		MeBugCheckEx(
+			WAIT_STATE_FAILURE,
+			MeLeaveCriticalRegion,
+			Thread,
+			(void*)(uintptr_t)Thread->KernelApcDisable,
+			NULL
+		);
+	}
+
+	// Increment and check for Normal APCs to
+	Thread->KernelApcDisable++;
+	if (Thread->KernelApcDisable == 0) {
+		// Check if the APC List isn't empty.
+		if (InterlockedLoad(&Thread->ApcState.KernelApcPending)) {
+
+			// Check if we are in a guraded region
+			if (Thread->SpecialApcDisable == 0) {
+				// APC List isnt empty and we are not in a guarded region, deliver APCs.
+				MiCheckForKernelApcDelivery();
+			}
+
+		}
+	}
+
+	MmBarrier();
+}
+
+FORCEINLINE
+bool
+MeIsSpecialApc(
+	const PAPC Apc
+)
+{
+	return Apc != NULL &&
+		Apc->ApcMode == KernelMode &&
+		Apc->NormalRoutine == NULL;
+}
+
+FORCEINLINE
+bool
+MeIsNormalKernelApc(
+	const PAPC Apc
+)
+{
+	return Apc != NULL &&
+		Apc->ApcMode == KernelMode &&
+		Apc->NormalRoutine != NULL;
+}
+
+FORCEINLINE
+bool
+MeIsUserApc(
+	const PAPC Apc
+)
+{
+	return Apc != NULL &&
+		Apc->ApcMode == UserMode &&
+		Apc->NormalRoutine != NULL;
+}
+
+FORCEINLINE
+bool
+MeIsNormalApc(
+	const PAPC Apc
+)
+{
+	return Apc != NULL &&
+		Apc->NormalRoutine != NULL;
+}
+
+FORCEINLINE
+bool
+MeIsKernelApc(
+	const PAPC Apc
+)
+{
+	return Apc != NULL &&
+		Apc->ApcMode == KernelMode;
+}
 void
 MeInitializeProcessor(
 	IN PPROCESSOR CPU,
@@ -503,9 +752,94 @@ MeRaiseIrql(
 	OUT PIRQL OldIrql
 );
 
-void 
+void
 MeLowerIrql(
 	IN IRQL NewIrql
+);
+
+void
+MeInitializeApc(
+	IN PAPC Apc,
+	IN struct _ITHREAD* TargetThread,
+	IN PRIVILEGE_MODE ApcMode,
+	IN PKERNEL_ROUTINE KernelRoutine,
+	_In_Opt PRUNDOWN_ROUTINE RundownRoutine,
+	_In_Opt PNORMAL_ROUTINE NormalRoutine,
+	_In_Opt void* NormalContext
+);
+
+/*
+ * Internal APC publication primitive.
+ *
+ * The caller must hold Apc->Thread->ApcQueueLock.
+ *
+ * TargetProcessor receives the CPU currently executing the target thread.
+ * After releasing ApcQueueLock, the caller must request an APC interrupt on
+ * that CPU so a running thread notices the newly queued APC promptly. NULL
+ * means that the thread is not currently running; its pending flag is enough
+ * to arrange delivery when it is next dispatched.
+ *
+ * This routine never sends the interrupt itself because a remote delivery
+ * request may wait for the target CPU and must not run while ApcQueueLock is
+ * held.
+ */
+bool
+MepInsertQueueApcLocked(
+	IN PAPC Apc,
+	IN void* SystemArgument1,
+	IN void* SystemArgument2,
+	OUT PPROCESSOR* TargetProcessor
+);
+
+bool
+MeInsertQueueApc(
+	IN PAPC Apc,
+	IN void* SystemArgument1,
+	IN void* SystemArgument2
+);
+
+bool
+MeRemoveQueueApc(
+	IN PAPC Apc
+);
+
+void
+MeRetireAPCs(
+	IN PTRAP_FRAME TrapFrame
+);
+
+void
+MePrepareUserApcForReturn(
+	PTRAP_FRAME ReturnFrame
+);
+
+void
+MePrepareUserDispatchForReturn(
+	PTRAP_FRAME TrapFrame
+);
+
+void
+MeRetireApcsOnSyscallExit(
+	IN PTRAP_FRAME SyscallFrame
+);
+
+MTSTATUS
+MeSuspendThread(
+	IN PITHREAD Thread,
+	OUT uint32_t* PreviousSuspendCount
+);
+
+MTSTATUS
+MeResumeThread(
+	IN PITHREAD Thread,
+	OUT uint32_t* PreviousSuspendCount
+);
+
+bool
+MepMigrateReadyThread(
+	PETHREAD Thread,
+	PPROCESSOR Source,
+	PPROCESSOR Destination
 );
 
 void
@@ -534,6 +868,11 @@ MeInsertQueueDpc(
 	IN void* SystemArgument2
 );
 
+void
+MeRequestCurrentDpcInterrupt(
+	void
+);
+
 bool
 MeRemoveQueueDpc(
 	IN PDPC Dpc
@@ -545,7 +884,6 @@ MeRetireDPCs(
 );
 
 void CleanStacks(DPC* dpc, void* thread, void* allocatedDPC, void* arg4);
-void ReapOb(DPC* dpc, void* DeferredContext, void* SystemArgument1, void* SystemArgument2);
 void InitScheduler(void);
 
 void
@@ -579,16 +917,6 @@ MeGetPreviousMode(
 		return KernelMode;
 	}
 }
-
-void
-MeEnableInterrupts(
-	IN bool EnabledBefore
-);
-
-bool
-MeDisableInterrupts(
-	void
-);
 
 bool
 MeAreInterruptsEnabled(

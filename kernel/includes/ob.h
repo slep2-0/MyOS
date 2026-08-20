@@ -55,10 +55,8 @@ typedef struct _OBJECT_TYPE {
 // Object header (it is aligned to 16 bytes, to avoid bugs)
 typedef struct _OBJECT_HEADER {
     uint64_t PointerCount; // Number of kernel pointers referencing this object.
-    union {
-        uint64_t HandleCount;  // Number of user handles open
-        volatile void* NextToFree; // If object is deferred for deletion, NextToFree is used instead of HandleCount.
-    };
+    uint64_t HandleCount;  // Number of user handles open
+    volatile void* NextToFree; // Link used by the deferred-deletion stack.
     POBJECT_TYPE Type;  // Pointer to type definition.
     uint32_t Flags;
 } __attribute__((aligned(16))) OBJECT_HEADER, *POBJECT_HEADER;
@@ -77,12 +75,11 @@ extern POBJECT_TYPE PsProcessType;
 extern POBJECT_TYPE PsThreadType;
 extern POBJECT_TYPE MmSectionType;
 
-typedef uint32_t ACCESS_MASK;
-
 void ObInitialize(void);
+void ObInitializeReaperThread(void);
 
 MTSTATUS ObCreateObjectType(
-    IN char* TypeName,
+    IN const char* TypeName,
     IN POBJECT_TYPE_INITIALIZER ObjectTypeInitializer,
     OUT POBJECT_TYPE* ObjectType
 );
@@ -145,6 +142,14 @@ ObOpenObjectByPointer(
 
 void ObDereferenceObject(
     IN  void* Object
+);
+
+void ObIncrementHandleCount(
+    IN void* Object
+);
+
+void ObDecrementHandleCount(
+    IN void* Object
 );
 
 void ObDeleteObject(

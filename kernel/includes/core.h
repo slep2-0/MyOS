@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "annotations.h"
 #include "../mtstatus.h"
+#include "../../shared/include/mttypes.h"
 
 typedef enum _IRQL {
 	PASSIVE_LEVEL = 0,
@@ -22,14 +23,14 @@ typedef enum _IRQL {
 	HIGH_LEVEL = 31
 } IRQL, * PIRQL;
 
+typedef enum _PRIVILEGE_MODE {
+	KernelMode = 0,
+	UserMode = 1
+} PRIVILEGE_MODE, * PPRIVILEGE_MODE;
+
 typedef struct _SINGLE_LINKED_LIST {
 	struct _SINGLE_LINKED_LIST* Next;
 } SINGLE_LINKED_LIST, * PSINGLE_LINKED_LIST;
-
-typedef struct _DOUBLY_LINKED_LIST {
-	struct _DOUBLY_LINKED_LIST* Blink;
-	struct _DOUBLY_LINKED_LIST* Flink;
-} DOUBLY_LINKED_LIST, * PDOUBLY_LINKED_LIST;
 
 struct _ITHREAD;
 typedef struct _ITHREAD ITHREAD;
@@ -55,7 +56,20 @@ struct _TRAP_FRAME;
 typedef struct _TRAP_FRAME TRAP_FRAME;
 typedef TRAP_FRAME* PTRAP_FRAME;
 
-typedef int32_t HANDLE, * PHANDLE;
-typedef uint32_t ACCESS_MASK;
+struct _FILE_OBJECT;
+typedef struct _FILE_OBJECT FILE_OBJECT;
+typedef FILE_OBJECT* PFILE_OBJECT;
+
+struct _OBJECT_TYPE;
+typedef struct _OBJECT_TYPE OBJECT_TYPE;
+typedef OBJECT_TYPE* POBJECT_TYPE;
+
+struct _APC;
+typedef struct _APC APC;
+typedef APC* PAPC;
+
+struct _DPC;
+typedef struct _DPC DPC;
+typedef DPC* PDPC;
 
 #endif // MATANEL_CORE_H

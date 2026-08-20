@@ -30,6 +30,35 @@ extern "C" {
 
 #define ATOMIC_ORDER __ATOMIC_SEQ_CST
 
+    /*
+     * Type-preserving atomic publication helpers.
+     *
+     * These are macros because C has no function overloading: the same helper
+     * must accept integers, booleans, enums, and pointers without discarding
+     * their type. Callers use these names instead of compiler builtins; the
+     * compiler-specific implementation remains isolated in this header.
+     */
+
+     // Sequentially consistent atomic load: participates in one global order.
+#define InterlockedLoad(Target) \
+    __atomic_load_n((Target), __ATOMIC_SEQ_CST)
+
+// Acquire load: later memory operations cannot move before this load.
+#define InterlockedLoadAcquire(Target) \
+    __atomic_load_n((Target), __ATOMIC_ACQUIRE)
+
+// Relaxed load: atomic read only, with no synchronization ordering.
+#define InterlockedLoadRelaxed(Target) \
+    __atomic_load_n((Target), __ATOMIC_RELAXED)
+
+// Sequentially consistent atomic store: participates in one global order.
+#define InterlockedStore(Target, Value) \
+    __atomic_store_n((Target), (Value), __ATOMIC_SEQ_CST)
+
+// Release store: earlier memory operations cannot move after this store.
+#define InterlockedStoreRelease(Target, Value) \
+    __atomic_store_n((Target), (Value), __ATOMIC_RELEASE)
+
    /* Exchange (returns previous value) */
     FORCEINLINE int8_t  InterlockedExchange8(volatile int8_t* target, int8_t  value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }
     FORCEINLINE int16_t InterlockedExchange16(volatile int16_t* target, int16_t value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }
@@ -41,9 +70,57 @@ extern "C" {
     FORCEINLINE uint32_t InterlockedExchangeU32(volatile uint32_t* target, uint32_t value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }
     FORCEINLINE uint64_t InterlockedExchangeU64(volatile uint64_t* target, uint64_t value) { return __atomic_exchange_n(target, value, ATOMIC_ORDER); }
 
+    /* Increment (returns previous value) */
+    FORCEINLINE int8_t
+        InterlockedExchangeIncrement8(volatile int8_t* target)
+    {
+        return __atomic_fetch_add(target, (int8_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE int16_t
+        InterlockedExchangeIncrement16(volatile int16_t* target)
+    {
+        return __atomic_fetch_add(target, (int16_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE int32_t
+        InterlockedExchangeIncrement32(volatile int32_t* target)
+    {
+        return __atomic_fetch_add(target, (int32_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE int64_t
+        InterlockedExchangeIncrement64(volatile int64_t* target)
+    {
+        return __atomic_fetch_add(target, (int64_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE uint8_t
+        InterlockedExchangeIncrementU8(volatile uint8_t* target)
+    {
+        return __atomic_fetch_add(target, (uint8_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE uint16_t
+        InterlockedExchangeIncrementU16(volatile uint16_t* target)
+    {
+        return __atomic_fetch_add(target, (uint16_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE uint32_t
+        InterlockedExchangeIncrementU32(volatile uint32_t* target)
+    {
+        return __atomic_fetch_add(target, (uint32_t)1, ATOMIC_ORDER);
+    }
+
+    FORCEINLINE uint64_t
+        InterlockedExchangeIncrementU64(volatile uint64_t* target)
+    {
+        return __atomic_fetch_add(target, (uint64_t)1, ATOMIC_ORDER);
+    }
     /* Pointer exchange */
     FORCEINLINE void* InterlockedExchangePtr(volatile void* volatile* target, void* value) {
-        return __atomic_exchange_n((void* volatile*)target, value, __ATOMIC_ACQUIRE);
+        return __atomic_exchange_n((void* volatile*)target, value, ATOMIC_ORDER);
     }
 
     /* CompareExchange (returns initial value that was at target) */

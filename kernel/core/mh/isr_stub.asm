@@ -11,6 +11,9 @@ extern MhHandleInterrupt
 ; Extern the DPC handler.
 extern MeRetireDPCs
 
+; True only when every STAC/CLAC use is valid and CR4.SMAP is enabled.
+extern MeSmapEnabled
+
 ;---------------------------------------------------------------------------
 ; Macro: DEFINE_ISR
 ; Creates an ISR entry for exception vectors 0-31
@@ -98,6 +101,14 @@ isr_clock:
 global isr_common_stub64
 
 isr_common_stub64:
+    ; RFLAGS has already been saved by the CPU.  Clear a user-controlled AC
+    ; bit before any C handler touches kernel memory.  IRET restores the saved
+    ; value, including when this interrupted a kernel-mode user-copy window.
+    cmp byte [rel MeSmapEnabled], 0
+    je .access_state_safe
+    clac
+
+.access_state_safe:
     ; Execute SWAPGS if we came from user mode
     test byte [rsp + 24], 3
     jnz .do_swap
@@ -112,9 +123,15 @@ isr_common_stub64:
     mov ecx, IA32_KERNEL_GS_BASE
     rdmsr
 
-    ; If the high 32bits are non zero, it means KERNEL_GS_BASE holds a kernel ptr (our CPU ptr)
-    test edx, edx
+    ; If bit 63 is set, KERNEL_GS_BASE holds a higher-half kernel pointer
+    ; (our CPU ptr), so we are in the small SWAPGS gap and must swap back.
+    ; User TEB pointers can still have non-zero high32 bits, so testing EDX
+    ; for non-zero here corrupts GS during interrupts inside syscalls.
+    test edx, 0x80000000
     jz .kernel_is_safe
+    ; Mark that this entry actually swapped. The vector is below the three
+    ; scratch pushes at this point.
+    bts qword [rsp + 24], 63
     swapgs
 
 .kernel_is_safe:
@@ -124,6 +141,10 @@ isr_common_stub64:
     jmp .skip_swapgs
 
 .do_swap:
+    ; Bit 63 is not part of an x86 vector. Use it as an entry-local marker so
+    ; exit reverses exactly the SWAPGS performed here rather than guessing from
+    ; the saved CS after state may have changed.
+    bts qword [rsp], 63
     swapgs
 
 .skip_swapgs:
@@ -150,17 +171,19 @@ isr_common_stub64:
 
     ; First parameter (vector number) in RDI
     mov     rdi, [rsp + 120]        ; vector number
+    and     edi, 0xFF               ; remove the SWAPGS marker
 
-.welcome_to_los_santos_2
+.welcome_to_los_santos_2:
     ; RSI is the second parameter in the System V ABI calling convention. It is our TRAP_FRAME, its the start of the stack basically. (first is r15, so like in the struct)
     mov     rsi, rsp
 
-.begin_call
+.begin_call:
     
     ; Call C interrupt handler
-    sub     rsp, 8
-    call    MhHandleInterrupt
-    add     rsp, 8
+    mov r12, rsp
+    and rsp, -16     ; Force 16-byte alignment safely
+    call MhHandleInterrupt
+    mov rsp, r12     ; Restore RSP to the trap frame
 
 extern Schedule
 
@@ -168,15 +191,33 @@ extern Schedule
     ; DPC Revision, just check for schedule (DPC Retirement in MhHandleInterrupt)
     jmp .check_for_schedule
 
-.check_for_schedule
-    ; (if we are at DISPATCH_LEVEL schedulerEnabled should be false)
-    ; Now let's check if the scheduler is enabled, so we can't pre-empt the current running thread, even if it's timeslice has expired.
-    cmp byte [gs:PROCESSOR_schedulerEnabled], 0 ; Changed to direct comparison, as the load from before loaded additional 7 bytes after schedulerEnabled, which corrupted it, I hate silent bugs.
-    jz .exit
+.check_for_schedule:
+    ; MhHandleInterrupt restores the interrupted IRQL before returning here.
+    ; DISPATCH_LEVEL and above are the sole preemption barrier.
+    cmp dword [gs:PROCESSOR_currentIrql], DISPATCH_LEVEL
+    jae .exit
 
     ; Check if we need to schedule, by fetching the current CPU schedulePending flag.
     cmp byte [gs:PROCESSOR_schedulePending], 0
     jz .exit ; No schedule pending...
+
+    ; In 64-bit mode, hardware pushes SS:RSP for every interrupt frame. Preserve
+    ; the established immediate scheduling points: returns from user mode,
+    ; clock interrupts, and page faults. Other kernel events defer the pending
+    ; request until the next clock tick.
+    test byte [rsp + TRAP_FRAME_cs], 3
+    jnz .schedule_frame_is_complete
+
+    mov rax, [rsp + TRAP_FRAME_vector]
+    and eax, 0xFF
+    cmp eax, VECTOR_CLOCK
+    je .schedule_frame_is_complete
+    cmp eax, EXCEPTION_PAGE_FAULT
+    jne .exit
+
+.schedule_frame_is_complete:
+    cmp qword [gs:PROCESSOR_currentThread], 0
+    je .exit
 
     ; All DPCs retired, and a schedule is pending, Schedule. (and clear the pending flag, so we dont always re-enter)
     mov byte [gs:PROCESSOR_schedulePending], 0
@@ -187,35 +228,43 @@ extern Schedule
 
 ; scheduler routine
 .linkinpark:
-    ; Schedule now. - pop all gprs, remove vector and err code, and pop 5 qwords that the CPU pushed since we will 100% not return.
-    pop    r15
-    pop    r14
-    pop    r13
-    pop    r12
-    pop    r11
-    pop    r10
-    pop    r9
-    pop    r8
-    pop    rbp
-    pop    rdi
-    pop    rsi
-    pop    rdx
-    pop    rcx
-    pop    rbx
-    pop    rax
+    ; Capture at the actual switch point. A DPC can request a schedule after
+    ; MiHandleTimer ran, so saving only in the C timer handler leaves a stale
+    ; continuation in the thread.
+    mov rsi, rsp
+    mov rdi, [gs:PROCESSOR_currentThread]
+    add rdi, ITHREAD_TrapRegisters
+    mov rcx, SIZEOF_TRAP_FRAME / 8
+    cld
+    rep movsq
 
-    ; remove vector and err code from the stack
-    add rsp, 16
+    ; This path is restricted to complete frames, so reclaim all 22 qwords.
+    add rsp, SIZEOF_TRAP_FRAME
 
-    ; pop the 5 qwords the CPU pushed.
-    add rsp, 40
-
-    ; Swapgs should be handled here by the scheduler routine, if we switch to another kernel thread, it wont execute swapgs, else it would (in restore_user_context)
-    jmp Schedule ; Changed to jmp instruction, the function is a NORETURN
+    ; JMP does not push a return address. Supply one alignment slot so the C
+    ; scheduler receives the SysV function-entry alignment it expects.
+    push qword 0
+    jmp Schedule
     int 8 ; Double Fault if we reached here, which we should never.
+
+extern MePrepareUserDispatchForReturn
 
 .exit:
     cli
+
+    ; Make sure that if there are user APCs in the list, we queue them and execute them when returning to user code
+    ; If we do not return to user code, the function will not request a software interrupt
+    ; Else, the moment we return to user code from iretq, the interrupt should execute.
+    
+    ; If there are any exceptions o to be delivered, the function will redirect execution to the MTDLL Exception dispatcher
+    ; and attempt handling of the exception.
+    ; Same goes for APCs, redirection will be applied to MeUserApcDispatcher
+    mov r12, rsp
+    mov rdi, r12
+    and rsp, -16
+    call MePrepareUserDispatchForReturn
+    mov rsp, r12
+
     ; cleanup the IST stack (in older versions, it didnt and it could have overflown overtime, and probably would have with continuous thread use.)
     ; first pop all gprs
     pop    r15
@@ -234,15 +283,15 @@ extern Schedule
     pop    rbx
     pop    rax
 
-    ; remove vector and err code from the stack
-    add rsp, 16
-
-    ; We must check if we came from user mode in order to execute swapgs.
-    test    qword [rsp + 8], 3    ; test low 2 bits (CS & 3)
-    jz      .no_swap_back
+    ; Reverse SWAPGS only when this entry marked that it performed one.
+    bt      qword [rsp], 63
+    jnc     .no_swap_back
     swapgs
 
 .no_swap_back:
+    ; remove vector and err code from the stack
+    add rsp, 16
+
     ; Return from interrupt. pops all CPU pushed regs from the stack back (5 qwords.)
     iretq
 
@@ -283,7 +332,7 @@ DEFINE_ISR 30
 DEFINE_ISR 31
 
 ; Custom ISR's
-DEFINE_ISR 254 ; LAPIC Spurious Interrupt Vector
+DEFINE_ISR 255 ; LAPIC Spurious Interrupt Vector
 
 ;---------------------------------------------------------------------------
 ; Instantiate IRQs 0-15 (Hardware Interrupts)

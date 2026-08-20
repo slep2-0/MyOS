@@ -1,177 +1,256 @@
 /*
  * PROJECT:      MatanelOS Kernel
  * LICENSE:      GPLv3
- * PURPOSE:		 Events Implementation (see KeSetEvent and KMUTANT in MSDN)
+ * PURPOSE:		 Events Implementation
  */
 
 #include "../../includes/me.h"
 #include "../../includes/ps.h"
 #include "../../includes/mg.h"
+#include "../../includes/ms.h"
 #include "../../assert.h"
 
-MTSTATUS 
-MsSetEvent (
-    IN  PEVENT event
-) 
+PITHREAD
+MspDequeueNextWaitThreadLocked(
+    PDOUBLY_LINKED_LIST HeaderWaitListHead
+)
 
 /*++
 
-    Routine description : 
+    Routine description:
+
+        Removes the first wait block from a dispatcher wait list while the
+        caller holds the dispatcher lock.
+
+    Arguments:
+
+        [IN OUT] HeaderWaitListHead - The protected dispatcher wait list.
+
+    Return Values:
+
+        The waiting thread represented by the removed wait block, or NULL when
+        the list is empty.
+
+--*/
+
+{
+    PDOUBLY_LINKED_LIST WaiterEntry = RemoveHeadList(HeaderWaitListHead);
+
+    if (!WaiterEntry) {
+        return NULL;
+    }
+
+    PWAIT_BLOCK WaitBlock = CONTAINING_RECORD(
+        WaiterEntry,
+        WAIT_BLOCK,
+        ObjectListEntry
+    );
+
+    PITHREAD WaitingThread = CONTAINING_RECORD(
+        WaitBlock,
+        ITHREAD,
+        WaitBlock
+    );
+
+    // Restore the removed entry to the self-linked, unregistered state.
+    InitializeListHead(&WaitingThread->WaitBlock.ObjectListEntry);
+
+    return WaitingThread;
+}
+
+void
+MsInitializeEvent(
+    IN PEVENT Event,
+    IN DISPATCHER_TYPE EventDispatcherType, // must be DispatcherSynchronizationEvent or DispatcherNotificationEvent
+    IN bool StartSignaled
+)
+
+/*++
+
+    Routine description:
+
+        Initializes an EVENT object to the specified values.
+
+    Arguments:
+
+        [OUT] Event - Resident event storage to initialize.
+        [IN] EventDispatcherType - Synchronization or notification event type.
+        [IN] StartSignaled - Whether the event starts signaled.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    assert(EventDispatcherType == DispatcherSynchronizationEvent || EventDispatcherType == DispatcherNotificationEvent);
+    MsInitializeDispatcherHeader(&Event->Header, StartSignaled, EventDispatcherType);
+}
+
+MTSTATUS
+MsSetEventEx(
+    IN PEVENT event,
+    _Out_Opt bool* PreviousState
+)
+
+/*++
+
+    Routine description:
     
         Sets an event to wake threads waiting on it.
 
     Arguments:
     
-        Pointer to EVENT object.
+        [IN OUT] event - The resident event object to signal.
+        [OUT OPTIONAL] PreviousState - Receives the prior signal state.
 
     Return Values:
 
-        Varuious MTSTATUS Codes.
+        MT_SUCCESS on success, or an error status when event is invalid.
 
 --*/
 
 {
     if (!event) return MT_INVALID_ADDRESS;
+    assert(event->Header.Type == DispatcherSynchronizationEvent || event->Header.Type == DispatcherNotificationEvent);
 
-    // NOTE: (TODO) Can we use push locks here? Events should only be used in PASSIVE_LEVEL to APC_LEVEL IRQL contexts,
-    // holding a lock to raise to DISPATCH_LEVEL just delays us furthermore..
-    IRQL flags;
-    MsAcquireSpinlock(&event->lock, &flags);
+    // Acquire Dispatcher lock
+    IRQL prevIrql;
+    MsAcquireSpinlock(&event->Header.Lock, &prevIrql);
 
-    if (event->type == SynchronizationEvent) {
-        // Wake exactly one waiter (auto-reset)
-        PETHREAD waiter = MeDequeueThread(&event->waitingQueue); // safe under event->lock
-        if (waiter) {
-            event->signaled = false; // consumed by waking one waiter
-            MsReleaseSpinlock(&event->lock, flags);
-
-            waiter->InternalThread.ThreadState = THREAD_READY;
-            MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, waiter);
-            return MT_SUCCESS;
-        }
-        else {
-            // No waiter -> mark event signaled so next waiter won't block
-            event->signaled = true;
-            MsReleaseSpinlock(&event->lock, flags);
-            return MT_SUCCESS;
-        }
+    if (PreviousState) {
+        *PreviousState = event->Header.SignalState != 0;
     }
 
-    // NotificationEvent: drain waiters into local list while holding event lock
-    PETHREAD head = NULL;
-    PETHREAD tail = NULL;
-    PETHREAD t;
+    // Check dispatcher type
+    if (event->Header.Type == DispatcherSynchronizationEvent) {
+        // Release a waiter at a time.
+        // We are holding the lock so its okay to manipulate the header list.
+        PITHREAD WaitingThread = MspDequeueNextWaitThreadLocked(&event->Header.WaitListHead);
 
-    while ((t = MeDequeueThread(&event->waitingQueue)) != NULL) {
-        // Detach the thread from any previous list by nulling its links
-        t->ThreadListEntry.Flink = NULL;
-        t->ThreadListEntry.Blink = NULL;
+        while (WaitingThread != NULL) {
+            // Try to claim the thread for a successful wake
+            if (MsClaimThreadWait(WaitingThread, MT_SUCCESS)) {
+                // This waiter consumes the synchronization event's one signal.
+                // The next waiter must block until the event is set again.
+                event->Header.SignalState = 0;
 
-        // Build the local singly-linked list (head/tail) using Flink
-        if (tail) {
-            // Link the current tail to the new thread via Flink
-            tail->ThreadListEntry.Flink = &t->ThreadListEntry;
-            // Set the new thread's Blink to the old tail (for local list integrity)
-            t->ThreadListEntry.Blink = &tail->ThreadListEntry;
+                // Release the lock, we dont need to hold it anymore
+                MsReleaseSpinlock(&event->Header.Lock, prevIrql);
+
+                // A fully parked BLOCKED thread becomes READY. A thread still
+                // BLOCKING is completed by its owner CPU's scheduler handshake.
+                // The resumed wait path cancels its remaining timer entry and
+                // clears the embedded wait block before it can be reused.
+                MsRemoveTimerQueue(WaitingThread);
+                MsCompleteThreadWait(WaitingThread);
+                return MT_SUCCESS;
+            }
+
+            // We failed to claim the thread, retry with next waiter if any
+            WaitingThread = MspDequeueNextWaitThreadLocked(&event->Header.WaitListHead);
         }
-        else {
-            // First thread
-            head = t;
-            // First thread's Blink should be NULL
-            t->ThreadListEntry.Blink = NULL;
-        }
 
-        // The new tail is 't'
-        tail = t;
+        // No valid waiter consumed the signal. Store it until the next wait,
+        // which consumes SignalState while holding this same lock.
+        event->Header.SignalState = 1;
+        MsReleaseSpinlock(&event->Header.Lock, prevIrql);
+        return MT_SUCCESS;
     }
+    else if (event->Header.Type == DispatcherNotificationEvent) {
+        // Notification events remain signaled. Publish this before dropping
+        // the lock so newly arriving waiters complete immediately instead of
+        // joining the list while the existing waiters are being completed.
+        event->Header.SignalState = 1;
 
-    // Notification persists until reset
-    event->signaled = true;
-    MsReleaseSpinlock(&event->lock, flags);
+        // Release all waiters on the event.
+        PITHREAD WaitingThread = MspDequeueNextWaitThreadLocked(&event->Header.WaitListHead);
 
-    // Enqueue drained threads to scheduler (after releasing event lock)
-    t = head;
-    while (t) {
-        // Get the next thread pointer by reading the Flink, then CONTAINING_RECORD
-        struct _DOUBLY_LINKED_LIST* nxtEntry = t->ThreadListEntry.Flink;
+        while (WaitingThread != NULL) {
+            if (MsClaimThreadWait(WaitingThread, MT_SUCCESS)) {
+                // Completion can take a ready-queue lock, so it does not belong
+                // under this event's dispatcher lock.
+                MsReleaseSpinlock(&event->Header.Lock, prevIrql);
 
-        // Set thread state
-        t->InternalThread.ThreadState = THREAD_READY;
+                // The resumed wait path owns cancellation of any remaining
+                // timer entry and clears its wait block before reuse.
+                MsRemoveTimerQueue(WaitingThread);
+                MsCompleteThreadWait(WaitingThread);
 
-        // Enqueue
-        MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, t);
+                // Reacquire only to remove the next protected wait-list entry.
+                MsAcquireSpinlock(&event->Header.Lock, &prevIrql);
+            }
 
-        // Move to the next thread
-        if (nxtEntry) {
-            t = CONTAINING_RECORD(nxtEntry, ETHREAD, ThreadListEntry);
+            WaitingThread = MspDequeueNextWaitThreadLocked(&event->Header.WaitListHead);
         }
-        else {
-            t = NULL;
-        }
+
+        MsReleaseSpinlock(&event->Header.Lock, prevIrql);
+        return MT_SUCCESS;
     }
-
-    return MT_SUCCESS;
+    else {
+        // Bad event type, bugcheck.
+        MsReleaseSpinlock(&event->Header.Lock, prevIrql);
+        MeBugCheckEx(
+            WRONG_DISPATCHER_HEADER,
+            event,
+            (void*)(uintptr_t)event->Header.Type,
+            MsSetEventEx,
+            NULL
+        );
+    }
 }
 
-MTSTATUS 
-MsWaitForEvent (
-    IN  PEVENT event
-) 
+MTSTATUS
+MsSetEvent(
+    IN PEVENT Event
+)
 
 /*++
 
-    Routine description : 
-    
-        Sleeps the current thread to wait on the specified event.
+    Routine description:
+
+        Signals an event without requesting its previous signal state.
 
     Arguments:
 
-        Pointer to EVENT Object.
+        [IN OUT] Event - The event object to signal.
 
     Return Values:
 
-        MT_SUCCESS on wake, other MTSTATUS codes for failure.
+        MT_SUCCESS on success, or an error status when Event is invalid.
 
-    Notes:
-        
-        This function MUST NOT be called on IRQL higher or equal to DISPATCH_LEVEL, as this function is blocking or uses pageable memory.
+--*/
+{
+    return MsSetEventEx(Event, NULL);
+}
+
+bool
+MsResetEvent(
+    IN PEVENT Event
+)
+
+/*++
+
+    Routine description:
+
+        Resets an event back to its non-signaled state.
+
+    Arguments:
+
+        [IN OUT] Event - The event object to reset.
+
+    Return Values:
+
+        The previous Boolean signal state.
 
 --*/
 
 {
-    if (!event) return MT_INVALID_ADDRESS;
-    assert((MeGetCurrentIrql() < DISPATCH_LEVEL), "Blocking function called with DISPATCH_LEVEL IRQL or Higher.");
-    IRQL flags;
-    PETHREAD curr = PsGetCurrentThread();
-
-    // Acquire event lock to check signaled state atomically with enqueue.
-    MsAcquireSpinlock(&event->lock, &flags);
-
-    // If already signaled, consume or accept depending on type:
-    if (event->signaled) {
-        if (event->type == SynchronizationEvent) {
-            // consume the single-signaled state
-            event->signaled = false;
-        }
-        // For NotificationEvent, leave event->signaled = true (notification persists)
-        MsReleaseSpinlock(&event->lock, flags);
-        return MT_SUCCESS;
-    }
-
-    // Block the thread. When MtSetEvent wakes it, it will be placed on ready queue.
-    curr->InternalThread.ThreadState = THREAD_BLOCKED;
-    curr->CurrentEvent = event;
-    // Not signaled -> enqueue this thread into the event waiting queue (under event lock)
-    MeEnqueueThread(&event->waitingQueue, curr);
-    // Keep event lock held only for enqueue; after this we release and block.
-    MsReleaseSpinlock(&event->lock, flags);
-#ifdef DEBUG
-    gop_printf(COLOR_PURPLE, "Sleeping current thread: %p\n", PsGetCurrentThread());
-#endif
-    assert((MeGetCurrentIrql()) < DISPATCH_LEVEL);
-    MsYieldExecution(&curr->InternalThread.TrapRegisters);
-
-    // When we resume here, the waker has already moved us to the ready queue, and we are now an active thread on the CPU.
-    return MT_SUCCESS;
+    IRQL prevIrql;
+    MsAcquireSpinlock(&Event->Header.Lock, &prevIrql);
+    bool PreviousState = Event->Header.SignalState != 0;
+    Event->Header.SignalState = 0;
+    MsReleaseSpinlock(&Event->Header.Lock, prevIrql);
+    return PreviousState;
 }
-

@@ -8,7 +8,28 @@ extern PROCESSOR cpus[];
 
 extern IDT_PTR PIDT;
 
-static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, uint8_t gran) {
+static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, uint8_t gran)
+
+/*++
+
+    Routine description:
+
+        Builds a packed x64 segment descriptor.
+
+    Arguments:
+
+        [IN] base - Base address or descriptor base field.
+        [IN] limit - Segment limit encoded in the descriptor.
+        [IN] access - Requested access mask or descriptor access byte.
+        [IN] gran - Segment granularity and size flags.
+
+    Return Values:
+
+        The packed segment-descriptor value.
+
+--*/
+
+{
     uint64_t desc = 0;
     desc = (limit & 0xFFFFull);
     desc |= (uint64_t)(base & 0xFFFFull) << 16;
@@ -20,7 +41,25 @@ static inline uint64_t build_seg(uint32_t base, uint32_t limit, uint8_t access, 
     return desc;
 }
 
-static inline uint8_t get_initial_apic_id(void) {
+static inline uint8_t get_initial_apic_id(void)
+
+/*++
+
+    Routine description:
+
+        Reads the initial APIC identifier reported by CPUID.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The initial APIC identifier reported by CPUID.
+
+--*/
+
+{
     uint32_t eax, ebx, ecx, edx;
 
     // When EAX=1, CPUID returns processor info.
@@ -32,7 +71,25 @@ static inline uint8_t get_initial_apic_id(void) {
     return (uint8_t)(ebx >> 24);
 }
 
-void APMain(void) {
+void APMain(void)
+
+/*++
+
+    Routine description:
+
+        Initializes an application processor and enters its idle scheduling path.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 	// First, setup the GDT&TSS, then IDT.
 	int idx = -1;
 	// early map lapic mmio (lapic_init_cpu maps it).
@@ -46,8 +103,21 @@ void APMain(void) {
         assert(false, "All APs must be initialized fully and successfully.");
         gop_printf(COLOR_RED, "**Fatal error, AP Failed to initialize, index below 0.**\n");
         __hlt();
-	}
+    }
     __writemsr(IA32_GS_BASE, (uint64_t)&cpus[idx]);
+    __writemsr(IA32_KERNEL_GS_BASE, (uint64_t)&cpus[idx]);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupApMainEntered
+    );
+
+    // Pool lookaside descriptors are per-CPU. They must exist before the TSS
+    // and GDT allocations performed by MeInitializeProcessor below.
+    MTSTATUS status = MiInitializePoolSystem();
+    if (MT_FAILURE(status)) {
+        MeBugCheckEx(POOL_INIT_FAILURE, (void*)(uintptr_t)status,
+            &cpus[idx], NULL, NULL);
+    }
 
     // Self invalidate all TLBs
     __write_cr3(__read_cr3());
@@ -60,19 +130,38 @@ void APMain(void) {
     
     // Initialize the MM For current core (init PAT)
     MmInitSystem(SYSTEM_PHASE_INITIALIZE_PAT_ONLY, NULL);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupExecutiveReady
+    );
 
     // Initialize the idle thread.
     InitScheduler();
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupSchedulerReady
+    );
 
-	// mark as online and clear being unavailable
-	InterlockedOrU64(&cpus[idx].flags, CPU_ONLINE); 
-    InterlockedAndU64(&cpus[idx].flags, ~CPU_UNAVAILABLE);   // clear unavailable
-    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, MeGetCurrentProcessor()->VirtStackTop, MeGetCurrentProcessor());
 	// enable interupts, initiate timer and join scheduler queue
     lapic_init_cpu();
     lapic_enable();
-    init_lapic_timer(100);
+    init_lapic_timer(TICK_HZ);
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupLapicReady
+    );
+
+    // ProcessorStateOnline is the final publication. Once the BSP observes it with an
+    // acquire load, the local LAPIC can accept an IPI and all prior AP state is
+    // visible. IF remains clear briefly; the LAPIC retains the IPI until STI.
+    InterlockedStoreRelease(
+        &cpus[idx].StartupStage,
+        ProcessorStartupOnline
+    );
+    InterlockedStoreRelease(&cpus[idx].State, ProcessorStateOnline);
+    gop_printf(COLOR_ORANGE, "**Hello From AP CPU! - I'm ID: %d | StackTop: %p | CPU Ptr: %p**\n", id, MeGetCurrentProcessor()->VirtStackTop, MeGetCurrentProcessor());
 	__sti();
+
     Schedule();
 	for (;;) __hlt();
 }

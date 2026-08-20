@@ -26,6 +26,8 @@ POOL_DESCRIPTOR GlobalPool;
 
 #define POOL_TYPE_GLOBAL 9999
 #define POOL_TYPE_PAGED  1234
+#define POOL_CANARY_ALLOCATED 'BEKA'
+#define POOL_CANARY_FREE      'EERF'
 
 uintptr_t MmNonPagedPoolStart = 0;
 uintptr_t MmNonPagedPoolEnd = 0;
@@ -107,6 +109,8 @@ MiRefillPool(
 
         Refills the specified pool with a block of its size.
 
+        PagedPool are NOT allocated here.
+
     Arguments:
 
         [IN]    PPOOL_DESCRIPTOR Desc - Pointer to descriptor.
@@ -126,6 +130,9 @@ MiRefillPool(
     //size_t Iterations = 0;
     /* If I ever return back freeing to global pool, I should check that Desc->BlockSize == VirtualPageSize, else it wont use it.
     * Since we have memory corruptions for larger block sizes..
+    * make sure, that if we do use this, that if the page is Nx, the PTE should be changed prperly
+    * 
+    * 
     // Acquire the spinlock for atomicity.
     MsAcquireSpinlock(&GlobalPool.PoolLock, &oldIrql);
 
@@ -233,7 +240,8 @@ MiRefillPool(
         // Set its header metadata.
         newBlock->Metadata.BlockSize = Desc->BlockSize;
         newBlock->Metadata.PoolIndex = PoolIndex;
-        newBlock->PoolCanary = 'BEKA'; // Pool Canary
+        newBlock->Metadata.PoolType = Desc->PoolType;
+        newBlock->PoolCanary = POOL_CANARY_FREE;
         newBlock->PoolTag = 'ADIR'; // Default Tag
         
         // Add this block to the list of the descriptor.
@@ -274,6 +282,13 @@ MiAllocateLargePool(
 --*/
 
 {
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     // Calculate required size.
     size_t RequiredSize = NumberOfBytes + sizeof(POOL_HEADER);
 
@@ -299,14 +314,18 @@ MiAllocateLargePool(
         PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateFree);
 
         if (pfn == PFN_ERROR) {
-            // Allocation for a physical page failed, free the VA allocated, and unroll the loop (see code below loop)
-            MiFreePoolVaContiguous(pageVa, RequiredSize, NonPagedPool);
             failure = true;
             break;
         }
 
         // Map the page.
         PMMPTE pte = MiGetPtePointer((uintptr_t)currVa);
+        if (!pte) {
+            MiReleasePhysicalPage(pfn);
+            failure = true;
+            break;
+        }
+
         uint64_t phys = PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn));
 
         uint64_t PteFlags = PAGE_PRESENT | PAGE_RW;
@@ -316,7 +335,7 @@ MiAllocateLargePool(
             PteFlags |= PAGE_NX;
         }
 
-        MI_WRITE_PTE(pte, currVa, phys, PAGE_PRESENT | PAGE_RW);
+        MI_WRITE_PTE(pte, currVa, phys, PteFlags);
         
         // Update PFN metadata.
         PPFN_ENTRY ppfn = INDEX_TO_PPFN(pfn);
@@ -337,15 +356,19 @@ MiAllocateLargePool(
             MiUnmapPte(pte);
             MiReleasePhysicalPage(pfn);
         }
+
+        // Do not publish the VA range as free until every old mapping is gone.
+        MiFreePoolVaContiguous(pageVa, RequiredSize, NonPagedPool);
         return NULL;
     }
 
     // Success! Initialize the block and return the pointer to caller.
     PPOOL_HEADER newHeader = (PPOOL_HEADER)pageVa;
-    newHeader->PoolCanary = 'BEKA';
+    newHeader->PoolCanary = POOL_CANARY_ALLOCATED;
     newHeader->PoolTag = Tag;
     newHeader->Metadata.BlockSize = neededPages * VirtualPageSize; // Store allocated size.
     newHeader->Metadata.PoolIndex = POOL_TYPE_GLOBAL;
+    newHeader->Metadata.PoolType = PoolType;
 
     void* UserAddress = (void*)((uint8_t*)newHeader + sizeof(POOL_HEADER));
     // Set to zero (to avoid kernel issues)
@@ -383,7 +406,15 @@ MiAllocatePagedPool(
 --*/
 
 {
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     size_t ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
+
     uintptr_t PagedVa = MiAllocatePoolVa(PagedPool, ActualSize);
     if (!PagedVa) return NULL;
 
@@ -416,24 +447,22 @@ MiAllocatePagedPool(
 
             // Acquire its PTE.
             PMMPTE Pte = MiGetPtePointer(currVa);
-            if (!Pte) {
-                assert(false, "Acquiring PTE pointer after it was valid before resulted in NULL, severe bug.");
-                break;
-            }
+            assert(Pte != NULL, "Acquiring PTE pointer after it was valid before resulted in NULL, severe bug.");
 
             // Clear PTE.
             MiUnmapPte(Pte);
         }
 
-        // Return NULL, allocation failure.
+        MiFreePoolVaContiguous(PagedVa, ActualSize, PagedPool);
         return NULL;
     }
 
     // Set metadata. (header should get paged in now).
-    header->PoolCanary = 'BEKA';
+    header->PoolCanary = POOL_CANARY_ALLOCATED;
     header->PoolTag = Tag;
     header->Metadata.BlockSize = ActualSize;
     header->Metadata.PoolIndex = POOL_TYPE_PAGED;
+    header->Metadata.PoolType = PagedPool;
 
     // Return VA.
     return (void*)((uint8_t*)PagedVa + sizeof(POOL_HEADER));
@@ -456,7 +485,7 @@ MmAllocatePoolWithTag(
     Arguments:
 
         [IN]    enum _POOL_TYPE - POOL_TYPE Enumerator, specifying the type of pool that will be allocated.
-        [IN]    size_t NumberOfBytes - Number of bytes needed to allocate.
+        [IN]    size_t NumberOfBytes - Number of bytes to allocate.
         [IN]    uint32_t Tag - A 4 byte integer that signifies the current allocation, in big endian (e.g 'TSET' - "TEST")
 
     Return Values:
@@ -477,6 +506,18 @@ MmAllocatePoolWithTag(
 --*/
 
 {
+    if (PoolType == NonPagedPoolCacheAligned || PoolType == PagedPoolCacheAligned) {
+        //RaiseStatus
+        return NULL;
+    }
+
+    if (WILL_ADD_OVERFLOW(NumberOfBytes, sizeof(POOL_HEADER))) {
+#ifdef DEBUG
+        MeBugCheckEx(BAD_POOL_CALLER, RETADDR(0), NULL, NULL, NULL);
+#endif
+        return NULL;
+    }
+
     // Declarations
     IRQL oldIrql;
     size_t ActualSize;
@@ -511,8 +552,8 @@ MmAllocatePoolWithTag(
                 BAD_POOL_CALLER,
                 (void*)&MmAllocatePoolWithTag,
                 (void*)MeGetCurrentIrql(),
-                (void*)8,
-                (void*)__builtin_return_address(0)
+                (void*)(uintptr_t)PoolType,
+                (void*)RETADDR(0)
             );
         }
     }
@@ -522,8 +563,8 @@ MmAllocatePoolWithTag(
             BAD_POOL_CALLER,
             (void*)&MmAllocatePoolWithTag,
             (void*)MeGetCurrentIrql(),
-            (void*)8,
-            (void*)__builtin_return_address(0)
+            (void*)(uintptr_t)PoolType,
+            (void*)RETADDR(0)
         );
     }
 
@@ -535,8 +576,7 @@ MmAllocatePoolWithTag(
     ActualSize = NumberOfBytes + sizeof(POOL_HEADER);
     cpu = MeGetCurrentProcessor();
 
-
-    // It's NonPagedPool OR NonPagedPooLNx. Find the correct slab.
+    // It's NonPagedPool OR NonPagedPoolNx. Find the correct slab.
     PPOOL_DESCRIPTOR TypeDescriptor = NULL;
 
     if (PoolType == NonPagedPool) {
@@ -567,50 +607,56 @@ MmAllocatePoolWithTag(
         return MiAllocateLargePool(PoolType, NumberOfBytes, Tag);
     }
     
-    MsAcquireSpinlock(&Desc->PoolLock, &oldIrql);
-    assert((Desc->FreeCount) != UINT64_T_MAX);
+    for (;;) {
+        MsAcquireSpinlock(&Desc->PoolLock, &oldIrql);
 
-    if (Desc->FreeCount == 0) {
-        // Looks like the pool is empty, refill all empty pools.
-        // First, release the spinlock.
-        MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
-        if (!MiRefillPool(Desc, Index)) {
-            // If we failed allocation, act on failure.
-            return NULL;
+        if (Desc->FreeCount != 0) break;
+
+        if (Desc->FreeListHead.Next != NULL) {
+            MeBugCheckEx(MEMORY_CORRUPT_HEADER, Desc,
+                Desc->FreeListHead.Next,
+                (void*)(uintptr_t)Desc->FreeCount, RETADDR(0));
         }
 
-        // Retry allocation.
-        return MmAllocatePoolWithTag(PoolType, NumberOfBytes, Tag);
+        MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
+        if (!MiRefillPool(Desc, Index)) return NULL;
     }
 
     // Looks like we have a block to return! Return its PTR.
     // First, acquire it. (we are under spinlock, no need for interlocked pop)
     list = Desc->FreeListHead.Next;
-    assert((list) != NULL, "Pool is nullptr even though freecount isn't zero.");
+    if (!list) {
+        MeBugCheckEx(MEMORY_CORRUPT_HEADER, Desc,
+            (void*)(uintptr_t)Desc->FreeCount, RETADDR(0), NULL);
+    }
     Desc->FreeListHead.Next = list->Next; // Finish the pop
     header = CONTAINING_RECORD(list, POOL_HEADER, Metadata.FreeListEntry);
+
+    uint32_t ObservedCanary = InterlockedCompareExchangeU32(
+        &header->PoolCanary,
+        POOL_CANARY_ALLOCATED,
+        POOL_CANARY_FREE
+    );
+    if (ObservedCanary != POOL_CANARY_FREE) {
+        MeBugCheckEx(
+            MEMORY_CORRUPT_HEADER,
+            header,
+            (void*)(uintptr_t)ObservedCanary,
+            Desc,
+            RETADDR(0)
+        );
+    }
 
     // We must restore the metadata because the linked list pointer 
     // overwrote it while the block was sitting in the free list.
     header->Metadata.PoolIndex = (uint16_t)Index;
-    header->Metadata.BlockSize = (uint16_t)Desc->BlockSize;
-
-    // First check if the canary is wrong.
-    if (header->PoolCanary != 'BEKA') {
-        MeBugCheckEx(
-            MEMORY_CORRUPT_HEADER,
-            (void*)header,
-            (void*)__read_rip(),
-            NULL,
-            NULL
-        );
-    }
+    header->Metadata.BlockSize = Desc->BlockSize;
+    header->Metadata.PoolType = (uint16_t)Desc->PoolType;
 
     // Rewrite its tag.
     header->PoolTag = Tag;
     // Decrement descriptor free count.
     Desc->FreeCount--;
-    assert((Desc->FreeCount) != SIZE_T_MAX); // Check for underflow.
     // Release spinlock.
     MsReleaseSpinlock(&Desc->PoolLock, oldIrql);
     void* UserAddress = (void*)((uint8_t*)header + sizeof(POOL_HEADER));
@@ -628,10 +674,47 @@ MmAllocatePoolWithTag(
     return UserAddress;
 }
 
+#ifdef POOL_DEBUGGING
+static void MmFreePoolSt(IN void* buf);
+
+void
+MmFreePoolDbg(
+    IN  void* buf
+)
+
+/*++
+
+    Routine description:
+
+        Releases a pool allocation after validating its debug metadata.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    MmFreePoolSt(buf);
+}
+#endif
+
+#ifdef POOL_DEBUGGING
+static
+void
+MmFreePoolSt(
+    IN  void* buf
+)
+#else
 void
 MmFreePool(
     IN  void* buf
 )
+#endif
 
 /*++
 
@@ -660,23 +743,74 @@ MmFreePool(
     if (!buf) return;
     assert(MeGetCurrentIrql() <= DISPATCH_LEVEL, "Any pool frees must not happen with IRQL higher than DISPATCH.");
 
+    if (MeGetCurrentIrql() > DISPATCH_LEVEL) {
+        MeBugCheckEx(
+            BAD_POOL_CALLER,
+            buf,
+            (void*)(uintptr_t)MeGetCurrentIrql(),
+            RETADDR(0),
+            NULL
+        );
+    }
+
+    uintptr_t BufferAddress = (uintptr_t)buf;
+    bool InNonPagedPool =
+        BufferAddress >= MmNonPagedPoolStart + sizeof(POOL_HEADER) &&
+        BufferAddress < MmNonPagedPoolEnd;
+    bool InPagedPool =
+        BufferAddress >= MmPagedPoolStart + sizeof(POOL_HEADER) &&
+        BufferAddress < MmPagedPoolEnd;
+
+    if (!InNonPagedPool && !InPagedPool) {
+        MeBugCheckEx(BAD_POOL_CALLER, buf, RETADDR(0), NULL, NULL);
+    }
+
+    if (InPagedPool && MeGetCurrentIrql() >= DISPATCH_LEVEL) {
+        MeBugCheckEx(
+            BAD_POOL_CALLER,
+            buf,
+            (void*)(uintptr_t)MeGetCurrentIrql(),
+            (void*)(uintptr_t)PagedPool,
+            RETADDR(0)
+        );
+    }
+
     // Convert the buffer to the header.
     PPOOL_HEADER header = (PPOOL_HEADER)((uint8_t*)buf - sizeof(POOL_HEADER));
 
-    gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
+    //gop_printf(COLOR_YELLOW, "MmFreePool called with IRQL: %d | Header: %p\n", MeGetCurrentIrql(), header);
 
-    if (header->PoolCanary != 'BEKA') {
+    uint32_t ObservedCanary = InterlockedCompareExchangeU32(
+        &header->PoolCanary,
+        POOL_CANARY_FREE,
+        POOL_CANARY_ALLOCATED
+    );
+    if (ObservedCanary != POOL_CANARY_ALLOCATED) {
         MeBugCheckEx(
-            MEMORY_CORRUPT_HEADER,
+            ObservedCanary == POOL_CANARY_FREE
+                ? MEMORY_DOUBLE_FREE
+                : MEMORY_CORRUPT_HEADER,
             (void*)header,
+            (void*)(uintptr_t)ObservedCanary,
             (void*)RETADDR(0),
-            NULL,
             NULL
         );
     }
 
     // Obtain the pool index to free the region back into.
     uint16_t PoolIndex = header->Metadata.PoolIndex;
+    uint16_t PoolType = header->Metadata.PoolType;
+
+    if ((InPagedPool && PoolType != PagedPool) ||
+        (InNonPagedPool && PoolType == PagedPool)) {
+        MeBugCheckEx(
+            MEMORY_CORRUPT_HEADER,
+            header,
+            (void*)(uintptr_t)PoolType,
+            (void*)(uintptr_t)BufferAddress,
+            RETADDR(0)
+        );
+    }
 
     if (PoolIndex == POOL_TYPE_GLOBAL) {
         // We destroy global pool allocations and free them back to main memory.
@@ -705,7 +839,7 @@ MmFreePool(
         }
 
         // Free VA space given.
-        MiFreePoolVaContiguous((uintptr_t)header, BlockSize, NonPagedPool);
+        MiFreePoolVaContiguous((uintptr_t)header, BlockSize, (POOL_TYPE)PoolType);
 
         return;
     }
@@ -713,14 +847,18 @@ MmFreePool(
     if (PoolIndex == POOL_TYPE_PAGED) {
         // For a paged pool allocation, we just free every PTE, then returned the VA space consumed.
         // The BlockSize field in a PagedPool allocation is how many bytes were requested + sizeof(POOL_HEADER)
-        size_t NumberOfPages = BYTES_TO_PAGES(header->Metadata.BlockSize);
+        size_t BlockSize = header->Metadata.BlockSize;
+        size_t NumberOfPages = BYTES_TO_PAGES(BlockSize);
 
         // Loop over the amount, if the PTE is present, unmap it and clear the demand page.
         uintptr_t CurrentVA = (uintptr_t)header;
 
         for (size_t i = 0; i < NumberOfPages; i++) {
             PMMPTE pte = MiGetPtePointer(CurrentVA);
-            if (unlikely(!pte)) goto advance;
+            if (unlikely(!pte)) {
+                assert(false, "Couldnt get PagedPool PTE, for some odd reason.");
+                goto advance;
+            }
 
             // Check if the PTE is present, if it is, the demand zero page has been consumed, we deallocate, and unset the demand zero.
             if (pte->Hard.Present) {
@@ -745,6 +883,7 @@ MmFreePool(
             advance:
             CurrentVA += VirtualPageSize;
         }
+        MiFreePoolVaContiguous((uintptr_t)header, BlockSize, PagedPool);
         return;
     }
 
@@ -752,8 +891,22 @@ MmFreePool(
     // Nonpaged pool allocation
     //
 
+    if (PoolIndex >= MAX_POOL_DESCRIPTORS ||
+        (PoolType != NonPagedPool && PoolType != NonPagedPoolNx)) {
+        MeBugCheckEx(BAD_POOL_CALLER, header, (void*)(uintptr_t)PoolIndex,
+            (void*)(uintptr_t)PoolType, RETADDR(0));
+    }
+
     PPROCESSOR cpu = MeGetCurrentProcessor();
-    PPOOL_DESCRIPTOR Desc = &cpu->LookasidePools[PoolIndex];
+    PPOOL_DESCRIPTOR Desc = (PoolType == NonPagedPoolNx)
+        ? &cpu->LookasidePoolsNx[PoolIndex]
+        : &cpu->LookasidePools[PoolIndex];
+
+#ifdef DEBUG
+    // Overwrite the user data a UAF causes an instant crash on 0xDDDDDDDD (xD)
+    size_t UserSize = header->Metadata.BlockSize - sizeof(POOL_HEADER);
+    kmemset(buf, MI_FREEPOOL_UAF_IDENTIFIER, UserSize);
+#endif
 
     // Acquire the same lock used by the allocator
     IRQL oldIrql;
@@ -764,6 +917,10 @@ MmFreePool(
     Desc->FreeListHead.Next = &header->Metadata.FreeListEntry;
 
     // Increment the free count.
+    if (Desc->FreeCount == UINT64_MAX) {
+        MeBugCheckEx(MEMORY_OVERFLOW_DETECTION, Desc, header,
+            RETADDR(0), NULL);
+    }
     Desc->FreeCount++;
 
     // Release the lock

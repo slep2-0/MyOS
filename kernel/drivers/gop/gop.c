@@ -1,7 +1,7 @@
 /*
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     GPLv3
- * PURPOSE:     GOP Driver to draw onto screen Implementation (8×16 font)
+ * PURPOSE:     GOP Driver to draw onto screen Implementation (8x16 font)
  */
 
 #include "gop.h"
@@ -11,13 +11,31 @@
 #include "../../includes/me.h"
 #include "../../includes/macros.h"
 
- // integer font scale (1 = native 8×16, 2 = 16×32, etc)
+ // integer font scale (1 = native 8x16, 2 = 16x32, etc)
 #define FONT_SCALE 1
 #define NUM_BUFFER_SIZE 128
 
 volatile void* ExclusiveOwnerShip = NULL;
 
-static inline bool gop_params_valid(const GOP_PARAMS* gop) {
+static inline bool gop_params_valid(const GOP_PARAMS* gop)
+
+/*++
+
+    Routine description:
+
+        Validates the framebuffer parameters required by the GOP console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
     if (!gop) return false;
     if (!gop->FrameBufferBase) return false;
     if (gop->Width == 0 || gop->Height == 0) return false;
@@ -26,7 +44,28 @@ static inline bool gop_params_valid(const GOP_PARAMS* gop) {
     return true;
 }
 
-static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color) {
+static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Writes one pixel to the framebuffer when the coordinates are in range.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] x - Horizontal framebuffer coordinate.
+        [IN] y - Vertical framebuffer coordinate.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (x >= gop->Width || y >= gop->Height) return;
 
     // Safety: Calculate offset in uint64 to prevent overflow before casting back
@@ -37,14 +76,72 @@ static inline void plot_pixel(GOP_PARAMS* gop, uint32_t x, uint32_t y, uint32_t 
     fb[offset] = color;
 }
 
-static inline uint32_t char_width(void) { return  8 * FONT_SCALE; }
-static inline uint32_t line_height(void) { return 16 * FONT_SCALE; }
+static inline uint32_t char_width(void)
+
+/*++
+
+    Routine description:
+
+        Returns the width of one console glyph in pixels.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The glyph width in pixels.
+
+--*/
+
+{ return  8 * FONT_SCALE; }
+static inline uint32_t line_height(void)
+
+/*++
+
+    Routine description:
+
+        Returns the height of one console text row in pixels.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        The text-row height in pixels.
+
+--*/
+
+{ return 16 * FONT_SCALE; }
 
 bool gop_bold_enabled = false; // default
 uint32_t cursor_x = 0, cursor_y = 0;
 extern GOP_PARAMS gop_local;
 
-static void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color) {
+static void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Draws one glyph into the framebuffer.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] c_ - Character glyph to draw.
+        [IN] x - Horizontal framebuffer coordinate.
+        [IN] y - Vertical framebuffer coordinate.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     uint8_t c = (uint8_t)c_;
     if (!gop_params_valid(gop)) return;
 
@@ -77,7 +174,29 @@ static void draw_char(GOP_PARAMS* gop, char c_, uint32_t x, uint32_t y, uint32_t
     }
 }
 
-static void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color) {
+static void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Draws a null-terminated string into the framebuffer.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] s - String or state value consumed by the routine.
+        [IN] x - Horizontal framebuffer coordinate.
+        [IN] y - Vertical framebuffer coordinate.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     while (*s) {
         draw_char(gop, *s, x, y, color);
         x += char_width();
@@ -85,7 +204,27 @@ static void draw_string(GOP_PARAMS* gop, const char* s, uint32_t x, uint32_t y, 
     }
 }
 
-static void fb_memmove32(uint32_t* dest, uint32_t* src, size_t count) {
+static void fb_memmove32(uint32_t* dest, uint32_t* src, size_t count)
+
+/*++
+
+    Routine description:
+
+        Moves overlapping 32-bit framebuffer pixels.
+
+    Arguments:
+
+        [IN] dest - Destination buffer or string.
+        [IN] src - Source buffer or string.
+        [IN] count - Number of count entries.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (dest < src) {
         for (size_t i = 0; i < count; i++) dest[i] = src[i];
     }
@@ -94,7 +233,25 @@ static void fb_memmove32(uint32_t* dest, uint32_t* src, size_t count) {
     }
 }
 
-static void gop_scroll(GOP_PARAMS* gop) {
+static void gop_scroll(GOP_PARAMS* gop)
+
+/*++
+
+    Routine description:
+
+        Scrolls the framebuffer console upward by one text row.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (!gop_params_valid(gop)) return;
 
     uint32_t* fb = (uint32_t*)(uintptr_t)gop->FrameBufferBase;
@@ -116,7 +273,27 @@ static void gop_scroll(GOP_PARAMS* gop) {
     cursor_y = (cursor_y >= lines) ? (cursor_y - lines) : 0;
 }
 
-static void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
+static void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Writes one character at the current framebuffer-console cursor.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] c - Character to test, convert, or append.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (!gop_params_valid(gop)) return;
 
     if (c == '\b') {
@@ -159,7 +336,27 @@ static void gop_put_char(GOP_PARAMS* gop, char c, uint32_t color) {
     }
 }
 
-static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
+static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Writes a string to the framebuffer console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] s - String or state value consumed by the routine.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     while (*s) {
         gop_put_char(gop, *s++, color);
     }
@@ -167,7 +364,27 @@ static void gop_puts(GOP_PARAMS* gop, const char* s, uint32_t color) {
 
 
 static void buf_print_dec64(char* buf, size_t size, size_t* written, int64_t value);
-static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color) {
+static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Prints a signed decimal integer to the framebuffer console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] val - Value to write or process.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char buf[32]; // Increased from 20 to 32 to be safe
     size_t written = 0;
 
@@ -178,14 +395,54 @@ static void gop_print_dec(GOP_PARAMS* gop, int64_t val, uint32_t color) {
 }
 
 static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t value);
-static void gop_print_udec(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+static void gop_print_udec(GOP_PARAMS* gop, uint64_t val, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Prints an unsigned decimal integer to the framebuffer console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] val - Value to write or process.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char buf[32];
     size_t written = 0;
     buf_print_udec64(buf, sizeof(buf), &written, val);
     gop_puts(gop, buf, color);
 }
 
-static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Prints a fixed-width hexadecimal integer to the framebuffer console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] val - Value to write or process.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char buf[32] = "0x0000000000000000"; // 64 bit addressing
     for (int i = 0; i < 16; i++) {
         unsigned nib = (val >> ((15 - i) * 4)) & 0xF;
@@ -195,7 +452,27 @@ static void gop_print_hex(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     gop_puts(gop, buf, color);
 }
 
-static void gop_print_hex_minimal(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+static void gop_print_hex_minimal(GOP_PARAMS* gop, uint64_t val, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Prints a hexadecimal integer without unnecessary leading zeros.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] val - Value to write or process.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (val == 0) {
         gop_puts(gop, "0x0", color);
         return;
@@ -222,13 +499,53 @@ static void gop_print_hex_minimal(GOP_PARAMS* gop, uint64_t val, uint32_t color)
 
 extern GOP_PARAMS gop_local;
 
-void gop_clear_screen(GOP_PARAMS* gop, uint32_t color) {
+void gop_clear_screen(GOP_PARAMS* gop, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Fills the framebuffer and resets the console cursor.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);
 }
 
-static inline void buf_put_char(char* buf, size_t size, size_t* written, char c) {
+static inline void buf_put_char(char* buf, size_t size, size_t* written, char c)
+
+/*++
+
+    Routine description:
+
+        Appends one character to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] c - Character to test, convert, or append.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     if (size > 0 && *written < size - 1) { // Strict -1 to reserve NUL
         buf[*written] = c;
         buf[*written + 1] = '\0'; // Always null terminate as we go
@@ -236,13 +553,55 @@ static inline void buf_put_char(char* buf, size_t size, size_t* written, char c)
     (*written)++;
 }
 
-static void buf_puts(char* buf, size_t size, size_t* written, const char* s) {
+static void buf_puts(char* buf, size_t size, size_t* written, const char* s)
+
+/*++
+
+    Routine description:
+
+        Appends a string to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] s - String or state value consumed by the routine.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     while (*s) {
         buf_put_char(buf, size, written, *s++);
     }
 }
 
-static void buf_print_dec64(char* buf, size_t size, size_t* written, int64_t value) {
+static void buf_print_dec64(char* buf, size_t size, size_t* written, int64_t value)
+
+/*++
+
+    Routine description:
+
+        Appends a signed decimal integer to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char tmp[32];
     char* t = tmp + sizeof(tmp) - 1;
     bool neg = (value < 0);
@@ -263,7 +622,28 @@ static void buf_print_dec64(char* buf, size_t size, size_t* written, int64_t val
     buf_puts(buf, size, written, t);
 }
 
-static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t value) {
+static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t value)
+
+/*++
+
+    Routine description:
+
+        Appends an unsigned decimal integer to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char tmp[32];
     char* t = tmp + sizeof(tmp) - 1;
     *t = '\0';
@@ -272,7 +652,28 @@ static void buf_print_udec64(char* buf, size_t size, size_t* written, uint64_t v
     buf_puts(buf, size, written, t);
 }
 
-static void buf_print_hex64(char* buf, size_t size, size_t* written, uint64_t value) {
+static void buf_print_hex64(char* buf, size_t size, size_t* written, uint64_t value)
+
+/*++
+
+    Routine description:
+
+        Appends a fixed-width hexadecimal integer to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char tmp[32];
     char* t = tmp + sizeof(tmp) - 1;
     const char* hex = "0123456789abcdef";
@@ -282,7 +683,28 @@ static void buf_print_hex64(char* buf, size_t size, size_t* written, uint64_t va
     buf_puts(buf, size, written, t);
 }
 
-static void buf_print_binary64(char* buf, size_t size, size_t* written, uint64_t value) {
+static void buf_print_binary64(char* buf, size_t size, size_t* written, uint64_t value)
+
+/*++
+
+    Routine description:
+
+        Appends a binary integer to a bounded formatting buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char tmp[66];
     char* t = tmp + sizeof(tmp) - 1;
     *t = '\0';
@@ -294,7 +716,26 @@ static void buf_print_binary64(char* buf, size_t size, size_t* written, uint64_t
 //-----------------------------------------------------------------------------
 // Helper: simple strchr for delimiter scanning
 //-----------------------------------------------------------------------------
-static char* strchr(const char* s, int c) {
+static char* strchr(const char* s, int c)
+
+/*++
+
+    Routine description:
+
+        Finds the first occurrence of a character in a string.
+
+    Arguments:
+
+        [IN] s - String or state value consumed by the routine.
+        [IN] c - Character to test, convert, or append.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     while (*s) {
         if (*s == (char)c) {
             return (char*)s;
@@ -311,7 +752,27 @@ static char* strchr(const char* s, int c) {
 /// <param name="src">String to append</param>
 /// <param name="max_len">Total size of the destination buffer</param>
 /// <returns>Pointer to dest</returns>
-char* kstrncat(char* dest, const char* src, size_t max_len) {
+char* kstrncat(char* dest, const char* src, size_t max_len)
+
+/*++
+
+    Routine description:
+
+        Appends a string to a bounded destination string.
+
+    Arguments:
+
+        [IN] dest - Destination buffer or string.
+        [IN] src - Source buffer or string.
+        [IN] max_len - Maximum number of entries or characters that may be written.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     if (!dest || !src || max_len == 0) return dest;
 
     // Move dest_ptr to the end of the current string
@@ -339,7 +800,25 @@ char* kstrncat(char* dest, const char* src, size_t max_len) {
 //-----------------------------------------------------------------------------
 // kstrlen: Return length of string (excluding null terminator).
 //-----------------------------------------------------------------------------
-size_t kstrlen(const char* str) {
+size_t kstrlen(const char* str)
+
+/*++
+
+    Routine description:
+
+        Returns the length of a null-terminated string.
+
+    Arguments:
+
+        [IN] str - String to examine or modify.
+
+    Return Values:
+
+        The number of characters before the string terminator.
+
+--*/
+
+{
     size_t len = 0;
     while (str && str[len] != '\0') {
         len++;
@@ -350,7 +829,26 @@ size_t kstrlen(const char* str) {
 //-----------------------------------------------------------------------------
 // kstrcpy: Copy string from src to dst. Assumes dst is large enough.
 //-----------------------------------------------------------------------------
-char* kstrcpy(char* dst, const char* src) {
+char* kstrcpy(char* dst, const char* src)
+
+/*++
+
+    Routine description:
+
+        Copies a null-terminated string including its terminator.
+
+    Arguments:
+
+        [IN] dst - Destination buffer or string.
+        [IN] src - Source buffer or string.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     char* ret = dst;
     while ((*dst++ = *src++)) {
         // copy until null terminator
@@ -362,7 +860,27 @@ char* kstrcpy(char* dst, const char* src) {
 // kstrncpy: Copy up to n characters from src to dst.
 //           Assumes dst is large enough.
 //-----------------------------------------------------------------------------
-char* kstrncpy(char* dst, const char* src, size_t n) {
+char* kstrncpy(char* dst, const char* src, size_t n)
+
+/*++
+
+    Routine description:
+
+        Copies a bounded number of characters and terminates the destination when possible.
+
+    Arguments:
+
+        [IN] dst - Destination buffer or string.
+        [IN] src - Source buffer or string.
+        [IN] n - Interrupt vector or bounded element count.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
+{
     if (n == 0) return dst;
     size_t i = 0;
     while (i + 1 < n && src[i]) {
@@ -374,6 +892,25 @@ char* kstrncpy(char* dst, const char* src, size_t n) {
 }
 
 static inline size_t kstrlcpy(char* dst, const char* src, size_t dst_size)
+
+/*++
+
+    Routine description:
+
+        Copies a string into a bounded destination and reports truncation.
+
+    Arguments:
+
+        [IN] dst - Destination buffer or string.
+        [IN] src - Source buffer or string.
+        [IN] dst_size - Size of the dst in bytes.
+
+    Return Values:
+
+        Zero when the copy fits, or a nonzero value when truncation occurs.
+
+--*/
+
 {
     const char* s = src;
     size_t n = dst_size;
@@ -402,6 +939,24 @@ static inline size_t kstrlcpy(char* dst, const char* src, size_t dst_size)
  * Returns length of the initial segment of s consisting only of characters in accept.
  */
 static inline size_t kstrspn(const char* s, const char* accept)
+
+/*++
+
+    Routine description:
+
+        Counts the initial characters drawn only from an accepted set.
+
+    Arguments:
+
+        [IN] s - String or state value consumed by the routine.
+        [IN] accept - Set of accepted span characters.
+
+    Return Values:
+
+        The length of the accepted initial span.
+
+--*/
+
 {
     const char* p = s;
     for (; *p != '\0'; ++p) {
@@ -420,6 +975,24 @@ static inline size_t kstrspn(const char* s, const char* accept)
  * Returns length of the initial segment of s consisting of characters NOT in reject.
  */
 static inline size_t kstrcspn(const char* s, const char* reject)
+
+/*++
+
+    Routine description:
+
+        Counts the initial characters that do not appear in a rejected set.
+
+    Arguments:
+
+        [IN] s - String or state value consumed by the routine.
+        [IN] reject - Set of rejected span characters.
+
+    Return Values:
+
+        The length of the initial span containing no rejected characters.
+
+--*/
+
 {
     const char* p = s;
     for (; *p != '\0'; ++p) {
@@ -438,6 +1011,25 @@ static inline size_t kstrcspn(const char* s, const char* reject)
 // Keeps static state across calls unless str != NULL.
 //-----------------------------------------------------------------------------
 char* kstrtok_r(char* str, const char* delim, char** save_ptr)
+
+/*++
+
+    Routine description:
+
+        Splits a string into tokens while preserving caller-owned scan state.
+
+    Arguments:
+
+        [IN] str - String to examine or modify.
+        [IN] delim - Set of token delimiter characters.
+        [IN] save_ptr - Caller-owned tokenizer continuation state.
+
+    Return Values:
+
+        A pointer to the resulting object or storage, or NULL when no result is available.
+
+--*/
+
 {
     char* token_start;
 
@@ -474,12 +1066,53 @@ char* kstrtok_r(char* str, const char* delim, char** save_ptr)
     return token_start;
 }
 
-static void buf_print_hex64_minimal(char* buf, size_t size, size_t* written, uint64_t value) {
+static void buf_print_hex64_minimal(char* buf, size_t size, size_t* written, uint64_t value)
+
+/*++
+
+    Routine description:
+
+        Appends a hexadecimal integer without unnecessary leading zeros.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] size - Size of the size in bytes.
+        [IN] written - Running number of characters emitted to the buffer.
+        [IN] value - Value to write or process.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     buf_puts(buf, size, written, "0x");
     buf_print_hex64(buf, size, written, value);
 }
 
-int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
+int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...)
+
+/*++
+
+    Routine description:
+
+        Formats text into a bounded buffer.
+
+    Arguments:
+
+        [IN OUT] buf - Buffer read, written, or examined by the routine.
+        [IN] bufsize - Size of the bufsize in bytes.
+        [IN] fmt - Format string controlling generated output.
+
+    Return Values:
+
+        The number of characters written, excluding the terminating null.
+
+--*/
+
+{
     size_t written = 0;
     va_list ap;
     va_start(ap, fmt);
@@ -574,13 +1207,51 @@ int ksnprintf(char* buf, size_t bufsize, const char* fmt, ...) {
     return (int)written;
 }
 
-static inline bool interrupts_enabled(void) {
+static inline bool interrupts_enabled(void)
+
+/*++
+
+    Routine description:
+
+        Reports whether maskable interrupts are enabled on the current processor.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
     unsigned long flags;
     __asm__ __volatile__("pushfq; popq %0" : "=r"(flags));
     return (flags & (1UL << 9)) != 0; // IF is bit 9
 }
 
-static void gop_print_binary(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
+static void gop_print_binary(GOP_PARAMS* gop, uint64_t val, uint32_t color)
+
+/*++
+
+    Routine description:
+
+        Prints a binary integer to the framebuffer console.
+
+    Arguments:
+
+        [IN] gop - Framebuffer parameters and cursor state.
+        [IN] val - Value to write or process.
+        [IN] color - Framebuffer color used to draw the output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     char buf[65]; // 64 bits + null terminator
     for (int i = 0; i < 64; i++) {
         // fill buffer from MSB to LSB
@@ -590,7 +1261,26 @@ static void gop_print_binary(GOP_PARAMS* gop, uint64_t val, uint32_t color) {
     gop_puts(gop, buf, color);
 }
 
-int kstrcmp(const char* s1, const char* s2) {
+int kstrcmp(const char* s1, const char* s2)
+
+/*++
+
+    Routine description:
+
+        Compares two null-terminated strings lexicographically.
+
+    Arguments:
+
+        [IN] s1 - First string to compare.
+        [IN] s2 - Second string to compare.
+
+    Return Values:
+
+        A negative value, zero, or a positive value when the first value sorts before, equals, or follows the second.
+
+--*/
+
+{
     while (*s1 && *s2) {
         if (*s1 != *s2) return (int)((unsigned char)*s1 - (unsigned char)*s2);
         s1++;
@@ -599,7 +1289,27 @@ int kstrcmp(const char* s1, const char* s2) {
     return (int)((unsigned char)*s1 - (unsigned char)*s2);
 }
 
-int kstrncmp(const char* s1, const char* s2, size_t length) {
+int kstrncmp(const char* s1, const char* s2, size_t length)
+
+/*++
+
+    Routine description:
+
+        Compares at most a specified number of string characters.
+
+    Arguments:
+
+        [IN] s1 - First string to compare.
+        [IN] s2 - Second string to compare.
+        [IN] length - Size of the length in bytes.
+
+    Return Values:
+
+        A negative value, zero, or a positive value when the first value sorts before, equals, or follows the second.
+
+--*/
+
+{
     if (!length) return length;
     for (size_t i = 0; i < length; i++, s1++, s2++) {
         if (*s1 != *s2) return (int)((unsigned char)*s1 - (unsigned char)*s2);
@@ -608,29 +1318,37 @@ int kstrncmp(const char* s1, const char* s2, size_t length) {
     return 0;
 }
 
-SPINLOCK gop_lock = { 0 };
+static volatile void* GopPrintOwner = NULL;
 
-static void acquire_tmp_lock(SPINLOCK* lock) {
-    if (!lock) return;
-    // spin until we grab the lock.
-    while (__sync_lock_test_and_set(&lock->locked, 1)) {
-        __asm__ volatile("pause" ::: "memory"); /* x86 pause — CPU relax hint */
-    }
-    // Memory barrier to prevent instruction reordering
-    __asm__ volatile("" ::: "memory");
-}
-
-static void release_tmp_lock(SPINLOCK* lock) {
-    if (!lock) return;
-    // Memory barrier before release
-    __asm__ __volatile("" ::: "memory");
-    __sync_lock_release(&lock->locked);
-}
+extern bool isBugChecking;
 
 #ifdef DISABLE_GOP
 USED static void gop_printfz(uint32_t color, const char* fmt, ...) {
 #else
-void gop_printf(uint32_t color, const char* fmt, ...) {
+
+// This function will SLOW interrupts incoming by 30% or more.
+// For example, putting a Sleep before a gop_printf is done, will slow the Sleep timer by an additional 30-ish percent, since it performs __cli
+// which causes pending interrupts to wait (LAPIC Timer for example, which will then will not be done, meaning it will not advance the global tickcount.
+void gop_printf(uint32_t color, const char* fmt, ...)
+
+/*++
+
+    Routine description:
+
+        Formats and prints text to the framebuffer console.
+
+    Arguments:
+
+        [IN] color - Framebuffer color used to draw the output.
+        [IN] fmt - Format string controlling generated output.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
 #endif
     // Re-entrancy check: If we already own it, we are safe to print, 
     // but if another core owns it, we return to avoid deadlocks in high-IRQL.
@@ -638,17 +1356,47 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     if (unlikely(owner && owner != MeGetCurrentProcessor())) return;
 
     bool prev_if = interrupts_enabled();
-    acquire_tmp_lock(&gop_lock); // well if we get a page fault down there you can say bye bye to cpu execution (deadlock), more reason to hate this function, god can we move already to gui?
-    __cli(); // Critical section
+    __cli();
+
+    void* cpuToken = MeGetCurrentProcessor();
+    if (!cpuToken) cpuToken = (void*)1;
+
+    // Printing may recurse on the same CPU while reporting a fault. Track the
+    // owning CPU instead of using a non-reentrant bit lock.
+    bool outermostPrint = false;
+    for (;;) {
+        void* printOwner = InterlockedFetchPointer(&GopPrintOwner);
+        if (printOwner == cpuToken) break;
+        if (!printOwner &&
+            InterlockedCompareExchangePointer(&GopPrintOwner, cpuToken, NULL) == NULL) {
+            outermostPrint = true;
+            break;
+        }
+        __pause();
+    }
 
     GOP_PARAMS* gop = &gop_local;
+
+
     va_list ap;
     va_start(ap, fmt);
 
     // One buffer to rule them all. 
     // Large enough for binary(64) + null + slop.
-    __attribute__((aligned(16))) char scratch[NUM_BUFFER_SIZE];
     size_t written = 0;
+    __attribute__((aligned(16))) char scratch[NUM_BUFFER_SIZE];
+    scratch[0] = '\0';
+
+    if (!isBugChecking) {
+        PPROCESSOR cpu = MeGetCurrentProcessor();
+        if (cpu) {
+            int cpu_id = (int)(uintptr_t)cpu->ID;
+            buf_print_dec64(scratch, NUM_BUFFER_SIZE, &written, cpu_id);
+            gop_puts(gop, "[CPU: ", color);
+            gop_puts(gop, scratch, color);
+            gop_puts(gop, "] ", color);
+        }
+    }
 
     for (const char* p = fmt; *p; p++) {
         if (*p == '*' && p[1] == '*') {
@@ -719,11 +1467,31 @@ void gop_printf(uint32_t color, const char* fmt, ...) {
     }
 
     va_end(ap);
-    release_tmp_lock(&gop_lock);
+    if (outermostPrint) {
+        InterlockedExchangePointer(&GopPrintOwner, NULL);
+    }
     if (prev_if) __sti();
 }
 
-void MgAcquireExclusiveGopOwnerShip(void) {
+void MgAcquireExclusiveGopOwnerShip(void)
+
+/*++
+
+    Routine description:
+
+        Acquires exclusive ownership of the framebuffer console.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     void* me = (void*)MeGetCurrentProcessor();
 
     for (;;) {
@@ -735,7 +1503,54 @@ void MgAcquireExclusiveGopOwnerShip(void) {
     }
 }
 
-void MgReleaseExclusiveGopOwnerShip(void) {
+void MgReleaseExclusiveGopOwnerShip(void)
+
+/*++
+
+    Routine description:
+
+        Releases exclusive ownership of the framebuffer console.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
     // Trust the caller, just set the ExclusiveOwnerShip pointer to NULL.
     InterlockedExchangePointer(&ExclusiveOwnerShip, NULL);
+}
+
+void MgClaimGopForBugCheck(void)
+
+/*++
+
+    Routine description:
+
+        Claims the framebuffer console for fatal-error output.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    void* me = (void*)MeGetCurrentProcessor();
+    if (!me) me = (void*)1;
+
+    // Another CPU may have been interrupted while printing. Bugcheck is the
+    // sole remaining writer after the NMI freeze request, so waiting on the
+    // ordinary owner would risk hiding the stop code forever.
+    InterlockedExchangePointer(&ExclusiveOwnerShip, me);
+    InterlockedExchangePointer(&GopPrintOwner, NULL);
 }

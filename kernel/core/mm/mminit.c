@@ -20,15 +20,33 @@ Revision History:
 #include "../../includes/me.h"
 #include "../../includes/mg.h"
 #include "../../includes/ob.h"
+#include "../../../shared/include/accessrights.h"
 #include "../../assert.h"
 
 #define IA32_PAT 0x277
 
 POBJECT_TYPE MmSectionType = NULL;
 
+// PAT aka Page Attribute Table, fine grained control for paging cache flags.
 static
 bool
 MiIsPATAvailable(void)
+
+/*++
+
+    Routine description:
+
+        Reports whether the processor supports the page-attribute table.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
 
 {
     uint32_t eax, ebx, ecx, edx;
@@ -38,26 +56,58 @@ MiIsPATAvailable(void)
 
 static
 void 
-MiInitializePAT(void) 
+MiInitializePAT(void)
+
+/*++
+
+    Routine description:
+
+        Programs the page-attribute table used by kernel mappings.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
 
 {
     uint64_t pat =
-        0x00 |                   // 0 = WB
-        (0x01ULL << 8) |         // 1 = WT
-        (0x02ULL << 16) |        // 2 = UC-
-        (0x03ULL << 24) |        // 3 = UC
-        (0x00ULL << 32) |        // 4 = WB
+        0x06 |                   // 0 = WB
+        (0x04ULL << 8) |         // 1 = WT
+        (0x07ULL << 16) |        // 2 = UC-
+        (0x00ULL << 24) |        // 3 = UC
+        (0x06ULL << 32) |        // 4 = WB
         (0x01ULL << 40) |        // 5 = WC
-        (0x02ULL << 48) |        // 6 = UC-
-        (0x03ULL << 56);         // 7 = UC
+        (0x07ULL << 48) |        // 6 = UC-
+        (0x00ULL << 56);         // 7 = UC
 
     __writemsr(IA32_PAT, pat);
 }
 
 MTSTATUS
-MmInitSections(
+MmInitSections  (
     void
 )
+
+/*++
+
+    Routine description:
+
+        Initializes the section object type and section-management state.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS on success, or an error status describing the failure.
+
+--*/
 
 {
     OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
@@ -108,7 +158,6 @@ MmInitSystem(
 --*/
 
 {
-    // Currently we only support the first and only phase.
     if (Phase == SYSTEM_PHASE_INITIALIZE_ALL) {
 
         // Initialize PAT (Page Attribute Table)
@@ -188,7 +237,6 @@ MiMoveUefiDataToHigherHalf(
 
         [IN]    PBOOT_INFO BootInformation - The boot information supplied by the UEFI Bootloader.
 
-
     Return Values:
 
         None.
@@ -211,7 +259,7 @@ MiMoveUefiDataToHigherHalf(
     assert(gop_local.FrameBufferBase != Phys);
     assert((void*)gop_local.FrameBufferBase != NULL);
 
-    // Unmap the previous PTE. (was a 1:1 identity map, so thats why we use the phys addr)
+    // Unmap the previous PTE. (is a 1:1 identity map, so thats why we use the phys addr)
     MiUnmapPte(MiGetPtePointer(Phys));
 
 #ifdef DEBUG

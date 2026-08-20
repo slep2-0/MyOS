@@ -27,10 +27,19 @@ MsAcquireRundownProtection (
 {
 	uint64_t expected, desired;
 	do {
-		expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+		expected = InterlockedLoad(&rundown->Count);
 
 		// If teardown has started we refuse.
 		if (expected & TEARDOWN_ACTIVE) return false;
+		if ((expected & REFERENCE_COUNT) == REFERENCE_COUNT) {
+			MeBugCheckEx(
+				MEMORY_OVERFLOW_DETECTION,
+				rundown,
+				(void*)(uintptr_t)expected,
+				RETADDR(0),
+				NULL
+			);
+		}
 
 		desired = expected + 1;
 	} while (!InterlockedCompareExchangeU64_bool(&rundown->Count, desired, &expected));
@@ -57,7 +66,23 @@ MsReleaseRundownProtection (
 --*/
 
 {
-	InterlockedDecrementU64(&rundown->Count);
+	uint64_t expected = InterlockedLoad(&rundown->Count);
+	for (;;) {
+		if ((expected & REFERENCE_COUNT) == 0) {
+			MeBugCheckEx(
+				MEMORY_OVERFLOW_DETECTION,
+				rundown,
+				(void*)(uintptr_t)expected,
+				RETADDR(0),
+				NULL
+			);
+		}
+
+		uint64_t desired = expected - 1;
+		if (InterlockedCompareExchangeU64_bool(&rundown->Count, desired, &expected)) {
+			return;
+		}
+	}
 }
 
 // Wait for rundown (teardown)
@@ -81,13 +106,13 @@ void MsWaitForRundownProtectionRelease (
 --*/
 
 {
-	uint64_t expected = __atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST);
+	uint64_t expected = InterlockedLoad(&rundown->Count);
 	for (;;) {
 		uint64_t desired = expected | TEARDOWN_ACTIVE;
 
 		// try to set TEARDOWN_ACTIVE while preserving the refcount bits
 		if (InterlockedCompareExchangeU64_bool(&rundown->Count, desired, &expected)) {
-			// success — we hold the TEARDOWN_ACTIVE marker now
+			// Success: we hold the TEARDOWN_ACTIVE marker now.
 			break;
 		}
 
@@ -99,7 +124,7 @@ void MsWaitForRundownProtectionRelease (
 	}
 
 	// Spin until no references remain 
-	while ((__atomic_load_n(&rundown->Count, __ATOMIC_SEQ_CST) & REFERENCE_COUNT) != 0) {
+	while ((InterlockedLoad(&rundown->Count) & REFERENCE_COUNT) != 0) {
 		__pause();
 	}
 }

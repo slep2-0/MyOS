@@ -24,11 +24,179 @@ Revision History:
 #include "../../assert.h"
 #include "../../includes/fs.h"
 
+static bool
+MipVadAllowsAccess(
+    IN VAD_FLAGS Flags,
+    IN FAULT_OPERATION Operation
+)
+
+/*++
+
+    Routine description:
+
+        Reports whether VAD protection permits the requested page access.
+
+    Arguments:
+
+        [IN] Flags - Flags controlling the operation.
+        [IN] Operation - Requested memory-access or test operation.
+
+    Return Values:
+
+        A nonzero value when the reported condition holds, or zero otherwise.
+
+--*/
+
+{
+    if (Operation == WriteOperation) {
+        return (Flags & VAD_FLAG_WRITE) != 0;
+    }
+
+    if (Operation == ExecuteOperation) {
+        return (Flags & VAD_FLAG_EXECUTE) != 0;
+    }
+
+    return (Flags & VAD_FLAG_READ) != 0;
+}
+
+static uint64_t
+MipBuildUserPteFlags(
+    IN VAD_FLAGS Flags
+)
+
+/*++
+
+    Routine description:
+
+        Builds user page-table flags from a VAD protection mask.
+
+    Arguments:
+
+        [IN] Flags - Flags controlling the operation.
+
+    Return Values:
+
+        The PTE flags corresponding to the VAD protection.
+
+--*/
+
+{
+    uint64_t PteFlags = PAGE_PRESENT | PAGE_USER | PAGE_NX;
+
+    if (Flags & VAD_FLAG_WRITE) {
+        PteFlags |= PAGE_RW;
+    }
+
+    if (Flags & VAD_FLAG_EXECUTE) {
+        PteFlags &= ~PAGE_NX;
+    }
+
+    return PteFlags;
+}
+
+static bool
+MipCalculateFileOffset(
+    IN PMMVAD Vad,
+    IN uintptr_t VirtualAddress,
+    OUT uint64_t* FileOffset
+)
+
+/*++
+
+    Routine description:
+
+        Calculates the backing-file offset for a faulting VAD page.
+
+    Arguments:
+
+        [IN] Vad - VAD governing the virtual address range.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] FileOffset - Byte offset in the backing file.
+
+    Return Values:
+
+        The backing-file offset for the faulting page.
+
+--*/
+
+{
+    uint64_t AlignedAddress = (uint64_t)PAGE_ALIGN(VirtualAddress);
+    uint64_t StartAddress = (uint64_t)Vad->StartVa;
+
+    if (AlignedAddress < StartAddress) return false;
+
+    uint64_t RelativeOffset = AlignedAddress - StartAddress;
+    if (Vad->FileOffset > UINT64_MAX - RelativeOffset) return false;
+
+    *FileOffset = Vad->FileOffset + RelativeOffset;
+    return true;
+}
+
+static
+bool
+MipPublishPage(
+    IN PMMPTE Pte,
+    IN uintptr_t VirtualAddress,
+    IN PAGE_INDEX PfnIndex,
+    IN uint64_t PteFlags,
+    IN uint64_t ExpectedPte,
+    IN uint32_t PfnFlags,
+    _In_Opt PMMVAD Vad
+)
+
+/*++
+
+    Routine description:
+
+        Atomically publishes a newly faulted page into its page-table entry.
+
+    Arguments:
+
+        [IN] Pte - Page-table entry being published.
+        [IN] VirtualAddress - Virtual address affected by the operation.
+        [IN] PfnIndex - PFN database index of the physical page.
+        [IN] PteFlags - Flags installed in the page-table entry.
+        [IN] ExpectedPte - Expected PTE.
+        [IN] PfnFlags - Flags recorded in the PFN entry.
+        [IN] Vad - VAD governing the virtual address range.
+
+    Return Values:
+
+        true when the page is published, or false when another fault already supplied it.
+
+--*/
+
+{
+    uint64_t NewPte = PFN_TO_PHYS(PfnIndex) | PteFlags;
+    PPFN_ENTRY Pfn = INDEX_TO_PPFN(PfnIndex);
+
+    // A present PTE may immediately be observed and torn down by another CPU.
+    // Initialize its reverse map before publication so teardown never sees the
+    // stale availability-list overlay in Descriptor.
+    Pfn->Descriptor.Mapping.PteAddress = Pte;
+    Pfn->Descriptor.Mapping.Vad = Vad;
+    Pfn->State = PfnStateActive;
+    Pfn->Flags = PfnFlags;
+
+    if (!MiAtomicSetPte(Pte, NewPte, ExpectedPte)) {
+        // This PFN never became visible. Restore the private claimed state so
+        // the caller can release it without treating the winning PTE as ours.
+        Pfn->Descriptor.Mapping.PteAddress = NULL;
+        Pfn->Descriptor.Mapping.Vad = NULL;
+        Pfn->State = PfnStateTransition;
+        Pfn->Flags = PFN_FLAG_NONE;
+        return false;
+    }
+
+    MiInvalidateTlbForVa((void*)VirtualAddress);
+    return true;
+}
+
 MTSTATUS
 MmAccessFault(
     IN  uint64_t FaultBits,
     IN  uint64_t VirtualAddress,
-    IN  PRIVILEGE_MODE PreviousMode,
+    IN  PRIVILEGE_MODE FaultMode,
     IN  PTRAP_FRAME TrapFrame
 )
 
@@ -50,7 +218,7 @@ MmAccessFault(
 
         [IN]    FaultBits - The error code pushed by the CPU.
         [IN]    VirtualAddress - The Memory Address Referenced (CR2)
-        [IN]    PreviousMode - Supplies the mode (kernel or user) where the fault occured.
+        [IN]    FaultMode - Supplies the mode (kernel or user) where the fault occured.
         [IN]    TrapFrame - Trap information at fault.
 
     Return Values:
@@ -67,6 +235,18 @@ MmAccessFault(
 
 {
     // Declarations
+    // Page-table helpers only accept canonical addresses. Validate CR2 before
+    // constructing any recursive-map pointer from it.
+    if (!MI_IS_CANONICAL_ADDR(VirtualAddress)) {
+        if (FaultMode == UserMode) {
+            return MT_ACCESS_VIOLATION;
+        }
+
+        MeBugCheckEx(PAGE_FAULT, (void*)VirtualAddress,
+            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)TrapFrame->rip, (void*)FaultBits);
+    }
+
 #ifdef DEBUG
     // These are used when I'm debugging.
     PMMPTE ReferencedPml4e = MiGetPml4ePointer(VirtualAddress);
@@ -79,12 +259,12 @@ MmAccessFault(
     IRQL PreviousIrql = MeGetCurrentIrql();
 
 #ifdef DEBUG
-    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | PreviousMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, PreviousMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
+    gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | FaultMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, FaultMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
     if (!ReferencedPte) {
         // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
-        if (PreviousMode == UserMode) {
+        if (FaultMode == UserMode) {
             return MT_ACCESS_VIOLATION;
         }
 
@@ -98,76 +278,37 @@ MmAccessFault(
         );
     }
 
-    // If the VA given isn't canonical (sign extended after bit 47, required by CPU MMU Laws), we return or bugcheck depending on the previous mode.
-    if (!MI_IS_CANONICAL_ADDR(VirtualAddress)) {
+    // Grab the TempPte early
+    MMPTE TempPte = *ReferencedPte;
 
-        if (PreviousMode == UserMode) {
-            // User mode fault on non canonical address, not destructive.
-            return MT_ACCESS_VIOLATION;
-        }
-
-        // Kernel mode page fault on a non canonical address.
-        goto BugCheck;
-
+    // If the CPU reported P=1, this was a protection violation (RW, US, NX,
+    // SMEP, SMAP, PKU, and so on). x86 updates Accessed/Dirty in hardware and
+    // does not fault merely to ask software to set those bits.
+    if (FaultBits & PAGE_PRESENT) {
+        return MT_ACCESS_VIOLATION;
     }
 
-    // Check for NX. (NX on anywhere is invalid, no matter the range)
-    if (OperationDone == ExecuteOperation) {
-        // Check if the page has NoExecute.
-        if (ReferencedPte->Hard.NoExecute) {
-            // Execution is disallowed.
-            if (PreviousMode == UserMode) {
-                // UserMode executions get an access violation.
-                return MT_ACCESS_VIOLATION;
-            }
-            else {
-                // KernelMode violations are bugchecks.
-                goto BugCheck;
-            }
-        }
-
-        // The page is executable allowed, we check if we demand allocate (of if it is a VAD for user mode)
-        // Previously it returned an access violation for every time we executed wrong in user mode, which was bad.
+    // Another CPU may have resolved the not-present fault before we sampled
+    // the PTE. In that one case retrying the instruction is correct.
+    if (TempPte.Hard.Present) {
+        return MT_SUCCESS;
     }
 
     // Now we check for each address in the system, and handle the request based on that.
     if (VirtualAddress >= MmSystemRangeStart) {
-        if (PreviousMode == UserMode) {
+        if (FaultMode == UserMode) {
             // User mode access in kernel memory, invalid.
             return MT_ACCESS_VIOLATION;
         }
 
-        MMPTE TempPte = *ReferencedPte;
-
+        //
+        // FaultMode == KernelMode from now on.
+        //
+        
         // If this is a guard page, we MUST NOT demand allocate it. (pre guard)
         if (TempPte.Hard.Present == 0 && TempPte.Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
             // Guard pages for kernel mode do not raise an exception and fill in the PTE, this is only for user mode.
             goto BugCheck;
-        }
-
-        // PTE Is present, but we got a fault.
-        if (TempPte.Hard.Present) {
-            // Write fault to read-only memory.
-            if ((OperationDone == WriteOperation) && (TempPte.Hard.Write == 0)) {
-                MeBugCheckEx(
-                    ATTEMPTED_WRITE_TO_READONLY_MEMORY,
-                    (void*)VirtualAddress,
-                    (void*)ReferencedPte,
-                    NULL,
-                    NULL
-                );
-            }
-
-            // If we get here, it was an access/dirty update — set dirty bit if write
-            if (OperationDone == WriteOperation) {
-                // set dirty in PTE and, if needed, PFN->Dirty
-                // Prefer an atomic update: build NewPte = TempPte; NewPte.Hard.Dirty = 1; WriteValidPteAtomic(...)
-                MMPTE NewPte = TempPte;
-                NewPte.Hard.Dirty = 1;
-                MiAtomicExchangePte(ReferencedPte, NewPte.Value);
-                MiInvalidateTlbForVa((void*)VirtualAddress);
-            }
-            return MT_SUCCESS;
         }
         
         // Before any demand allocation, check IRQL.
@@ -181,7 +322,6 @@ MmAccessFault(
                 (void*)TrapFrame->rip
             );
         }
-        
 
         // PTE Isn't present, check for demand allocations.
         if (MM_IS_DEMAND_ZERO_PTE(TempPte)) {
@@ -197,6 +337,7 @@ MmAccessFault(
             
             if ((TempPte.Soft.SoftwareFlags & PROT_KERNEL_READ) == 0) {
                 // Invalid DemandZero.
+                MiReleasePhysicalPage(pfn);
                 goto BugCheck;
             }
 
@@ -205,9 +346,25 @@ MmAccessFault(
             ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
             ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
 
-            // Write the PTE.
-            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PPFN_TO_PHYSICAL_ADDRESS(INDEX_TO_PPFN(pfn)), ProtectionFlags);
+            if (!MipPublishPage(
+                ReferencedPte,
+                VirtualAddress,
+                pfn,
+                ProtectionFlags,
+                TempPte.Value,
+                PFN_FLAG_NONPAGED,
+                NULL
+            )) {
+                MiReleasePhysicalPage(pfn);
 
+                MMPTE ObservedPte = *ReferencedPte;
+                if (!ObservedPte.Hard.Present &&
+                    !ObservedPte.Soft.Transition) {
+                    goto BugCheck;
+                }
+            }
+
+            // Either we published it or another CPU resolved/transitioned it.
             return MT_SUCCESS;
         }
 
@@ -221,9 +378,23 @@ MmAccessFault(
             IRQL oldIrql;
             MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
 
-            // Check the PFN, it has to be in the StandBy list and be equal to our PTE, if not, bugcheck.
+            MMPTE CurrentPte = *ReferencedPte;
+            if (CurrentPte.Hard.Present) {
+                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+                return MT_SUCCESS;
+            }
+
+            if (!CurrentPte.Soft.Transition ||
+                CurrentPte.Soft.PageFrameNumber != pfn) {
+                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+                goto BugCheck;
+            }
+
+            // A list-linked PFN uses Descriptor.ListEntry, so Mapping cannot
+            // simultaneously contain a PTE pointer. The transition PTE is the
+            // authoritative owner until the page is activated.
             PPFN_ENTRY PPfn = INDEX_TO_PPFN(pfn);
-            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) {
+            if (PPfn->State != PfnStateStandby || PPfn->RefCount != 0) {
                 // Release spinlock.
                 MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
                 goto BugCheck;
@@ -231,14 +402,31 @@ MmAccessFault(
             // PFN Is matching to this pte, now we can set the PTE.
             // Check protection mask.
             uint64_t ProtectionFlags = PAGE_PRESENT;
-            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
-            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
+            ProtectionFlags |= (CurrentPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
+            ProtectionFlags |= (CurrentPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
 
-            // Release this PFN from the list.
-            MiUnlinkPageFromList(PPfn);
+            RemoveEntryList(&PPfn->Descriptor.ListEntry);
+            PPfn->Descriptor.ListEntry.Flink = NULL;
+            PPfn->Descriptor.ListEntry.Blink = NULL;
+            InterlockedDecrementU64(&PfnDatabase.StandbyPageList.Count);
+            InterlockedDecrementU64(&PfnDatabase.AvailablePages);
+            PPfn->RefCount = 1;
+            PPfn->State = PfnStateTransition;
 
-            // Atomically set PTE.
-            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PFN_TO_PHYS(pfn), ProtectionFlags);
+            if (!MipPublishPage(
+                ReferencedPte,
+                VirtualAddress,
+                pfn,
+                ProtectionFlags,
+                CurrentPte.Value,
+                PFN_FLAG_NONPAGED,
+                NULL
+            )) {
+                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+                MeBugCheckEx(PFN_TRANSITION_FAILURE, ReferencedPte,
+                    (void*)(uintptr_t)pfn, (void*)CurrentPte.Value,
+                    (void*)(uintptr_t)ReferencedPte->Value);
+            }
 
             // Release PFN Standby list lock.
             MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
@@ -261,7 +449,7 @@ MmAccessFault(
     // Address is in user range.
     // Both kernel and user mode are allowed to fault in here, guaranteeing there is a VAD backing it of course (and IRQL demands)
     // If kernel faulted and no vad (Irql is good), then we search for exception handlers in return, if none we bugcheck.
-    // If a user faulted and no vad (Irql is good), then we search for exception handlers in return, if none we terminate the thread.
+    // If a user faulted and no vad (Irql is good, it has to be for PASSIVE_LEVEL/APC_LEVEL), then we search for exception handlers in return, if no exception handler in MTDLL handled it, then the thread terminates.
     if (VirtualAddress <= MmHighestUserAddress) {
         // Before any demand allocation, check IRQL.
         if (PreviousIrql >= DISPATCH_LEVEL) {
@@ -275,158 +463,246 @@ MmAccessFault(
             );
         }
 
-        // Fault on a user address, we check if there is a vad for it, if so, allocate the page.
-        PMMVAD vad = MiFindVad(PsGetCurrentProcess(), VirtualAddress);
-        if (!vad) return MT_ACCESS_VIOLATION; // If kernel mode exception dispatcher should catch.
+        PEPROCESS Process = PsGetCurrentProcess();
+        PFILE_OBJECT FileObject = NULL;
+        uint64_t ActualFileOffset = 0;
 
-        // Check if we are allowed to allocate.
-        if (vad->Flags & VAD_FLAG_RESERVED) {
-            // Check if this is a guard page.
-            if (vad->Flags & VAD_FLAG_GUARD_PAGE) {
-                // Raise an guard page violation status and allocate the page.
-                //ExpRaiseStatus() TODO
-                vad->Flags = VAD_FLAG_WRITE | VAD_FLAG_READ;
-            }
-
-            else {
-                // Allocation is forbidden, return access violation.
-                return MT_ACCESS_VIOLATION;
-            }
+        // VAD mutation and transition-page activation are short operations and
+        // stay serialized. Slow file I/O happens after this lock is released.
+        MsAcquirePushLockExclusive(&Process->VadLock);
+        PMMVAD Vad = MiFindVadInternal(Process, VirtualAddress, false);
+        if (!Vad) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            return MT_ACCESS_VIOLATION;
         }
 
-        MMPTE TempPte = *ReferencedPte;
-
-        // Now check for transition PTE (after checking reserved vad flag)
-        // PTE Isn't present, and its a transition (USER MODE PATH) (ACCESS VIOLATION RETURN)
-        // If the previous mode is kernel mode and an access violation is returned, KMODE_EXCEPTION_NOT_HANDLED bugcheck comes
-        // unless the kernel has a try except handler set in the VA (checked in return path)
-        if (TempPte.Soft.Transition == 1) {
-            // Retrieve the PFN Number written in the transition page.
-            PAGE_INDEX pfn = TempPte.Soft.PageFrameNumber;
-            if (!MiIsValidPfn(pfn)) return MT_ACCESS_VIOLATION;
-
-            // Acquire Standby PFN DB List lock. (acquiring spinlock is okay, IRQL detection was checked above)
-            IRQL oldIrql;
-            MsAcquireSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, &oldIrql);
-
-            // Check the PFN, it has to be in the StandBy list and be equal to our PTE, if not, bugcheck.
-            PPFN_ENTRY PPfn = INDEX_TO_PPFN(pfn);
-            if (PPfn->State != PfnStateStandby || PPfn->Descriptor.Mapping.PteAddress == NULL || PPfn->Descriptor.Mapping.PteAddress != ReferencedPte) {
-                // Release spinlock.
-                MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
+        if (Vad->Flags & VAD_FLAG_RESERVED) {
+            if (!(Vad->Flags & VAD_FLAG_GUARD_PAGE)) {
+                MsReleasePushLockExclusive(&Process->VadLock);
                 return MT_ACCESS_VIOLATION;
             }
 
-            // PFN Is matching to this pte, now we can set the PTE.
-            // Check protection mask.
-            uint64_t ProtectionFlags = PAGE_PRESENT;
+            Vad->Flags &= ~(VAD_FLAG_RESERVED | VAD_FLAG_GUARD_PAGE);
+            Vad->Flags |= VAD_FLAG_READ | VAD_FLAG_WRITE;
+        }
 
-            // Writable
-            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_WRITE) ? PAGE_RW : 0;
-            
-            // User accessible.
-            assert((TempPte.Soft.SoftwareFlags & PROT_KERNEL_USER) != 0);
-            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_USER) ? PAGE_USER : 0; // This should always be valid for user mode paths.
-            
-            // NoExecute.
-            ProtectionFlags |= (TempPte.Soft.SoftwareFlags & PROT_KERNEL_NOEXECUTE) ? PAGE_NX : 0;
+        if (!MipVadAllowsAccess(Vad->Flags, OperationDone)) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            return MT_ACCESS_VIOLATION;
+        }
 
-            // Release this PFN from the list.
-            MiUnlinkPageFromList(PPfn);
-
-            // Atomically set PTE.
-            MI_WRITE_PTE(ReferencedPte, VirtualAddress, PFN_TO_PHYS(pfn), ProtectionFlags);
-
-            // Release PFN Standby list lock.
-            MsReleaseSpinlock(&PfnDatabase.StandbyPageList.PfnListLock, oldIrql);
-
-            // Return success.
+        MMPTE UserPte = *ReferencedPte;
+        if (UserPte.Hard.Present) {
+            MsReleasePushLockExclusive(&Process->VadLock);
             return MT_SUCCESS;
         }
 
-        // Set to base values.
-        uint64_t PteFlags = PAGE_PRESENT | PAGE_NX | PAGE_USER;
+        if (UserPte.Soft.Transition) {
+            PAGE_INDEX PfnIndex = UserPte.Soft.PageFrameNumber;
+            if (!MiIsValidPfn(PfnIndex)) {
+                MsReleasePushLockExclusive(&Process->VadLock);
+                return MT_ACCESS_VIOLATION;
+            }
 
-        // Apply flags.
-        if (vad->Flags & VAD_FLAG_WRITE) {
-            PteFlags |= PAGE_RW;
+            PPFN_ENTRY Pfn = INDEX_TO_PPFN(PfnIndex);
+            IRQL OldIrql;
+            MsAcquireSpinlock(
+                &PfnDatabase.StandbyPageList.PfnListLock,
+                &OldIrql
+            );
+
+            if (Pfn->State != PfnStateStandby || Pfn->RefCount != 0) {
+                MsReleaseSpinlock(
+                    &PfnDatabase.StandbyPageList.PfnListLock,
+                    OldIrql
+                );
+                MsReleasePushLockExclusive(&Process->VadLock);
+                return MT_ACCESS_VIOLATION;
+            }
+
+            RemoveEntryList(&Pfn->Descriptor.ListEntry);
+            Pfn->Descriptor.ListEntry.Flink = NULL;
+            Pfn->Descriptor.ListEntry.Blink = NULL;
+            InterlockedDecrementU64(&PfnDatabase.StandbyPageList.Count);
+            InterlockedDecrementU64(&PfnDatabase.AvailablePages);
+            Pfn->RefCount = 1;
+            Pfn->State = PfnStateTransition;
+
+            MsReleaseSpinlock(
+                &PfnDatabase.StandbyPageList.PfnListLock,
+                OldIrql
+            );
+
+            if (!MipPublishPage(
+                ReferencedPte,
+                VirtualAddress,
+                PfnIndex,
+                MipBuildUserPteFlags(Vad->Flags),
+                UserPte.Value,
+                PFN_FLAG_NONE,
+                Vad
+            )) {
+                MsReleasePushLockExclusive(&Process->VadLock);
+                MeBugCheckEx(PFN_TRANSITION_FAILURE, ReferencedPte,
+                    (void*)(uintptr_t)PfnIndex, (void*)UserPte.Value,
+                    (void*)(uintptr_t)ReferencedPte->Value);
+            }
+            MsReleasePushLockExclusive(&Process->VadLock);
+            return MT_SUCCESS;
         }
 
-        if (vad->Flags & VAD_FLAG_EXECUTE) {
-            PteFlags &= ~PAGE_NX;
+        // These formats do not have a resolver yet. Treating either one as a
+        // demand-zero PTE would discard its backing-store information.
+        if (UserPte.Soft.Prototype || UserPte.Soft.PageFile) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            return MT_ACCESS_VIOLATION;
         }
 
+        if (Vad->File) {
+            if (!MipCalculateFileOffset(
+                Vad,
+                VirtualAddress,
+                &ActualFileOffset
+            )) {
+                MsReleasePushLockExclusive(&Process->VadLock);
+                return MT_ACCESS_VIOLATION;
+            }
 
-        // TODO COPY ON WRITE!!
-        /*
-        if (vad->Flags & VAD_FLAG_COPY_ON_WRITE) {
-            // Copy the physical address to the COW page.
+            FileObject = Vad->File;
+            if (!ObReferenceObject(FileObject)) {
+                MsReleasePushLockExclusive(&Process->VadLock);
+                return MT_ACCESS_VIOLATION;
+            }
         }
-        */
-        
-        // Looks like we have a valid vad, lets allocate.
-        PAGE_INDEX pfn = MiRequestPhysicalPage(PfnStateZeroed);
 
-        if (pfn == PFN_ERROR) return MT_ACCESS_VIOLATION;
+        MsReleasePushLockExclusive(&Process->VadLock);
 
-        // Acquire the PTE for the faulty VA.
-        PMMPTE pte = MiGetPtePointer(VirtualAddress);
+        PAGE_INDEX PfnIndex = MiRequestPhysicalPage(PfnStateZeroed);
+        if (PfnIndex == PFN_ERROR) {
+            if (FileObject) ObDereferenceObject(FileObject);
+            return MT_ACCESS_VIOLATION;
+        }
 
-        // Now we check if the VAD has any file attached to it, if it does, we copy the contents of the file to the RAM
-        // This could be a process file (executable, dll), or even our pagefile.
-        if (vad->File) {
-            // Calculate file offset to load into VAD.
-            uint64_t AlignedAddress = (uint64_t)PAGE_ALIGN(VirtualAddress);
-            uint64_t PageOffsetWithinVad = AlignedAddress - (uint64_t)vad->StartVa;
-            uint64_t ActualFileOffset = vad->FileOffset + PageOffsetWithinVad;
-
-            // Determine how many bytes to read from file to the page.
-            PFILE_OBJECT FileObject = vad->File;
-            uint64_t FileLength = FileObject->FileSize;
+        if (FileObject) {
             size_t ToRead = 0;
-
-            if (ActualFileOffset < FileLength) {
-                ToRead = (size_t)MIN((uint64_t)VirtualPageSize, FileLength - ActualFileOffset);
-            }
-            else {
-                ToRead = 0;
-            }
-
-            // Allocate enough buffer size to hold the file.
-            void* Tmp = MmAllocatePoolWithTag(NonPagedPool, VirtualPageSize, 'Fpmt'); // tmpF - Temporary Fault
-            if (!Tmp) return MT_ACCESS_VIOLATION;
-
-            // Read the file now.
-            if (ToRead > 0) {
-                MTSTATUS Status = FsReadFile(FileObject, ActualFileOffset, Tmp, ToRead, NULL);
-                if (MT_FAILURE(Status)) {
-                    MmFreePool(Tmp);
-                    return MT_ACCESS_VIOLATION;
-                }
+            if (ActualFileOffset < FileObject->FileSize) {
+                ToRead = (size_t)MIN(
+                    (uint64_t)VirtualPageSize,
+                    FileObject->FileSize - ActualFileOffset
+                );
             }
 
-            // NOTE: Is this really needed? Pool allocations are zeroed, and we used a PfnStateZeroed phys page up top.
+            void* TemporaryBuffer = MmAllocatePoolWithTag(
+                NonPagedPool,
+                VirtualPageSize,
+                'Fpmt'
+            );
+            if (!TemporaryBuffer) {
+                MiReleasePhysicalPage(PfnIndex);
+                ObDereferenceObject(FileObject);
+                return MT_ACCESS_VIOLATION;
+            }
+
+            MTSTATUS ReadStatus = MT_SUCCESS;
+            if (ToRead != 0) {
+                ReadStatus = FsReadFile(
+                    FileObject,
+                    ActualFileOffset,
+                    TemporaryBuffer,
+                    ToRead,
+                    NULL
+                );
+            }
+
+            if (MT_FAILURE(ReadStatus)) {
+                MmFreePool(TemporaryBuffer);
+                MiReleasePhysicalPage(PfnIndex);
+                ObDereferenceObject(FileObject);
+                return MT_ACCESS_VIOLATION;
+            }
+
             if (ToRead < VirtualPageSize) {
-                // zero the rest of the page
-                kmemset((uint8_t*)Tmp + ToRead, 0, VirtualPageSize - ToRead);
+                kmemset(
+                    (uint8_t*)TemporaryBuffer + ToRead,
+                    0,
+                    VirtualPageSize - ToRead
+                );
             }
 
-            // Copy data from the file to the new user Page
-            // We must not access the virtual address, as if this is a page without write access, we would fault (like the .text section)
-            // Speaking from exprience btw.
-            // So we operate on the physical address.
-            // This should be IRQL fine, since we filtered dispatch and above, above.
-            // As well as performed the read operation in PASSIVE_LEVEL (or APC)
-            IRQL oldIrql;
-            void* AddressToOperate = MiMapPageInHyperspace(pfn, &oldIrql);
-            kmemcpy(AddressToOperate, Tmp, VirtualPageSize);
-            MiUnmapHyperSpaceMap(oldIrql);
+            IRQL OldIrql;
+            void* HyperAddress = MiMapPageInHyperspace(PfnIndex, &OldIrql);
+            kmemcpy(HyperAddress, TemporaryBuffer, VirtualPageSize);
+            MiUnmapHyperSpaceMap(OldIrql);
+            MmFreePool(TemporaryBuffer);
         }
 
-        // Write the PTE.
-        MI_WRITE_PTE(pte, VirtualAddress, PFN_TO_PHYS(pfn), PteFlags);
+        // The VAD may have been protected, split, or freed during file I/O.
+        // Revalidate both ownership and file offset before publishing the PTE.
+        MsAcquirePushLockExclusive(&Process->VadLock);
+        Vad = MiFindVadInternal(Process, VirtualAddress, false);
+        if (!Vad || (Vad->Flags & VAD_FLAG_RESERVED) ||
+            !MipVadAllowsAccess(Vad->Flags, OperationDone)) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            MiReleasePhysicalPage(PfnIndex);
+            if (FileObject) ObDereferenceObject(FileObject);
+            return MT_ACCESS_VIOLATION;
+        }
 
-        // Return success.
+        bool MappingChanged = Vad->File != FileObject;
+        if (!MappingChanged && FileObject) {
+            uint64_t CurrentFileOffset;
+            MappingChanged = !MipCalculateFileOffset(
+                Vad,
+                VirtualAddress,
+                &CurrentFileOffset
+            ) || CurrentFileOffset != ActualFileOffset;
+        }
+
+        UserPte = *ReferencedPte;
+        if (MappingChanged || UserPte.Soft.Transition) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            MiReleasePhysicalPage(PfnIndex);
+            if (FileObject) ObDereferenceObject(FileObject);
+            // The next fault revalidates the replacement mapping or activates
+            // the transition page; our freshly read page no longer applies.
+            return MT_SUCCESS;
+        }
+
+
+        if (UserPte.Soft.Prototype || UserPte.Soft.PageFile) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            MiReleasePhysicalPage(PfnIndex);
+            if (FileObject) ObDereferenceObject(FileObject);
+            return MT_ACCESS_VIOLATION;
+        }
+
+        if (UserPte.Hard.Present) {
+            MsReleasePushLockExclusive(&Process->VadLock);
+            MiReleasePhysicalPage(PfnIndex);
+            if (FileObject) ObDereferenceObject(FileObject);
+            return MT_SUCCESS;
+        }
+
+        if (!MipPublishPage(
+            ReferencedPte,
+            VirtualAddress,
+            PfnIndex,
+            MipBuildUserPteFlags(Vad->Flags),
+            UserPte.Value,
+            FileObject ? PFN_FLAG_MAPPED_FILE : PFN_FLAG_NONE,
+            Vad
+        )) {
+            MMPTE ObservedPte = *ReferencedPte;
+            bool FaultWasResolved = ObservedPte.Hard.Present ||
+                ObservedPte.Soft.Transition;
+            MsReleasePushLockExclusive(&Process->VadLock);
+            MiReleasePhysicalPage(PfnIndex);
+            if (FileObject) ObDereferenceObject(FileObject);
+            return FaultWasResolved ? MT_SUCCESS : MT_ACCESS_VIOLATION;
+        }
+        MsReleasePushLockExclusive(&Process->VadLock);
+
+        if (FileObject) ObDereferenceObject(FileObject);
         return MT_SUCCESS;
     }
 
@@ -434,26 +710,26 @@ MmAccessFault(
     // This comment means execution is impossible to reach here, as we sanitized all (valid) addresses in the 48bit paging hierarchy.
     // If it does reach here, look below.
 
-BugCheck:
-    // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL or ATTEMPTED_WRITE_TO_READONLY_MEMORY are handled above.
+BugCheck: {
+    // Bugchecks for: IRQL_NOT_LESS_OR_EQUAL are handled above.
 
     // Check if its a NoExecute page violation
     if (ReferencedPte->Hard.Present && ReferencedPte->Hard.NoExecute && OperationDone == ExecuteOperation) {
         MeBugCheckEx(
             ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)ReferencedPte,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
     }
-    
+
     // Check if its a guard page violation
     if (ReferencedPte->Soft.SoftwareFlags & MI_GUARD_PAGE_PROTECTION) {
         MeBugCheckEx(
             GUARD_PAGE_DEREFERENCE,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -464,7 +740,7 @@ BugCheck:
         MeBugCheckEx(
             PAGE_FAULT_IN_FREED_NONPAGED_POOL,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -475,7 +751,7 @@ BugCheck:
         MeBugCheckEx(
             PAGE_FAULT_IN_FREED_PAGED_POOL,
             (void*)VirtualAddress,
-            (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+            (void*)OperationDone,
             (void*)TrapFrame->rip,
             (void*)FaultBits
         );
@@ -485,38 +761,9 @@ BugCheck:
     MeBugCheckEx(
         PAGE_FAULT,
         (void*)VirtualAddress,
-        (void*)MiRetrieveOperationFromErrorCode(TrapFrame->error_code),
+        (void*)OperationDone,
         (void*)TrapFrame->rip,
         (void*)FaultBits
     );
-}
-
-bool
-MmInvalidAccessAllowed(
-    void
-)
-
-/*++
-
-    Routine description:
-        (UNUSED, ALWAYS FALSE)
-        This function determines if invalid access (e.g, a null pointer dereference), is allowed within the current context.
-
-    Arguments:
-
-        None.
-
-    Return Values:
-
-        True if invalid access is allowed, false otherwise.
-
-    Notes:
-
-        This routine is unused, but will be kept for future modifications if any.
-
---*/
-
-
-{
-    return false;
+    }
 }
