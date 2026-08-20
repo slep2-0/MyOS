@@ -21,11 +21,15 @@ STATIC_ASSERT(
     "LDR_DATA_TABLE_ENTRY.TlsDirectory offset changed"
 );
 STATIC_ASSERT(sizeof(PEB_LDR_DATA) == 24, "PEB_LDR_DATA ABI changed");
-STATIC_ASSERT(sizeof(PEB) == 56, "PEB ABI changed");
+STATIC_ASSERT(sizeof(PEB) == 64, "PEB ABI changed");
 STATIC_ASSERT(offsetof(PEB, ImageBase) == 8, "PEB.ImageBase offset changed");
 STATIC_ASSERT(offsetof(PEB, LoaderData) == 16, "PEB.LoaderData offset changed");
 STATIC_ASSERT(offsetof(PEB, ProcessHeap) == 40, "PEB.ProcessHeap offset changed");
 STATIC_ASSERT(offsetof(PEB, NextTlsIndex) == 48, "PEB.NextTlsIndex offset changed");
+STATIC_ASSERT(
+    offsetof(PEB, ProcessParameters) == 56,
+    "PEB.ProcessParameters offset changed"
+);
 STATIC_ASSERT(sizeof(MT_TIB) == 24, "MT_TIB ABI changed");
 STATIC_ASSERT(sizeof(TEB) == 88, "TEB ABI changed");
 STATIC_ASSERT(offsetof(TEB, MtTib) == 0, "TEB.MtTib offset changed");
