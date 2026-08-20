@@ -1,4 +1,5 @@
 #include <MatanelOS.h>
+#include <mtnative.h>
 #include <mtstatus.h>
 
 #include "process_test.h"
@@ -11,6 +12,153 @@ static const char ProcessTestCommandLine[] =
 static const char ProcessTestEnvironment[] =
     "PROCESS_TEST=child\0"
     "SECOND=two\0";
+
+static
+void
+ProcessTestInitializeNativeParameters(
+    OUT PMT_CREATE_PROCESS_PARAMETERS Parameters,
+    IN const char* ImagePath,
+    IN const char* CommandLine
+)
+
+/*++
+
+    Routine description:
+
+        Initializes a native process-creation request used by failure tests.
+
+    Arguments:
+
+        [OUT] Parameters - Receives the initialized native request.
+        [IN] ImagePath - Executable path placed in the request.
+        [IN] CommandLine - Command line placed in the request.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    *Parameters = (MT_CREATE_PROCESS_PARAMETERS){ 0 };
+    Parameters->Size = sizeof(*Parameters);
+    Parameters->ImagePath = ImagePath;
+    Parameters->ImagePathLength = strlen(ImagePath);
+    Parameters->CommandLine = CommandLine;
+    Parameters->CommandLineLength = strlen(CommandLine);
+    Parameters->CurrentDirectory = "process-test-dir";
+    Parameters->CurrentDirectoryLength = sizeof("process-test-dir") - 1;
+    Parameters->Environment = ProcessTestEnvironment;
+    Parameters->EnvironmentSize = sizeof(ProcessTestEnvironment);
+    Parameters->ParentProcess = MtCurrentProcess();
+    Parameters->DesiredAccess = MT_PROCESS_ALL_ACCESS;
+}
+
+static
+MTSTATUS
+ProcessTestNativeFailurePaths(
+    void
+)
+
+/*++
+
+    Routine description:
+
+        Verifies native pointer rejection and late process-creation rollback.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS when every failure path behaves correctly, or a process-test
+        status identifying the failed check.
+
+--*/
+
+{
+    MT_CREATE_PROCESS_PARAMETERS Parameters;
+    ProcessTestInitializeNativeParameters(
+        &Parameters,
+        "processChild.mtexe",
+        ProcessTestCommandLine
+    );
+
+    MT_PROCESS_INFORMATION Information = {
+        .ProcessHandle = MT_INVALID_HANDLE,
+        .ThreadHandle = MT_INVALID_HANDLE
+    };
+    const void* InvalidUserPointer =
+        (const void*)(MT_HIGHEST_USER_ADDRESS + 1ULL);
+
+    MTSTATUS Status = MtCreateProcess(
+        (const MT_CREATE_PROCESS_PARAMETERS*)InvalidUserPointer,
+        &Information
+    );
+    if (Status != MT_ACCESS_VIOLATION) {
+        return MT_PROCESS_TEST_NATIVE_PARAMETER_PTR;
+    }
+
+    Status = MtCreateProcess(
+        &Parameters,
+        (PMT_PROCESS_INFORMATION)(uintptr_t)InvalidUserPointer
+    );
+    if (Status != MT_ACCESS_VIOLATION) {
+        return MT_PROCESS_TEST_NATIVE_OUTPUT_PTR;
+    }
+
+    MT_CREATE_PROCESS_PARAMETERS InvalidParameters = Parameters;
+    InvalidParameters.ImagePath = (const char*)InvalidUserPointer;
+    Status = MtCreateProcess(&InvalidParameters, &Information);
+    if (Status != MT_ACCESS_VIOLATION) {
+        return MT_PROCESS_TEST_NATIVE_IMAGE_PTR;
+    }
+
+    Status = MtCreateProcess(
+        (const MT_CREATE_PROCESS_PARAMETERS*)((const char*)&Parameters + 1),
+        &Information
+    );
+    if (Status != MT_DATATYPE_MISALIGNMENT) {
+        return MT_PROCESS_TEST_NATIVE_ALIGNMENT;
+    }
+
+    void* ReadOnlyInformation = VirtualAlloc(
+        NULL,
+        sizeof(MT_PROCESS_INFORMATION),
+        PAGE_READONLY
+    );
+    if (!ReadOnlyInformation) {
+        return MT_PROCESS_TEST_READONLY_OUTPUT;
+    }
+
+    Status = MtCreateProcess(&Parameters, ReadOnlyInformation);
+    bool ReadOnlyFreed = VirtualFree(ReadOnlyInformation, 0, MEM_RELEASE);
+    if (Status != MT_ACCESS_VIOLATION || !ReadOnlyFreed) {
+        return MT_PROCESS_TEST_READONLY_OUTPUT;
+    }
+
+    ProcessTestInitializeNativeParameters(
+        &Parameters,
+        "invalidProcess.mtexe",
+        "invalidProcess.mtexe"
+    );
+    Information = (MT_PROCESS_INFORMATION){
+        .ProcessHandle = MT_INVALID_HANDLE,
+        .ThreadHandle = MT_INVALID_HANDLE
+    };
+    Status = MtCreateProcess(&Parameters, &Information);
+    if (Status != MT_INVALID_IMAGE_FORMAT) {
+        return MT_PROCESS_TEST_INVALID_IMAGE;
+    }
+    if (Information.ProcessHandle != MT_INVALID_HANDLE ||
+        Information.ThreadHandle != MT_INVALID_HANDLE ||
+        Information.ProcessId != 0 || Information.ThreadId != 0) {
+        return MT_PROCESS_TEST_INVALID_IMAGE_OUTPUT;
+    }
+
+    return MT_SUCCESS;
+}
 
 NORETURN
 static void
@@ -203,7 +351,8 @@ main(
 
     Routine description:
 
-        Runs the public process-creation API and concurrent child-creation tests.
+        Runs public and native process-creation, rollback, lifetime, and
+        concurrent child-creation tests.
 
     Arguments:
 
@@ -220,6 +369,9 @@ main(
     if (MT_FAILURE(Status)) ProcessTestExit(Status);
 
     ProcessTestFailurePaths();
+
+    Status = ProcessTestNativeFailurePaths();
+    if (MT_FAILURE(Status)) ProcessTestExit(Status);
 
     HANDLE Workers[PROCESS_TEST_WORKER_COUNT] = { 0 };
     for (uint32_t Index = 0; Index < PROCESS_TEST_WORKER_COUNT; Index++) {
@@ -246,5 +398,18 @@ main(
         }
     }
 
-    ProcessTestExit(MT_SUCCESS);
+    PROCESS_INFORMATION OrphanInformation = { 0 };
+    if (!CreateProcess(
+            "processChild.mtexe",
+            "processChild.mtexe --orphan",
+            NULL,
+            NULL,
+            0,
+            &OrphanInformation)) {
+        ProcessTestExit(MT_PROCESS_TEST_ORPHAN_CREATE);
+    }
+
+    // Leave both handles in this process. Process teardown must close them
+    // without terminating the independently referenced child process.
+    ProcessTestExit((MTSTATUS)OrphanInformation.ProcessId);
 }

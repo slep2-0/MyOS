@@ -14027,6 +14027,14 @@ StressProcessFailureName(
     case MT_PROCESS_TEST_CHILD_ARGUMENTS:        return "CHILD-ARGUMENTS";
     case MT_PROCESS_TEST_CHILD_PARAMETERS:       return "CHILD-PARAMETERS";
     case MT_PROCESS_TEST_CHILD_ENVIRONMENT:      return "CHILD-ENVIRONMENT";
+    case MT_PROCESS_TEST_NATIVE_PARAMETER_PTR:   return "NATIVE-PARAMETER-PTR";
+    case MT_PROCESS_TEST_NATIVE_OUTPUT_PTR:      return "NATIVE-OUTPUT-PTR";
+    case MT_PROCESS_TEST_NATIVE_IMAGE_PTR:       return "NATIVE-IMAGE-PTR";
+    case MT_PROCESS_TEST_NATIVE_ALIGNMENT:       return "NATIVE-ALIGNMENT";
+    case MT_PROCESS_TEST_READONLY_OUTPUT:        return "READONLY-OUTPUT";
+    case MT_PROCESS_TEST_INVALID_IMAGE:          return "INVALID-IMAGE";
+    case MT_PROCESS_TEST_INVALID_IMAGE_OUTPUT:   return "INVALID-IMAGE-OUTPUT";
+    case MT_PROCESS_TEST_ORPHAN_CREATE:           return "ORPHAN-CREATE";
     default:                                     return "UNKNOWN-EXIT";
     }
 }
@@ -14089,15 +14097,75 @@ StressProcessController(
     if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
         StressProcessFailure("QUERY-PARENT");
     }
-    if (Information.ExitStatus != MT_SUCCESS) {
+    if (MT_FAILURE(Information.ExitStatus)) {
         StressAutomationWriteText("MT-PROCESS EXIT-STATUS ");
         StressProcessWriteStatus(Information.ExitStatus);
         StressProcessFailure(StressProcessFailureName(Information.ExitStatus));
     }
 
+    HANDLE ParentProcessId = (HANDLE)ProcessInformation.ProcessId;
+    HANDLE ChildProcessId = (HANDLE)(uint32_t)Information.ExitStatus;
+    if (ChildProcessId <= 0) {
+        StressProcessFailure("ORPHAN-PID");
+    }
+
     Status = MtClose(ProcessHandle);
     if (Status != MT_SUCCESS) {
         StressProcessFailure("CLOSE-PARENT");
+    }
+
+    // The parent is fully terminated and its only child handles were closed
+    // during object-table teardown. The child must still own its own lifetime.
+    PEPROCESS ChildProcess = PsLookupProcessByProcessId(ChildProcessId);
+    if (!ChildProcess) {
+        StressProcessFailure("ORPHAN-LOOKUP");
+    }
+    if (ChildProcess->ParentProcessPid != ParentProcessId) {
+        ObDereferenceObject(ChildProcess);
+        StressProcessFailure("ORPHAN-PARENT");
+    }
+
+    HANDLE ChildProcessHandle = MT_INVALID_HANDLE;
+    Status = ObCreateHandleForObject(
+        ChildProcess,
+        MT_SYNCHRONIZE | MT_PROCESS_QUERY_INFO,
+        &ChildProcessHandle
+    );
+    ObDereferenceObject(ChildProcess);
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure("ORPHAN-HANDLE");
+    }
+
+    Status = MtWaitForSingleObject(
+        ChildProcessHandle,
+        MT_PROCESS_TEST_WAIT_TIMEOUT_MS,
+        false
+    );
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure(
+            Status == MT_TIMEOUT ? "ORPHAN-TIMEOUT" : "ORPHAN-WAIT"
+        );
+    }
+
+    Information = (PROCESS_BASIC_INFORMATION){ 0 };
+    ReturnLength = 0;
+    Status = MtQueryInformationProcess(
+        ChildProcessHandle,
+        ProcessBasicInformation,
+        &Information,
+        sizeof(Information),
+        &ReturnLength
+    );
+    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+        StressProcessFailure("ORPHAN-QUERY");
+    }
+    if (Information.ExitStatus != MT_SUCCESS) {
+        StressProcessFailure("ORPHAN-EXIT");
+    }
+
+    Status = MtClose(ChildProcessHandle);
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure("ORPHAN-CLOSE");
     }
 
     Stress5DWaitForTypeCounts(PsThreadType, ThreadObjects, ThreadHandles);

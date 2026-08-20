@@ -75,7 +75,8 @@ main(
 
     Routine description:
 
-        Validates the arguments and process parameters captured for a child process.
+        Validates captured child parameters or runs the delayed orphan-child
+        lifetime case.
 
     Arguments:
 
@@ -89,6 +90,15 @@ main(
 --*/
 
 {
+    if (argc == 2 && argv && argv[2] == NULL &&
+        strcmp(argv[0], "processChild.mtexe") == 0 &&
+        strcmp(argv[1], "--orphan") == 0) {
+        // Keep this process alive while its parent exits and destroys its
+        // handle table. The kernel controller adopts only a test reference.
+        Sleep(2000);
+        ProcessTestExit(MT_SUCCESS);
+    }
+
     if (argc != 4 || !argv || argv[4] != NULL ||
         strcmp(argv[0], "processChild.mtexe") != 0 ||
         strcmp(argv[1], "alpha") != 0 ||

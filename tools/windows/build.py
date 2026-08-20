@@ -1013,6 +1013,12 @@ def build_usermode(
         )
         additional_files.append((process_child, "processChild.mtexe"))
 
+        invalid_process = output_directory / "invalidProcess.mtexe"
+        invalid_process.write_bytes(
+            b"This is deliberately not an MTE image.".ljust(128, b"\0")
+        )
+        additional_files.append((invalid_process, "invalidProcess.mtexe"))
+
     if exception_test:
         program_name = "exceptionChainTest"
         program_sources = EXCEPTION_TEST_MTEXE_C
@@ -1257,6 +1263,7 @@ def main() -> int:
         elif args.stress_mode == "process":
             additional_files = [
                 (output_directory / "processChild.mtexe", "processChild.mtexe"),
+                (output_directory / "invalidProcess.mtexe", "invalidProcess.mtexe"),
             ]
 
         if args.target in {"all", "bootloader", "image"}:
