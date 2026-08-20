@@ -69,6 +69,7 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 30, .Handler = MtCreateSection},
     {.Num = 31, .Handler = MtMapViewOfSection},
     {.Num = 32, .Handler = MtUnmapViewOfSection},
+    {.Num = 33, .Handler = MtCreateProcess},
     {.Num = 255, .Handler = MtPrintConsole}
 };
 

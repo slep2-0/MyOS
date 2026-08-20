@@ -120,8 +120,6 @@ LdrpGetProcedureAddress(
 
 --*/
 
-// Shouldnt we use an array of function names and IatSlots so we can fill them in faster instead of function calling each iteration?
-
 {
     if (!DllEntry || !FunctionName || !ProcdureAddress || !DllEntry->Base ||
         DllEntry->SizeOfImage < sizeof(MTE_HEADER)) {
@@ -487,7 +485,76 @@ LdrpInitializeProcessArguments(
         return GetLastStatus();
     }
 
+    // Skip over the argv pointers and start at the strings
     char* StringCursor = (char*)ArgVector + PointerBytes;
+
+    // Copy each string argument into the string cursor and nullterm each of them at the end
+    // Basically the same loop but now we are copying the strings over
+    Index = 0;
+    size_t ArgVectorIndex = 0;
+    ArgumentStarted = false;
+    InQuotes = false;
+
+    // Index advances through source characters, while StringCursor advances only when an output byte is written.
+    while (Index < Boundary) {
+        char Character = CmdLine[Index];
+
+        if (Character == '"') {
+            if (!ArgumentStarted) {
+                ArgVector[ArgVectorIndex] = StringCursor;
+                ArgumentStarted = true;
+            }
+
+            InQuotes = !InQuotes;
+            Index++;
+            continue;
+        }
+
+        if (Character == ' ' && !InQuotes) {
+            if (ArgumentStarted) {
+                *StringCursor++ = '\0';
+                ArgVectorIndex++;
+                ArgumentStarted = false;
+            }
+
+            Index++;
+            continue;
+        }
+
+        if (!ArgumentStarted) {
+            ArgVector[ArgVectorIndex] = StringCursor;
+            ArgumentStarted = true;
+        }
+
+        *StringCursor++ = Character;
+        Index++;
+    }
+
+    if (ArgumentStarted) {
+        // Include last string argument
+        *StringCursor++ = '\0';
+        ArgVectorIndex++;
+    }
+
+    if (ArgVectorIndex != (size_t)argc || StringCursor != (char*)ArgVector + AllocationSize) {
+        // ArgC should be the same as the ArgV index
+        // And the string cursor should be at the exact end of the allocated memory chunk
+        // If not, free and return error.
+        HeapFree(
+            GetProcessHeap(),
+            HEAP_FREE_NO_OPTIONS,
+            ArgVector
+        );
+
+        return MT_INVALID_STATE;
+    }
+
+    // Set argument vector and count and return success.
+    // Set argc index as NULL since thats how the standard is.
+    ArgVector[argc] = NULL;
+    Parameters->ArgumentCount = argc;
+    Parameters->ArgumentVector = ArgVector;
+    return MT_SUCCESS;
 }
 
 MTDLL_API
@@ -537,6 +604,18 @@ LdrInitializeProcess(
     if (!InitialPeb->ProcessHeap) {
         // Creating initial heap failure.
         MtTerminateProcess(MtCurrentProcess(), GetLastStatus());
+    }
+
+    // Initialize ARGC and ARGV for the process.
+    MTSTATUS Status = LdrpInitializeProcessArguments(
+        InitialPeb->ProcessParameters
+    );
+
+    if (MT_FAILURE(Status)) {
+        MtTerminateProcess(
+            MtCurrentProcess(),
+            Status
+        );
     }
 
     // Create the loader lock mutex
@@ -612,7 +691,7 @@ LdrInitializeProcess(
         );
     }
 
-    MTSTATUS Status = LdrRegisterModuleTlsLocked(InitialPeb, ProcessEntry);
+    Status = LdrRegisterModuleTlsLocked(InitialPeb, ProcessEntry);
 
 
     if (MT_SUCCEEDED(Status)) {

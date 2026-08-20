@@ -601,22 +601,6 @@ MiIsWithinBoundsOfReleasePhysicalPage(
 
 // Self explanatory function, this is only used for debugging.
 
-/*++
-
-    Routine description:
-
-        Reports whether a physical page belongs to the releasable PFN range.
-
-    Arguments:
-
-        [IN] VirtualAddress - Virtual address affected by the operation.
-
-    Return Values:
-
-        A nonzero value when the reported condition holds, or zero otherwise.
-
---*/
-
 {
     uintptr_t a = (uintptr_t)VirtualAddress;
     uintptr_t s = (uintptr_t)&MiReleasePhysicalPage_start;

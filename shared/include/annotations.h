@@ -120,6 +120,10 @@
         "The offset of " #member " in " #struc " is not " #offset \
     )
 
+#define VALIDATE_MEMBER_SIZE(struc, member, expected_size) \
+    STATIC_ASSERT(sizeof(((struc *)0)->member) == (expected_size), \
+                   #struc "." #member " has unexpected size")
+
 // Address Manipulation And Checks
 #ifdef MATANELOS_INTELLISENSE
 #ifndef MI_IS_CANONICAL_ADDR

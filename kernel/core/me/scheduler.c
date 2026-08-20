@@ -431,6 +431,7 @@ Schedule(void)
     Routine description:
 
         Selects a runnable thread and switches the current processor to it.
+        If a runnable thread isnt found, the function uses the current processor's idle thread.
 
     Arguments:
 
@@ -438,8 +439,19 @@ Schedule(void)
 
     Return Values:
 
-        None.
+        None, this function does not return.
 
+    Notes:
+
+        You must not call this function without saving the previous thread state (aka, the current thread), that includes but is not limited to:
+
+        Its Trap Registers.
+        Its syscall return frame (when returning from a syscall)
+        Its timeslice. (when timeslice expires for the thread)
+
+        
+        To save hassle, MsYieldExecution (or its macro MtYield()), will save the trap registers of the thread and schedule away.
+        It will not save the timeslice, you must do so yourself, only if the situation calls for it.
 --*/
 
 {

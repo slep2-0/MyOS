@@ -67,8 +67,6 @@ MeInsertQueueDpc(
         If the DPC object is already in the queue, nothing is performed.
         Else, the DPC Object is inserted in the queue, and a software interrupt is generated based on the DPC priority & current depth.
 
-        For setting a certain CPU to run this DPC, use the MeSetTargetProcessorDpc function before calling this one.
-
     Arguments:
 
         [IN]    PDPC Dpc - The DPC Object to queue.
@@ -79,6 +77,10 @@ MeInsertQueueDpc(
 
         If the DPC object is already in the queue, false is returned.
         Otherwise, true is returned.
+
+    Notes:
+
+        For setting a certain CPU to run this DPC, use the MeSetTargetProcessorDpc function before calling this one.
 
 --*/
 
@@ -246,7 +248,7 @@ MeRetireDPCs(
 
     Routine description:
 
-        This function retires the DPC list for the current processor, and also processes timer expiration (first).
+        This function retires the DPC list for the current processor.
 
     Arguments:
 
@@ -275,25 +277,11 @@ MeRetireDPCs(
     void* DeferredContext;
     void* SystemArgument1;
     void* SystemArgument2;
-    uintptr_t TimerHand;
     PPROCESSOR Cpu = MeGetCurrentProcessor();
 
     DpcData = &Cpu->DpcData;
 
     InterlockedStoreRelease(&Cpu->DpcRoutineActive, true);
-
-    // Legacy per-CPU timer hook. Dispatcher timeouts now use TimerExpirationDPC.
-    /*
-    if (Cpu->TimerRequest != 0) {
-        TimerHand = Cpu->TimerHand;
-        Cpu->TimerRequest = 0;
-
-        __sti(); // Enable interrupts for timer processing
-        MeTimerExpiration(TimerHand);
-        __cli(); // Disable again
-    }
-    */
-    UNREFERENCED_PARAMETER(TimerHand);
 
     for (;;) {
         MsAcquireSpinlockAtDpcLevel(&DpcData->DpcLock);
@@ -349,7 +337,7 @@ MeRetireDPCs(
         DeferredRoutine(Dpc, DeferredContext, SystemArgument1, SystemArgument2);
         Cpu->CurrentDeferredRoutine = NULL;
 
-        // Assertion, incase the DPC changed the IRQL level.
+        // Assertion, incase the DPC changed the IRQL level without lowering back to DISPATCH.
         assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
 
         // Disable Interrupts for next loop iteration

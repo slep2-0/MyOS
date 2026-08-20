@@ -2,11 +2,11 @@
 
 Module Name:
 
-    generic.c
+    handle.c
 
 Purpose:
 
-    This translation unit contains the standard library functions involving generic operations.
+    This translation unit contains the standard library functions involving handle operations.
     
 Author:
 

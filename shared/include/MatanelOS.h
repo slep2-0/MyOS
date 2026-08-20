@@ -308,6 +308,16 @@ RaiseException(
     _In_Opt const uintptr_t* Arguments
 );
 
+MTDLL_API bool
+CreateProcess(
+    IN const char* ImagePath,
+    _In_Opt const char* CommandLine,
+    _In_Opt const char* CurrentDirectory,
+    _In_Opt const char* Environment,
+    IN uint64_t EnvironmentSize,
+    OUT PPROCESS_INFORMATION ProcessInformation
+);
+
 MTDLL_API void
 printf(
     IN uint32_t Color,

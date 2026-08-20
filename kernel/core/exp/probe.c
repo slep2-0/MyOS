@@ -51,6 +51,7 @@ ProbeForRead(
 
 {
     if (!Address) return MT_ACCESS_VIOLATION;
+
     if (Alignment != 1 && Alignment != 2 && Alignment != 4 && Alignment != 8) {
         return MT_INVALID_PARAM;
     }

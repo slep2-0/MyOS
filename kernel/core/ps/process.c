@@ -300,7 +300,7 @@ PspFindMtdllEntryAddress(
     return MtdllBase + FunctionOffset;
 }
 
-static
+FORCEINLINE
 MTSTATUS
 PspRelocateImage(
     IN void* ImageBase,
@@ -317,12 +317,20 @@ PspRelocateImage(
     Arguments:
 
         [IN] ImageBase - Mapped base address of the process image.
-        [IN OUT] Header - Dispatcher header affected by the operation.
+        [IN OUT] Header - MTE_HEADER of the Image.
         [IN] ImageSize - Size of the image in bytes.
 
     Return Values:
 
         MT_SUCCESS on success, or an error status describing the failure.
+
+    Notes:
+
+        Marked FORCEINLINE since kernel try except requires an RIP inside of an exception handler.
+        Previously, PspRelocateImage was called (not inlined), resulting that if an exception arrives
+        when relocating the image, to Bugcheck the system instead. Note that it luckily didnt happen
+        i just noticed it in time, this is why SEH based exception handling is needed in the kernel too
+        currently, it is only built in usermode.
 
 --*/
 
@@ -565,34 +573,42 @@ PspCreateProcessParameters(
 
 MTSTATUS
 PsCreateProcess(
-    IN const char* ExecutablePath,
-    OUT PHANDLE ProcessHandle,
-    IN ACCESS_MASK DesiredAccess,
-    _In_Opt HANDLE ParentProcess
+    IN const struct _MT_CREATE_PROCESS_PARAMETERS* Parameters,
+    OUT PMT_PROCESS_INFORMATION ProcessInformation,
+    OUT PETHREAD* InitialThread
 )
 
 /*++
 
     Routine description:
 
-       Creates a user mode process, simple as that.
+        Creates a user-mode process from a trusted kernel parameter block,
+        maps its executable and MTDLL, and creates its initial thread.
 
     Arguments:
 
-        [IN]    const char* ExecutablePath - The process's main executable file.
-        [OUT]   PHANDLE ProcessHandle - Pointer to store the the process's created handle.
-        [IN]    ACCESS_MASK DesiredAccess - The maximum access the process should originally have.
-        [IN OPTIONAL]   HANDLE ParentProcess - Optionally supply a handle to the parent of this process.
+        [IN] Parameters - Captured process creation parameters.
+        [OUT] ProcessInformation - Receives the created process handle.
 
     Return Values:
 
-        Various MTSTATUS Status codes.
+        MT_SUCCESS on success, or an error status describing the failure.
 
 --*/
 
 {
-    if (!ExecutablePath || !ProcessHandle) return MT_INVALID_PARAM;
-    *ProcessHandle = MT_INVALID_HANDLE;
+    if (!Parameters || !ProcessInformation || !InitialThread) return MT_INVALID_PARAM;
+    *InitialThread = NULL;
+
+    const char* ExecutablePath = Parameters->ImagePath;
+    ACCESS_MASK DesiredAccess = Parameters->DesiredAccess;
+    HANDLE ParentProcess = Parameters->ParentProcess;
+
+    if (!ExecutablePath) return MT_INVALID_PARAM;
+    ProcessInformation->ProcessHandle = MT_INVALID_HANDLE;
+    ProcessInformation->ThreadHandle = MT_INVALID_HANDLE;
+    ProcessInformation->ProcessId = 0;
+    ProcessInformation->ThreadId = 0;
 
     MTSTATUS Status = MT_GENERAL_FAILURE;
     PEPROCESS Process = NULL;
@@ -655,7 +671,7 @@ PsCreateProcess(
     Process->ExitStatus = MT_PENDING;
 
     // Set its parent process handle.
-    Process->ParentProcess = ParentProcess;
+    Process->ParentProcessPid = Parent ? Parent->PID : 0;
 
     // Set its image name.
     char filename[24];
@@ -831,18 +847,13 @@ PsCreateProcess(
     // Create process parameters (argc argv support)
     PMT_PROCESS_PARAMETERS ProcessParameters = NULL;
 
-    static const char EmptyEnvironment[2] = {
-    '\0',
-    '\0'
-    };
-
     Status = PspCreateProcessParameters(
         Process,
         ExecutablePath,
-        ExecutablePath,
-        "",
-        EmptyEnvironment,
-        sizeof(EmptyEnvironment),
+        Parameters->CommandLine,
+        Parameters->CurrentDirectory,
+        Parameters->Environment,
+        Parameters->EnvironmentSize,
         &ProcessParameters
     );
 
@@ -900,11 +911,16 @@ PsCreateProcess(
     gop_printf(COLOR_CYAN, "Process %s created at base %p and entrypoint %p\n", Process->ImageName, ExecutableBaseAddress, StartAddress);
 #endif
 
-    Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, (ThreadEntry)MtdllInitializeProcess);
+    PETHREAD Thread;
+    Status = PsCreateThread(Process, &MainThreadHandle, (THREAD_START_ROUTINE)StartAddress, (THREAD_PARAMETER)BasicTypes, DEFAULT_TIMESLICE_TICKS, (ThreadEntry)MtdllInitializeProcess, &Thread);
     if (MT_FAILURE(Status)) goto CleanupWithRef;
 
     // We are, successful.
-    *ProcessHandle = hProcess;
+    *InitialThread = Thread;
+    ProcessInformation->ProcessHandle = hProcess;
+    ProcessInformation->ProcessId = Process->PID;
+    ProcessInformation->ThreadHandle = MainThreadHandle;
+    ProcessInformation->ThreadId = Process->MainThread->TID;
     Status = MT_SUCCESS;
 
 CleanupWithRef:
@@ -912,13 +928,7 @@ CleanupWithRef:
         HtClose(hProcess);
         ProcessHandleCreated = false;
     }
-#ifdef DEBUG
-    if (MT_FAILURE(Status)) {
-        char buf[144];
-        ksnprintf(buf, sizeof(buf), "Process creation failure, status: %x, process name: %s", Status, Process->ImageName);
-        assert(false, buf);
-    }
-#endif
+
     // If all went smoothly, this should cancel out the reference made by ObCreateHandleForObject. (so we only have 1 reference left by ObCreateObject)
     // If not, it would reach reference 0, and PspDeleteProcess would execute.
     ObDereferenceObject(Process);

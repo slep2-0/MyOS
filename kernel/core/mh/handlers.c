@@ -13,24 +13,7 @@
 #include "../../assert.h"
 #include "../../includes/ms.h"
 
-#define PRINT_ALL_REGS_AND_HALT(ctxptr, intfrptr)                     \
-    do {                                                             \
-        gop_printf(COLOR_RED,                                         \
-            "RAX=%p RBX=%p RCX=%p RDX=%p\n"           \
-            "RSI=%p RDI=%p RBP=%p RSP=%p\n"           \
-            "R8 =%p R9 =%p R10=%p R11=%p\n"           \
-            "R12=%p R13=%p R14=%p R15=%p\n"           \
-            "RIP=%p RFLAGS=%p\n",                               \
-            (ctxptr)->rax, (ctxptr)->rbx, (ctxptr)->rcx, (ctxptr)->rdx, \
-            (ctxptr)->rsi, (ctxptr)->rdi, (ctxptr)->rbp, (intfrptr)->rsp, \
-            (ctxptr)->r8, (ctxptr)->r9, (ctxptr)->r10, (ctxptr)->r11,    \
-            (ctxptr)->r12, (ctxptr)->r13, (ctxptr)->r14, (ctxptr)->r15, \
-            (intfrptr)->rip, (intfrptr)->rflags);                       \
-        __hlt();                                                      \
-    } while (0)
-
 volatile uint64_t MeSystemTickCount = 0;
-
 extern uint32_t cursor_x;
 extern uint32_t cursor_y;
 extern GOP_PARAMS gop_local;

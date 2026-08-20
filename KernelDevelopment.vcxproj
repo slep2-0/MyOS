@@ -119,7 +119,7 @@
     <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\exception.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\file.c" />
-    <ClCompile Include="usermode\programs\dlls\mtdll\generic.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\handle.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\heap.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\dllldr.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c" />
@@ -144,6 +144,8 @@
     <ClCompile Include="usermode\tests\loaderTlsDll\module.c" />
     <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
     <ClCompile Include="usermode\tests\mtdll\loader.c" />
+    <ClCompile Include="usermode\tests\processChild\main.c" />
+    <ClCompile Include="usermode\tests\processTest\main.c" />
     <ClCompile Include="usermode\tests\tlsTest\main.c" />
   </ItemGroup>
   <ItemGroup>
@@ -213,6 +215,7 @@
     <ClInclude Include="usermode\tests\heap_test.h" />
     <ClInclude Include="usermode\tests\loader_fixture.h" />
     <ClInclude Include="usermode\tests\loader_test.h" />
+    <ClInclude Include="usermode\tests\process_test.h" />
     <ClInclude Include="usermode\tests\tls_fixture.h" />
     <ClInclude Include="usermode\tests\tls_test.h" />
   </ItemGroup>
@@ -242,6 +245,7 @@
     <None Include="tools\windows\stress_gate5.py" />
     <None Include="tools\windows\stress_heap.py" />
     <None Include="tools\windows\stress_loader.py" />
+    <None Include="tools\windows\stress_process.py" />
     <None Include="tools\windows\stress_tls.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
     <None Include="tools\windows\test_seh_translate.py" />

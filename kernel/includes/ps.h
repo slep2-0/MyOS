@@ -28,6 +28,7 @@ Revision History:
 #include "ht.h"
 #include "ob.h"
 #include "core.h"
+#include "mt.h"
 #include "../../shared/include/accessrights.h"
 
 // Exception Includes
@@ -44,7 +45,9 @@ typedef enum _
     THREAD_TERMINATED,
     THREAD_ZOMBIE,
     // The current CPU is committing a wait but still owns the kernel stack.
-    THREAD_BLOCKING
+    THREAD_BLOCKING,
+    // Thread is only in its initialization stage, it has not run yet.
+    THREAD_INITIALIZED,
 } THREAD_STATE, *PTHREAD_STATE;
 
 typedef enum _THREAD_TERMINATION_STATE {
@@ -82,7 +85,7 @@ typedef struct _EPROCESS {
     struct _IPROCESS InternalProcess; // Internal process structure. (KPROCESS Equivalent-ish)
     char ImageName[24]; // Process image name - e.g "mtoskrnl.mtexe"
     HANDLE PID; // Process Identifier, unique identifier to the process. (do not use HtClose on this, only PsDeleteCid)
-    HANDLE ParentProcess; // Parent Process Handle
+    HANDLE ParentProcessPid; // Parent process identifier captured at creation.
     uint32_t priority; // TODO
     uint64_t CreationTime; // Timestamp of creation, seconds from 1970 January 1st. (may change)
     // SID TODO. - User info as well, when users.
@@ -121,7 +124,6 @@ typedef struct _ETHREAD {
     PTEB Teb;
     size_t UserStackSize;
     HANDLE TID;           /* thread id */
-    HANDLE PID;           // Thread's process PID.
     struct _EPROCESS* ParentProcess; /* pointer to the parent process of the thread */
     struct _DOUBLY_LINKED_LIST ThreadListEntry; // Forward and backward links to queue threads in.
     struct _DOUBLY_LINKED_LIST SchedulerListEntry; // Forward and backward links that the scheduler enqueues and dequeues threads from.
@@ -156,22 +158,31 @@ typedef void (*ThreadEntry)(THREAD_PARAMETER);
 
 extern EPROCESS PsInitialSystemProcess;
 
+struct _MT_CREATE_PROCESS_PARAMETERS;
+
 MTSTATUS
 PsCreateProcess(
-    IN const char* ExecutablePath,
-    OUT PHANDLE ProcessHandle,
-    IN ACCESS_MASK DesiredAccess,
-    _In_Opt HANDLE ParentProcess
+    IN const struct _MT_CREATE_PROCESS_PARAMETERS* Parameters,
+    OUT PMT_PROCESS_INFORMATION ProcessInformation,
+    OUT PETHREAD* InitialThread
 );
+
 
 MTSTATUS
 PsCreateThread(
-    PEPROCESS Process,
-    PHANDLE ThreadHandle,
-    THREAD_START_ROUTINE EntryPoint,
-    THREAD_PARAMETER ThreadParameter,
-    TimeSliceTicks TimeSlice,
-    ThreadEntry MtdllEntrypoint
+    IN PEPROCESS Process,
+    OUT PHANDLE ThreadHandle,
+    IN THREAD_START_ROUTINE EntryPoint,
+    IN THREAD_PARAMETER ThreadParameter,
+    IN TimeSliceTicks TimeSlice,
+    IN ThreadEntry MtdllEntrypoint,
+    OUT PETHREAD* CreatedThread
+);
+
+void
+PspAbortThreadCreation(
+    IN PETHREAD Thread,
+    IN MTSTATUS ExitStatus
 );
 
 #define MtYield() MsYieldExecution(&PsGetCurrentThread()->InternalThread.TrapRegisters);
@@ -330,6 +341,11 @@ PspFindMtdllEntryRva(
 uintptr_t
 PspFindMtdllEntryAddress(
     IN const char* RoutineName,
+    IN PETHREAD Thread
+);
+
+void
+PspStartThread(
     IN PETHREAD Thread
 );
 

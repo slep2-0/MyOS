@@ -189,7 +189,7 @@
     <ClCompile Include="usermode\programs\dlls\mtdll\file.c">
       <Filter>User mode</Filter>
     </ClCompile>
-    <ClCompile Include="usermode\programs\dlls\mtdll\generic.c">
+    <ClCompile Include="usermode\programs\dlls\mtdll\handle.c">
       <Filter>User mode</Filter>
     </ClCompile>
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\procldr.c">
@@ -467,6 +467,20 @@
     <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
     <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\heap.c" />
+    <ClCompile Include="usermode\crt0.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\dllldr.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\ldr\tlsapi.c" />
+    <ClCompile Include="usermode\programs\dlls\mtdll\loader.c" />
+    <ClCompile Include="usermode\tests\heapTest\main.c" />
+    <ClCompile Include="usermode\tests\loaderDynamicTlsDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderFailDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderFailTlsDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderGoodDll\dllmain.c" />
+    <ClCompile Include="usermode\tests\loaderNoEntryDll\module.c" />
+    <ClCompile Include="usermode\tests\loaderTest\main.c" />
+    <ClCompile Include="usermode\tests\loaderTlsDll\module.c" />
+    <ClCompile Include="usermode\tests\mtdll\loader.c" />
+    <ClCompile Include="usermode\tests\tlsTest\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -530,6 +544,13 @@
     <ClInclude Include="shared\include\mtlanguage.h" />
     <ClInclude Include="usermode\tests\exception_chain_test.h" />
     <ClInclude Include="shared\include\heapapi.h" />
+    <ClInclude Include="shared\include\fileapi.h" />
+    <ClInclude Include="shared\include\libloaderapi.h" />
+    <ClInclude Include="usermode\tests\heap_test.h" />
+    <ClInclude Include="usermode\tests\loader_fixture.h" />
+    <ClInclude Include="usermode\tests\loader_test.h" />
+    <ClInclude Include="usermode\tests\tls_fixture.h" />
+    <ClInclude Include="usermode\tests\tls_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="kernel\core\me\context.asm" />
@@ -547,11 +568,14 @@
     <None Include="tools\windows\make_image.py" />
     <None Include="tools\windows\reset_intellisense.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />
-    <None Include="usermode\crt0.S" />
     <None Include="usermode\programs\dlls\mtdll\apcdispatch.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
     <None Include="usermode\tests\mtdll\language_context.asm" />
+    <None Include="tools\windows\routine_docs.py" />
+    <None Include="tools\windows\stress_heap.py" />
+    <None Include="tools\windows\stress_loader.py" />
+    <None Include="tools\windows\stress_tls.py" />
   </ItemGroup>
 </Project>

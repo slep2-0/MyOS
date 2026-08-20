@@ -35,6 +35,7 @@ STRESS_MODES = {
     "heap": 4,
     "loader": 5,
     "tls": 6,
+    "process": 7,
 }
 
 KERNEL_SLOW_PATHS = {
@@ -58,7 +59,7 @@ MTDLL_C = [
     "usermode/programs/dlls/mtdll/dllmain.c",
     "usermode/programs/dlls/mtdll/exception.c",
     "usermode/programs/dlls/mtdll/file.c",
-    "usermode/programs/dlls/mtdll/generic.c",
+    "usermode/programs/dlls/mtdll/handle.c",
     "usermode/programs/dlls/mtdll/memory.c",
     "usermode/programs/dlls/mtdll/heap.c",
     "usermode/programs/dlls/mtdll/loader.c",
@@ -137,6 +138,13 @@ TLS_FAIL_DYNAMIC_DLL_C = [
     *TLS_TEST_DLL_C,
     "usermode/tests/loaderFailTlsDll/dllmain.c",
 ]
+PROCESS_TEST_MTEXE_C = [
+    "usermode/tests/processTest/main.c",
+]
+PROCESS_TEST_CHILD_C = [
+    "usermode/tests/processChild/main.c",
+]
+PROCESS_TEST_INCLUDE = ROOT / "usermode/tests"
 
 
 class BuildFailure(RuntimeError):
@@ -838,6 +846,7 @@ def build_usermode(
     heap_test = stress_mode == "heap"
     loader_test = stress_mode == "loader"
     tls_test = stress_mode == "tls"
+    process_test = stress_mode == "process"
     mtdll_sources = [
         *MTDLL_C,
         *(EXCEPTION_TEST_MTDLL_C if exception_test else ()),
@@ -986,6 +995,24 @@ def build_usermode(
         )
         additional_files.append((fail_tls_dll, "FAILTLS.MTE"))
 
+    if process_test:
+        process_child, _ = _build_user_component(
+            tools,
+            "processChild",
+            [*MTEXE_COMMON_C, *PROCESS_TEST_CHILD_C],
+            MTEXE_GAS,
+            MTEXE_NASM,
+            ROOT / "usermode/mtexe.ld",
+            output_directory / "processChild.mtexe",
+            pic=False,
+            executable=True,
+            workers=workers,
+            module_name="processChild.mtexe",
+            dependencies={MTDLL_MODULE_NAME: mtdll_elf},
+            include_directories=(PROCESS_TEST_INCLUDE,),
+        )
+        additional_files.append((process_child, "processChild.mtexe"))
+
     if exception_test:
         program_name = "exceptionChainTest"
         program_sources = EXCEPTION_TEST_MTEXE_C
@@ -1002,6 +1029,10 @@ def build_usermode(
         program_name = "tlsTest"
         program_sources = TLS_TEST_MTEXE_C
         program_includes = (TLS_TEST_INCLUDE,)
+    elif process_test:
+        program_name = "processTest"
+        program_sources = PROCESS_TEST_MTEXE_C
+        program_includes = (PROCESS_TEST_INCLUDE,)
     else:
         program_name = "terminateMyself"
         program_sources = MTEXE_C
@@ -1222,6 +1253,10 @@ def main() -> int:
                 (output_directory / "tlsFixture.mtdll", "tlsFixture.mtdll"),
                 (output_directory / "dynamicTls.mtdll", "dynamicTls.mtdll"),
                 (output_directory / "failTls.mtdll", "FAILTLS.MTE"),
+            ]
+        elif args.stress_mode == "process":
+            additional_files = [
+                (output_directory / "processChild.mtexe", "processChild.mtexe"),
             ]
 
         if args.target in {"all", "bootloader", "image"}:

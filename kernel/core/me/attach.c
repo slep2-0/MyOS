@@ -36,7 +36,7 @@ MeAttachProcess(
 	Arguments:
 
 		[IN]	PIPROCESS Process - Pointer to process to attach to (IPROCESS)
-		[OUT]	PAPC_STATE - Pointer to store the state in resident memory.
+		[OUT]	PAPC_STATE ApcState - Pointer to store the state in resident memory.
 
 	Return Values:
 

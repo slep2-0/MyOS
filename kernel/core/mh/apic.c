@@ -536,6 +536,9 @@ MhRequestSoftwareInterrupt(
         To have this function serviced for a DPC or an APC, set the flag in the CPU accordingly and wait for IRQL to be equal or below to IRQL requested.
         (The flag is set in the MeInsertQueueDpc/Apc functions)
 
+        You must call this function with interrupts disabled due to the window of the APC/DPC queue flush running before this function.
+        For DPCs it is a problem, but for APCs we are lenient since MeRetireAPCs can be entered twice even if APCs are active.
+
 --*/
 
 {

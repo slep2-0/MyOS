@@ -84,43 +84,6 @@ static void update_apic_irqs(IRQL newLevel)
     __write_cr8((unsigned long)tpr);
 }
 
-/*
-PREVIOUS VERSION, if the upper one breaks, use it.
-static void update_apic_irqs(IRQL newLevel) {
-    uint8_t tpr = 0;
-
-    switch (newLevel) {
-    case HIGH_LEVEL:
-    case POWER_LEVEL:
-        tpr = TPR_HIGH; // 15
-        break;
-
-    case IPI_LEVEL:
-        tpr = TPR_IPI; // 14
-        break;
-
-    case CLOCK_LEVEL:
-        tpr = TPR_CLOCK; // 13
-        break;
-
-    case DISPATCH_LEVEL:
-        tpr = TPR_DPC; // 4 - Blocks DPC (0x40) and APC (0x30)
-        break;
-
-    case APC_LEVEL:
-        tpr = TPR_APC; // 3 - Blocks APC (0x30)
-        break;
-
-    case PASSIVE_LEVEL:
-    default:
-        tpr = TPR_PASSIVE; // 0
-        break;
-    }
-
-    __write_cr8((unsigned long)tpr);
-}
-*/
-
 // PUBLIC API
 
 void 

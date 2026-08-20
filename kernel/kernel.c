@@ -18,6 +18,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_HEAP        4
 #define MT_STRESS_MODE_LOADER      5
 #define MT_STRESS_MODE_TLS         6
+#define MT_STRESS_MODE_PROCESS     7
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -32,7 +33,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_TLS
+    MT_STRESS_MODE > MT_STRESS_MODE_PROCESS
 #error "MT_STRESS_MODE is invalid"
 #endif
 
@@ -48,6 +49,10 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #include "../usermode/tests/tls_test.h"
 #endif
 
+#if MT_STRESS_MODE == MT_STRESS_MODE_PROCESS
+#include "../usermode/tests/process_test.h"
+#endif
+
 /**
 Global variables initialization
 **/
@@ -58,6 +63,22 @@ Kernel Specific
 bool isBugChecking = false;
 bool allApsInitialized = false;
 PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_id] after initializing SMP.
+
+static const char EmptyProcessEnvironment[2] = { '\0', '\0' };
+static const MT_CREATE_PROCESS_PARAMETERS TerminateMyselfProcessParameters = {
+    .Size = sizeof(MT_CREATE_PROCESS_PARAMETERS),
+    .Flags = 0,
+    .ImagePath = "terminateMyself.mtexe",
+    .ImagePathLength = sizeof("terminateMyself.mtexe") - 1,
+    .CommandLine = "terminateMyself.mtexe",
+    .CommandLineLength = sizeof("terminateMyself.mtexe") - 1,
+    .CurrentDirectory = "",
+    .CurrentDirectoryLength = 0,
+    .Environment = EmptyProcessEnvironment,
+    .EnvironmentSize = sizeof(EmptyProcessEnvironment),
+    .ParentProcess = 0,
+    .DesiredAccess = MT_PROCESS_ALL_ACCESS
+};
 
 /*
 Boot Parameters
@@ -240,7 +261,6 @@ void kernel_idle_checks(void)
             MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
         }
         __hlt();
-        //Schedule();
     }
 }
 
@@ -264,15 +284,27 @@ static void MeCreateInitialUserModeProcess(void)
 
 {
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
-    HANDLE hProcess = MT_INVALID_HANDLE;
-    MTSTATUS status = PsCreateProcess("terminateMyself.mtexe", &hProcess, MT_PROCESS_ALL_ACCESS, 0);
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
+    MTSTATUS status = PsCreateProcess(
+        &TerminateMyselfProcessParameters,
+        &ProcessInformation,
+        &InitialThread
+    );
     if (MT_FAILURE(status)) {
         gop_printf(COLOR_RED, "Failed to create initial user process: %x\n", status);
         return;
     }
 
+    PspStartThread(InitialThread);
+
+    status = HtClose(ProcessInformation.ThreadHandle);
+    if (MT_FAILURE(status)) {
+        gop_printf(COLOR_RED, "Failed to close initial thread handle: %x\n", status);
+    }
+
     // Always free handles, important.
-    status = HtClose(hProcess);
+    status = HtClose(ProcessInformation.ProcessHandle);
     if (MT_FAILURE(status)) {
         gop_printf(COLOR_RED, "Failed to close initial process handle: %x\n", status);
     }
@@ -389,7 +421,7 @@ static void InitSystemProcess(void)
     // TODO Setup system process like PsCreateProcess, and modify the func.
     kmemset(&PsInitialSystemProcess, 0, sizeof(EPROCESS));
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
-    PsInitialSystemProcess.ParentProcess = 0; // No creator process
+    PsInitialSystemProcess.ParentProcessPid = 0; // No creator process
     kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
     PsInitialSystemProcess.priority = 0; // TODO
     PsInitialSystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
@@ -8230,17 +8262,20 @@ Stress5DTestProcessLifetime(void)
 --*/
 
 {
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
     Stress5DRequireStatus(
         PsCreateProcess(
-            "terminateMyself.mtexe",
-            &ProcessHandle,
-            MT_PROCESS_ALL_ACCESS,
-            0
+            &TerminateMyselfProcessParameters,
+            &ProcessInformation,
+            &InitialThread
         ),
         MT_SUCCESS,
         (void*)0x5D40
     );
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
     PEPROCESS Process = NULL;
     Stress5DRequireStatus(
@@ -9142,17 +9177,20 @@ Stress5ETestProcessQueries(void)
 --*/
 
 {
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
     Stress5ERequireStatus(
         PsCreateProcess(
-            "terminateMyself.mtexe",
-            &ProcessHandle,
-            MT_PROCESS_ALL_ACCESS,
-            0
+            &TerminateMyselfProcessParameters,
+            &ProcessInformation,
+            &InitialThread
         ),
         MT_SUCCESS,
         (void*)0x5E30
     );
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
     PEPROCESS Process = NULL;
     Stress5ERequireStatus(
@@ -10060,17 +10098,21 @@ Stress6CreateUserTarget(
     STRESS6_USER_TARGET Target = {
         .ProcessHandle = MT_INVALID_HANDLE
     };
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
 
     Stress6RequireStatus(
         PsCreateProcess(
-            "terminateMyself.mtexe",
-            &Target.ProcessHandle,
-            MT_PROCESS_ALL_ACCESS,
-            0
+            &TerminateMyselfProcessParameters,
+            &ProcessInformation,
+            &InitialThread
         ),
         MT_SUCCESS,
         Detail
     );
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    Target.ProcessHandle = ProcessInformation.ProcessHandle;
     Stress6RequireStatus(
         ObReferenceObjectByHandle(
             Target.ProcessHandle,
@@ -13217,12 +13259,12 @@ StressExceptionChainController(
             StressExceptionStageCreateProcess
         );
 #endif
-        HANDLE ProcessHandle = MT_INVALID_HANDLE;
+        MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+        PETHREAD InitialThread = NULL;
         MTSTATUS Status = PsCreateProcess(
-            "terminateMyself.mtexe",
-            &ProcessHandle,
-            MT_PROCESS_ALL_ACCESS,
-            0
+            &TerminateMyselfProcessParameters,
+            &ProcessInformation,
+            &InitialThread
         );
         if (Status != MT_SUCCESS) {
             StressExceptionChainBugCheck(
@@ -13231,6 +13273,9 @@ StressExceptionChainController(
                 (void*)(uintptr_t)Iteration
             );
         }
+        PspStartThread(InitialThread);
+        HtClose(ProcessInformation.ThreadHandle);
+        HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
         PEPROCESS Process = NULL;
         Status = ObReferenceObjectByHandle(
@@ -13578,16 +13623,19 @@ StressHeapController(
 {
     StressAutomationWriteText("MT-HEAP START\n");
 
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
     MTSTATUS Status = PsCreateProcess(
-        "terminateMyself.mtexe",
-        &ProcessHandle,
-        MT_PROCESS_ALL_ACCESS,
-        0
+        &TerminateMyselfProcessParameters,
+        &ProcessInformation,
+        &InitialThread
     );
     if (Status != MT_SUCCESS) {
         StressHeapFailure("CREATE-PROCESS");
     }
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
     Status = MtWaitForSingleObject(
         ProcessHandle,
@@ -13714,16 +13762,19 @@ StressLoaderController(
 {
     StressAutomationWriteText("MT-LOADER START\n");
 
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
     MTSTATUS Status = PsCreateProcess(
-        "terminateMyself.mtexe",
-        &ProcessHandle,
-        MT_PROCESS_ALL_ACCESS,
-        0
+        &TerminateMyselfProcessParameters,
+        &ProcessInformation,
+        &InitialThread
     );
     if (Status != MT_SUCCESS) {
         StressLoaderFailure("CREATE-PROCESS");
     }
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
     Status = MtWaitForSingleObject(
         ProcessHandle,
@@ -13858,16 +13909,19 @@ StressTlsController(
 {
     StressAutomationWriteText("MT-TLS START\n");
 
-    HANDLE ProcessHandle = MT_INVALID_HANDLE;
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
     MTSTATUS Status = PsCreateProcess(
-        "terminateMyself.mtexe",
-        &ProcessHandle,
-        MT_PROCESS_ALL_ACCESS,
-        0
+        &TerminateMyselfProcessParameters,
+        &ProcessInformation,
+        &InitialThread
     );
     if (Status != MT_SUCCESS) {
         StressTlsFailure("CREATE-PROCESS");
     }
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
 
     Status = MtWaitForSingleObject(
         ProcessHandle,
@@ -13904,6 +13958,151 @@ StressTlsController(
     }
 
     StressAutomationWriteText("MT-TLS USER PASS\n");
+}
+#endif
+
+#if MT_STRESS_MODE == MT_STRESS_MODE_PROCESS
+#if !MT_STRESS_AUTOMATION
+#error "The isolated process runtime test requires MT_STRESS_AUTOMATION"
+#endif
+
+#define MT_PROCESS_TEST_WAIT_TIMEOUT_MS 180000ULL
+#define MT_AUTOMATION_EXIT_FAIL         0x11
+
+static void
+StressProcessWriteStatus(
+    IN MTSTATUS Status
+)
+{
+    static const char Digits[] = "0123456789ABCDEF";
+    uint32_t Value = (uint32_t)Status;
+    char Text[] = "0x00000000\n";
+
+    for (uint32_t Index = 0; Index < 8; Index++) {
+        uint32_t Shift = (7u - Index) * 4u;
+        Text[2 + Index] = Digits[(Value >> Shift) & 0xFu];
+    }
+    StressAutomationWriteText(Text);
+}
+
+NORETURN
+static void
+StressProcessFailure(
+    IN const char* Failure
+)
+{
+    StressAutomationWriteText("MT-PROCESS FAIL ");
+    StressAutomationWriteText(Failure);
+    StressAutomationWriteText("\n");
+    __cli();
+    __outdword(MT_AUTOMATION_EXIT_PORT, MT_AUTOMATION_EXIT_FAIL);
+    for (;;) {
+        __hlt();
+    }
+}
+
+static const char*
+StressProcessFailureName(
+    IN MTSTATUS Status
+)
+{
+    switch (Status) {
+    case MT_PROCESS_TEST_CREATE:                 return "CREATE";
+    case MT_PROCESS_TEST_OUTPUT:                 return "OUTPUT";
+    case MT_PROCESS_TEST_THREAD_WAIT:            return "THREAD-WAIT";
+    case MT_PROCESS_TEST_PROCESS_WAIT:           return "PROCESS-WAIT";
+    case MT_PROCESS_TEST_THREAD_QUERY:           return "THREAD-QUERY";
+    case MT_PROCESS_TEST_PROCESS_QUERY:          return "PROCESS-QUERY";
+    case MT_PROCESS_TEST_THREAD_CLOSE:           return "THREAD-CLOSE";
+    case MT_PROCESS_TEST_PROCESS_CLOSE:          return "PROCESS-CLOSE";
+    case MT_PROCESS_TEST_MISSING_IMAGE:          return "MISSING-IMAGE";
+    case MT_PROCESS_TEST_MISSING_OUTPUT:         return "MISSING-OUTPUT";
+    case MT_PROCESS_TEST_BAD_ENVIRONMENT:        return "BAD-ENVIRONMENT";
+    case MT_PROCESS_TEST_BAD_ENVIRONMENT_OUTPUT: return "BAD-ENVIRONMENT-OUTPUT";
+    case MT_PROCESS_TEST_WORKER_CREATE:          return "WORKER-CREATE";
+    case MT_PROCESS_TEST_WORKER_WAIT:            return "WORKER-WAIT";
+    case MT_PROCESS_TEST_WORKER_QUERY:           return "WORKER-QUERY";
+    case MT_PROCESS_TEST_WORKER_CLOSE:           return "WORKER-CLOSE";
+    case MT_PROCESS_TEST_CONCURRENT_CREATE:      return "CONCURRENT-CREATE";
+    case MT_PROCESS_TEST_CHILD_ARGUMENTS:        return "CHILD-ARGUMENTS";
+    case MT_PROCESS_TEST_CHILD_PARAMETERS:       return "CHILD-PARAMETERS";
+    case MT_PROCESS_TEST_CHILD_ENVIRONMENT:      return "CHILD-ENVIRONMENT";
+    default:                                     return "UNKNOWN-EXIT";
+    }
+}
+
+static void
+StressProcessController(
+    void
+)
+{
+    StressAutomationWriteText("MT-PROCESS START\n");
+    Stress5DSettleObjectCounts();
+    uint32_t ThreadObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsThreadType->TotalNumberOfObjects
+    );
+    uint32_t ThreadHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsThreadType->TotalNumberOfHandles
+    );
+    uint32_t ProcessObjects = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsProcessType->TotalNumberOfObjects
+    );
+    uint32_t ProcessHandles = InterlockedLoadAcquire(
+        (volatile uint32_t*)&PsProcessType->TotalNumberOfHandles
+    );
+
+    MT_PROCESS_INFORMATION ProcessInformation = { 0 };
+    PETHREAD InitialThread = NULL;
+    MTSTATUS Status = PsCreateProcess(
+        &TerminateMyselfProcessParameters,
+        &ProcessInformation,
+        &InitialThread
+    );
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure("CREATE-PARENT");
+    }
+
+    PspStartThread(InitialThread);
+    HtClose(ProcessInformation.ThreadHandle);
+    HANDLE ProcessHandle = ProcessInformation.ProcessHandle;
+
+    Status = MtWaitForSingleObject(
+        ProcessHandle,
+        MT_PROCESS_TEST_WAIT_TIMEOUT_MS,
+        false
+    );
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure(
+            Status == MT_TIMEOUT ? "PARENT-TIMEOUT" : "PARENT-WAIT"
+        );
+    }
+
+    PROCESS_BASIC_INFORMATION Information = { 0 };
+    uint32_t ReturnLength = 0;
+    Status = MtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        &Information,
+        sizeof(Information),
+        &ReturnLength
+    );
+    if (Status != MT_SUCCESS || ReturnLength != sizeof(Information)) {
+        StressProcessFailure("QUERY-PARENT");
+    }
+    if (Information.ExitStatus != MT_SUCCESS) {
+        StressAutomationWriteText("MT-PROCESS EXIT-STATUS ");
+        StressProcessWriteStatus(Information.ExitStatus);
+        StressProcessFailure(StressProcessFailureName(Information.ExitStatus));
+    }
+
+    Status = MtClose(ProcessHandle);
+    if (Status != MT_SUCCESS) {
+        StressProcessFailure("CLOSE-PARENT");
+    }
+
+    Stress5DWaitForTypeCounts(PsThreadType, ThreadObjects, ThreadHandles);
+    Stress5DWaitForTypeCounts(PsProcessType, ProcessObjects, ProcessHandles);
+    StressAutomationWriteText("MT-PROCESS USER PASS\n");
 }
 #endif
 
@@ -13962,6 +14161,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_TLS
     StressTlsController();
     StressAutomationPass("TLS");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_PROCESS
+    StressProcessController();
+    StressAutomationPass("PROCESS");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();

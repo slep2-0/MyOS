@@ -621,7 +621,7 @@ void MhSendActionToSpecificCpuAndWait(PPROCESSOR TargetProcessor, CPU_ACTION act
 
         Runs a callback on one processor and waits for completion.
 
-    Arguments:
+    Arguments:W
 
         [IN] TargetProcessor - Processor that should receive the request.
         [IN] action - Callback executed on the target processor.

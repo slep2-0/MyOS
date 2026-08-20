@@ -773,7 +773,6 @@ MtpAllocateHeapBlockLocked(
     return ReturnedAllocation;
 }
 
-// Address returned is 16 byte aligned
 MTDLL_API
 void*
 HeapAlloc(

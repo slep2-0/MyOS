@@ -53,6 +53,13 @@ typedef enum _LDR_MODULE_STATE {
     LdrModuleUnloading
 } LDR_MODULE_STATE;
 
+typedef struct _PROCESS_INFORMATION {
+    HANDLE ProcessHandle;
+    HANDLE ThreadHandle;
+    uint32_t ProcessId;
+    uint32_t ThreadId;
+} PROCESS_INFORMATION, * PPROCESS_INFORMATION;
+
 typedef struct _LDR_DATA_TABLE_ENTRY {
     void* EntryPoint;
     void* Base;

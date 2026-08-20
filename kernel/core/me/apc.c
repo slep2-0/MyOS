@@ -763,7 +763,6 @@ MiCheckForKernelApcDelivery(
 */
 
 {
-    // If the IRQL is passive level, then the kernel APCs can be flushed immediately
     InterlockedStoreRelease(&MeGetCurrentThread()->ApcState.KernelApcPending, true);
     bool InterruptsEnabled = MeDisableInterrupts();
     MhRequestSoftwareInterrupt(APC_LEVEL);

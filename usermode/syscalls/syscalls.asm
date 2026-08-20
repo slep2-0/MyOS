@@ -431,6 +431,15 @@ MtUnmapViewOfSection:
 	syscall
 	ret
 
+; MTSTATUS MtCreateProcess(const MT_CREATE_PROCESS_PARAMETERS*, PHANDLE);
+; Syscall number is 33.
+global MtCreateProcess
+MtCreateProcess:
+	mov rax, 33
+	mov r10, rcx
+	syscall
+	ret
+
 ; TO BE RETIRED
 global MtPrintConsole
 MtPrintConsole:

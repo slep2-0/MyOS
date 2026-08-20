@@ -18,6 +18,7 @@ Revision History:
 
 #include "../../includes/exception.h"
 #include "../../includes/ps.h"
+
 NORETURN
 void
 ExpRaiseStatus(

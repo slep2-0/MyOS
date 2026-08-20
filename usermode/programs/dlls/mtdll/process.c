@@ -143,3 +143,85 @@ GetExitCodeProcess(
 
     return Success;
 }
+
+MTDLL_API bool
+CreateProcess(
+    IN const char* ImagePath,
+    _In_Opt const char* CommandLine,
+    _In_Opt const char* CurrentDirectory,
+    _In_Opt const char* Environment,
+    IN uint64_t EnvironmentSize,
+    OUT PPROCESS_INFORMATION ProcessInformation
+)
+
+{
+    if (!ProcessInformation || !ImagePath) {
+        SetLastStatus(MT_INVALID_PARAM);
+        SetLastError(MtStatusToLastError(MT_INVALID_PARAM));
+        return false;
+    }
+
+    // Initialize both out handles to invalid handle values
+    ProcessInformation->ProcessHandle = MT_INVALID_HANDLE;
+    ProcessInformation->ThreadHandle = MT_INVALID_HANDLE;
+    ProcessInformation->ThreadId = 0;
+    ProcessInformation->ProcessId = 0;
+
+    // Begin constructing CREATE_PROCESS_PARAMETERS
+    // If there is no command line, the default command line is the image path (for argc argv)
+    if (!CommandLine) CommandLine = ImagePath;
+    
+    // If a directory isnt supplied, then inherit from current process
+    if (!CurrentDirectory) CurrentDirectory = MtCurrentPeb()->ProcessParameters->CurrentDirectory;
+
+    // If an env isnt supplied, inherit from current process too
+    if (!Environment) {
+        Environment = MtCurrentPeb()->ProcessParameters->Environment;
+        EnvironmentSize = MtCurrentPeb()->ProcessParameters->EnvironmentSize;
+    }
+
+    // Create the struct now.
+    MT_CREATE_PROCESS_PARAMETERS Parameters = { 0 };
+    
+    // Kernel must match this
+    Parameters.Size = sizeof(MT_CREATE_PROCESS_PARAMETERS);
+
+    // Controls whether to "CREATE_SUSPENDED" or other flags
+    // no suport for that currently, so its zero.
+    Parameters.Flags = 0;
+
+    // The image path itself.
+    Parameters.ImagePath = ImagePath;
+    Parameters.ImagePathLength = strlen(ImagePath);
+
+    // Command line and its length
+    Parameters.CommandLine = CommandLine;
+    Parameters.CommandLineLength = strlen(CommandLine);
+
+    // Environment and its size
+    Parameters.Environment = Environment;
+    Parameters.EnvironmentSize = EnvironmentSize;
+
+    // Set directory
+    Parameters.CurrentDirectory = CurrentDirectory;
+    Parameters.CurrentDirectoryLength = strlen(CurrentDirectory);
+
+    // Creator process is us, obviously (unless the user wants to assign a different one, use system call)
+    Parameters.ParentProcess = MtCurrentProcess();
+
+    // Desired access is the full process access, since we created it
+    Parameters.DesiredAccess = MT_PROCESS_ALL_ACCESS;
+
+    // Call the kernel
+    MTSTATUS Status = MtCreateProcess(
+        &Parameters,
+        ProcessInformation
+    );
+
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+
+    // Thread and Process handles are set by the kernel since we supplied ProcessInformation directly
+
+    return MT_SUCCEEDED(Status);
+}

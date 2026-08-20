@@ -2,6 +2,8 @@
  * PROJECT:     MatanelOS Kernel
  * LICENSE:     GPLv3
  * PURPOSE:		Debugging Functions Implementation.
+ * NOTES:       This will be retired soon enough, a kernel debugger should replace this
+ *              instead of the kernel calling functions to set his own debug registers.
  */
 
 #include "../../includes/md.h"

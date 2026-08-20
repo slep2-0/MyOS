@@ -319,12 +319,13 @@ FORCEINLINE uint64_t __rdtsc(void) {
 #ifdef DEBUG
 
 // GDB Func to CLI and STI
+// Should not be inlined.
 
-static void gcli(void) {
+static NOINLINE void gcli(void) {
     __cli();
 }
 
-static void gsti(void) {
+static NOINLINE void gsti(void) {
     __sti();
 }
 

@@ -321,7 +321,6 @@ typedef struct _APC {
 typedef struct _IPROCESS {
 	struct _DISPATCHER_HEADER Header; // Used for waiting on a process until termination.
 	uintptr_t PageDirectoryPhysical;		// Physical Address of the PML4 of the process.
-	struct _SPINLOCK ProcessLock;			// Internal Spinlock for process field manipulation safety.
 	uint32_t ProcessState;					// Current process state.
 } IPROCESS, *PIPROCESS;
 
@@ -548,7 +547,11 @@ MeGetCurrentIrql(void)
 {
 #ifdef DEBUG
 	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
-	if (returningIrql > HIGH_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
+	// IRQL is an enum in the current PROCESSOR struct (signed integer)
+	// if it ever change, this should catch it
+	// REMEMBER TO CHANGE FROM QWORD TO BYTE IN SLEEP.ASM TOO!
+	VALIDATE_MEMBER_SIZE(PROCESSOR, currentIrql, 4);
+	if (returningIrql > HIGH_LEVEL || returningIrql < PASSIVE_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
 	return returningIrql;
 #else
 	return (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));

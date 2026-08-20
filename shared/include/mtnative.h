@@ -67,6 +67,29 @@ typedef struct _THREAD_BASIC_INFORMATION {
     HANDLE UniqueProcessId;
 } THREAD_BASIC_INFORMATION;
 
+typedef struct _MT_CREATE_PROCESS_PARAMETERS {
+    uint32_t Size;  // Size of this structure for native ABI versioning.
+    uint32_t Flags; // Process creation options; currently required to be zero.
+
+    const char* ImagePath;     // Executable file that the kernel opens and maps.
+    uint64_t ImagePathLength;  // Image-path bytes, excluding the null terminator.
+
+    const char* CommandLine;    // Raw child command line parsed by MTDLL into argc/argv.
+    uint64_t CommandLineLength; // Command-line bytes, excluding the null terminator.
+
+    const char* CurrentDirectory;    // Initial working-directory string published to the child.
+    uint64_t CurrentDirectoryLength; // Directory bytes, excluding the null terminator.
+
+    const char* Environment;  // Consecutive NAME=VALUE strings terminated by an empty string.
+    uint64_t EnvironmentSize; // Total environment bytes, including the final two null bytes.
+
+    HANDLE ParentProcess;      // Parent-process handle; normally MtCurrentProcess().
+    ACCESS_MASK DesiredAccess; // Access rights requested for the returned process handle.
+} MT_CREATE_PROCESS_PARAMETERS, * PMT_CREATE_PROCESS_PARAMETERS;
+
+typedef PROCESS_INFORMATION MT_PROCESS_INFORMATION;
+typedef PPROCESS_INFORMATION PMT_PROCESS_INFORMATION;
+
 MTNATIVE_API MTSTATUS
 MtAllocateVirtualMemory(
     IN HANDLE Process,
@@ -80,7 +103,7 @@ MtOpenProcess(
     IN uint32_t ProcessId,
     OUT PHANDLE ProcessHandle,
     IN ACCESS_MASK DesiredAccess
-);
+);  
 
 MTNATIVE_API MTSTATUS
 MtTerminateProcess(
@@ -303,6 +326,14 @@ MTNATIVE_API MTSTATUS
 MtUnmapViewOfSection(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress
+);
+
+
+
+MTNATIVE_API MTSTATUS
+MtCreateProcess(
+    IN const MT_CREATE_PROCESS_PARAMETERS* Parameters,
+    OUT PMT_PROCESS_INFORMATION ProcessInformation
 );
 
 MTNATIVE_API MTSTATUS

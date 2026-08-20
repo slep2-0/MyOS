@@ -96,6 +96,7 @@ MspWakePushLockWaiters(
 
         MTSTATUS Status = MsSetEvent(&WaitHead->WakeEvent);
         assert(Status == MT_SUCCESS);
+        (void)Status;
 
         InterlockedStoreRelease(&WaitHead->WakeComplete, true);
 
@@ -296,6 +297,7 @@ MsAcquirePushLockExclusive(
     // Wait for the push lock release to wake us up.
     MTSTATUS Status = MsWaitForSingleObject(&WaitBlock.WakeEvent, KernelMode, false, MT_INFINITE);
     assert(MT_SUCCEEDED(Status));
+    (void)Status;
 
     // A success status does not mean that the wait is complete, we must SPIN until WaitComplete is true
     // because the releaser might be touching the stack (releaser might be still in MsSetEvent while we return; and so destroy the stack of the WaitBlock he is still supposed to touch)
@@ -411,6 +413,7 @@ MsAcquirePushLockShared(
 
     MTSTATUS Status = MsWaitForSingleObject(&WaitBlock.WakeEvent, KernelMode, false, MT_INFINITE);
     assert(MT_SUCCEEDED(Status));
+    (void)Status;
 
     // We have been awoken, but we cannot return yet since the waker might still need to access WaitBlock above, so until he set that he doesnt need it anymore
     while (InterlockedLoadAcquire(&WaitBlock.WakeComplete) == false) {

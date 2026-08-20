@@ -417,7 +417,6 @@ PspInitializeThread(
     // Process association
     Thread->ParentProcess = Process;
     Thread->InternalThread.ApcState.SavedApcProcess = Process;
-    Thread->PID = Process->PID;
 
     // Scheduling defaults
     Thread->InternalThread.TimeSlice = TimeSlice;
@@ -447,12 +446,13 @@ PspInitializeThread(
 
 MTSTATUS
 PsCreateThread(
-    PEPROCESS Process,
-    PHANDLE ThreadHandle,
-    THREAD_START_ROUTINE EntryPoint,
-    THREAD_PARAMETER ThreadParameter,
-    TimeSliceTicks TimeSlice,
-    ThreadEntry MtdllEntrypoint
+    IN PEPROCESS Process,
+    OUT PHANDLE ThreadHandle,
+    IN THREAD_START_ROUTINE EntryPoint,
+    IN THREAD_PARAMETER ThreadParameter,
+    IN TimeSliceTicks TimeSlice,
+    IN ThreadEntry MtdllEntrypoint,
+    OUT PETHREAD* CreatedThread
 )
 
 /*++
@@ -478,10 +478,18 @@ PsCreateThread(
 
 {
     // Checks.
-    if (!Process || !ThreadHandle || !EntryPoint || !TimeSlice) {
+    if (!Process || !ThreadHandle || !EntryPoint || !TimeSlice || !CreatedThread) {
         return MT_INVALID_PARAM;
     }
 
+    PEPROCESS CreatorProcess = PsGetCurrentProcess();
+    if (!CreatorProcess || !CreatorProcess->ObjectTable) {
+        return MT_INVALID_HANDLE;
+    }
+
+    PHANDLE_TABLE CreatorTable = CreatorProcess->ObjectTable;
+
+    *CreatedThread = NULL;
     *ThreadHandle = MT_INVALID_HANDLE;
     MTSTATUS Status = MT_GENERAL_FAILURE;
     PEPROCESS ParentProcess = Process;
@@ -543,9 +551,6 @@ PsCreateThread(
         goto Cleanup;
     }
 
-    // Write the PID into the thread.
-    Thread->PID = ParentProcess->PID;
-
     // Create a new stack for the thread's kernel environment.
     Thread->InternalThread.KernelStack = MiCreateKernelStack(false);
     Thread->InternalThread.IsLargeStack = false;
@@ -578,7 +583,7 @@ PsCreateThread(
     Thread->SystemThread = false;
 
     // Set state
-    Thread->InternalThread.ThreadState = THREAD_READY;
+    Thread->InternalThread.ThreadState = THREAD_INITIALIZED;
     Thread->InternalThread.ApcState.SavedApcProcess = ParentProcess;
 
     // Get TEB.
@@ -647,8 +652,8 @@ PsCreateThread(
         Trap->rcx = (uint64_t)ThreadParameter; // Fourth argument, the thread's parameter.
     }
 
-    // Create a handle for the thread (and place it in the process's handle table).
-    Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, ParentProcess->ObjectTable);
+    // Create a handle for the thread (and place it in the creator process's handle table).
+    Status = ObCreateHandleForObjectEx(Thread, MT_THREAD_ALL_ACCESS, ThreadHandle, CreatorTable);
     if (MT_FAILURE(Status)) goto Cleanup;
 
     ThreadHandleCreated = true;
@@ -675,10 +680,8 @@ PsCreateThread(
     MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
 
     // Successful.
+    *CreatedThread = Thread;
     Status = MT_SUCCESS;
-
-    // Insert thread to processor queue.
-    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, Thread);
 
 Cleanup:
     if (RundownAcquired) {
@@ -687,7 +690,7 @@ Cleanup:
 
     if (MT_FAILURE(Status)) {
         if (ThreadHandleCreated) {
-            HtCloseEx(ParentProcess->ObjectTable, *ThreadHandle);
+            HtCloseEx(CreatorTable, *ThreadHandle);
             *ThreadHandle = MT_INVALID_HANDLE;
         }
         if (Thread) ObDereferenceObject(Thread);
@@ -806,6 +809,75 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     return MT_SUCCESS;
 }
 
+void
+PspAbortThreadCreation(
+    IN PETHREAD Thread,
+    IN MTSTATUS ExitStatus
+)
+
+{
+    // Atomic compare exchange, same as PspStartThread
+    uint32_t PreviousState = InterlockedCompareExchangeU32(
+        &Thread->InternalThread.ThreadState,
+        THREAD_TERMINATED,
+        THREAD_INITIALIZED
+    );
+
+    if (PreviousState != THREAD_INITIALIZED) {
+        assert(false, "A thread was aborted even though its initilization phase isnt INITIALIZED.");
+        return;
+    }
+
+    // Rundown all thread APCs if any and set internal termination state.
+    PspBeginThreadExit(Thread);
+
+    // Set thread ExitStatus as the one given.
+    Thread->ExitStatus = ExitStatus;
+
+    PEPROCESS ParentProcess = Thread->ParentProcess;
+
+    // Acquire the list lock for the parent process
+    MsAcquirePushLockExclusive(&ParentProcess->ThreadListLock);
+    assert(ParentProcess->NumThreads);
+    ParentProcess->NumThreads--;
+    bool ProcessDead = ParentProcess->NumThreads == 0;
+    bool OnlyEverThread = ProcessDead && ParentProcess->MainThread == Thread;
+
+    if (ParentProcess->MainThread == Thread) ParentProcess->MainThread = NULL;
+    MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
+
+    // Terminate ourselves
+    IRQL oldIrql;
+    MsAcquireSpinlock(&Thread->InternalThread.Header.Lock, &oldIrql);
+    
+    // Set SignalState to 1, even though there are no waiters
+    Thread->InternalThread.Header.SignalState = 1;
+
+    // There should be no waiters, this thread was never published.
+    assert(IsListEmpty(&Thread->InternalThread.Header.WaitListHead) == true);
+
+    MsReleaseSpinlock(&Thread->InternalThread.Header.Lock, oldIrql);
+
+    // If we were the only thread, mark the process as terminating.
+    if (ProcessDead) {
+        InterlockedStoreRelease(&ParentProcess->InternalProcess.ProcessState, PROCESS_TERMINATING);
+
+        MsAcquireSpinlock(&ParentProcess->InternalProcess.Header.Lock, &oldIrql);
+        ParentProcess->InternalProcess.Header.SignalState = 1;
+
+        // If we were the ONLY thread in the process, there should be NO waiters on this proceses too
+        // since nobody can ever have acquired a handle to it, before this termination.
+        if (OnlyEverThread) {
+            assert(IsListEmpty(&ParentProcess->InternalProcess.Header.WaitListHead) == true);
+        }
+
+        MsReleaseSpinlock(&ParentProcess->InternalProcess.Header.Lock, oldIrql);
+    }
+
+    // Dereference the thread now, this should destroy it.
+    ObDereferenceObject(Thread);
+}
+
 PETHREAD 
 PsGetCurrentThread (void)
 
@@ -827,6 +899,36 @@ PsGetCurrentThread (void)
 
 {
     return CONTAINING_RECORD(MeGetCurrentThread(), ETHREAD, InternalThread);
+}
+
+void
+PspStartThread(
+    IN PETHREAD Thread
+)
+
+{
+    assert(Thread);
+
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+    IRQL oldIrql;
+
+    MsAcquireSpinlock(&Processor->readyQueue.lock, &oldIrql);
+
+    uint32_t PreviousState = InterlockedCompareExchangeU32(
+        &Thread->InternalThread.ThreadState,
+        THREAD_READY,
+        THREAD_INITIALIZED
+    );
+
+    if (PreviousState != THREAD_INITIALIZED) {
+        MsReleaseSpinlock(&Processor->readyQueue.lock, oldIrql);
+        assert(false, "Attempted to start a thread more than once.");
+        return;
+    }
+
+    MeEnqueueThread(&Processor->readyQueue, Thread);
+
+    MsReleaseSpinlock(&Processor->readyQueue.lock, oldIrql);
 }
 
 static

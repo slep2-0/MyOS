@@ -1529,13 +1529,15 @@ MtCreateThread(
     // Call internal function.
     HANDLE KThreadHandle;
 
+    PETHREAD Thread;
     Status = PsCreateThread(
         Process,
         &KThreadHandle,
         StartRoutine,
         Argument,
         DEFAULT_TIMESLICE_TICKS,
-        NULL
+        NULL,
+        &Thread
     );
 
     bool Succeeded = MT_SUCCEEDED(Status);
@@ -1544,11 +1546,15 @@ MtCreateThread(
         try {
             *ThreadHandle = KThreadHandle;
         } except{
-            HtCloseEx(Process->ObjectTable, KThreadHandle);
+            HtClose(KThreadHandle);
+            PspAbortThreadCreation(Thread, GetExceptionCode());
             ObDereferenceObject(Process);
             return GetExceptionCode();
         }
         end_try;
+
+        // Start it now
+        PspStartThread(Thread);
     }
 
     ObDereferenceObject(Process);
@@ -2660,7 +2666,7 @@ MtQueryInformationProcess(
 
         KProcInfo.PebBaseAddress = Process->Peb;
         KProcInfo.UniqueProcessId = Process->PID;
-        KProcInfo.ParentUniqueProcessId = Process->ParentProcess;
+        KProcInfo.ParentUniqueProcessId = Process->ParentProcessPid;
 
         MsReleaseSpinlock(&Process->InternalProcess.Header.Lock, OldIrql);
 
@@ -3244,6 +3250,198 @@ MtUnmapViewOfSection(
     Status = MmUnmapViewOfSection((PEPROCESS)Object, BaseAddress);
     
     ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtCreateProcess(
+    IN const MT_CREATE_PROCESS_PARAMETERS* Parameters,
+    OUT PMT_PROCESS_INFORMATION ProcessInformation
+)
+
+{
+    if (!Parameters || !ProcessInformation) return MT_INVALID_PARAM;
+
+    // Probe both pointers
+    MTSTATUS Status = ProbeForRead(Parameters, sizeof(MT_CREATE_PROCESS_PARAMETERS), _Alignof(MT_CREATE_PROCESS_PARAMETERS));
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(ProcessInformation, sizeof(MT_PROCESS_INFORMATION), _Alignof(MT_PROCESS_INFORMATION));
+    if (MT_FAILURE(Status)) return Status;
+
+    // Copy over the user struct over to here.
+    MT_CREATE_PROCESS_PARAMETERS KParam;
+
+    try {
+        kmemcpy(&KParam, Parameters, sizeof(MT_CREATE_PROCESS_PARAMETERS));
+        Status = MT_SUCCESS;
+    }
+    except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Validate the captured structure
+    if (KParam.Size < sizeof(KParam) ||
+        KParam.Flags != 0 ||
+        !KParam.ImagePath ||
+        !KParam.CommandLine ||
+        !KParam.CurrentDirectory ||
+        !KParam.Environment ||
+        KParam.ImagePathLength == 0 ||
+        KParam.ImagePathLength >= MAX_PATH ||
+        KParam.CurrentDirectoryLength >= MAX_PATH ||
+        KParam.CommandLineLength >(64 * 1024) ||
+        KParam.EnvironmentSize < 2 ||
+        KParam.EnvironmentSize >(1024 * 1024)) {
+        return MT_INVALID_PARAM;
+    }
+
+    // Validate every captured user range.
+    Status = ProbeForRead(
+        KParam.ImagePath,
+        (size_t)KParam.ImagePathLength,
+        _Alignof(char)
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(
+        KParam.CommandLine,
+        (size_t)KParam.CommandLineLength,
+        _Alignof(char)
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(
+        KParam.CurrentDirectory,
+        (size_t)KParam.CurrentDirectoryLength,
+        _Alignof(char)
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    Status = ProbeForRead(
+        KParam.Environment,
+        (size_t)KParam.EnvironmentSize,
+        _Alignof(char)
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    // String lengths exclude their terminators. EnvironmentSize includes its
+    // required two trailing null bytes.
+    size_t ImageBytes = (size_t)KParam.ImagePathLength + 1;
+    size_t CommandBytes = (size_t)KParam.CommandLineLength + 1;
+    size_t DirectoryBytes = (size_t)KParam.CurrentDirectoryLength + 1;
+    size_t EnvironmentBytes = (size_t)KParam.EnvironmentSize;
+
+    size_t CaptureSize =
+        ImageBytes +
+        CommandBytes +
+        DirectoryBytes +
+        EnvironmentBytes;
+
+    char* CapturedBuffer = MmAllocatePoolWithTag(
+        PagedPool,
+        CaptureSize,
+        'pCsP' // Process Control Parameters
+    );
+
+    if (!CapturedBuffer) {
+        return MT_NO_MEMORY;
+    }
+
+    // Divide the one allocation into four buffers.
+    char* KernelImagePath = CapturedBuffer;
+    char* KernelCommandLine = KernelImagePath + ImageBytes;
+    char* KernelCurrentDirectory = KernelCommandLine + CommandBytes;
+    char* KernelEnvironment = KernelCurrentDirectory + DirectoryBytes;
+
+    try {
+        kmemcpy(
+            KernelImagePath,
+            KParam.ImagePath,
+            (size_t)KParam.ImagePathLength
+        );
+        KernelImagePath[KParam.ImagePathLength] = '\0';
+
+        kmemcpy(
+            KernelCommandLine,
+            KParam.CommandLine,
+            (size_t)KParam.CommandLineLength
+        );
+        KernelCommandLine[KParam.CommandLineLength] = '\0';
+
+        kmemcpy(
+            KernelCurrentDirectory,
+            KParam.CurrentDirectory,
+            (size_t)KParam.CurrentDirectoryLength
+        );
+        KernelCurrentDirectory[KParam.CurrentDirectoryLength] = '\0';
+
+        kmemcpy(
+            KernelEnvironment,
+            KParam.Environment,
+            EnvironmentBytes
+        );
+
+        Status = MT_SUCCESS;
+    } except{
+        Status = GetExceptionCode();
+    }
+    end_try;
+
+    if (MT_FAILURE(Status)) {
+        MmFreePool(CapturedBuffer);
+        return Status;
+    }
+
+    // Environment blocks must end with two null bytes.
+    if (KernelEnvironment[EnvironmentBytes - 1] != '\0' ||
+        KernelEnvironment[EnvironmentBytes - 2] != '\0') {
+        MmFreePool(CapturedBuffer);
+        return MT_INVALID_PARAM;
+    }
+
+    // Replace every untrusted pointer with its captured kernel equivalent.
+    KParam.ImagePath = KernelImagePath;
+    KParam.CommandLine = KernelCommandLine;
+    KParam.CurrentDirectory = KernelCurrentDirectory;
+    KParam.Environment = KernelEnvironment;
+
+    // Good, after all this verification shenangans, call internal function.
+    MT_PROCESS_INFORMATION KProcInfo;
+
+    PETHREAD CreatedThread;
+    Status = PsCreateProcess(
+        &KParam,
+        &KProcInfo,
+        &CreatedThread
+    );
+
+    MmFreePool(CapturedBuffer);
+
+    if (MT_FAILURE(Status)) return Status;
+
+    // Publish handle to user mode
+    try {
+        *ProcessInformation = KProcInfo;
+        Status = MT_SUCCESS;
+    } except{
+        Status = GetExceptionCode();
+        // User output failed, so do not leak the created handle.
+        // Should destroy thread and process.
+        HtClose(KProcInfo.ProcessHandle);
+        HtClose(KProcInfo.ThreadHandle);
+        PspAbortThreadCreation(CreatedThread, Status);
+    }
+    end_try;
+
+    if (MT_SUCCEEDED(Status)) {
+        // Start the thread if publishing succeeded
+        PspStartThread(CreatedThread);
+    }
+
     return Status;
 }
 

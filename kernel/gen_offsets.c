@@ -167,7 +167,7 @@ int main(void)
     GEN_COMMENT("EPROCESS Offsets");
     GEN_OFFSET(EPROCESS, InternalProcess);
     GEN_OFFSET(EPROCESS, PID);
-    GEN_OFFSET(EPROCESS, ParentProcess);
+    GEN_OFFSET(EPROCESS, ParentProcessPid);
     GEN_OFFSET(EPROCESS, MainThread);
     GEN_OFFSET(EPROCESS, VadRoot);
     GEN_OFFSET(EPROCESS, NextStackHint);
