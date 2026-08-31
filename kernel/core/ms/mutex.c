@@ -214,6 +214,7 @@ MsReleaseMutexObject (
 
             MsReleaseSpinlock(&Mutex->Header.Lock, dispatcherIrql);
             MsRemoveTimerQueue(NextThread);
+            MeBoostThread(NextThread, MT_SYNCHRONIZATION_BOOST);
             MsCompleteThreadWait(NextThread);
             return MT_SUCCESS;
         }

@@ -381,6 +381,7 @@ PspInitializeThread(
 {
     // Basic linking
     InitializeListHead(&Thread->ThreadListEntry);
+    InitializeListHead(&Thread->SchedulerListEntry);
     InitializeListHead(
         &Thread->InternalThread.ApcState.ApcListHead[KernelMode]
     );
@@ -421,7 +422,36 @@ PspInitializeThread(
     // Scheduling defaults
     Thread->InternalThread.TimeSlice = TimeSlice;
     Thread->InternalThread.TimeSliceAllocated = TimeSlice;
+    Thread->InternalThread.BasePriority = Process->BasePriority;
+    Thread->InternalThread.Priority = Process->BasePriority;
     Thread->InternalThread.ThreadState = THREAD_READY;
+
+    // Priority defaults
+    Thread->InternalThread.ReadyProcessor = NULL;
+    Thread->InternalThread.SchedulerLock.locked = 0;
+    Thread->InternalThread.ReadyProcessor = NULL;
+
+    // Affinity defaults
+    uint32_t ProcessorCount = MeGetActiveProcessorCount();
+
+    // The idleThread is created with a timeslice ticks of 1, overriding the standard enumerator
+    // so if the idleThread is this Thread, set the bitmask to ONLY the current CPU that is allowed to run this thread
+    // else, just set to everything
+
+    if (TimeSlice == 1) {
+        Thread->InternalThread.AllowedProcessorMask = 0;
+
+        // Allow only this CPU.
+        Thread->InternalThread.AllowedProcessorMask |=
+            (1u << MeGetCurrentProcessorNumber());
+    }
+    else {
+        // Set to the default affinity, which is all the CPUs. (clamp to 32 cpus)
+        Thread->InternalThread.AllowedProcessorMask =
+            ProcessorCount >= 32
+            ? UINT32_MAX
+            : ((1u << ProcessorCount) - 1u);
+    }
 
     // The semaphore stores at most one early-resume permit. Its initial zero
     // closes the gate, but SuspendCount == 0 means no APC will wait on it yet.
@@ -796,7 +826,9 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
     // Enqueue it into processor
-    MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, thread);
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+    MeEnqueueThreadWithLock(&Processor->readyQueue, thread);
+    MeRequestPreemption(Processor);
 
     if (OutThread) {
         // The caller wants a pointer to the thread
@@ -912,7 +944,10 @@ PspStartThread(
     PPROCESSOR Processor = MeGetCurrentProcessor();
     IRQL oldIrql;
 
-    MsAcquireSpinlock(&Processor->readyQueue.lock, &oldIrql);
+    MsAcquireSpinlock(&Processor->readyQueue.Lock, &oldIrql);
+    MsAcquireSpinlockAtDpcLevel(
+        &Thread->InternalThread.SchedulerLock
+    );
 
     uint32_t PreviousState = InterlockedCompareExchangeU32(
         &Thread->InternalThread.ThreadState,
@@ -921,14 +956,21 @@ PspStartThread(
     );
 
     if (PreviousState != THREAD_INITIALIZED) {
-        MsReleaseSpinlock(&Processor->readyQueue.lock, oldIrql);
+        MsReleaseSpinlockFromDpcLevel(
+            &Thread->InternalThread.SchedulerLock
+        );
+        MsReleaseSpinlock(&Processor->readyQueue.Lock, oldIrql);
         assert(false, "Attempted to start a thread more than once.");
         return;
     }
 
     MeEnqueueThread(&Processor->readyQueue, Thread);
 
-    MsReleaseSpinlock(&Processor->readyQueue.lock, oldIrql);
+    MsReleaseSpinlockFromDpcLevel(
+        &Thread->InternalThread.SchedulerLock
+    );
+    MsReleaseSpinlock(&Processor->readyQueue.Lock, oldIrql);
+    MeRequestPreemption(Processor);
 }
 
 static
@@ -1494,6 +1536,10 @@ PspExitThread(
                 // Drop the mutex lock before timer removal and wait completion.
                 MsReleaseSpinlock(&Mutex->Header.Lock, prevIrqlion);
                 MsRemoveTimerQueue(WaitingThread);
+
+                // Boost thread before completing its wait
+                MeBoostThread(WaitingThread, MT_SYNCHRONIZATION_BOOST);
+
                 MsCompleteThreadWait(WaitingThread);
 
                 // Reacquire so the common loop cleanup releases one held lock.

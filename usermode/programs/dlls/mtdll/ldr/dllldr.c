@@ -437,6 +437,11 @@ LdrLoadDll(
     Status = LdrpProcessImports(NewEntry, MtCurrentPeb());
     if (MT_FAILURE(Status)) goto Cleanup;
 
+    // Relocations, TLS fixups and imports are finished.
+    // Apply runtime image protections before executing the DllMain down below.
+    Status = LdrpFinalizeImageProtections(NewEntry);
+    if (MT_FAILURE(Status)) goto Cleanup;
+
     // Good, now call the DllMain for this DLL.
     if (NewEntry->EntryPoint) {
         PDLL_ENTRY_POINT EntryPoint = (PDLL_ENTRY_POINT)NewEntry->EntryPoint;

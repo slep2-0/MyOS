@@ -70,6 +70,7 @@ SYSCALL_INIT_ENTRY SyscallTable[] = {
     {.Num = 31, .Handler = MtMapViewOfSection},
     {.Num = 32, .Handler = MtUnmapViewOfSection},
     {.Num = 33, .Handler = MtCreateProcess},
+    {.Num = 34, .Handler = MtSetInformationThread},
     {.Num = 255, .Handler = MtPrintConsole}
 };
 
@@ -94,6 +95,10 @@ MtSetupSyscall(
     Return Values:
 
         None.
+
+    Notes:
+
+        This routine runs on every CPU in the system, but setups the SSDT only once.
 
 --*/
 

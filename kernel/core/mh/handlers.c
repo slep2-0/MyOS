@@ -72,6 +72,9 @@ static void MiHandleTimer(IRQL InterruptedIrql, PTRAP_FRAME trap)
         return;
     }
 
+    // Decay boosted priority (if it is boosted)
+    MeDecayThreadPriority(currentThread);
+
     // Time slice has expired
     // Reset Quantum
     currentThread->TimeSlice = currentThread->TimeSliceAllocated;
@@ -180,6 +183,8 @@ void MiInterprocessorInterrupt (
         }
         break;
     case CPU_ACTION_FLUSH_CR3:
+        // If MiReloadTLBs() is used here, the system will probably deadlock, as it sends an IPI
+        // so just do a manual reset, no need to be all fancy with functions
         __write_cr3(__read_cr3());
         break;
     case CPU_ACTION_REQUEST_APC:
@@ -189,6 +194,11 @@ void MiInterprocessorInterrupt (
     case CPU_ACTION_REQUEST_DPC:
         // We are now on the target CPU, so publish and request as one local
         // interrupt-disabled transaction.
+        MeRequestCurrentDpcInterrupt();
+        break;
+    case CPU_ACTION_REQUEST_SCHEDULE:
+        // Defer scheduling until safe IRQL.
+        InterlockedIncrementU64(&cpu->ScheduleIpiCount);
         MeRequestCurrentDpcInterrupt();
         break;
     }

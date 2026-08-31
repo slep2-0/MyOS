@@ -254,7 +254,8 @@ MeInitializeProcessor(
     CPU->self = CPU;
     CPU->currentIrql = PASSIVE_LEVEL;
     CPU->currentThread = NULL;
-    CPU->readyQueue.head = CPU->readyQueue.tail = NULL;
+    InitializeListHead(&CPU->readyQueue.ListHead);
+    CPU->readyQueue.Lock.locked = 0;
     // Initialize the DPC Lock & list head.
     CPU->DpcData.DpcLock.locked = 0;
     InitializeListHead(&CPU->DpcData.DpcListHead);
@@ -265,6 +266,8 @@ MeInitializeProcessor(
     CPU->DpcRequestRate = 0; // Initialized to zero.
     CPU->DpcRoutineActive = false;
     CPU->DpcInterruptRequested = false;
+    CPU->ScheduleIpiCount = 0;
+    CPU->readyQueue.OwnerProcessor = CPU;
 
     // Initialize system calls.
     MtSetupSyscall();

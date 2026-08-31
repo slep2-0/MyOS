@@ -12,6 +12,15 @@
 // Kernel/MTDLL ABI layouts are declared once by shared/include/mttypes.h,
 // which MatanelOS.h includes above.
 
+#define MTE_PAGE_SIZE 0x1000ULL
+#define MTE_PAGE_MASK (MTE_PAGE_SIZE - 1ULL)
+
+#define MTE_IS_PAGE_ALIGNED(Value) \
+    ((((uint64_t)(Value)) & MTE_PAGE_MASK) == 0)
+
+#define MTE_ALIGN_UP(Value) \
+    ((((uint64_t)(Value)) + MTE_PAGE_MASK) & ~MTE_PAGE_MASK)
+
 void
 MtpPushExceptionFrame(
     PEXCEPTION_REGISTRATION_RECORD Frame,
@@ -200,6 +209,11 @@ MTSTATUS
 LdrpProcessImports(
     IN PLDR_DATA_TABLE_ENTRY ExecutableEntry,
     IN PPEB PebPointer
+);
+
+MTSTATUS
+LdrpFinalizeImageProtections(
+    IN PLDR_DATA_TABLE_ENTRY Module
 );
 
 MTSTATUS

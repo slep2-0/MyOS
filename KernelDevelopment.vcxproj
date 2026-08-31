@@ -45,7 +45,7 @@
     <NMakeForcedIncludes>$(ProjectDir)tools\windows\intellisense\freestanding_compat.h</NMakeForcedIncludes>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;MATANELOS_INTELLISENSE=1</NMakePreprocessorDefinitions>
-    <AdditionalOptions>/TC /std:c11 /wd4047 /wd4293 /wd4311 /wd4312</AdditionalOptions>
+    <AdditionalOptions>/TC /std:c11 /we4133 /wd4047 /wd4293 /wd4311 /wd4312</AdditionalOptions>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -69,6 +69,7 @@
     <ClCompile Include="kernel\core\me\dpc.c" />
     <ClCompile Include="kernel\core\me\irql.c" />
     <ClCompile Include="kernel\core\me\meinit.c" />
+    <ClCompile Include="kernel\core\me\priority.c" />
     <ClCompile Include="kernel\core\me\scheduler.c" />
     <ClCompile Include="kernel\core\me\suspend.c" />
     <ClCompile Include="kernel\core\mh\acpi.c" />
@@ -245,6 +246,7 @@
     <None Include="tools\windows\stress_gate5.py" />
     <None Include="tools\windows\stress_heap.py" />
     <None Include="tools\windows\stress_loader.py" />
+    <None Include="tools\windows\stress_priority.py" />
     <None Include="tools\windows\stress_process.py" />
     <None Include="tools\windows\stress_tls.py" />
     <None Include="tools\windows\sync_vcxproj_files.py" />

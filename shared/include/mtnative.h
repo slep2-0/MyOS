@@ -48,7 +48,8 @@ typedef enum _PROCESSINFOCLASS {
 } PROCESSINFOCLASS;
 
 typedef enum _THREADINFOCLASS {
-    ThreadBasicInformation = 0
+    ThreadBasicInformation = 0,
+    ThreadBasePriorityInformation = 1
 } THREADINFOCLASS;
 
 struct _PEB;
@@ -66,6 +67,10 @@ typedef struct _THREAD_BASIC_INFORMATION {
     HANDLE UniqueThreadId;
     HANDLE UniqueProcessId;
 } THREAD_BASIC_INFORMATION;
+
+typedef struct _THREAD_BASE_PRIORITY_INFORMATION {
+    THREAD_PRIORITY BasePriority;
+} THREAD_BASE_PRIORITY_INFORMATION, *PTHREAD_BASE_PRIORITY_INFORMATION;
 
 typedef struct _MT_CREATE_PROCESS_PARAMETERS {
     uint32_t Size;  // Size of this structure for native ABI versioning.
@@ -290,6 +295,14 @@ MtQueryInformationThread(
 );
 
 MTNATIVE_API MTSTATUS
+MtSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN const void* ThreadInformation,
+    IN size_t ThreadInformationLength
+);
+
+MTNATIVE_API MTSTATUS
 MtSuspendThread(
     IN HANDLE ThreadHandle,
     _Out_Opt uint32_t* PreviousSuspendCount
@@ -327,8 +340,6 @@ MtUnmapViewOfSection(
     IN HANDLE ProcessHandle,
     IN void* BaseAddress
 );
-
-
 
 MTNATIVE_API MTSTATUS
 MtCreateProcess(

@@ -440,6 +440,21 @@ MtCreateProcess:
 	syscall
 	ret
 
+; MTSTATUS
+; MtSetInformationThread(
+;     IN HANDLE ThreadHandle,
+;     IN THREADINFOCLASS ThreadInformationClass,
+;     IN const void* ThreadInformation,
+;     IN size_t ThreadInformationLength
+; );
+; Syscall number is 34.
+global MtSetInformationThread
+MtSetInformationThread:
+	mov rax, 34
+	mov r10, rcx
+	syscall
+	ret
+
 ; TO BE RETIRED
 global MtPrintConsole
 MtPrintConsole:

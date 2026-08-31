@@ -300,6 +300,17 @@ ResumeThread(
     IN HANDLE ThreadHandle
 );
 
+MTDLL_API bool
+SetThreadPriority(
+    IN HANDLE ThreadHandle,
+    IN THREAD_PRIORITY Priority
+);
+
+MTDLL_API THREAD_PRIORITY
+GetThreadPriority(
+    IN HANDLE ThreadHandle
+);
+
 MTDLL_API void
 RaiseException(
     IN uint32_t ExceptionCode,

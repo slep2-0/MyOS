@@ -52,6 +52,16 @@ typedef enum _TimeSliceTicks {
 	HIGH_TIMESLICE_TICKS = 250 / TICK_MS
 } TimeSliceTicks, *PTimeSliceTicks;
 
+#define MT_SYNCHRONIZATION_BOOST 1
+
+typedef struct _READY_QUEUE {
+	DOUBLY_LINKED_LIST ListHead;
+	SPINLOCK Lock;
+	PPROCESSOR OwnerProcessor;
+} READY_QUEUE, *PREADY_QUEUE;
+
+STATIC_ASSERT(sizeof(THREAD_PRIORITY) == 1, "THREAD_PRIORITY must be one byte.");
+
 // Describes which subsystem owns cleanup of the thread's active wait block.
 typedef enum _WAIT_REASON {
 	WaitReasonNone, // The thread has no active wait.
@@ -333,6 +343,11 @@ typedef struct _ITHREAD {
 	void* KernelStack;									   // The threads stack when in kernel space.
 	enum _TimeSliceTicks TimeSlice;						   // Current timeslice remaining until thread's forceful pre-emption.
 	enum _TimeSliceTicks TimeSliceAllocated;			   // Original timeslice given to the thread, used for restoration when it's current one is over.
+	THREAD_PRIORITY BasePriority;						   // Stable priority to which temporary boosts return.
+	THREAD_PRIORITY Priority;							   // Effective priority currently used by the scheduler.
+	// Serializes BasePriority, Priority, AllowedProcessorMask, and queue/state revalidation.
+	// Ready-queue membership remains owned by readyQueue.Lock; order: readyQueue.Lock -> SchedulerLock.
+	SPINLOCK SchedulerLock;
 	enum _PRIVILEGE_MODE PreviousMode;					   // Previous mode of the thread (used to indicate whether it called a kernel service in kernel mode, or in user mode)
 	uint64_t UserFsBase;								   // User-mode FS base restored when this thread resumes.
 	struct _APC_STATE ApcState;							   // Current thread's APC State.
@@ -406,6 +421,18 @@ typedef struct _ITHREAD {
 	// Wait completion queues it back there so another CPU cannot restore a
 	// stack while the owner is still finishing the switch-away path.
 	struct _PROCESSOR* ActiveProcessor;
+
+	// CPU whose ready queue currently contains this thread.
+	// NULL when SchedulerListEntry is not linked into a ready queue.
+	// Protected by that processor's readyQueue.Lock.
+	// When we priority boost the thred or just simply switch its priorities
+	// we must know whose CPU ready queue to lock so we may rotate the list (since if boosting or setting lower we must adjust the list)
+	struct _PROCESSOR* ReadyProcessor;
+
+	// Bitmask that says which CPUs this thread is allowed to run on
+	// By default, it should be the maximum affinity for all of the CPUs in the system
+	// but as the thread modifies its affinity, the mask will change
+	uint32_t AllowedProcessorMask;
 } ITHREAD, *PITHREAD;
 
 typedef struct _PROCESSOR {
@@ -415,7 +442,7 @@ typedef struct _PROCESSOR {
 	enum _IRQL currentIrql; // Current CPU IRQL; controls CR8-based local interrupt priority masking.
 
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
-	struct _Queue readyQueue; // Queue of thread pointers to be scheduled.
+	READY_QUEUE readyQueue; // Runnable threads owned by this processor.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
 	void* VirtStackTop; // Pointer to top of CPU Stack. -- NOTE (FIXME): I dont get why do we need this, since every stack onward should be the THREADS kernel stack, or an IST stack, not this.
@@ -433,6 +460,7 @@ typedef struct _PROCESSOR {
 	volatile uint64_t MailboxLock; // 0 = Free, 1 = Locked by a sender
 	volatile uint64_t IpiSeq;
 	volatile enum _CPU_ACTION IpiAction; // IPI Action specified in the function.
+	volatile uint64_t ScheduleIpiCount; // Number of remote scheduling requests handled by this CPU.
 	volatile IPI_PARAMS IpiParameter; // Optional parameter for IPI's, usually used for functions, primarily TLB Shootdowns.
 	volatile uint32_t* LapicAddressVirt; // Virtual address of the Local APIC MMIO Address (mapped)
 	uintptr_t LapicAddressPhys; // Physical address of the Local APIC MMIO
@@ -739,11 +767,33 @@ MeIsKernelApc(
 	return Apc != NULL &&
 		Apc->ApcMode == KernelMode;
 }
+
+FORCEINLINE
+bool
+MeIsProcessorAllowed(
+	IN PITHREAD Thread,
+	IN PPROCESSOR Processor
+)
+
+{
+	return (Thread->AllowedProcessorMask & (1u << Processor->ID)) != 0;
+}
+
 void
 MeInitializeProcessor(
 	IN PPROCESSOR CPU,
 	IN bool InitializeStandardRoutine,
 	IN bool AreYouAP
+);
+
+void
+MeRequestPreemption(
+	IN PPROCESSOR TargetProcessor
+);
+
+void
+MeEvaluateCurrentPreemptionAtDpcLevel(
+	void
 );
 
 void
@@ -755,6 +805,24 @@ MeRaiseIrql(
 void
 MeLowerIrql(
 	IN IRQL NewIrql
+);
+
+MTSTATUS
+MeSetThreadBasePriority(
+	IN PETHREAD Thread,
+	IN THREAD_PRIORITY NewPriority,
+	OUT THREAD_PRIORITY* PreviousPriority
+);
+
+void
+MeBoostThread(
+	IN PITHREAD Thread,
+	IN THREAD_PRIORITY PriorityIncrement
+);
+
+void
+MeDecayThreadPriority(
+	IN PITHREAD Thread
 );
 
 void

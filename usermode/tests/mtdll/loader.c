@@ -8,8 +8,279 @@
 
 typedef uint32_t (*PLOADER_TEST_QUERY_STATE)(void);
 
+typedef struct _MTP_LOADER_PROTECTION_EXPECTATION {
+    void* Address;
+    uintptr_t Operation;
+    uint32_t FilterCount;
+    bool Valid;
+} MTP_LOADER_PROTECTION_EXPECTATION;
+
 static volatile uint32_t MtpLoaderAttachCount;
 static volatile uint32_t MtpLoaderDetachCount;
+
+static int
+MtpLoaderProtectionFilter(
+    IN PEXCEPTION_POINTERS Information,
+    IN OUT MTP_LOADER_PROTECTION_EXPECTATION* Expectation
+)
+
+/*++
+
+    Routine description:
+
+        Validates an access violation raised by an image protection probe.
+
+    Arguments:
+
+        [IN] Information - Exception information supplied to the filter.
+        [IN, OUT] Expectation - Expected fault address and operation.
+
+    Return Values:
+
+        MT_EXCEPTION_EXECUTE_HANDLER so the protection test can continue.
+
+--*/
+
+{
+    Expectation->FilterCount++;
+    Expectation->Valid =
+        Information != NULL &&
+        Information->ExceptionRecord != NULL &&
+        Information->ContextRecord != NULL &&
+        Information->ExceptionRecord->ExceptionCode ==
+            (uint32_t)MT_ACCESS_VIOLATION &&
+        Information->ExceptionRecord->NumberParameters == 2 &&
+        Information->ExceptionRecord->ExceptionInformation[0] ==
+            Expectation->Operation &&
+        Information->ExceptionRecord->ExceptionInformation[1] ==
+            (uintptr_t)Expectation->Address;
+
+    return MT_EXCEPTION_EXECUTE_HANDLER;
+}
+
+static bool
+MtpLoaderExpectWriteFault(
+    IN void* Address
+)
+
+/*++
+
+    Routine description:
+
+        Verifies that writing to an image address raises an access violation.
+
+    Arguments:
+
+        [IN] Address - Readable image address which must not be writable.
+
+    Return Values:
+
+        true when the expected write fault was handled, or false otherwise.
+
+--*/
+
+{
+    volatile uint8_t* Target = (volatile uint8_t*)Address;
+    uint8_t Original = *Target;
+    volatile bool WriteContinued = false;
+    volatile bool HandlerRan = false;
+    MTP_LOADER_PROTECTION_EXPECTATION Expectation = {
+        .Address = Address,
+        .Operation = 1
+    };
+
+    __try {
+        // Write the same byte so a missing protection cannot corrupt the image.
+        *Target = Original;
+        WriteContinued = true;
+    }
+    __except (
+        MtpLoaderProtectionFilter(
+            GetExceptionInformation(),
+            &Expectation
+        )
+    ) {
+        HandlerRan = true;
+    }
+
+    return !WriteContinued && HandlerRan &&
+        Expectation.FilterCount == 1 && Expectation.Valid;
+}
+
+static bool
+MtpLoaderExpectExecuteFault(
+    IN void* Address
+)
+
+/*++
+
+    Routine description:
+
+        Verifies that executing from writable image data raises an access
+        violation.
+
+    Arguments:
+
+        [IN] Address - Writable image address which must not be executable.
+
+    Return Values:
+
+        true when data remained writable and execution was rejected, or false
+        otherwise.
+
+--*/
+
+{
+    volatile uint8_t* Target = (volatile uint8_t*)Address;
+    uint8_t Original = *Target;
+    volatile bool ExecuteContinued = false;
+    volatile bool HandlerRan = false;
+    MTP_LOADER_PROTECTION_EXPECTATION Expectation = {
+        .Address = Address,
+        .Operation = 8
+    };
+
+    // A RET makes an unexpectedly executable data page return safely.
+    *Target = 0xC3;
+
+    __try {
+        ((void (*)(void))Address)();
+        ExecuteContinued = true;
+    }
+    __except (
+        MtpLoaderProtectionFilter(
+            GetExceptionInformation(),
+            &Expectation
+        )
+    ) {
+        HandlerRan = true;
+    }
+
+    // Restore the byte after either the expected fault or an unexpected call.
+    *Target = Original;
+
+    return !ExecuteContinued && HandlerRan &&
+        Expectation.FilterCount == 1 && Expectation.Valid;
+}
+
+static bool
+MtpLoaderCheckProtection(
+    IN void* Address,
+    IN USER_PROTECTION_TYPE ExpectedProtection
+)
+
+/*++
+
+    Routine description:
+
+        Verifies the published protection of one image address.
+
+    Arguments:
+
+        [IN] Address - Address whose virtual memory region is queried.
+        [IN] ExpectedProtection - Protection required for the region.
+
+    Return Values:
+
+        true when the query reports the expected protection, or false
+        otherwise.
+
+--*/
+
+{
+    MEMORY_BASIC_INFORMATION Information;
+    return VirtualQuery(Address, &Information) &&
+        Information.Protection == ExpectedProtection &&
+        (uintptr_t)Address >= (uintptr_t)Information.BaseAddress &&
+        (uintptr_t)Address - (uintptr_t)Information.BaseAddress <
+            Information.RegionSize;
+}
+
+static bool
+MtpLoaderVerifyModuleProtections(
+    IN PLDR_DATA_TABLE_ENTRY Module
+)
+
+/*++
+
+    Routine description:
+
+        Verifies the final text, data, and metadata protections of one loaded
+        MTE image.
+
+    Arguments:
+
+        [IN] Module - Loaded module whose runtime protections are tested.
+
+    Return Values:
+
+        true when every protection boundary behaves correctly, or false when
+        the image layout or a protection check fails.
+
+--*/
+
+{
+    if (!Module || !Module->Base ||
+        Module->SizeOfImage < sizeof(MTE_HEADER)) {
+        return false;
+    }
+
+    PMTE_HEADER Header = (PMTE_HEADER)Module->Base;
+    if (Header->Magic[0] != 'M' || Header->Magic[1] != 'T' ||
+        Header->Magic[2] != 'E' || Header->Magic[3] != '\0' ||
+        Header->DataRVA > UINT64_MAX - Header->DataSize) {
+        return false;
+    }
+
+    uint64_t DataEnd = Header->DataRVA + Header->DataSize;
+    if (DataEnd > UINT64_MAX - MTE_PAGE_MASK ||
+        Header->BssSize > UINT64_MAX - MTE_PAGE_MASK) {
+        return false;
+    }
+
+    uint64_t MetadataStart = MTE_ALIGN_UP(DataEnd);
+    uint64_t BssSpan = MTE_ALIGN_UP(Header->BssSize);
+    if (BssSpan > Module->SizeOfImage) {
+        return false;
+    }
+
+    uint64_t BssStart = Module->SizeOfImage - BssSpan;
+    if (Header->TextRVA >= Header->DataRVA ||
+        Header->DataRVA > MetadataStart ||
+        MetadataStart >= BssStart) {
+        return false;
+    }
+
+    uint8_t* Base = (uint8_t*)Module->Base;
+    void* TextAddress = Base + Header->TextRVA;
+    void* MetadataAddress = Base + MetadataStart;
+
+    // An image may have only zero filled writable data.
+    bool HasInitializedData = Header->DataRVA < MetadataStart;
+    void* WritableAddress = HasInitializedData
+        ? Base + Header->DataRVA
+        : (BssSpan != 0 ? Base + BssStart : NULL);
+    if (!WritableAddress) {
+        return false;
+    }
+
+    // Verify the complete final region map first.
+    if (!MtpLoaderCheckProtection(Base, PAGE_READONLY) ||
+        !MtpLoaderCheckProtection(TextAddress, PAGE_EXECUTE_READ) ||
+        !MtpLoaderCheckProtection(MetadataAddress, PAGE_READONLY) ||
+        (HasInitializedData &&
+         !MtpLoaderCheckProtection(Base + Header->DataRVA, PAGE_READWRITE)) ||
+        (BssSpan != 0 &&
+         !MtpLoaderCheckProtection(Base + BssStart, PAGE_READWRITE))) {
+        return false;
+    }
+
+    // Confirm read only pages fault and writable storage remains NX.
+    return MtpLoaderExpectWriteFault(Base) &&
+        MtpLoaderExpectWriteFault(TextAddress) &&
+        MtpLoaderExpectWriteFault(MetadataAddress) &&
+        MtpLoaderExpectExecuteFault(WritableAddress);
+}
 
 MTDLL_API
 void
@@ -137,6 +408,25 @@ MtpRunLoaderTests(
     }
     uint32_t MtdllBaselineReferences = MtdllEntry->ReferenceCount;
 
+    PDOUBLY_LINKED_LIST ModuleList =
+        &MtCurrentPeb()->LoaderData.LoadedModuleList;
+    if (ModuleList->Flink == ModuleList) {
+        return MT_LOADER_TEST_PROCESS_PROTECTION;
+    }
+
+    PLDR_DATA_TABLE_ENTRY ProcessEntry = CONTAINING_RECORD(
+        ModuleList->Flink,
+        LDR_DATA_TABLE_ENTRY,
+        LoadedModuleList
+    );
+    if (ProcessEntry->Base != ProcessModule ||
+        !MtpLoaderVerifyModuleProtections(ProcessEntry)) {
+        return MT_LOADER_TEST_PROCESS_PROTECTION;
+    }
+    if (!MtpLoaderVerifyModuleProtections(MtdllEntry)) {
+        return MT_LOADER_TEST_MTDLL_PROTECTION;
+    }
+
     if (FreeLibrary(ProcessModule) ||
         GetLastStatus() != MT_ACCESS_DENIED ||
         GetLastError() != ERROR_ACCESS_DENIED ||
@@ -173,6 +463,9 @@ MtpRunLoaderTests(
         GoodEntry->ReferenceCount != 1 ||
         GoodEntry->Base != GoodModule) {
         return MT_LOADER_TEST_ENTRY_STATE;
+    }
+    if (!MtpLoaderVerifyModuleProtections(GoodEntry)) {
+        return MT_LOADER_TEST_DLL_PROTECTION;
     }
 
     const MTE_HEADER* Header = (const MTE_HEADER*)GoodEntry->Base;

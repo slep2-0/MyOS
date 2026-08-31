@@ -263,7 +263,7 @@ MsCompleteThreadWait(
         &TargetProcessor->readyQueue,
         PsGetEThreadFromIThread(Thread)
     );
-    TargetProcessor->schedulePending = true;
+    MeRequestPreemption(TargetProcessor);
 }
 
 // Does not acquire lock.

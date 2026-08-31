@@ -19,6 +19,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_LOADER      5
 #define MT_STRESS_MODE_TLS         6
 #define MT_STRESS_MODE_PROCESS     7
+#define MT_STRESS_MODE_PRIORITY    8
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -33,7 +34,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_PROCESS
+    MT_STRESS_MODE > MT_STRESS_MODE_PRIORITY
 #error "MT_STRESS_MODE is invalid"
 #endif
 
@@ -423,7 +424,7 @@ static void InitSystemProcess(void)
     PsInitialSystemProcess.PID = 4; // Initial PID, reserved.
     PsInitialSystemProcess.ParentProcessPid = 0; // No creator process
     kstrncpy(PsInitialSystemProcess.ImageName, "mtoskrnl.mtexe", sizeof(PsInitialSystemProcess.ImageName)); // Name for the process
-    PsInitialSystemProcess.priority = 0; // TODO
+    PsInitialSystemProcess.BasePriority = MT_PRIORITY_NORMAL;
     PsInitialSystemProcess.InternalProcess.PageDirectoryPhysical = __read_cr3(); // The PML4 of the system process, is our kernel PML4.
     PsInitialSystemProcess.CreationTime = MeGetEpoch();
     PsInitialSystemProcess.MainThread = MeGetCurrentProcessor()->idleThread; // The main thread for the SYSTEM process is the BSP's idle thread.
@@ -11086,6 +11087,9 @@ Stress6TestReadyMigration(void)
         Destination = MeGetProcessorBlock(
             (uint8_t)((Source->ID + 1U) % ProcessorCount)
         );
+        uint64_t ScheduleIpisBefore = InterlockedLoadAcquire(
+            &Destination->ScheduleIpiCount
+        );
 
         if (MepMigrateReadyThread(Target, Source, Source)) {
             MeLowerIrql(OldIrql);
@@ -11104,6 +11108,20 @@ Stress6TestReadyMigration(void)
             Stress6JoinThread(Target, (void*)(uintptr_t)Attempt);
             Target = NULL;
             continue;
+        }
+
+        uint64_t ScheduleIpisAfter = InterlockedLoadAcquire(
+            &Destination->ScheduleIpiCount
+        );
+        if (ScheduleIpisAfter <= ScheduleIpisBefore) {
+            MeLowerIrql(OldIrql);
+            InterlockedStoreRelease(&Context.Stop, true);
+            Stress6JoinThread(Target, (void*)0x60A4);
+            Stress6BugCheck(
+                Stress6ReadyMigrationFailure,
+                (void*)(uintptr_t)ScheduleIpisBefore,
+                (void*)(uintptr_t)ScheduleIpisAfter
+            );
         }
 
         // Source cannot schedule while held at DISPATCH_LEVEL. A successful
@@ -14106,6 +14124,1289 @@ StressProcessController(
 }
 #endif
 
+#define STRESS_PRIORITY_QUEUE_THREAD_COUNT 6U
+
+static ETHREAD StressPriorityQueueThreads[STRESS_PRIORITY_QUEUE_THREAD_COUNT];
+
+static const THREAD_PRIORITY StressPriorityQueueInput[
+    STRESS_PRIORITY_QUEUE_THREAD_COUNT
+] = {
+    MT_PRIORITY_NORMAL,
+    MT_PRIORITY_LOWEST,
+    MT_PRIORITY_REALTIME_HIGHEST,
+    MT_PRIORITY_NORMAL,
+    4,
+    MT_PRIORITY_NORMAL
+};
+
+static const uint8_t StressPriorityQueueExpected[
+    STRESS_PRIORITY_QUEUE_THREAD_COUNT
+] = {
+    2,
+    0,
+    3,
+    5,
+    4,
+    1
+};
+
+static
+void
+StressTestPriorityQueueOrdering(void)
+
+/*++
+
+    Routine description:
+
+        Verifies that the scheduler ready queue orders threads by effective
+        priority while preserving FIFO order between equal-priority threads.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    READY_QUEUE ReadyQueue = { 0 };
+    InitializeListHead(&ReadyQueue.ListHead);
+    ReadyQueue.Lock.locked = 0;
+    ReadyQueue.OwnerProcessor = MeGetCurrentProcessor();
+
+    for (uint32_t Index = 0;
+         Index < STRESS_PRIORITY_QUEUE_THREAD_COUNT;
+         Index++) {
+        PETHREAD Thread = &StressPriorityQueueThreads[Index];
+        InitializeListHead(&Thread->SchedulerListEntry);
+        Thread->InternalThread.SchedulerLock.locked = 0;
+        Thread->InternalThread.BasePriority = StressPriorityQueueInput[Index];
+        Thread->InternalThread.Priority = StressPriorityQueueInput[Index];
+        Thread->InternalThread.ThreadState = THREAD_READY;
+        Thread->InternalThread.ActiveProcessor = NULL;
+        Thread->InternalThread.ReadyProcessor = NULL;
+        MeEnqueueThreadWithLock(&ReadyQueue, Thread);
+
+        if (InterlockedLoadAcquire(
+                &Thread->InternalThread.ReadyProcessor
+            ) != ReadyQueue.OwnerProcessor) {
+            MeBugCheckEx(
+                SCHEDULER_FAILURE,
+                (void*)(uintptr_t)(0x7000U + Index),
+                Thread,
+                Thread->InternalThread.ReadyProcessor,
+                ReadyQueue.OwnerProcessor
+            );
+        }
+    }
+
+    for (uint32_t Index = 0;
+         Index < STRESS_PRIORITY_QUEUE_THREAD_COUNT;
+         Index++) {
+        PETHREAD Expected = &StressPriorityQueueThreads[
+            StressPriorityQueueExpected[Index]
+        ];
+        PETHREAD Dequeued = MeDequeueThreadWithLock(&ReadyQueue);
+
+        if (Dequeued != Expected) {
+            MeBugCheckEx(
+                SCHEDULER_FAILURE,
+                (void*)(uintptr_t)Index,
+                Expected,
+                Dequeued,
+                &ReadyQueue.ListHead
+            );
+        }
+
+        if (InterlockedLoadAcquire(
+                &Dequeued->InternalThread.ReadyProcessor
+            ) != NULL) {
+            MeBugCheckEx(
+                SCHEDULER_FAILURE,
+                (void*)(uintptr_t)(0x7010U + Index),
+                Dequeued,
+                Dequeued->InternalThread.ReadyProcessor,
+                &ReadyQueue.ListHead
+            );
+        }
+    }
+
+    if (!IsListEmpty(&ReadyQueue.ListHead)) {
+        MeBugCheckEx(
+            SCHEDULER_FAILURE,
+            (void*)(uintptr_t)STRESS_PRIORITY_QUEUE_THREAD_COUNT,
+            &ReadyQueue.ListHead,
+            ReadyQueue.ListHead.Flink,
+            ReadyQueue.ListHead.Blink
+        );
+    }
+
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-SCHEDULER PRIORITY PASS\n");
+#endif
+}
+
+#if MT_STRESS_MODE == MT_STRESS_MODE_PRIORITY
+#define STRESS_PRIORITY_LOCAL_ROUNDS 32U
+#define STRESS_PRIORITY_REMOTE_ROUNDS 32U
+#define STRESS_PRIORITY_ROTATION_THREAD_COUNT 5U
+#define STRESS_PRIORITY_QUANTUM_SENTINEL 1000U
+#define STRESS_PRIORITY_STARVATION_QUANTUM_BOUND \
+    ((uint32_t)(MT_PRIORITY_HIGHEST_VARIABLE - MT_PRIORITY_NORMAL))
+
+typedef enum _STRESS_PRIORITY_FAILURE {
+    StressPriorityUnexpectedStatus = 1,
+    StressPriorityRequestNotPublished,
+    StressPriorityUnexpectedPreemption,
+    StressPriorityMissingPreemption,
+    StressPriorityPreviousPriorityMismatch,
+    StressPriorityValueMismatch,
+    StressPriorityOwnershipMismatch,
+    StressPriorityQueueOrderFailure,
+    StressPriorityQuantumReset,
+    StressPriorityRotationFailure,
+    StressPriorityStarvationFailure
+} STRESS_PRIORITY_FAILURE;
+
+typedef struct _STRESS_PRIORITY_WAIT_CONTEXT {
+    EVENT Gate;
+    volatile MTSTATUS WaitStatus;
+    volatile THREAD_PRIORITY ObservedPriority;
+} STRESS_PRIORITY_WAIT_CONTEXT;
+
+typedef struct _STRESS_PRIORITY_OBJECT_WAIT_CONTEXT {
+    PDISPATCHER_HEADER Object;
+    PMUTEX Mutex;
+    volatile MTSTATUS WaitStatus;
+    volatile THREAD_PRIORITY ObservedPriority;
+} STRESS_PRIORITY_OBJECT_WAIT_CONTEXT;
+
+typedef struct _STRESS_PRIORITY_ROTATION_CONTEXT {
+    volatile bool Stop;
+    volatile uint64_t Progress[STRESS_PRIORITY_ROTATION_THREAD_COUNT];
+} STRESS_PRIORITY_ROTATION_CONTEXT;
+
+typedef struct _STRESS_PRIORITY_ROTATION_PARAMETER {
+    STRESS_PRIORITY_ROTATION_CONTEXT* Context;
+    uint32_t Index;
+} STRESS_PRIORITY_ROTATION_PARAMETER;
+
+typedef struct _STRESS_PRIORITY_STARVATION_CONTEXT {
+    volatile bool Entered;
+    volatile bool Start;
+    volatile bool Stop;
+    volatile uint64_t Progress;
+    volatile uint64_t FirstProgressTick;
+} STRESS_PRIORITY_STARVATION_CONTEXT;
+
+static ETHREAD StressPriorityReadyMutationThread;
+
+NORETURN
+static void
+StressPriorityBugCheck(
+    STRESS_PRIORITY_FAILURE Failure,
+    void* Parameter2,
+    void* Parameter3
+)
+{
+#if MT_STRESS_AUTOMATION
+    StressAutomationWriteText("MT-PRIORITY FAIL\n");
+#endif
+    MeBugCheckEx(
+        SCHEDULER_FAILURE,
+        (void*)(uintptr_t)Failure,
+        Parameter2,
+        Parameter3,
+        MeGetCurrentProcessor()
+    );
+}
+
+static void
+StressPriorityWaitWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_PRIORITY_WAIT_CONTEXT* Context = Parameter;
+    MTSTATUS Status = MsWaitForSingleObject(
+        &Context->Gate,
+        KernelMode,
+        false,
+        MT_INFINITE
+    );
+    Context->ObservedPriority = MeGetCurrentThread()->Priority;
+    InterlockedStoreRelease(&Context->WaitStatus, Status);
+}
+
+static void
+StressPriorityObjectWaitWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_PRIORITY_OBJECT_WAIT_CONTEXT* Context = Parameter;
+    MTSTATUS Status = MsWaitForSingleObject(
+        Context->Object,
+        KernelMode,
+        false,
+        MT_INFINITE
+    );
+    Context->ObservedPriority = MeGetCurrentThread()->Priority;
+
+    if (Context->Mutex != NULL && Status == MT_SUCCESS) {
+        MTSTATUS ReleaseStatus = MsReleaseMutexObject(Context->Mutex);
+        if (ReleaseStatus != MT_SUCCESS) {
+            StressPriorityBugCheck(
+                StressPriorityUnexpectedStatus,
+                (void*)0x7060,
+                (void*)(uintptr_t)ReleaseStatus
+            );
+        }
+    }
+
+    InterlockedStoreRelease(&Context->WaitStatus, Status);
+}
+
+static void
+StressPriorityRotationWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_PRIORITY_ROTATION_PARAMETER* Worker = Parameter;
+
+    // Do not yield here. Each equal-priority worker must receive processor time
+    // because the timer expires another worker's quantum and rotates the queue.
+    while (!InterlockedLoadAcquire(&Worker->Context->Stop)) {
+        InterlockedIncrementU64(
+            &Worker->Context->Progress[Worker->Index]
+        );
+    }
+}
+
+static void
+StressPriorityStarvationWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_PRIORITY_STARVATION_CONTEXT* Context = Parameter;
+    InterlockedStoreRelease(&Context->Entered, true);
+
+    while (!InterlockedLoadAcquire(&Context->Start)) {
+        __pause();
+    }
+
+    while (!InterlockedLoadAcquire(&Context->Stop)) {
+        if (InterlockedLoadRelaxed(&Context->Progress) == 0) {
+            InterlockedStoreRelease(
+                &Context->FirstProgressTick,
+                InterlockedLoadAcquire(&MeSystemTickCount)
+            );
+        }
+        InterlockedIncrementU64(&Context->Progress);
+    }
+}
+
+static void
+StressPriorityWaitForIdleRequestState(void)
+{
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+    uint64_t StartTsc = __rdtsc();
+
+    while (InterlockedLoadAcquire(&Processor->schedulePending) ||
+           InterlockedLoadAcquire(&Processor->DpcInterruptRequested)) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressPriorityBugCheck(
+                StressPriorityUnexpectedPreemption,
+                (void*)(uintptr_t)Processor->schedulePending,
+                (void*)(uintptr_t)Processor->DpcInterruptRequested
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+}
+
+static void
+StressPriorityTestBlockedMutation(void)
+{
+    STRESS_PRIORITY_WAIT_CONTEXT Context = {
+        .WaitStatus = MT_PENDING
+    };
+    MsInitializeEvent(
+        &Context.Gate,
+        DispatcherSynchronizationEvent,
+        false
+    );
+
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressPriorityWaitWorker,
+        &Context
+    );
+    Stress6WaitForDispatcherWait(
+        Target,
+        &Context.Gate.Header,
+        (void*)0x7040
+    );
+
+    THREAD_PRIORITY ExpectedPrevious =
+        Target->InternalThread.BasePriority;
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+    MTSTATUS Status = MeSetThreadBasePriority(
+        Target,
+        4,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7041,
+            (void*)(uintptr_t)Status
+        );
+    }
+    if (PreviousPriority != ExpectedPrevious) {
+        StressPriorityBugCheck(
+            StressPriorityPreviousPriorityMismatch,
+            (void*)(uintptr_t)ExpectedPrevious,
+            (void*)(uintptr_t)PreviousPriority
+        );
+    }
+    if (Target->InternalThread.BasePriority != 4 ||
+        Target->InternalThread.Priority != 4) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)Target->InternalThread.BasePriority,
+            (void*)(uintptr_t)Target->InternalThread.Priority
+        );
+    }
+
+    Status = MsSetEvent(&Context.Gate);
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7042,
+            (void*)(uintptr_t)Status
+        );
+    }
+    Stress6JoinThread(Target, (void*)0x7043);
+    if (InterlockedLoadAcquire(&Context.WaitStatus) != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7044,
+            (void*)(uintptr_t)InterlockedLoadAcquire(&Context.WaitStatus)
+        );
+    }
+    if (Context.ObservedPriority != 4 + MT_SYNCHRONIZATION_BOOST) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)(4 + MT_SYNCHRONIZATION_BOOST),
+            (void*)(uintptr_t)Context.ObservedPriority
+        );
+    }
+
+    StressAutomationWriteText("MT-PRIORITY BLOCKED MUTATION PASS\n");
+}
+
+static void
+StressPriorityPrepareObjectWait(
+    PETHREAD Target,
+    PDISPATCHER_HEADER Header,
+    void* Detail
+)
+{
+    Stress6WaitForDispatcherWait(Target, Header, Detail);
+
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+    MTSTATUS Status = MeSetThreadBasePriority(
+        Target,
+        4,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Status
+        );
+    }
+}
+
+static void
+StressPriorityVerifyObjectBoost(
+    STRESS_PRIORITY_OBJECT_WAIT_CONTEXT* Context,
+    PETHREAD Target,
+    void* Detail
+)
+{
+    Stress6JoinThread(Target, Detail);
+
+    MTSTATUS Status = InterlockedLoadAcquire(&Context->WaitStatus);
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Status
+        );
+    }
+    if (Context->ObservedPriority != 4 + MT_SYNCHRONIZATION_BOOST) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)(4 + MT_SYNCHRONIZATION_BOOST),
+            (void*)(uintptr_t)Context->ObservedPriority
+        );
+    }
+}
+
+static void
+StressPriorityTestSynchronizationBoosts(void)
+{
+    SEMAPHORE Semaphore;
+    MsInitializeSemaphore(&Semaphore, 0, 1);
+    STRESS_PRIORITY_OBJECT_WAIT_CONTEXT SemaphoreContext = {
+        .Object = &Semaphore.Header,
+        .WaitStatus = MT_PENDING
+    };
+    PETHREAD SemaphoreThread = Stress6CreateRetainedThread(
+        StressPriorityObjectWaitWorker,
+        &SemaphoreContext
+    );
+    StressPriorityPrepareObjectWait(
+        SemaphoreThread,
+        &Semaphore.Header,
+        (void*)0x7061
+    );
+    MTSTATUS Status = MsReleaseSemaphoreChecked(&Semaphore, 1, NULL);
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7062,
+            (void*)(uintptr_t)Status
+        );
+    }
+    StressPriorityVerifyObjectBoost(
+        &SemaphoreContext,
+        SemaphoreThread,
+        (void*)0x7063
+    );
+
+    MUTEX Mutex;
+    MsInitializeMutexObject(&Mutex);
+    Status = MsWaitForSingleObject(
+        &Mutex,
+        KernelMode,
+        false,
+        MT_INFINITE
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7064,
+            (void*)(uintptr_t)Status
+        );
+    }
+
+    STRESS_PRIORITY_OBJECT_WAIT_CONTEXT MutexContext = {
+        .Object = &Mutex.Header,
+        .Mutex = &Mutex,
+        .WaitStatus = MT_PENDING
+    };
+    PETHREAD MutexThread = Stress6CreateRetainedThread(
+        StressPriorityObjectWaitWorker,
+        &MutexContext
+    );
+    StressPriorityPrepareObjectWait(
+        MutexThread,
+        &Mutex.Header,
+        (void*)0x7065
+    );
+    Status = MsReleaseMutexObject(&Mutex);
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7066,
+            (void*)(uintptr_t)Status
+        );
+    }
+    StressPriorityVerifyObjectBoost(
+        &MutexContext,
+        MutexThread,
+        (void*)0x7067
+    );
+
+    StressAutomationWriteText("MT-PRIORITY SYNCHRONIZATION BOOST PASS\n");
+}
+
+static void
+StressPriorityTestBoostPolicy(void)
+{
+    ETHREAD Thread;
+    kmemset(&Thread, 0, sizeof(Thread));
+    InitializeListHead(&Thread.SchedulerListEntry);
+    Thread.InternalThread.ThreadState = THREAD_INITIALIZED;
+    Thread.InternalThread.BasePriority = MT_PRIORITY_HIGHEST_VARIABLE - 1;
+    Thread.InternalThread.Priority = MT_PRIORITY_HIGHEST_VARIABLE - 1;
+
+    MeBoostThread(&Thread.InternalThread, 4);
+    if (Thread.InternalThread.Priority != MT_PRIORITY_HIGHEST_VARIABLE) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)MT_PRIORITY_HIGHEST_VARIABLE,
+            (void*)(uintptr_t)Thread.InternalThread.Priority
+        );
+    }
+
+    Thread.InternalThread.BasePriority = MT_PRIORITY_REALTIME_LOWEST;
+    Thread.InternalThread.Priority = MT_PRIORITY_REALTIME_LOWEST;
+    MeBoostThread(&Thread.InternalThread, MT_SYNCHRONIZATION_BOOST);
+    if (Thread.InternalThread.Priority != MT_PRIORITY_REALTIME_LOWEST) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)MT_PRIORITY_REALTIME_LOWEST,
+            (void*)(uintptr_t)Thread.InternalThread.Priority
+        );
+    }
+
+    Thread.InternalThread.ThreadState = THREAD_RUNNING;
+    Thread.InternalThread.BasePriority = MT_PRIORITY_NORMAL;
+    Thread.InternalThread.Priority = MT_PRIORITY_NORMAL + 2;
+    IRQL OldIrql;
+    MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+    MeDecayThreadPriority(&Thread.InternalThread);
+    MeLowerIrql(OldIrql);
+    if (Thread.InternalThread.Priority != MT_PRIORITY_NORMAL + 1) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)(MT_PRIORITY_NORMAL + 1),
+            (void*)(uintptr_t)Thread.InternalThread.Priority
+        );
+    }
+
+    StressAutomationWriteText("MT-PRIORITY BOOST POLICY PASS\n");
+}
+
+static void
+StressPriorityTestStarvationBound(void)
+
+/*++
+
+    Routine description:
+
+        Verifies that a variable-priority thread boosted to the ceiling decays
+        far enough for an equal-base-priority peer to run within a fixed number
+        of completed quanta.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    READY_QUEUE ReadyQueue = { 0 };
+    ETHREAD BoostedThread = { 0 };
+    ETHREAD PeerThread = { 0 };
+
+    InitializeListHead(&ReadyQueue.ListHead);
+    ReadyQueue.Lock.locked = 0;
+    ReadyQueue.OwnerProcessor = MeGetCurrentProcessor();
+
+    InitializeListHead(&BoostedThread.SchedulerListEntry);
+    BoostedThread.InternalThread.SchedulerLock.locked = 0;
+    BoostedThread.InternalThread.BasePriority = MT_PRIORITY_NORMAL;
+    BoostedThread.InternalThread.Priority = MT_PRIORITY_NORMAL;
+    BoostedThread.InternalThread.ThreadState = THREAD_INITIALIZED;
+
+    InitializeListHead(&PeerThread.SchedulerListEntry);
+    PeerThread.InternalThread.SchedulerLock.locked = 0;
+    PeerThread.InternalThread.BasePriority = MT_PRIORITY_NORMAL;
+    PeerThread.InternalThread.Priority = MT_PRIORITY_NORMAL;
+    PeerThread.InternalThread.ThreadState = THREAD_READY;
+
+    // Stack enough wake boosts to reach the variable-priority ceiling.
+    for (uint32_t Index = 0;
+         Index <= STRESS_PRIORITY_STARVATION_QUANTUM_BOUND;
+         Index++) {
+        MeBoostThread(
+            &BoostedThread.InternalThread,
+            MT_SYNCHRONIZATION_BOOST
+        );
+    }
+
+    if (BoostedThread.InternalThread.Priority !=
+        MT_PRIORITY_HIGHEST_VARIABLE) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            (void*)(uintptr_t)MT_PRIORITY_HIGHEST_VARIABLE,
+            (void*)(uintptr_t)BoostedThread.InternalThread.Priority
+        );
+    }
+
+    BoostedThread.InternalThread.ThreadState = THREAD_READY;
+
+    // Queue the peer first so equal priority gives it the next turn.
+    MeEnqueueThreadWithLock(&ReadyQueue, &PeerThread);
+    MeEnqueueThreadWithLock(&ReadyQueue, &BoostedThread);
+
+    PETHREAD Selected = MeDequeueThreadWithLock(&ReadyQueue);
+    if (Selected != &BoostedThread) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            &BoostedThread,
+            Selected
+        );
+    }
+
+    bool PeerSelected = false;
+    uint32_t CompletedQuanta = 0;
+    while (CompletedQuanta < STRESS_PRIORITY_STARVATION_QUANTUM_BOUND) {
+        CompletedQuanta++;
+        Selected->InternalThread.ThreadState = THREAD_RUNNING;
+
+        IRQL OldIrql;
+        MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+        MeDecayThreadPriority(&Selected->InternalThread);
+        MeLowerIrql(OldIrql);
+
+        THREAD_PRIORITY ExpectedPriority =
+            MT_PRIORITY_HIGHEST_VARIABLE - CompletedQuanta;
+        if (Selected->InternalThread.Priority != ExpectedPriority) {
+            StressPriorityBugCheck(
+                StressPriorityStarvationFailure,
+                (void*)(uintptr_t)ExpectedPriority,
+                (void*)(uintptr_t)Selected->InternalThread.Priority
+            );
+        }
+
+        Selected->InternalThread.ThreadState = THREAD_READY;
+        MeEnqueueThreadWithLock(&ReadyQueue, Selected);
+        Selected = MeDequeueThreadWithLock(&ReadyQueue);
+
+        if (Selected == &PeerThread) {
+            PeerSelected = true;
+            break;
+        }
+
+        if (Selected != &BoostedThread) {
+            StressPriorityBugCheck(
+                StressPriorityStarvationFailure,
+                &BoostedThread,
+                Selected
+            );
+        }
+    }
+
+    if (!PeerSelected) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            (void*)(uintptr_t)STRESS_PRIORITY_STARVATION_QUANTUM_BOUND,
+            (void*)(uintptr_t)BoostedThread.InternalThread.Priority
+        );
+    }
+
+    PETHREAD Remaining = MeDequeueThreadWithLock(&ReadyQueue);
+    if (Remaining != &BoostedThread ||
+        MeDequeueThreadWithLock(&ReadyQueue) != NULL) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            &BoostedThread,
+            Remaining
+        );
+    }
+
+    StressAutomationWriteText("MT-PRIORITY STARVATION BOUND PASS\n");
+}
+
+static void
+StressPriorityTestRuntimeStarvationBound(void)
+
+/*++
+
+    Routine description:
+
+        Verifies on one processor that clock-driven quantum expiration decays a
+        maximally boosted thread until an equal-base-priority peer can run.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    if (MeGetActiveProcessorCount() != 1) {
+        StressAutomationWriteText("MT-PRIORITY STARVATION RUNTIME SKIP\n");
+        return;
+    }
+
+    STRESS_PRIORITY_STARVATION_CONTEXT BoostedContext = { 0 };
+    STRESS_PRIORITY_STARVATION_CONTEXT PeerContext = { 0 };
+    PETHREAD BoostedThread = Stress6CreateRetainedThread(
+        StressPriorityStarvationWorker,
+        &BoostedContext
+    );
+    PETHREAD PeerThread = Stress6CreateRetainedThread(
+        StressPriorityStarvationWorker,
+        &PeerContext
+    );
+
+    Stress6WaitForFlag(&BoostedContext.Entered, (void*)0x7070);
+    Stress6WaitForFlag(&PeerContext.Entered, (void*)0x7071);
+
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+    MTSTATUS Status = MeSetThreadBasePriority(
+        BoostedThread,
+        MT_PRIORITY_NORMAL,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7072,
+            (void*)(uintptr_t)Status
+        );
+    }
+
+    PreviousPriority = UINT8_MAX;
+    Status = MeSetThreadBasePriority(
+        PeerThread,
+        MT_PRIORITY_NORMAL,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7073,
+            (void*)(uintptr_t)Status
+        );
+    }
+
+    IRQL OldIrql;
+    MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+
+    // Start with a complete quantum before publishing the boosted workload.
+    BoostedThread->InternalThread.TimeSlice =
+        BoostedThread->InternalThread.TimeSliceAllocated;
+    MeBoostThread(
+        &BoostedThread->InternalThread,
+        MT_PRIORITY_HIGHEST_VARIABLE - MT_PRIORITY_NORMAL
+    );
+    InterlockedStoreRelease(&BoostedContext.Start, true);
+    InterlockedStoreRelease(&PeerContext.Start, true);
+
+    MeLowerIrql(OldIrql);
+
+    uint64_t StartTsc = __rdtsc();
+    while (InterlockedLoadAcquire(&PeerContext.Progress) == 0) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressPriorityBugCheck(
+                StressPriorityStarvationFailure,
+                (void*)0x7074,
+                (void*)(uintptr_t)InterlockedLoadAcquire(
+                    &BoostedThread->InternalThread.Priority
+                )
+            );
+        }
+        __pause();
+    }
+
+    uint64_t BoostedStartTick = InterlockedLoadAcquire(
+        &BoostedContext.FirstProgressTick
+    );
+    uint64_t PeerStartTick = InterlockedLoadAcquire(
+        &PeerContext.FirstProgressTick
+    );
+    uint64_t MaximumTicks =
+        STRESS_PRIORITY_STARVATION_QUANTUM_BOUND *
+        BoostedThread->InternalThread.TimeSliceAllocated;
+
+    if (BoostedStartTick == 0 ||
+        PeerStartTick < BoostedStartTick ||
+        PeerStartTick - BoostedStartTick > MaximumTicks) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            (void*)(uintptr_t)MaximumTicks,
+            (void*)(uintptr_t)(PeerStartTick - BoostedStartTick)
+        );
+    }
+
+    MsAcquireSpinlock(&BoostedThread->InternalThread.SchedulerLock, &OldIrql);
+    THREAD_PRIORITY FinalPriority = BoostedThread->InternalThread.Priority;
+    MsReleaseSpinlock(&BoostedThread->InternalThread.SchedulerLock, OldIrql);
+    if (FinalPriority != MT_PRIORITY_NORMAL) {
+        StressPriorityBugCheck(
+            StressPriorityStarvationFailure,
+            (void*)(uintptr_t)MT_PRIORITY_NORMAL,
+            (void*)(uintptr_t)FinalPriority
+        );
+    }
+
+    InterlockedStoreRelease(&BoostedContext.Stop, true);
+    InterlockedStoreRelease(&PeerContext.Stop, true);
+    Stress6JoinThread(BoostedThread, (void*)0x7075);
+    Stress6JoinThread(PeerThread, (void*)0x7076);
+
+    StressAutomationWriteText("MT-PRIORITY STARVATION RUNTIME PASS\n");
+}
+
+static void
+StressPriorityTestReadyMutation(void)
+{
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+    PETHREAD Target = &StressPriorityReadyMutationThread;
+    kmemset(Target, 0, sizeof(*Target));
+    InitializeListHead(&Target->SchedulerListEntry);
+    Target->InternalThread.SchedulerLock.locked = 0;
+    Target->InternalThread.BasePriority = MT_PRIORITY_LOWEST;
+    Target->InternalThread.Priority = MT_PRIORITY_LOWEST;
+    Target->InternalThread.ThreadState = THREAD_READY;
+
+    // Keep work stealing from dispatching this synthetic entry while it is in
+    // the real queue. The test removes it before lowering from DISPATCH_LEVEL.
+    InterlockedStoreRelease(
+        &Target->InternalThread.ActiveProcessor,
+        Processor
+    );
+
+    IRQL OldIrql;
+    MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+    MeEnqueueThreadWithLock(&Processor->readyQueue, Target);
+
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+    MTSTATUS Status = MeSetThreadBasePriority(
+        Target,
+        MT_PRIORITY_REALTIME_HIGHEST,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7050,
+            (void*)(uintptr_t)Status
+        );
+    }
+    if (PreviousPriority != MT_PRIORITY_LOWEST) {
+        StressPriorityBugCheck(
+            StressPriorityPreviousPriorityMismatch,
+            (void*)(uintptr_t)MT_PRIORITY_LOWEST,
+            (void*)(uintptr_t)PreviousPriority
+        );
+    }
+
+    MsAcquireSpinlockAtDpcLevel(&Processor->readyQueue.Lock);
+    MsAcquireSpinlockAtDpcLevel(&Target->InternalThread.SchedulerLock);
+
+    bool ValidOwnership =
+        InterlockedLoadAcquire(&Target->InternalThread.ReadyProcessor) ==
+            Processor &&
+        InterlockedLoadAcquire(&Target->InternalThread.ThreadState) ==
+            THREAD_READY &&
+        ListContains(
+            &Processor->readyQueue.ListHead,
+            &Target->SchedulerListEntry
+        );
+    bool Ordered = true;
+    THREAD_PRIORITY PreviousEffective = MT_PRIORITY_REALTIME_HIGHEST;
+    PDOUBLY_LINKED_LIST ListHead = &Processor->readyQueue.ListHead;
+    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
+         Entry != ListHead;
+         Entry = Entry->Flink) {
+        PETHREAD QueuedThread = CONTAINING_RECORD(
+            Entry,
+            ETHREAD,
+            SchedulerListEntry
+        );
+        if (QueuedThread->InternalThread.Priority > PreviousEffective) {
+            Ordered = false;
+            break;
+        }
+        PreviousEffective = QueuedThread->InternalThread.Priority;
+    }
+
+    bool Removed = MeRemoveThreadFromQueue(
+        &Processor->readyQueue.ListHead,
+        Target
+    );
+    if (Removed) {
+        InterlockedStoreRelease(
+            &Target->InternalThread.ReadyProcessor,
+            NULL
+        );
+    }
+
+    MsReleaseSpinlockFromDpcLevel(&Target->InternalThread.SchedulerLock);
+    MsReleaseSpinlockFromDpcLevel(&Processor->readyQueue.Lock);
+    InterlockedStoreRelease(&Target->InternalThread.ActiveProcessor, NULL);
+    InterlockedStoreRelease(
+        &Target->InternalThread.ThreadState,
+        THREAD_INITIALIZED
+    );
+    MeLowerIrql(OldIrql);
+
+    if (!ValidOwnership || !Removed) {
+        StressPriorityBugCheck(
+            StressPriorityOwnershipMismatch,
+            Target,
+            InterlockedLoadAcquire(&Target->InternalThread.ReadyProcessor)
+        );
+    }
+    if (!Ordered) {
+        StressPriorityBugCheck(
+            StressPriorityQueueOrderFailure,
+            Target,
+            Processor
+        );
+    }
+    if (Target->InternalThread.BasePriority !=
+            MT_PRIORITY_REALTIME_HIGHEST ||
+        Target->InternalThread.Priority !=
+            MT_PRIORITY_REALTIME_HIGHEST) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)Target->InternalThread.BasePriority,
+            (void*)(uintptr_t)Target->InternalThread.Priority
+        );
+    }
+
+    StressPriorityWaitForIdleRequestState();
+    StressAutomationWriteText("MT-PRIORITY READY MUTATION PASS\n");
+}
+
+static void
+StressPriorityTestRunningMutation(void)
+{
+    PETHREAD Current = PsGetEThreadFromIThread(MeGetCurrentThread());
+    THREAD_PRIORITY OriginalBase = Current->InternalThread.BasePriority;
+    THREAD_PRIORITY TestPriority =
+        OriginalBase == MT_PRIORITY_HIGHEST_VARIABLE
+            ? MT_PRIORITY_HIGHEST_VARIABLE - 1
+            : MT_PRIORITY_HIGHEST_VARIABLE;
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+
+    MTSTATUS Status = MeSetThreadBasePriority(
+        Current,
+        TestPriority,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS || PreviousPriority != OriginalBase) {
+        StressPriorityBugCheck(
+            Status != MT_SUCCESS
+                ? StressPriorityUnexpectedStatus
+                : StressPriorityPreviousPriorityMismatch,
+            (void*)(uintptr_t)OriginalBase,
+            (void*)(uintptr_t)(
+                Status != MT_SUCCESS ? Status : PreviousPriority
+            )
+        );
+    }
+    if (Current->InternalThread.BasePriority != TestPriority ||
+        Current->InternalThread.Priority != TestPriority) {
+        StressPriorityBugCheck(
+            StressPriorityValueMismatch,
+            (void*)(uintptr_t)Current->InternalThread.BasePriority,
+            (void*)(uintptr_t)Current->InternalThread.Priority
+        );
+    }
+
+    Status = MeSetThreadBasePriority(
+        Current,
+        OriginalBase,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS || PreviousPriority != TestPriority) {
+        StressPriorityBugCheck(
+            Status != MT_SUCCESS
+                ? StressPriorityUnexpectedStatus
+                : StressPriorityPreviousPriorityMismatch,
+            (void*)(uintptr_t)TestPriority,
+            (void*)(uintptr_t)(
+                Status != MT_SUCCESS ? Status : PreviousPriority
+            )
+        );
+    }
+
+    StressPriorityWaitForIdleRequestState();
+    StressAutomationWriteText("MT-PRIORITY RUNNING MUTATION PASS\n");
+}
+
+static void
+StressPriorityTestLocalCase(
+    THREAD_PRIORITY Priority,
+    bool ShouldPreempt,
+    bool VerifyQuantumPreserved,
+    void* Detail
+)
+{
+    STRESS_PRIORITY_WAIT_CONTEXT Context = {
+        .WaitStatus = MT_PENDING
+    };
+    MsInitializeEvent(
+        &Context.Gate,
+        DispatcherSynchronizationEvent,
+        false
+    );
+
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressPriorityWaitWorker,
+        &Context
+    );
+    Stress6WaitForDispatcherWait(Target, &Context.Gate.Header, Detail);
+
+    THREAD_PRIORITY ExpectedPrevious =
+        Target->InternalThread.BasePriority;
+    THREAD_PRIORITY PreviousPriority = UINT8_MAX;
+    MTSTATUS Status = MeSetThreadBasePriority(
+        Target,
+        Priority,
+        &PreviousPriority
+    );
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Status
+        );
+    }
+    if (PreviousPriority != ExpectedPrevious) {
+        StressPriorityBugCheck(
+            StressPriorityPreviousPriorityMismatch,
+            (void*)(uintptr_t)ExpectedPrevious,
+            (void*)(uintptr_t)PreviousPriority
+        );
+    }
+    StressPriorityWaitForIdleRequestState();
+
+    PITHREAD CurrentThread = MeGetCurrentThread();
+    TimeSliceTicks SavedTimeSlice = CurrentThread->TimeSlice;
+    CurrentThread->TimeSlice = VerifyQuantumPreserved
+        ? (TimeSliceTicks)(
+            CurrentThread->TimeSliceAllocated +
+            STRESS_PRIORITY_QUANTUM_SENTINEL
+        )
+        : HIGH_TIMESLICE_TICKS;
+
+    IRQL OldIrql;
+    MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+    bool InterruptsEnabled = MeDisableInterrupts();
+
+    Status = MsSetEvent(&Context.Gate);
+    if (Status != MT_SUCCESS) {
+        MeEnableInterrupts(InterruptsEnabled);
+        MeLowerIrql(OldIrql);
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Status
+        );
+    }
+
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+    if (!InterlockedLoadAcquire(&Processor->DpcInterruptRequested)) {
+        MeEnableInterrupts(InterruptsEnabled);
+        MeLowerIrql(OldIrql);
+        StressPriorityBugCheck(
+            StressPriorityRequestNotPublished,
+            Detail,
+            Processor
+        );
+    }
+
+    MeEvaluateCurrentPreemptionAtDpcLevel();
+    bool PreemptionPending = InterlockedLoadAcquire(
+        &Processor->schedulePending
+    );
+
+    MeEnableInterrupts(InterruptsEnabled);
+    MeLowerIrql(OldIrql);
+
+    if (VerifyQuantumPreserved) {
+        uint64_t StartTsc = __rdtsc();
+        while (InterlockedLoadAcquire(&Context.WaitStatus) == MT_PENDING) {
+            if (Stress6WatchdogExpired(StartTsc)) {
+                StressPriorityBugCheck(
+                    StressPriorityMissingPreemption,
+                    Detail,
+                    (void*)(uintptr_t)InterlockedLoadAcquire(
+                        &Context.WaitStatus
+                    )
+                );
+            }
+            __pause();
+        }
+    }
+
+    TimeSliceTicks ObservedTimeSlice = CurrentThread->TimeSlice;
+    CurrentThread->TimeSlice = SavedTimeSlice;
+
+    if (VerifyQuantumPreserved &&
+        ObservedTimeSlice <= CurrentThread->TimeSliceAllocated) {
+        StressPriorityBugCheck(
+            StressPriorityQuantumReset,
+            (void*)(uintptr_t)ObservedTimeSlice,
+            (void*)(uintptr_t)CurrentThread->TimeSliceAllocated
+        );
+    }
+
+    if (PreemptionPending != ShouldPreempt) {
+        StressPriorityBugCheck(
+            ShouldPreempt
+                ? StressPriorityMissingPreemption
+                : StressPriorityUnexpectedPreemption,
+            Detail,
+            (void*)(uintptr_t)PreemptionPending
+        );
+    }
+
+    Stress6JoinThread(Target, Detail);
+    if (InterlockedLoadAcquire(&Context.WaitStatus) != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)InterlockedLoadAcquire(&Context.WaitStatus)
+        );
+    }
+}
+
+static void
+StressPriorityTestLocalPreemption(void)
+{
+    if (MeGetActiveProcessorCount() != 1) {
+        StressAutomationWriteText("MT-PRIORITY QUANTUM PRESERVE SKIP\n");
+        StressAutomationWriteText("MT-PRIORITY LOCAL SKIP\n");
+        return;
+    }
+
+    PITHREAD CurrentThread = MeGetCurrentThread();
+    THREAD_PRIORITY SavedBasePriority = CurrentThread->BasePriority;
+    THREAD_PRIORITY SavedPriority = CurrentThread->Priority;
+    CurrentThread->BasePriority = MT_PRIORITY_NORMAL;
+    CurrentThread->Priority = MT_PRIORITY_NORMAL;
+
+    for (uint32_t Round = 0;
+         Round < STRESS_PRIORITY_LOCAL_ROUNDS;
+         Round++) {
+        StressPriorityTestLocalCase(
+            MT_PRIORITY_NORMAL + 1,
+            true,
+            true,
+            (void*)(uintptr_t)(0x7100U + Round)
+        );
+        StressPriorityTestLocalCase(
+            MT_PRIORITY_NORMAL - MT_SYNCHRONIZATION_BOOST,
+            false,
+            false,
+            (void*)(uintptr_t)(0x7200U + Round)
+        );
+        StressPriorityTestLocalCase(
+            MT_PRIORITY_LOWEST,
+            false,
+            false,
+            (void*)(uintptr_t)(0x7300U + Round)
+        );
+    }
+
+    CurrentThread->BasePriority = SavedBasePriority;
+    CurrentThread->Priority = SavedPriority;
+    StressAutomationWriteText("MT-PRIORITY QUANTUM PRESERVE PASS\n");
+    StressAutomationWriteText("MT-PRIORITY LOCAL PASS\n");
+}
+
+static void
+StressPriorityTestEqualPriorityRotation(void)
+{
+    uint32_t ProcessorCount = MeGetActiveProcessorCount();
+    uint32_t ThreadCount = ProcessorCount + 1U;
+    if (ThreadCount > STRESS_PRIORITY_ROTATION_THREAD_COUNT) {
+        ThreadCount = STRESS_PRIORITY_ROTATION_THREAD_COUNT;
+    }
+
+    STRESS_PRIORITY_ROTATION_CONTEXT Context = { 0 };
+    STRESS_PRIORITY_ROTATION_PARAMETER Parameters[
+        STRESS_PRIORITY_ROTATION_THREAD_COUNT
+    ] = { 0 };
+    PETHREAD Threads[STRESS_PRIORITY_ROTATION_THREAD_COUNT] = { 0 };
+
+    for (uint32_t Index = 0; Index < ThreadCount; Index++) {
+        Parameters[Index].Context = &Context;
+        Parameters[Index].Index = Index;
+        Threads[Index] = Stress6CreateRetainedThread(
+            StressPriorityRotationWorker,
+            &Parameters[Index]
+        );
+    }
+
+    MTSTATUS Status = MsDelayExecution(KernelMode, false, 250);
+    if (Status != MT_SUCCESS) {
+        StressPriorityBugCheck(
+            StressPriorityUnexpectedStatus,
+            (void*)0x7400,
+            (void*)(uintptr_t)Status
+        );
+    }
+
+    InterlockedStoreRelease(&Context.Stop, true);
+    for (uint32_t Index = 0; Index < ThreadCount; Index++) {
+        Stress6JoinThread(
+            Threads[Index],
+            (void*)(uintptr_t)(0x7410U + Index)
+        );
+
+        if (InterlockedLoadAcquire(&Context.Progress[Index]) == 0) {
+            StressPriorityBugCheck(
+                StressPriorityRotationFailure,
+                (void*)(uintptr_t)Index,
+                (void*)(uintptr_t)ProcessorCount
+            );
+        }
+    }
+
+    StressAutomationWriteText("MT-PRIORITY EQUAL ROTATION PASS\n");
+}
+
+static void
+StressPriorityTestRemotePreemption(void)
+{
+    if (MeGetActiveProcessorCount() < 2) {
+        StressAutomationWriteText("MT-PRIORITY REMOTE SKIP\n");
+        return;
+    }
+
+    for (uint32_t Round = 0;
+         Round < STRESS_PRIORITY_REMOTE_ROUNDS;
+         Round++) {
+        Stress6TestReadyMigration();
+    }
+    StressAutomationWriteText("MT-PRIORITY REMOTE PASS\n");
+}
+
+static void
+StressPriorityController(void)
+{
+    gop_printf(
+        COLOR_GREEN,
+        "MT-PRIORITY START (%u CPUs)\n",
+        MeGetActiveProcessorCount()
+    );
+    StressPriorityTestBlockedMutation();
+    StressPriorityTestSynchronizationBoosts();
+    StressPriorityTestBoostPolicy();
+    StressPriorityTestStarvationBound();
+    StressPriorityTestRuntimeStarvationBound();
+    StressPriorityTestReadyMutation();
+    StressPriorityTestRunningMutation();
+    StressPriorityTestLocalPreemption();
+    StressPriorityTestEqualPriorityRotation();
+    StressPriorityTestRemotePreemption();
+    StressAutomationWriteText("MT-PRIORITY RUNTIME PASS\n");
+}
+#endif
+
 NORETURN
 static void
 StressSuiteController(
@@ -14137,6 +15438,8 @@ StressSuiteController(
     ExpTestUserExceptionPublication();
 #endif
 
+    StressTestPriorityQueueOrdering();
+
     gop_printf(
         COLOR_GREEN,
         "STRESS SUITE START (%u CPUs)\n",
@@ -14164,6 +15467,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_PROCESS
     StressProcessController();
     StressAutomationPass("PROCESS");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_PRIORITY
+    StressPriorityController();
+    StressAutomationPass("PRIORITY");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();

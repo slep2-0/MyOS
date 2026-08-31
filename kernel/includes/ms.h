@@ -56,13 +56,6 @@ typedef struct _RUNDOWN_REF {
     uint64_t Count; // Reference count, bit 0-62 is used for reference counting, bit 63 is used to signify the object is being terminated. (teardown flag)
 } RUNDOWN_REF, *PRUNDOWN_REF;
  
-// Each CPU has its own lock, they do not use the global scheduler lock.
-typedef struct _Queue {
-    PETHREAD head;
-    PETHREAD tail;
-    SPINLOCK lock;
-} Queue;
-
 // Every waitable dispatcher object begins with this header. Type selects its
 // satisfaction rules, SignalState stores its available signal/permit state,
 // Lock protects that state and WaitListHead, and WaitListHead contains the
@@ -473,6 +466,26 @@ InsertHeadList(
     First->Blink = Entry; // old first -> prev = entry
     Head->Flink = Entry;  // head -> next = entry
 }
+
+FORCEINLINE
+bool
+ListContains(
+    PDOUBLY_LINKED_LIST Head,
+    PDOUBLY_LINKED_LIST Entry
+)
+{
+    PDOUBLY_LINKED_LIST Current;
+
+    for (Current = Head->Flink;
+        Current != Head;
+        Current = Current->Flink)
+    {
+        if (Current == Entry)
+            return true;
+    }
+
+    return false;
+};
 
 FORCEINLINE
 PDOUBLY_LINKED_LIST

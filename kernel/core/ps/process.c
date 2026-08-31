@@ -672,6 +672,7 @@ PsCreateProcess(
 
     // Set its parent process handle.
     Process->ParentProcessPid = Parent ? Parent->PID : 0;
+    Process->BasePriority = Parent ? Parent->BasePriority : MT_PRIORITY_NORMAL;
 
     // Set its image name.
     char filename[24];
@@ -875,13 +876,13 @@ PsCreateProcess(
         BasicTypes->EpochCreation = MeGetEpoch();
 
         // Init basic MTDLL types as well.
-        BasicTypes->PrimaryExecutable.Size = FileObject->FileSize;
+        BasicTypes->PrimaryExecutable.Size = ((PMM_SECTION)SectionObject)->ImageSize;
         kstrncpy(BasicTypes->PrimaryExecutable.FullPath, ExecutablePath, sizeof(BasicTypes->PrimaryExecutable.FullPath));
         BasicTypes->PrimaryExecutable.Base = ExecutableBaseAddress;
 
         // Now for MTDLL itself.
         BasicTypes->Mtdll.Base = MtdllBase;
-        BasicTypes->Mtdll.Size = MtdllObject->FileSize;
+        BasicTypes->Mtdll.Size = ((PMM_SECTION)MtdllSection)->ImageSize;
         kstrncpy(BasicTypes->Mtdll.FullPath, MTDLL_PATH, sizeof(BasicTypes->Mtdll.FullPath));
 
         // Sucessful.
