@@ -18,6 +18,20 @@
 typedef int32_t HANDLE, *PHANDLE;
 typedef uint32_t ACCESS_MASK;
 
+/* Scheduler priority values shared by the kernel and thread APIs. */
+typedef uint8_t THREAD_PRIORITY;
+
+enum {
+    MT_PRIORITY_IDLE = 0,
+    MT_PRIORITY_LOWEST = 1,
+    MT_PRIORITY_NORMAL = 8,
+    MT_PRIORITY_HIGHEST_VARIABLE = 15,
+    MT_PRIORITY_REALTIME_LOWEST = 16,
+    MT_PRIORITY_REALTIME_HIGHEST = 31
+};
+
+#define MT_PRIORITY_ERROR_RETURN UINT8_MAX
+
 /*
  * Intrusive list layout shared by the kernel and the user-mode loader ABI.
  * List manipulation remains private to each side; only the node layout is

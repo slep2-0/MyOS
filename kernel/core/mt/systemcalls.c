@@ -1528,8 +1528,8 @@ MtCreateThread(
 
     // Call internal function.
     HANDLE KThreadHandle;
-
     PETHREAD Thread;
+
     Status = PsCreateThread(
         Process,
         &KThreadHandle,
@@ -2735,7 +2735,15 @@ MtQueryInformationThread(
 
 {
     // Validate pointers
-    MTSTATUS Status = ProbeForRead(ThreadInformation, ThreadInformationLength, _Alignof(void*));
+    size_t ThreadInformationAlignment =
+        ThreadInformationClass == ThreadBasePriorityInformation
+        ? _Alignof(THREAD_BASE_PRIORITY_INFORMATION)
+        : _Alignof(void*);
+    MTSTATUS Status = ProbeForRead(
+        ThreadInformation,
+        ThreadInformationLength,
+        ThreadInformationAlignment
+    );
     if (MT_FAILURE(Status)) return Status;
 
     if (ReturnLength) {
@@ -2816,10 +2824,133 @@ MtQueryInformationThread(
         }
 
         break;
+    case ThreadBasePriorityInformation:
+
+        if (ThreadInformationLength != sizeof(THREAD_BASE_PRIORITY_INFORMATION)) {
+            Status = MT_INFO_LENGTH_MISMATCH;
+
+            if (ReturnLength) {
+                try {
+                    *ReturnLength = sizeof(THREAD_BASE_PRIORITY_INFORMATION);
+                } except{
+                    Status = GetExceptionCode();
+                }
+                end_try;
+            }
+
+            break;
+        }
+
+        THREAD_BASE_PRIORITY_INFORMATION PriorityInformation = { 0 };
+        IRQL PriorityIrql;
+        MsAcquireSpinlock(&Thread->InternalThread.SchedulerLock, &PriorityIrql);
+        PriorityInformation.BasePriority = Thread->InternalThread.BasePriority;
+        MsReleaseSpinlock(&Thread->InternalThread.SchedulerLock, PriorityIrql);
+
+        try {
+            *(THREAD_BASE_PRIORITY_INFORMATION*)ThreadInformation =
+                PriorityInformation;
+        } except{
+            Status = GetExceptionCode();
+            break;
+        }
+        end_try;
+
+        if (ReturnLength) {
+            try {
+                *ReturnLength = sizeof(THREAD_BASE_PRIORITY_INFORMATION);
+            } except{
+                Status = GetExceptionCode();
+                break;
+            }
+            end_try;
+        }
+
+        break;
     default:
         Status = MT_INVALID_INFO_CLASS;
         break;
     }
+
+    ObDereferenceObject(Object);
+    return Status;
+}
+
+MTSTATUS
+MtSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN const void* ThreadInformation,
+    IN size_t ThreadInformationLength
+)
+
+/*++
+
+    Routine description:
+
+        Sets information on a thread referenced by a handle with
+        MT_THREAD_SET_INFO access. ThreadBasePriorityInformation changes the
+        target thread's absolute base scheduler priority.
+
+    Arguments:
+
+        ThreadHandle - Handle to the thread to modify.
+        ThreadInformationClass - Selects the supplied information structure.
+        ThreadInformation - Information captured from the caller.
+        ThreadInformationLength - Size in bytes of ThreadInformation.
+
+    Return Values:
+
+        MT_SUCCESS or an information-class, length, probing, handle, type,
+        access, state, or parameter failure status.
+
+--*/
+
+{
+    if (ThreadInformationClass != ThreadBasePriorityInformation) {
+        return MT_INVALID_INFO_CLASS;
+    }
+
+    if (ThreadInformationLength != sizeof(THREAD_BASE_PRIORITY_INFORMATION)) {
+        return MT_INFO_LENGTH_MISMATCH;
+    }
+
+    MTSTATUS Status = ProbeForRead(
+        ThreadInformation,
+        sizeof(THREAD_BASE_PRIORITY_INFORMATION),
+        _Alignof(THREAD_BASE_PRIORITY_INFORMATION)
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    THREAD_BASE_PRIORITY_INFORMATION CapturedInformation;
+    try {
+        CapturedInformation =
+            *(const THREAD_BASE_PRIORITY_INFORMATION*)ThreadInformation;
+    } except{
+        return GetExceptionCode();
+    }
+    end_try;
+
+    if (CapturedInformation.BasePriority > MT_PRIORITY_REALTIME_HIGHEST) {
+        return MT_INVALID_PARAM;
+    }
+
+    void* Object = NULL;
+    Status = ObReferenceObjectByHandle(
+        ThreadHandle,
+        MT_THREAD_SET_INFO,
+        PsThreadType,
+        &Object,
+        NULL
+    );
+    if (MT_FAILURE(Status)) return Status;
+
+    THREAD_PRIORITY PreviousPriority;
+    Status = MeSetThreadBasePriority(
+        (PETHREAD)Object,
+        CapturedInformation.BasePriority,
+        &PreviousPriority
+    );
 
     ObDereferenceObject(Object);
     return Status;

@@ -124,6 +124,8 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count)
 			bool Enabled = MeDisableInterrupts();
 			assert(cpu0.DpcData.DpcQueueDepth == 0);
 			assert(IsListEmpty(&cpu0.DpcData.DpcListHead));
+			assert(IsListEmpty(&cpu0.readyQueue.ListHead));
+			assert(cpu0.readyQueue.Lock.locked == 0);
 			assert(cpu0.TimerExpirationDPC.DpcData == NULL);
 
 			// Copy all of the cpu data to here.
@@ -137,6 +139,9 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count)
 			cpus[i].IpiRoutineActive = false;
 			cpus[i].StartupStage = ProcessorStartupOnline;
 			MeClockProcessor = &cpus[i];
+			// Circular list heads point to themselves, so rebuild the copied head.
+			InitializeListHead(&cpus[i].readyQueue.ListHead);
+			cpus[i].readyQueue.Lock.locked = 0;
 			InitializeListHead(&cpus[i].DpcData.DpcListHead);
 			cpus[i].DpcData.DpcQueueDepth = 0;
 			cpus[i].DpcData.DpcLock.locked = 0;
@@ -145,6 +150,7 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count)
 			if (cpus[i].currentThread) {
 				cpus[i].currentThread->ActiveProcessor = &cpus[i];
 			}
+			cpus[i].readyQueue.OwnerProcessor = &cpus[i];
 
 			// Both GS halves still point at cpu0 after the structure migration.
 			__writemsr(IA32_GS_BASE, (uint64_t)&cpus[i]);
@@ -160,7 +166,9 @@ static void prepare_percpu(uint8_t* apic_list, uint32_t cpu_count)
 		cpus[i].self = &cpus[i];
 		cpus[i].currentIrql = PASSIVE_LEVEL;
 		cpus[i].currentThread = NULL;
-		kmemset(&cpus[i].readyQueue, 0, sizeof(cpus[i].readyQueue));
+		cpus[i].readyQueue.OwnerProcessor = &cpus[i];
+		InitializeListHead(&cpus[i].readyQueue.ListHead);
+		cpus[i].readyQueue.Lock.locked = 0;
 		cpus[i].ID = i;
 		cpus[i].lapic_ID = aid;
 

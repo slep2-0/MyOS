@@ -127,6 +127,7 @@ MsReleaseSemaphoreChecked(
 
             // Remove timer queue for this thread and complete its wait.
             MsRemoveTimerQueue(WaitingThread);
+            MeBoostThread(WaitingThread, MT_SYNCHRONIZATION_BOOST);
             MsCompleteThreadWait(WaitingThread);
 
             // Reacquire the Semaphore dispatcher lock.

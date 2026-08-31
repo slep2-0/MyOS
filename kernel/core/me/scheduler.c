@@ -59,6 +59,8 @@ void InitScheduler(void)
     // Idle thread specific overrides
     idleThread->TID = 0;
     idleThread->SystemThread = true;
+    idleThread->InternalThread.BasePriority = MT_PRIORITY_IDLE;
+    idleThread->InternalThread.Priority = MT_PRIORITY_IDLE;
 
     // Set up the execution context
     void* idleStack = MiCreateKernelStack(false);
@@ -94,7 +96,8 @@ void InitScheduler(void)
     // Reset Scheduler state
     // We do NOT call MeEnqueueThread here, the idle thread remains outside the ready queue.
     MeGetCurrentProcessor()->currentThread = NULL;
-    MeGetCurrentProcessor()->readyQueue.head = MeGetCurrentProcessor()->readyQueue.tail = NULL;
+    InitializeListHead(&MeGetCurrentProcessor()->readyQueue.ListHead);
+    MeGetCurrentProcessor()->readyQueue.Lock.locked = 0;
 }
 
 // Enqueue the thread if it's still RUNNING.
@@ -114,12 +117,16 @@ static void enqueue_runnable(PITHREAD t)
 
         None.
 
+    Notes:
+
+        Function used to reset the thread's timeslice, now the only timeslice resets happens deliberately when the quantum is over (MiHandleTimer)
+        This also means a preempted thread (due to a higher priority thread) timeslice's will preserve and not reset.
+
 --*/
 
 {
     if (t->ThreadState == THREAD_RUNNING) {
         t->ThreadState = THREAD_READY;
-        t->TimeSlice = t->TimeSliceAllocated;
         MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, PsGetEThreadFromIThread(t)); // Insert into CPU ready queue
     }
 }
@@ -131,7 +138,7 @@ static
 inline
 bool
 MepReadyQueueContainsThreadLocked(
-    IN Queue* ReadyQueue,
+    IN PREADY_QUEUE ReadyQueue,
     IN PETHREAD Thread
 )
 
@@ -153,23 +160,11 @@ MepReadyQueueContainsThreadLocked(
 --*/
 
 {
-    PETHREAD Current = ReadyQueue->head;
-
-    while (Current != NULL) {
-        if (Current == Thread) {
-            return true;
-        }
-
-        PDOUBLY_LINKED_LIST NextEntry =
-            Current->SchedulerListEntry.Flink;
-
-        Current = NextEntry
-            ? CONTAINING_RECORD(
-                NextEntry,
-                ETHREAD,
-                SchedulerListEntry
-            )
-            : NULL;
+    PDOUBLY_LINKED_LIST ListHead = &ReadyQueue->ListHead;
+    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
+         Entry != ListHead;
+         Entry = Entry->Flink) {
+        if (Entry == &Thread->SchedulerListEntry) return true;
     }
 
     return false;
@@ -216,14 +211,19 @@ MepMigrateReadyThread(
     IRQL prevIrql;
     if (Source->ID > Destination->ID) {
         AcquireDestinationFirst = true;
-
-        MsAcquireSpinlock(&Destination->readyQueue.lock, &prevIrql);
-        MsAcquireSpinlockAtDpcLevel(&Source->readyQueue.lock);
+        MsAcquireSpinlock(&Destination->readyQueue.Lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&Source->readyQueue.Lock);
     }
     else {
-        MsAcquireSpinlock(&Source->readyQueue.lock, &prevIrql);
-        MsAcquireSpinlockAtDpcLevel(&Destination->readyQueue.lock);
+        MsAcquireSpinlock(&Source->readyQueue.Lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&Destination->readyQueue.Lock);
     }
+
+    // Acquire the thread's scheduler lock (by order)
+    MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
+
+    // Do not allow transfer to a destination CPU which doesnt match the affinity mask of the thread
+    if (!MeIsProcessorAllowed(&Thread->InternalThread, Destination)) goto Cleanup;
 
     // Verify that the Thread is actually linked in the Source ready queue
     if (!MepReadyQueueContainsThreadLocked(&Source->readyQueue, Thread)) goto Cleanup;
@@ -238,11 +238,22 @@ MepMigrateReadyThread(
         goto Cleanup;
     }
 
+    // The thread's ready processor (the cpu which owns his ready queue) must be the source
+    if (InterlockedLoadAcquire(
+        &Thread->InternalThread.ReadyProcessor
+    ) != Source) {
+        goto Cleanup;
+    }
+
     // Thread is validated, remove it from Source queue and insert it in the Destination
-    if (!MeRemoveThreadFromQueue(&Source->readyQueue, Thread)) {
+    if (!MeRemoveThreadFromQueue(&Source->readyQueue.ListHead, Thread)) {
         assert(false, "readyQueue corruption detected in the current CPU even though it was locked");
         goto Cleanup;
     }
+
+    // Thread is validated, and is removed, NULL out readyprocessor
+    // MeEnqueueThread sets its when enqueuing it.
+    InterlockedStoreRelease(&Thread->InternalThread.ReadyProcessor, NULL);
 
     // Enqueue to dest
     MeEnqueueThread(&Destination->readyQueue, Thread);
@@ -250,17 +261,20 @@ MepMigrateReadyThread(
     Moved = true;
 
 Cleanup:
+    // First release scheduler lock
+    MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+
     if (AcquireDestinationFirst) {
-        MsReleaseSpinlockFromDpcLevel(&Source->readyQueue.lock);
-        MsReleaseSpinlock(&Destination->readyQueue.lock, prevIrql);
+        MsReleaseSpinlockFromDpcLevel(&Source->readyQueue.Lock);
+        MsReleaseSpinlock(&Destination->readyQueue.Lock, prevIrql);
     }
     else {
-        MsReleaseSpinlockFromDpcLevel(&Destination->readyQueue.lock);
-        MsReleaseSpinlock(&Source->readyQueue.lock, prevIrql);
+        MsReleaseSpinlockFromDpcLevel(&Destination->readyQueue.Lock);
+        MsReleaseSpinlock(&Source->readyQueue.Lock, prevIrql);
     }
 
     if (Moved) {
-        InterlockedStoreRelease(&Destination->schedulePending, true);
+        MeRequestPreemption(Destination);
     }
 
     return Moved;
@@ -298,18 +312,31 @@ static PITHREAD MeAcquireNextScheduledThread(void)
 
             // The reason I used the self pointer here, is because the BSP in the cpus array, is empty except for 4 fields, as its main struct is cpu0, 
             // which is defined at the kernel main, so we access it through self, view SMP.C prepare_percpu for more info.
-            Queue* victimQueue = &cpus[i].self->readyQueue;
+            PREADY_QUEUE victimQueue = &cpus[i].self->readyQueue;
 
             IRQL prevIrql;
-            MsAcquireSpinlock(&victimQueue->lock, &prevIrql);
-            if (!victimQueue->head) {
-                MsReleaseSpinlock(&victimQueue->lock, prevIrql);
+            MsAcquireSpinlock(&victimQueue->Lock, &prevIrql);
+            if (IsListEmpty(&victimQueue->ListHead)) {
+                MsReleaseSpinlock(&victimQueue->Lock, prevIrql);
                 continue; // skip empty queues
             }
-            MsReleaseSpinlock(&victimQueue->lock, prevIrql);
+            MsReleaseSpinlock(&victimQueue->Lock, prevIrql);
 
             chosenThread = MeDequeueThreadWithLock(victimQueue);
             if (!chosenThread) continue;
+
+            // Acquire dequeued thread scheduler lock and check affinity for this CPU.
+            MsAcquireSpinlock(&chosenThread->InternalThread.SchedulerLock, &prevIrql);
+            bool Allowed = MeIsProcessorAllowed(
+                &chosenThread->InternalThread,
+                MeGetCurrentProcessor()
+            );
+            MsReleaseSpinlock(&chosenThread->InternalThread.SchedulerLock, prevIrql);
+
+            if (!Allowed) {
+                MeEnqueueThreadWithLock(victimQueue, chosenThread);
+                continue;
+            }
 
             // A non-NULL owner means the thread has a kernel stack associated
             // with another CPU. Until context switching has an explicit
@@ -422,6 +449,171 @@ MePrepareUserDispatchForReturn(
     MePrepareUserApcForReturn(TrapFrame);
 }
 
+// Works on current proc, caller must acquire lock.
+static
+bool
+MepShouldPreemptCurrentThreadLocked(
+    void
+)
+
+{
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+
+    // No need to switch if no one to switch to.
+    if (IsListEmpty(&Processor->readyQueue.ListHead)) return false;
+
+    // If the current thread is an idle thread OR it is not present (i.e first boot schedule)
+    // then allow switch
+    PITHREAD CurrThread = MeGetCurrentThread();
+    if (!CurrThread || CurrThread == &Processor->idleThread->InternalThread) {
+        return true;
+    }
+
+    PETHREAD Thread = CONTAINING_RECORD(Processor->readyQueue.ListHead.Flink, ETHREAD, SchedulerListEntry);
+
+    // Lock the current RUNNING thread before reading its priority.
+    MsAcquireSpinlockAtDpcLevel(&CurrThread->SchedulerLock);
+
+    // Only allow preemption of threads in the list that their priorities are higher than us
+    // if they are lower or equal, then preemption will happen only when the timeslice quantum expires.
+    if (Thread->InternalThread.Priority > CurrThread->Priority) {
+        MsReleaseSpinlockFromDpcLevel(&CurrThread->SchedulerLock);
+        return true;
+    }
+
+    // Lower or equal thread.
+    MsReleaseSpinlockFromDpcLevel(&CurrThread->SchedulerLock);
+    return false;
+}
+
+// Function is entered with the guarantee that the thread scheduler lock and ready queue lock are locked in order.
+// Order is: ReadyQueue.Lock -> Thread->SchedulerLock.
+void
+MepEnqueueReadyThreadLocked(
+    IN PETHREAD Thread,
+    IN PREADY_QUEUE ReadyQueue
+)
+
+{
+    assert(Thread != NULL && ReadyQueue != NULL);
+    if (!Thread || !ReadyQueue) return;
+
+    // The thread's affinity must allow insertion into this ready queue
+    // the caller must have guranteed that.
+    assert(
+        MeIsProcessorAllowed(
+            &Thread->InternalThread,
+            ReadyQueue->OwnerProcessor
+        ),
+        "Insertion of thread into a processor ready queue, which isn't in affinity mask"
+    );
+
+#ifdef DEBUG
+    if (!IsListEmpty(&Thread->SchedulerListEntry)) {
+        assert_fail(
+            "IsListEmpty(&Thread->SchedulerListEntry)",
+            "Attempted to enqueue a thread that is already linked.",
+            __FILE__,
+            __func__,
+            __LINE__
+        );
+    }
+#endif
+
+    if (IsListEmpty(&ReadyQueue->ListHead)) {
+        // Just insert us into the list, it is empty.
+        InsertTailList(&ReadyQueue->ListHead, &Thread->SchedulerListEntry);
+        InterlockedStoreRelease(
+            &Thread->InternalThread.ReadyProcessor,
+            ReadyQueue->OwnerProcessor
+        );
+        return;
+    }
+
+    PDOUBLY_LINKED_LIST ListHead = &ReadyQueue->ListHead;
+    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink; Entry != ListHead; Entry = Entry->Flink) {
+
+        // Retrieve the queued thread in the list
+        PETHREAD QueuedThread = CONTAINING_RECORD(
+            Entry,
+            ETHREAD,
+            SchedulerListEntry
+        );
+
+        // Higher and equal priorities remain before us.
+        if (QueuedThread->InternalThread.Priority >=
+            Thread->InternalThread.Priority) {
+            continue;
+        }
+
+        // Entry is the first lower-priority thread, insert before it.
+        InsertTailList(Entry, &Thread->SchedulerListEntry);
+        InterlockedStoreRelease(
+            &Thread->InternalThread.ReadyProcessor,
+            ReadyQueue->OwnerProcessor
+        );
+        return;
+    }
+
+    // We are the lowest priority, or queue contains only equal priorities
+    // just insert us at the end.
+    InsertTailList(ListHead, &Thread->SchedulerListEntry);
+    InterlockedStoreRelease(
+        &Thread->InternalThread.ReadyProcessor,
+        ReadyQueue->OwnerProcessor
+    );
+}
+
+void
+MeRequestPreemption(
+    IN PPROCESSOR TargetProcessor
+)
+{
+    assert(TargetProcessor != NULL);
+    if (!TargetProcessor) return;
+
+    if (TargetProcessor == MeGetCurrentProcessor()) {
+        MeRequestCurrentDpcInterrupt();
+        return;
+    }
+
+    IPI_PARAMS Parameters = { 0 };
+
+    MhSendActionToSpecificCpuAndWait(
+        TargetProcessor,
+        CPU_ACTION_REQUEST_SCHEDULE,
+        Parameters
+    );
+}
+
+void
+MeEvaluateCurrentPreemptionAtDpcLevel(
+    void
+)
+{
+    PPROCESSOR Processor = MeGetCurrentProcessor();
+
+    assert(MeGetCurrentIrql() >= DISPATCH_LEVEL);
+
+    if (InterlockedLoadAcquire(&Processor->schedulePending)) {
+        return;
+    }
+
+    MsAcquireSpinlockAtDpcLevel(&Processor->readyQueue.Lock);
+
+    bool ShouldPreempt =
+        MepShouldPreemptCurrentThreadLocked();
+
+    MsReleaseSpinlockFromDpcLevel(&Processor->readyQueue.Lock);
+
+    if (ShouldPreempt) {
+        InterlockedStoreRelease(
+            &Processor->schedulePending,
+            true
+        );
+    }
+}
+
 NORETURN
 void
 Schedule(void)
@@ -438,8 +630,6 @@ Schedule(void)
         None.
 
     Return Values:
-
-        None, this function does not return.
 
     Notes:
 

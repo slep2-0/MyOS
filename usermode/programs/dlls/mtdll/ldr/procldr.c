@@ -22,9 +22,228 @@ Revision History:
 #include "mte.h"
 #include "../includes/ioapi.h"
 
-// 1. LDR_DATA_TABLE_ENTRY of Dll.
-// 2. "WriteFile"
-// 3. The address of the replaceable pointer in .data
+static
+bool
+LdrpImageRangeValid(
+    IN uint64_t Rva,
+    IN uint64_t Size,
+    IN uint64_t ImageSize
+);
+
+MTSTATUS
+LdrpFinalizeImageProtections(
+    IN PLDR_DATA_TABLE_ENTRY Module
+)
+
+/*++
+
+    Routine description:
+
+        Applies the final page protections to a loaded MTE image after the
+        loader has finished relocations, imports and TLS fixups.
+
+    Arguments:
+
+        [IN] Module - Loader entry describing the mapped image.
+
+    Return Values:
+
+        MT_SUCCESS when every image region was protected successfully, or an
+        error status when the image layout or protection change is invalid.
+
+    Notes:
+
+        A failure may leave the image partially protected. The caller must
+        reject and unmap the image instead of continuing its initialization.
+
+--*/
+
+{
+    if (!Module || !Module->Base) return MT_INVALID_PARAM;
+
+    // The image must contain atleast the header.
+    if (Module->SizeOfImage < sizeof(MTE_HEADER)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // Convert to the MTE header.
+    PMTE_HEADER Header = (PMTE_HEADER)Module->Base;
+    uint8_t* ByteableHeader = Module->Base;
+
+    // Verify the MTE signature first.
+    if (ByteableHeader[0] != 'M' ||
+        ByteableHeader[1] != 'T' ||
+        ByteableHeader[2] != 'E' ||
+        ByteableHeader[3] != '\0') {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // Every boundary must be page aligned so protections cannot share pages.
+    if (!MTE_IS_PAGE_ALIGNED(Module->Base) ||
+        !MTE_IS_PAGE_ALIGNED(Module->SizeOfImage) ||
+        !MTE_IS_PAGE_ALIGNED(Header->TextRVA) ||
+        !MTE_IS_PAGE_ALIGNED(Header->DataRVA)) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // Validate file backed regions before using their ending addresses.
+    if (!LdrpImageRangeValid(
+            Header->TextRVA,
+            Header->TextSize,
+            Module->SizeOfImage
+        ) ||
+        !LdrpImageRangeValid(
+            Header->DataRVA,
+            Header->DataSize,
+            Module->SizeOfImage
+        )) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // ALIGN_UP adds the page mask, make sure BSS size cannot wrap.
+    if (Header->BssSize > UINT64_MAX - MTE_PAGE_MASK) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // BSS has no RVA in MTE, it occupies the final pages of the image.
+    uint64_t BssSpan = MTE_ALIGN_UP(Header->BssSize);
+    if (BssSpan > Module->SizeOfImage) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    uint64_t BssStart = Module->SizeOfImage - BssSpan;
+    uint64_t DataEnd = Header->DataRVA + Header->DataSize;
+
+    // Metadata starts on the first page after initialized data.
+    if (DataEnd > UINT64_MAX - MTE_PAGE_MASK) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    uint64_t MetadataStart = MTE_ALIGN_UP(DataEnd);
+
+    // Make sure the sections are ordered exactly like the linker places them.
+    if (Header->TextRVA < sizeof(MTE_HEADER) ||
+        Header->TextRVA >= Header->DataRVA ||
+        Header->TextSize > Header->DataRVA - Header->TextRVA ||
+        MetadataStart > BssStart) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    uint64_t HeaderSize = Header->TextRVA;
+    uint64_t TextSize = Header->DataRVA - Header->TextRVA;
+    uint64_t DataSize = MetadataStart - Header->DataRVA;
+    uint64_t MetadataSize = BssStart - MetadataStart;
+
+    // Validate BSS bytes against the complete mapped image.
+    if (!LdrpImageRangeValid(
+            BssStart,
+            Header->BssSize,
+            Module->SizeOfImage
+        )) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // Loader directories must reside inside the metadata pages.
+    if ((Header->exports_size != 0 &&
+         (Header->exports_rva < MetadataStart ||
+          Header->exports_rva >= BssStart ||
+          Header->exports_size > BssStart - Header->exports_rva)) ||
+        (Header->reloc_size != 0 &&
+         (Header->reloc_rva < MetadataStart ||
+          Header->reloc_rva >= BssStart ||
+          Header->reloc_size > BssStart - Header->reloc_rva)) ||
+        (Header->imports_size != 0 &&
+         (Header->imports_rva < MetadataStart ||
+          Header->imports_rva >= BssStart ||
+          Header->imports_size > BssStart - Header->imports_rva)) ||
+        Header->exports_size % sizeof(MT_EXPORT_ENTRY) != 0 ||
+        Header->reloc_size % sizeof(MTE_RELOCATION) != 0 ||
+        Header->imports_size % sizeof(MT_IMPORT_ENTRY) != 0) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // TLS directory is metadata too, not another section boundary.
+    bool HasTlsRva = Header->tls_rva != 0;
+    bool HasTlsSize = Header->tls_size != 0;
+    if (HasTlsRva != HasTlsSize ||
+        (HasTlsSize &&
+         (Header->tls_size != sizeof(MTE_TLS_DIRECTORY) ||
+          Header->tls_rva < MetadataStart ||
+          Header->tls_rva >= BssStart ||
+          Header->tls_size > BssStart - Header->tls_rva))) {
+        return MT_INVALID_IMAGE_FORMAT;
+    }
+
+    // All regions are validated, change the protections now.
+    USER_PROTECTION_TYPE OldProt;
+    bool Success = VirtualProtect(
+        Module->Base,
+        HeaderSize,
+        PAGE_READONLY,
+        &OldProt
+    );
+
+    if (!Success) {
+        return GetLastStatus();
+    }
+
+    // Text and read only data can execute but cannot be written.
+    Success = VirtualProtect(
+        (void*)((uintptr_t)Module->Base + Header->TextRVA),
+        TextSize,
+        PAGE_EXECUTE_READ,
+        &OldProt
+    );
+
+    if (!Success) {
+        return GetLastStatus();
+    }
+
+    // Data can be written but cannot execute. It may be empty.
+    if (DataSize != 0) {
+        Success = VirtualProtect(
+            (void*)((uintptr_t)Module->Base + Header->DataRVA),
+            DataSize,
+            PAGE_READWRITE,
+            &OldProt
+        );
+
+        if (!Success) {
+            return GetLastStatus();
+        }
+    }
+
+    // Loader metadata can only be read after fixups are complete.
+    if (MetadataSize != 0) {
+        Success = VirtualProtect(
+            (void*)((uintptr_t)Module->Base + MetadataStart),
+            MetadataSize,
+            PAGE_READONLY,
+            &OldProt
+        );
+
+        if (!Success) {
+            return GetLastStatus();
+        }
+    }
+
+    // BSS is zero filled writable data and cannot execute. It may be empty.
+    if (BssSpan != 0) {
+        Success = VirtualProtect(
+            (void*)((uintptr_t)Module->Base + BssStart),
+            BssSpan,
+            PAGE_READWRITE,
+            &OldProt
+        );
+
+        if (!Success) {
+            return GetLastStatus();
+        }
+    }
+
+    // All image pages now have their final protections.
+    return MT_SUCCESS;
+}
 
 static
 bool
@@ -715,6 +934,17 @@ LdrInitializeProcess(
     // In Windows when an Import fails it usually creates a MessageBox first to notify the user. (only for when the main executable imports that is)
     // But we dont have that yet! :(
     if (MT_FAILURE(Status)) MtTerminateProcess(MtCurrentProcess(), Status);
+
+    // Imports and TLS fixups are complete, apply final image protections.
+    Status = LdrpFinalizeImageProtections(MtdllEntry);
+    if (MT_FAILURE(Status)) {
+        MtTerminateProcess(MtCurrentProcess(), Status);
+    }
+
+    Status = LdrpFinalizeImageProtections(ProcessEntry);
+    if (MT_FAILURE(Status)) {
+        MtTerminateProcess(MtCurrentProcess(), Status);
+    }
 
     // Set our process as loaded now
     ProcessEntry->State = LdrModuleLoaded;

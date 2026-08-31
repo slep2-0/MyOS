@@ -14,6 +14,132 @@ static const char ProcessTestEnvironment[] =
     "SECOND=two\0";
 
 static
+uint32_t
+ProcessTestPriorityWorker(
+    IN void* Parameter
+)
+
+{
+    HANDLE Gate = (HANDLE)(intptr_t)Parameter;
+    return WaitForSingleObject(Gate, 30000) == WAIT_OBJECT_0
+        ? (uint32_t)MT_SUCCESS
+        : (uint32_t)MT_PROCESS_TEST_PRIORITY_WORKER;
+}
+
+static
+MTSTATUS
+ProcessTestThreadPriorityApi(
+    void
+)
+
+/*++
+
+    Routine description:
+
+        Verifies the public thread-priority wrappers and native validation
+        paths against a live worker thread.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS when every priority API check passes, or a process-test
+        status identifying the failed check.
+
+--*/
+
+{
+    HANDLE Gate = CreateEvent(NotificationEvent, false, NULL);
+    if (Gate == MT_INVALID_HANDLE) {
+        return MT_PROCESS_TEST_PRIORITY_EVENT;
+    }
+
+    HANDLE Thread = CreateThread(
+        ProcessTestPriorityWorker,
+        (void*)(intptr_t)Gate
+    );
+    if (Thread == MT_INVALID_HANDLE) {
+        return MT_PROCESS_TEST_PRIORITY_THREAD;
+    }
+
+    if (GetThreadPriority(Thread) != MT_PRIORITY_NORMAL) {
+        return MT_PROCESS_TEST_PRIORITY_QUERY;
+    }
+
+    if (!SetThreadPriority(Thread, MT_PRIORITY_HIGHEST_VARIABLE)) {
+        return MT_PROCESS_TEST_PRIORITY_SET;
+    }
+    if (GetThreadPriority(Thread) != MT_PRIORITY_HIGHEST_VARIABLE) {
+        return MT_PROCESS_TEST_PRIORITY_QUERY;
+    }
+
+    THREAD_BASE_PRIORITY_INFORMATION Information = {
+        .BasePriority = MT_PRIORITY_NORMAL
+    };
+    MTSTATUS Status = MtSetInformationThread(
+        Thread,
+        (THREADINFOCLASS)UINT32_MAX,
+        &Information,
+        sizeof(Information)
+    );
+    if (Status != MT_INVALID_INFO_CLASS) {
+        return MT_PROCESS_TEST_PRIORITY_NATIVE_CLASS;
+    }
+
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadBasePriorityInformation,
+        &Information,
+        0
+    );
+    if (Status != MT_INFO_LENGTH_MISMATCH) {
+        return MT_PROCESS_TEST_PRIORITY_NATIVE_LENGTH;
+    }
+
+    const void* InvalidUserPointer =
+        (const void*)(MT_HIGHEST_USER_ADDRESS + 1ULL);
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadBasePriorityInformation,
+        InvalidUserPointer,
+        sizeof(Information)
+    );
+    if (Status != MT_ACCESS_VIOLATION) {
+        return MT_PROCESS_TEST_PRIORITY_NATIVE_POINTER;
+    }
+
+    Information.BasePriority = MT_PRIORITY_REALTIME_HIGHEST + 1;
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadBasePriorityInformation,
+        &Information,
+        sizeof(Information)
+    );
+    if (Status != MT_INVALID_PARAM) {
+        return MT_PROCESS_TEST_PRIORITY_NATIVE_VALUE;
+    }
+
+    if (!SetEvent(Gate) ||
+        WaitForSingleObject(Thread, 30000) != WAIT_OBJECT_0) {
+        return MT_PROCESS_TEST_PRIORITY_WORKER;
+    }
+
+    uint32_t ExitCode = 0;
+    if (!GetExitCodeThread(Thread, &ExitCode) ||
+        (MTSTATUS)ExitCode != MT_SUCCESS) {
+        return MT_PROCESS_TEST_PRIORITY_WORKER;
+    }
+
+    if (!CloseHandle(Thread) || !CloseHandle(Gate)) {
+        return MT_PROCESS_TEST_PRIORITY_CLOSE;
+    }
+
+    return MT_SUCCESS;
+}
+
+static
 void
 ProcessTestInitializeNativeParameters(
     OUT PMT_CREATE_PROCESS_PARAMETERS Parameters,
@@ -365,7 +491,10 @@ main(
 --*/
 
 {
-    MTSTATUS Status = ProcessTestCreateAndWait();
+    MTSTATUS Status = ProcessTestThreadPriorityApi();
+    if (MT_FAILURE(Status)) ProcessTestExit(Status);
+
+    Status = ProcessTestCreateAndWait();
     if (MT_FAILURE(Status)) ProcessTestExit(Status);
 
     ProcessTestFailurePaths();

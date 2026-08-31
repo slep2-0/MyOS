@@ -144,6 +144,10 @@ MsSetEventEx(
                 // The resumed wait path cancels its remaining timer entry and
                 // clears the embedded wait block before it can be reused.
                 MsRemoveTimerQueue(WaitingThread);
+
+                // Boost thread before completing its wait
+                MeBoostThread(WaitingThread, MT_SYNCHRONIZATION_BOOST);
+
                 MsCompleteThreadWait(WaitingThread);
                 return MT_SUCCESS;
             }
@@ -176,6 +180,10 @@ MsSetEventEx(
                 // The resumed wait path owns cancellation of any remaining
                 // timer entry and clears its wait block before reuse.
                 MsRemoveTimerQueue(WaitingThread);
+
+                // Boost thread before completing its wait
+                MeBoostThread(WaitingThread, MT_SYNCHRONIZATION_BOOST);
+
                 MsCompleteThreadWait(WaitingThread);
 
                 // Reacquire only to remove the next protected wait-list entry.

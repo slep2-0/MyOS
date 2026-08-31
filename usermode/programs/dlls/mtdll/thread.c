@@ -248,3 +248,84 @@ ResumeThread(
         return PreviousCount;
     }
 }
+
+MTDLL_API
+bool
+SetThreadPriority(
+    IN HANDLE ThreadHandle,
+    IN THREAD_PRIORITY Priority
+)
+
+/*++
+
+    Routine description:
+
+        Sets the base scheduler priority of a thread.
+
+    Arguments:
+
+        [IN] ThreadHandle - Handle to the target thread.
+        [IN] Priority - Absolute scheduler priority from 0 through 31.
+
+    Return Values:
+
+        true when the priority is changed, or false when the native operation
+        fails.
+
+--*/
+
+{
+    THREAD_BASE_PRIORITY_INFORMATION Information = {
+        .BasePriority = Priority
+    };
+    MTSTATUS Status = MtSetInformationThread(
+        ThreadHandle,
+        ThreadBasePriorityInformation,
+        &Information,
+        sizeof(Information)
+    );
+
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+    return MT_SUCCEEDED(Status);
+}
+
+MTDLL_API
+THREAD_PRIORITY
+GetThreadPriority(
+    IN HANDLE ThreadHandle
+)
+
+/*++
+
+    Routine description:
+
+        Retrieves the base scheduler priority of a thread.
+
+    Arguments:
+
+        [IN] ThreadHandle - Handle to the target thread.
+
+    Return Values:
+
+        The thread base priority, or MT_PRIORITY_ERROR_RETURN when the query
+        fails.
+
+--*/
+
+{
+    THREAD_BASE_PRIORITY_INFORMATION Information = { 0 };
+    MTSTATUS Status = MtQueryInformationThread(
+        ThreadHandle,
+        ThreadBasePriorityInformation,
+        &Information,
+        sizeof(Information),
+        NULL
+    );
+
+    SetLastStatus(Status);
+    SetLastError(MtStatusToLastError(Status));
+    return MT_SUCCEEDED(Status)
+        ? Information.BasePriority
+        : MT_PRIORITY_ERROR_RETURN;
+}

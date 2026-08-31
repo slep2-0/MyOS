@@ -36,6 +36,7 @@ STRESS_MODES = {
     "loader": 5,
     "tls": 6,
     "process": 7,
+    "priority": 8,
 }
 
 KERNEL_SLOW_PATHS = {

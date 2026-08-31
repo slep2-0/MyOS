@@ -13,11 +13,10 @@ Author:
     slep (Matanel) 2025.
 
 Revision History:
+
     DD/MM/YY
 
-
     17/10/2025 - Revised Physical Memory from a simple bitmap to a PFN database.
-    
 
 --*/
 

@@ -135,6 +135,9 @@ MhHandleInterrupt (
         // Drain DPCs while in DISPATCH
         MeRetireDPCs();
         assert(MeAreInterruptsEnabled() == false);
+
+        MeEvaluateCurrentPreemptionAtDpcLevel();
+
         // Send EOI, this is called by the APIC Self BIT (so LAPIC)
         lapic_eoi();
         // Lower IRQL back.
