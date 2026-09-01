@@ -254,6 +254,7 @@ MeInitializeProcessor(
     CPU->self = CPU;
     CPU->currentIrql = PASSIVE_LEVEL;
     CPU->currentThread = NULL;
+    CPU->DeferredAffinityThread = NULL;
     InitializeListHead(&CPU->readyQueue.ListHead);
     CPU->readyQueue.Lock.locked = 0;
     // Initialize the DPC Lock & list head.

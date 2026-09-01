@@ -121,6 +121,40 @@ ProcessTestThreadPriorityApi(
         return MT_PROCESS_TEST_PRIORITY_NATIVE_VALUE;
     }
 
+    THREAD_AFFINITY_MASK_INFORMATION AffinityInformation = {
+        .AffinityMask = 1
+    };
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadAffinityMaskInformation,
+        &AffinityInformation,
+        sizeof(AffinityInformation)
+    );
+    if (MT_FAILURE(Status)) {
+        return MT_PROCESS_TEST_AFFINITY_SET;
+    }
+
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadAffinityMaskInformation,
+        &AffinityInformation,
+        0
+    );
+    if (Status != MT_INFO_LENGTH_MISMATCH) {
+        return MT_PROCESS_TEST_AFFINITY_NATIVE_LENGTH;
+    }
+
+    AffinityInformation.AffinityMask = 0;
+    Status = MtSetInformationThread(
+        Thread,
+        ThreadAffinityMaskInformation,
+        &AffinityInformation,
+        sizeof(AffinityInformation)
+    );
+    if (Status != MT_INVALID_PARAM) {
+        return MT_PROCESS_TEST_AFFINITY_NATIVE_VALUE;
+    }
+
     if (!SetEvent(Gate) ||
         WaitForSingleObject(Thread, 30000) != WAIT_OBJECT_0) {
         return MT_PROCESS_TEST_PRIORITY_WORKER;

@@ -940,14 +940,7 @@ PspStartThread(
 
 {
     assert(Thread);
-
-    PPROCESSOR Processor = MeGetCurrentProcessor();
-    IRQL oldIrql;
-
-    MsAcquireSpinlock(&Processor->readyQueue.Lock, &oldIrql);
-    MsAcquireSpinlockAtDpcLevel(
-        &Thread->InternalThread.SchedulerLock
-    );
+    assert(InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) == NULL);
 
     uint32_t PreviousState = InterlockedCompareExchangeU32(
         &Thread->InternalThread.ThreadState,
@@ -956,21 +949,17 @@ PspStartThread(
     );
 
     if (PreviousState != THREAD_INITIALIZED) {
-        MsReleaseSpinlockFromDpcLevel(
-            &Thread->InternalThread.SchedulerLock
-        );
-        MsReleaseSpinlock(&Processor->readyQueue.Lock, oldIrql);
         assert(false, "Attempted to start a thread more than once.");
         return;
     }
 
-    MeEnqueueThread(&Processor->readyQueue, Thread);
-
-    MsReleaseSpinlockFromDpcLevel(
-        &Thread->InternalThread.SchedulerLock
+    // Enqueue the thread into the current processor.
+    bool Queued = MeQueueThreadOnAllowedProcessor(
+        Thread,
+        MeGetCurrentProcessor()
     );
-    MsReleaseSpinlock(&Processor->readyQueue.Lock, oldIrql);
-    MeRequestPreemption(Processor);
+
+    assert(Queued, "Failed to queue a newly started thread.");
 }
 
 static

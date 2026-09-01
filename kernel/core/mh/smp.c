@@ -414,7 +414,7 @@ MeGetProcessorBlock(
 	}
 
 	// The CPU isn't found, we return the current one.
-	assert(false, "DPC Inputted wrong INDEX ID of target processor.");
+	assert(false, "Inputted wrong INDEX ID of target processor.");
 	return MeGetCurrentProcessor();
 }
 

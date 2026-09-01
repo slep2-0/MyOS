@@ -333,11 +333,11 @@ MeDecayThreadPriority(
 
     // Lock the thread's scheduling attributes.
     // This function is called from MiHandleTimer so IRQL is though the roof
-    // aka its CLOCK_LEVEL, so we must use the non raise DPC
+    // aka its CLOCK_LEVEL, so we must use the non raise DPC spinlock
     MsAcquireSpinlockAtDpcLevel(&Thread->SchedulerLock);
 
-    // If the base priority is less than realtime AND the priority is above it (boosted)
-    // decrement it
+    // If the base priority is less than realtime AND the priority is above its base (i.e the thread is boosted)
+    // then decrement the boosted priority
     if (Thread->BasePriority < MT_PRIORITY_REALTIME_LOWEST && Thread->Priority > Thread->BasePriority) {
         Thread->Priority--;
     }

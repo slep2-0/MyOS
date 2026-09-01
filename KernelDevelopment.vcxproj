@@ -63,6 +63,7 @@
     <ClCompile Include="kernel\core\exp\raise.c" />
     <ClCompile Include="kernel\core\ht\handle.c" />
     <ClCompile Include="kernel\core\md\debugfunctions.c" />
+    <ClCompile Include="kernel\core\me\affinity.c" />
     <ClCompile Include="kernel\core\me\apc.c" />
     <ClCompile Include="kernel\core\me\attach.c" />
     <ClCompile Include="kernel\core\me\bugcheck.c" />
