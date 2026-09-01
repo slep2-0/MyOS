@@ -49,7 +49,8 @@ typedef enum _PROCESSINFOCLASS {
 
 typedef enum _THREADINFOCLASS {
     ThreadBasicInformation = 0,
-    ThreadBasePriorityInformation = 1
+    ThreadBasePriorityInformation = 1,
+    ThreadAffinityMaskInformation = 2
 } THREADINFOCLASS;
 
 struct _PEB;
@@ -71,6 +72,10 @@ typedef struct _THREAD_BASIC_INFORMATION {
 typedef struct _THREAD_BASE_PRIORITY_INFORMATION {
     THREAD_PRIORITY BasePriority;
 } THREAD_BASE_PRIORITY_INFORMATION, *PTHREAD_BASE_PRIORITY_INFORMATION;
+
+typedef struct _THREAD_AFFINITY_MASK_INFORMATION {
+    uint32_t AffinityMask;
+} THREAD_AFFINITY_MASK_INFORMATION, *PTHREAD_AFFINITY_MASK_INFORMATION;
 
 typedef struct _MT_CREATE_PROCESS_PARAMETERS {
     uint32_t Size;  // Size of this structure for native ABI versioning.

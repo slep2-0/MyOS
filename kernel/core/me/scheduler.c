@@ -125,9 +125,35 @@ static void enqueue_runnable(PITHREAD t)
 --*/
 
 {
-    if (t->ThreadState == THREAD_RUNNING) {
-        t->ThreadState = THREAD_READY;
-        MeEnqueueThreadWithLock(&MeGetCurrentProcessor()->readyQueue, PsGetEThreadFromIThread(t)); // Insert into CPU ready queue
+    if (InterlockedLoadAcquire(&t->ThreadState) == THREAD_RUNNING) {
+        // Acquire the locks in order
+        PPROCESSOR Processor = MeGetCurrentProcessor();
+        IRQL prevIrql;
+        MsAcquireSpinlock(&Processor->readyQueue.Lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&t->SchedulerLock);
+
+        // Thread is floating, it is not in any ready queue and is about to be replaced, no need to re-check for state
+        // it is also guranteed that the processor for it (active) is us
+        // assertions will catch any miscontracts.
+        assert(InterlockedLoadAcquire(&t->ThreadState) == THREAD_RUNNING);
+        assert(InterlockedLoadAcquire(&t->ActiveProcessor) == Processor);
+        assert(InterlockedLoadAcquire(&t->ReadyProcessor) == NULL);
+        InterlockedStoreRelease(&t->ThreadState, THREAD_READY);
+
+        // If this CPU is allowed to run the thread, insert into our readyqueue (look at affinity.c in the THREAD_RUNNING path)
+        if (MeIsProcessorAllowed(t, Processor)) {
+            MeEnqueueThread(&Processor->readyQueue, PsGetEThreadFromIThread(t));
+        }
+        else {
+            // We are not allowed to enqueue this thread into our CPU anymore, set it as the deferred thread
+            // since we cannot queue this thread into another processor are WE are still executing in it.
+            assert(Processor->DeferredAffinityThread == NULL);
+            Processor->DeferredAffinityThread = t;
+        }
+
+        // Release locks and go!
+        MsReleaseSpinlockFromDpcLevel(&t->SchedulerLock);
+        MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
     }
 }
 
@@ -278,6 +304,92 @@ Cleanup:
     }
 
     return Moved;
+}
+
+bool
+MeQueueThreadOnAllowedProcessor(
+    IN PETHREAD Thread,
+    IN PPROCESSOR PreferredProcessor
+)
+
+{
+    if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY ||
+        InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) != NULL ||
+        InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) != NULL)
+    {
+        // The thread must be ready and have a NULL readyprocessor
+        // this thread, is not.
+        return false;
+    }
+
+    // Act on preferredprocessor for now, if it fails down the line then we will just loop.
+    // Acquire lock per order.
+    IRQL prevIrql;
+    MsAcquireSpinlock(&PreferredProcessor->readyQueue.Lock, &prevIrql);
+    MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
+
+    // Re-run validity checks again under lock
+    if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY ||
+        InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) != NULL ||
+        InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) != NULL)
+    {
+        // The thread must be ready and have a NULL readyprocessor
+        // this thread, is not.
+        MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+        MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
+        return false;
+    }
+
+    // Validate that the affinity is good for this processor
+    if (MeIsProcessorAllowed(&Thread->InternalThread, PreferredProcessor)) {
+        // Good, enqueue the thread in.
+        MeEnqueueThread(&PreferredProcessor->readyQueue, Thread);
+
+        // Release the locks and return success.
+        MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+        MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
+        MeRequestPreemption(PreferredProcessor);
+        return true;
+    }
+
+    // Release both locks in order since we are now looping over each thread
+    MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+    MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
+
+    // Preferred processor isnt allowed for this thread, loop over all CPUs (excluding preferred).
+    for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
+        PPROCESSOR Processor = &cpus[i];
+
+        // Acquire both locks in order, validate the thread checks again, then if affinity is good release locks and return
+        MsAcquireSpinlock(&Processor->readyQueue.Lock, &prevIrql);
+        MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
+
+        bool IsBadPreferred = Processor == PreferredProcessor;
+        bool ThreadInactiveProcessor = InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) == NULL;
+        bool OnlineProcessor = InterlockedLoadAcquire(&Processor->State) == ProcessorStateOnline;
+        
+        // sorry for inredability
+        bool OkayToQueue = OnlineProcessor && ThreadInactiveProcessor && !IsBadPreferred &&  InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) == THREAD_READY && InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) == NULL && MeIsProcessorAllowed(&Thread->InternalThread, Processor);
+        
+        if (OkayToQueue) {
+            MeEnqueueThread(&Processor->readyQueue, Thread);
+        }
+
+        // Release both locks (for next iteration or loop over)
+        MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+        MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
+
+        // If we enqueued, ask that processor to reevaluate and return.
+        if (OkayToQueue) {
+            MeRequestPreemption(Processor);
+            return true;
+        }
+    }
+
+    // If we haven't found a suitable CPU then false must be returned
+    // though, this is quite literally impossible with standard guards in place
+    assert(false, "A Thread has not been found to enqueue in affinity masks");
+    return false;
 }
 
 // The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
@@ -459,15 +571,29 @@ MepShouldPreemptCurrentThreadLocked(
 {
     PPROCESSOR Processor = MeGetCurrentProcessor();
 
-    // No need to switch if no one to switch to.
-    if (IsListEmpty(&Processor->readyQueue.ListHead)) return false;
-
     // If the current thread is an idle thread OR it is not present (i.e first boot schedule)
     // then allow switch
     PITHREAD CurrThread = MeGetCurrentThread();
     if (!CurrThread || CurrThread == &Processor->idleThread->InternalThread) {
         return true;
     }
+
+    // Acquire current thread scheduler lock quickly
+    MsAcquireSpinlockAtDpcLevel(&CurrThread->SchedulerLock);
+
+    // If the current thread is no longer allowed to run under this CPU (affinity change)
+    // then preemption must happen.
+    bool AffinityAllowsPreemption = MeIsProcessorAllowed(CurrThread, Processor);
+
+    MsReleaseSpinlockFromDpcLevel(&CurrThread->SchedulerLock);
+
+    if (AffinityAllowsPreemption == false) {
+        // Thread affinity changed, we must preempt no matter what.
+        return true;
+    }
+
+    // No need to switch if no one to switch to.
+    if (IsListEmpty(&Processor->readyQueue.ListHead)) return false;
 
     PETHREAD Thread = CONTAINING_RECORD(Processor->readyQueue.ListHead.Flink, ETHREAD, SchedulerListEntry);
 
@@ -658,6 +784,25 @@ Schedule(void)
         // Drop the reference, we are on another thread's stack
         ObDereferenceObject((void*)cpu->ZombieThread);
         cpu->ZombieThread = NULL;
+    }
+
+    // Check if we need to enqueue a deferred thread into another CPU
+    if (cpu->DeferredAffinityThread) {
+        PITHREAD DeferredThread = cpu->DeferredAffinityThread;
+        bool Queued = MeQueueThreadOnAllowedProcessor(PsGetEThreadFromIThread(DeferredThread), cpu);
+
+        if (!Queued) {
+            // Deferred thread was not queued into a remote processor, violation of contract
+            MeBugCheckEx(
+                SCHEDULER_FAILURE,
+                DeferredThread,
+                InterlockedLoadAcquire(&DeferredThread->ActiveProcessor),
+                InterlockedLoadAcquire(&DeferredThread->ReadyProcessor),
+                (void*)(uintptr_t)InterlockedLoadAcquire(&DeferredThread->ThreadState)
+            );
+        }
+
+        cpu->DeferredAffinityThread = NULL;
     }
 
     if (current && current != IdleThread &&

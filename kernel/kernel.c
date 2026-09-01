@@ -20,6 +20,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #define MT_STRESS_MODE_TLS         6
 #define MT_STRESS_MODE_PROCESS     7
 #define MT_STRESS_MODE_PRIORITY    8
+#define MT_STRESS_MODE_AFFINITY    9
 
 #ifndef MT_STRESS_MODE
 #define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
@@ -34,7 +35,7 @@ _Static_assert(sizeof(void*) == 8, "This Kernel is 64 bit only! The 32bit versio
 #endif
 
 #if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
-    MT_STRESS_MODE > MT_STRESS_MODE_PRIORITY
+    MT_STRESS_MODE > MT_STRESS_MODE_AFFINITY
 #error "MT_STRESS_MODE is invalid"
 #endif
 
@@ -14188,6 +14189,8 @@ StressTestPriorityQueueOrdering(void)
         Thread->InternalThread.ThreadState = THREAD_READY;
         Thread->InternalThread.ActiveProcessor = NULL;
         Thread->InternalThread.ReadyProcessor = NULL;
+        Thread->InternalThread.AllowedProcessorMask =
+            1u << ReadyQueue.OwnerProcessor->ID;
         MeEnqueueThreadWithLock(&ReadyQueue, Thread);
 
         if (InterlockedLoadAcquire(
@@ -14718,12 +14721,16 @@ StressPriorityTestStarvationBound(void)
     BoostedThread.InternalThread.BasePriority = MT_PRIORITY_NORMAL;
     BoostedThread.InternalThread.Priority = MT_PRIORITY_NORMAL;
     BoostedThread.InternalThread.ThreadState = THREAD_INITIALIZED;
+    BoostedThread.InternalThread.AllowedProcessorMask =
+        1u << ReadyQueue.OwnerProcessor->ID;
 
     InitializeListHead(&PeerThread.SchedulerListEntry);
     PeerThread.InternalThread.SchedulerLock.locked = 0;
     PeerThread.InternalThread.BasePriority = MT_PRIORITY_NORMAL;
     PeerThread.InternalThread.Priority = MT_PRIORITY_NORMAL;
     PeerThread.InternalThread.ThreadState = THREAD_READY;
+    PeerThread.InternalThread.AllowedProcessorMask =
+        1u << ReadyQueue.OwnerProcessor->ID;
 
     // Stack enough wake boosts to reach the variable-priority ceiling.
     for (uint32_t Index = 0;
@@ -14966,6 +14973,7 @@ StressPriorityTestReadyMutation(void)
     Target->InternalThread.BasePriority = MT_PRIORITY_LOWEST;
     Target->InternalThread.Priority = MT_PRIORITY_LOWEST;
     Target->InternalThread.ThreadState = THREAD_READY;
+    Target->InternalThread.AllowedProcessorMask = 1u << Processor->ID;
 
     // Keep work stealing from dispatching this synthetic entry while it is in
     // the real queue. The test removes it before lowering from DISPATCH_LEVEL.
@@ -15407,6 +15415,814 @@ StressPriorityController(void)
 }
 #endif
 
+#if MT_STRESS_MODE == MT_STRESS_MODE_AFFINITY
+#define STRESS_AFFINITY_TRANSITION_ROUNDS 64U
+
+typedef enum _STRESS_AFFINITY_FAILURE {
+    StressAffinityUnexpectedStatus = 1,
+    StressAffinityPreviousMaskMismatch,
+    StressAffinityMaskMismatch,
+    StressAffinityProcessorMismatch,
+    StressAffinityOwnershipMismatch,
+    StressAffinityProtocolTimeout,
+    StressAffinityIpiMissing,
+    StressAffinityPreemptionDelay
+} STRESS_AFFINITY_FAILURE;
+
+typedef struct _STRESS_AFFINITY_RUN_CONTEXT {
+    EVENT Gate;
+    volatile MTSTATUS WaitStatus;
+    volatile bool Entered;
+    volatile bool Stop;
+    volatile uint32_t FirstProcessor;
+    volatile uint32_t CurrentProcessor;
+    volatile uint64_t MigrationTick;
+    volatile uint64_t Progress;
+} STRESS_AFFINITY_RUN_CONTEXT;
+
+typedef struct _STRESS_AFFINITY_TIMER_CONTEXT {
+    volatile bool Ready;
+    volatile bool Returned;
+    volatile MTSTATUS Status;
+    volatile uint32_t Processor;
+} STRESS_AFFINITY_TIMER_CONTEXT;
+
+typedef struct _STRESS_AFFINITY_TRANSITION_CONTEXT {
+    EVENT Gate;
+    uint32_t Rounds;
+    volatile uint32_t ArmedRound;
+    volatile uint32_t CompletedRound;
+    volatile uint32_t Processor;
+    volatile MTSTATUS Status;
+} STRESS_AFFINITY_TRANSITION_CONTEXT;
+
+NORETURN
+static void
+StressAffinityBugCheck(
+    STRESS_AFFINITY_FAILURE Failure,
+    void* Parameter2,
+    void* Parameter3
+)
+{
+    StressAutomationWriteText("MT-AFFINITY FAIL\n");
+    MeBugCheckEx(
+        SCHEDULER_FAILURE,
+        (void*)(uintptr_t)(0xA000U + Failure),
+        Parameter2,
+        Parameter3,
+        MeGetCurrentProcessor()
+    );
+}
+
+static void
+StressAffinityRequireStatus(
+    MTSTATUS Actual,
+    MTSTATUS Expected,
+    void* Detail
+)
+{
+    if (Actual != Expected) {
+        StressAffinityBugCheck(
+            StressAffinityUnexpectedStatus,
+            Detail,
+            (void*)(uintptr_t)Actual
+        );
+    }
+}
+
+static void
+StressAffinityWaitForU32(
+    volatile uint32_t* Value,
+    uint32_t Minimum,
+    void* Detail,
+    bool Yield
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    while (InterlockedLoadAcquire(Value) < Minimum) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressAffinityBugCheck(
+                StressAffinityProtocolTimeout,
+                Detail,
+                (void*)(uintptr_t)InterlockedLoadAcquire(Value)
+            );
+        }
+
+        if (Yield) {
+            MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+        }
+        else {
+            __pause();
+        }
+    }
+}
+
+static void
+StressAffinityWaitForFlag(
+    volatile bool* Flag,
+    void* Detail,
+    bool Yield
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    while (!InterlockedLoadAcquire(Flag)) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressAffinityBugCheck(
+                StressAffinityProtocolTimeout,
+                Detail,
+                (void*)Flag
+            );
+        }
+
+        if (Yield) {
+            MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+        }
+        else {
+            __pause();
+        }
+    }
+}
+
+static void
+StressAffinityWaitForRunningOwner(
+    PETHREAD Thread,
+    PPROCESSOR Processor,
+    void* Detail
+)
+{
+    uint64_t StartTsc = __rdtsc();
+    while (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) !=
+               THREAD_RUNNING ||
+           InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) !=
+               Processor) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressAffinityBugCheck(
+                StressAffinityProtocolTimeout,
+                Detail,
+                Thread
+            );
+        }
+        __pause();
+    }
+}
+
+static void
+StressAffinityRunWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_AFFINITY_RUN_CONTEXT* Context = Parameter;
+    MTSTATUS Status = MsWaitForSingleObject(
+        &Context->Gate,
+        KernelMode,
+        false,
+        MT_INFINITE
+    );
+    InterlockedStoreRelease(&Context->WaitStatus, Status);
+
+    uint32_t Processor = MeGetCurrentProcessor()->ID;
+    InterlockedStoreRelease(&Context->FirstProcessor, Processor);
+    InterlockedStoreRelease(&Context->CurrentProcessor, Processor);
+    InterlockedStoreRelease(&Context->Entered, true);
+
+    while (!InterlockedLoadAcquire(&Context->Stop)) {
+        Processor = MeGetCurrentProcessor()->ID;
+        InterlockedStoreRelease(
+            &Context->CurrentProcessor,
+            Processor
+        );
+        if (Processor != InterlockedLoadAcquire(&Context->FirstProcessor) &&
+            InterlockedLoadAcquire(&Context->MigrationTick) == 0) {
+            InterlockedStoreRelease(
+                &Context->MigrationTick,
+                InterlockedLoadAcquire(&MeSystemTickCount)
+            );
+        }
+        InterlockedIncrementU64(&Context->Progress);
+        __pause();
+    }
+}
+
+static void
+StressAffinityTimerWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_AFFINITY_TIMER_CONTEXT* Context = Parameter;
+    InterlockedStoreRelease(&Context->Ready, true);
+    MTSTATUS Status = MsDelayExecution(
+        KernelMode,
+        false,
+        5ULL * TICK_MS
+    );
+    InterlockedStoreRelease(&Context->Processor, MeGetCurrentProcessor()->ID);
+    InterlockedStoreRelease(&Context->Status, Status);
+    InterlockedStoreRelease(&Context->Returned, true);
+}
+
+static void
+StressAffinityTransitionWorker(
+    THREAD_PARAMETER Parameter
+)
+{
+    STRESS_AFFINITY_TRANSITION_CONTEXT* Context = Parameter;
+
+    for (uint32_t Round = 1; Round <= Context->Rounds; Round++) {
+        InterlockedStoreRelease(&Context->ArmedRound, Round);
+        MTSTATUS Status = MsWaitForSingleObject(
+            &Context->Gate,
+            KernelMode,
+            false,
+            MT_INFINITE
+        );
+        InterlockedStoreRelease(&Context->Status, Status);
+        InterlockedStoreRelease(
+            &Context->Processor,
+            MeGetCurrentProcessor()->ID
+        );
+        InterlockedStoreRelease(&Context->CompletedRound, Round);
+    }
+}
+
+static void
+StressAffinityTestValidation(void)
+{
+    uint32_t ActiveMask = MeGetActiveProcessorMask();
+    uint32_t FirstMask = ActiveMask & (0U - ActiveMask);
+    uint32_t PreviousMask = UINT32_MAX;
+    ETHREAD Synthetic = { 0 };
+
+    PspInitializeThread(
+        &Synthetic,
+        &PsInitialSystemProcess,
+        DEFAULT_TIMESLICE_TICKS
+    );
+    InterlockedStoreRelease(
+        &Synthetic.InternalThread.ThreadState,
+        THREAD_INITIALIZED
+    );
+
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(NULL, FirstMask, &PreviousMask),
+        MT_INVALID_PARAM,
+        (void*)0xA010
+    );
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Synthetic.InternalThread,
+            0,
+            &PreviousMask
+        ),
+        MT_INVALID_PARAM,
+        (void*)0xA011
+    );
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Synthetic.InternalThread,
+            FirstMask,
+            NULL
+        ),
+        MT_INVALID_PARAM,
+        (void*)0xA012
+    );
+
+    uint32_t ProcessorCount = MeGetActiveProcessorCount();
+    if (ProcessorCount < 32) {
+        StressAffinityRequireStatus(
+            MeSetThreadAffinityMask(
+                &Synthetic.InternalThread,
+                1u << ProcessorCount,
+                &PreviousMask
+            ),
+            MT_INVALID_PARAM,
+            (void*)0xA013
+        );
+    }
+
+    PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Synthetic.InternalThread,
+            FirstMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA014
+    );
+    if (PreviousMask != ActiveMask ||
+        Synthetic.InternalThread.AllowedProcessorMask != FirstMask) {
+        StressAffinityBugCheck(
+            PreviousMask != ActiveMask
+                ? StressAffinityPreviousMaskMismatch
+                : StressAffinityMaskMismatch,
+            (void*)(uintptr_t)ActiveMask,
+            (void*)(uintptr_t)(
+                PreviousMask != ActiveMask
+                    ? PreviousMask
+                    : Synthetic.InternalThread.AllowedProcessorMask
+            )
+        );
+    }
+
+    InterlockedStoreRelease(
+        &Synthetic.InternalThread.ThreadState,
+        THREAD_TERMINATED
+    );
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Synthetic.InternalThread,
+            FirstMask,
+            &PreviousMask
+        ),
+        MT_THREAD_IS_TERMINATING,
+        (void*)0xA015
+    );
+
+    StressAutomationWriteText("MT-AFFINITY VALIDATION PASS\n");
+}
+
+static void
+StressAffinityTestReadyMigration(
+    PPROCESSOR Source,
+    PPROCESSOR Destination
+)
+{
+    if (MeGetActiveProcessorCount() < 2) {
+        StressAutomationWriteText("MT-AFFINITY READY SKIP\n");
+        return;
+    }
+
+    STRESS_AFFINITY_RUN_CONTEXT Context = {
+        .WaitStatus = MT_PENDING,
+        .FirstProcessor = UINT32_MAX,
+        .CurrentProcessor = UINT32_MAX
+    };
+    MsInitializeEvent(
+        &Context.Gate,
+        DispatcherSynchronizationEvent,
+        false
+    );
+
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressAffinityRunWorker,
+        &Context
+    );
+    Stress6WaitForDispatcherWait(
+        Target,
+        &Context.Gate.Header,
+        (void*)0xA020
+    );
+
+    uint32_t ActiveMask = MeGetActiveProcessorMask();
+    uint32_t SourceMask = 1u << Source->ID;
+    uint32_t DestinationMask = 1u << Destination->ID;
+    uint32_t PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Target->InternalThread,
+            SourceMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA021
+    );
+    if (PreviousMask != ActiveMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)ActiveMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+
+    IRQL OldIrql;
+    MeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+    StressAffinityRequireStatus(
+        MsSetEvent(&Context.Gate),
+        MT_SUCCESS,
+        (void*)0xA022
+    );
+
+    if (InterlockedLoadAcquire(&Target->InternalThread.ThreadState) !=
+            THREAD_READY ||
+        InterlockedLoadAcquire(&Target->InternalThread.ReadyProcessor) !=
+            Source) {
+        StressAffinityBugCheck(
+            StressAffinityOwnershipMismatch,
+            (void*)(uintptr_t)InterlockedLoadAcquire(
+                &Target->InternalThread.ThreadState
+            ),
+            InterlockedLoadAcquire(&Target->InternalThread.ReadyProcessor)
+        );
+    }
+
+    PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Target->InternalThread,
+            DestinationMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA023
+    );
+    MeLowerIrql(OldIrql);
+
+    if (PreviousMask != SourceMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)SourceMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+
+    StressAffinityWaitForFlag(&Context.Entered, (void*)0xA024, true);
+    if (InterlockedLoadAcquire(&Context.FirstProcessor) != Destination->ID) {
+        StressAffinityBugCheck(
+            StressAffinityProcessorMismatch,
+            (void*)(uintptr_t)Destination->ID,
+            (void*)(uintptr_t)InterlockedLoadAcquire(
+                &Context.FirstProcessor
+            )
+        );
+    }
+
+    InterlockedStoreRelease(&Context.Stop, true);
+    Stress6JoinThread(Target, (void*)0xA025);
+    StressAffinityRequireStatus(
+        InterlockedLoadAcquire(&Context.WaitStatus),
+        MT_SUCCESS,
+        (void*)0xA026
+    );
+    StressAutomationWriteText("MT-AFFINITY READY PASS\n");
+}
+
+static void
+StressAffinityTestBlockedAndRunning(
+    PPROCESSOR ControllerProcessor,
+    PPROCESSOR RemoteProcessor
+)
+{
+    STRESS_AFFINITY_RUN_CONTEXT Context = {
+        .WaitStatus = MT_PENDING,
+        .FirstProcessor = UINT32_MAX,
+        .CurrentProcessor = UINT32_MAX
+    };
+    MsInitializeEvent(
+        &Context.Gate,
+        DispatcherSynchronizationEvent,
+        false
+    );
+
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressAffinityRunWorker,
+        &Context
+    );
+    Stress6WaitForDispatcherWait(
+        Target,
+        &Context.Gate.Header,
+        (void*)0xA030
+    );
+
+    uint32_t ActiveMask = MeGetActiveProcessorMask();
+    uint32_t SourceMask = 1u << RemoteProcessor->ID;
+    uint32_t DestinationMask = 1u << ControllerProcessor->ID;
+    uint32_t PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Target->InternalThread,
+            SourceMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA031
+    );
+    if (PreviousMask != ActiveMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)ActiveMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+
+    StressAffinityRequireStatus(
+        MsSetEvent(&Context.Gate),
+        MT_SUCCESS,
+        (void*)0xA032
+    );
+    StressAffinityWaitForFlag(
+        &Context.Entered,
+        (void*)0xA033,
+        MeGetActiveProcessorCount() == 1
+    );
+
+    if (InterlockedLoadAcquire(&Context.FirstProcessor) !=
+            RemoteProcessor->ID) {
+        StressAffinityBugCheck(
+            StressAffinityProcessorMismatch,
+            (void*)(uintptr_t)RemoteProcessor->ID,
+            (void*)(uintptr_t)InterlockedLoadAcquire(
+                &Context.FirstProcessor
+            )
+        );
+    }
+    StressAutomationWriteText("MT-AFFINITY BLOCKED PASS\n");
+
+    if (MeGetActiveProcessorCount() < 2) {
+        InterlockedStoreRelease(&Context.Stop, true);
+        Stress6JoinThread(Target, (void*)0xA034);
+        StressAutomationWriteText("MT-AFFINITY RUNNING SKIP\n");
+        return;
+    }
+
+    StressAffinityWaitForRunningOwner(
+        Target,
+        RemoteProcessor,
+        (void*)0xA035
+    );
+    uint64_t IpisBefore = InterlockedLoadAcquire(
+        &RemoteProcessor->ScheduleIpiCount
+    );
+    InterlockedStoreRelease(
+        &Target->InternalThread.TimeSlice,
+        Target->InternalThread.TimeSliceAllocated
+    );
+    uint64_t RequestTick = InterlockedLoadAcquire(&MeSystemTickCount);
+    PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Target->InternalThread,
+            DestinationMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA036
+    );
+    uint64_t IpisAfter = InterlockedLoadAcquire(
+        &RemoteProcessor->ScheduleIpiCount
+    );
+
+    if (PreviousMask != SourceMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)SourceMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+    if (IpisAfter <= IpisBefore) {
+        StressAffinityBugCheck(
+            StressAffinityIpiMissing,
+            (void*)(uintptr_t)IpisBefore,
+            (void*)(uintptr_t)IpisAfter
+        );
+    }
+
+    uint64_t StartTsc = __rdtsc();
+    while (InterlockedLoadAcquire(&Context.CurrentProcessor) !=
+               ControllerProcessor->ID) {
+        if (Stress6WatchdogExpired(StartTsc)) {
+            StressAffinityBugCheck(
+                StressAffinityProtocolTimeout,
+                (void*)0xA037,
+                (void*)(uintptr_t)InterlockedLoadAcquire(
+                    &Context.CurrentProcessor
+                )
+            );
+        }
+        MsYieldExecution(&MeGetCurrentThread()->TrapRegisters);
+    }
+
+    uint64_t MigrationTick = InterlockedLoadAcquire(&Context.MigrationTick);
+    if (MigrationTick == 0 || MigrationTick < RequestTick ||
+        MigrationTick - RequestTick > 2) {
+        StressAffinityBugCheck(
+            StressAffinityPreemptionDelay,
+            (void*)(uintptr_t)RequestTick,
+            (void*)(uintptr_t)MigrationTick
+        );
+    }
+
+    InterlockedStoreRelease(&Context.Stop, true);
+    Stress6JoinThread(Target, (void*)0xA038);
+    StressAutomationWriteText("MT-AFFINITY RUNNING PASS\n");
+}
+
+static void
+StressAffinityTestTimerWake(
+    PPROCESSOR Destination
+)
+{
+    STRESS_AFFINITY_TIMER_CONTEXT Context = {
+        .Status = MT_PENDING,
+        .Processor = UINT32_MAX
+    };
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressAffinityTimerWorker,
+        &Context
+    );
+
+    StressAffinityWaitForFlag(&Context.Ready, (void*)0xA040, true);
+    Stress6WaitForSleep(Target, (void*)0xA041);
+
+    uint32_t ActiveMask = MeGetActiveProcessorMask();
+    uint32_t DestinationMask = 1u << Destination->ID;
+    uint32_t PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &Target->InternalThread,
+            DestinationMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA042
+    );
+    if (PreviousMask != ActiveMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)ActiveMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+
+    StressAffinityWaitForFlag(&Context.Returned, (void*)0xA043, true);
+    Stress6JoinThread(Target, (void*)0xA044);
+    StressAffinityRequireStatus(
+        InterlockedLoadAcquire(&Context.Status),
+        MT_SUCCESS,
+        (void*)0xA045
+    );
+    if (InterlockedLoadAcquire(&Context.Processor) != Destination->ID) {
+        StressAffinityBugCheck(
+            StressAffinityProcessorMismatch,
+            (void*)(uintptr_t)Destination->ID,
+            (void*)(uintptr_t)InterlockedLoadAcquire(&Context.Processor)
+        );
+    }
+
+    StressAutomationWriteText("MT-AFFINITY TIMER PASS\n");
+}
+
+static void
+StressAffinityTestBlockingTransitions(
+    PPROCESSOR ControllerProcessor,
+    PPROCESSOR RemoteProcessor
+)
+{
+    STRESS_AFFINITY_TRANSITION_CONTEXT Context = {
+        .Rounds = STRESS_AFFINITY_TRANSITION_ROUNDS,
+        .Status = MT_PENDING,
+        .Processor = UINT32_MAX
+    };
+    MsInitializeEvent(
+        &Context.Gate,
+        DispatcherSynchronizationEvent,
+        false
+    );
+
+    PETHREAD Target = Stress6CreateRetainedThread(
+        StressAffinityTransitionWorker,
+        &Context
+    );
+    Stress6WaitForDispatcherWait(
+        Target,
+        &Context.Gate.Header,
+        (void*)0xA050
+    );
+
+    uint32_t ExpectedPreviousMask = MeGetActiveProcessorMask();
+
+    for (uint32_t Round = 1;
+         Round <= STRESS_AFFINITY_TRANSITION_ROUNDS;
+         Round++) {
+        StressAffinityWaitForU32(
+            &Context.ArmedRound,
+            Round,
+            (void*)(uintptr_t)(0xA100U + Round),
+            true
+        );
+
+        PPROCESSOR Destination =
+            (Round & 1U) ? RemoteProcessor : ControllerProcessor;
+        uint32_t NewMask = 1u << Destination->ID;
+        uint32_t PreviousMask = UINT32_MAX;
+        StressAffinityRequireStatus(
+            MeSetThreadAffinityMask(
+                &Target->InternalThread,
+                NewMask,
+                &PreviousMask
+            ),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0xA200U + Round)
+        );
+        if (PreviousMask != ExpectedPreviousMask) {
+            StressAffinityBugCheck(
+                StressAffinityPreviousMaskMismatch,
+                (void*)(uintptr_t)ExpectedPreviousMask,
+                (void*)(uintptr_t)PreviousMask
+            );
+        }
+        ExpectedPreviousMask = NewMask;
+
+        StressAffinityRequireStatus(
+            MsSetEvent(&Context.Gate),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0xA300U + Round)
+        );
+        StressAffinityWaitForU32(
+            &Context.CompletedRound,
+            Round,
+            (void*)(uintptr_t)(0xA400U + Round),
+            true
+        );
+
+        uint32_t ObservedProcessor = InterlockedLoadAcquire(
+            &Context.Processor
+        );
+        if ((NewMask & (1u << ObservedProcessor)) == 0) {
+            StressAffinityBugCheck(
+                StressAffinityProcessorMismatch,
+                (void*)(uintptr_t)NewMask,
+                (void*)(uintptr_t)ObservedProcessor
+            );
+        }
+        StressAffinityRequireStatus(
+            InterlockedLoadAcquire(&Context.Status),
+            MT_SUCCESS,
+            (void*)(uintptr_t)(0xA500U + Round)
+        );
+    }
+
+    Stress6JoinThread(Target, (void*)0xA051);
+    StressAutomationWriteText("MT-AFFINITY BLOCKING TRANSITION PASS\n");
+}
+
+static void
+StressAffinityController(void)
+{
+    gop_printf(
+        COLOR_GREEN,
+        "MT-AFFINITY START (%u CPUs)\n",
+        MeGetActiveProcessorCount()
+    );
+
+    PETHREAD ControllerThread = PsGetEThreadFromIThread(MeGetCurrentThread());
+    PPROCESSOR ControllerProcessor = MeGetCurrentProcessor();
+    PPROCESSOR RemoteProcessor = ControllerProcessor;
+    if (MeGetActiveProcessorCount() >= 2) {
+        RemoteProcessor = MeGetProcessorBlock(
+            (uint8_t)((ControllerProcessor->ID + 1U) %
+                MeGetActiveProcessorCount())
+        );
+    }
+
+    uint32_t ControllerMask = 1u << ControllerProcessor->ID;
+    uint32_t OriginalControllerMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &ControllerThread->InternalThread,
+            ControllerMask,
+            &OriginalControllerMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA001
+    );
+
+    StressAffinityTestValidation();
+    StressAffinityTestReadyMigration(
+        ControllerProcessor,
+        RemoteProcessor
+    );
+    StressAffinityTestBlockedAndRunning(
+        ControllerProcessor,
+        RemoteProcessor
+    );
+    StressAffinityTestTimerWake(RemoteProcessor);
+    StressAffinityTestBlockingTransitions(
+        ControllerProcessor,
+        RemoteProcessor
+    );
+
+    uint32_t PreviousMask = UINT32_MAX;
+    StressAffinityRequireStatus(
+        MeSetThreadAffinityMask(
+            &ControllerThread->InternalThread,
+            OriginalControllerMask,
+            &PreviousMask
+        ),
+        MT_SUCCESS,
+        (void*)0xA002
+    );
+    if (PreviousMask != ControllerMask) {
+        StressAffinityBugCheck(
+            StressAffinityPreviousMaskMismatch,
+            (void*)(uintptr_t)ControllerMask,
+            (void*)(uintptr_t)PreviousMask
+        );
+    }
+
+    StressAutomationWriteText("MT-AFFINITY RUNTIME PASS\n");
+}
+#endif
+
 NORETURN
 static void
 StressSuiteController(
@@ -15470,6 +16286,9 @@ StressSuiteController(
 #elif MT_STRESS_MODE == MT_STRESS_MODE_PRIORITY
     StressPriorityController();
     StressAutomationPass("PRIORITY");
+#elif MT_STRESS_MODE == MT_STRESS_MODE_AFFINITY
+    StressAffinityController();
+    StressAutomationPass("AFFINITY");
 #else
 #if STRESS_GATE4_ONLY
     Stress6Controller();

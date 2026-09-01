@@ -2890,7 +2890,8 @@ MtSetInformationThread(
 
         Sets information on a thread referenced by a handle with
         MT_THREAD_SET_INFO access. ThreadBasePriorityInformation changes the
-        target thread's absolute base scheduler priority.
+        target thread's absolute base scheduler priority, while
+        ThreadAffinityMaskInformation changes its allowed processor mask.
 
     Arguments:
 
@@ -2907,33 +2908,24 @@ MtSetInformationThread(
 --*/
 
 {
-    if (ThreadInformationClass != ThreadBasePriorityInformation) {
+    size_t ThreadInformationAlignment;
+    switch (ThreadInformationClass) {
+    case ThreadBasePriorityInformation:
+        ThreadInformationAlignment = _Alignof(THREAD_BASE_PRIORITY_INFORMATION);
+        break;
+    case ThreadAffinityMaskInformation:
+        ThreadInformationAlignment = _Alignof(THREAD_AFFINITY_MASK_INFORMATION);
+        break;
+    default:
         return MT_INVALID_INFO_CLASS;
-    }
-
-    if (ThreadInformationLength != sizeof(THREAD_BASE_PRIORITY_INFORMATION)) {
-        return MT_INFO_LENGTH_MISMATCH;
     }
 
     MTSTATUS Status = ProbeForRead(
         ThreadInformation,
-        sizeof(THREAD_BASE_PRIORITY_INFORMATION),
-        _Alignof(THREAD_BASE_PRIORITY_INFORMATION)
+        ThreadInformationLength,
+        ThreadInformationAlignment
     );
     if (MT_FAILURE(Status)) return Status;
-
-    THREAD_BASE_PRIORITY_INFORMATION CapturedInformation;
-    try {
-        CapturedInformation =
-            *(const THREAD_BASE_PRIORITY_INFORMATION*)ThreadInformation;
-    } except{
-        return GetExceptionCode();
-    }
-    end_try;
-
-    if (CapturedInformation.BasePriority > MT_PRIORITY_REALTIME_HIGHEST) {
-        return MT_INVALID_PARAM;
-    }
 
     void* Object = NULL;
     Status = ObReferenceObjectByHandle(
@@ -2945,12 +2937,66 @@ MtSetInformationThread(
     );
     if (MT_FAILURE(Status)) return Status;
 
-    THREAD_PRIORITY PreviousPriority;
-    Status = MeSetThreadBasePriority(
-        (PETHREAD)Object,
-        CapturedInformation.BasePriority,
-        &PreviousPriority
-    );
+    PETHREAD Thread = (PETHREAD)Object;
+
+    switch (ThreadInformationClass) {
+    case ThreadBasePriorityInformation:
+        if (ThreadInformationLength != sizeof(THREAD_BASE_PRIORITY_INFORMATION)) {
+            Status = MT_INFO_LENGTH_MISMATCH;
+            break;
+        }
+
+        THREAD_BASE_PRIORITY_INFORMATION CapturedPriorityInformation;
+        try {
+            CapturedPriorityInformation =
+                *(const THREAD_BASE_PRIORITY_INFORMATION*)ThreadInformation;
+        } except{
+            Status = GetExceptionCode();
+            break;
+        }
+        end_try;
+
+        if (CapturedPriorityInformation.BasePriority > MT_PRIORITY_REALTIME_HIGHEST) {
+            Status = MT_INVALID_PARAM;
+            break;
+        }
+
+        THREAD_PRIORITY PreviousPriority;
+        Status = MeSetThreadBasePriority(
+            Thread,
+            CapturedPriorityInformation.BasePriority,
+            &PreviousPriority
+        );
+        break;
+
+    case ThreadAffinityMaskInformation:
+        if (ThreadInformationLength != sizeof(THREAD_AFFINITY_MASK_INFORMATION)) {
+            Status = MT_INFO_LENGTH_MISMATCH;
+            break;
+        }
+
+        THREAD_AFFINITY_MASK_INFORMATION CapturedAffinityInformation;
+        try {
+            CapturedAffinityInformation =
+                *(const THREAD_AFFINITY_MASK_INFORMATION*)ThreadInformation;
+        } except{
+            Status = GetExceptionCode();
+            break;
+        }
+        end_try;
+
+        uint32_t PreviousAffinityMask;
+        Status = MeSetThreadAffinityMask(
+            &Thread->InternalThread,
+            CapturedAffinityInformation.AffinityMask,
+            &PreviousAffinityMask
+        );
+        break;
+
+    default:
+        Status = MT_INVALID_INFO_CLASS;
+        break;
+    }
 
     ObDereferenceObject(Object);
     return Status;

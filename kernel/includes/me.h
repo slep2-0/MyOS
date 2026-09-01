@@ -495,6 +495,12 @@ typedef struct _PROCESSOR {
 	// Zombie Thread (for deferred reference deletion)
 	PITHREAD ZombieThread;
 
+	// Deferred affinity thread, this is set when the current thread is no longer applicable to run
+	// in the current PROCESSOR due to its affinity, but the current processor cannot enqueue the current running thread
+	// into another processor queue (unless we implement a Busy boolean to the thread, NO!), so at the next context swap
+	// the schedule function would enqueue this thread (after its activeprocessor is NULL) into another SUITABLE processor readyQueue (the one who's affinity permits)
+	PITHREAD DeferredAffinityThread;
+
 	// Syscall data
 	uint64_t UserRsp; // User saved RSP during syscall handling.
 	uint64_t SystemCallCount; // Counter of system call that have been executed in the system. (including invalid ones)
@@ -559,6 +565,12 @@ MeGetCurrentProcessor (void)
 
 extern uint32_t g_cpuCount;
 
+// smp.c
+PPROCESSOR
+MeGetProcessorBlock(
+	IN uint8_t ProcessorNumber
+);
+
 FORCEINLINE
 uint8_t
 MeGetActiveProcessorCount(void)
@@ -567,6 +579,24 @@ MeGetActiveProcessorCount(void)
 	return (uint8_t)g_cpuCount; // The reason we cast to uint8_t is because we would never have more than 255 Cpus in the system, not guranteed, though, :)
 }
 
+FORCEINLINE
+uint32_t
+MeGetActiveProcessorMask(void)
+
+{
+	// Loop over all online processors and add it to return value.
+	uint32_t ValidMask = 0;
+
+	for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
+		PPROCESSOR Processor = MeGetProcessorBlock(i);
+
+		if (InterlockedLoadAcquire(&Processor->State) == ProcessorStateOnline) {
+			ValidMask |= (1u << Processor->ID);
+		}
+	}
+
+	return ValidMask;
+}
 FORCEINLINE
 IRQL
 MeGetCurrentIrql(void)
@@ -786,6 +816,12 @@ MeInitializeProcessor(
 	IN bool AreYouAP
 );
 
+bool
+MeQueueThreadOnAllowedProcessor(
+	IN PETHREAD Thread,
+	IN PPROCESSOR PreferredProcessor
+);
+
 void
 MeRequestPreemption(
 	IN PPROCESSOR TargetProcessor
@@ -812,6 +848,13 @@ MeSetThreadBasePriority(
 	IN PETHREAD Thread,
 	IN THREAD_PRIORITY NewPriority,
 	OUT THREAD_PRIORITY* PreviousPriority
+);
+
+MTSTATUS
+MeSetThreadAffinityMask(
+	IN PITHREAD Thread,
+	IN uint32_t NewMask,
+	OUT uint32_t* PreviousMask
 );
 
 void
@@ -990,8 +1033,5 @@ bool
 MeAreInterruptsEnabled(
 	void
 );
-
-// smp.c
-PPROCESSOR MeGetProcessorBlock(uint8_t ProcessorNumber);
 
 #endif

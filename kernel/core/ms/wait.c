@@ -255,15 +255,32 @@ MsCompleteThreadWait(
         &Thread->ActiveProcessor
     );
 
+    bool NullProc = false;
+
     if (!TargetProcessor) {
+        NullProc = true;
         TargetProcessor = MeGetCurrentProcessor();
     }
 
-    MeEnqueueThreadWithLock(
-        &TargetProcessor->readyQueue,
-        PsGetEThreadFromIThread(Thread)
-    );
-    MeRequestPreemption(TargetProcessor);
+    // If the target processor is NULL (i.e, the thread is not running in his processor)
+    // just enqueue using the helper, else, enqueue to the same processor since we cant let another CPU touch its stack
+    if (NullProc) {
+        bool Queued = MeQueueThreadOnAllowedProcessor(PsGetEThreadFromIThread(Thread), TargetProcessor);
+        assert(Queued, "Failed to queue an awoken thread, semantically impossible");
+    }
+    else {
+        MeEnqueueThreadWithLock(
+            &TargetProcessor->readyQueue,
+            PsGetEThreadFromIThread(Thread)
+        );
+    }
+
+    if (!NullProc) {
+        // Request preemption only when activeprocessor is non null
+        // because doing it for both paths will result it in being called twice when NullProc == true
+        // since MeQueue calls preemption too.
+        MeRequestPreemption(TargetProcessor);
+    }
 }
 
 // Does not acquire lock.
