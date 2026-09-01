@@ -408,14 +408,10 @@ MeGetProcessorBlock(
 {
 	if (!smpInitialized) return &cpu0;
 
-	// SMP Is on, we iterate over the cpus list until we find the lapic for the processor.
-	for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
-		if (cpus[i].ID == ProcessorNumber) return &cpus[i];
-	}
+	assert(ProcessorNumber < MeGetActiveProcessorCount());
 
-	// The CPU isn't found, we return the current one.
-	assert(false, "Inputted wrong INDEX ID of target processor.");
-	return MeGetCurrentProcessor();
+	// prepare_percpu gurantees that cpus is by order of ID. (cpus[i].ID == i)
+	return &cpus[ProcessorNumber];
 }
 
 void MhSpinAndProcessIpis(void)

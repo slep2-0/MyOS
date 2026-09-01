@@ -58,6 +58,7 @@ typedef struct _READY_QUEUE {
 	DOUBLY_LINKED_LIST ListHead;
 	SPINLOCK Lock;
 	PPROCESSOR OwnerProcessor;
+	uint32_t ThreadCount; // Used for load balancing, protected by the same Lock as ListHead
 } READY_QUEUE, *PREADY_QUEUE;
 
 STATIC_ASSERT(sizeof(THREAD_PRIORITY) == 1, "THREAD_PRIORITY must be one byte.");
@@ -951,6 +952,26 @@ MepMigrateReadyThread(
 	PETHREAD Thread,
 	PPROCESSOR Source,
 	PPROCESSOR Destination
+);
+
+PPROCESSOR
+MepSelectLeastLoadedAllowedProcessor(
+	IN PITHREAD Thread,
+	IN PPROCESSOR PreferredProcessor
+);
+
+void
+MepAcquireOrderedReadyQueueLocks(
+	IN PPROCESSOR ProcessorA,
+	IN PPROCESSOR ProcessorB,
+	OUT PIRQL OldIrql
+);
+
+void
+MepReleaseOrderedReadyQueueLocks(
+	IN PPROCESSOR ProcessorA,
+	IN PPROCESSOR ProcessorB,
+	IN IRQL OldIrql
 );
 
 void

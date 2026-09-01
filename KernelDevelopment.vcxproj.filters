@@ -484,6 +484,7 @@
     <ClCompile Include="usermode\tests\processChild\main.c" />
     <ClCompile Include="usermode\tests\processTest\main.c" />
     <ClCompile Include="kernel\core\me\affinity.c" />
+    <ClCompile Include="kernel\core\me\balancing.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />

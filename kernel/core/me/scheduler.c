@@ -93,11 +93,8 @@ void InitScheduler(void)
     PsInitialSystemProcess.NumThreads++; // Maintain accurate thread count
     MsReleasePushLockExclusive(&PsInitialSystemProcess.ThreadListLock);
 
-    // Reset Scheduler state
     // We do NOT call MeEnqueueThread here, the idle thread remains outside the ready queue.
     MeGetCurrentProcessor()->currentThread = NULL;
-    InitializeListHead(&MeGetCurrentProcessor()->readyQueue.ListHead);
-    MeGetCurrentProcessor()->readyQueue.Lock.locked = 0;
 }
 
 // Enqueue the thread if it's still RUNNING.
@@ -160,150 +157,66 @@ static void enqueue_runnable(PITHREAD t)
 extern uint32_t g_cpuCount; // extern the global cpu count. (gotten from smp)
 extern bool smpInitialized;
 
-static
-inline
-bool
-MepReadyQueueContainsThreadLocked(
-    IN PREADY_QUEUE ReadyQueue,
-    IN PETHREAD Thread
+void
+MepAcquireOrderedReadyQueueLocks(
+    IN PPROCESSOR ProcessorA,
+    IN PPROCESSOR ProcessorB,
+    IN PIRQL OldIrql
 )
-
-/*++
-
-    Routine description:
-
-        Reports whether a thread is present in a ready queue while its lock is held.
-
-    Arguments:
-
-        [IN] ReadyQueue - Ready queue examined while its lock is held.
-        [IN] Thread - Thread affected by the operation.
-
-    Return Values:
-
-        A nonzero value when the reported condition holds, or zero otherwise.
-
---*/
-
 {
-    PDOUBLY_LINKED_LIST ListHead = &ReadyQueue->ListHead;
-    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
-         Entry != ListHead;
-         Entry = Entry->Flink) {
-        if (Entry == &Thread->SchedulerListEntry) return true;
+    assert(ProcessorA && ProcessorB);
+#ifdef DEBUG
+    if (ProcessorA != ProcessorB) {
+        assert(ProcessorA->ID != ProcessorB->ID);
+    }
+#endif
+
+    if (ProcessorA == ProcessorB) {
+        // If both are equal, we can only acquire 1 lock
+        MsAcquireSpinlock(&ProcessorA->readyQueue.Lock, OldIrql);
+        return;
     }
 
-    return false;
+    // Acquire locks by ascending order
+    if (ProcessorA->ID < ProcessorB->ID) {
+        MsAcquireSpinlock(&ProcessorA->readyQueue.Lock, OldIrql);
+        MsAcquireSpinlockAtDpcLevel(&ProcessorB->readyQueue.Lock);
+    }
+    else {
+        MsAcquireSpinlock(&ProcessorB->readyQueue.Lock, OldIrql);
+        MsAcquireSpinlockAtDpcLevel(&ProcessorA->readyQueue.Lock);
+    }
 }
 
-bool
-MepMigrateReadyThread(
-    PETHREAD Thread,
-    PPROCESSOR Source,
-    PPROCESSOR Destination
+void
+MepReleaseOrderedReadyQueueLocks(
+    IN PPROCESSOR ProcessorA,
+    IN PPROCESSOR ProcessorB,
+    IN IRQL OldIrql
 )
-
-/*++
-
-    Routine description : 
-    
-        Performs a ready queue migration on the Destination CPU.
-
-        This is used for load balancing, when 1 CPU readyQueue has too many threads on it, while other CPUs have much lesser.
-
-    Arguments:
-
-        Thread - The thread to migrate to Destination from Source
-        Source - The source processor, that hosts the thread in its readyQueue
-        Destination - The dedstination processor which will host the thread in its readyQueue
-
-    Return Values:
-
-        True if the thread was moved, false otherwise
-
---*/
-
 {
-    if (!Thread || !Source || !Destination) return false;
+    assert(ProcessorA && ProcessorB);
+#ifdef DEBUG
+    if (ProcessorA != ProcessorB) {
+        assert(ProcessorA->ID != ProcessorB->ID);
+    }
+#endif
 
-    // The source CPU must not be the destination CPU
-    if (Source == Destination) return false;
+    if (ProcessorA == ProcessorB) {
+        // If both are equal, we can only release 1 lock
+        MsReleaseSpinlock(&ProcessorA->readyQueue.Lock, OldIrql);
+        return;
+    }
 
-    // Acquire both CPU locks in ascending PROCESSOR.ID order
-    // Small boolean optimization to not calculate the exact same thing later
-    bool AcquireDestinationFirst = false;
-    bool Moved = false;
-
-    IRQL prevIrql;
-    if (Source->ID > Destination->ID) {
-        AcquireDestinationFirst = true;
-        MsAcquireSpinlock(&Destination->readyQueue.Lock, &prevIrql);
-        MsAcquireSpinlockAtDpcLevel(&Source->readyQueue.Lock);
+    // Release in reverse acquisition order
+    if (ProcessorA->ID < ProcessorB->ID) {
+        MsReleaseSpinlockFromDpcLevel(&ProcessorB->readyQueue.Lock);
+        MsReleaseSpinlock(&ProcessorA->readyQueue.Lock, OldIrql);
     }
     else {
-        MsAcquireSpinlock(&Source->readyQueue.Lock, &prevIrql);
-        MsAcquireSpinlockAtDpcLevel(&Destination->readyQueue.Lock);
+        MsReleaseSpinlockFromDpcLevel(&ProcessorA->readyQueue.Lock);
+        MsReleaseSpinlock(&ProcessorB->readyQueue.Lock, OldIrql);
     }
-
-    // Acquire the thread's scheduler lock (by order)
-    MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
-
-    // Do not allow transfer to a destination CPU which doesnt match the affinity mask of the thread
-    if (!MeIsProcessorAllowed(&Thread->InternalThread, Destination)) goto Cleanup;
-
-    // Verify that the Thread is actually linked in the Source ready queue
-    if (!MepReadyQueueContainsThreadLocked(&Source->readyQueue, Thread)) goto Cleanup;
-
-    // To migrate a thread it must not be running or blocking (or terminating).
-    if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY) goto Cleanup;
-
-    // The thread must not be factually running inside of a processor.
-    if (InterlockedLoadAcquire(
-        &Thread->InternalThread.ActiveProcessor
-    ) != NULL) {
-        goto Cleanup;
-    }
-
-    // The thread's ready processor (the cpu which owns his ready queue) must be the source
-    if (InterlockedLoadAcquire(
-        &Thread->InternalThread.ReadyProcessor
-    ) != Source) {
-        goto Cleanup;
-    }
-
-    // Thread is validated, remove it from Source queue and insert it in the Destination
-    if (!MeRemoveThreadFromQueue(&Source->readyQueue.ListHead, Thread)) {
-        assert(false, "readyQueue corruption detected in the current CPU even though it was locked");
-        goto Cleanup;
-    }
-
-    // Thread is validated, and is removed, NULL out readyprocessor
-    // MeEnqueueThread sets its when enqueuing it.
-    InterlockedStoreRelease(&Thread->InternalThread.ReadyProcessor, NULL);
-
-    // Enqueue to dest
-    MeEnqueueThread(&Destination->readyQueue, Thread);
-
-    Moved = true;
-
-Cleanup:
-    // First release scheduler lock
-    MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
-
-    if (AcquireDestinationFirst) {
-        MsReleaseSpinlockFromDpcLevel(&Source->readyQueue.Lock);
-        MsReleaseSpinlock(&Destination->readyQueue.Lock, prevIrql);
-    }
-    else {
-        MsReleaseSpinlockFromDpcLevel(&Destination->readyQueue.Lock);
-        MsReleaseSpinlock(&Source->readyQueue.Lock, prevIrql);
-    }
-
-    if (Moved) {
-        MeRequestPreemption(Destination);
-    }
-
-    return Moved;
 }
 
 bool
@@ -322,74 +235,54 @@ MeQueueThreadOnAllowedProcessor(
         return false;
     }
 
-    // Act on preferredprocessor for now, if it fails down the line then we will just loop.
-    // Acquire lock per order.
-    IRQL prevIrql;
-    MsAcquireSpinlock(&PreferredProcessor->readyQueue.Lock, &prevIrql);
-    MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
+    while (true) {
+        PPROCESSOR Processor = MepSelectLeastLoadedAllowedProcessor(&Thread->InternalThread, PreferredProcessor);
+        if (!Processor) return false;
 
-    // Re-run validity checks again under lock
-    if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY ||
-        InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) != NULL ||
-        InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) != NULL)
-    {
-        // The thread must be ready and have a NULL readyprocessor
-        // this thread, is not.
-        MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
-        MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
-        return false;
-    }
-
-    // Validate that the affinity is good for this processor
-    if (MeIsProcessorAllowed(&Thread->InternalThread, PreferredProcessor)) {
-        // Good, enqueue the thread in.
-        MeEnqueueThread(&PreferredProcessor->readyQueue, Thread);
-
-        // Release the locks and return success.
-        MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
-        MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
-        MeRequestPreemption(PreferredProcessor);
-        return true;
-    }
-
-    // Release both locks in order since we are now looping over each thread
-    MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
-    MsReleaseSpinlock(&PreferredProcessor->readyQueue.Lock, prevIrql);
-
-    // Preferred processor isnt allowed for this thread, loop over all CPUs (excluding preferred).
-    for (uint8_t i = 0; i < MeGetActiveProcessorCount(); i++) {
-        PPROCESSOR Processor = &cpus[i];
-
-        // Acquire both locks in order, validate the thread checks again, then if affinity is good release locks and return
+        // Acquire selected processor lock then ours
+        IRQL prevIrql;
         MsAcquireSpinlock(&Processor->readyQueue.Lock, &prevIrql);
         MsAcquireSpinlockAtDpcLevel(&Thread->InternalThread.SchedulerLock);
 
-        bool IsBadPreferred = Processor == PreferredProcessor;
-        bool ThreadInactiveProcessor = InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) == NULL;
-        bool OnlineProcessor = InterlockedLoadAcquire(&Processor->State) == ProcessorStateOnline;
-        
-        // sorry for inredability
-        bool OkayToQueue = OnlineProcessor && ThreadInactiveProcessor && !IsBadPreferred &&  InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) == THREAD_READY && InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) == NULL && MeIsProcessorAllowed(&Thread->InternalThread, Processor);
-        
-        if (OkayToQueue) {
-            MeEnqueueThread(&Processor->readyQueue, Thread);
+        // Revalidate once again the thread AND processor, since MepSelect returns a snapshot of last lock
+        if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY ||
+            InterlockedLoadAcquire(&Thread->InternalThread.ReadyProcessor) != NULL ||
+            InterlockedLoadAcquire(&Thread->InternalThread.ActiveProcessor) != NULL)
+        {
+            MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+            MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
+            return false;
         }
 
-        // Release both locks (for next iteration or loop over)
+        // If the processor is no longer online, or affinity no longer permits it
+        // then retry the loop to get another least loaded processor.
+        if (InterlockedLoadAcquire(&Processor->State) != ProcessorStateOnline) {
+            MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+            MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
+            continue;
+        }
+
+        // Verify affinity permits this processor
+        if (!MeIsProcessorAllowed(&Thread->InternalThread, Processor)) {
+            MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
+            MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
+            continue;
+        }
+
+        // Enqueue
+        MeEnqueueThread(&Processor->readyQueue, Thread);
+
+        // Release locks
         MsReleaseSpinlockFromDpcLevel(&Thread->InternalThread.SchedulerLock);
         MsReleaseSpinlock(&Processor->readyQueue.Lock, prevIrql);
 
-        // If we enqueued, ask that processor to reevaluate and return.
-        if (OkayToQueue) {
-            MeRequestPreemption(Processor);
-            return true;
-        }
-    }
+        // Request preemption on remote processor
+        // since new inserted thread could be of higher priority.
+        MeRequestPreemption(Processor);
 
-    // If we haven't found a suitable CPU then false must be returned
-    // though, this is quite literally impossible with standard guards in place
-    assert(false, "A Thread has not been found to enqueue in affinity masks");
-    return false;
+        // All good now
+        return true;
+    }
 }
 
 // The following function uses CPU Work stealing to steal other CPUs thread (in a queue), if the current thread has no scheduled threads in the queue.
@@ -649,6 +542,7 @@ MepEnqueueReadyThreadLocked(
     if (IsListEmpty(&ReadyQueue->ListHead)) {
         // Just insert us into the list, it is empty.
         InsertTailList(&ReadyQueue->ListHead, &Thread->SchedulerListEntry);
+        ReadyQueue->ThreadCount++;
         InterlockedStoreRelease(
             &Thread->InternalThread.ReadyProcessor,
             ReadyQueue->OwnerProcessor
@@ -674,6 +568,7 @@ MepEnqueueReadyThreadLocked(
 
         // Entry is the first lower-priority thread, insert before it.
         InsertTailList(Entry, &Thread->SchedulerListEntry);
+        ReadyQueue->ThreadCount++;
         InterlockedStoreRelease(
             &Thread->InternalThread.ReadyProcessor,
             ReadyQueue->OwnerProcessor
@@ -684,6 +579,7 @@ MepEnqueueReadyThreadLocked(
     // We are the lowest priority, or queue contains only equal priorities
     // just insert us at the end.
     InsertTailList(ListHead, &Thread->SchedulerListEntry);
+    ReadyQueue->ThreadCount++;
     InterlockedStoreRelease(
         &Thread->InternalThread.ReadyProcessor,
         ReadyQueue->OwnerProcessor

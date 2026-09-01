@@ -154,6 +154,7 @@ def _run_one(
 
     required = [
         "MT-AFFINITY VALIDATION PASS",
+        "MT-AFFINITY READY COUNT PASS",
         "MT-AFFINITY BLOCKED PASS",
         "MT-AFFINITY TIMER PASS",
         "MT-AFFINITY BLOCKING TRANSITION PASS",

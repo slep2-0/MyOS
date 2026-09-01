@@ -70,7 +70,12 @@ MeSetThreadBasePriority(
 
             // Move the thread in the queue if the old priority isnt the same as the new one
             if (OldEffectivePriority != NewPriority) {
+                assert(
+                    Processor->readyQueue.ThreadCount > 0,
+                    "Ready queue count underflow while reordering priority"
+                );
                 RemoveEntryList(&Thread->SchedulerListEntry);
+                Processor->readyQueue.ThreadCount--;
 
                 // The thread is temporarily in no ready queue, so publish a NULL ready processor.
                 // MeEnqueueThread republishes the processor after linking it again.
@@ -221,7 +226,12 @@ MeBoostThread(
 
             // Move the thread in the queue if the old priority isnt the same as the new one
             if (OldEffectivePriority != NewPriority) {
+                assert(
+                    Processor->readyQueue.ThreadCount > 0,
+                    "Ready queue count underflow while reordering boosted thread"
+                );
                 RemoveEntryList(&PsGetEThreadFromIThread(Thread)->SchedulerListEntry);
+                Processor->readyQueue.ThreadCount--;
 
                 // The thread is temporarily in no ready queue, so publish a NULL ready processor.
                 // MeEnqueueThread republishes the processor after linking it again.

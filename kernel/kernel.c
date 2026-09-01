@@ -15116,7 +15116,7 @@ StressPriorityTestReadyMutation(void)
     }
 
     bool Removed = MeRemoveThreadFromQueue(
-        &Processor->readyQueue.ListHead,
+        &Processor->readyQueue,
         Target
     );
     if (Removed) {
@@ -15495,6 +15495,8 @@ StressPriorityController(void)
 
 #if MT_STRESS_MODE == MT_STRESS_MODE_AFFINITY
 #define STRESS_AFFINITY_TRANSITION_ROUNDS 64U
+#define STRESS_AFFINITY_QUEUE_SCAN_LIMIT 4096U
+#define STRESS_AFFINITY_READY_COUNT_THREAD_COUNT 3U
 
 typedef enum _STRESS_AFFINITY_FAILURE {
     StressAffinityUnexpectedStatus = 1,
@@ -15504,8 +15506,14 @@ typedef enum _STRESS_AFFINITY_FAILURE {
     StressAffinityOwnershipMismatch,
     StressAffinityProtocolTimeout,
     StressAffinityIpiMissing,
-    StressAffinityPreemptionDelay
+    StressAffinityPreemptionDelay,
+    StressAffinityReadyQueueCountMismatch,
+    StressAffinityReadyQueueTopology
 } STRESS_AFFINITY_FAILURE;
+
+static ETHREAD StressAffinityReadyCountThreads[
+    STRESS_AFFINITY_READY_COUNT_THREAD_COUNT
+];
 
 typedef struct _STRESS_AFFINITY_RUN_CONTEXT {
     EVENT Gate;
@@ -15566,6 +15574,171 @@ StressAffinityRequireStatus(
             (void*)(uintptr_t)Actual
         );
     }
+}
+
+static void
+StressAffinityValidateReadyQueueCount(
+    PREADY_QUEUE Queue,
+    void* Detail
+)
+{
+    if (!Queue) {
+        StressAffinityBugCheck(
+            StressAffinityReadyQueueTopology,
+            Detail,
+            NULL
+        );
+    }
+
+    uint32_t ObservedCount = 0;
+    uint32_t RecordedCount = 0;
+    bool TopologyValid = true;
+
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Queue->Lock, &OldIrql);
+
+    PDOUBLY_LINKED_LIST ListHead = &Queue->ListHead;
+    PDOUBLY_LINKED_LIST Previous = ListHead;
+    PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
+    if (!Entry || !ListHead->Blink) {
+        TopologyValid = false;
+    }
+
+    while (TopologyValid && Entry != ListHead) {
+        if (!Entry ||
+            !Entry->Flink ||
+            !Entry->Blink ||
+            Entry->Blink != Previous ||
+            Entry->Flink->Blink != Entry ||
+            ObservedCount >= STRESS_AFFINITY_QUEUE_SCAN_LIMIT) {
+            TopologyValid = false;
+            break;
+        }
+
+        ObservedCount++;
+        Previous = Entry;
+        Entry = Entry->Flink;
+    }
+
+    if (TopologyValid &&
+        (Previous != ListHead->Blink || ListHead->Blink->Flink != ListHead)) {
+        TopologyValid = false;
+    }
+
+    RecordedCount = Queue->ThreadCount;
+    MsReleaseSpinlock(&Queue->Lock, OldIrql);
+
+    if (!TopologyValid) {
+        StressAffinityBugCheck(
+            StressAffinityReadyQueueTopology,
+            Detail,
+            Queue
+        );
+    }
+
+    if (ObservedCount != RecordedCount) {
+        uint64_t Counts =
+            ((uint64_t)RecordedCount << 32) | ObservedCount;
+        StressAffinityBugCheck(
+            StressAffinityReadyQueueCountMismatch,
+            Detail,
+            (void*)(uintptr_t)Counts
+        );
+    }
+}
+
+static void
+StressAffinityTestReadyQueueCount(void)
+{
+    READY_QUEUE Queue = { 0 };
+    InitializeListHead(&Queue.ListHead);
+    Queue.Lock.locked = 0;
+    Queue.OwnerProcessor = MeGetCurrentProcessor();
+
+    kmemset(
+        StressAffinityReadyCountThreads,
+        0,
+        sizeof(StressAffinityReadyCountThreads)
+    );
+
+    for (uint32_t Index = 0;
+         Index < STRESS_AFFINITY_READY_COUNT_THREAD_COUNT;
+         Index++) {
+        PETHREAD Thread = &StressAffinityReadyCountThreads[Index];
+        InitializeListHead(&Thread->SchedulerListEntry);
+        Thread->InternalThread.SchedulerLock.locked = 0;
+        Thread->InternalThread.BasePriority =
+            (THREAD_PRIORITY)(MT_PRIORITY_NORMAL + Index);
+        Thread->InternalThread.Priority =
+            Thread->InternalThread.BasePriority;
+        Thread->InternalThread.ThreadState = THREAD_READY;
+        Thread->InternalThread.AllowedProcessorMask =
+            1u << Queue.OwnerProcessor->ID;
+
+        MeEnqueueThreadWithLock(&Queue, Thread);
+        StressAffinityValidateReadyQueueCount(
+            &Queue,
+            (void*)(uintptr_t)(0xA060U + Index)
+        );
+    }
+
+    PETHREAD RemovedThread = &StressAffinityReadyCountThreads[1];
+    IRQL OldIrql;
+    MsAcquireSpinlock(&Queue.Lock, &OldIrql);
+    MsAcquireSpinlockAtDpcLevel(
+        &RemovedThread->InternalThread.SchedulerLock
+    );
+    bool Removed = MeRemoveThreadFromQueue(&Queue, RemovedThread);
+    if (Removed) {
+        InterlockedStoreRelease(
+            &RemovedThread->InternalThread.ReadyProcessor,
+            NULL
+        );
+    }
+    MsReleaseSpinlockFromDpcLevel(
+        &RemovedThread->InternalThread.SchedulerLock
+    );
+    MsReleaseSpinlock(&Queue.Lock, OldIrql);
+
+    if (!Removed) {
+        StressAffinityBugCheck(
+            StressAffinityOwnershipMismatch,
+            (void*)0xA063,
+            RemovedThread
+        );
+    }
+    StressAffinityValidateReadyQueueCount(&Queue, (void*)0xA064);
+
+    for (uint32_t Index = 0;
+         Index < STRESS_AFFINITY_READY_COUNT_THREAD_COUNT - 1U;
+         Index++) {
+        PETHREAD Thread = MeDequeueThreadWithLock(&Queue);
+        if (!Thread ||
+            InterlockedLoadAcquire(
+                &Thread->InternalThread.ReadyProcessor
+            ) != NULL) {
+            StressAffinityBugCheck(
+                StressAffinityOwnershipMismatch,
+                (void*)(uintptr_t)(0xA065U + Index),
+                Thread
+            );
+        }
+
+        StressAffinityValidateReadyQueueCount(
+            &Queue,
+            (void*)(uintptr_t)(0xA067U + Index)
+        );
+    }
+
+    if (MeDequeueThreadWithLock(&Queue) != NULL) {
+        StressAffinityBugCheck(
+            StressAffinityReadyQueueCountMismatch,
+            (void*)0xA069,
+            &Queue
+        );
+    }
+    StressAffinityValidateReadyQueueCount(&Queue, (void*)0xA06A);
+    StressAutomationWriteText("MT-AFFINITY READY COUNT PASS\n");
 }
 
 static void
@@ -15902,6 +16075,14 @@ StressAffinityTestReadyMigration(
         ),
         MT_SUCCESS,
         (void*)0xA023
+    );
+    StressAffinityValidateReadyQueueCount(
+        &Source->readyQueue,
+        (void*)0xA027
+    );
+    StressAffinityValidateReadyQueueCount(
+        &Destination->readyQueue,
+        (void*)0xA028
     );
     MeLowerIrql(OldIrql);
 
@@ -16265,6 +16446,7 @@ StressAffinityController(void)
     );
 
     StressAffinityTestValidation();
+    StressAffinityTestReadyQueueCount();
     StressAffinityTestReadyMigration(
         ControllerProcessor,
         RemoteProcessor
@@ -16278,6 +16460,15 @@ StressAffinityController(void)
         ControllerProcessor,
         RemoteProcessor
     );
+
+    for (uint32_t Index = 0;
+         Index < MeGetActiveProcessorCount();
+         Index++) {
+        StressAffinityValidateReadyQueueCount(
+            &MeGetProcessorBlock((uint8_t)Index)->readyQueue,
+            (void*)(uintptr_t)(0xA600U + Index)
+        );
+    }
 
     uint32_t PreviousMask = UINT32_MAX;
     StressAffinityRequireStatus(

@@ -66,6 +66,7 @@
     <ClCompile Include="kernel\core\me\affinity.c" />
     <ClCompile Include="kernel\core\me\apc.c" />
     <ClCompile Include="kernel\core\me\attach.c" />
+    <ClCompile Include="kernel\core\me\balancing.c" />
     <ClCompile Include="kernel\core\me\bugcheck.c" />
     <ClCompile Include="kernel\core\me\dpc.c" />
     <ClCompile Include="kernel\core\me\irql.c" />
