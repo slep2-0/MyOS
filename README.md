@@ -31,6 +31,8 @@ This branch represents a major rewrite compared with the previous `master` snaps
 - x86-64 UEFI boot with a custom bootloader and GOP framebuffer console.
 - ACPI discovery, Local APIC initialization, timer interrupts and SMP startup.
 - Preemptive per-CPU scheduling, context switching, IRQLs, software interrupts, IPIs, DPCs and APCs.
+- Priority-ordered READY queues spanning idle, variable and real-time priorities, with temporary wake boosts and timer-driven decay.
+- Enforced thread affinity across running, ready, blocked and initialization transitions, including remote rescheduling.
 - Explicit switched-away kernel-stack ownership and deliberate migration of READY threads between processor queues.
 - Spin locks, blocking push locks and interlocked primitives used across SMP paths.
 - Fatal bugchecks with processor, thread, CR3, IRQL and stack diagnostics.
@@ -172,6 +174,8 @@ py -3 tools\windows\stress_loader.py --configuration Debug --cpus 1,4
 py -3 tools\windows\stress_tls.py --configuration Debug --cpus 1,4
 py -3 tools\windows\stress_exception_chain.py --configuration Debug --cpus 1,4
 py -3 tools\windows\stress_process.py --configuration Debug --cpus 1,4
+py -3 tools\windows\stress_priority.py --configuration Debug --cpus 1,4
+py -3 tools\windows\stress_affinity.py --configuration Debug --cpus 1,4
 ```
 
 These are development gates, not a claim that the OS is production-ready. Hardware support is intentionally narrow, many interfaces are still unstable, and QEMU remains the primary qualification environment.
@@ -205,7 +209,7 @@ This major integration was prepared on **August 20, 2026**, after approximately 
 
 ## What Comes Next
 
-The immediate direction after this milestone is scheduler policy: priorities, enforced CPU affinity and automatic load balancing built on the READY-thread migration foundation. Longer-term work includes multiple-object waits, broader filesystem behavior, kernel-mode unwind support, networking, graphics and the user-facing environment needed to make MatanelOS useful beyond a kernel laboratory.
+The current development focus is the Object Manager namespace: hierarchical object directories, named executive objects, symbolic links and race-safe name/handle lifetime. Longer-term work includes multiple-object waits, broader filesystem behavior, kernel-mode unwind support, networking, graphics and the user-facing environment needed to make MatanelOS useful beyond a kernel laboratory.
 
 ## Why I Am Building It
 
