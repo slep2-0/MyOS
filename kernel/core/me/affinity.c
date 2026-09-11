@@ -108,28 +108,12 @@ MeSetThreadAffinityMask(
 
             // Ready-queue locks are globally ordered by processor ID. The
             // thread SchedulerLock is always acquired after both queue locks.
-            bool AcquireSourceFirst =
-                SourceProcessor->ID < DestinationProcessor->ID;
             IRQL FirstQueueIrql;
-
-            if (AcquireSourceFirst) {
-                MsAcquireSpinlock(
-                    &SourceProcessor->readyQueue.Lock,
-                    &FirstQueueIrql
-                );
-                MsAcquireSpinlockAtDpcLevel(
-                    &DestinationProcessor->readyQueue.Lock
-                );
-            }
-            else {
-                MsAcquireSpinlock(
-                    &DestinationProcessor->readyQueue.Lock,
-                    &FirstQueueIrql
-                );
-                MsAcquireSpinlockAtDpcLevel(
-                    &SourceProcessor->readyQueue.Lock
-                );
-            }
+            MepAcquireOrderedReadyQueueLocks(
+                SourceProcessor,
+                DestinationProcessor,
+                &FirstQueueIrql
+            );
 
             MsAcquireSpinlockAtDpcLevel(&Thread->SchedulerLock);
 
@@ -146,7 +130,7 @@ MeSetThreadAffinityMask(
 
             if (ValidTransaction) {
                 bool Removed = MeRemoveThreadFromQueue(
-                    &SourceProcessor->readyQueue.ListHead,
+                    &SourceProcessor->readyQueue,
                     EThread
                 );
                 assert(Removed, "Validated READY thread disappeared from its source queue");
@@ -163,25 +147,11 @@ MeSetThreadAffinityMask(
             }
 
             MsReleaseSpinlockFromDpcLevel(&Thread->SchedulerLock);
-
-            if (AcquireSourceFirst) {
-                MsReleaseSpinlockFromDpcLevel(
-                    &DestinationProcessor->readyQueue.Lock
-                );
-                MsReleaseSpinlock(
-                    &SourceProcessor->readyQueue.Lock,
-                    FirstQueueIrql
-                );
-            }
-            else {
-                MsReleaseSpinlockFromDpcLevel(
-                    &SourceProcessor->readyQueue.Lock
-                );
-                MsReleaseSpinlock(
-                    &DestinationProcessor->readyQueue.Lock,
-                    FirstQueueIrql
-                );
-            }
+            MepReleaseOrderedReadyQueueLocks(
+                SourceProcessor,
+                DestinationProcessor,
+                FirstQueueIrql
+            );
 
             if (!ValidTransaction) {
                 continue;

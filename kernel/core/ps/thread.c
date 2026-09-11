@@ -561,7 +561,18 @@ PsCreateThread(
     bool HasMainThread = ParentProcess->MainThread != NULL;
     MsReleasePushLockShared(&ParentProcess->ThreadListLock);
 
+    // If you supplied a main thread parameter and the process already has one, thats an invalid parameter (true == true)
+    // If you did not supply a main thread parameter AND the process DOES NOT have a main thread in it
+    // that is an invalid parameter by itself, but since this is the initial process creation (since PsCreateProcess calls PsCreateThread for its main thread)
+    // it causes the process to terminate.
     if (IsMainThread == HasMainThread) {
+        
+#ifdef DEBUG
+        if (IsMainThread == false && HasMainThread == false) {
+            assert(false, "Process creation supplied no main thread parameters, even though it is the first thread of the process");
+        }
+#endif
+
         Status = IsMainThread ? MT_INVALID_PARAM : MT_PROCESS_IS_TERMINATING;
         goto Cleanup;
     }

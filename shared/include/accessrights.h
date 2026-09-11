@@ -58,6 +58,13 @@
 // All valid section rights
 #define MT_SECTION_ALL_ACCESS        0x003F
 
+/* Object directory rights */
+#define MT_DIRECTORY_ALL_ACCESS      0x000F
+
+/* Symbolic-link rights */
+#define MT_SYMBOLIC_LINK_QUERY       0x0001
+#define MT_SYMBOLIC_LINK_ALL_ACCESS  MT_SYMBOLIC_LINK_QUERY
+
 /* File and directory rights */
 #define MT_FILE_READ_DATA            0x0001
 #define MT_FILE_LIST_DIRECTORY       0x0001

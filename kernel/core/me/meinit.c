@@ -257,6 +257,7 @@ MeInitializeProcessor(
     CPU->DeferredAffinityThread = NULL;
     InitializeListHead(&CPU->readyQueue.ListHead);
     CPU->readyQueue.Lock.locked = 0;
+    CPU->readyQueue.ThreadCount = 0;
     // Initialize the DPC Lock & list head.
     CPU->DpcData.DpcLock.locked = 0;
     InitializeListHead(&CPU->DpcData.DpcListHead);

@@ -58,6 +58,7 @@ typedef struct _READY_QUEUE {
 	DOUBLY_LINKED_LIST ListHead;
 	SPINLOCK Lock;
 	PPROCESSOR OwnerProcessor;
+	uint32_t ThreadCount; // Used for load balancing, protected by the same Lock as ListHead
 } READY_QUEUE, *PREADY_QUEUE;
 
 STATIC_ASSERT(sizeof(THREAD_PRIORITY) == 1, "THREAD_PRIORITY must be one byte.");
@@ -165,6 +166,8 @@ typedef enum _BUGCHECK_CODES {
 	SMP_SYNCHRONIZATION_TIMEOUT,
 	WRONG_DISPATCHER_HEADER,
 	SEMAPHORE_LIMIT_REACHED,
+	OBJECT_INITIALIZATION_FAILED,
+	OBJECT_PARSE_CONTRACT_VIOLATION, // P1: object type, P2: parse object, P3: returned status, P4: OB_PARSE_RESULT.
 } BUGCHECK_CODES;
 
 // ------------------ STRUCTURES ------------------
@@ -951,6 +954,26 @@ MepMigrateReadyThread(
 	PETHREAD Thread,
 	PPROCESSOR Source,
 	PPROCESSOR Destination
+);
+
+PPROCESSOR
+MepSelectLeastLoadedAllowedProcessor(
+	IN PITHREAD Thread,
+	IN PPROCESSOR PreferredProcessor
+);
+
+void
+MepAcquireOrderedReadyQueueLocks(
+	IN PPROCESSOR ProcessorA,
+	IN PPROCESSOR ProcessorB,
+	OUT PIRQL OldIrql
+);
+
+void
+MepReleaseOrderedReadyQueueLocks(
+	IN PPROCESSOR ProcessorA,
+	IN PPROCESSOR ProcessorB,
+	IN IRQL OldIrql
 );
 
 void

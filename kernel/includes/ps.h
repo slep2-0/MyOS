@@ -29,6 +29,7 @@ Revision History:
 #include "ob.h"
 #include "core.h"
 #include "mt.h"
+#include "../assert.h"
 #include "../../shared/include/accessrights.h"
 
 // Exception Includes
@@ -402,7 +403,9 @@ MeDequeueThreadWithLock(
         &Thread->InternalThread.SchedulerLock
     );
 
+    assert(Queue->ThreadCount > 0, "Underflow assertion for queue thread count");
     RemoveEntryList(Entry);
+    Queue->ThreadCount--;
 
     InterlockedStoreRelease(
         &Thread->InternalThread.ReadyProcessor,
@@ -431,36 +434,26 @@ MeEnqueueThread(
 FORCEINLINE
 bool
 MeRemoveThreadFromQueue(
-    PDOUBLY_LINKED_LIST Queue,
+    PREADY_QUEUE Queue,
     PETHREAD Thread
 )
 {
     if (!Queue || !Thread) return false;
 
+    PDOUBLY_LINKED_LIST ListHead = &Queue->ListHead;
     PDOUBLY_LINKED_LIST Target = &Thread->SchedulerListEntry;
-    for (PDOUBLY_LINKED_LIST Entry = Queue->Flink;
-         Entry != Queue;
+    for (PDOUBLY_LINKED_LIST Entry = ListHead->Flink;
+         Entry != ListHead;
          Entry = Entry->Flink) {
         if (Entry != Target) continue;
 
+        assert(Queue->ThreadCount > 0, "Underflow assertion when removing thread from queue");
         RemoveEntryList(Entry);
+        Queue->ThreadCount--;
         return true;
     }
 
     return false;
 }
 
-// Dequeues the head thread from the queue (No Lock).
-FORCEINLINE
-PETHREAD
-MeDequeueThread(
-    PDOUBLY_LINKED_LIST Queue
-)
-{
-    PDOUBLY_LINKED_LIST Entry = RemoveHeadList(Queue);
-    if (!Entry) return NULL;
-
-    InitializeListHead(Entry);
-    return CONTAINING_RECORD(Entry, ETHREAD, SchedulerListEntry);
-}
 #endif

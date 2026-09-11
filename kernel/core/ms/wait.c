@@ -476,6 +476,7 @@ MsDelayExecution(
         // A zero interval is a scheduling yield, not a timer-backed wait.
         if (WaitMode == UserMode && CurrentThread->SyscallTrap != NULL) {
             MtpScheduleBlockedSyscall(CurrentThread, MT_SUCCESS);
+            /* noreturn */
         }
 
         MsYieldExecution(&CurrentThread->TrapRegisters);

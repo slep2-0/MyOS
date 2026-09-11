@@ -144,7 +144,13 @@
     <ClCompile Include="kernel\core\mt\systemcalls.c">
       <Filter>Kernel</Filter>
     </ClCompile>
-    <ClCompile Include="kernel\core\ob\ob.c">
+    <ClCompile Include="kernel\core\ob\create.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ob\directory.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\core\ob\symboliclink.c">
       <Filter>Kernel</Filter>
     </ClCompile>
     <ClCompile Include="kernel\core\ps\cid.c">
@@ -437,7 +443,9 @@
     <ClCompile Include="kernel\core\mt\handler.c" />
     <ClCompile Include="kernel\core\mt\setup.c" />
     <ClCompile Include="kernel\core\mt\systemcalls.c" />
-    <ClCompile Include="kernel\core\ob\ob.c" />
+    <ClCompile Include="kernel\core\ob\create.c" />
+    <ClCompile Include="kernel\core\ob\directory.c" />
+    <ClCompile Include="kernel\core\ob\symboliclink.c" />
     <ClCompile Include="kernel\core\ps\cid.c" />
     <ClCompile Include="kernel\core\ps\process.c" />
     <ClCompile Include="kernel\core\ps\psmgr.c" />
@@ -449,6 +457,8 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="tests\kernel\ob_namespace.c" />
+    <ClCompile Include="tests\kernel\stress.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\dllmain.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\exception.c" />
@@ -463,27 +473,28 @@
     <ClCompile Include="usermode\programs\dlls\mtdll\thread.c" />
     <ClCompile Include="usermode\programs\exes\terminateMyself\main.c" />
     <ClCompile Include="kernel\core\me\suspend.c" />
-    <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
-    <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
+    <ClCompile Include="tests\usermode\exceptionChainTest\main.c" />
+    <ClCompile Include="tests\usermode\mtdll\exception_chain.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\heap.c" />
     <ClCompile Include="usermode\crt0.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\dllldr.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\ldr\tlsapi.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\loader.c" />
-    <ClCompile Include="usermode\tests\heapTest\main.c" />
-    <ClCompile Include="usermode\tests\loaderDynamicTlsDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderFailDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderFailTlsDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderGoodDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderNoEntryDll\module.c" />
-    <ClCompile Include="usermode\tests\loaderTest\main.c" />
-    <ClCompile Include="usermode\tests\loaderTlsDll\module.c" />
-    <ClCompile Include="usermode\tests\mtdll\loader.c" />
-    <ClCompile Include="usermode\tests\tlsTest\main.c" />
+    <ClCompile Include="tests\usermode\heapTest\main.c" />
+    <ClCompile Include="tests\usermode\loaderDynamicTlsDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderFailDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderFailTlsDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderGoodDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderNoEntryDll\module.c" />
+    <ClCompile Include="tests\usermode\loaderTest\main.c" />
+    <ClCompile Include="tests\usermode\loaderTlsDll\module.c" />
+    <ClCompile Include="tests\usermode\mtdll\loader.c" />
+    <ClCompile Include="tests\usermode\tlsTest\main.c" />
     <ClCompile Include="kernel\core\me\priority.c" />
-    <ClCompile Include="usermode\tests\processChild\main.c" />
-    <ClCompile Include="usermode\tests\processTest\main.c" />
+    <ClCompile Include="tests\usermode\processChild\main.c" />
+    <ClCompile Include="tests\usermode\processTest\main.c" />
     <ClCompile Include="kernel\core\me\affinity.c" />
+    <ClCompile Include="kernel\core\me\balancing.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -545,16 +556,18 @@
     <ClInclude Include="usermode\programs\dlls\mtdll\includes\synchapi.h" />
     <ClInclude Include="shared\include\mtexception.h" />
     <ClInclude Include="shared\include\mtlanguage.h" />
-    <ClInclude Include="usermode\tests\exception_chain_test.h" />
+    <ClInclude Include="tests\kernel\ob_namespace.h" />
+    <ClInclude Include="tests\kernel\stress.h" />
+    <ClInclude Include="tests\usermode\exception_chain_test.h" />
     <ClInclude Include="shared\include\heapapi.h" />
     <ClInclude Include="shared\include\fileapi.h" />
     <ClInclude Include="shared\include\libloaderapi.h" />
-    <ClInclude Include="usermode\tests\heap_test.h" />
-    <ClInclude Include="usermode\tests\loader_fixture.h" />
-    <ClInclude Include="usermode\tests\loader_test.h" />
-    <ClInclude Include="usermode\tests\tls_fixture.h" />
-    <ClInclude Include="usermode\tests\tls_test.h" />
-    <ClInclude Include="usermode\tests\process_test.h" />
+    <ClInclude Include="tests\usermode\heap_test.h" />
+    <ClInclude Include="tests\usermode\loader_fixture.h" />
+    <ClInclude Include="tests\usermode\loader_test.h" />
+    <ClInclude Include="tests\usermode\tls_fixture.h" />
+    <ClInclude Include="tests\usermode\tls_test.h" />
+    <ClInclude Include="tests\usermode\process_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="kernel\core\me\context.asm" />
@@ -576,7 +589,7 @@
     <None Include="usermode\syscalls\syscalls.asm" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
-    <None Include="usermode\tests\mtdll\language_context.asm" />
+    <None Include="tests\usermode\mtdll\language_context.asm" />
     <None Include="tools\windows\routine_docs.py" />
     <None Include="tools\windows\stress_heap.py" />
     <None Include="tools\windows\stress_loader.py" />

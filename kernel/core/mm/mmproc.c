@@ -94,6 +94,8 @@ MiCreateKernelStack(
     PMMPTE GuardPte = MiGetPtePointer(BaseVa);
 
     if (!GuardPte) {
+
+#ifdef DEBUG
         // Now, I could continue and just not mark the GuardPte as a guard page, as it is only used in bugcheck
         // debugging, but I want to make my debugging life easier.
         // I don't even have a stable kernel debugger, so excuse me for the horrifying line im about to put below.
@@ -103,6 +105,8 @@ MiCreateKernelStack(
             (void*)TotalSize,
             (void*)123432 /* special identifier for manually initiated crash to know its here */
         );
+#endif
+
         // If the bugcheck is ever removed, it would be a failure.
         failure = true;
 

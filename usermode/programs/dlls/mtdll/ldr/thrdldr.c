@@ -6,7 +6,7 @@ Module Name:
 
 Purpose:
 
-    This translation unit contains the implementation of loading threads into the current process, including its main thread.s
+    This translation unit contains the implementation of loading threads into the current process, including its main thread.
 
 Author:
 

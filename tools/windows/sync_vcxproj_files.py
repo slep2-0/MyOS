@@ -31,7 +31,7 @@ def _collect() -> tuple[list[Path], list[Path], list[Path]]:
     include_items: set[Path] = set()
     none_items: set[Path] = set()
 
-    for tree_name in ("kernel", "usermode", "shared"):
+    for tree_name in ("kernel", "usermode", "shared", "tests"):
         tree = ROOT / tree_name
         for path in tree.rglob("*"):
             if not path.is_file() or not _allowed(path):

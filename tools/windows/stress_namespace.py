@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and run the isolated scheduler-affinity gate."""
+"""Build and run the isolated Object Manager namespace gate."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def _build(configuration: str, jobs: int) -> Path:
             "--configuration",
             configuration,
             "--stress-mode",
-            "affinity",
+            "namespace",
             "--jobs",
             str(jobs),
         ],
@@ -63,7 +63,7 @@ def _build(configuration: str, jobs: int) -> Path:
         check=False,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"affinity build failed with exit code {result.returncode}")
+        raise RuntimeError(f"namespace build failed with exit code {result.returncode}")
 
     image = BUILD_ROOT / configuration.lower() / "matanelos.img"
     if not image.is_file():
@@ -96,7 +96,7 @@ def _run_one(
     timeout_seconds: int,
 ) -> float:
     output_directory.mkdir(parents=True, exist_ok=True)
-    stem = f"affinity_{cpu_count}cpu"
+    stem = f"namespace_{cpu_count}cpu"
     debug_log = output_directory / f"{stem}.debug.txt"
     qemu_output = output_directory / f"{stem}.qemu.txt"
     runtime_variables = output_directory / f"{stem}.vars.fd"
@@ -141,7 +141,7 @@ def _run_one(
     except subprocess.TimeoutExpired as exc:
         qemu_output.write_text(exc.stdout or "", encoding="utf-8")
         raise RuntimeError(
-            f"affinity {cpu_count}-CPU run timed out after {timeout_seconds}s; "
+            f"namespace {cpu_count}-CPU run timed out after {timeout_seconds}s; "
             f"see {debug_log} and {qemu_output}"
         ) from exc
     finally:
@@ -153,36 +153,24 @@ def _run_one(
         if debug_log.is_file() else ""
 
     required = [
-        "MT-AFFINITY VALIDATION PASS",
-        "MT-AFFINITY READY COUNT PASS",
-        "MT-AFFINITY BLOCKED PASS",
-        "MT-AFFINITY TIMER PASS",
-        "MT-AFFINITY BLOCKING TRANSITION PASS",
-        "MT-AFFINITY RUNTIME PASS",
-        "MT-STRESS PASS AFFINITY",
+        "MT-NAMESPACE CREATE PASS",
+        "MT-NAMESPACE LOOKUP PASS",
+        "MT-NAMESPACE REPARSE PASS",
+        "MT-NAMESPACE FAILURE PASS",
+        "MT-NAMESPACE RUNTIME PASS",
+        "MT-STRESS PASS NAMESPACE",
     ]
-    if cpu_count == 1:
-        required.extend([
-            "MT-AFFINITY READY SKIP",
-            "MT-AFFINITY RUNNING SKIP",
-        ])
-    else:
-        required.extend([
-            "MT-AFFINITY READY PASS",
-            "MT-AFFINITY RUNNING PASS",
-        ])
-
     missing = [marker for marker in required if marker not in debug_text]
     if result.returncode != PASS_EXIT_CODE or missing:
         markers = [
             line for line in debug_text.splitlines()
-            if line.startswith("MT-AFFINITY") or
+            if line.startswith("MT-NAMESPACE") or
                line.startswith("MT-STRESS") or
                "BUGCHECK" in line
         ]
-        marker_text = markers[-1] if markers else "no affinity marker"
+        marker_text = markers[-1] if markers else "no namespace marker"
         raise RuntimeError(
-            f"affinity {cpu_count}-CPU run failed: QEMU exit={result.returncode}, "
+            f"namespace {cpu_count}-CPU run failed: QEMU exit={result.returncode}, "
             f"missing={missing}, last marker={marker_text}; see "
             f"{debug_log} and {qemu_output}"
         )
@@ -200,10 +188,10 @@ def main() -> int:
         if not args.skip_build:
             image = _build(args.configuration, args.jobs)
         elif not image.is_file():
-            raise RuntimeError(f"affinity image was not found at {image}")
+            raise RuntimeError(f"namespace image was not found at {image}")
 
         code, variables = _ovmf_paths()
-        output_directory = BUILD_ROOT / "affinity-test"
+        output_directory = BUILD_ROOT / "namespace-test"
         result_file = output_directory / "results.txt"
         output_directory.mkdir(parents=True, exist_ok=True)
         result_file.write_text("", encoding="utf-8")
@@ -218,13 +206,13 @@ def main() -> int:
                 cpu_count=cpu_count,
                 timeout_seconds=args.timeout_seconds,
             )
-            message = f"PASS affinity {cpu_count} CPU(s) in {elapsed:.2f}s"
+            message = f"PASS namespace {cpu_count} CPU(s) in {elapsed:.2f}s"
             with result_file.open("a", encoding="utf-8", newline="\n") as stream:
                 stream.write(message + "\n")
             print(message, flush=True)
         return 0
     except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
-        print(f"AFFINITY TEST ERROR: {exc}", file=sys.stderr)
+        print(f"NAMESPACE TEST ERROR: {exc}", file=sys.stderr)
         return 1
 
 
