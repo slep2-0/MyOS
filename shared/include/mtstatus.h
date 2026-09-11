@@ -17,6 +17,7 @@ typedef int32_t MTSTATUS;
 /* Wait completion values are results, not failures. */
 #define MT_TIMEOUT ((MTSTATUS)0x00000102L)
 #define MT_PENDING ((MTSTATUS)0x00000103L)
+#define MT_REPARSE ((MTSTATUS)0x00000104L)
 #define MT_INFINITE UINT64_MAX
 
 // A STILL_ACTIVE Object is an MT_PENDING object.
@@ -39,6 +40,9 @@ typedef int32_t MTSTATUS;
 #define MT_INVALID_HANDLE        ((MTSTATUS)0xC0000014L)
 #define MT_INFO_LENGTH_MISMATCH  ((MTSTATUS)0xC0000015L)
 #define MT_INVALID_INFO_CLASS	 ((MTSTATUS)0xC0000016L)
+
+/* Object manager */
+#define MT_REPARSE_LIMIT_EXCEEDED ((MTSTATUS)0xCA000001L)
 
 /* Memory */
 #define MT_NO_MEMORY             ((MTSTATUS)0xC1000001L)

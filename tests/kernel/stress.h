@@ -1,0 +1,42 @@
+#ifndef MT_TESTS_KERNEL_STRESS_H
+#define MT_TESTS_KERNEL_STRESS_H
+
+#include "../../kernel/kernel.h"
+
+#define MT_STRESS_MODE_NORMAL          0
+#define MT_STRESS_MODE_COLD_BOOT       1
+#define MT_STRESS_MODE_RANDOMIZED      2
+#define MT_STRESS_MODE_EXCEPTION_CHAIN 3
+#define MT_STRESS_MODE_HEAP            4
+#define MT_STRESS_MODE_LOADER          5
+#define MT_STRESS_MODE_TLS             6
+#define MT_STRESS_MODE_PROCESS         7
+#define MT_STRESS_MODE_PRIORITY        8
+#define MT_STRESS_MODE_AFFINITY        9
+#define MT_STRESS_MODE_BALANCING       10
+#define MT_STRESS_MODE_NAMESPACE       11
+
+#ifndef MT_STRESS_MODE
+#define MT_STRESS_MODE MT_STRESS_MODE_NORMAL
+#endif
+
+#ifndef MT_STRESS_AUTOMATION
+#define MT_STRESS_AUTOMATION 0
+#endif
+
+#ifndef MT_STRESS_DURATION_SECONDS
+#define MT_STRESS_DURATION_SECONDS 1800
+#endif
+
+#if MT_STRESS_MODE < MT_STRESS_MODE_NORMAL || \
+    MT_STRESS_MODE > MT_STRESS_MODE_NAMESPACE
+#error "MT_STRESS_MODE is invalid"
+#endif
+
+NORETURN
+void
+StressSuiteController(
+    IN THREAD_PARAMETER Parameter
+);
+
+#endif

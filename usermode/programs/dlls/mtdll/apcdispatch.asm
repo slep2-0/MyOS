@@ -55,6 +55,9 @@ MeUserExceptionDispatcher:
 	; Besides, this is a NORETURN, it will either call MtContinue, Terminate the thread, or trap into an __except handler
 	jmp MtpUserExceptionDispatcher
 
+	; Added UD2 to spot implementation errors in any case
+	ud2
+
 global MtpSaveLanguageContext
 MtpSaveLanguageContext:
 	; Saves callee-saved registers to the stack

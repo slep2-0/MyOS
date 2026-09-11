@@ -105,7 +105,9 @@
     <ClCompile Include="kernel\core\mt\handler.c" />
     <ClCompile Include="kernel\core\mt\setup.c" />
     <ClCompile Include="kernel\core\mt\systemcalls.c" />
-    <ClCompile Include="kernel\core\ob\ob.c" />
+    <ClCompile Include="kernel\core\ob\create.c" />
+    <ClCompile Include="kernel\core\ob\directory.c" />
+    <ClCompile Include="kernel\core\ob\symboliclink.c" />
     <ClCompile Include="kernel\core\ps\cid.c" />
     <ClCompile Include="kernel\core\ps\process.c" />
     <ClCompile Include="kernel\core\ps\psmgr.c" />
@@ -117,6 +119,22 @@
     <ClCompile Include="kernel\filesystem\fat32\fat32.c" />
     <ClCompile Include="kernel\filesystem\vfs\vfs.c" />
     <ClCompile Include="kernel\kernel.c" />
+    <ClCompile Include="tests\kernel\ob_namespace.c" />
+    <ClCompile Include="tests\kernel\stress.c" />
+    <ClCompile Include="tests\usermode\exceptionChainTest\main.c" />
+    <ClCompile Include="tests\usermode\heapTest\main.c" />
+    <ClCompile Include="tests\usermode\loaderDynamicTlsDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderFailDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderFailTlsDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderGoodDll\dllmain.c" />
+    <ClCompile Include="tests\usermode\loaderNoEntryDll\module.c" />
+    <ClCompile Include="tests\usermode\loaderTest\main.c" />
+    <ClCompile Include="tests\usermode\loaderTlsDll\module.c" />
+    <ClCompile Include="tests\usermode\mtdll\exception_chain.c" />
+    <ClCompile Include="tests\usermode\mtdll\loader.c" />
+    <ClCompile Include="tests\usermode\processChild\main.c" />
+    <ClCompile Include="tests\usermode\processTest\main.c" />
+    <ClCompile Include="tests\usermode\tlsTest\main.c" />
     <ClCompile Include="usermode\crt0.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\dllmain.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\error.c" />
@@ -136,20 +154,6 @@
     <ClCompile Include="usermode\programs\dlls\mtdll\synch.c" />
     <ClCompile Include="usermode\programs\dlls\mtdll\thread.c" />
     <ClCompile Include="usermode\programs\exes\terminateMyself\main.c" />
-    <ClCompile Include="usermode\tests\exceptionChainTest\main.c" />
-    <ClCompile Include="usermode\tests\heapTest\main.c" />
-    <ClCompile Include="usermode\tests\loaderDynamicTlsDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderFailDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderFailTlsDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderGoodDll\dllmain.c" />
-    <ClCompile Include="usermode\tests\loaderNoEntryDll\module.c" />
-    <ClCompile Include="usermode\tests\loaderTest\main.c" />
-    <ClCompile Include="usermode\tests\loaderTlsDll\module.c" />
-    <ClCompile Include="usermode\tests\mtdll\exception_chain.c" />
-    <ClCompile Include="usermode\tests\mtdll\loader.c" />
-    <ClCompile Include="usermode\tests\processChild\main.c" />
-    <ClCompile Include="usermode\tests\processTest\main.c" />
-    <ClCompile Include="usermode\tests\tlsTest\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel\assert.h" />
@@ -198,6 +202,15 @@
     <ClInclude Include="shared\include\mtstatus.h" />
     <ClInclude Include="shared\include\mttypes.h" />
     <ClInclude Include="shared\include\synchapi.h" />
+    <ClInclude Include="tests\kernel\ob_namespace.h" />
+    <ClInclude Include="tests\kernel\stress.h" />
+    <ClInclude Include="tests\usermode\exception_chain_test.h" />
+    <ClInclude Include="tests\usermode\heap_test.h" />
+    <ClInclude Include="tests\usermode\loader_fixture.h" />
+    <ClInclude Include="tests\usermode\loader_test.h" />
+    <ClInclude Include="tests\usermode\process_test.h" />
+    <ClInclude Include="tests\usermode\tls_fixture.h" />
+    <ClInclude Include="tests\usermode\tls_test.h" />
     <ClInclude Include="tools\windows\intellisense\cpuid.h" />
     <ClInclude Include="tools\windows\intellisense\freestanding_compat.h" />
     <ClInclude Include="tools\windows\intellisense\stdarg.h" />
@@ -214,13 +227,6 @@
     <ClInclude Include="usermode\programs\dlls\mtdll\includes\mtstatus.h" />
     <ClInclude Include="usermode\programs\dlls\mtdll\includes\processthreadsapi.h" />
     <ClInclude Include="usermode\programs\dlls\mtdll\includes\synchapi.h" />
-    <ClInclude Include="usermode\tests\exception_chain_test.h" />
-    <ClInclude Include="usermode\tests\heap_test.h" />
-    <ClInclude Include="usermode\tests\loader_fixture.h" />
-    <ClInclude Include="usermode\tests\loader_test.h" />
-    <ClInclude Include="usermode\tests\process_test.h" />
-    <ClInclude Include="usermode\tests\tls_fixture.h" />
-    <ClInclude Include="usermode\tests\tls_test.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="build_windows.bat" />
@@ -236,6 +242,7 @@
     <None Include="kernel\linker.ld" />
     <None Include="reset_intellisense.bat" />
     <None Include="run_windows.bat" />
+    <None Include="tests\usermode\mtdll\language_context.asm" />
     <None Include="tools\windows\bootstrap.bat" />
     <None Include="tools\windows\build.py" />
     <None Include="tools\windows\freestanding_runtime.asm" />
@@ -244,10 +251,13 @@
     <None Include="tools\windows\reset_intellisense.py" />
     <None Include="tools\windows\routine_docs.py" />
     <None Include="tools\windows\seh_translate.py" />
+    <None Include="tools\windows\stress_affinity.py" />
+    <None Include="tools\windows\stress_balancing.py" />
     <None Include="tools\windows\stress_exception_chain.py" />
     <None Include="tools\windows\stress_gate5.py" />
     <None Include="tools\windows\stress_heap.py" />
     <None Include="tools\windows\stress_loader.py" />
+    <None Include="tools\windows\stress_namespace.py" />
     <None Include="tools\windows\stress_priority.py" />
     <None Include="tools\windows\stress_process.py" />
     <None Include="tools\windows\stress_tls.py" />
@@ -257,7 +267,6 @@
     <None Include="usermode\mtexe.ld" />
     <None Include="usermode\programs\dlls\mtdll\apcdispatch.asm" />
     <None Include="usermode\syscalls\syscalls.asm" />
-    <None Include="usermode\tests\mtdll\language_context.asm" />
   </ItemGroup>
   <!-- END GENERATED PROJECT ITEMS -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

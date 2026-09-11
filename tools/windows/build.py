@@ -38,6 +38,8 @@ STRESS_MODES = {
     "process": 7,
     "priority": 8,
     "affinity": 9,
+    "balancing": 10,
+    "namespace": 11,
 }
 
 KERNEL_SLOW_PATHS = {
@@ -91,62 +93,62 @@ MTEXE_GAS = []
 MTEXE_NASM = ["tools/windows/freestanding_runtime.asm"]
 
 EXCEPTION_TEST_MTDLL_C = [
-    "usermode/tests/mtdll/exception_chain.c",
+    "tests/usermode/mtdll/exception_chain.c",
 ]
 EXCEPTION_TEST_MTDLL_NASM = [
-    "usermode/tests/mtdll/language_context.asm",
+    "tests/usermode/mtdll/language_context.asm",
 ]
 EXCEPTION_TEST_MTEXE_C = [
-    "usermode/tests/exceptionChainTest/main.c",
+    "tests/usermode/exceptionChainTest/main.c",
 ]
 EXCEPTION_TEST_DEFINE = "MATANELOS_EXCEPTION_CHAIN_TEST"
-EXCEPTION_TEST_INCLUDE = ROOT / "usermode/tests"
+EXCEPTION_TEST_INCLUDE = ROOT / "tests/usermode"
 
 HEAP_TEST_MTEXE_C = [
-    "usermode/tests/heapTest/main.c",
+    "tests/usermode/heapTest/main.c",
 ]
-HEAP_TEST_INCLUDE = ROOT / "usermode/tests"
+HEAP_TEST_INCLUDE = ROOT / "tests/usermode"
 
 LOADER_TEST_MTDLL_C = [
-    "usermode/tests/mtdll/loader.c",
+    "tests/usermode/mtdll/loader.c",
 ]
 LOADER_TEST_MTEXE_C = [
-    "usermode/tests/loaderTest/main.c",
+    "tests/usermode/loaderTest/main.c",
 ]
-LOADER_TEST_INCLUDE = ROOT / "usermode/tests"
+LOADER_TEST_INCLUDE = ROOT / "tests/usermode"
 LOADER_TEST_DLL_DEFINE = "MATANELOS_BUILDING_LOADER_TEST_DLL"
 LOADER_GOOD_DLL_C = [
-    "usermode/tests/loaderGoodDll/dllmain.c",
+    "tests/usermode/loaderGoodDll/dllmain.c",
 ]
 LOADER_FAIL_DLL_C = [
-    "usermode/tests/loaderFailDll/dllmain.c",
+    "tests/usermode/loaderFailDll/dllmain.c",
 ]
 LOADER_NO_ENTRY_DLL_C = [
-    "usermode/tests/loaderNoEntryDll/module.c",
+    "tests/usermode/loaderNoEntryDll/module.c",
 ]
 TLS_TEST_MTEXE_C = [
-    "usermode/tests/tlsTest/main.c",
+    "tests/usermode/tlsTest/main.c",
 ]
-TLS_TEST_INCLUDE = ROOT / "usermode/tests"
+TLS_TEST_INCLUDE = ROOT / "tests/usermode"
 TLS_TEST_DLL_DEFINE = "MATANELOS_BUILDING_TLS_TEST_DLL"
 TLS_TEST_DLL_C = [
-    "usermode/tests/loaderTlsDll/module.c",
+    "tests/usermode/loaderTlsDll/module.c",
 ]
 TLS_DYNAMIC_DLL_C = [
     *TLS_TEST_DLL_C,
-    "usermode/tests/loaderDynamicTlsDll/dllmain.c",
+    "tests/usermode/loaderDynamicTlsDll/dllmain.c",
 ]
 TLS_FAIL_DYNAMIC_DLL_C = [
     *TLS_TEST_DLL_C,
-    "usermode/tests/loaderFailTlsDll/dllmain.c",
+    "tests/usermode/loaderFailTlsDll/dllmain.c",
 ]
 PROCESS_TEST_MTEXE_C = [
-    "usermode/tests/processTest/main.c",
+    "tests/usermode/processTest/main.c",
 ]
 PROCESS_TEST_CHILD_C = [
-    "usermode/tests/processChild/main.c",
+    "tests/usermode/processChild/main.c",
 ]
-PROCESS_TEST_INCLUDE = ROOT / "usermode/tests"
+PROCESS_TEST_INCLUDE = ROOT / "tests/usermode"
 
 
 class BuildFailure(RuntimeError):
@@ -361,7 +363,10 @@ def _kernel_common_flags(
 def _source_specific_kernel_flags(source: Path, base: list[str], configuration: str) -> list[str]:
     relative = source.relative_to(ROOT).as_posix()
     flags = list(base)
-    if relative in KERNEL_SLOW_PATHS or relative == "kernel/kernel.c":
+    if relative in KERNEL_SLOW_PATHS or relative in {
+        "kernel/kernel.c",
+        "tests/kernel/stress.c",
+    }:
         flags = [flag for flag in flags if flag not in {"-O2", "-O0"}]
         flags.extend(["-O0", "-fno-optimize-sibling-calls"])
     if relative == "kernel/kernel.c":
@@ -507,11 +512,13 @@ def build_kernel(
     )
     _fingerprint(object_root, [str(tools.clang), str(tools.nasm), configuration, str(gdb), *base_flags])
 
-    sources = sorted(
-        path for path in (ROOT / "kernel").rglob("*.c") if path.name != "gen_offsets.c"
-    )
+    sources = sorted([
+        *(path for path in (ROOT / "kernel").rglob("*.c") if path.name != "gen_offsets.c"),
+        *(ROOT / "tests/kernel").rglob("*.c"),
+    ])
     header_time = _newest([
         *(ROOT / "kernel").rglob("*.h"),
+        *(ROOT / "tests/kernel").rglob("*.h"),
         *(ROOT / "shared/include").rglob("*.h"),
     ])
     jobs: list[CompileJob] = []
@@ -683,6 +690,7 @@ def _build_user_component(
     _fingerprint(object_root, [str(tools.clang), str(tools.nasm), name, *c_flags])
     header_time = _newest([
         *(ROOT / "usermode").rglob("*.h"),
+        *(ROOT / "tests/usermode").rglob("*.h"),
         *(ROOT / "shared/include").rglob("*.h"),
     ])
     objects: list[Path] = []

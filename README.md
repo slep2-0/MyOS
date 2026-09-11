@@ -185,7 +185,8 @@ These are development gates, not a claim that the OS is production-ready. Hardwa
 | `shared/include/` | ABI definitions shared by the kernel, MTDLL and applications. |
 | `usermode/programs/dlls/` | MTDLL and future shared libraries. |
 | `usermode/programs/exes/` | Normal user-mode applications. |
-| `usermode/tests/` | Isolated user-mode runtime test images. |
+| `tests/kernel/` | Kernel stress and subsystem test harnesses. |
+| `tests/usermode/` | Isolated user-mode runtime test images. |
 | `tools/mte/` | MTE packer and image-format verification. |
 | `tools/windows/` | Windows build driver, image creation and headless QEMU gates. |
 

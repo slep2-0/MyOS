@@ -45,13 +45,6 @@ MiMapPageInHyperspace(
 
         Temporary maps the specified PFN Page into hyperspace and returns the virtual address mapped into.
 
-            ************************************
-            *                                  *
-            * Returns with a spin lock held!!! * // thanks lou
-            *                                  *
-            ************************************
-
-
     Arguments:
 
         [IN]    PfnIndex - Page frame index to map.
