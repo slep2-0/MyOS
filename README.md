@@ -73,6 +73,76 @@ This branch represents a major rewrite compared with the previous `master` snaps
 - Generated imports and exports, image-relative relocations, rebasing and packed TLS metadata.
 - ELF is used only as the LLVM linker intermediate; the running image is MTE.
 
+## Selected Design Contracts
+
+This section points technical reviewers at the code where the main invariants are
+enforced. It is intentionally narrower than a complete subsystem specification.
+
+### Scheduler and blocking
+
+- A READY thread is owned by one processor ready queue. Its `ReadyProcessor`,
+  `ActiveProcessor` and `ThreadState` fields are validated again after the queue
+  and thread scheduler locks have been acquired.
+- When two ready queues must be locked for migration, they are acquired in
+  ascending processor-ID order. The individual thread scheduler lock is taken
+  after the queue locks.
+- Blocking is a two-phase `RUNNING -> BLOCKING -> BLOCKED` transition. A signal
+  arriving during the switch-away window cannot queue the thread while its old
+  CPU still owns the live kernel stack; the scheduler completes that handoff.
+- Affinity changes handle READY, RUNNING and blocked threads separately. A
+  running thread that is no longer allowed on its current processor receives a
+  remote reschedule request instead of waiting for an arbitrary future quantum.
+
+Start with [`scheduler.c`](kernel/core/me/scheduler.c),
+[`wait.c`](kernel/core/ms/wait.c), [`affinity.c`](kernel/core/me/affinity.c) and
+[`priority.c`](kernel/core/me/priority.c).
+
+### Virtual memory
+
+- VADs describe owned virtual ranges and their requested protection. Page-table
+  state supplies the current hardware mapping; PFN entries track physical-page
+  state and backing relationships.
+- Demand faults validate the VAD before installing a page. Section-backed data
+  pages can begin as copy-on-write mappings and become private on a write fault.
+- Mapping removal and protection changes use the architecture TLB invalidation
+  paths so a physical page is not treated as reusable while another processor
+  can still translate the retired mapping.
+
+The main paths are [`vad.c`](kernel/core/mm/vad.c),
+[`fault.c`](kernel/core/mm/fault.c), [`pfn.c`](kernel/core/mm/pfn.c),
+[`map.c`](kernel/core/mm/map.c) and [`section.c`](kernel/core/mm/section.c).
+
+### Object namespace and lifetime
+
+- Named objects carry separate name information while object headers retain the
+  type, handle count and reference count.
+- Directories use hashed buckets protected by a directory push lock. Insertion,
+  lookup and removal maintain the parent-directory relationship explicitly.
+- Object types provide parse and delete procedures. Symbolic-link parsing
+  rewrites the remaining path and returns to the common namespace walker rather
+  than bypassing normal lookup and reference handling.
+
+See [`create.c`](kernel/core/ob/create.c),
+[`directory.c`](kernel/core/ob/directory.c),
+[`symboliclink.c`](kernel/core/ob/symboliclink.c) and
+[`ob.h`](kernel/includes/ob.h). Namespace stress coverage is in
+[`ob_namespace.c`](tests/kernel/ob_namespace.c) and
+[`stress_namespace.py`](tools/windows/stress_namespace.py).
+
+### MTE image and user-mode loader
+
+MTE is the native executable and DLL container used after linking. Its on-disk
+header is fixed at 128 bytes and describes the image layout, relocation records
+and optional static-TLS metadata. The packer normalizes supported relocations;
+the kernel maps the initial image and MTDLL validates metadata, applies final
+page protections, resolves imports and manages module/TLS lifetime.
+
+The format structures are in [`mte.h`](shared/include/mte.h), the packer and
+format tests are documented in [`tools/mte/README.md`](tools/mte/README.md), and
+the user-mode loading path begins in
+[`procldr.c`](usermode/programs/dlls/mtdll/ldr/procldr.c) and
+[`dllldr.c`](usermode/programs/dlls/mtdll/ldr/dllldr.c).
+
 ## Architecture at a Glance
 
 ```text
