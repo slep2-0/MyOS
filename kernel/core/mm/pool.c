@@ -232,6 +232,27 @@ MiRefillPool(
     IRQL descIrql;
     MsAcquireSpinlock(&Desc->PoolLock, &descIrql);
 
+    // If the descriptor's block size is smaller than the POOL_HEADER itself, or bigger than the block we allocated above,
+    // then the runtime rule (invariant) is broken, because, that would mean this descriptor can either not even hold its own header,
+    // or we are about to carve a block that does not fully fit inside the memory we actually allocated, which could obviously corrupt memory.
+    // The allocated block does NOT need to divide perfectly by Desc->BlockSize, any bytes left at the end are simply unused.
+    // This is why going over your code because you are curious how it worked, may result in good things, because I noticed this while going over pool allocation, and I wanted
+    // to assert that a broken descriptor can never make MiRefillPool create an invalid block, so I just added the bugcheck here.
+    if (Desc->BlockSize < sizeof(POOL_HEADER) || Desc->BlockSize > HeaderBlockSize) {
+        // Runtime rule (invariant) violated, destroy system in 3.. 2.. 1
+        MeBugCheckEx(
+            POOL_REFILL_GUARD,
+            Desc,
+            (void*)(uintptr_t)Desc->BlockSize,
+            (void*)(uintptr_t)HeaderBlockSize,
+#ifdef DEBUG
+            RETADDR(0)
+#else
+            NULL
+#endif
+        );
+    }
+
     // Loop from the start to the end of the page, stepping by the small block size.
     for (size_t offset = 0; (offset + Desc->BlockSize) <= HeaderBlockSize; offset += Desc->BlockSize) {
         // newBlock points to the start of this Desc->BlockSize chunk.

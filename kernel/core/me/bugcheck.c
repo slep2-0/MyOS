@@ -349,6 +349,9 @@ static void resolveStopCode(char** s, uint64_t stopcode)
     case SMP_SYNCHRONIZATION_TIMEOUT:
         *s = "SMP_SYNCHRONIZATION_TIMEOUT";
         break;
+    case POOL_REFILL_GUARD:
+        *s = "POOL_REFILL_GUARD";
+        break;
     default:
         *s = "UNKNOWN_BUGCHECK_CODE";
         break;
