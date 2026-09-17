@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/matanelosboot.png" alt="MatanelOS Successful boot screen" width="300">
+  <img src="docs/assets/matanelosboot.png" alt="MatanelOS Successful boot screen" width="900">
 </p>
 
 <p align="center">
