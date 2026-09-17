@@ -193,7 +193,9 @@ MiFreeKernelStack(
                 : NULL);
     }
 
+#ifdef MT_VERBOSE_RUNTIME_TRACE
     gop_printf(COLOR_PINK, "**Reached MiFreeKernelStack | LargeStack: %s | AllocatedStackTop: %p**\n", (LargeStack ? "True" : "False"), AllocatedStackTop);
+#endif
     size_t PagesToUnMap = BYTES_TO_PAGES(StackSize);
 
     // 1. Calculate the START of the stack memory (The highest valid byte addressable page)

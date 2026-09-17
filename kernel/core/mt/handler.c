@@ -24,6 +24,25 @@ Revision History:
 
 extern SyscallHandler Ssdt[];
 
+#ifdef DEBUG
+static volatile uint64_t MtpTracedSystemCalls;
+
+static const char* MtpSystemCallTraceNames[MAX_SYSCALLS] = {
+    [0] = "MtAllocateVirtualMemory",
+    [3] = "MtReadFile",
+    [4] = "MtWriteFile",
+    [5] = "MtCreateFile",
+    [8] = "MtQueryVirtualMemory",
+    [9] = "MtProtectVirtualMemory",
+    [10] = "MtFreeVirtualMemory",
+    [11] = "MtCreateThread",
+    [13] = "MtDelayExecution",
+    [14] = "MtWaitForSingleObject",
+    [19] = "MtCreateMutex",
+    [21] = "MtReleaseMutex"
+};
+#endif
+
 void
 MtSyscallHandler(
     IN PTRAP_FRAME TrapFrame
@@ -98,7 +117,28 @@ MtSyscallHandler(
     uint64_t Arg5 = TrapFrame->r8;
     uint64_t Arg6 = TrapFrame->r9;
 
-    gop_printf(COLOR_WHITE, "**IN SYSCALL (%lu), NUMBER: %lu | ARG1: %lx | ARG2: %lx | ARG3: %lx**\n", MeGetCurrentProcessor()->SystemCallCount, SyscallNumber, Arg1, Arg2, Arg3);
+#ifdef DEBUG
+    // Keep the boot trace readable: report the first real use of each
+    // representative native service instead of dumping every call and pointer.
+    if (SyscallNumber < 64 && MtpSystemCallTraceNames[SyscallNumber]) {
+        uint64_t TraceBit = 1ULL << SyscallNumber;
+        uint64_t PreviousMask = InterlockedOrU64(
+            &MtpTracedSystemCalls,
+            TraceBit
+        );
+
+        if ((PreviousMask & TraceBit) == 0) {
+            gop_printf(
+                COLOR_WHITE,
+                "[SYSCALL] CPU %u | TID %d | %s (#%lu)\n",
+                MeGetCurrentProcessor()->ID,
+                PsGetCurrentThread()->TID,
+                MtpSystemCallTraceNames[SyscallNumber],
+                SyscallNumber
+            );
+        }
+    }
+#endif
     
     // Todo regular SSDT. (with limits, no direct indexing)
     *ReturnValue = Ssdt[SyscallNumber](Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);

@@ -905,7 +905,9 @@ void ObDeleteObject(
     );
 
     // Free Memory
+#ifdef MT_VERBOSE_RUNTIME_TRACE
     gop_printf(COLOR_RED, "Freeing the header\n");
+#endif
     MmFreePool(Header);
 }
 

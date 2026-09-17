@@ -1362,7 +1362,7 @@ WriteOutputs:
     }
     end_try;
 
-#ifdef DEBUG
+#if defined(DEBUG) && defined(MT_VERBOSE_RUNTIME_TRACE)
     gop_printf(
         COLOR_RED,
         "**[SYSCALL-VIRTPROT] Returning OldProtection %x**\n",

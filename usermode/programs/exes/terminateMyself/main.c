@@ -47,14 +47,21 @@ static uint32_t MyThread(void* ThreadParameter)
 
 {
     (void)(ThreadParameter);
-    printf(COLOR_LIME, "**Hit MyThread**\n");
+    printf(COLOR_LIME, "[THREAD] User worker entered on an independent execution context\n");
+    bool ReportedSleepCycle = false;
 
     for (;;) {
-        printf(COLOR_LIME, "In MyThread Sleep loop...\n");
+        if (!ReportedSleepCycle) {
+            printf(COLOR_LIME, "[WAIT] Worker sleeping 1000 ms through the kernel timer queue\n");
+        }
         Sleep(1000);
         ERROR_CODE SleepError = GetLastError();
         if (SleepError != 0) {
             printf(COLOR_RED, "**Sleep failed with error %u**\n", SleepError);
+        }
+        else if (!ReportedSleepCycle) {
+            printf(COLOR_LIME, "[WAKE] Timer expiration resumed the worker thread\n");
+            ReportedSleepCycle = true;
         }
     }
 
@@ -80,10 +87,10 @@ int main(void)
 --*/
 
 {
-    printf(COLOR_CYAN, "Main user mode hit.\n");
+    printf(COLOR_CYAN, "[USER] Ring 3 entry reached | PEB + TEB initialized\n");
 
     if (GlobalVarBss == 0) {
-        printf(COLOR_CYAN, "Global variables are zeroed!\n");
+        printf(COLOR_CYAN, "[USER] Executable .bss zero-initialization verified\n");
     }
     else {
         printf(COLOR_CYAN, "Global variables are not zero! GlobalVarBss: %d\n", GlobalVarBss);
@@ -91,7 +98,9 @@ int main(void)
    
     // Lets attempt to create usermode.txt, write Hello, World! to it, and then read from it into memory allocated (making use of all of the syscalls right now, including MtTerminateProcess in return)
     // If at any point we fail we will terminate the program with the status that failed.
+#ifndef DEBUG
     volatile int counter = 0;
+#endif
     HANDLE FileHandle = CreateFile("group.txt", MT_FILE_ALL_ACCESS, FILE_OPEN_ALWAYS);
     MTSTATUS ExitCode = MT_GENERAL_FAILURE;
     HANDLE ThreadHandle;
@@ -158,6 +167,12 @@ int main(void)
 failure:
     TerminateProcess(MtCurrentProcess(), ExitCode);
 success:
+#ifdef DEBUG
+    // Keep the successful live system available for interactive diagnostics.
+    for (;;) {
+        Sleep(30000);
+    }
+#else
     while (true) {
         counter++;
         __asm__ volatile ("pause");
@@ -167,5 +182,6 @@ success:
             TerminateThread(MtCurrentThread(), MT_SUCCESS);
         }
     }
+#endif
     return 0;
 }

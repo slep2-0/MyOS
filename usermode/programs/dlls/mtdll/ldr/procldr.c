@@ -553,7 +553,12 @@ LdrpProcessImports(
     // Point to import table.
     MT_IMPORT_ENTRY* ImportTable = (MT_IMPORT_ENTRY*)(ImageBase + Header->imports_rva);
     size_t ImportCount = Header->imports_size / sizeof(MT_IMPORT_ENTRY);
-    printf(COLOR_RED, "**In MTDLL Resolve imports - ImportCount %lu**\n", ImportCount);
+    printf(
+        COLOR_ORANGE,
+        "[LDR] %s | resolving %lu imports through MTDLL\n",
+        ExecutableEntry->FullName,
+        ImportCount
+    );
 
     // Iterate over imports
     for (size_t i = 0; i < ImportCount; i++)

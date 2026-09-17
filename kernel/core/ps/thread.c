@@ -34,7 +34,9 @@ static void ThreadExit(void)
 
 {
 #ifdef DEBUG
+#ifdef MT_VERBOSE_RUNTIME_TRACE
     gop_printf(COLOR_RED, "Reached ThreadExit, terminating system thread tid %d.\n", PsGetCurrentThread()->TID);
+#endif
 #endif
     // Terminate the thread.
     assert(PsIsKernelThread(PsGetCurrentThread()) == true, "A user thread has entered kernel thread termination.");
@@ -971,6 +973,7 @@ PspStartThread(
     );
 
     assert(Queued, "Failed to queue a newly started thread.");
+    UNREFERENCED_PARAMETER(Queued);
 }
 
 static
@@ -1086,7 +1089,9 @@ PsTerminateThread(
 
 {
 #ifdef DEBUG
+#ifdef MT_VERBOSE_RUNTIME_TRACE
     gop_printf(COLOR_PINK, "**Terminating Thread TID %d (user mode: %d) for ExitStatus %x**\n", Thread->TID, !Thread->SystemThread, ExitStatus);
+#endif
 #endif
 
     // Or if it is the current thread, we just terminate ourselves.
@@ -1321,7 +1326,7 @@ PspExitThread(
 
     PspBeginThreadExit(Thread);
 
-#ifdef DEBUG
+#if defined(DEBUG) && defined(MT_VERBOSE_RUNTIME_TRACE)
     HANDLE MainThreadId = CurrentProcess->MainThread
         ? CurrentProcess->MainThread->TID
         : (HANDLE)-1;

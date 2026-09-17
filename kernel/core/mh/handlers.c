@@ -253,7 +253,7 @@ MiPageFault (
     // a syscall bug still faults at CPL 0.
     PRIVILEGE_MODE FaultMode = ExpGetFaultMode(trap);
     MTSTATUS status = MmAccessFault(trap->error_code, fault_addr, FaultMode, trap);
-#ifdef DEBUG
+#if defined(DEBUG) && defined(MT_VERBOSE_RUNTIME_TRACE)
     gop_printf(COLOR_RED, "I have returned from MmAccessFault with status %x\n", status);
 #endif
 

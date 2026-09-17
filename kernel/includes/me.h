@@ -129,6 +129,7 @@ typedef enum _BUGCHECK_CODES {
 	MEMORY_CORRUPT_HEADER,
 	MEMORY_DOUBLE_FREE,
 	MEMORY_CORRUPT_FOOTER,
+	POOL_REFILL_GUARD,
 	GUARD_PAGE_DEREFERENCE, // A guard page has been dereferenced.
 	KERNEL_STACK_OVERFLOWN, // A kernel stack has been overflown (and didnt hit the guard page) (detected by canary)
 	KMODE_EXCEPTION_NOT_HANDLED, // A kernel mode exception hasn't been handled (an __except block hasn't been handled)
@@ -448,7 +449,7 @@ typedef struct _PROCESSOR {
 	READY_QUEUE readyQueue; // Runnable threads owned by this processor.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
-	void* VirtStackTop; // Pointer to top of CPU Stack. -- NOTE (FIXME): I dont get why do we need this, since every stack onward should be the THREADS kernel stack, or an IST stack, not this.
+	void* VirtStackTop; // Pointer to top of CPU Stack. - This is used in APMain initialization (look in the stub that sets up the AP CPU)
 	void* tss; // Task State Segment ptr.
 	void* Rsp0; // General RSP for interrupts & syscalls (entry only).
 	void* IstPFStackTop; // Reserved page-fault alternate stack; vector 14 currently uses RSP0.

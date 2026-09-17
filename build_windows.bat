@@ -2,7 +2,7 @@
 setlocal
 set "PYTHONDONTWRITEBYTECODE=1"
 
-py -3 "%~dp0tools\windows\sync_vcxproj_files.py"
+python "%~dp0tools\windows\sync_vcxproj_files.py"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
 set "CONFIGURATION=Debug"
@@ -14,9 +14,9 @@ if /I "%~1"=="Debug" (
     goto explicit_configuration
 )
 
-py -3 "%~dp0tools\windows\build.py" build --configuration "%CONFIGURATION%" %*
+python "%~dp0tools\windows\build.py" build --configuration "%CONFIGURATION%" %*
 exit /b %ERRORLEVEL%
 
 :explicit_configuration
-py -3 "%~dp0tools\windows\build.py" build --configuration "%CONFIGURATION%" %2 %3 %4 %5 %6 %7 %8 %9
+python "%~dp0tools\windows\build.py" build --configuration "%CONFIGURATION%" %2 %3 %4 %5 %6 %7 %8 %9
 exit /b %ERRORLEVEL%

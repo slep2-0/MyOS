@@ -412,6 +412,7 @@ ObpDeleteDirectory(
 
 			// Delete the entry
 			MTSTATUS Status = ObpRemoveDirectoryEntry(Directory, Entry->Object);
+			UNREFERENCED_PARAMETER(Status);
 			assert(MT_SUCCEEDED(Status));
 
 			// Advance
@@ -879,6 +880,7 @@ ObpLookupObjectPath(
 	if (PathLength == 1 && Path[0] == '\\') {
 		bool Ok = ObReferenceObject(ObRootDirectoryObject);
 		assert(Ok, "Reference of root directory failed at search");
+		UNREFERENCED_PARAMETER(Ok);
 		*Object = ObRootDirectoryObject;
 		return MT_SUCCESS;
 	}
@@ -1077,6 +1079,7 @@ LoopOnceAgain:;
 			PathLength = Result.ReparsePathLength;
 
 			bool Ok = ObReferenceObject(ObRootDirectoryObject);
+			UNREFERENCED_PARAMETER(Ok);
 			assert(Ok);
 
 			// Before restarting the loop check if the caller just wants the root directory
@@ -1267,6 +1270,7 @@ ObpInsertNamedObject(
 			// Root path
 			// Set the starting directory as the root (and ref it)
 			bool Ok = ObReferenceObject(ObRootDirectoryObject);
+			UNREFERENCED_PARAMETER(Ok);
 			assert(Ok, "Root directory is dead where it should be valid ref.");
 			ParentDirectory = ObRootDirectoryObject;
 

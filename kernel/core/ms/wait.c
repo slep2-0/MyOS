@@ -267,6 +267,7 @@ MsCompleteThreadWait(
     if (NullProc) {
         bool Queued = MeQueueThreadOnAllowedProcessor(PsGetEThreadFromIThread(Thread), TargetProcessor);
         assert(Queued, "Failed to queue an awoken thread, semantically impossible");
+        UNREFERENCED_PARAMETER(Queued);
     }
     else {
         MeEnqueueThreadWithLock(
@@ -697,11 +698,11 @@ MsWaitForSingleObject(
 
         WaitMode -
 
-            Reserved for future kernel-stack paging policy. Currently ignored.
+            Reserved for future kernel-stack paging policy. Currently ignored. TODO
 
         Alertable -
 
-            Reserved for future alert/APC interruption. Currently ignored.
+            Reserved for future alert/APC interruption. Currently ignored. TODO
 
         TimeoutMs -
 
@@ -719,7 +720,7 @@ MsWaitForSingleObject(
 {
     assert(Object); // add more assertions
     UNREFERENCED_PARAMETER(WaitMode); UNREFERENCED_PARAMETER(Alertable);
-
+        
     PDISPATCHER_HEADER Header = (PDISPATCHER_HEADER)Object;
     PETHREAD Thread = PsGetCurrentThread();
 

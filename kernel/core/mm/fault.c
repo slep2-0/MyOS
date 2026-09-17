@@ -258,11 +258,11 @@ MmAccessFault(
     FAULT_OPERATION OperationDone = MiRetrieveOperationFromErrorCode(FaultBits);
     IRQL PreviousIrql = MeGetCurrentIrql();
 
-#ifdef DEBUG
+#if defined(DEBUG) && defined(MT_VERBOSE_RUNTIME_TRACE)
     gop_printf(COLOR_RED, "Inside MmAccessFault | FaultBits: %llx | VirtualAddress: %p | FaultMode: %d | TrapFrame->rip: %p | Operation: %d | Irql: %d\n", (unsigned long long)FaultBits, (void*)(uintptr_t)VirtualAddress, FaultMode, (void*)(uintptr_t)TrapFrame->rip, OperationDone, PreviousIrql);
 #endif
 
-    if (!ReferencedPte) {
+    if (!ReferencedPte) { 
         // If we cannot get the PTE for the VA, we raise access violation if its user mode, or bugcheck on kernel mode.
         if (FaultMode == UserMode) {
             return MT_ACCESS_VIOLATION;

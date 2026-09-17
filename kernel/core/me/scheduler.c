@@ -717,6 +717,8 @@ Schedule(void)
         if (InterlockedLoadAcquire(
                 &current->WaitCompletionComplete
             )) {
+            // Set to RUNNING, that means the thread will be requeued below instead of not being touched
+            // if someone else wins the race, we let their decision be the thread state.
             __sync_bool_compare_and_swap(
                 &current->ThreadState,
                 THREAD_BLOCKED,
@@ -789,6 +791,7 @@ Schedule(void)
         assert(next->TrapRegisters.ss == USER_SS,
             "Saved user context has an invalid stack selector.");
     }
+
 
 #endif
 

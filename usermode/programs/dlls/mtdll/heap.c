@@ -277,6 +277,7 @@ HeapCreateSlab(
         : PAGE_READWRITE;
 
     // Allocate the slab now
+    // FIXME-FUTURE, if VirtualAlloc returns a non zeroed region, then the heap slab will be corrupted!
     PMT_HEAP_SLAB Slab = (PMT_HEAP_SLAB)VirtualAlloc(NULL, MT_HEAP_SLAB_SIZE, Protection);
 
     if (!Slab) return NULL;
@@ -384,7 +385,7 @@ HeapGetBucketIndex(
 
     Return Values:
 
-        The slab bucket index, or -1 when the allocation is too large for a slab.
+        The slab bucket index, or SIZE_MAX when the allocation is too large for a slab.
 
 --*/
 
@@ -396,6 +397,7 @@ HeapGetBucketIndex(
             return i;
         }
 
+        // Bucket size is multiplied by 2 every iteration, so 8, 16, 32...
         BucketSize <<= 1;
     }
 
@@ -726,6 +728,14 @@ MtpAllocateHeapBlockLocked(
 
     if (AllocationSize <= MT_HEAP_BIGGEST_SLAB) {
         size_t BucketIndex = HeapGetBucketIndex(AllocationSize);
+
+        if (BucketIndex == SIZE_MAX) {
+            // Function should not have returned SIZE_MAX if allocationSize is less or equal than the biggest slab, something is wrong
+            // Terminate the thread immediately, or let exception handler catch these, we should probably terminate though.
+            // TODO, Change to termination, or maybe of process itself if its process heap?
+            MtpHeapAllocationFailure(true, MT_INVALID_STATE);
+        }
+
         PMT_HEAP_BUCKET Bucket = &Heap->Buckets[BucketIndex];
         PMT_HEAP_SLAB Slab = HeapFindAvailableSlab(Bucket);
 

@@ -22,6 +22,7 @@ Kernel Specific
 bool isBugChecking = false;
 bool allApsInitialized = false;
 PROCESSOR cpu0; // In UP Mode - Will be the place the CPU struct lives permanently, however in SMP mode, the struct transfers to cpus[my_id] after initializing SMP.
+extern PROCESSOR cpus[];
 
 static const char EmptyProcessEnvironment[2] = { '\0', '\0' };
 static const MT_CREATE_PROCESS_PARAMETERS TerminateMyselfProcessParameters = {
@@ -207,7 +208,9 @@ void kernel_idle_checks(void)
 --*/
 
 {
+#ifdef MT_VERBOSE_RUNTIME_TRACE
     gop_printf(0xFF000FF0, "Reached the idle thread!\n");
+#endif
     // Reaching the idle thread with interrupts off means something did not have the RFLAGS IF Bit set.
     if (!interrupts_enabled()) {
         gop_printf(COLOR_RED, "**Interrupts aren't enabled..\n Stack Trace:\n");
@@ -267,6 +270,69 @@ static void MeCreateInitialUserModeProcess(void)
     if (MT_FAILURE(status)) {
         gop_printf(COLOR_RED, "Failed to close initial process handle: %x\n", status);
     }
+}
+
+static void
+MepPrintBootShowcase(
+    IN PPROCESSOR Processors,
+    IN uint32_t ProcessorCount
+)
+
+/*++
+
+    Routine description:
+
+        Replaces verbose initialization diagnostics with a live system summary
+        before the first user process starts.
+
+    Arguments:
+
+        Processors - Array of initialized processor control blocks.
+
+        ProcessorCount - Number of online processors in the array.
+
+    Return Values:
+
+        None.
+
+--*/
+
+{
+    gop_clear_screen(&gop_local, COLOR_BLACK);
+
+    gop_printf(COLOR_CYAN, "MatanelOS x86-64 | Native kernel boot\n");
+    gop_printf(COLOR_GRAY, "------------------------------------------------------------\n");
+
+    for (uint32_t Index = 0; Index < ProcessorCount; Index++) {
+        PPROCESSOR Processor = &Processors[Index];
+        gop_printf(
+            COLOR_LIME,
+            "[SMP] CPU %u ONLINE | LAPIC %u | scheduler + local timer ready\n",
+            Processor->ID,
+            Processor->lapic_ID
+        );
+    }
+
+    gop_printf(
+        COLOR_YELLOW,
+        "[SCHED] Preemptive SMP | priority queues | affinity | load balancing\n"
+    );
+    gop_printf(
+        COLOR_PURPLE,
+        "[MEM] Higher-half VM | demand paging | copy-on-write | NX protection\n"
+    );
+    gop_printf(
+        COLOR_ORANGE,
+        "[OB] Namespace online | \\Device | \\AchtungNamedObjects | symbolic links\n"
+    );
+    gop_printf(
+        COLOR_CYAN,
+        "[I/O] AHCI storage + FAT32 mounted | MTE images available\n"
+    );
+    gop_printf(
+        COLOR_LIGHT_GRAY,
+        "[USER] Launching terminateMyself.mtexe in ring 3...\n\n"
+    );
 }
 
 // All CPUs
@@ -603,6 +669,8 @@ void kernel_main(BOOT_INFO* boot_info)
             (void*)StressSuiteController, NULL, NULL);
     }
 #else
+    MepPrintBootShowcase(cpus, cpu_count);
+
     st = PsCreateSystemThread(
         (ThreadEntry)MeCreateInitialUserModeProcess,
         NULL,

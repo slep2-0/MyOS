@@ -546,7 +546,9 @@ static bool fat32_write_fat(uint32_t cluster, uint32_t value)
 	// We may need up to two buffers if the entry spans sectors.
 	void* buf1 = MmAllocatePoolWithTag(NonPagedPool, bps, '1FUB');
 	if (!buf1) return false;
+#ifdef MT_VERBOSE_RUNTIME_TRACE
 	gop_printf(0x00FF00FF, "fat32_write_fat: alloc buf1=%p bps=%u ent_off=%u sec=%u\n", buf1, bps, ent_offset, sec_index);
+#endif
 	void* buf2 = NULL; // Allocate only if needed
 
 	bool spans = (ent_offset > bps - 4);

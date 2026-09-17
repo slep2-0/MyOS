@@ -522,6 +522,9 @@ void gop_clear_screen(GOP_PARAMS* gop, uint32_t color)
     for (uint32_t y = 0; y < gop->Height; y++)
         for (uint32_t x = 0; x < gop->Width; x++)
             plot_pixel(gop, x, y, color);
+
+    cursor_x = 0;
+    cursor_y = 0;
 }
 
 static inline void buf_put_char(char* buf, size_t size, size_t* written, char c)
