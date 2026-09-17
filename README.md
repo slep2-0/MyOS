@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/WindowsMT.png" alt="Windows NT architectural inspiration" width="300">
+  <img src="docs/assets/matanelosboot.png" alt="MatanelOS Successful boot screen" width="300">
 </p>
 
 <p align="center">
@@ -13,8 +13,6 @@
   <img alt="Firmware: UEFI" src="https://img.shields.io/badge/firmware-UEFI-f15a24">
   <img alt="Status: active development" src="https://img.shields.io/badge/status-active%20development-f0b429">
 </p>
-
-> MatanelOS is an independent educational project. It is not affiliated with or endorsed by Microsoft. The image above represents the project's Windows NT inspiration, not ownership of the Windows name or artwork.
 
 MatanelOS began as a small experiment in getting a kernel to boot. It is not small anymore.
 
