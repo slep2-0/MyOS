@@ -3,7 +3,7 @@
   An x86-64 operating system built from scratch, with a strong Windows NT architectural influence.
 </p>
 
-https://github.com/user-attachments/assets/61f38179-dcec-40e9-8f86-84f97b2c71c8
+https://github.com/user-attachments/assets/02fdd945-8628-4207-9da9-d8e3dd233f4c
 
 <p align="center">
   <a href="https://github.com/slep2-0/MyOS/blob/master/LICENSE"><img alt="License: GPLv3" src="https://img.shields.io/badge/license-GPLv3-2ea44f"></a>
