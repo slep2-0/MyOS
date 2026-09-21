@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="docs/assets/matanelosboot.png" alt="MatanelOS Successful boot screen" width="900">
-</p>
-
-<p align="center">
   <strong>MatanelOS</strong><br>
   An x86-64 operating system built from scratch, with a strong Windows NT architectural influence.
 </p>
+
+https://github.com/user-attachments/assets/61f38179-dcec-40e9-8f86-84f97b2c71c8
 
 <p align="center">
   <a href="https://github.com/slep2-0/MyOS/blob/master/LICENSE"><img alt="License: GPLv3" src="https://img.shields.io/badge/license-GPLv3-2ea44f"></a>
