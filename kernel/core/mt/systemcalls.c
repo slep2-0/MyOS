@@ -3660,6 +3660,16 @@ MtPrintConsole(
         return GetExceptionCode();
     } end_try;
 
+#ifdef VIDEO_DEMO
+    extern GOP_PARAMS gop_local;
+
+    // Form feed is reserved for clean stage transitions in the recorded demo.
+    if (KernelBuffer[0] == '\f' && KernelBuffer[1] == '\0') {
+        gop_clear_screen(&gop_local, COLOR_BLACK);
+        return MT_SUCCESS;
+    }
+#endif
+
     gop_printf(Color, "[FROM USERMODE %s TID %d] %s", PsGetCurrentProcess()->ImageName, PsGetCurrentThread()->TID, KernelBuffer);
 
     return MT_SUCCESS;

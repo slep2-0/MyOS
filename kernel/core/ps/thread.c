@@ -757,7 +757,7 @@ MTSTATUS PsCreateSystemThread(ThreadEntry entry, THREAD_PARAMETER parameter, Tim
         [IN] entry - List, table, or object entry affected by the routine.
         [IN] parameter - Context passed to the callback or worker.
         [IN] TIMESLICE - Scheduler quantum assigned to the thread.
-        [OUT] OutThread - Receives the created thread object.
+        [OUT] OutThread - Receives the created thread object, thread is referenced!
 
     Return Values:
 

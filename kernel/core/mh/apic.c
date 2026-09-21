@@ -395,14 +395,11 @@ void lapic_eoi(void)
     lapic_mmio_write(LAPIC_EOI, 0);
 }
 
-// --- Timer calibration and init ---
-// NOTE: the APIC timer is a downward counter. Strategy:
-//  1. Set divide to known divisor.
-//  2. Write initcount = 0xFFFFFFFF.
-//  3. Wait EXACTLY 100 ms via PIT/HPET.
-//  4. curr = read current count -> ticks_in_100ms = start - curr
-//  5. ticks_per_period(10ms) = ticks_in_100ms / 10
-//  6. Program LVT timer to periodic and initial count = ticks_per_period
+// --- Timer calibration and initialization ---
+//
+// The local APIC timer is a downward counter. Calibrate it against a known
+// 100 ms PIT/HPET interval, then derive the initial count required for a
+// 10 ms periodic interrupt.
 //
 #define APIC_LVT_TIMER_PERIODIC (1U << 17)
 #define APIC_TIMER_MASKED        (1U << 16)
@@ -426,7 +423,7 @@ static uint32_t calibrate_lapic_ticks_per_10ms(void)
 --*/
 
 {
-    // choose divide config: here set encode 0x3 (divide by 16). Adjust if needed.
+    // choose divide config: here set encode 0x3 (divide by 16)
     lapic_mmio_write(LAPIC_TIMER_DIV, 0x3);
 
     const uint32_t start = 0xFFFFFFFFU;

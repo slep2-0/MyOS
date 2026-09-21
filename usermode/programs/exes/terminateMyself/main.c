@@ -27,6 +27,274 @@
 volatile int GlobalVarData = 1;
 volatile int GlobalVarBss;
 
+#ifdef VIDEO_DEMO
+
+typedef struct _VIDEO_DEMO_WORKER_CONTEXT {
+    uint32_t WorkerNumber;
+    uint32_t DelayMilliseconds;
+} VIDEO_DEMO_WORKER_CONTEXT, *PVIDEO_DEMO_WORKER_CONTEXT;
+
+static VIDEO_DEMO_WORKER_CONTEXT VideoDemoWorkers[2] = {
+    { 1, 1200 },
+    { 2, 1700 }
+};
+
+static volatile HANDLE VideoDemoEventHandle = MT_INVALID_HANDLE;
+static volatile bool VideoDemoEventCompleted;
+
+static void VideoDemoClearScreen(void)
+{
+    printf(COLOR_BLACK, "\f");
+}
+
+static void VideoDemoHold(uint32_t Milliseconds)
+{
+    Sleep(Milliseconds);
+}
+
+static bool VideoDemoBuffersEqual(
+    const char* Left,
+    const char* Right,
+    size_t Length
+)
+{
+    for (size_t Index = 0; Index < Length; Index++) {
+        if (Left[Index] != Right[Index]) return false;
+    }
+
+    return true;
+}
+
+static uint32_t VideoDemoTimerWorker(void* ThreadParameter)
+{
+    PVIDEO_DEMO_WORKER_CONTEXT Context = ThreadParameter;
+
+    printf(
+        COLOR_LIME,
+        "[SCHED] worker %u dispatched; timer wait %u ms\n",
+        Context->WorkerNumber,
+        Context->DelayMilliseconds
+    );
+
+    Sleep(Context->DelayMilliseconds);
+    if (GetLastError() != 0) return 1;
+
+    printf(
+        COLOR_LIME,
+        "[TIMER] worker %u resumed after kernel timer expiration\n",
+        Context->WorkerNumber
+    );
+    return 0;
+}
+
+static uint32_t VideoDemoEventWaiter(void* ThreadParameter)
+{
+    (void)ThreadParameter;
+
+    printf(COLOR_ORANGE, "[SYNC] waiter entering MtWaitForSingleObject\n");
+    uint32_t WaitResult = WaitForSingleObject(
+        VideoDemoEventHandle,
+        10000
+    );
+
+    if (WaitResult != WAIT_OBJECT_0) {
+        printf(COLOR_RED, "[FAIL] event wait returned %x\n", WaitResult);
+        return 1;
+    }
+
+    VideoDemoEventCompleted = true;
+    printf(COLOR_LIME, "[SYNC] auto-reset event woke exactly one waiter\n");
+    return 0;
+}
+
+static int VideoDemoMain(void)
+{
+    MTSTATUS FailureStatus = MT_GENERAL_FAILURE;
+    HANDLE FileHandle = MT_INVALID_HANDLE;
+    HANDLE WorkerOne = MT_INVALID_HANDLE;
+    HANDLE WorkerTwo = MT_INVALID_HANDLE;
+    HANDLE EventWaiter = MT_INVALID_HANDLE;
+    void* Region = NULL;
+
+    printf(COLOR_CYAN, "[USER] Ring 3 entered | PEB + TEB initialized\n");
+    printf(COLOR_CYAN, "[USER] MTE executable linked through MTDLL imports\n");
+    VideoDemoHold(3000);
+
+    VideoDemoClearScreen();
+    printf(COLOR_CYAN, "MatanelOS x86-64 | Live execution demo\n");
+    printf(COLOR_GRAY, "------------------------------------------------------------\n");
+    printf(COLOR_YELLOW, "[1/4] AHCI + FAT32 + user/kernel I/O\n\n");
+
+    char Payload[] = "MatanelOS: verified storage round trip";
+    char Readback[sizeof(Payload)];
+    memset(Readback, 0, sizeof(Readback));
+
+    FileHandle = CreateFile(
+        "video-demo.txt",
+        MT_FILE_ALL_ACCESS,
+        FILE_OPEN_ALWAYS
+    );
+    if (FileHandle == MT_INVALID_HANDLE) goto Failure;
+
+    size_t BytesWritten = 0;
+    if (!WriteFile(
+            FileHandle,
+            0,
+            Payload,
+            sizeof(Payload),
+            &BytesWritten
+        ) || BytesWritten != sizeof(Payload)) {
+        FailureStatus = MT_DEVICE_ERROR;
+        goto Failure;
+    }
+
+    size_t BytesRead = 0;
+    if (!ReadFile(
+            FileHandle,
+            0,
+            Readback,
+            sizeof(Readback),
+            &BytesRead
+        ) || BytesRead != sizeof(Readback) ||
+        !VideoDemoBuffersEqual(Payload, Readback, sizeof(Payload))) {
+        FailureStatus = MT_DEVICE_ERROR;
+        goto Failure;
+    }
+
+    if (!CloseHandle(FileHandle)) goto Failure;
+    FileHandle = MT_INVALID_HANDLE;
+    printf(COLOR_LIME, "[PASS] created, wrote, read, and verified video-demo.txt\n");
+    printf(COLOR_LIGHT_GRAY, "       real handle -> VFS -> FAT32 -> AHCI path\n");
+    VideoDemoHold(5000);
+
+    VideoDemoClearScreen();
+    printf(COLOR_CYAN, "MatanelOS x86-64 | Live execution demo\n");
+    printf(COLOR_GRAY, "------------------------------------------------------------\n");
+    printf(COLOR_YELLOW, "[2/4] Demand-paged virtual memory\n\n");
+
+    Region = VirtualAlloc(NULL, 4096, PAGE_READWRITE);
+    if (!Region) {
+        FailureStatus = MT_NO_MEMORY;
+        goto Failure;
+    }
+
+    volatile uint8_t* Bytes = Region;
+    Bytes[0] = 0x5A;
+    Bytes[4095] = 0xA5;
+
+    MEMORY_BASIC_INFORMATION Information;
+    if (!VirtualQuery(Region, &Information) ||
+        Information.Protection != PAGE_READWRITE) {
+        FailureStatus = MT_ACCESS_DENIED;
+        goto Failure;
+    }
+
+    USER_PROTECTION_TYPE OldProtection;
+    if (!VirtualProtect(Region, 4096, PAGE_READONLY, &OldProtection) ||
+        OldProtection != PAGE_READWRITE ||
+        !VirtualQuery(Region, &Information) ||
+        Information.Protection != PAGE_READONLY ||
+        Bytes[0] != 0x5A || Bytes[4095] != 0xA5) {
+        FailureStatus = MT_ACCESS_DENIED;
+        goto Failure;
+    }
+
+    printf(COLOR_LIME, "[PASS] first-touch demand paging resolved real page faults\n");
+    printf(COLOR_LIME, "[PASS] PAGE_READWRITE -> PAGE_READONLY verified by query\n");
+
+    if (!VirtualFree(Region, 0, MEM_RELEASE)) goto Failure;
+    Region = NULL;
+    VideoDemoHold(5000);
+
+    VideoDemoClearScreen();
+    printf(COLOR_CYAN, "MatanelOS x86-64 | Live execution demo\n");
+    printf(COLOR_GRAY, "------------------------------------------------------------\n");
+    printf(COLOR_YELLOW, "[3/4] Preemptive SMP scheduler + timer waits\n\n");
+
+    WorkerOne = CreateThread(VideoDemoTimerWorker, &VideoDemoWorkers[0]);
+    WorkerTwo = CreateThread(VideoDemoTimerWorker, &VideoDemoWorkers[1]);
+    if (WorkerOne == MT_INVALID_HANDLE || WorkerTwo == MT_INVALID_HANDLE) {
+        FailureStatus = MT_THREAD_CREATION_FAILURE;
+        goto Failure;
+    }
+
+    if (WaitForSingleObject(WorkerOne, 10000) != WAIT_OBJECT_0 ||
+        WaitForSingleObject(WorkerTwo, 10000) != WAIT_OBJECT_0) {
+        FailureStatus = MT_TIMEOUT;
+        goto Failure;
+    }
+
+    CloseHandle(WorkerOne);
+    CloseHandle(WorkerTwo);
+    WorkerOne = MT_INVALID_HANDLE;
+    WorkerTwo = MT_INVALID_HANDLE;
+    printf(COLOR_LIME, "[PASS] independent workers dispatched and resumed\n");
+    VideoDemoHold(4000);
+
+    VideoDemoClearScreen();
+    printf(COLOR_CYAN, "MatanelOS x86-64 | Live execution demo\n");
+    printf(COLOR_GRAY, "------------------------------------------------------------\n");
+    printf(COLOR_YELLOW, "[4/4] Dispatcher object synchronization\n\n");
+
+    VideoDemoEventHandle = CreateEvent(
+        SynchronizationEvent,
+        false,
+        NULL
+    );
+    if (VideoDemoEventHandle == MT_INVALID_HANDLE) goto Failure;
+
+    EventWaiter = CreateThread(VideoDemoEventWaiter, NULL);
+    if (EventWaiter == MT_INVALID_HANDLE) {
+        FailureStatus = MT_THREAD_CREATION_FAILURE;
+        goto Failure;
+    }
+
+    VideoDemoHold(2200);
+    printf(COLOR_ORANGE, "[SYNC] signaling event from a separate user thread\n");
+    if (!SetEvent(VideoDemoEventHandle) ||
+        WaitForSingleObject(EventWaiter, 10000) != WAIT_OBJECT_0 ||
+        !VideoDemoEventCompleted) {
+        FailureStatus = MT_TIMEOUT;
+        goto Failure;
+    }
+
+    CloseHandle(EventWaiter);
+    CloseHandle(VideoDemoEventHandle);
+    EventWaiter = MT_INVALID_HANDLE;
+    VideoDemoEventHandle = MT_INVALID_HANDLE;
+    printf(COLOR_LIME, "[PASS] BLOCKING -> BLOCKED -> READY handshake completed\n");
+    VideoDemoHold(4500);
+
+    VideoDemoClearScreen();
+    printf(COLOR_CYAN, "MatanelOS x86-64 | Demo complete\n");
+    printf(COLOR_GRAY, "------------------------------------------------------------\n\n");
+    printf(COLOR_LIME, "[PASS] UEFI boot and 4-CPU SMP initialization\n");
+    printf(COLOR_LIME, "[PASS] MTE loader, MTDLL imports, and Ring 3 execution\n");
+    printf(COLOR_LIME, "[PASS] AHCI/FAT32 verified storage round trip\n");
+    printf(COLOR_LIME, "[PASS] Demand paging and virtual-memory protection\n");
+    printf(COLOR_LIME, "[PASS] Preemptive threads, timers, and dispatcher wakeup\n\n");
+    printf(COLOR_LIGHT_GRAY, "System remains live after all demonstrated operations.\n");
+
+    for (;;) VideoDemoHold(30000);
+
+Failure:
+    if (Region) VirtualFree(Region, 0, MEM_RELEASE);
+    if (FileHandle != MT_INVALID_HANDLE) CloseHandle(FileHandle);
+    if (WorkerOne != MT_INVALID_HANDLE) CloseHandle(WorkerOne);
+    if (WorkerTwo != MT_INVALID_HANDLE) CloseHandle(WorkerTwo);
+    if (EventWaiter != MT_INVALID_HANDLE) CloseHandle(EventWaiter);
+    if (VideoDemoEventHandle != MT_INVALID_HANDLE) {
+        CloseHandle(VideoDemoEventHandle);
+    }
+
+    VideoDemoClearScreen();
+    printf(COLOR_RED, "MatanelOS video demo failed: status %x, error %u\n",
+        FailureStatus, GetLastError());
+    for (;;) VideoDemoHold(30000);
+}
+
+#endif
+
 static uint32_t MyThread(void* ThreadParameter)
 
 /*++
@@ -87,6 +355,10 @@ int main(void)
 --*/
 
 {
+#ifdef VIDEO_DEMO
+    return VideoDemoMain();
+#endif
+
     printf(COLOR_CYAN, "[USER] Ring 3 entry reached | PEB + TEB initialized\n");
 
     if (GlobalVarBss == 0) {

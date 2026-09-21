@@ -11,15 +11,6 @@
 #include "../../includes/me.h"
 #include "../../assert.h"
 
-extern GOP_PARAMS gop_local;
-
-const bool has_error_code[] = {
-    false, false, false, false, false, false, false, false, // 0-7
-    true,  false, true,  true,  true,  true,  true,  false, // 8-15
-    false, false, false, false, false, false, false, false, // 16-23
-    false, false, false, false, false, false, false, false  // 24-31
-};
-
 extern void lapic_eoi(void);    
 
 USED

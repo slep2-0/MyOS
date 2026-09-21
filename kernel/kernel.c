@@ -245,6 +245,10 @@ static void MeCreateInitialUserModeProcess(void)
 --*/
 
 {
+#ifdef VIDEO_DEMO
+    // Leave the completed kernel/SMP summary visible before entering Ring 3.
+    MsDelayExecution(KernelMode, false, 3500);
+#endif
     gop_printf(COLOR_OLIVE, "Starting initial user mode process.\n");
     MT_PROCESS_INFORMATION ProcessInformation = { 0 };
     PETHREAD InitialThread = NULL;
@@ -514,12 +518,13 @@ void kernel_main(BOOT_INFO* boot_info)
 
     Return Values:
 
-        None.
+        None, does not return, calls scheduler.
 
 --*/
 
 {
-    // 1. CORE SYSTEM INITIALIZATION
+    // CORE SYSTEM INITIALIZATION
+    // Write to the GS_BASE msr for now the CPU0 incase MeGetCurrentProcessor is called, since right now its BSP only
     __writemsr(IA32_GS_BASE, (uint64_t)&cpu0);
     __cli();
     // Zero the BSS.
@@ -541,11 +546,22 @@ void kernel_main(BOOT_INFO* boot_info)
 
     // Initialize the TSS & GDT & New IDT with TSS
     MeInitializeProcessor(&cpu0, true, false);
+
     // Initialize ACPI after initializing Mm (since page faults will happen on pfn db if not).
     MTSTATUS st = MhInitializeACPI();
     if (MT_FAILURE(st)) {
+#ifdef DEBUG
         gop_printf(COLOR_RED, "InitializeACPI Failure: %x\n", st);
         __hlt();
+#else
+        MeBugCheckEx(
+            MANUALLY_INITIATED_CRASH2,
+            (void*)(uintptr_t)st,
+            MhInitializeACPI,
+            NULL,
+            (void*)(uintptr_t)0x69420
+        );
+#endif
     }
 
     // Move all UEFI Pointers to kernel higher half (after physical memory offset)
@@ -743,12 +759,11 @@ void kernel_main(BOOT_INFO* boot_info)
     assert(MT_SUCCEEDED(z));
 #endif
 
-    /*
-    DEBUGGING, REMOVE AFTER
-    */
-
     // __sti(); STI Call commented out, this is what caused the scheduler assertion to fail, and guess how much time it took to debug? 2 days
     // Thread creations (including idle threads) must come with the IF flag set.
+    // edit 9/19/2026 - comment above is now outdated, since the assertion no longer exists in the scheduler code, because its useless and honestly a bad assertion
+    // but ive kept the code here so you can see i took 2 days to debug an assertion failure because of 1 function call in initialization
+    // as i said im a coding prodigy
     Schedule();
     UNREACHABLE_CODE();
 }
