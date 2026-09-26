@@ -52,6 +52,9 @@ typedef enum _TimeSliceTicks {
 	HIGH_TIMESLICE_TICKS = 250 / TICK_MS
 } TimeSliceTicks, *PTimeSliceTicks;
 
+// Thread priority boost at wakeup from synchronization functions
+// Yes, 1, I thought it was like 4 at first
+// If you are wondering, the max in Windows is Audio related wakeups which is 8, since audio is very time critical (to not cause stuttering)
 #define MT_SYNCHRONIZATION_BOOST 1
 
 typedef struct _READY_QUEUE {
@@ -61,9 +64,10 @@ typedef struct _READY_QUEUE {
 	uint32_t ThreadCount; // Used for load balancing, protected by the same Lock as ListHead
 } READY_QUEUE, *PREADY_QUEUE;
 
-STATIC_ASSERT(sizeof(THREAD_PRIORITY) == 1, "THREAD_PRIORITY must be one byte.");
+STATIC_ASSERT(sizeof(THREAD_PRIORITY) == 1, "THREAD_PRIORITY must be one byte, it is not an enum");
 
 // Describes which subsystem owns cleanup of the thread's active wait block.
+// Can be removed, i kept it for debugging readability and ease of use
 typedef enum _WAIT_REASON {
 	WaitReasonNone, // The thread has no active wait.
 	WaitReasonSleep,
@@ -190,14 +194,22 @@ typedef struct _WAIT_BLOCK {
 	and to detect a stale or corrupt wait block before touching another queue.
 	*/
 
-	uint64_t WakeupTime; // Absolute system-tick deadline; zero when no timer is registered.
+	uint64_t WakeupTime; // Absolute system-tick deadline, zero when no timer is registered.
 } WAIT_BLOCK, *PWAIT_BLOCK;
 
+// trap frame changes on context, the struct doesnt always come from interrupts
+// see how the syscall constructs its own trap frame for APCs
 typedef struct _TRAP_FRAME {
+	// r15-rax, pushed manually by the stub
 	uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
 	uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+
+	// vector and above, are positioned by the CPU itself (vector is always filled by us in the macro, error_code is filled by the CPU, or manually by us (view the define_isr macro))
 	uint64_t vector;
 	uint64_t error_code;
+
+	// these 5 are always pushed in x86-64 by the CPU, in 32bit RSP:SS were pushed on CPL change, that isnt true in 64bit
+	// read da manual!
 	uint64_t rip;
 	uint64_t cs;
 	uint64_t rflags;
@@ -283,9 +295,6 @@ typedef struct _DPC_DATA {
 	volatile uint32_t DpcQueueDepth;
 	volatile uint32_t DpcCount; // Statistics
 } DPC_DATA, *PDPC_DATA;
-
-#define LASTFUNC_BUFFER_SIZE 128
-#define LASTFUNC_HISTORY_SIZE 25
 
 #define KERNEL_CS       0x08    // Entry 1: Kernel Code
 #define KERNEL_DS       0x10    // Entry 2: Kernel Data
@@ -433,26 +442,28 @@ typedef struct _ITHREAD {
 	// we must know whose CPU ready queue to lock so we may rotate the list (since if boosting or setting lower we must adjust the list)
 	struct _PROCESSOR* ReadyProcessor;
 
-	// Bitmask that says which CPUs this thread is allowed to run on
-	// By default, it should be the maximum affinity for all of the CPUs in the system
+	// Bitmask that says which CPUs this thread is allowed to run on (affinity)
+	// By default, it should be the maximum affinity for all of the CPUs in the system (the whole mask being 1)
 	// but as the thread modifies its affinity, the mask will change
+	// mask being 0 is illegal and requires bugcheck, since affinity functions reject invalid affinities
+	// meaning either memory corruption / someone (func) decided to modify the mask by himself, execute him!!
 	uint32_t AllowedProcessorMask;
 } ITHREAD, *PITHREAD;
 
 typedef struct _PROCESSOR {
-	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MtStealThread in scheduler.c, or MeGetCurrentProcessor.
+	struct _PROCESSOR* self; // A pointer to the current CPU Struct, used internally by functions, see MeAcquireNextScheduledThread in scheduler.c, or MeGetCurrentProcessor.
 
 	// If this is ever switched from a 4 byte integer, check assembly for direct cmp. (like in sleep.asm)
-	enum _IRQL currentIrql; // Current CPU IRQL; controls CR8-based local interrupt priority masking.
+	enum _IRQL currentIrql; // Current CPU IRQL, controls CR8-based local interrupt priority masking.
 
 	struct _ITHREAD* currentThread; // Current thread that is being executed in the CPU.
 	READY_QUEUE readyQueue; // Runnable threads owned by this processor.
 	uint32_t ID; // ID is also the index for cpus (e.g cpus[3] so .ID is 3)
 	uint32_t lapic_ID; // Internal APIC id of the CPU.
-	void* VirtStackTop; // Pointer to top of CPU Stack. - This is used in APMain initialization (look in the stub that sets up the AP CPU)
+	void* VirtStackTop; // Pointer to top of CPU Stack. - This is used in APMain initialization (look in the stub that sets up the AP CPU) (optimization, BSP cpu does not need this alloc)
 	void* tss; // Task State Segment ptr.
 	void* Rsp0; // General RSP for interrupts & syscalls (entry only).
-	void* IstPFStackTop; // Reserved page-fault alternate stack; vector 14 currently uses RSP0.
+	void* IstPFStackTop; // Reserved page-fault alternate stack, vector 14 currently uses RSP0.
 	void* IstDFStackTop; // Double Fault IST Stack
 	volatile PROCESSOR_STATE State; // Mutually exclusive processor lifecycle state.
 	volatile bool IpiRoutineActive; // Independent of State: an online CPU may be handling an IPI.
@@ -601,6 +612,12 @@ MeGetActiveProcessorMask(void)
 
 	return ValidMask;
 }
+
+// IRQL is an enum in the current PROCESSOR struct (signed integer)
+// if it ever change, this should catch it
+// REMEMBER TO CHANGE FROM QWORD TO BYTE IN SLEEP.ASM TOO!
+VALIDATE_MEMBER_SIZE(PROCESSOR, currentIrql, 4);
+
 FORCEINLINE
 IRQL
 MeGetCurrentIrql(void)
@@ -609,10 +626,6 @@ MeGetCurrentIrql(void)
 {
 #ifdef DEBUG
 	IRQL returningIrql = (IRQL)__readgsqword(FIELD_OFFSET(PROCESSOR, currentIrql));
-	// IRQL is an enum in the current PROCESSOR struct (signed integer)
-	// if it ever change, this should catch it
-	// REMEMBER TO CHANGE FROM QWORD TO BYTE IN SLEEP.ASM TOO!
-	VALIDATE_MEMBER_SIZE(PROCESSOR, currentIrql, 4);
 	if (returningIrql > HIGH_LEVEL || returningIrql < PASSIVE_LEVEL) MeBugCheck(INVALID_IRQL_SUPPLIED);
 	return returningIrql;
 #else

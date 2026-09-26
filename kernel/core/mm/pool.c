@@ -616,6 +616,8 @@ MmAllocatePoolWithTag(
     Desc = NULL;
     for (int i = 0; i < MAX_POOL_DESCRIPTORS; i++) {
         PPOOL_DESCRIPTOR currentSlab = &TypeDescriptor[i];
+        assert(currentSlab->BlockSize != 0, "Pool system was not initialized in this CPU, yet allocation was called.");
+
         if (ActualSize <= currentSlab->BlockSize) {
             Desc = currentSlab;
             Index = i;

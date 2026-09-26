@@ -722,7 +722,9 @@ PsCreateThread(
     ParentProcess->NumThreads++;
     MsReleasePushLockExclusive(&ParentProcess->ThreadListLock);
 
-    // Successful.
+    // Give the caller the thread pointer so it can start or abort it.
+    // This does not give the caller another reference, so it must not call
+    // ObDereferenceObject on this pointer.
     *CreatedThread = Thread;
     Status = MT_SUCCESS;
 
