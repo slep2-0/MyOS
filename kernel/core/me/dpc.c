@@ -341,6 +341,10 @@ MeRetireDPCs(
         assert(MeGetCurrentIrql() == DISPATCH_LEVEL);
 
         // Disable Interrupts for next loop iteration
+		// The reason interrupts are disabled while iterating over the list, is since
+		// if we get interrupted while holding the DpcLock for this DpcData, and the same ISR that runs under the interrupted context
+		// queues a DPC (into this CPU), then the CPU would deadlock acquiring the same spinlock that we used here.
+		// Raising to HIGH_LEVEL achieves the same purpose, but i'd rather the IRQL staying the same, and just disable interrupts.
         __cli();
     }
 

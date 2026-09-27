@@ -45,8 +45,9 @@ MeSuspendThread(
 
     Notes:
 
-        The APC queue lock serializes the suspend count and embedded APC
-        state. The request may be observed asynchronously by the target.
+        ApcQueueLock protects SuspendCount and the embedded SuspendAPC state.
+        Success means the suspend was requested, not that the target has
+        already stopped. It stops when the suspend APC runs and waits.
 
 --*/
 
