@@ -32,6 +32,22 @@ ObpUppercaseAscii(
 	char Character
 )
 
+/*++
+
+    Routine description:
+
+        Folds an ASCII lowercase letter to uppercase for namespace comparisons.
+
+    Arguments:
+
+        [IN] Character - Byte to fold.
+
+    Return Values:
+
+        The uppercase equivalent for a through z, or the original byte.
+
+--*/
+
 {
 	if (Character >= 'a' && Character <= 'z')
 		return Character - ('a' - 'A');
@@ -45,6 +61,28 @@ ObpHashName(
 	IN const char* Name,
 	IN size_t NameLength
 )
+
+/*++
+
+    Routine description:
+
+        Hashes a counted object name with ASCII case folding so both lookup
+        comparison modes use the same directory bucket.
+
+    Arguments:
+
+        [IN] Name - Readable name bytes, not necessarily null terminated.
+        [IN] NameLength - Number of name bytes to hash.
+
+    Return Values:
+
+        The 32-bit name hash, or zero for a NULL or empty name.
+
+    Notes:
+
+        Hash collisions are resolved by comparing names in the bucket chain.
+
+--*/
 
 {
 	if (!Name || !NameLength) return 0;
@@ -75,6 +113,31 @@ ObpFindDirectoryEntryLocked(
 	IN size_t NameLength,
 	IN bool CaseInsensitive
 )
+
+/*++
+
+    Routine description:
+
+        Searches a directory bucket for an exact-length name match using the
+        requested case comparison policy.
+
+    Arguments:
+
+        [IN] Directory - Directory being searched.
+        [IN] Name - Counted name bytes to match.
+        [IN] NameLength - Number of bytes in Name.
+        [IN] CaseInsensitive - Whether ASCII letter case is ignored.
+
+    Return Values:
+
+        A borrowed directory entry, or NULL for invalid inputs or no match.
+
+    Notes:
+
+        Hold the directory pushlock shared or exclusive. The returned entry is
+        valid only while protected by that lock; no object reference is acquired.
+
+--*/
 
 {
 	if (!Directory || !Name || !NameLength) return NULL;
@@ -149,6 +212,30 @@ ObpInsertDirectoryEntryLocked(
 	IN bool CaseInsensitive
 )
 
+/*++
+
+    Routine description:
+
+        Rejects a matching name, otherwise links a prepared entry into its hash
+        bucket and associates its name information with the parent directory.
+
+    Arguments:
+
+        [IN OUT] Directory - Directory receiving the entry.
+        [IN] NewEntry - Prepared entry for an object with unattached name information.
+        [IN] CaseInsensitive - Case policy used to detect a duplicate name.
+
+    Return Values:
+
+        true on insertion, or false for invalid inputs or a name collision.
+
+    Notes:
+
+        Requires the directory pushlock exclusively. Allocation and object
+        reference ownership are handled by the caller.
+
+--*/
+
 {
 	if (!Directory || !NewEntry) return false;
 	// holy assertions
@@ -206,6 +293,28 @@ ObpAllocateDirectoryEntry(
 	IN void* Object
 )
 
+/*++
+
+    Routine description:
+
+        Allocates a paged directory entry for an already named object and caches
+        its name hash without acquiring an object reference.
+
+    Arguments:
+
+        [IN] Object - Object body with valid name information.
+
+    Return Values:
+
+        A newly allocated entry, or NULL for invalid input or allocation failure.
+
+    Notes:
+
+        The caller owns the allocation until insertion transfers it to a
+        directory. The object must remain alive during preparation.
+
+--*/
+
 {
 	if (!Object) return NULL;
 
@@ -235,6 +344,32 @@ ObpInsertDirectoryEntry(
 	IN void* Object,
 	IN bool CaseInsensitive
 )
+
+/*++
+
+    Routine description:
+
+        Allocates and inserts an object's directory entry under the exclusive
+        directory lock. Successful insertion retains an object reference for
+        the directory; failure releases the temporary resources.
+
+    Arguments:
+
+        [IN OUT] Directory - Parent directory receiving the named object.
+        [IN] Object - Live object with prepared, unattached name information.
+        [IN] CaseInsensitive - Case policy used for duplicate detection.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM, MT_NO_MEMORY, MT_OBJECT_DELETED, or
+        MT_ALREADY_EXISTS.
+
+    Notes:
+
+        Requires an IRQL suitable for paged allocation and pushlock acquisition.
+        The caller's existing object reference is not consumed.
+
+--*/
 
 {
 	if (!Directory || !Object) return MT_INVALID_PARAM;
@@ -280,6 +415,32 @@ ObpLookupDirectoryEntry(
 	OUT void** Object
 )
 
+/*++
+
+    Routine description:
+
+        Finds a named child under the shared directory lock and acquires its
+        object reference before releasing that lock.
+
+    Arguments:
+
+        [IN] Directory - Directory containing the requested child.
+        [IN] Name - Counted child name.
+        [IN] NameLength - Number of bytes in Name.
+        [IN] CaseInsensitive - Whether ASCII letter case is ignored.
+        [OUT] Object - Referenced object body on success, otherwise NULL for valid inputs.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM, MT_NOT_FOUND, or MT_OBJECT_DELETED.
+
+    Notes:
+
+        The caller must dereference a successful result. The directory lock is
+        acquired internally.
+
+--*/
+
 {
 	if (!Directory || !Name || !NameLength || !Object) return MT_INVALID_PARAM;
 
@@ -314,6 +475,29 @@ ObpRemoveDirectoryEntryLocked(
 	IN POBJECT_DIRECTORY Directory,
 	IN void* Object
 )
+
+/*++
+
+    Routine description:
+
+        Unlinks the entry belonging to an object from its directory hash bucket
+        without releasing the entry or its object reference.
+
+    Arguments:
+
+        [IN OUT] Directory - Directory from which the entry is detached.
+        [IN] Object - Named object whose entry is sought by identity.
+
+    Return Values:
+
+        The detached entry, or NULL when the entry is not present.
+
+    Notes:
+
+        Requires the directory pushlock exclusively. The caller clears parent
+        ownership and releases resources after unlinking.
+
+--*/
 
 {
 	if (!Directory || !Object) return NULL;
@@ -365,6 +549,29 @@ ObpRemoveDirectoryEntry(
 	IN void* Object
 )
 
+/*++
+
+    Routine description:
+
+        Detaches an object from a directory and clears its name's parent. After
+        unlocking, frees the entry and releases the directory's object reference.
+
+    Arguments:
+
+        [IN OUT] Directory - Directory owning the entry.
+        [IN] Object - Object to detach while the caller retains a reference.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM, or MT_NOT_FOUND.
+
+    Notes:
+
+        Name information remains owned by the object. The directory pushlock is
+        acquired internally and object dereferencing occurs outside it.
+
+--*/
+
 {
 	if (!Directory || !Object) return MT_INVALID_PARAM;
 
@@ -399,6 +606,28 @@ ObpDeleteDirectory(
 	IN void* Object
 )
 
+/*++
+
+    Routine description:
+
+        Releases the remaining directory entries and their child object
+        references during directory object destruction.
+
+    Arguments:
+
+        [IN] Object - Directory body supplied to the type deletion callback.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Object teardown must exclude concurrent directory access. The Object
+        Manager releases the directory body separately.
+
+--*/
+
 {
 	POBJECT_DIRECTORY Directory = Object;
 
@@ -425,6 +654,28 @@ POBJECT_HEADER_NAME_INFO
 ObpReferenceNameInfo(
 	IN POBJECT_HEADER Header
 )
+
+/*++
+
+    Routine description:
+
+        Acquires a query reference to an object's name information unless
+        removal has begun or ownership is already gone.
+
+    Arguments:
+
+        [IN] Header - Live object header whose name information is queried.
+
+    Return Values:
+
+        Referenced name information, or NULL when unavailable or being removed.
+
+    Notes:
+
+        The caller must protect the header's lifetime and later call
+        ObpDereferenceNameInfo. Reference-count overflow is a bugcheck.
+
+--*/
 
 {
 	if (!Header || !Header->NameInfo) return NULL;
@@ -484,6 +735,28 @@ void
 ObpDereferenceNameInfo(
 	IN POBJECT_HEADER_NAME_INFO NameInfo
 )
+
+/*++
+
+    Routine description:
+
+        Releases a name-information reference. The final reference frees the
+        name buffer and structure only after removal has been published.
+
+    Arguments:
+
+        [IN] NameInfo - Name information for which the caller owns a reference.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        NULL input, reference underflow, or loss of the final reference without
+        the removing bit indicates broken ownership and causes a bugcheck.
+
+--*/
 
 {
 	if (!NameInfo) {
@@ -563,6 +836,29 @@ ObpDeleteNameInfo(
 	IN POBJECT_HEADER Header
 )
 
+/*++
+
+    Routine description:
+
+        Marks unlinked name information as removing, detaches it from its
+        object header, and drops the header's ownership reference. Outstanding
+        query references defer the allocation's release.
+
+    Arguments:
+
+        [IN OUT] Header - Header whose name ownership is being removed.
+
+    Return Values:
+
+        None. An unnamed header requires no work.
+
+    Notes:
+
+        The object must already be detached from its parent directory. Invalid
+        parent or reference state and duplicate removal cause a bugcheck.
+
+--*/
+
 {
 	if (!Header) {
 		MeBugCheckEx(
@@ -634,6 +930,30 @@ ObpCreateNameInfo(
 	IN size_t NameLength
 )
 
+/*++
+
+    Routine description:
+
+        Copies a counted name into paged storage and attaches new name
+        information with one ownership reference to an unnamed object header.
+
+    Arguments:
+
+        [IN OUT] Header - Unnamed header receiving the allocation.
+        [IN] Name - Name bytes to copy.
+        [IN] NameLength - Number of bytes excluding the appended terminator.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM, MT_ALREADY_EXISTS, or MT_NO_MEMORY.
+
+    Notes:
+
+        The caller serializes header modification before publishing the object.
+        The new name information has no parent until directory insertion.
+
+--*/
+
 {
 	// Reject SIZE_MAX because of NameLength + 1 below
 	if (!Header || !Name || !NameLength || NameLength == SIZE_MAX) return MT_INVALID_PARAM;
@@ -681,6 +1001,23 @@ ObpInitializeDirectoryType(
 	void
 )
 
+/*++
+
+    Routine description:
+
+        Registers the paged directory object type, its access rights, and its
+        deletion callback for subsequent namespace initialization.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_ALREADY_EXISTS if initialized, otherwise the ObCreateObjectType status.
+
+--*/
+
 {
 	if (ObDirectoryType != NULL) {
 		// Directory Type already initialized, bugcheck.
@@ -711,6 +1048,28 @@ MTSTATUS
 ObpCreateRootDirectory(
 	void
 )
+
+/*++
+
+    Routine description:
+
+        Creates the permanent root directory, initializes its lock and root
+        name, and publishes its creation reference in ObRootDirectoryObject.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS or an object creation or name allocation failure status.
+
+    Notes:
+
+        Boot initialization requires the directory type to exist and the root
+        global to be unset. The published reference is retained by the namespace.
+
+--*/
 
 {
 	assert(ObDirectoryType != NULL, "NULL Directory type, creation of root directory before initialization");
@@ -757,6 +1116,33 @@ ObpCreateDirectoryObject(
 	OUT POBJECT_DIRECTORY* DirectoryObject
 )
 
+/*++
+
+    Routine description:
+
+        Creates a directory, prepares its name and lock, and inserts it into
+        its parent. Failed preparation or insertion releases the created object.
+
+    Arguments:
+
+        [IN] ParentDirectory - Live parent receiving the child directory.
+        [IN] Name - Counted child name.
+        [IN] NameLength - Number of name bytes.
+        [IN] CaseInsensitive - Case policy for insertion collisions.
+        [OUT] DirectoryObject - Creation reference to the new directory on success.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, allocation, object creation, or insertion
+        failure status.
+
+    Notes:
+
+        The caller owns the returned reference and must dereference it when
+        finished. Successful insertion retains a separate directory-entry reference.
+
+--*/
+
 {
 	if (!ParentDirectory || !Name || !NameLength || !DirectoryObject) return MT_INVALID_PARAM;
 
@@ -799,6 +1185,28 @@ ObpCreateAchtungNamedObjectsDirectory(
 	void
 )
 
+/*++
+
+    Routine description:
+
+        Creates the permanent AchtungNamedObjects child of the root and
+        publishes its creation reference for named executive objects.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS or the directory creation failure status.
+
+    Notes:
+
+        Boot initialization requires an existing root and an unset named-object
+        directory global.
+
+--*/
+
 {
 	assert(ObAchtungNamedObjectsDirectory == NULL);
 	assert(ObRootDirectoryObject != NULL);
@@ -821,6 +1229,28 @@ MTSTATUS
 ObpCreateDeviceDirectory(
 	void
 )
+
+/*++
+
+    Routine description:
+
+        Creates the permanent Device child of the root and publishes its
+        creation reference for the device namespace.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_SUCCESS or the directory creation failure status.
+
+    Notes:
+
+        Boot initialization requires an existing root and an unset device
+        directory global.
+
+--*/
 
 {
 	assert(ObDeviceDirectory == NULL);
@@ -850,6 +1280,36 @@ ObpLookupObjectPath(
 	IN void* ParseContext,
 	OUT void** Object
 )
+
+/*++
+
+    Routine description:
+
+        Walks directory components from the root or a supplied directory while
+        holding references to the objects being examined. Parse callbacks can
+        return an object or request a bounded restart with a new absolute path.
+
+    Arguments:
+
+        [IN] StartingDirectory - Directory for a relative path, or NULL for an absolute path.
+        [IN] Path - Readable counted namespace path.
+        [IN] PathLength - Number of path bytes, excluding any terminator.
+        [IN] Attributes - Lookup flags controlling case comparison and final link opening.
+        [IN] ParseContext - Borrowed caller context passed to parse callbacks.
+        [OUT] Object - Referenced resolved object on success.
+
+    Return Values:
+
+        MT_SUCCESS, or a path validation, lookup, type, reparse-limit, or parse
+        callback failure status.
+
+    Notes:
+
+        The caller dereferences a successful result. MT_OBJ_OPEN_LINK skips
+        parsing the final symbolic link. Temporary reparse paths are released
+        internally; ParseContext ownership is unchanged.
+
+--*/
 
 {
 	if (!Object || !Path || !PathLength ||
@@ -1192,6 +1652,24 @@ ObpGetIteratorAtFinalSlash(
 	IN size_t PathLength
 )
 
+/*++
+
+    Routine description:
+
+        Finds the last directory separator in a counted path without requiring
+        a null terminator.
+
+    Arguments:
+
+        [IN] Path - Readable path bytes.
+        [IN] PathLength - Number of bytes to examine.
+
+    Return Values:
+
+        The last separator's index, or SIZE_MAX when there is no separator.
+
+--*/
+
 {
 	// Returns the index where the final slash parts
 	// meaning Path[RetVal] == '\\' (final slash)
@@ -1214,6 +1692,34 @@ ObpInsertNamedObject(
 	IN size_t PathLength,
 	IN uint32_t Attributes
 )
+
+/*++
+
+    Routine description:
+
+        Resolves the parent of a new object's path, creates its leaf name
+        information, and inserts it into the parent directory. Failed insertion
+        removes the newly attached name information.
+
+    Arguments:
+
+        [IN] Object - Live unnamed object whose caller reference is retained.
+        [IN] StartingDirectory - Base for a relative path, or NULL for an absolute path.
+        [IN] Path - Counted path identifying the parent and new leaf name.
+        [IN] PathLength - Number of path bytes.
+        [IN] Attributes - Insertion flags; only case-insensitive lookup is supported.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, parent lookup, naming, or insertion failure
+        status.
+
+    Notes:
+
+        Requires an IRQL suitable for paged storage and pushlocks. Successful
+        insertion retains a separate object reference for the directory entry.
+
+--*/
 
 {
 	if (!Object || !Path || !PathLength) return MT_INVALID_PARAM;
@@ -1332,6 +1838,36 @@ ObOpenObjectByName(
 	IN ACCESS_MASK DesiredAccess,
 	OUT PHANDLE Handle
 )
+
+/*++
+
+    Routine description:
+
+        Resolves a named object, verifies its expected type, and creates a
+        handle with the requested access before releasing the lookup reference.
+
+    Arguments:
+
+        [IN] StartingDirectory - Base for a relative path, or NULL for an absolute path.
+        [IN] Path - Counted object path.
+        [IN] PathLength - Number of path bytes.
+        [IN] Attributes - Namespace lookup flags.
+        [IN] ParseContext - Borrowed context forwarded to parse callbacks.
+        [IN] ExpectedType - Required object type.
+        [IN] DesiredAccess - Access requested for the new handle.
+        [OUT] Handle - New handle on success, or MT_INVALID_HANDLE on failure after validation.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, lookup, type mismatch, or handle creation
+        failure status.
+
+    Notes:
+
+        The caller owns a successful handle and must close it. No lookup
+        reference is transferred to the caller.
+
+--*/
 
 {
 	if (!Path || !PathLength || !Handle || !ExpectedType) return MT_INVALID_PARAM;

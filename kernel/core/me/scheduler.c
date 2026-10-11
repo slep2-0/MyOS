@@ -163,6 +163,31 @@ MepAcquireOrderedReadyQueueLocks(
     IN PPROCESSOR ProcessorB,
     IN PIRQL OldIrql
 )
+
+/*++
+
+    Routine description:
+
+        Acquires two processor ready queue locks in ascending processor ID
+        order. When both arguments identify the same processor, locks it once.
+
+    Arguments:
+
+        [IN] ProcessorA - First processor participating in the operation.
+        [IN] ProcessorB - Second processor participating in the operation.
+        [OUT] OldIrql - IRQL to restore when releasing the locks.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The caller must not already hold these locks or a thread scheduler lock.
+        The first acquisition raises IRQL and the second preserves that level.
+
+--*/
+
 {
     assert(ProcessorA && ProcessorB);
 #ifdef DEBUG
@@ -194,6 +219,31 @@ MepReleaseOrderedReadyQueueLocks(
     IN PPROCESSOR ProcessorB,
     IN IRQL OldIrql
 )
+
+/*++
+
+    Routine description:
+
+        Releases an ordered ready queue lock pair in reverse acquisition order
+        and restores the caller's original IRQL.
+
+    Arguments:
+
+        [IN] ProcessorA - First processor passed to the matching acquisition.
+        [IN] ProcessorB - Second processor passed to the matching acquisition.
+        [IN] OldIrql - IRQL saved by the matching acquisition.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Both locks must be held from MepAcquireOrderedReadyQueueLocks. A shared
+        processor argument is released only once.
+
+--*/
+
 {
     assert(ProcessorA && ProcessorB);
 #ifdef DEBUG
@@ -224,6 +274,30 @@ MeQueueThreadOnAllowedProcessor(
     IN PETHREAD Thread,
     IN PPROCESSOR PreferredProcessor
 )
+
+/*++
+
+    Routine description:
+
+        Queues an unowned ready thread on a least-loaded allowed processor and
+        requests preemption there. Affinity or online-state changes cause the
+        selection to be retried before insertion.
+
+    Arguments:
+
+        [IN] Thread - READY thread with no active or ready processor owner.
+        [IN] PreferredProcessor - Processor favored when candidate loads tie.
+
+    Return Values:
+
+        true when queued, or false for an invalid thread state or no candidate.
+
+    Notes:
+
+        The caller must not hold ready queue or thread scheduler locks. The
+        destination queue is locked before the thread scheduler lock.
+
+--*/
 
 {
     if (InterlockedLoadAcquire(&Thread->InternalThread.ThreadState) != THREAD_READY ||
@@ -461,6 +535,30 @@ MepShouldPreemptCurrentThreadLocked(
     void
 )
 
+/*++
+
+    Routine description:
+
+        Checks whether the current processor needs to replace its running
+        thread because it is idle, disallowed by affinity, or outranked by
+        queued work.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        true when a scheduling check requires preemption, otherwise false.
+
+    Notes:
+
+        The current processor's ready queue lock must be held at DISPATCH_LEVEL
+        or above. The current thread's scheduler lock is acquired internally.
+        Equal-priority work does not itself force preemption here.
+
+--*/
+
 {
     PPROCESSOR Processor = MeGetCurrentProcessor();
 
@@ -512,6 +610,29 @@ MepEnqueueReadyThreadLocked(
     IN PETHREAD Thread,
     IN PREADY_QUEUE ReadyQueue
 )
+
+/*++
+
+    Routine description:
+
+        Links a thread into a processor's priority-ordered ready queue, preserving
+        FIFO order among equal priorities, then publishes its queue ownership.
+
+    Arguments:
+
+        [IN] Thread - Unlinked thread allowed to run on the queue owner.
+        [IN OUT] ReadyQueue - Destination queue whose ready count is increased.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The destination queue lock and thread scheduler lock must already be
+        held in that order. This routine does not change the thread state.
+
+--*/
 
 {
     assert(Thread != NULL && ReadyQueue != NULL);
@@ -590,6 +711,29 @@ void
 MeRequestPreemption(
     IN PPROCESSOR TargetProcessor
 )
+
+/*++
+
+    Routine description:
+
+        Requests a scheduler interrupt locally or sends a scheduling action to
+        a remote processor and waits for its acknowledgement.
+
+    Arguments:
+
+        [IN] TargetProcessor - Processor asked to reevaluate its running thread.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Release locks needed by the target before calling, since the remote
+        request waits for acknowledgement.
+
+--*/
+
 {
     assert(TargetProcessor != NULL);
     if (!TargetProcessor) return;
@@ -612,6 +756,29 @@ void
 MeEvaluateCurrentPreemptionAtDpcLevel(
     void
 )
+
+/*++
+
+    Routine description:
+
+        Checks the current ready queue and marks scheduling pending when the
+        running thread should be preempted. It does not switch contexts itself.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Requires DISPATCH_LEVEL or above. An already pending scheduling request
+        is left intact; otherwise the ready queue is locked internally.
+
+--*/
+
 {
     PPROCESSOR Processor = MeGetCurrentProcessor();
 

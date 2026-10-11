@@ -154,6 +154,34 @@ CreateProcess(
     OUT PPROCESS_INFORMATION ProcessInformation
 )
 
+/*++
+
+    Routine description:
+
+        Builds process-creation syscall parameters with default command-line
+        and inherited working-directory/environment values, then returns the
+        new process and initial-thread handles and IDs.
+
+    Arguments:
+
+        [IN] ImagePath - Required null-terminated executable path.
+        [IN] CommandLine - Command line, or NULL to use ImagePath.
+        [IN] CurrentDirectory - Working directory, or NULL to inherit it.
+        [IN] Environment - Environment block, or NULL to inherit the current block.
+        [IN] EnvironmentSize - Byte count of a supplied environment including its terminators.
+        [OUT] ProcessInformation - Process and thread handles and IDs on success.
+
+    Return Values:
+
+        true on success, otherwise false with the last status and error updated.
+
+    Notes:
+
+        The caller must close both returned handles. Output handles and IDs are
+        initialized before issuing the syscall.
+
+--*/
+
 {
     if (!ProcessInformation || !ImagePath) {
         SetLastStatus(MT_INVALID_PARAM);

@@ -30,6 +30,32 @@ MeSetThreadAffinityMask(
     uint32_t* PreviousMask
 )
 
+/*++
+
+    Routine description:
+
+        Changes a thread's allowed processors and moves queued work when its
+        current queue is no longer allowed. Running threads are asked to preempt
+        when the new mask excludes their processor.
+
+    Arguments:
+
+        [IN] Thread - Thread whose affinity is changed.
+        [IN] NewMask - Nonzero mask containing only configured processor bits.
+        [OUT] PreviousMask - Previous affinity mask on success.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM for invalid inputs, MT_NOT_FOUND when no
+        allowed destination is available, or MT_THREAD_IS_TERMINATING.
+
+    Notes:
+
+        The caller must not hold ready queue or thread scheduler locks. State
+        transitions are rechecked under the appropriate locks before committing.
+
+--*/
+
 {
     if (!Thread || !NewMask || !PreviousMask) return MT_INVALID_PARAM;
 

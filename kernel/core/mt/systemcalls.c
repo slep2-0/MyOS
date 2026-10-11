@@ -3436,6 +3436,31 @@ MtCreateProcess(
     OUT PMT_PROCESS_INFORMATION ProcessInformation
 )
 
+/*++
+
+    Routine description:
+
+        Captures user process-creation parameters and strings, creates the
+        process and its initial thread, then publishes handles and IDs before
+        starting the thread. Publication failure rolls creation back.
+
+    Arguments:
+
+        [IN] Parameters - User structure describing the executable and process settings.
+        [OUT] ProcessInformation - User destination for process and initial-thread handles and IDs.
+
+    Return Values:
+
+        MT_SUCCESS, or a validation, probing, allocation, creation, or output
+        publication failure status.
+
+    Notes:
+
+        Captured kernel buffers are released on every completion path. Handles
+        returned successfully belong to the caller and must be closed.
+
+--*/
+
 {
     if (!Parameters || !ProcessInformation) return MT_INVALID_PARAM;
 

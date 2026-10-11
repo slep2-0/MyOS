@@ -27,6 +27,31 @@ MeSetThreadBasePriority(
     OUT THREAD_PRIORITY* PreviousPriority
 )
 
+/*++
+
+    Routine description:
+
+        Changes both base and dynamic priority, discarding any previous boost.
+        Queued threads are reordered and running threads request a scheduling
+        check when their priority changes.
+
+    Arguments:
+
+        [IN] Thread - Executive thread whose priority is changed.
+        [IN] NewPriority - New priority within the supported range.
+        [OUT] PreviousPriority - Previous base priority on success.
+
+    Return Values:
+
+        MT_SUCCESS, MT_INVALID_PARAM, or MT_THREAD_IS_TERMINATING.
+
+    Notes:
+
+        Ready queue locks precede the thread scheduler lock. The routine retries
+        when a thread changes scheduling ownership during acquisition.
+
+--*/
+
 {
     if (!Thread || !PreviousPriority || NewPriority > MT_PRIORITY_REALTIME_HIGHEST) return MT_INVALID_PARAM;
 
@@ -167,6 +192,31 @@ MeBoostThread(
     IN PITHREAD Thread,
     IN THREAD_PRIORITY PriorityIncrement
 )
+
+/*++
+
+    Routine description:
+
+        Raises a variable-priority thread's dynamic priority without changing
+        its base priority. The boost is capped at the highest variable priority
+        and queued threads are repositioned accordingly.
+
+    Arguments:
+
+        [IN] Thread - Thread receiving the temporary boost.
+        [IN] PriorityIncrement - Amount added to dynamic priority.
+
+    Return Values:
+
+        None. Invalid requests, real-time threads, and terminating threads are
+        ignored.
+
+    Notes:
+
+        A changed running thread requests a scheduling check on its owner CPU.
+        Queue and scheduler locks are acquired internally.
+
+--*/
 
 {
     if (!Thread || !PriorityIncrement || PriorityIncrement > MT_PRIORITY_REALTIME_HIGHEST) return;
@@ -335,6 +385,28 @@ void
 MeDecayThreadPriority(
     IN PITHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Removes one level of temporary priority boost after quantum expiration,
+        without lowering a variable-priority thread below its base priority.
+
+    Arguments:
+
+        [IN] Thread - Running thread whose dynamic priority is decayed.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Called at CLOCK_LEVEL for a running thread. The scheduler lock is acquired
+        internally at DPC level.
+
+--*/
 
 {
     // A thread must be running for the decay to work

@@ -388,6 +388,36 @@ PspCreateProcessParameters(
     OUT PMT_PROCESS_PARAMETERS* OutParameters
 )
 
+/*++
+
+    Routine description:
+
+        Allocates a user region in a new process and captures its process
+        parameters, strings, and environment there while attached to that
+        process. A failed capture releases the region.
+
+    Arguments:
+
+        [IN] Process - Target process receiving the user allocation.
+        [IN] ImagePath - Kernel-captured null-terminated executable path.
+        [IN] CommandLine - Kernel-captured null-terminated command line.
+        [IN] CurrentDirectory - Kernel-captured null-terminated working directory.
+        [IN] Environment - Kernel-captured double-null-terminated environment block.
+        [IN] EnvironmentSize - Environment byte count including its terminators.
+        [OUT] OutParameters - Address of the completed parameters in the target process.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, size overflow, allocation, attachment, or
+        copy failure status.
+
+    Notes:
+
+        Successful storage belongs to the process address space. Argument
+        parsing is deferred to the user-mode loader.
+
+--*/
+
 {
     if (!Process ||
         !ImagePath ||

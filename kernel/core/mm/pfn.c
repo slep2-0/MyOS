@@ -600,6 +600,27 @@ MiIsWithinBoundsOfReleasePhysicalPage(
 
 // Self explanatory function, this is only used for debugging.
 
+/*++
+
+    Routine description:
+
+        Checks whether an address falls between the debug boundary labels of
+        MiReleasePhysicalPage.
+
+    Arguments:
+
+        [IN] VirtualAddress - Instruction address being classified.
+
+    Return Values:
+
+        true for an address in the half-open routine range, otherwise false.
+
+    Notes:
+
+        Available in DEBUG builds for release-path diagnostics.
+
+--*/
+
 {
     uintptr_t a = (uintptr_t)VirtualAddress;
     uintptr_t s = (uintptr_t)&MiReleasePhysicalPage_start;

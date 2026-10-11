@@ -862,6 +862,31 @@ PspAbortThreadCreation(
     IN MTSTATUS ExitStatus
 )
 
+/*++
+
+    Routine description:
+
+        Terminates an INITIALIZED thread that was never started, runs down its
+        APCs, updates parent thread accounting, signals completion, and releases
+        the thread's lifetime reference.
+
+    Arguments:
+
+        [IN] Thread - Created thread which has not been queued or run.
+        [IN] ExitStatus - Status recorded for the aborted thread.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The state transition is claimed atomically. The caller releases any
+        additional references it owns separately; a terminating parent's last
+        thread can also complete process termination.
+
+--*/
+
 {
     // Atomic compare exchange, same as PspStartThread
     uint32_t PreviousState = InterlockedCompareExchangeU32(
@@ -952,6 +977,28 @@ void
 PspStartThread(
     IN PETHREAD Thread
 )
+
+/*++
+
+    Routine description:
+
+        Publishes a newly created thread as READY and queues it on an allowed
+        processor so execution can begin.
+
+    Arguments:
+
+        [IN] Thread - Unqueued INITIALIZED thread whose creation is complete.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Starting an already transitioned thread or failing to queue the newly
+        ready thread violates the creation contract and is asserted.
+
+--*/
 
 {
     assert(Thread);

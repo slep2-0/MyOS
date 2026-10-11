@@ -9,6 +9,24 @@ void
 _start(
     PMT_PROCESS_PARAMETERS Parameters
 )
+
+/*++
+
+    Routine description:
+
+        Calls the program's main function with loader-prepared arguments, then
+        terminates the process according to main's exit result.
+
+    Arguments:
+
+        [IN] Parameters - Process parameters containing argc and argv.
+
+    Return Values:
+
+        Does not return. A fallback loop remains if process termination returns.
+
+--*/
+
 {
     // Call main with ARGC and ARGV
     // If it is void or int main()

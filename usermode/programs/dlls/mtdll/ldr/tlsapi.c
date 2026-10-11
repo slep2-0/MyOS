@@ -28,6 +28,26 @@ LdrpIsImageRangeValid(
     IN uint64_t Rva,
     IN uint64_t Size
 )
+
+/*++
+
+    Routine description:
+
+        Checks that an RVA and byte count describe a range wholly within an
+        image without overflowing an end-address calculation.
+
+    Arguments:
+
+        [IN] ImageSize - Total image byte count.
+        [IN] Rva - Starting relative virtual address.
+        [IN] Size - Number of bytes in the proposed range.
+
+    Return Values:
+
+        true for an in-bounds range, otherwise false.
+
+--*/
+
 {
     if (Rva > ImageSize) {
         return false;
@@ -41,6 +61,31 @@ LdrRegisterModuleTlsLocked(
     IN PPEB Peb,
     IN OUT PLDR_DATA_TABLE_ENTRY Module
 )
+
+/*++
+
+    Routine description:
+
+        Validates a module's TLS directory, template, alignment, and index
+        fixups, then assigns its process-local TLS index and patches those
+        fixups. Modules without TLS require no registration.
+
+    Arguments:
+
+        [IN OUT] Peb - Process environment tracking the next TLS index.
+        [IN OUT] Module - Loaded image entry receiving TLS registration state.
+
+    Return Values:
+
+        MT_SUCCESS or an invalid input/image, duplicate registration, or
+        resource exhaustion status.
+
+    Notes:
+
+        The caller must hold the loader lock. Registration describes future
+        per-thread storage; it does not allocate each thread's TLS block.
+
+--*/
 
 {
     // Reject NULL Modules.
@@ -178,6 +223,34 @@ LdrpAllocateModuleTlsBlock(
     OUT void** RawAllocation,
     OUT void** ThreadPointer
 )
+
+/*++
+
+    Routine description:
+
+        Allocates aligned per-thread TLS storage from a validated module
+        recipe, copies the initialized template, and leaves the remaining
+        storage zeroed. Executable TLS also receives its thread-pointer layout.
+
+    Arguments:
+
+        [IN] Module - Module with previously validated TLS directory information.
+        [IN] IsExecutable - Whether to prepare the executable local-exec layout.
+        [OUT] TlsBlock - Aligned module storage placed in the thread's TLS slot.
+        [OUT] RawAllocation - Underlying heap allocation recorded for ownership.
+        [OUT] ThreadPointer - Executable thread pointer, or NULL for a DLL block.
+
+    Return Values:
+
+        MT_SUCCESS or an invalid input/image, size overflow, or heap allocation
+        failure status.
+
+    Notes:
+
+        Release a block through LdrpFreeModuleTlsBlock, which recovers its saved
+        allocation pointer. Do not free the raw allocation a second time.
+
+--*/
 
 {
     if (!Module || !TlsBlock || !RawAllocation || !ThreadPointer) return MT_INVALID_PARAM;
@@ -342,6 +415,31 @@ LdrpInitializeThreadTls(
     IN OUT PTEB Teb,
     IN PPEB Peb
 )
+
+/*++
+
+    Routine description:
+
+        Builds a new thread's TLS slot array and module blocks from the loaded
+        module list, then publishes the complete state in its TEB. Failure
+        releases all partially constructed storage.
+
+    Arguments:
+
+        [IN OUT] Teb - Uninitialized thread environment block receiving TLS ownership.
+        [IN] Peb - Process environment supplying the module list and TLS index count.
+
+    Return Values:
+
+        MT_SUCCESS or an invalid/repeated initialization, loader-lock wait,
+        inconsistent module state, resource, or heap allocation failure status.
+
+    Notes:
+
+        The loader mutex is acquired internally. Installing the executable FS
+        base is a separate step after this routine succeeds.
+
+--*/
 
 {
     if (!Teb || !Peb) return MT_INVALID_PARAM;
@@ -618,6 +716,30 @@ LdrpExpandCurrentThreadTls(
     IN uint64_t ModuleIndex
 )
 
+/*++
+
+    Routine description:
+
+        Lazily materializes a loaded module's TLS block for the current thread,
+        growing its slot array when necessary while preserving existing blocks.
+
+    Arguments:
+
+        [IN OUT] Teb - Current thread environment owning the TLS slots.
+        [IN] ModuleIndex - Process-local module TLS index being requested.
+
+    Return Values:
+
+        MT_SUCCESS, or an invalid input/state, missing module, loader-lock wait,
+        resource, or heap allocation failure status.
+
+    Notes:
+
+        The loader mutex is acquired internally and the module is rechecked
+        under it. Allocation failure leaves existing thread TLS storage intact.
+
+--*/
+
 {
     if (!Teb || ModuleIndex == MT_INVALID_TLS_INDEX) {
         return MT_INVALID_PARAM;
@@ -765,6 +887,29 @@ void*
 __tls_get_addr(
     IN PMT_TLS_INDEX TlsIndex
 )
+
+/*++
+
+    Routine description:
+
+        Resolves the compiler's DLL TLS index to the calling thread's module
+        block plus its variable offset, lazily allocating missing storage.
+
+    Arguments:
+
+        [IN] TlsIndex - Compiler-supplied module index and offset within its TLS block.
+
+    Return Values:
+
+        The current thread's TLS address, or NULL for missing thread/index
+        state or lazy materialization failure.
+
+    Notes:
+
+        The compiler supplies a valid offset; this routine does not bounds-check
+        it. Lazy allocation can wait on the loader mutex.
+
+--*/
 
 {
     if (!TlsIndex) return NULL;

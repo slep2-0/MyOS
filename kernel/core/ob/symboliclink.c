@@ -29,6 +29,26 @@ ObpDeleteSymbolicLink(
 	void* Object
 )
 
+/*++
+
+    Routine description:
+
+        Releases the symbolic link's copied target path during object teardown.
+
+    Arguments:
+
+        [IN] Object - Symbolic-link body supplied to the deletion callback.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        The Object Manager releases the object body separately.
+
+--*/
+
 {
 	assert(Object);
 
@@ -56,6 +76,23 @@ MTSTATUS
 ObpInitializeSymbolicLinkType(
 	void
 )
+
+/*++
+
+    Routine description:
+
+        Registers the paged symbolic-link type with its parse and deletion
+        callbacks and supported access rights.
+
+    Arguments:
+
+        None.
+
+    Return Values:
+
+        MT_ALREADY_EXISTS if initialized, otherwise the ObCreateObjectType status.
+
+--*/
 
 {
 	if (ObSymbolicLinkType != NULL) {
@@ -92,6 +129,34 @@ ObpParseSymbolicLink(
 	IN void* ParseContext,
 	OUT POB_PARSE_RESULT Result
 )
+
+/*++
+
+    Routine description:
+
+        Combines a symbolic link's absolute target with the remaining path and
+        requests reparsing. The join preserves one separator without adding a
+        duplicate when both sides already provide one.
+
+    Arguments:
+
+        [IN] ParseObject - Referenced symbolic-link body being parsed.
+        [IN] RemainingPath - Counted suffix after the symbolic-link component, or NULL when empty.
+        [IN] RemainingPathLength - Number of suffix bytes.
+        [IN] ParseContext - Unused caller context.
+        [OUT] Result - Owned allocated reparse path and its counted length.
+
+    Return Values:
+
+        MT_REPARSE on success, MT_INVALID_PARAM for invalid target or size
+        overflow, or MT_NO_MEMORY.
+
+    Notes:
+
+        The path lookup caller releases Result's reparse allocation. Failure
+        leaves the result cleared.
+
+--*/
 
 {
 	assert(ParseObject);
@@ -207,6 +272,36 @@ ObCreateSymbolicLink(
 	IN size_t TargetPathLength,
 	OUT POBJECT_SYMBOLIC_LINK* SymbolicLinkObject
 )
+
+/*++
+
+    Routine description:
+
+        Creates a symbolic link with a copied absolute target path and inserts
+        it at the requested namespace location. Failure releases the object and
+        any target storage prepared for it.
+
+    Arguments:
+
+        [IN] StartingDirectory - Base for a relative name, or NULL for an absolute name.
+        [IN] Path - Counted namespace name of the new symbolic link.
+        [IN] PathLength - Number of name path bytes.
+        [IN] Attributes - Namespace insertion flags.
+        [IN] TargetPath - Nonempty absolute target path copied into the link.
+        [IN] TargetPathLength - Number of target bytes excluding the terminator.
+        [OUT] SymbolicLinkObject - Creation reference to the link on success.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, allocation, creation, or insertion failure
+        status.
+
+    Notes:
+
+        The caller must dereference the returned object. The directory entry
+        retains its own reference independently.
+
+--*/
 
 {
 	if (!Path || !PathLength || !TargetPath || !TargetPathLength || !SymbolicLinkObject) {

@@ -168,6 +168,30 @@ MepSelectLeastLoadedAllowedProcessor(
     IN PPROCESSOR PreferredProcessor // selected only at a tie of Preferred and Lowest.
 )
 
+/*++
+
+    Routine description:
+
+        Finds an online processor allowed by the thread's affinity with the
+        smallest ready queue. Equal loads favor the preferred processor.
+
+    Arguments:
+
+        [IN] Thread - Thread whose affinity is sampled.
+        [IN] PreferredProcessor - Processor favored when ready counts tie.
+
+    Return Values:
+
+        A candidate processor, or NULL for invalid inputs or no allowed online
+        processor.
+
+    Notes:
+
+        Affinity and queue counts are snapshots. The caller must revalidate the
+        candidate under the destination queue and thread scheduler locks.
+
+--*/
+
 {
     if (!Thread || !PreferredProcessor) return NULL;
 

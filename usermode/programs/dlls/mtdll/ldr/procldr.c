@@ -611,6 +611,30 @@ LdrpInitializeProcessArguments(
     IN OUT PMT_PROCESS_PARAMETERS Parameters
 )
 
+/*++
+
+    Routine description:
+
+        Parses the captured command line into argc and argv using spaces
+        outside quotes as separators. Quote characters are removed and argument
+        pointers and text share a single process-heap allocation.
+
+    Arguments:
+
+        [IN OUT] Parameters - Validated process parameters receiving argc and argv.
+
+    Return Values:
+
+        MT_SUCCESS or a validation, unmatched-quote, size/resource, heap
+        allocation, or inconsistent second-pass failure status.
+
+    Notes:
+
+        Outputs are published after both parsing passes succeed. The process
+        heap owns the resulting argument allocation.
+
+--*/
+
 {
     // Validate the kernel supplied process parameters
     if (!Parameters || Parameters->Size < sizeof(MT_PROCESS_PARAMETERS) || !Parameters->CommandLine) {

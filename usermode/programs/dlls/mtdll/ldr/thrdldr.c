@@ -25,6 +25,29 @@ void
 LdrpInitializeThreadPointer(
     IN void* ThreadPointer
 )
+
+/*++
+
+    Routine description:
+
+        Installs the executable's local-exec TLS thread pointer in the current
+        thread's FS base.
+
+    Arguments:
+
+        [IN] ThreadPointer - Prepared thread pointer, or NULL when no executable TLS exists.
+
+    Return Values:
+
+        None.
+
+    Notes:
+
+        Requires user-mode FSGSBASE support. The TLS allocation must remain
+        alive while this thread pointer is installed.
+
+--*/
+
 {
     __asm__ volatile (
         "wrfsbase %0"
