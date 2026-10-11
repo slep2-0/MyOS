@@ -83,7 +83,7 @@ LdrRegisterModuleTlsLocked(
     Notes:
 
         The caller must hold the loader lock. Registration describes future
-        per-thread storage; it does not allocate each thread's TLS block.
+        per-thread storage, it does not allocate each thread's TLS block.
 
 --*/
 
@@ -906,7 +906,7 @@ __tls_get_addr(
 
     Notes:
 
-        The compiler supplies a valid offset; this routine does not bounds-check
+        The compiler supplies a valid offset, this routine does not bounds-check
         it. Lazy allocation can wait on the loader mutex.
 
 --*/

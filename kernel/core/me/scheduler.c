@@ -775,7 +775,7 @@ MeEvaluateCurrentPreemptionAtDpcLevel(
     Notes:
 
         Requires DISPATCH_LEVEL or above. An already pending scheduling request
-        is left intact; otherwise the ready queue is locked internally.
+        is left intact, otherwise the ready queue is locked internally.
 
 --*/
 

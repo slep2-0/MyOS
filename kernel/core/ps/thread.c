@@ -882,7 +882,7 @@ PspAbortThreadCreation(
     Notes:
 
         The state transition is claimed atomically. The caller releases any
-        additional references it owns separately; a terminating parent's last
+        additional references it owns separately, a terminating parent's last
         thread can also complete process termination.
 
 --*/

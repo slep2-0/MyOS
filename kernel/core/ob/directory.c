@@ -135,7 +135,7 @@ ObpFindDirectoryEntryLocked(
     Notes:
 
         Hold the directory pushlock shared or exclusive. The returned entry is
-        valid only while protected by that lock; no object reference is acquired.
+        valid only while protected by that lock, no object reference is acquired.
 
 --*/
 
@@ -351,7 +351,7 @@ ObpInsertDirectoryEntry(
 
         Allocates and inserts an object's directory entry under the exclusive
         directory lock. Successful insertion retains an object reference for
-        the directory; failure releases the temporary resources.
+        the directory, failure releases the temporary resources.
 
     Arguments:
 
@@ -1307,7 +1307,7 @@ ObpLookupObjectPath(
 
         The caller dereferences a successful result. MT_OBJ_OPEN_LINK skips
         parsing the final symbolic link. Temporary reparse paths are released
-        internally; ParseContext ownership is unchanged.
+        internally, ParseContext ownership is unchanged.
 
 --*/
 
@@ -1707,7 +1707,7 @@ ObpInsertNamedObject(
         [IN] StartingDirectory - Base for a relative path, or NULL for an absolute path.
         [IN] Path - Counted path identifying the parent and new leaf name.
         [IN] PathLength - Number of path bytes.
-        [IN] Attributes - Insertion flags; only case-insensitive lookup is supported.
+        [IN] Attributes - Insertion flags, only case-insensitive lookup is supported.
 
     Return Values:
 
