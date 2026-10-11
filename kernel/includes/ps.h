@@ -5,7 +5,7 @@
 
 Module Name:
 
-    mp.h
+    ps.h
 
 Purpose:
 
