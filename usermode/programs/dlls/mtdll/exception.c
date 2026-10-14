@@ -31,39 +31,29 @@ Turns to:
 
 
 {
-    MT_LANGUAGE_EXCEPTION_FRAME __mt_frame_42 = { 0 };
+    MT_LANGUAGE_FRAME __mt_seh_frame_42 = { 0 };
 
-    MT_LANGUAGE_SCOPE_GUARD __mt_guard_42
+    MT_LANGUAGE_SCOPE_GUARD __mt_seh_guard_42
         __attribute__((cleanup(MtpCleanupLanguageFrame))) = {
-            .Frame = &__mt_frame_42
+            &__mt_seh_frame_42
         };
 
-    int __mt_state_42 =
-        MtpEnterLanguageFrame(&__mt_frame_42);
+    volatile int __mt_seh_action_42 =
+        MtpSaveLanguageContext(&__mt_seh_frame_42.Continuation);
 
-    if (__mt_state_42 == MtLanguageEnterTry) {
+    if (__mt_seh_action_42 == MtLanguageProtected) {
+        MtpEnterLanguageFrame(&__mt_seh_frame_42);
         Work();
-
-        MtpLeaveLanguageFrame(&__mt_frame_42);
-        goto __mt_after_42;
+    } else if (__mt_seh_action_42 == MtLanguageEvaluateFilter) {
+        MtpApplyLanguageFilter(
+            &__mt_seh_frame_42,
+            (int)(MyFilter((&__mt_seh_frame_42.ExceptionPointers)))
+        );
+    } else if (__mt_seh_action_42 == MtLanguageExecuteHandler) {
+        Recover();
+    } else {
+        MtpApplyLanguageFilter(&__mt_seh_frame_42, __mt_seh_action_42);
     }
-
-    int __mt_filter_42 =
-        MyFilter(&__mt_frame_42.ExceptionPointers);
-
-    MtpApplyLanguageFilter(
-        &__mt_frame_42,
-        __mt_filter_42,
-        &&__mt_handler_42
-    );
-
-    UNREACHABLE_CODE();
-
-__mt_handler_42:
-    Recover();
-
-__mt_after_42:
-    ;
 }
 
 */
