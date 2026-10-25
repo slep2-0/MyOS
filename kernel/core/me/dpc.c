@@ -171,6 +171,8 @@ MeInsertQueueDpc(
 
     // Release the queue lock and restore the caller's IRQL.
     MsReleaseSpinlockFromDpcLevel(&DpcData->DpcLock);
+    // If the target is this CPU, lowering IRQL signals its pending DPC interrupt
+    // once the IRQL allows it. For a remote target, the IPI below signals it instead.
     MeLowerIrql(OldIrql);
 
     if (RequestInterrupt && RequestCpu != MeGetCurrentProcessor()) {
