@@ -206,9 +206,9 @@ MmAccessFault(
 
         This function is called by the kernel on data or instruction access faults.
         - The access fault was detected due to:
+        
             An Access Violation.
             A PTE with the present bit clear.
-            A Valid PTE with the Dirty bit and a write operation.
 
         Note that the page fault could occur because of the Page Directory contents as well.
 
